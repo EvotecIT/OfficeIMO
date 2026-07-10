@@ -71,15 +71,17 @@ Compare row scanning, selective field access, full `GetValues`, and typed getter
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-datareader-25000.json --rows 25000 --scenario read-datareader-readonly,read-datareader-first-column,read-datareader-getvalues,read-datareader-typed --skip-legacy-epplus --warmup 3 --iterations 15
 ```
 
-Local 2026-07-09 results at 25,000 rows, with three warmups and 15 measured
-iterations:
+Local 2026-07-10 median results at 25,000 rows, with three warmups and 15
+measured iterations:
+
+Each result is median elapsed time / median managed allocation.
 
 | Reader access | OfficeIMO.Excel | Sylvan.Data.Excel | ExcelDataReader | Result |
 | --- | ---: | ---: | ---: | --- |
-| Rows only | 39.46 ms / 1.0 MB | 41.07 ms / 3.4 MB | 99.94 ms / 42.6 MB | Within 4%; OfficeIMO allocates less |
-| First column | 39.34 ms / 2.5 MB | 36.39 ms / 3.4 MB | 91.24 ms / 42.6 MB | Sylvan 1.08x faster |
-| `GetValues` | 47.23 ms / 19.7 MB | 54.53 ms / 7.4 MB | 101.87 ms / 42.6 MB | OfficeIMO 1.15x faster |
-| Typed getters | 51.53 ms / 16.8 MB | 40.02 ms / 3.4 MB | 97.24 ms / 42.6 MB | Sylvan 1.29x faster |
+| Rows only | 26.17 ms / 0.2 MB | 38.28 ms / 3.4 MB | 91.19 ms / 42.6 MB | OfficeIMO 1.46x faster |
+| First column | 24.33 ms / 0.2 MB | 36.90 ms / 3.4 MB | 97.48 ms / 42.6 MB | OfficeIMO 1.52x faster |
+| `GetValues` | 31.21 ms / 2.5 MB | 54.77 ms / 7.4 MB | 93.05 ms / 42.6 MB | OfficeIMO 1.75x faster |
+| Typed getters | 30.50 ms / 0.2 MB | 42.00 ms / 3.4 MB | 90.05 ms / 42.6 MB | OfficeIMO 1.38x faster |
 
 Use `--skip-legacy-epplus` only when you want a faster local pass without the isolated EPPlus 4.x subprocess:
 

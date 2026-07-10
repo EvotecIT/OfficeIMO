@@ -1,10 +1,10 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
 using System;
 using System.Data;
 using System.Data.Common;
 using System.IO;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Excel;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -228,6 +228,112 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedDate, values[1]);
             Assert.Equal(true, values[2]);
             Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesUtf8FastPathCellKinds() {
+            var expectedDate = new DateTime(2026, 7, 10, 12, 30, 0);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                string[] headers = { "Id", "Direct", "Shared", "Created", "Formula", "Active", "Error", "Lines" };
+                for (int column = 0; column < headers.Length; column++) {
+                    sheet.CellValue(1, column + 1, headers[column]);
+                }
+
+                sheet.CellValue(2, 1, 7);
+                sheet.CellValue(2, 2, "A & B < C");
+                sheet.CellValue(2, 3, "Padded shared");
+                sheet.CellValue(2, 4, expectedDate);
+                sheet.CellValue(2, 5, 3);
+                sheet.CellValue(2, 6, true);
+                sheet.CellValue(2, 7, "#DIV/0!");
+                sheet.CellValue(2, 8, "Line 1\r\nLine 2");
+                sheet.CellValue(4098, 1, 4097);
+            }
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == "Data");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+
+                var direct = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "B2");
+                direct.DataType = CellValues.String;
+                direct.CellValue = new CellValue("A & B < C");
+
+                var shared = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "C2");
+                Assert.Equal(CellValues.SharedString, shared.DataType!.Value);
+                shared.CellValue = new CellValue(" +" + shared.CellValue!.Text + " ");
+
+                var formula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "E2");
+                formula.DataType = CellValues.Number;
+                formula.CellFormula = new CellFormula("1+2");
+                formula.CellValue = new CellValue("3");
+
+                var error = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "G2");
+                error.DataType = CellValues.Error;
+                error.CellValue = new CellValue("#DIV/0!");
+
+                var lines = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "H2");
+                lines.DataType = CellValues.String;
+                lines.CellValue = new CellValue("Line 1\r\nLine 2");
+                worksheetPart.Worksheet.Save();
+            }
+
+            byte[] workbook = memory.ToArray();
+            using (var reader = ExcelDocumentReader.Open(workbook))
+            using (var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:H4098", schemaSampleRows: 0)) {
+                Assert.True(dataReader.Read());
+                Assert.Equal(7, dataReader.GetInt32(0));
+                Assert.Equal("A & B < C", dataReader.GetString(1));
+                Assert.Equal("Padded shared", dataReader.GetString(2));
+                Assert.Equal(expectedDate, dataReader.GetDateTime(3));
+                Assert.Equal(3, dataReader.GetInt32(4));
+                Assert.True(dataReader.GetBoolean(5));
+                Assert.Equal("#DIV/0!", dataReader.GetString(6));
+                Assert.Equal("Line 1\nLine 2", dataReader.GetString(7));
+            }
+
+            using (var reader = ExcelDocumentReader.Open(workbook, new ExcelReadOptions { UseCachedFormulaResult = false }))
+            using (var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:H4098", schemaSampleRows: 0)) {
+                Assert.True(dataReader.Read());
+                Assert.Equal("1+2", dataReader.GetString(4));
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_FallsBackForInlineStrings() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Name");
+                sheet.CellValue(2, 1, 1);
+                sheet.CellValue(2, 2, "Placeholder");
+                sheet.CellValue(4098, 1, 4097);
+            }
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == "Data");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                var inline = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "B2");
+                inline.DataType = CellValues.InlineString;
+                inline.CellValue = null;
+                inline.InlineString = new InlineString(new Text("Inline & value"));
+                worksheetPart.Worksheet.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:B4098", schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal(1, dataReader.GetInt32(0));
+            Assert.Equal("Inline & value", dataReader.GetString(1));
         }
 
         [Fact]

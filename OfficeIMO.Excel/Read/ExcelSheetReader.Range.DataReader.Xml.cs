@@ -20,8 +20,9 @@ namespace OfficeIMO.Excel {
             private const string BaseCatalogNameColumn = "BaseCatalogName";
 
             private readonly ExcelSheetReader _owner;
-            private readonly Stream _stream;
-            private readonly XmlReader _reader;
+            private readonly Stream _stream = Stream.Null;
+            private readonly XmlReader _reader = null!;
+            private readonly ExcelUtf8RangeRowSource? _utf8Source;
             private readonly int _firstRow;
             private readonly int _lastRow;
             private readonly int _firstColumn;
@@ -79,9 +80,13 @@ namespace OfficeIMO.Excel {
                 _currentBooleanValues = new bool[fieldCount];
                 _blankRow = new object?[fieldCount];
 
-                _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
-                RewindWorksheetStream(_stream);
-                _reader = OpenWorksheetXmlReader(_stream);
+                if (ExcelUtf8RangeRowSource.TryCreate(owner, firstRow, lastRow, firstColumn, fieldCount, ct, out var utf8Source)) {
+                    _utf8Source = utf8Source;
+                } else {
+                    _stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                    RewindWorksheetStream(_stream);
+                    _reader = OpenWorksheetXmlReader(_stream);
+                }
 
                 object?[]? headerValues = null;
                 if (headersInFirstRow) {
@@ -282,8 +287,11 @@ namespace OfficeIMO.Excel {
 
                 _closed = true;
                 _currentRow = null;
-                _reader.Dispose();
-                _stream.Dispose();
+                _utf8Source?.Dispose();
+                _reader?.Dispose();
+                if (!ReferenceEquals(_stream, Stream.Null)) {
+                    _stream.Dispose();
+                }
             }
 
             /// <inheritdoc />
@@ -358,6 +366,20 @@ namespace OfficeIMO.Excel {
                 }
 
                 _ct.ThrowIfCancellationRequested();
+                if (_utf8Source != null) {
+                    Array.Clear(_currentValues, 0, _currentValues.Length);
+                    Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
+                    Array.Clear(_currentPrimitiveKinds, 0, _currentPrimitiveKinds.Length);
+                    bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow);
+                    row = hasPhysicalRow ? _currentValues : _blankRow;
+                    _currentRow = row;
+                    _currentRowIsBlank = !hasPhysicalRow;
+                    _currentRowActive = hasPhysicalRow;
+                    _currentRowFinished = !hasPhysicalRow;
+                    _nextLogicalRow++;
+                    return true;
+                }
+
                 FinishCurrentRow();
                 EnsurePendingRow();
                 if (_hasPendingRow && _pendingRowIndex == _nextLogicalRow) {
@@ -464,6 +486,14 @@ namespace OfficeIMO.Excel {
             }
 
             private void FinishCurrentRow() {
+                if (_utf8Source != null) {
+                    _currentRowActive = false;
+                    _currentRowFinished = true;
+                    _currentRow = null;
+                    _currentRowIsBlank = false;
+                    return;
+                }
+
                 if (_currentRowActive && !_currentRowFinished) {
                     SkipXmlElementContent(_reader, _currentRowDepth);
                 }
@@ -484,6 +514,19 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_currentValueLoaded[ordinal]) {
+                    return;
+                }
+
+                if (_utf8Source != null) {
+                    _utf8Source.ReadValue(
+                        ordinal,
+                        targetKind,
+                        out _currentPrimitiveKinds[ordinal],
+                        out _currentDoubleValues[ordinal],
+                        out _currentDateTimeValues[ordinal],
+                        out _currentBooleanValues[ordinal],
+                        out _currentValues[ordinal]);
+                    _currentValueLoaded[ordinal] = true;
                     return;
                 }
 
@@ -563,6 +606,13 @@ namespace OfficeIMO.Excel {
 
             private void MaterializeAllCurrentRowValues() {
                 if (_currentRowIsBlank || _currentRow == null) {
+                    return;
+                }
+
+                if (_utf8Source != null) {
+                    for (int i = 0; i < _fieldCount; i++) {
+                        EnsureCurrentValue(i);
+                    }
                     return;
                 }
 
