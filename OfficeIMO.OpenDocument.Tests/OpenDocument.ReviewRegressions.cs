@@ -102,6 +102,49 @@ public sealed class OpenDocumentReviewRegressionTests {
 
         Assert.False(reopened.Paragraphs.Single().Bold);
         Assert.True(reopened.PageLayout.Header.Paragraphs.Single().Bold);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void RepeatedOdtTableCellsAreLogicalCellsAndSplitWhenEdited() {
+        using OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 1, "Repeated");
+        table.Cell(0, 0).Text = "Same";
+        XElement cell = table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        document.Package.MarkXmlDirty("content.xml");
+
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtTableRow row = reopened.Tables.Single().Rows.Single();
+
+        Assert.Equal(3, row.Cells.Count);
+        Assert.Equal(new[] { "Same", "Same", "Same" }, row.Cells.Select(item => item.Text));
+        row.Cells[1].Text = "Changed";
+        Assert.Equal(new[] { "Same", "Changed", "Same" }, row.Cells.Select(item => item.Text));
+
+        using OdtDocument roundTrip = OdtDocument.Open(new MemoryStream(reopened.ToBytes()));
+        Assert.Equal(new[] { "Same", "Changed", "Same" }, roundTrip.Tables.Single().Rows.Single().Cells.Select(item => item.Text));
+        Assert.True(roundTrip.Validate().IsValid);
+    }
+
+    [Fact]
+    public void RepeatedCoveredOdtTableCellsAreLogicalCells() {
+        using OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 3, "Merged");
+        table.Merge(0, 0, 1, 3).Text = "Anchor";
+        XElement[] covered = table.Element.Descendants(OdfNamespaces.Table + "covered-table-cell").ToArray();
+        covered[0].SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 2);
+        covered[1].Remove();
+        document.Package.MarkXmlDirty("content.xml");
+
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        var cells = reopened.Tables.Single().Rows.Single().Cells;
+
+        Assert.Equal(3, cells.Count);
+        Assert.False(cells[0].IsCovered);
+        Assert.True(cells[1].IsCovered);
+        Assert.True(cells[2].IsCovered);
+        Assert.True(reopened.Validate().IsValid);
     }
 
     [Fact]

@@ -176,10 +176,13 @@ public static class ExcelOpenDocumentConversionExtensions {
         long expandedCells = 0;
         int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
         int invalidValues = 0, validations = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
+        int forcedVisibleWorksheets = 0;
         bool truncated = false;
         ExcelSheet? activeTarget = null;
+        ExcelSheet? firstTarget = null;
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorkSheet(odsSheet.Name);
+            firstTarget ??= sheet;
             worksheetCount++;
             if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
             sheet.SetHidden(odsSheet.Hidden);
@@ -256,6 +259,11 @@ public static class ExcelOpenDocumentConversionExtensions {
         }
 
         if (target.Sheets.Count == 0) activeTarget = target.AddWorkSheet("Sheet1");
+        else if (activeTarget == null) {
+            activeTarget = firstTarget!;
+            activeTarget.SetHidden(false);
+            forcedVisibleWorksheets++;
+        }
         if (activeTarget != null) target.SetActiveWorksheet(activeTarget);
 
         int namedRanges = 0;
@@ -282,6 +290,8 @@ public static class ExcelOpenDocumentConversionExtensions {
             "Cell styles were omitted because IncludeBasicStyles is disabled.");
         if (renamedSheets > 0) report.Add("worksheet-names", OdfConversionMappingStatus.Approximated, renamedSheets,
             "Worksheet names that are not valid in XLSX were sanitized; formulas and named-range text may still use the source names.");
+        if (forcedVisibleWorksheets > 0) report.Add("worksheet-visibility", OdfConversionMappingStatus.Approximated,
+            forcedVisibleWorksheets, "The first worksheet was made visible because XLSX requires at least one visible worksheet.");
         AddUnsupported(report, "validations", validations, "ODF validation conditions are retained in the source but are not translated to Excel rules.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,

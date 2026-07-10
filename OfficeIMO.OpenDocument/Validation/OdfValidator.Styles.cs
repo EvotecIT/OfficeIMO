@@ -20,7 +20,7 @@ internal static partial class OdfValidator {
         }
 
         foreach (IGrouping<string, (string Part, string Family, string Name, string? Parent)> duplicate in definitions
-            .GroupBy(item => item.Family + "\0" + item.Name, StringComparer.Ordinal).Where(group => group.Count() > 1)) {
+            .GroupBy(item => item.Part + "\0" + item.Family + "\0" + item.Name, StringComparer.Ordinal).Where(group => group.Count() > 1)) {
             diagnostics.Add(new OdfDiagnostic("ODF201", OdfDiagnosticSeverity.Error,
                 $"Style '{duplicate.First().Name}' in family '{duplicate.First().Family}' is declared {duplicate.Count()} times.", duplicate.First().Part));
         }

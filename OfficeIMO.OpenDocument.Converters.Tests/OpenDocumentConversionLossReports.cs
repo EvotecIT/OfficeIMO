@@ -183,6 +183,24 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
+    public void OdsToExcelKeepsOneWorksheetVisibleWhenEverySourceSheetIsHidden() {
+        using OdsDocument source = OdsDocument.Create();
+        source.AddSheet("First").Hidden = true;
+        source.AddSheet("Second").Hidden = true;
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocument();
+        using ExcelDocument target = conversion.Document;
+        ExcelWorkbookSnapshot snapshot = target.CreateInspectionSnapshot();
+
+        Assert.Empty(target.ValidateDocument());
+        Assert.False(snapshot.Worksheets[0].Hidden);
+        Assert.True(snapshot.Worksheets[0].IsActive);
+        Assert.True(snapshot.Worksheets[1].Hidden);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "worksheet-visibility" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Fact]
     public void ExcelToOdsReportsConfiguredCellAndStyleOmissions() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
         ExcelSheet sheet = source.AddWorkSheet("Data");

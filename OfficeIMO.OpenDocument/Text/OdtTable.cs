@@ -75,9 +75,9 @@ public sealed class OdtTableRow {
     }
 
     /// <summary>Cells, including covered cells, in source order.</summary>
-    public IReadOnlyList<OdtTableCell> Cells => _element.Elements()
+    public IReadOnlyList<OdtTableCell> Cells => new OdtTableCellCollection(_document, _element.Elements()
         .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
-        .Select(element => new OdtTableCell(_document, element)).ToList();
+        .ToList());
 
     /// <summary>Adds a cell.</summary>
     public OdtTableCell AddCell(string? text = null) {
@@ -92,10 +92,12 @@ public sealed class OdtTableRow {
 public sealed class OdtTableCell {
     private readonly OdtDocument _document;
     private XElement _element;
+    private readonly long _repeatOffset;
 
-    internal OdtTableCell(OdtDocument document, XElement element) {
+    internal OdtTableCell(OdtDocument document, XElement element, long repeatOffset = 0) {
         _document = document;
         _element = element;
+        _repeatOffset = repeatOffset;
     }
 
     /// <summary>True when this is a covered position in a merged range.</summary>
@@ -113,6 +115,7 @@ public sealed class OdtTableCell {
         get => string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
+            EnsureMaterialized();
             _element.RemoveNodes();
             var paragraph = new XElement(OdfNamespaces.Text + "p");
             OdfTextCodec.Append(paragraph, value);
@@ -125,6 +128,7 @@ public sealed class OdtTableCell {
     /// <summary>Adds a paragraph to the cell.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
         if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain paragraphs.");
+        EnsureMaterialized();
         var paragraph = new XElement(OdfNamespaces.Text + "p");
         OdfTextCodec.Append(paragraph, text);
         _element.Add(paragraph);
@@ -140,12 +144,14 @@ public sealed class OdtTableCell {
     }
 
     internal void SetSpans(int rows, int columns) {
+        EnsureMaterialized();
         _element.SetAttributeValue(OdfNamespaces.Table + "number-rows-spanned", rows > 1 ? rows : (int?)null);
         _element.SetAttributeValue(OdfNamespaces.Table + "number-columns-spanned", columns > 1 ? columns : (int?)null);
         Dirty();
     }
 
     internal void ReplaceWithCoveredCell() {
+        EnsureMaterialized();
         var covered = new XElement(OdfNamespaces.Table + "covered-table-cell");
         _element.ReplaceWith(covered);
         _element = covered;
@@ -156,5 +162,51 @@ public sealed class OdtTableCell {
         return int.TryParse((string?)_element.Attribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value > 0 ? value : 1;
     }
 
+    private void EnsureMaterialized() {
+        if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
+        _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
+    }
+
     private void Dirty() => _document.MarkPartDirty("content.xml");
+}
+
+internal sealed class OdtTableCellCollection : IReadOnlyList<OdtTableCell> {
+    private readonly OdtDocument _document;
+    private readonly IReadOnlyList<XElement> _elements;
+    private readonly int _count;
+
+    internal OdtTableCellCollection(OdtDocument document, IReadOnlyList<XElement> elements) {
+        _document = document;
+        _elements = elements;
+        long count = 0;
+        foreach (XElement element in elements) {
+            count = checked(count + OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated"));
+            if (count > int.MaxValue) throw new InvalidDataException("ODT table row exceeds the supported logical cell count.");
+        }
+        _count = (int)count;
+    }
+
+    public int Count => _count;
+
+    public OdtTableCell this[int index] {
+        get {
+            if (index < 0 || index >= _count) throw new ArgumentOutOfRangeException(nameof(index));
+            long current = 0;
+            foreach (XElement element in _elements) {
+                long repeat = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
+                if (index < current + repeat) return new OdtTableCell(_document, element, index - current);
+                current += repeat;
+            }
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+    }
+
+    public IEnumerator<OdtTableCell> GetEnumerator() {
+        foreach (XElement element in _elements) {
+            long repeat = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
+            for (long offset = 0; offset < repeat; offset++) yield return new OdtTableCell(_document, element, offset);
+        }
+    }
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }
