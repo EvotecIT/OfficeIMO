@@ -216,7 +216,7 @@ namespace OfficeIMO.Word {
             WordParagraph.EnsureParagraphCanBeInserted(this._document, _tableCell, paragraph,
                 "append a paragraph to the table cell");
             _tableCell.Append(paragraph._paragraph);
-            paragraph.RefreshParent();
+            paragraph.Parent = this;
             return paragraph;
         }
 

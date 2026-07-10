@@ -76,17 +76,19 @@ internal static partial class RtfHtmlWriter {
             AppendDocumentMetadata(builder, document, newline);
         }
 
-        AppendHeaderFooterMetadata(builder, document, options, newline);
-        AppendDocumentLayoutMetadata(builder, document, newline);
-        AppendDocumentSettingsMetadata(builder, document, newline);
-        AppendFontTableMetadata(builder, document, newline);
-        AppendStylesheetMetadata(builder, document, newline);
-        AppendListTableMetadata(builder, document, newline);
-        AppendUserPropertiesMetadata(builder, document, newline);
-        AppendDocumentVariablesMetadata(builder, document, newline);
-        AppendRevisionTablesMetadata(builder, document, newline);
-        AppendFileReferencesMetadata(builder, document, newline);
-        AppendXmlNamespacesMetadata(builder, document, newline);
+        if (options.IncludeRoundTripMetadata) {
+            AppendHeaderFooterMetadata(builder, document, options, newline);
+            AppendDocumentLayoutMetadata(builder, document, newline);
+            AppendDocumentSettingsMetadata(builder, document, newline);
+            AppendFontTableMetadata(builder, document, newline);
+            AppendStylesheetMetadata(builder, document, newline);
+            AppendListTableMetadata(builder, document, newline);
+            AppendUserPropertiesMetadata(builder, document, newline);
+            AppendDocumentVariablesMetadata(builder, document, newline);
+            AppendRevisionTablesMetadata(builder, document, newline);
+            AppendFileReferencesMetadata(builder, document, newline);
+            AppendXmlNamespacesMetadata(builder, document, newline);
+        }
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);
@@ -121,11 +123,13 @@ internal static partial class RtfHtmlWriter {
         builder.Append('<');
         builder.Append(tagName);
         AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
-        AppendListAttributes(builder, paragraph);
-        AppendParagraphStyleAttributes(builder, paragraph);
-        AppendParagraphRevisionAttributes(builder, paragraph);
-        AppendParagraphControlAttributes(builder, paragraph);
-        AppendParagraphFrameAttributes(builder, paragraph);
+        if (options.IncludeRoundTripMetadata) {
+            AppendListAttributes(builder, paragraph);
+            AppendParagraphStyleAttributes(builder, paragraph);
+            AppendParagraphRevisionAttributes(builder, paragraph);
+            AppendParagraphControlAttributes(builder, paragraph);
+            AppendParagraphFrameAttributes(builder, paragraph);
+        }
         AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
@@ -245,17 +249,17 @@ internal static partial class RtfHtmlWriter {
         foreach (IRtfInline inline in inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(builder, run, document);
+                    AppendRun(builder, run, options, document);
                     break;
                 case RtfBreak rtfBreak:
-                    AppendBreak(builder, rtfBreak.Kind);
+                    AppendBreak(builder, rtfBreak.Kind, options.IncludeRoundTripMetadata);
                     break;
                 case RtfField field:
                     AppendField(builder, field, options, document);
                     break;
                 case RtfGeneratedText generatedText:
-                    AppendGeneratedText(builder, generatedText);
-                    AppendNote(builder, generatedText.Note, document);
+                    AppendGeneratedText(builder, generatedText, options.IncludeRoundTripMetadata);
+                    AppendNote(builder, generatedText.Note, options, document);
                     break;
                 case RtfImage image:
                     AppendImage(builder, image, options);
@@ -267,23 +271,24 @@ internal static partial class RtfHtmlWriter {
                     AppendShape(builder, shape, options, document, blockTag: false);
                     break;
                 case RtfBookmarkMarker marker:
-                    AppendBookmarkMarker(builder, marker);
+                    AppendBookmarkMarker(builder, marker, options.IncludeRoundTripMetadata);
                     break;
             }
         }
     }
 
-    private static void AppendRun(StringBuilder builder, RtfRun run, RtfDocument document) {
-        bool revisionOpened = AppendRevisionStart(builder, run, document);
+    private static void AppendRun(StringBuilder builder, RtfRun run, RtfToHtmlOptions options, RtfDocument document) {
+        bool revisionOpened = AppendRevisionStart(builder, run, document, options.IncludeRoundTripMetadata);
         int opened = 0;
-        if (run.Hyperlink != null) {
+        string? hyperlink = ResolveHtmlUrl(run.Hyperlink?.ToString(), options, "RtfHtmlHyperlinkRejected", "run.Hyperlink");
+        if (hyperlink != null) {
             builder.Append("<a href=\"");
-            builder.Append(EncodeAttribute(run.Hyperlink.ToString()));
+            builder.Append(EncodeAttribute(hyperlink));
             builder.Append("\">");
             opened++;
         }
 
-        OpenRunStyle(builder, run, document, ref opened);
+        OpenRunStyle(builder, run, document, options.IncludeRoundTripMetadata, ref opened);
         OpenTag(builder, "strong", run.Bold, ref opened);
         OpenTag(builder, "em", run.Italic, ref opened);
         bool plainUnderline = run.Underline && !HasRichUnderline(run);
@@ -302,11 +307,11 @@ internal static partial class RtfHtmlWriter {
         CloseTag(builder, "em", run.Italic);
         CloseTag(builder, "strong", run.Bold);
         CloseRunStyle(builder, run, document);
-        if (run.Hyperlink != null) {
+        if (hyperlink != null) {
             builder.Append("</a>");
         }
 
-        AppendNote(builder, run.Note, document);
+        AppendNote(builder, run.Note, options, document);
         AppendRevisionEnd(builder, run, revisionOpened);
     }
 
@@ -332,34 +337,13 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendImage(StringBuilder builder, RtfImage image, RtfToHtmlOptions options) {
-        if (!options.EmbedImagesAsDataUri) {
-            options.AddDiagnostic(
-                "RtfHtmlImageEmbeddingDisabled",
-                "RTF image was skipped because data URI image embedding is disabled.",
-                image.Format.ToString());
+        string? source = ResolveImageSource(image, options);
+        if (source == null) {
             return;
         }
 
-        if (image.Data.Length == 0) {
-            options.AddDiagnostic(
-                "RtfHtmlImageDataMissing",
-                "RTF image was skipped because it does not contain image data.",
-                image.Format.ToString());
-            return;
-        }
-
-        if (!TryGetImageMediaType(image.Format, out string? mediaType)) {
-            options.AddDiagnostic(
-                "RtfHtmlImageFormatUnsupported",
-                "RTF image was skipped because the image format is not supported by the HTML writer.",
-                image.Format.ToString());
-            return;
-        }
-
-        builder.Append("<img src=\"data:");
-        builder.Append(mediaType);
-        builder.Append(";base64,");
-        builder.Append(Convert.ToBase64String(image.Data));
+        builder.Append("<img src=\"");
+        builder.Append(EncodeAttribute(source));
         builder.Append('"');
         if (!string.IsNullOrWhiteSpace(image.Description)) {
             builder.Append(" alt=\"");
@@ -369,6 +353,61 @@ internal static partial class RtfHtmlWriter {
 
         AppendImageSize(builder, image);
         builder.Append('>');
+    }
+
+    private static string? ResolveImageSource(RtfImage image, RtfToHtmlOptions options) {
+        if (options.ImageSourceResolver != null) {
+            string? resolved;
+            try {
+                resolved = options.ImageSourceResolver(image);
+            } catch (Exception exception) {
+                options.AddDiagnostic(
+                    "RtfHtmlImageSourceResolverFailed",
+                    "RTF image source resolution failed.",
+                    image.Format.ToString(),
+                    exception);
+                return null;
+            }
+
+            string? safeSource = ResolveHtmlUrl(resolved, options, "RtfHtmlImageSourceRejected", "ImageSourceResolver");
+            if (safeSource != null) {
+                return safeSource;
+            }
+        }
+
+        if (!options.EmbedImagesAsDataUri) {
+            options.AddDiagnostic(
+                "RtfHtmlImageEmbeddingDisabled",
+                "RTF image was skipped because no accepted image source was returned and data URI embedding is disabled.",
+                image.Format.ToString());
+            return null;
+        }
+
+        if (image.Data.Length == 0) {
+            options.AddDiagnostic(
+                "RtfHtmlImageDataMissing",
+                "RTF image was skipped because it does not contain image data.",
+                image.Format.ToString());
+            return null;
+        }
+
+        if (options.MaxEmbeddedImageBytes < 0 || image.Data.Length > options.MaxEmbeddedImageBytes) {
+            options.AddDiagnostic(
+                "RtfHtmlImageEmbeddingLimitExceeded",
+                "RTF image was skipped because it exceeds the configured data URI embedding limit.",
+                image.Data.Length.ToString(CultureInfo.InvariantCulture));
+            return null;
+        }
+
+        if (!TryGetImageMediaType(image.Format, out string? mediaType)) {
+            options.AddDiagnostic(
+                "RtfHtmlImageFormatUnsupported",
+                "RTF image was skipped because the image format is not supported by the HTML writer.",
+                image.Format.ToString());
+            return null;
+        }
+
+        return "data:" + mediaType + ";base64," + Convert.ToBase64String(image.Data);
     }
 
     private static void AppendImageSize(StringBuilder builder, RtfImage image) {
@@ -432,14 +471,16 @@ internal static partial class RtfHtmlWriter {
         }
     }
 
-    private static void OpenRunStyle(StringBuilder builder, RtfRun run, RtfDocument document, ref int opened) {
+    private static void OpenRunStyle(StringBuilder builder, RtfRun run, RtfDocument document, bool includeRoundTripMetadata, ref int opened) {
         bool hasStyle = TryGetRunStyle(run, document, out string? style);
         if (!hasStyle && !run.StyleId.HasValue && FormatLanguageTag(run.LanguageId) == null && FormatTextDirection(run.Direction) == null) {
             return;
         }
 
         builder.Append("<span");
-        AppendRunStyleAttributes(builder, run);
+        if (includeRoundTripMetadata) {
+            AppendRunStyleAttributes(builder, run);
+        }
         AppendLanguageDirectionAttributes(builder, run.LanguageId, run.Direction);
         if (hasStyle) {
             builder.Append(" style=\"");
@@ -597,4 +638,18 @@ internal static partial class RtfHtmlWriter {
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 
     private static string EncodeAttribute(string value) => WebUtility.HtmlEncode(value);
+
+    private static string? ResolveHtmlUrl(string? rawUrl, RtfToHtmlOptions options, string diagnosticCode, string source) {
+        if (string.IsNullOrWhiteSpace(rawUrl)) {
+            return null;
+        }
+
+        string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(rawUrl, null, options.GetUrlPolicy());
+        if (resolved.Length > 0) {
+            return resolved;
+        }
+
+        options.AddDiagnostic(diagnosticCode, "URL was omitted because it was rejected by the configured HTML URL policy.", source);
+        return null;
+    }
 }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Semantic RTF section containing ordered document blocks and section-level page layout.
 /// </summary>
-public sealed class RtfSection {
+public sealed partial class RtfSection {
     private readonly List<IRtfBlock> _blocks = new List<IRtfBlock>();
     private readonly List<RtfSectionColumn> _columns = new List<RtfSectionColumn>();
     private readonly RtfDocument? _document;

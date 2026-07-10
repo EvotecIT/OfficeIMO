@@ -78,7 +78,7 @@ public static partial class DocumentReaderRtfExtensions {
         warnings.Add(warning);
     }
 
-    private static ReaderChunkDiagnostics BuildDiagnostics(RtfDocument document, RtfReaderBlock block) {
+    private static ReaderChunkDiagnostics BuildDiagnostics(RtfReaderBlock block, int documentLinkCount, int documentFormFieldCount) {
         int imageCount = block.Visuals?.Count(static visual => string.Equals(visual.Kind, "image", StringComparison.OrdinalIgnoreCase)) ?? 0;
         return new ReaderChunkDiagnostics {
             SourceKind = "rtf",
@@ -86,8 +86,8 @@ public static partial class DocumentReaderRtfExtensions {
             ImageCount = imageCount,
             SelectedPageCount = 0,
             PageCount = 0,
-            LinkCount = CountHyperlinkRuns(document),
-            FormFieldCount = CountFormFields(document)
+            LinkCount = documentLinkCount,
+            FormFieldCount = documentFormFieldCount
         };
     }
 
@@ -135,8 +135,8 @@ public static partial class DocumentReaderRtfExtensions {
             RtfTableRow row = table.Rows[rowIndex];
             for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
                 RtfTableCell cell = row.Cells[cellIndex];
-                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
-                    count += CountHyperlinkRuns(cell.Paragraphs[paragraphIndex]);
+                for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
+                    count += CountHyperlinkRuns(cell.Blocks[blockIndex]);
                 }
             }
         }
@@ -224,8 +224,8 @@ public static partial class DocumentReaderRtfExtensions {
             RtfTableRow row = table.Rows[rowIndex];
             for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
                 RtfTableCell cell = row.Cells[cellIndex];
-                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
-                    count += CountFormFields(cell.Paragraphs[paragraphIndex]);
+                for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
+                    count += CountFormFields(cell.Blocks[blockIndex]);
                 }
             }
         }

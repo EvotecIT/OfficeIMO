@@ -23,7 +23,12 @@ namespace OfficeIMO.Word {
 
         internal SectionProperties? GetFinalSectionPropertiesInsertionBoundary() {
             var body = BodyRoot;
-            var finalSectionProperties = body.Elements<SectionProperties>().LastOrDefault();
+            var finalSectionProperties = body.LastChild as SectionProperties;
+            if (finalSectionProperties != null) {
+                return finalSectionProperties;
+            }
+
+            finalSectionProperties = body.Elements<SectionProperties>().LastOrDefault();
             if (finalSectionProperties != null && !ReferenceEquals(body.ChildElements.LastOrDefault(), finalSectionProperties)) {
                 finalSectionProperties.Remove();
                 body.AppendChild(finalSectionProperties);

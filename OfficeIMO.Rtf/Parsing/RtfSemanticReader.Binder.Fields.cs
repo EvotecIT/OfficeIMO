@@ -1,3 +1,4 @@
+using OfficeIMO.Rtf.Diagnostics;
 using OfficeIMO.Rtf.Syntax;
 
 namespace OfficeIMO.Rtf;
@@ -25,8 +26,29 @@ internal static partial class RtfSemanticReader {
                 field.Result.AddInline(inline);
             }
 
+            if (!IsHyperlinkAllowed(field)) {
+                _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF107", "Hyperlink field was flattened because its target was blocked by the configured read policy.", group.Position));
+                foreach (IRtfInline inline in field.Result.Inlines.ToArray()) {
+                    _currentParagraph.AddInline(inline);
+                }
+                return true;
+            }
+
             _currentParagraph.AddField(field);
             return true;
+        }
+
+        private bool IsHyperlinkAllowed(RtfField field) {
+            Uri? target = field.Hyperlink ?? field.HyperlinkField?.Target;
+            string? subAddress = field.HyperlinkField?.SubAddress;
+            if (target == null && string.IsNullOrWhiteSpace(subAddress)) return true;
+            if (_options.HyperlinkPolicy == RtfHyperlinkReadPolicy.AllowAll) return true;
+            if (_options.HyperlinkPolicy == RtfHyperlinkReadPolicy.BlockAll) return false;
+            if (target == null || !target.IsAbsoluteUri) return true;
+
+            return target.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                   || target.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                   || target.Scheme.Equals(Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase);
         }
 
         private static RtfFormFieldData ReadFormFieldData(RtfGroup group, CharacterState state) {

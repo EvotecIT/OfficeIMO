@@ -5,6 +5,7 @@ namespace OfficeIMO.Rtf;
 internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private RtfObject? ReadObject(RtfGroup group, CharacterState state, int depth) {
+            _limits.BeginObject(group.Position);
             var rtfObject = new RtfObject();
             bool hasObjectMetadata = false;
 
@@ -24,7 +25,8 @@ internal static partial class RtfSemanticReader {
                             hasObjectMetadata |= rtfObject.Name != null;
                             break;
                         case "objdata":
-                            rtfObject.Data = ReadObjectData(childGroup);
+                            long objectBytes = 0;
+                            rtfObject.Data = ReadObjectData(childGroup, ref objectBytes);
                             hasObjectMetadata |= rtfObject.Data.Length > 0;
                             break;
                         case "result":
@@ -75,18 +77,22 @@ internal static partial class RtfSemanticReader {
             }
         }
 
-        private static byte[] ReadObjectData(RtfGroup group) {
+        private byte[] ReadObjectData(RtfGroup group, ref long objectBytes) {
             var data = new List<byte>();
             foreach (RtfNode node in group.Children) {
+                _limits.CheckCancellation();
                 switch (node) {
                     case RtfBinary binary:
+                        _limits.AddObjectBytes(ref objectBytes, binary.Data.Length, binary.Position);
                         data.AddRange(binary.Data);
                         break;
                     case RtfText text:
-                        AppendHexBytes(text.Text, data);
+                        long decodedObjectBytes = objectBytes;
+                        AppendHexBytes(text.Text, data, count => _limits.AddObjectBytes(ref decodedObjectBytes, count, text.Position));
+                        objectBytes = decodedObjectBytes;
                         break;
                     case RtfGroup childGroup:
-                        data.AddRange(ReadObjectData(childGroup));
+                        data.AddRange(ReadObjectData(childGroup, ref objectBytes));
                         break;
                 }
             }
@@ -126,7 +132,7 @@ internal static partial class RtfSemanticReader {
                             WalkGroup(childGroup, resultState.Clone(), depth + 1, allowDestinationSkip: true);
                             break;
                         case RtfText text:
-                            AppendText(ApplySkip(resultState, RtfAnsiCodePage.DecodeText(resultState.AnsiCodePage, text.Text)), resultState);
+                            AppendAnsiText(text.Text, resultState);
                             break;
                         case RtfControlWord control:
                             ApplyControlWord(control, resultState);

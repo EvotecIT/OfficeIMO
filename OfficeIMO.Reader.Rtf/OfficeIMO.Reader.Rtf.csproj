@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>RTF adapter for OfficeIMO.Reader using the dependency-free OfficeIMO.Rtf semantic model.</Description>
+    <Description>Bounded RTF chunk, table, visual, warning, and provenance adapter for OfficeIMO.Reader.</Description>
     <AssemblyName>OfficeIMO.Reader.Rtf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Rtf</AssemblyTitle>
     <VersionPrefix>0.0.11</VersionPrefix>

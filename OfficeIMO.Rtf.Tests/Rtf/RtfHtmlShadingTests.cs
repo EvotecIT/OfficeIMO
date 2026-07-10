@@ -51,7 +51,7 @@ public class RtfHtmlShadingTests {
         paragraph.AddText("flag")
             .SetCharacterShading(runBackground, runForeground, patternPercent: 3750, pattern: RtfShadingPattern.DarkDiagonalCross);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p style=\"background-color:#E6F2FF;--officeimo-rtf-shading-foreground:#4472C4;--officeimo-rtf-shading-percent:6250;--officeimo-rtf-shading-pattern:dark-forward-diagonal;\">Assessment <span style=\"background-color:#FFF2CC;--officeimo-rtf-shading-foreground:#00AA55;--officeimo-rtf-shading-percent:3750;--officeimo-rtf-shading-pattern:dark-diagonal-cross;\">flag</span></p>", html);
 

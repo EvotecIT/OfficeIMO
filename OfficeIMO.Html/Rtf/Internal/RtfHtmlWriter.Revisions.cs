@@ -7,7 +7,7 @@ internal static partial class RtfHtmlWriter {
         AppendRevisionAttribute(builder, "data-officeimo-rtf-pararsid", paragraph.RevisionSaveId);
     }
 
-    private static bool AppendRevisionStart(StringBuilder builder, RtfRun run, RtfDocument document) {
+    private static bool AppendRevisionStart(StringBuilder builder, RtfRun run, RtfDocument document, bool includeRoundTripMetadata) {
         if (!HasRevisionMetadata(run)) {
             return false;
         }
@@ -15,18 +15,20 @@ internal static partial class RtfHtmlWriter {
         string tagName = GetRevisionTagName(run.RevisionKind);
         builder.Append('<');
         builder.Append(tagName);
-        builder.Append(" data-officeimo-rtf-revision=\"");
-        builder.Append(FormatRevisionKind(run.RevisionKind));
-        builder.Append('"');
-        AppendRevisionAttribute(builder, "data-officeimo-rtf-revision-author-index", run.RevisionAuthorIndex);
-        if (TryGetRevisionAuthor(document, run.RevisionAuthorIndex, out string? author)) {
-            AppendRevisionAttribute(builder, "data-officeimo-rtf-revision-author", author);
-        }
+        if (includeRoundTripMetadata) {
+            builder.Append(" data-officeimo-rtf-revision=\"");
+            builder.Append(FormatRevisionKind(run.RevisionKind));
+            builder.Append('"');
+            AppendRevisionAttribute(builder, "data-officeimo-rtf-revision-author-index", run.RevisionAuthorIndex);
+            if (TryGetRevisionAuthor(document, run.RevisionAuthorIndex, out string? author)) {
+                AppendRevisionAttribute(builder, "data-officeimo-rtf-revision-author", author);
+            }
 
-        AppendRevisionAttribute(builder, "data-officeimo-rtf-revision-timestamp", run.RevisionTimestampValue);
-        AppendRevisionAttribute(builder, "data-officeimo-rtf-charrsid", run.CharacterRevisionSaveId);
-        AppendRevisionAttribute(builder, "data-officeimo-rtf-insrsid", run.InsertionRevisionSaveId);
-        AppendRevisionAttribute(builder, "data-officeimo-rtf-delrsid", run.DeletionRevisionSaveId);
+            AppendRevisionAttribute(builder, "data-officeimo-rtf-revision-timestamp", run.RevisionTimestampValue);
+            AppendRevisionAttribute(builder, "data-officeimo-rtf-charrsid", run.CharacterRevisionSaveId);
+            AppendRevisionAttribute(builder, "data-officeimo-rtf-insrsid", run.InsertionRevisionSaveId);
+            AppendRevisionAttribute(builder, "data-officeimo-rtf-delrsid", run.DeletionRevisionSaveId);
+        }
         builder.Append('>');
         return true;
     }

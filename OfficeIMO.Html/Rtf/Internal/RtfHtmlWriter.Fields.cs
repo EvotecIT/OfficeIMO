@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendField(StringBuilder builder, RtfField field, RtfToHtmlOptions options, RtfDocument document) {
-        string? href = GetHyperlinkFieldHref(field);
+        string? href = ResolveHtmlUrl(GetHyperlinkFieldHref(field), options, "RtfHtmlFieldHyperlinkRejected", "field.Hyperlink");
         string tagName = href != null ? "a" : "span";
         builder.Append('<');
         builder.Append(tagName);
@@ -12,10 +12,14 @@ internal static partial class RtfHtmlWriter {
             AppendAttribute(builder, "href", href);
         }
 
-        AppendAttribute(builder, "data-officeimo-rtf-field", "true");
-        AppendAttribute(builder, "data-officeimo-rtf-field-instruction", field.Instruction);
-        AppendHyperlinkFieldAttributes(builder, field.HyperlinkField);
-        AppendFormFieldAttributes(builder, field.FormFieldData);
+        if (options.IncludeRoundTripMetadata) {
+            AppendAttribute(builder, "data-officeimo-rtf-field", "true");
+            AppendAttribute(builder, "data-officeimo-rtf-field-instruction", field.Instruction);
+            AppendHyperlinkFieldAttributes(builder, field.HyperlinkField);
+            AppendFormFieldAttributes(builder, field.FormFieldData);
+        } else if (!string.IsNullOrWhiteSpace(field.HyperlinkField?.ScreenTip)) {
+            AppendAttribute(builder, "title", field.HyperlinkField!.ScreenTip);
+        }
         builder.Append('>');
         AppendInlines(builder, field.Result.Inlines, options, document);
         builder.Append("</");

@@ -53,7 +53,11 @@ public class RtfHtmlOptionsTests {
             FragmentOnly = false,
             IncludeMetadata = false,
             Title = "Clinical note",
+            UrlPolicy = HtmlUrlPolicy.CreateHyperlinkProfile(),
+            IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = false,
+            MaxEmbeddedImageBytes = 123,
+            ImageSourceResolver = _ => "https://example.test/image.png",
             NewLine = "\n",
             DiagnosticHandler = handler
         };
@@ -65,7 +69,12 @@ public class RtfHtmlOptionsTests {
         Assert.Equal(options.FragmentOnly, clone.FragmentOnly);
         Assert.Equal(options.IncludeMetadata, clone.IncludeMetadata);
         Assert.Equal(options.Title, clone.Title);
+        Assert.NotSame(options.UrlPolicy, clone.UrlPolicy);
+        Assert.True(clone.UrlPolicy.DisallowFileUrls);
+        Assert.Equal(options.IncludeRoundTripMetadata, clone.IncludeRoundTripMetadata);
         Assert.Equal(options.EmbedImagesAsDataUri, clone.EmbedImagesAsDataUri);
+        Assert.Equal(options.MaxEmbeddedImageBytes, clone.MaxEmbeddedImageBytes);
+        Assert.Same(options.ImageSourceResolver, clone.ImageSourceResolver);
         Assert.Equal(options.NewLine, clone.NewLine);
         Assert.Same(handler, clone.DiagnosticHandler);
         Assert.Empty(clone.Diagnostics);

@@ -58,8 +58,10 @@ public sealed class ReaderRtfModularTests {
     [Fact]
     public void DocumentReaderRtf_Diagnostics_CountsNestedLinksAndFormFields() {
         RtfDocument document = RtfDocument.Create();
-        RtfTable table = document.AddTable(1, 1);
-        RtfParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph();
+        RtfTable outerTable = document.AddTable(1, 1);
+        outerTable.Rows[0].Cells[0].AddParagraph("Outer");
+        RtfTable nestedTable = outerTable.Rows[0].Cells[0].AddTable(1, 1);
+        RtfParagraph cellParagraph = nestedTable.Rows[0].Cells[0].AddParagraph();
         cellParagraph.AddText("Portal").SetHyperlink(new Uri("https://example.test/patient/1"));
         RtfField field = cellParagraph.AddField("FORMTEXT");
         field.AddText("Value");
@@ -76,6 +78,9 @@ public sealed class ReaderRtfModularTests {
         Assert.Equal(1, chunk.Diagnostics?.LinkCount);
         Assert.Equal(1, chunk.Diagnostics?.FormFieldCount);
         Assert.Contains("Portal", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains("Outer", chunk.Markdown, StringComparison.Ordinal);
+        Assert.NotNull(chunk.Tables);
+        Assert.Contains("Portal", Assert.Single(chunk.Tables!).Rows[0][0], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -149,6 +154,32 @@ public sealed class ReaderRtfModularTests {
 
         Assert.Equal(32, options.RtfReadOptions!.MaxDepth);
         Assert.Equal(64, clone.RtfReadOptions.MaxDepth);
+    }
+
+    [Fact]
+    public void ReaderRtfOptions_Defaults_To_Bounded_Core_Profile() {
+        var options = new ReaderRtfOptions();
+
+        Assert.NotNull(options.RtfReadOptions?.MaxInputBytes);
+        Assert.NotNull(options.RtfReadOptions?.MaxTokenCount);
+        Assert.False(options.RtfReadOptions?.ReadEmbeddedObjects);
+        Assert.False(options.RtfReadOptions?.ReadFileReferences);
+    }
+
+    [Fact]
+    public void DocumentReaderRtf_Reports_Object_And_Shape_Text_Fallback() {
+        RtfDocument document = RtfDocument.Create();
+        RtfObject rtfObject = document.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
+        rtfObject.Result.AddText("Object text");
+        document.AddShape().AddTextBoxParagraph("Shape text");
+        var options = ReaderRtfOptions.CreateTrustedProfile();
+
+        List<ReaderChunk> chunks = DocumentReaderRtfExtensions.ReadRtfDocument(document, rtfOptions: options).ToList();
+
+        Assert.Contains(chunks, chunk => chunk.Text.Contains("Object text", StringComparison.Ordinal));
+        Assert.Contains(chunks, chunk => chunk.Text.Contains("Shape text", StringComparison.Ordinal));
+        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
     }
 
     private static string CreateSampleRtf(string text) {

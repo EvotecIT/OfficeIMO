@@ -19,7 +19,7 @@ public class RtfHtmlRevisionTests {
             .SetDeletedRevision(bob)
             .SetRevisionSaveIds(deletion: 50);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("<ins data-officeimo-rtf-revision=\"inserted\" data-officeimo-rtf-revision-author-index=\"0\" data-officeimo-rtf-revision-author=\"Alice\" data-officeimo-rtf-revision-timestamp=\"123\" data-officeimo-rtf-charrsid=\"30\" data-officeimo-rtf-insrsid=\"40\">Inserted</ins>", html, StringComparison.Ordinal);
         Assert.Contains("<del data-officeimo-rtf-revision=\"deleted\" data-officeimo-rtf-revision-author-index=\"1\" data-officeimo-rtf-revision-author=\"Bob\" data-officeimo-rtf-delrsid=\"50\">Removed</del>", html, StringComparison.Ordinal);
