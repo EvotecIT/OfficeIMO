@@ -5,6 +5,18 @@ using System.Text.Json;
 namespace OfficeIMO.Reader;
 
 public static partial class OfficeDocumentReadResultJson {
+    private static readonly HashSet<string> ReaderInputKindNames = new HashSet<string>(
+        Enum.GetNames(typeof(ReaderInputKind)),
+        StringComparer.Ordinal);
+
+    private static readonly HashSet<string> DiagnosticSeverityNames = new HashSet<string>(
+        Enum.GetNames(typeof(OfficeDocumentDiagnosticSeverity)),
+        StringComparer.Ordinal);
+
+    private static readonly HashSet<string> DiagnosticCategoryNames = new HashSet<string>(
+        Enum.GetNames(typeof(OfficeDocumentDiagnosticCategory)),
+        StringComparer.Ordinal);
+
     private static readonly string[] RequiredObjectArrayProperties = {
         "chunks",
         "metadata",
@@ -42,6 +54,10 @@ public static partial class OfficeDocumentReadResultJson {
     }, StringComparer.Ordinal);
 
     private static void EnsureNestedTransportContracts(JsonElement root) {
+        EnsureEnumString(root.GetProperty("kind"), ReaderInputKindNames, "kind");
+        EnsureOptionalString(root, "markdown");
+        EnsureOptionalString(root, "html");
+        EnsureOptionalString(root, "json");
         EnsureSourceContract(root.GetProperty("source"));
         EnsureStringArray(root.GetProperty("capabilitiesUsed"), "capabilitiesUsed");
         for (int index = 0; index < RequiredObjectArrayProperties.Length; index++) {
@@ -99,6 +115,8 @@ public static partial class OfficeDocumentReadResultJson {
             EnsureKnownNestedProperties(diagnostic, AllowedDiagnosticProperties, $"diagnostics[{index}]");
             EnsureRequiredDiagnosticString(diagnostic, "severity", index, requireContent: false);
             EnsureRequiredDiagnosticString(diagnostic, "category", index, requireContent: false);
+            EnsureEnumString(diagnostic.GetProperty("severity"), DiagnosticSeverityNames, $"diagnostics[{index}].severity");
+            EnsureEnumString(diagnostic.GetProperty("category"), DiagnosticCategoryNames, $"diagnostics[{index}].category");
             EnsureRequiredDiagnosticString(diagnostic, "code", index, requireContent: true);
             EnsureRequiredDiagnosticString(diagnostic, "message", index, requireContent: false);
             if (!diagnostic.TryGetProperty("attributes", out JsonElement attributes) || attributes.ValueKind != JsonValueKind.Object) {
@@ -134,6 +152,19 @@ public static partial class OfficeDocumentReadResultJson {
         }
         if (requireContent && string.IsNullOrWhiteSpace(value.GetString())) {
             throw new JsonException($"Document diagnostic at index {index} must have a non-empty {propertyName}.");
+        }
+    }
+
+    private static void EnsureOptionalString(JsonElement value, string propertyName) {
+        if (!value.TryGetProperty(propertyName, out JsonElement property)) return;
+        if (property.ValueKind != JsonValueKind.String) {
+            throw new JsonException($"Document read result property '{propertyName}' must be a string when present.");
+        }
+    }
+
+    private static void EnsureEnumString(JsonElement value, HashSet<string> allowedValues, string propertyName) {
+        if (value.ValueKind != JsonValueKind.String || !allowedValues.Contains(value.GetString() ?? string.Empty)) {
+            throw new JsonException($"Document read result property '{propertyName}' has an invalid enum value.");
         }
     }
 

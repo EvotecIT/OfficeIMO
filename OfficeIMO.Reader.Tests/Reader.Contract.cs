@@ -279,4 +279,42 @@ public sealed class ReaderContractTests {
 
         Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Deserialize(withNumericKind));
     }
+
+    [Theory]
+    [InlineData("markdown")]
+    [InlineData("html")]
+    [InlineData("json")]
+    public void OfficeDocumentReadResultJson_RejectsNullOptionalTextMembers(string propertyName) {
+        JsonObject envelope = JsonNode.Parse(
+            OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult()))!.AsObject();
+        envelope[propertyName] = null;
+
+        JsonException exception = Assert.Throws<JsonException>(
+            () => OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString()));
+
+        Assert.Contains(propertyName, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("string", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("kind", "pdf")]
+    [InlineData("severity", "warning")]
+    [InlineData("category", "ocr")]
+    public void OfficeDocumentReadResultJson_RejectsEnumsWithSchemaInvalidCasing(string propertyName, string value) {
+        var result = new OfficeDocumentReadResult {
+            Diagnostics = new[] { new OfficeDocumentDiagnostic { Code = "fixture", Message = "Fixture" } }
+        };
+        JsonObject envelope = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(result))!.AsObject();
+        if (propertyName == "kind") {
+            envelope[propertyName] = value;
+        } else {
+            envelope["diagnostics"]![0]![propertyName] = value;
+        }
+
+        JsonException exception = Assert.Throws<JsonException>(
+            () => OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString()));
+
+        Assert.Contains(propertyName, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("enum", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }
