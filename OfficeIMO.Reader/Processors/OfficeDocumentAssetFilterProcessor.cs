@@ -31,11 +31,14 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
 
         removedIds.ExceptWith(keptIds);
         if (removedIds.Count == 0) return document;
+        IReadOnlyList<OfficeDocumentOcrCandidate> removedCandidates = EnumerateCandidates(document)
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate.AssetId) && removedIds.Contains(candidate.AssetId!))
+            .ToArray();
         document.OcrCandidates = FilterCandidates(document.OcrCandidates, removedIds);
         foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
             page.OcrCandidates = FilterCandidates(page.OcrCandidates, removedIds);
         }
-        document.Diagnostics = RebuildOcrDiagnostics(document);
+        document.Diagnostics = FilterOcrDiagnostics(document, removedIds, removedCandidates);
         return document;
     }
 
@@ -69,28 +72,48 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
             .ToArray();
     }
 
-    private static IReadOnlyList<OfficeDocumentDiagnostic> RebuildOcrDiagnostics(OfficeDocumentReadResult document) {
-        var diagnostics = (document.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>())
-            .Where(static diagnostic => diagnostic != null &&
-                !string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal))
-            .ToList();
-        var seenIds = new HashSet<string>(StringComparer.Ordinal);
-        var seenCandidates = new HashSet<OfficeDocumentOcrCandidate>(ReferenceIdentityComparer<OfficeDocumentOcrCandidate>.Instance);
-        foreach (OfficeDocumentOcrCandidate candidate in EnumerateCandidates(document)) {
-            if (candidate == null || !seenCandidates.Add(candidate)) continue;
-            if (!string.IsNullOrWhiteSpace(candidate.Id) && !seenIds.Add(candidate.Id)) continue;
-            diagnostics.Add(new OfficeDocumentDiagnostic {
-                Severity = OfficeDocumentDiagnosticSeverity.Warning,
-                Category = OfficeDocumentDiagnosticCategory.Ocr,
-                Code = "ocr-needed",
-                Message = candidate.Reason ?? "OCR may be needed before text extraction is complete.",
-                Source = "officeimo.reader.filter-assets",
-                IsRecoverable = true,
-                Location = candidate.Location
-            });
+    private static IReadOnlyList<OfficeDocumentDiagnostic> FilterOcrDiagnostics(
+        OfficeDocumentReadResult document,
+        ISet<string> removedIds,
+        IReadOnlyList<OfficeDocumentOcrCandidate> removedCandidates) {
+        var removedSignatures = new HashSet<string>(
+            removedCandidates.Select(candidate => BuildOcrSignature(candidate.Reason, candidate.Location)),
+            StringComparer.Ordinal);
+        var remainingSignatures = new HashSet<string>(
+            EnumerateCandidates(document).Select(candidate => BuildOcrSignature(candidate.Reason, candidate.Location)),
+            StringComparer.Ordinal);
+        var diagnostics = new List<OfficeDocumentDiagnostic>();
+        foreach (OfficeDocumentDiagnostic diagnostic in document.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>()) {
+            if (diagnostic == null) continue;
+            if (!string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal)) {
+                diagnostics.Add(diagnostic);
+                continue;
+            }
+            if (IsTiedToRemovedAsset(diagnostic, removedIds)) continue;
+            string signature = BuildOcrSignature(diagnostic.Message, diagnostic.Location);
+            if (removedSignatures.Contains(signature) && !remainingSignatures.Contains(signature)) continue;
+            diagnostics.Add(diagnostic);
         }
         return diagnostics.Count == 0 ? Array.Empty<OfficeDocumentDiagnostic>() : diagnostics.ToArray();
     }
+
+    private static bool IsTiedToRemovedAsset(OfficeDocumentDiagnostic diagnostic, ISet<string> removedIds) {
+        if (!string.IsNullOrWhiteSpace(diagnostic.Location?.BlockAnchor) &&
+            removedIds.Contains(diagnostic.Location!.BlockAnchor!)) return true;
+        return diagnostic.Attributes != null &&
+            diagnostic.Attributes.TryGetValue("assetId", out string? assetId) &&
+            !string.IsNullOrWhiteSpace(assetId) &&
+            removedIds.Contains(assetId!);
+    }
+
+    private static string BuildOcrSignature(string? reason, ReaderLocation? location) => string.Join("|", new[] {
+        reason ?? string.Empty,
+        location?.Path ?? string.Empty,
+        location?.Page?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+        location?.Slide?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+        location?.Sheet ?? string.Empty,
+        location?.BlockAnchor ?? string.Empty
+    });
 
     private static IEnumerable<OfficeDocumentOcrCandidate> EnumerateCandidates(OfficeDocumentReadResult document) {
         foreach (OfficeDocumentOcrCandidate candidate in document.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>()) {

@@ -176,6 +176,110 @@ public sealed class ReaderStructuredExtractionTests {
     }
 
     [Fact]
+    public void Extract_OrdersPageOnlyBlocksWithTheirDocumentHeadings() {
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] {
+                new OfficeDocumentBlock {
+                    Id = "heading-1",
+                    Kind = "heading",
+                    Text = "Page One",
+                    Location = new ReaderLocation { Page = 1, SourceBlockIndex = 0 }
+                },
+                new OfficeDocumentBlock {
+                    Id = "heading-2",
+                    Kind = "heading",
+                    Text = "Page Two",
+                    Location = new ReaderLocation { Page = 2, SourceBlockIndex = 0 }
+                }
+            },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 1,
+                    Blocks = new[] {
+                        new OfficeDocumentBlock {
+                            Id = "body-1",
+                            Kind = "paragraph",
+                            Text = "First page body",
+                            Location = new ReaderLocation { Page = 1, SourceBlockIndex = 1 }
+                        }
+                    }
+                },
+                new OfficeDocumentPage {
+                    Number = 2,
+                    Blocks = new[] {
+                        new OfficeDocumentBlock {
+                            Id = "body-2",
+                            Kind = "paragraph",
+                            Text = "Second page body",
+                            Location = new ReaderLocation { Page = 2, SourceBlockIndex = 1 }
+                        }
+                    }
+                }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(document);
+
+        Assert.Equal(new[] { "Page One", "Page Two" }, result.Sections.Select(section => section.Heading));
+        Assert.Equal(new[] { "First page body", "Second page body" }, result.Sections.Select(section => section.Text));
+    }
+
+    [Fact]
+    public void Extract_DeduplicatesChunkTablesAndVisualsPromotedWithFallbackLocations() {
+        var chunkLocation = new ReaderLocation { Path = "report.md", Page = 1, BlockAnchor = "chunk-1" };
+        var chunkTable = new ReaderTable {
+            Title = "Settings",
+            Columns = new[] { "Key", "Value" },
+            Rows = new[] { (IReadOnlyList<string>)new[] { "Region", "EU" } },
+            TotalRowCount = 1,
+            Diagnostics = new ReaderTableDiagnostics { Confidence = 0.9 }
+        };
+        var promotedTable = new ReaderTable {
+            Title = chunkTable.Title,
+            Location = new ReaderLocation { Path = "report.md", Page = 1, BlockAnchor = "chunk-1", TableIndex = 0 },
+            Columns = chunkTable.Columns,
+            Rows = chunkTable.Rows,
+            TotalRowCount = chunkTable.TotalRowCount,
+            Diagnostics = chunkTable.Diagnostics
+        };
+        var chunkVisual = new ReaderVisual {
+            Kind = "chart",
+            Language = "ix-chart",
+            Content = "{\"type\":\"bar\"}",
+            PayloadHash = "chart-hash",
+            SourceName = "Revenue"
+        };
+        var promotedVisual = new ReaderVisual {
+            Kind = chunkVisual.Kind,
+            Language = chunkVisual.Language,
+            Content = chunkVisual.Content,
+            PayloadHash = chunkVisual.PayloadHash,
+            SourceName = chunkVisual.SourceName,
+            Location = new ReaderLocation { Path = "report.md", Page = 1, BlockAnchor = "chunk-1" }
+        };
+        var document = new OfficeDocumentReadResult {
+            Tables = new[] { promotedTable },
+            Visuals = new[] { promotedVisual },
+            Chunks = new[] {
+                new ReaderChunk {
+                    Id = "chunk-1",
+                    Location = chunkLocation,
+                    Tables = new[] { chunkTable },
+                    Visuals = new[] { chunkVisual }
+                }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(document);
+
+        Assert.Single(result.Tables);
+        Assert.Single(result.Records, record => record.Category == "key-value" && record.Name == "Region");
+        Assert.Single(result.Records, record => record.Category == "quality-summary" && record.Name == "Settings");
+        Assert.Single(result.Records, record => record.Category == "chart-summary");
+        Assert.Single(result.Records, record => record.Category == "visual-summary");
+    }
+
+    [Fact]
     public void Extract_ChecksCancellationWhileScanningNonReadinessDiagnostics() {
         var document = new OfficeDocumentReadResult {
             Diagnostics = new[] {

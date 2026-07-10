@@ -1,37 +1,82 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace OfficeIMO.Reader;
 
 internal static class OfficeDocumentModelTraversal {
     internal static IEnumerable<OfficeDocumentBlock> Blocks(OfficeDocumentReadResult document) {
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        var ordered = new List<OrderedBlock>();
+        int insertionIndex = 0;
         foreach (OfficeDocumentBlock block in document.Blocks ?? System.Array.Empty<OfficeDocumentBlock>()) {
-            if (block != null && seen.Add(block)) yield return block;
+            if (block != null && seen.Add(block)) ordered.Add(new OrderedBlock(block, insertionIndex++));
         }
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
             if (page?.Blocks == null) continue;
             foreach (OfficeDocumentBlock block in page.Blocks) {
-                if (block != null && seen.Add(block)) yield return block;
+                if (block != null && seen.Add(block)) ordered.Add(new OrderedBlock(block, insertionIndex++));
             }
         }
+        ordered.Sort(CompareBlocks);
+        for (int index = 0; index < ordered.Count; index++) yield return ordered[index].Block;
     }
 
     internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
         var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
+        var aggregateIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (ReaderTable table in document.Tables ?? System.Array.Empty<ReaderTable>()) {
-            if (table != null && seen.Add(table)) yield return table;
+            if (table == null || !seen.Add(table)) continue;
+            IncrementIdentity(aggregateIdentityCounts, BuildTableIdentity(table, null, null));
+            yield return table;
         }
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
             if (page?.Tables == null) continue;
             foreach (ReaderTable table in page.Tables) {
-                if (table != null && seen.Add(table)) yield return table;
+                if (table == null || !seen.Add(table)) continue;
+                string identity = BuildTableIdentity(table, null, null);
+                if (aggregateIdentityCounts.ContainsKey(identity)) continue;
+                IncrementIdentity(aggregateIdentityCounts, identity);
+                yield return table;
             }
         }
+        var chunkIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        int fallbackTableIndex = 0;
         foreach (ReaderChunk chunk in document.Chunks ?? System.Array.Empty<ReaderChunk>()) {
             if (chunk?.Tables == null) continue;
             foreach (ReaderTable table in chunk.Tables) {
-                if (table != null && seen.Add(table)) yield return table;
+                if (table == null || !seen.Add(table)) {
+                    fallbackTableIndex++;
+                    continue;
+                }
+                string identity = BuildTableIdentity(table, chunk.Location, fallbackTableIndex++);
+                int occurrence = IncrementIdentity(chunkIdentityCounts, identity);
+                if (aggregateIdentityCounts.TryGetValue(identity, out int aggregateCount) && occurrence <= aggregateCount) continue;
+                yield return table;
+            }
+        }
+    }
+
+    internal static IEnumerable<ReaderVisual> Visuals(OfficeDocumentReadResult document) {
+        var seen = new HashSet<ReaderVisual>(ReferenceIdentityComparer<ReaderVisual>.Instance);
+        var aggregateIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (ReaderVisual visual in document.Visuals ?? Array.Empty<ReaderVisual>()) {
+            if (visual == null || !seen.Add(visual)) continue;
+            IncrementIdentity(aggregateIdentityCounts, BuildVisualIdentity(visual, null));
+            yield return visual;
+        }
+
+        var chunkIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>()) {
+            if (chunk?.Visuals == null) continue;
+            foreach (ReaderVisual visual in chunk.Visuals) {
+                if (visual == null || !seen.Add(visual)) continue;
+                string identity = BuildVisualIdentity(visual, chunk.Location);
+                int occurrence = IncrementIdentity(chunkIdentityCounts, identity);
+                if (aggregateIdentityCounts.TryGetValue(identity, out int aggregateCount) && occurrence <= aggregateCount) continue;
+                yield return visual;
             }
         }
     }
@@ -152,6 +197,112 @@ internal static class OfficeDocumentModelTraversal {
             Page = widgetPage ?? (fieldPages == null || fieldPages.Count == 0 ? source.Page : fieldPages[0]),
             TableIndex = source.TableIndex
         };
+    }
+
+    private static int CompareBlocks(OrderedBlock left, OrderedBlock right) {
+        int comparison = string.CompareOrdinal(BuildContainerOrderKey(left.Block.Location), BuildContainerOrderKey(right.Block.Location));
+        if (comparison != 0) return comparison;
+        comparison = BuildBlockPosition(left.Block.Location).CompareTo(BuildBlockPosition(right.Block.Location));
+        return comparison != 0 ? comparison : left.InsertionIndex.CompareTo(right.InsertionIndex);
+    }
+
+    private static string BuildContainerOrderKey(ReaderLocation? location) {
+        if (location == null) return "9|";
+        if (location.Page.HasValue) return "0|" + location.Page.Value.ToString("D10", CultureInfo.InvariantCulture);
+        if (location.Slide.HasValue) return "1|" + location.Slide.Value.ToString("D10", CultureInfo.InvariantCulture);
+        if (!string.IsNullOrWhiteSpace(location.Sheet)) return "2|" + location.Sheet;
+        return "9|";
+    }
+
+    private static int BuildBlockPosition(ReaderLocation? location) =>
+        location?.SourceBlockIndex
+        ?? location?.BlockIndex
+        ?? location?.StartLine
+        ?? location?.NormalizedStartLine
+        ?? int.MaxValue;
+
+    private static int IncrementIdentity(IDictionary<string, int> counts, string identity) {
+        counts.TryGetValue(identity, out int count);
+        count++;
+        counts[identity] = count;
+        return count;
+    }
+
+    private static string BuildTableIdentity(ReaderTable table, ReaderLocation? fallback, int? fallbackTableIndex) {
+        var builder = new StringBuilder();
+        AppendIdentity(builder, table.PayloadHash);
+        AppendIdentity(builder, table.CallId);
+        AppendIdentity(builder, table.Kind);
+        AppendIdentity(builder, table.Title);
+        AppendLocationIdentity(builder, table.Location, fallback, fallbackTableIndex);
+        AppendIdentity(builder, table.Columns);
+        foreach (IReadOnlyList<string> row in table.Rows ?? Array.Empty<IReadOnlyList<string>>()) AppendIdentity(builder, row);
+        AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
+        return builder.ToString();
+    }
+
+    private static string BuildVisualIdentity(ReaderVisual visual, ReaderLocation? fallback) {
+        var builder = new StringBuilder();
+        AppendIdentity(builder, visual.PayloadHash);
+        AppendIdentity(builder, visual.Kind);
+        AppendIdentity(builder, visual.Language);
+        AppendIdentity(builder, visual.SourceName);
+        AppendIdentity(builder, visual.MimeType);
+        AppendIdentity(builder, visual.Content);
+        AppendLocationIdentity(builder, visual.Location, fallback, null);
+        return builder.ToString();
+    }
+
+    private static void AppendLocationIdentity(
+        StringBuilder builder,
+        ReaderLocation? location,
+        ReaderLocation? fallback,
+        int? fallbackTableIndex) {
+        AppendIdentity(builder, Prefer(location?.Path, fallback?.Path));
+        AppendIdentity(builder, Prefer(location?.Sheet, fallback?.Sheet));
+        AppendIdentity(builder, Prefer(location?.A1Range, fallback?.A1Range));
+        AppendIdentity(builder, Prefer(location?.HeadingPath, fallback?.HeadingPath));
+        AppendIdentity(builder, Prefer(location?.HeadingSlug, fallback?.HeadingSlug));
+        AppendIdentity(builder, Prefer(location?.SourceBlockKind, fallback?.SourceBlockKind));
+        AppendIdentity(builder, Prefer(location?.BlockAnchor, fallback?.BlockAnchor));
+        AppendIdentity(builder, (location?.Page ?? fallback?.Page)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.Slide ?? fallback?.Slide)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.BlockIndex ?? fallback?.BlockIndex)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.SourceBlockIndex ?? fallback?.SourceBlockIndex)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.StartLine ?? fallback?.StartLine)?.ToString(CultureInfo.InvariantCulture));
+        AppendIdentity(builder, (location?.TableIndex ?? fallbackTableIndex ?? fallback?.TableIndex)?.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static string? Prefer(string? value, string? fallback) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+    private static void AppendIdentity(StringBuilder builder, IReadOnlyList<string>? values) {
+        if (values == null) {
+            AppendIdentity(builder, (string?)null);
+            return;
+        }
+        AppendIdentity(builder, values.Count.ToString(CultureInfo.InvariantCulture));
+        for (int index = 0; index < values.Count; index++) AppendIdentity(builder, values[index]);
+    }
+
+    private static void AppendIdentity(StringBuilder builder, string? value) {
+        if (value == null) {
+            builder.Append("-1:");
+            return;
+        }
+        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture));
+        builder.Append(':');
+        builder.Append(value);
+    }
+
+    private readonly struct OrderedBlock {
+        internal OrderedBlock(OfficeDocumentBlock block, int insertionIndex) {
+            Block = block;
+            InsertionIndex = insertionIndex;
+        }
+
+        internal OfficeDocumentBlock Block { get; }
+        internal int InsertionIndex { get; }
     }
 }
 

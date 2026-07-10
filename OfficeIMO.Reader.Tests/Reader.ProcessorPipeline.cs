@@ -250,6 +250,25 @@ public sealed class ReaderProcessorPipelineTests {
     }
 
     [Fact]
+    public void InstanceReader_RebuildsChunkDerivedAggregatesAfterTextProcessing() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("redact", (document, _) => {
+                foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "[redacted]";
+                return document;
+            }))
+            .Build();
+        byte[] source = Encoding.UTF8.GetBytes("# Secret\n\nSensitive body");
+
+        OfficeDocumentReadResult document = reader.ReadDocument(source, "secret.md");
+
+        Assert.Equal("[redacted]", document.Markdown);
+        Assert.All(document.Blocks, block => Assert.Equal("[redacted]", block.Text));
+        string json = reader.ReadDocumentJson(source, "secret.md");
+        Assert.Contains("[redacted]", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sensitive body", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuiltInProcessorsNormalizeAndFilterSharedModels() {
         var kept = new OfficeDocumentAsset { Id = "keep", Kind = "image", LengthBytes = 10 };
         var removed = new OfficeDocumentAsset { Id = "drop", Kind = "preview", LengthBytes = 1000 };
@@ -325,6 +344,45 @@ public sealed class ReaderProcessorPipelineTests {
         Assert.Empty(Assert.Single(document.Pages).Assets);
         Assert.Equal("shared-ocr", Assert.Single(document.OcrCandidates).Id);
         Assert.Equal("ocr-needed", Assert.Single(document.Diagnostics).Code);
+    }
+
+    [Fact]
+    public void AssetFilter_PreservesUnrelatedOcrDiagnosticsWithoutCandidates() {
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] { new OfficeDocumentAsset { Id = "drop", LengthBytes = 1000 } },
+            OcrCandidates = new[] {
+                new OfficeDocumentOcrCandidate {
+                    Id = "drop-ocr",
+                    AssetId = "drop",
+                    Reason = "Removed image OCR",
+                    Location = new ReaderLocation { BlockAnchor = "drop" }
+                }
+            },
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic {
+                    Code = "ocr-needed",
+                    Message = "Removed image OCR",
+                    Location = new ReaderLocation { BlockAnchor = "drop" }
+                },
+                new OfficeDocumentDiagnostic {
+                    Code = "ocr-needed",
+                    Message = "Page-level OCR remains required",
+                    Location = new ReaderLocation { Page = 9 },
+                    Attributes = new Dictionary<string, string> { ["providerEvidence"] = "adapter-owned" }
+                }
+            }
+        };
+
+        new OfficeDocumentProcessorPipelineBuilder()
+            .Add(new OfficeDocumentAssetFilterProcessor(asset => asset.LengthBytes <= 100))
+            .Build()
+            .Process(document);
+
+        Assert.Empty(document.Assets);
+        Assert.Empty(document.OcrCandidates);
+        OfficeDocumentDiagnostic remaining = Assert.Single(document.Diagnostics);
+        Assert.Equal("Page-level OCR remains required", remaining.Message);
+        Assert.Equal("adapter-owned", remaining.Attributes["providerEvidence"]);
     }
 
     [Fact]

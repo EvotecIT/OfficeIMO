@@ -27,10 +27,11 @@ public sealed partial class OfficeDocumentReader {
         CancellationToken cancellationToken) {
         if (ProcessorPipeline.Count == 0) return document;
         OfficeDocumentSource source = SnapshotSource(document);
+        ProcessedChunkAggregateSnapshot aggregates = DocumentReader.CaptureProcessedChunkAggregates(document);
         OfficeDocumentReadResult processed = ProcessorPipeline
             .Process(document, _processingOptions, cancellationToken)
             .Document;
-        return DocumentReader.RefreshProcessedChunks(processed, source, computeHashes, cancellationToken);
+        return DocumentReader.RefreshProcessedChunks(processed, source, aggregates, computeHashes, cancellationToken);
     }
 
     private async Task<OfficeDocumentReadResult> ExecuteProcessedDocumentAsync(
@@ -41,10 +42,11 @@ public sealed partial class OfficeDocumentReader {
             OfficeDocumentReadResult document = await read().ConfigureAwait(false);
             if (ProcessorPipeline.Count == 0) return document;
             OfficeDocumentSource source = SnapshotSource(document);
+            ProcessedChunkAggregateSnapshot aggregates = DocumentReader.CaptureProcessedChunkAggregates(document);
             OfficeDocumentProcessingResult processed = await ProcessorPipeline
                 .ProcessAsync(document, _processingOptions, cancellationToken)
                 .ConfigureAwait(false);
-            return DocumentReader.RefreshProcessedChunks(processed.Document, source, computeHashes, cancellationToken);
+            return DocumentReader.RefreshProcessedChunks(processed.Document, source, aggregates, computeHashes, cancellationToken);
         }, cancellationToken).ConfigureAwait(false);
     }
 

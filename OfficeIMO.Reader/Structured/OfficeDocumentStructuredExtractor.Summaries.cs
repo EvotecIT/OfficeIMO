@@ -151,16 +151,7 @@ public static partial class OfficeDocumentStructuredExtractor {
     }
 
     private static IEnumerable<ReaderVisual> EnumerateVisuals(OfficeDocumentReadResult document) {
-        var seen = new HashSet<ReaderVisual>(ReferenceIdentityComparer<ReaderVisual>.Instance);
-        foreach (ReaderVisual visual in document.Visuals ?? Array.Empty<ReaderVisual>()) {
-            if (visual != null && seen.Add(visual)) yield return visual;
-        }
-        foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>()) {
-            if (chunk?.Visuals == null) continue;
-            foreach (ReaderVisual visual in chunk.Visuals) {
-                if (visual != null && seen.Add(visual)) yield return visual;
-            }
-        }
+        foreach (ReaderVisual visual in OfficeDocumentModelTraversal.Visuals(document)) yield return visual;
     }
 
     private static bool IsChart(ReaderVisual visual) =>
