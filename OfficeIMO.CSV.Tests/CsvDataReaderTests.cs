@@ -11,6 +11,30 @@ namespace OfficeIMO.CSV.Tests;
 
 public class CsvDataReaderTests
 {
+    [Theory]
+    [InlineData(CsvLoadMode.InMemory)]
+    [InlineData(CsvLoadMode.Stream)]
+    public void CreateDataReader_WithInferredSchema_PreservesDuplicateHeaderOrdinals(CsvLoadMode mode)
+    {
+        var doc = CsvDocument.Parse(
+            "Value,Value\n1,Alpha\n2,Beta\n",
+            new CsvLoadOptions
+            {
+                Mode = mode,
+                DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Preserve
+            });
+
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+
+        Assert.Equal(2, reader.FieldCount);
+        Assert.Equal(typeof(int), reader.GetFieldType(0));
+        Assert.Equal(typeof(string), reader.GetFieldType(1));
+        Assert.Equal(0, reader.GetOrdinal("Value"));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Alpha", reader.GetString(1));
+    }
+
     [Fact]
     public void CreateDataReader_WithInferredSchema_ExposesTypedColumnsAndValues()
     {

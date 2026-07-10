@@ -283,11 +283,15 @@ public static class TabularDataTableBuilder {
         }
 
         if (columns.Count == 0) {
-            columns.Add(GetScalarColumnName(options));
+            string scalarColumnName = GetScalarColumnName(options);
+            columns.Add(scalarColumnName);
             rows.Clear();
             foreach (var item in items) {
+                object? scalarValue = item is ProjectableItem projectableItem
+                    ? projectableItem.Unwrapped
+                    : item;
                 rows.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
-                    [GetScalarColumnName(options)] = NormalizeValue(item, options)
+                    [scalarColumnName] = NormalizeValue(scalarValue, options)
                 });
             }
         }

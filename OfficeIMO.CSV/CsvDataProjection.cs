@@ -568,6 +568,33 @@ internal static class CsvDataProjectionBuilder
         return columns;
     }
 
+    public static CsvDataColumnProjection[] CreateByOrdinal(
+        IReadOnlyList<string> header,
+        IReadOnlyList<CsvSchemaColumn> schemaColumns)
+    {
+        if (header.Count != schemaColumns.Count)
+        {
+            throw new ArgumentException("Positional schema columns must match the header count.", nameof(schemaColumns));
+        }
+
+        var columns = new CsvDataColumnProjection[header.Count];
+        for (var i = 0; i < columns.Length; i++)
+        {
+            var schemaColumn = schemaColumns[i];
+            if (!string.Equals(header[i], schemaColumn.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Positional schema columns must match the header order.", nameof(schemaColumns));
+            }
+
+            columns[i] = new CsvDataColumnProjection(
+                header[i],
+                ResolveDataColumnType(schemaColumn.DataType),
+                schemaColumn);
+        }
+
+        return columns;
+    }
+
     public static Type ResolveDataColumnType(Type? dataType)
     {
         if (dataType is null)

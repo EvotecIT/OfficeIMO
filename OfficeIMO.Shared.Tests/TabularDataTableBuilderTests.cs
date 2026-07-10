@@ -67,6 +67,24 @@ public class TabularDataTableBuilderTests {
     }
 
     [Fact]
+    public void FromItems_UnwrapsRowsWhenHostProjectionReturnsNoColumns() {
+        var unwrapped = new[] { new object(), new object() };
+        var table = TabularDataTableBuilder.FromItems(new object?[] {
+            new HostRow(1),
+            new HostRow(2)
+        }, new TabularDataOptions {
+            UnwrapValue = item => item is HostRow row ? unwrapped[row.Number - 1] : item,
+            ProjectObject = (item, _) => item is HostRow { Number: 1 }
+                ? null
+                : new Dictionary<string, object?>()
+        });
+
+        Assert.Equal(new[] { "Value" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+        Assert.Same(unwrapped[0], table.Rows[0]["Value"]);
+        Assert.Same(unwrapped[1], table.Rows[1]["Value"]);
+    }
+
+    [Fact]
     public void FromItems_BypassesHostProjectionForNativeTablesAndEnumerableContainers() {
         var source = new DataTable("Source");
         source.Columns.Add("Name", typeof(string));

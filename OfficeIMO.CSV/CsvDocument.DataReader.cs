@@ -115,8 +115,7 @@ public sealed partial class CsvDocument
         }
 
         var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleSize) : null);
-        var schemaColumns = schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
-        var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
+        var columns = CreateDataReaderColumns(_header, schema);
         if (_mode == CsvLoadMode.Stream && _streamingSource is not null)
         {
             if (_streamingSource.TryCreateDataReaderTextRowSource(out var textRows))
@@ -200,7 +199,35 @@ public sealed partial class CsvDocument
 
     private static CsvDataColumnProjection[] CreateDataReaderColumns(IReadOnlyList<string> header, CsvDataReaderOptions readerOptions)
     {
-        var schemaColumns = readerOptions.Schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
+        return CreateDataReaderColumns(header, readerOptions.Schema);
+    }
+
+    private static CsvDataColumnProjection[] CreateDataReaderColumns(IReadOnlyList<string> header, CsvSchema? schema)
+    {
+        if (schema is null)
+        {
+            return CsvDataProjectionBuilder.Create(header, schemaColumns: null);
+        }
+
+        if (schema.Columns.Count == header.Count)
+        {
+            var namesMatchByOrdinal = true;
+            for (var i = 0; i < header.Count; i++)
+            {
+                if (!string.Equals(header[i], schema.Columns[i].Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    namesMatchByOrdinal = false;
+                    break;
+                }
+            }
+
+            if (namesMatchByOrdinal)
+            {
+                return CsvDataProjectionBuilder.CreateByOrdinal(header, schema.Columns);
+            }
+        }
+
+        var schemaColumns = schema.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
         return CsvDataProjectionBuilder.Create(header, schemaColumns);
     }
 
@@ -225,8 +252,7 @@ public sealed partial class CsvDocument
                 schema = InferSchema(rowsForInference, schemaSampleSize, _streamingSource.Options.NullValue);
             }
 
-            var schemaColumns = schema.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
-            var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
+            var columns = CreateDataReaderColumns(_header, schema);
             if (_streamingSource.TryCreateDataReaderTextRowSource(out var typedRows))
             {
                 return new CsvDataReader(
@@ -245,8 +271,7 @@ public sealed partial class CsvDocument
         {
             var sampledRows = new List<object?[]>(Math.Min(schemaSampleSize, 4096));
             var schema = InferSchema(rows, schemaSampleSize, sampledRows, cloneSampledRows: true);
-            var schemaColumns = schema.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
-            var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
+            var columns = CreateDataReaderColumns(_header, schema);
             return new CsvDataReader(columns, EnumerateSampledThenRemainingRows(sampledRows, rows), _culture, _dateTimeFormats);
         }
         catch
