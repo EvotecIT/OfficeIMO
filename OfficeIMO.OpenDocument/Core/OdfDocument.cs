@@ -1,7 +1,7 @@
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Common package lifecycle for ODT, ODS, and ODP documents.</summary>
-public abstract class OdfDocument : IDisposable {
+public abstract partial class OdfDocument : IDisposable {
     private bool _disposed;
     private string? _sourcePath;
 

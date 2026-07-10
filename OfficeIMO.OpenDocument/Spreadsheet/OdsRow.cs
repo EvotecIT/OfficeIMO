@@ -26,6 +26,10 @@ public sealed class OdsRowRun {
     }
     /// <summary>Whether the prototype row is hidden.</summary>
     public bool Hidden => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
+    /// <summary>Referenced prototype row style.</summary>
+    public string? StyleName => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
+    /// <summary>Explicit prototype row height.</summary>
+    public OdfLength? Height => new OdsRow(_document, _element).Height;
 }
 
 /// <summary>An editable ODS row after sparse run splitting.</summary>

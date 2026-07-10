@@ -2,7 +2,10 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>A sparse ODS column definition run.</summary>
 public sealed class OdsColumnRun {
+    private readonly OdsDocument _document;
+    private readonly XElement _element;
     internal OdsColumnRun(OdsDocument document, XElement element, long startColumn, long repeatCount) {
+        _document = document; _element = element;
         StartColumn = startColumn; RepeatCount = repeatCount;
         Hidden = (string?)element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
         StyleName = (string?)element.Attribute(OdfNamespaces.Table + "style-name");
@@ -15,6 +18,8 @@ public sealed class OdsColumnRun {
     public bool Hidden { get; }
     /// <summary>Referenced column style name.</summary>
     public string? StyleName { get; }
+    /// <summary>Explicit prototype column width.</summary>
+    public OdfLength? Width => new OdsColumn(_document, _element).Width;
 }
 
 /// <summary>An editable ODS column definition after sparse run splitting.</summary>

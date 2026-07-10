@@ -63,6 +63,20 @@ public sealed class OdfStyle {
         }
         set => SetAttribute(GetProperties(OdfNamespaces.Style + "text-properties"), OdfNamespaces.Fo + "color", value?.ToString());
     }
+    /// <summary>Explicit cell or paragraph background color.</summary>
+    public OdfColor? BackgroundColor {
+        get {
+            XElement? properties = _element.Element(OdfNamespaces.Style + "table-cell-properties") ?? ParagraphProperties;
+            string? value = (string?)properties?.Attribute(OdfNamespaces.Fo + "background-color");
+            return value == null || value == "transparent" ? (OdfColor?)null : OdfColor.Parse(value);
+        }
+        set {
+            XName properties = Family == OdfStyleFamily.TableCell
+                ? OdfNamespaces.Style + "table-cell-properties"
+                : OdfNamespaces.Style + "paragraph-properties";
+            SetAttribute(GetProperties(properties), OdfNamespaces.Fo + "background-color", value?.ToString());
+        }
+    }
     /// <summary>Explicit paragraph break-before value.</summary>
     public string? BreakBefore {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "break-before");

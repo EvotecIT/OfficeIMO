@@ -19,4 +19,14 @@ internal static class OdfListStyleStore {
         document.MarkPartDirty(partPath);
         return name;
     }
+
+    internal static bool IsOrdered(OdfDocument document, string? styleName, string partPath = "content.xml") {
+        if (string.IsNullOrWhiteSpace(styleName)) return false;
+        XDocument xml = document.GetXml(partPath);
+        XElement? root = xml.Root;
+        XElement? automatic = root?.Element(OdfNamespaces.Office + "automatic-styles");
+        XElement? style = automatic?.Elements(OdfNamespaces.Text + "list-style")
+            .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
+        return style?.Elements().Any(element => element.Name == OdfNamespaces.Text + "list-level-style-number") == true;
+    }
 }

@@ -53,6 +53,10 @@ public sealed class OdpTableCell {
     internal OdpTableCell(OdpPresentation presentation, XElement element) { _presentation = presentation; _element = element; }
     /// <summary>True when covered by a merged cell.</summary>
     public bool IsCovered => _element.Name == OdfNamespaces.Table + "covered-table-cell";
+    /// <summary>Number of rows spanned by a merged-cell anchor.</summary>
+    public int RowSpan => ReadSpan(OdfNamespaces.Table + "number-rows-spanned");
+    /// <summary>Number of columns spanned by a merged-cell anchor.</summary>
+    public int ColumnSpan => ReadSpan(OdfNamespaces.Table + "number-columns-spanned");
     /// <summary>Decoded cell text.</summary>
     public string Text {
         get => string.Join("\n", _element.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
@@ -67,5 +71,9 @@ public sealed class OdpTableCell {
         _element.SetAttributeValue(OdfNamespaces.Table + "number-columns-spanned", columns > 1 ? columns : (int?)null); Dirty();
     }
     internal void ReplaceWithCoveredCell() { var covered = new XElement(OdfNamespaces.Table + "covered-table-cell"); _element.ReplaceWith(covered); _element = covered; Dirty(); }
+    private int ReadSpan(XName name) {
+        string? lexical = (string?)_element.Attribute(name);
+        return int.TryParse(lexical, NumberStyles.None, CultureInfo.InvariantCulture, out int value) && value > 0 ? value : 1;
+    }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

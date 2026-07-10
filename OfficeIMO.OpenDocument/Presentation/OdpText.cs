@@ -62,12 +62,20 @@ public sealed class OdpRun {
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
     public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
+    /// <summary>Explicit or inherited font size.</summary>
+    public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
+    /// <summary>Explicit or inherited font family.</summary>
+    public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
         OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
         foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
+    }
+    private string? ResolveReference(Func<OdfStyle, string?> selector) {
+        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Text, StyleName); if (style == null) return null;
+        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
     }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

@@ -18,6 +18,8 @@ public sealed class OdpImage : OdpShape {
             EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Fo + "clip", lexical);
         }
     }
+    /// <summary>Returns a defensive copy of the embedded image bytes.</summary>
+    public byte[] GetImageBytes() => Presentation.GetPackageEntryBytes(Path);
     internal static OdpImage Create(OdpPresentation presentation, byte[] data, string fileName, OdfRect bounds, string name) {
         string path = OdfImageStore.Add(presentation, data, fileName);
         var frame = new XElement(OdfNamespaces.Draw + "frame", new XAttribute(OdfNamespaces.Draw + "name", name),

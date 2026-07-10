@@ -41,10 +41,30 @@ public sealed class OdsCell {
         get => Resolve(style => style.Bold);
         set => EnsureStyle().Bold = value;
     }
+    /// <summary>Explicit or inherited italic state.</summary>
+    public bool? Italic {
+        get => Resolve(style => style.Italic);
+        set => EnsureStyle().Italic = value;
+    }
+    /// <summary>Explicit or inherited font size.</summary>
+    public OdfLength? FontSize {
+        get => Resolve(style => style.FontSize);
+        set => EnsureStyle().FontSize = value;
+    }
+    /// <summary>Explicit or inherited font family.</summary>
+    public string? FontFamily {
+        get => ResolveReference(style => style.FontFamily);
+        set => EnsureStyle().FontFamily = value;
+    }
     /// <summary>Explicit or inherited text color.</summary>
     public OdfColor? Color {
         get => Resolve(style => style.Color);
         set => EnsureStyle().Color = value;
+    }
+    /// <summary>Explicit or inherited cell background color.</summary>
+    public OdfColor? BackgroundColor {
+        get => Resolve(style => style.BackgroundColor);
+        set => EnsureStyle().BackgroundColor = value;
     }
 
     /// <summary>Clears value content while retaining style, formula, validation, and annotations.</summary>
@@ -219,6 +239,15 @@ public sealed class OdsCell {
         return null;
     }
 
+    private string? ResolveReference(Func<OdfStyle, string?> selector) {
+        OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.TableCell, StyleName);
+        if (style == null) return null;
+        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
+            string? value = selector(candidate); if (value != null) return value;
+        }
+        return null;
+    }
+
     private void EnsureEditable() {
         if (IsCovered) throw new InvalidOperationException("Covered cells cannot be edited directly. Edit the merged range anchor instead.");
     }
@@ -227,9 +256,10 @@ public sealed class OdsCell {
 
 /// <summary>A sparse repeated cell run.</summary>
 public sealed class OdsCellRun {
+    private readonly OdsDocument _document;
     private readonly XElement _element;
     internal OdsCellRun(OdsDocument document, XElement element, long startColumn, long repeatCount) {
-        _element = element; StartColumn = startColumn; RepeatCount = repeatCount;
+        _document = document; _element = element; StartColumn = startColumn; RepeatCount = repeatCount;
     }
     /// <summary>Zero-based first logical column.</summary>
     public long StartColumn { get; }
@@ -239,6 +269,41 @@ public sealed class OdsCellRun {
     public bool IsCovered => _element.Name == OdfNamespaces.Table + "covered-table-cell";
     /// <summary>Prototype value shared by the run.</summary>
     public OdsCellValue Value => OdsCell.ReadValue(_element);
+    /// <summary>Prototype display text shared by the run.</summary>
+    public string Text => Value.DisplayText;
     /// <summary>Prototype formula shared by the run.</summary>
     public string? Formula => (string?)_element.Attribute(OdfNamespaces.Table + "formula");
+    /// <summary>Referenced prototype cell style.</summary>
+    public string? StyleName => Cell.StyleName;
+    /// <summary>Referenced prototype number or date style.</summary>
+    public string? NumberFormatName => Cell.NumberFormatName;
+    /// <summary>Referenced prototype validation rule.</summary>
+    public string? ValidationName => Cell.ValidationName;
+    /// <summary>Explicit or inherited prototype bold state.</summary>
+    public bool? Bold => Cell.Bold;
+    /// <summary>Explicit or inherited prototype italic state.</summary>
+    public bool? Italic => Cell.Italic;
+    /// <summary>Explicit or inherited prototype font size.</summary>
+    public OdfLength? FontSize => Cell.FontSize;
+    /// <summary>Explicit or inherited prototype font family.</summary>
+    public string? FontFamily => Cell.FontFamily;
+    /// <summary>Explicit or inherited prototype text color.</summary>
+    public OdfColor? Color => Cell.Color;
+    /// <summary>Explicit or inherited prototype cell background color.</summary>
+    public OdfColor? BackgroundColor => Cell.BackgroundColor;
+    /// <summary>Simple hyperlink target stored in the prototype cell, when present.</summary>
+    public string? HyperlinkHref => (string?)_element
+        .Descendants(OdfNamespaces.Text + "a")
+        .FirstOrDefault()?
+        .Attribute(OdfNamespaces.XLink + "href");
+    /// <summary>Number of rows spanned by the prototype merged-cell anchor.</summary>
+    public long RowSpan => ReadSpan(OdfNamespaces.Table + "number-rows-spanned");
+    /// <summary>Number of columns spanned by the prototype merged-cell anchor.</summary>
+    public long ColumnSpan => ReadSpan(OdfNamespaces.Table + "number-columns-spanned");
+
+    private OdsCell Cell => new OdsCell(_document, _element);
+    private long ReadSpan(XName name) {
+        string? lexical = (string?)_element.Attribute(name);
+        return long.TryParse(lexical, NumberStyles.None, CultureInfo.InvariantCulture, out long value) && value > 0 ? value : 1;
+    }
 }

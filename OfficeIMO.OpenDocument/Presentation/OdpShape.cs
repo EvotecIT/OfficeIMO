@@ -8,6 +8,11 @@ public abstract class OdpShape {
         get => (string?)Element.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty;
         set { Element.SetAttributeValue(OdfNamespaces.Draw + "name", value); Dirty(); }
     }
+    /// <summary>Whether the shape is hidden from the normal presentation view.</summary>
+    public bool Hidden {
+        get => (string?)Element.Attribute(OdfNamespaces.Presentation + "visibility") == "hidden";
+        set { Element.SetAttributeValue(OdfNamespaces.Presentation + "visibility", value ? "hidden" : null); Dirty(); }
+    }
     /// <summary>Raw ODF/SVG transform expression.</summary>
     public string? Transform {
         get => (string?)Element.Attribute(OdfNamespaces.Draw + "transform");

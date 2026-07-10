@@ -57,6 +57,11 @@ public sealed class OdtParagraph {
     public IReadOnlyList<OdtHyperlink> Hyperlinks => _element.Descendants(OdfNamespaces.Text + "a")
         .Select(element => new OdtHyperlink(_document, element, _partPath)).ToList();
 
+    /// <summary>Embedded image frames in this paragraph.</summary>
+    public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
+        .Where(element => element.Element(OdfNamespaces.Draw + "image") != null)
+        .Select(element => new OdtImage(_document, element)).ToList();
+
     /// <summary>Controls whether this paragraph starts on a new page.</summary>
     public bool PageBreakBefore {
         get => ResolveStyleValue(style => style.BreakBefore) == "page";

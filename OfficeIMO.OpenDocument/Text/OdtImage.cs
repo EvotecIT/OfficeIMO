@@ -35,6 +35,9 @@ public sealed class OdtImage {
         set { Element.SetAttributeValue(OdfNamespaces.Text + "anchor-type", value == OdtImageAnchor.Paragraph ? "paragraph" : "as-char"); Dirty(); }
     }
 
+    /// <summary>Returns a defensive copy of the embedded image bytes.</summary>
+    public byte[] GetImageBytes() => _document.GetPackageEntryBytes(Path);
+
     internal XElement Element { get; }
 
     internal static OdtImage Create(OdtDocument document, byte[] data, string fileName, OdfLength width, OdfLength height, OdtImageAnchor anchor) {

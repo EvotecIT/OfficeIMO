@@ -98,15 +98,19 @@ public sealed partial class OdtDocument {
         }
     }
 
-    private IEnumerable<OdtContentBlock> EnumerateContentBlocks(XElement container) {
+    private IEnumerable<OdtContentBlock> EnumerateContentBlocks(XElement container, bool? orderedList = null, int listLevel = 0) {
         foreach (XElement element in container.Elements()) {
             if (element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h") {
-                yield return OdtContentBlock.FromParagraph(new OdtParagraph(this, element));
+                yield return OdtContentBlock.FromParagraph(new OdtParagraph(this, element), orderedList.HasValue, orderedList, listLevel);
             } else if (element.Name == OdfNamespaces.Table + "table") {
                 yield return OdtContentBlock.FromTable(new OdtTable(this, element));
-            } else if (element.Name == OdfNamespaces.Text + "section" || element.Name == OdfNamespaces.Text + "list" ||
-                       element.Name == OdfNamespaces.Text + "list-item" || element.Name == OdfNamespaces.Text + "list-header") {
-                foreach (OdtContentBlock block in EnumerateContentBlocks(element)) yield return block;
+            } else if (element.Name == OdfNamespaces.Text + "list") {
+                string? styleName = (string?)element.Attribute(OdfNamespaces.Text + "style-name");
+                bool ordered = OdfListStyleStore.IsOrdered(this, styleName);
+                foreach (OdtContentBlock block in EnumerateContentBlocks(element, ordered, orderedList.HasValue ? listLevel + 1 : listLevel)) yield return block;
+            } else if (element.Name == OdfNamespaces.Text + "section" || element.Name == OdfNamespaces.Text + "list-item" ||
+                       element.Name == OdfNamespaces.Text + "list-header") {
+                foreach (OdtContentBlock block in EnumerateContentBlocks(element, orderedList, listLevel)) yield return block;
             }
         }
     }
