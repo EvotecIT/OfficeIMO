@@ -183,7 +183,9 @@ internal static class HtmlRenderCssValues {
         return parts;
     }
 
-    internal static IReadOnlyList<string> SplitTopLevelCommas(string? value) {
+    internal static IReadOnlyList<string> SplitTopLevelCommas(string? value) => SplitTopLevel(value, ',');
+
+    internal static IReadOnlyList<string> SplitTopLevel(string? value, char separator) {
         if (string.IsNullOrWhiteSpace(value)) return Array.Empty<string>();
 
         var parts = new List<string>();
@@ -204,7 +206,7 @@ internal static class HtmlRenderCssValues {
                 depth++;
             } else if (current == ')' && depth > 0) {
                 depth--;
-            } else if (current == ',' && depth == 0) {
+            } else if (current == separator && depth == 0) {
                 parts.Add(text.Substring(start, index - start).Trim());
                 start = index + 1;
             }

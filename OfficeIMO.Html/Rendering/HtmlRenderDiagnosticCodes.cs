@@ -40,6 +40,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ForcedFragment = "HtmlRenderForcedFragment";
     /// <summary>Grid layout used the documented normal-flow fallback.</summary>
     public const string GridLayoutPending = "HtmlRenderGridLayoutPending";
+    /// <summary>A grid property value used a documented deterministic fallback.</summary>
+    public const string GridValueUnsupported = "HtmlRenderGridValueUnsupported";
+    /// <summary>Grid track expansion exceeded the configured safety limit.</summary>
+    public const string GridTrackLimitExceeded = "HtmlRenderGridTrackLimitExceeded";
     /// <summary>A generated-content expression was omitted because it could not be represented.</summary>
     public const string GeneratedContentUnsupported = "HtmlRenderGeneratedContentUnsupported";
     /// <summary>A CSS counter declaration was ignored because it could not be represented.</summary>
@@ -116,6 +120,8 @@ public static class HtmlRenderDiagnosticCodes {
         GeneratedContentUnsupported,
         GeneratedCounterUnsupported,
         GridLayoutPending,
+        GridTrackLimitExceeded,
+        GridValueUnsupported,
         InlineImageFallback,
         PositionInsetUnsupported,
         PositioningModeUnsupported,

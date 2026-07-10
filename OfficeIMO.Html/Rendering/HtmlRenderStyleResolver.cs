@@ -73,6 +73,7 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyPaint(computed, style);
         ApplyPositioning(computed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
+        ApplyGrid(computed, style);
         ApplyBreaks(computed, style);
         return style;
     }
@@ -475,6 +476,51 @@ internal sealed class HtmlRenderStyleResolver {
         if (!string.IsNullOrWhiteSpace(basis)) style.FlexBasis = basis.Trim().ToLowerInvariant();
         if (int.TryParse(computed.GetValue("order"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int order)) style.Order = order;
         ApplyGap(computed, reference, fontSize, style);
+    }
+
+    private static void ApplyGrid(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        style.GridTemplateColumns = NormalizeCssValue(computed.GetValue("grid-template-columns"), "none");
+        style.GridTemplateRows = NormalizeCssValue(computed.GetValue("grid-template-rows"), "none");
+        style.GridAutoColumns = NormalizeCssValue(computed.GetValue("grid-auto-columns"), "auto");
+        style.GridAutoRows = NormalizeCssValue(computed.GetValue("grid-auto-rows"), "auto");
+        style.GridAutoFlow = NormalizeCssValue(computed.GetValue("grid-auto-flow"), "row");
+        style.JustifyItems = NormalizeCssValue(computed.GetValue("justify-items"), "normal");
+        style.JustifySelf = NormalizeCssValue(computed.GetValue("justify-self"), "auto");
+        ApplyGridPair(computed.GetValue("grid-column"), ref style.GridColumnStart, ref style.GridColumnEnd);
+        ApplyGridPair(computed.GetValue("grid-row"), ref style.GridRowStart, ref style.GridRowEnd);
+        ApplyGridArea(computed.GetValue("grid-area"), style);
+        OverrideGridValue(computed.GetValue("grid-column-start"), ref style.GridColumnStart);
+        OverrideGridValue(computed.GetValue("grid-column-end"), ref style.GridColumnEnd);
+        OverrideGridValue(computed.GetValue("grid-row-start"), ref style.GridRowStart);
+        OverrideGridValue(computed.GetValue("grid-row-end"), ref style.GridRowEnd);
+        ApplyPlacePair(computed.GetValue("place-items"), ref style.AlignItems, ref style.JustifyItems);
+        ApplyPlacePair(computed.GetValue("place-self"), ref style.AlignSelf, ref style.JustifySelf);
+        ApplyPlacePair(computed.GetValue("place-content"), ref style.AlignContent, ref style.JustifyContent);
+    }
+
+    private static void ApplyGridPair(string value, ref string start, ref string end) {
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitTopLevel(value, '/');
+        if (parts.Count > 0 && !string.IsNullOrWhiteSpace(parts[0])) start = parts[0].Trim().ToLowerInvariant();
+        if (parts.Count > 1 && !string.IsNullOrWhiteSpace(parts[1])) end = parts[1].Trim().ToLowerInvariant();
+    }
+
+    private static void ApplyGridArea(string value, HtmlRenderBoxStyle style) {
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitTopLevel(value, '/');
+        if (parts.Count > 0 && !string.IsNullOrWhiteSpace(parts[0])) style.GridRowStart = parts[0].Trim().ToLowerInvariant();
+        if (parts.Count > 1 && !string.IsNullOrWhiteSpace(parts[1])) style.GridColumnStart = parts[1].Trim().ToLowerInvariant();
+        if (parts.Count > 2 && !string.IsNullOrWhiteSpace(parts[2])) style.GridRowEnd = parts[2].Trim().ToLowerInvariant();
+        if (parts.Count > 3 && !string.IsNullOrWhiteSpace(parts[3])) style.GridColumnEnd = parts[3].Trim().ToLowerInvariant();
+    }
+
+    private static void ApplyPlacePair(string value, ref string first, ref string second) {
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
+        if (parts.Count == 0) return;
+        first = parts[0].Trim().ToLowerInvariant();
+        second = (parts.Count > 1 ? parts[1] : parts[0]).Trim().ToLowerInvariant();
+    }
+
+    private static void OverrideGridValue(string value, ref string target) {
+        if (!string.IsNullOrWhiteSpace(value)) target = value.Trim().ToLowerInvariant();
     }
 
     private static void ApplyFlexFlow(string value, HtmlRenderBoxStyle style) {

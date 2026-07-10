@@ -24,6 +24,17 @@ internal sealed class HtmlRenderBoxStyle {
     internal double ColumnGap;
     internal string UnsupportedRowGap = string.Empty;
     internal string UnsupportedColumnGap = string.Empty;
+    internal string GridTemplateColumns = "none";
+    internal string GridTemplateRows = "none";
+    internal string GridAutoColumns = "auto";
+    internal string GridAutoRows = "auto";
+    internal string GridAutoFlow = "row";
+    internal string GridColumnStart = "auto";
+    internal string GridColumnEnd = "auto";
+    internal string GridRowStart = "auto";
+    internal string GridRowEnd = "auto";
+    internal string JustifyItems = "normal";
+    internal string JustifySelf = "auto";
     internal bool MarginTopAuto;
     internal bool MarginRightAuto;
     internal bool MarginBottomAuto;

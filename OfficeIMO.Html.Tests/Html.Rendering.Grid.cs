@@ -1,0 +1,208 @@
+using System.Text;
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+using PdfCore = OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlGrid_ResolvesFixedFractionAndImplicitTracks() {
+        const string html = """
+            <div style="display:grid;width:300px;grid-template-columns:100px 1fr 2fr;grid-auto-rows:40px;gap:5px 10px">
+              <div id="grid-a" style="background:#ff0000"></div>
+              <div id="grid-b" style="background:#0000ff"></div>
+              <div id="grid-c" style="background:#00ff00"></div>
+              <div id="grid-d" style="background:#ffff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+        HtmlRenderShape a = FindGridShape(rendered, "div#grid-a");
+        HtmlRenderShape b = FindGridShape(rendered, "div#grid-b");
+        HtmlRenderShape c = FindGridShape(rendered, "div#grid-c");
+        HtmlRenderShape d = FindGridShape(rendered, "div#grid-d");
+
+        Assert.Equal(0D, a.X, 3);
+        Assert.Equal(100D, a.Width, 3);
+        Assert.Equal(110D, b.X, 3);
+        Assert.Equal(60D, b.Width, 3);
+        Assert.Equal(180D, c.X, 3);
+        Assert.Equal(120D, c.Width, 3);
+        Assert.Equal(0D, d.X, 3);
+        Assert.Equal(45D, d.Y, 3);
+        Assert.All(new[] { a, b, c, d }, shape => Assert.Equal(40D, shape.Height, 3));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlGrid_HonorsNumericPlacementAndSpans() {
+        const string html = """
+            <div style="display:grid;width:300px;grid-template-columns:repeat(3,1fr);grid-auto-rows:auto;gap:5px 10px">
+              <div id="placed-a" style="grid-column:2 / span 2;grid-row:1;height:30px;background:#ff0000"></div>
+              <div id="placed-b" style="grid-area:2 / 1 / 3 / 3;height:40px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+        HtmlRenderShape a = FindGridShape(rendered, "div#placed-a");
+        HtmlRenderShape b = FindGridShape(rendered, "div#placed-b");
+
+        Assert.Equal(310D / 3D, a.X, 3);
+        Assert.Equal(590D / 3D, a.Width, 3);
+        Assert.Equal(0D, a.Y, 3);
+        Assert.Equal(0D, b.X, 3);
+        Assert.Equal(590D / 3D, b.Width, 3);
+        Assert.Equal(35D, b.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_ResolvesRepeatMinmaxAndDenseAutoPlacement() {
+        const string html = """
+            <div style="display:grid;width:200px;grid-template-columns:minmax(50px,1fr) 1fr;grid-auto-rows:20px">
+              <div id="minmax-equal-a" style="background:#ff0000"></div><div id="minmax-equal-b" style="background:#0000ff"></div>
+            </div>
+            <div style="display:grid;width:200px;grid-template-columns:minmax(150px,1fr) 1fr;grid-auto-rows:20px">
+              <div id="minmax-frozen-a" style="background:#00ff00"></div><div id="minmax-frozen-b" style="background:#ffff00"></div>
+            </div>
+            <div style="display:grid;width:300px;grid-template-columns:repeat(3,1fr);grid-auto-flow:row dense;grid-auto-rows:20px">
+              <div id="dense-a" style="grid-column:span 2;background:#ff0000"></div>
+              <div id="dense-b" style="grid-column:span 2;background:#0000ff"></div>
+              <div id="dense-c" style="background:#00ff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+
+        Assert.Equal(100D, FindGridShape(rendered, "div#minmax-equal-a").Width, 3);
+        Assert.Equal(100D, FindGridShape(rendered, "div#minmax-equal-b").Width, 3);
+        Assert.Equal(150D, FindGridShape(rendered, "div#minmax-frozen-a").Width, 3);
+        Assert.Equal(50D, FindGridShape(rendered, "div#minmax-frozen-b").Width, 3);
+        HtmlRenderShape denseA = FindGridShape(rendered, "div#dense-a");
+        HtmlRenderShape denseB = FindGridShape(rendered, "div#dense-b");
+        HtmlRenderShape denseC = FindGridShape(rendered, "div#dense-c");
+        Assert.Equal(denseA.Y, denseC.Y, 3);
+        Assert.True(denseB.Y > denseA.Y);
+        Assert.Equal(200D, denseC.X, 3);
+    }
+
+    [Fact]
+    public void HtmlGridItems_IncludeAnonymousGeneratedAndDisplayContentsContent() {
+        const string html = """
+            <style>
+              #grid-items::before { content:'Before'; background:#00ff00 }
+              #grid-items::after { content:'After' }
+            </style>
+            <div id="grid-items" style="display:grid;width:240px;grid-template-columns:repeat(2,1fr);grid-auto-rows:30px;gap:5px">
+              Direct
+              <span style="display:contents"><span id="grid-middle" style="background:#ff0000">Middle</span></span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 260D);
+        IReadOnlyList<HtmlRenderText> texts = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToList();
+
+        Assert.Single(texts, text => text.Text == "Before");
+        Assert.Single(texts, text => text.Text == "Direct");
+        Assert.Single(texts, text => text.Text == "Middle");
+        Assert.Single(texts, text => text.Text == "After");
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-items::before" && shape.Shape.FillColor.HasValue);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlGrid_AppliesContainerAndItemAlignment() {
+        const string html = """
+            <div style="display:grid;width:200px;height:100px;grid-template-columns:repeat(2,1fr);grid-template-rows:100px;justify-items:center;align-items:end">
+              <div id="aligned-a" style="width:20px;height:30px;background:#ff0000"></div>
+              <div id="aligned-b" style="width:20px;height:30px;justify-self:end;align-self:center;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+        HtmlRenderShape a = FindGridShape(rendered, "div#aligned-a");
+        HtmlRenderShape b = FindGridShape(rendered, "div#aligned-b");
+
+        Assert.Equal(40D, a.X, 3);
+        Assert.Equal(70D, a.Y, 3);
+        Assert.Equal(180D, b.X, 3);
+        Assert.Equal(35D, b.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_PaginatesOnlyAtUnspannedRowBoundaries() {
+        const string html = """
+            <div style="height:20px;margin:0">Before</div>
+            <div style="display:grid;width:100px;grid-template-columns:1fr;grid-auto-rows:40px">
+              <div id="grid-page-one" style="background:#ff0000">One</div>
+              <div id="grid-page-two" style="background:#0000ff">Two</div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-page-one");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-page-two");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-page-two");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_FlowsThroughPngSvgAndSearchablePdf() {
+        const string html = """
+            <div style="display:grid;width:50px;grid-template-columns:20px 20px;grid-template-rows:20px;column-gap:10px">
+              <div style="background:#ff0000"></div>
+              <div style="background:#0000ff"></div>
+            </div>
+            <p style="margin:0">GridPdfMarker</p>
+            """;
+        var options = new HtmlImageExportOptions { ViewportWidth = 80D, Margins = HtmlRenderMargins.All(8D) };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
+        Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect x=\"38\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("GridPdfMarker", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlGrid_DiagnosesUnsupportedValuesAndBoundsTrackExpansion() {
+        const string html = """
+            <div style="display:grid;width:200px;grid-template-columns:subgrid 1fr;grid-auto-flow:column">
+              <div style="grid-column-start:named">One</div><div>Two</div>
+            </div>
+            """;
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+
+        Assert.Equal(3, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+
+        var options = new HtmlRenderOptions { ViewportWidth = 220D, Margins = HtmlRenderMargins.All(0D), MaxGridTracks = 2 };
+        HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderEngine.Render("<div style='display:grid;grid-template-columns:repeat(3,1fr)'><span>A</span></div>", options));
+        Assert.Equal(HtmlRenderDiagnosticCodes.GridTrackLimitExceeded, exception.Code);
+    }
+
+    private static HtmlRenderDocument RenderGrid(string html, double viewportWidth) =>
+        HtmlRenderEngine.Render(html, new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
+
+    private static HtmlRenderShape FindGridShape(HtmlRenderDocument rendered, string source) =>
+        Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);
+}

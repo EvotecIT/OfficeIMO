@@ -45,6 +45,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
             return ApplyElementPositioning(flexBlock, style, containingWidth, containingHeight, element);
         }
+        if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
+            return ApplyElementPositioning(gridBlock, style, containingWidth, containingHeight, element);
+        }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
