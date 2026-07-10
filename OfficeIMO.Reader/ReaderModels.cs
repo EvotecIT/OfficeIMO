@@ -73,7 +73,15 @@ public enum ReaderInputKind {
     /// <summary>
     /// Rich Text Format document.
     /// </summary>
-    Rtf
+    Rtf,
+    /// <summary>
+    /// AsciiDoc technical document.
+    /// </summary>
+    AsciiDoc,
+    /// <summary>
+    /// Bounded-profile LaTeX technical document.
+    /// </summary>
+    Latex
 }
 
 /// <summary>
