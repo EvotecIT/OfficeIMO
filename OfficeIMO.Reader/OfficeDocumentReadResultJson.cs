@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader;
 /// <summary>
 /// JSON serialization helpers for the shared OfficeIMO document read result envelope.
 /// </summary>
-public static class OfficeDocumentReadResultJson {
+public static partial class OfficeDocumentReadResultJson {
     private static readonly string[] RequiredTopLevelProperties = {
         "schemaId",
         "schemaVersion",
@@ -66,7 +66,8 @@ public static class OfficeDocumentReadResultJson {
             ? OfficeDocumentReadResultSchema.CurrentVersion
             : result.SchemaVersion;
         OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
-        EnsureDiagnosticCodes(result.Diagnostics);
+        EnsureStringCollection(result.CapabilitiesUsed, "capabilitiesUsed");
+        EnsureDiagnosticContracts(result.Diagnostics);
 
         return JsonSerializer.Serialize(ProjectResult(result), CreateOptions(indented));
     }
@@ -100,13 +101,14 @@ public static class OfficeDocumentReadResultJson {
         OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
         EnsureRequiredTopLevelProperties(root);
         EnsureKnownTopLevelProperties(root);
+        EnsureNestedTransportContracts(root);
 
         OfficeDocumentReadResult? result = JsonSerializer.Deserialize<OfficeDocumentReadResult>(json, CreateReadOptions());
         if (result == null) {
             throw new JsonException("The document read result payload produced a null result.");
         }
         result = NormalizeDeserializedResult(result);
-        EnsureDiagnosticCodes(result.Diagnostics);
+        EnsureDiagnosticContracts(result.Diagnostics);
         return result;
     }
 
@@ -145,13 +147,24 @@ public static class OfficeDocumentReadResultJson {
         }
     }
 
-    private static void EnsureDiagnosticCodes(IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics) {
+    private static void EnsureDiagnosticContracts(IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics) {
         if (diagnostics == null) return;
 
         for (int index = 0; index < diagnostics.Count; index++) {
             OfficeDocumentDiagnostic? diagnostic = diagnostics[index];
             if (diagnostic == null || string.IsNullOrWhiteSpace(diagnostic.Code)) {
                 throw new JsonException($"Document diagnostic at index {index} must have a non-empty code.");
+            }
+            if (diagnostic.Message == null) {
+                throw new JsonException($"Document diagnostic at index {index} must have a message string.");
+            }
+            if (diagnostic.Attributes == null) {
+                throw new JsonException($"Document diagnostic at index {index} must have an attributes object.");
+            }
+            foreach (KeyValuePair<string, string> attribute in diagnostic.Attributes) {
+                if (attribute.Value == null) {
+                    throw new JsonException($"Document diagnostic at index {index} has a null attribute value for '{attribute.Key}'.");
+                }
             }
         }
     }
@@ -638,6 +651,9 @@ public static class OfficeDocumentReadResultJson {
 
         var projected = new object[values.Count];
         for (int i = 0; i < values.Count; i++) {
+            if (ReferenceEquals(values[i], null)) {
+                throw new JsonException($"Document transport collection contains a null item at index {i}.");
+            }
             projected[i] = projector(values[i]);
         }
 

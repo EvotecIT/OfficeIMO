@@ -3,6 +3,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
+using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 
@@ -61,7 +62,7 @@ internal static class ReaderBenchmarkCorpus {
         var builder = new StringBuilder("Id,Name,Amount,Active,RecordedUtc\n");
         for (int row = 1; row <= 2500; row++) {
             builder.Append(row).Append(",Item ").Append(row).Append(',')
-                .Append(row * 1.25m).Append(',').Append(row % 2 == 0 ? "true" : "false")
+                .Append((row * 1.25m).ToString(CultureInfo.InvariantCulture)).Append(',').Append(row % 2 == 0 ? "true" : "false")
                 .Append(",2026-07-10T08:00:00Z\n");
         }
         return builder.ToString();

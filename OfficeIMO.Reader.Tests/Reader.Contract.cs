@@ -162,6 +162,18 @@ public sealed class ReaderContractTests {
         Assert.Contains("futureField", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OfficeDocumentReadResultJson_RejectsUnknownSourceMembers() {
+        JsonObject envelope = JsonNode.Parse(
+            OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult()))!.AsObject();
+        envelope["source"]!["futureField"] = true;
+
+        JsonException exception = Assert.Throws<JsonException>(
+            () => OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString()));
+
+        Assert.Contains("source.futureField", exception.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("source")]
     [InlineData("capabilitiesUsed")]
@@ -195,6 +207,46 @@ public sealed class ReaderContractTests {
         Assert.Equal("chunk-1", Assert.Single(restored.Chunks).Id);
     }
 
+    [Theory]
+    [InlineData("chunks")]
+    [InlineData("metadata")]
+    [InlineData("pages")]
+    [InlineData("blocks")]
+    [InlineData("tables")]
+    [InlineData("assets")]
+    [InlineData("links")]
+    [InlineData("forms")]
+    [InlineData("ocrCandidates")]
+    [InlineData("visuals")]
+    [InlineData("diagnostics")]
+    public void OfficeDocumentReadResultJson_RejectsNullItemsInRequiredObjectArrays(string propertyName) {
+        JsonObject envelope = JsonNode.Parse(
+            OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult()))!.AsObject();
+        envelope[propertyName] = new JsonArray((JsonNode?)null);
+
+        JsonException exception = Assert.Throws<JsonException>(
+            () => OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString()));
+
+        Assert.Contains(propertyName, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("item 0", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("message")]
+    [InlineData("attributes")]
+    public void OfficeDocumentReadResultJson_RejectsNullRequiredDiagnosticMembers(string propertyName) {
+        var result = new OfficeDocumentReadResult {
+            Diagnostics = new[] { new OfficeDocumentDiagnostic { Code = "fixture", Message = "Fixture" } }
+        };
+        JsonObject envelope = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(result))!.AsObject();
+        envelope["diagnostics"]![0]![propertyName] = null;
+
+        JsonException exception = Assert.Throws<JsonException>(
+            () => OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString()));
+
+        Assert.Contains(propertyName, exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void OfficeDocumentReadResultJson_RejectsDiagnosticsWithoutStableCodes() {
         var result = new OfficeDocumentReadResult {
@@ -204,6 +256,20 @@ public sealed class ReaderContractTests {
         JsonException exception = Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Serialize(result));
 
         Assert.Contains("non-empty code", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("message")]
+    [InlineData("attributes")]
+    public void OfficeDocumentReadResultJson_RejectsNullDiagnosticMembersDuringSerialization(string propertyName) {
+        var diagnostic = new OfficeDocumentDiagnostic { Code = "fixture", Message = "Fixture" };
+        if (propertyName == "message") diagnostic.Message = null!;
+        if (propertyName == "attributes") diagnostic.Attributes = null!;
+        var result = new OfficeDocumentReadResult { Diagnostics = new[] { diagnostic } };
+
+        JsonException exception = Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Serialize(result));
+
+        Assert.Contains(propertyName, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
