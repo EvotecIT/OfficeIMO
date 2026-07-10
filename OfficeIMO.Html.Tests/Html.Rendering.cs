@@ -306,6 +306,89 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_RendersFirstLeftRightMarginContentAcrossSvgAndPdf() {
+        string words = string.Join(" ", Enumerable.Range(0, 120).Select(index => "word" + index.ToString("D3")));
+        string html = """
+            <style>
+              @page {
+                size: 3in 2in;
+                margin: 0.3in;
+                @top-center { content: "Page " counter(page) " of " counter(pages); color:#224466; font-size:10px; }
+                @bottom-right { content: "GenericFooter"; }
+              }
+              @page :first { @top-center { content: "FirstPage"; font-weight:bold; } }
+              @page :left { @bottom-left { content: "L" counter(page); } }
+              @page :right { @bottom-right { content: "R" counter(page); } }
+            </style>
+            <div><p style="margin:0">WORDS</p></div>
+            """.Replace("WORDS", words);
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.Equal(288D, rendered.Pages[0].Width, 3);
+        Assert.Equal(192D, rendered.Pages[0].Height, 3);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "FirstPage");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Page 2 of " + rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "L2");
+        Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "R3");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
+
+        IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
+        Assert.Contains("FirstPage", Encoding.UTF8.GetString(svgPages[0].Bytes), StringComparison.Ordinal);
+        Assert.Contains("L2", Encoding.UTF8.GetString(svgPages[1].Bytes), StringComparison.Ordinal);
+        Assert.Contains("R3", Encoding.UTF8.GetString(svgPages[2].Bytes), StringComparison.Ordinal);
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.Contains("FirstPage", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Page 2 of " + rendered.Pages.Count, pdfText, StringComparison.Ordinal);
+        Assert.Contains("L2", pdfText, StringComparison.Ordinal);
+        Assert.Contains("R3", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_DiagnosesPseudoPageGeometryUntilPerPageReflowIsAvailable() {
+        string html = "<style>@page { size:3in 2in; margin:0.25in; } @page :first { size:2in 2in; margin:0.5in; @top-left { content:\"First\"; } }</style><p>Body</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+
+        Assert.Equal(288D, page.Width, 3);
+        Assert.Equal(192D, page.Height, 3);
+        Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "First");
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_DiagnosesUnsupportedNamedPagesMarginPositionsAndGeneratedContent() {
+        string html = "<style>@page invoice { @top-left { content:\"Named\"; } } @page { @left-middle { content:\"Side\"; } @top-left { content:attr(title); } }</style><p>Body</p>";
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(3D, 2D),
+            Margins = HtmlRenderMargins.All(16D)
+        });
+
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported);
+    }
+
+    [Fact]
     public void HtmlImageExport_RendersPngSvgTableAndDataImageWithoutNewRuntimeDependencies() {
         string pngData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(12, 8));
         string html = $"""

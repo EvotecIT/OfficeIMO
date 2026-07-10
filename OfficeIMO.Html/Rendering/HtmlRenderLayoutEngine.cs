@@ -11,15 +11,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly HtmlRenderStyleResolver _styleResolver;
     private readonly HtmlRenderResourceSet _resources;
+    private readonly HtmlCssPageRuleSet _pageRules;
     private readonly Uri? _baseUri;
     private int _paintOrder;
 
-    internal HtmlRenderLayoutEngine(IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null) {
+    internal HtmlRenderLayoutEngine(IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null) {
         _document = document;
         _options = options;
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
         _resources = resources ?? new HtmlRenderResourceSet();
+        _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
     }
 
@@ -157,7 +159,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         CommitPage(pages, visuals, pageWidth, pageHeight);
-        return new HtmlRenderDocument(HtmlRenderMode.Paged, pages, _diagnostics);
+        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics);
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) => new List<HtmlRenderVisual> { CreatePageBackground(width, height) };

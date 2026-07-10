@@ -90,7 +90,7 @@ internal static class HtmlPdfRenderedConverter {
             visual.Width * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
             PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
-            PdfCore.PdfAlign.Left,
+            MapAlignment(visual.Alignment),
             visual.Font.Size * PointsPerCssPixel,
             visual.LineHeight * PointsPerCssPixel);
     }
@@ -121,5 +121,12 @@ internal static class HtmlPdfRenderedConverter {
         }
 
         return PdfCore.PdfStandardFont.Helvetica;
+    }
+
+    private static PdfCore.PdfAlign MapAlignment(OfficeTextAlignment alignment) {
+        if (alignment == OfficeTextAlignment.Center) return PdfCore.PdfAlign.Center;
+        if (alignment == OfficeTextAlignment.Right) return PdfCore.PdfAlign.Right;
+        if (alignment == OfficeTextAlignment.Justify) return PdfCore.PdfAlign.Justify;
+        return PdfCore.PdfAlign.Left;
     }
 }

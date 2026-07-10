@@ -7,15 +7,18 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal static class HtmlCssPageSettingsResolver {
-    internal static void Apply(IHtmlDocument document, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return;
+    internal static HtmlCssPageRuleSet Apply(IHtmlDocument document, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+        var pageRules = new HtmlCssPageRuleSet();
+        if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
         var parser = new CssParser();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, HtmlCssMediaContext.Print)) continue;
-            ApplyRawGenericPageSizes(styleElement.TextContent, options, diagnostics);
+            ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules);
             var sheet = parser.ParseStyleSheet(styleElement.TextContent);
             foreach (ICssRule rule in sheet.Rules) ApplyRule(rule, options, diagnostics);
         }
+
+        return pageRules;
     }
 
     private static void ApplyRule(ICssRule rule, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
@@ -23,7 +26,6 @@ internal static class HtmlCssPageSettingsResolver {
         if (rule is ICssPageRule pageRule) {
             string selector = (pageRule.SelectorText ?? string.Empty).Trim();
             if (selector.Length > 0) {
-                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A named or pseudo-page rule is not yet applied to individual pages.", HtmlDiagnosticSeverity.Warning, selector);
                 return;
             }
 
@@ -107,10 +109,10 @@ internal static class HtmlCssPageSettingsResolver {
         return type.Length == 0 || string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void ApplyRawGenericPageSizes(string css, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) =>
-        ScanRawRules(css, 0, css.Length, options, diagnostics);
+    private static void ApplyRawPageRules(string css, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) =>
+        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules);
 
-    private static void ScanRawRules(string css, int start, int end, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+    private static void ScanRawRules(string css, int start, int end, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) {
         int cursor = start;
         while (cursor < end) {
             if (IsCommentStart(css, cursor)) {
@@ -150,17 +152,147 @@ internal static class HtmlCssPageSettingsResolver {
             string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
             if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
                 if (HtmlComputedStyleEngine.IsApplicableMedia(prelude, HtmlCssMediaContext.Print)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics);
+                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules);
                 }
-            } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase) && prelude.Length == 0) {
+            } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
                 string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
-                string size = FindTopLevelDeclaration(body, "size");
-                if (size.Length > 0 && !TryApplyPageSize(size, options)) {
-                    diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, "@page", size);
-                }
+                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules);
             }
 
             cursor = closeBrace + 1;
+        }
+    }
+
+    private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) {
+        if (!TryParsePageSelector(selectorText, out HtmlCssPageSelector selector)) {
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A named or compound page selector is not yet applied to individual pages.", HtmlDiagnosticSeverity.Warning, selectorText.Length == 0 ? "@page" : selectorText);
+            return;
+        }
+
+        string size = FindTopLevelDeclaration(body, "size");
+        if (selector == HtmlCssPageSelector.Generic) {
+            if (size.Length > 0 && !TryApplyPageSize(size, options)) {
+                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, "@page", size);
+            }
+        } else if (size.Length > 0 || HasPageMarginDeclaration(body)) {
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PagePseudoGeometryPending, "Pseudo-page size and margin declarations require page-by-page body reflow and were not applied to body geometry.", HtmlDiagnosticSeverity.Warning, "@page " + selectorText);
+        }
+
+        IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes = ExtractMarginBoxes(body, selectorText, options, diagnostics);
+        if (marginBoxes.Count > 0) pageRules.Add(new HtmlCssPageRule(selector, marginBoxes));
+    }
+
+    private static bool TryParsePageSelector(string selectorText, out HtmlCssPageSelector selector) {
+        string normalized = selectorText.Trim();
+        if (normalized.Length == 0) {
+            selector = HtmlCssPageSelector.Generic;
+            return true;
+        }
+
+        if (string.Equals(normalized, ":first", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.First;
+        else if (string.Equals(normalized, ":left", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.Left;
+        else if (string.Equals(normalized, ":right", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.Right;
+        else {
+            selector = HtmlCssPageSelector.Generic;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool HasPageMarginDeclaration(string body) =>
+        FindTopLevelDeclaration(body, "margin").Length > 0
+        || FindTopLevelDeclaration(body, "margin-top").Length > 0
+        || FindTopLevelDeclaration(body, "margin-right").Length > 0
+        || FindTopLevelDeclaration(body, "margin-bottom").Length > 0
+        || FindTopLevelDeclaration(body, "margin-left").Length > 0;
+
+    private static IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ExtractMarginBoxes(string pageBody, string pageSelector, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+        var boxes = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate>();
+        int cursor = 0;
+        while (cursor < pageBody.Length) {
+            if (IsCommentStart(pageBody, cursor)) {
+                cursor = SkipComment(pageBody, cursor + 2, pageBody.Length);
+                continue;
+            }
+
+            char current = pageBody[cursor];
+            if (current == '\'' || current == '"') {
+                cursor = SkipQuoted(pageBody, cursor + 1, pageBody.Length, current);
+                continue;
+            }
+
+            if (current != '@') {
+                cursor++;
+                continue;
+            }
+
+            int nameStart = cursor + 1;
+            int nameEnd = nameStart;
+            while (nameEnd < pageBody.Length && (char.IsLetter(pageBody[nameEnd]) || pageBody[nameEnd] == '-')) nameEnd++;
+            string name = pageBody.Substring(nameStart, nameEnd - nameStart).ToLowerInvariant();
+            int boundary = FindRuleBoundary(pageBody, nameEnd, pageBody.Length);
+            if (boundary < 0 || pageBody[boundary] == ';') {
+                cursor = boundary < 0 ? pageBody.Length : boundary + 1;
+                continue;
+            }
+
+            int close = FindMatchingBrace(pageBody, boundary);
+            if (close < 0) break;
+            string marginBody = pageBody.Substring(boundary + 1, close - boundary - 1);
+            if (!TryMapMarginPosition(name, out HtmlCssPageMarginPosition position)) {
+                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported, "A page-margin position is not yet represented by the horizontal margin-box renderer.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector, "@" + name);
+                cursor = close + 1;
+                continue;
+            }
+
+            string contentValue = FindTopLevelDeclaration(marginBody, "content");
+            if (!HtmlCssGeneratedContentTemplate.TryParse(contentValue, out HtmlCssGeneratedContentTemplate content)) {
+                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, contentValue);
+                cursor = close + 1;
+                continue;
+            }
+
+            boxes[position] = CreateMarginTemplate(position, content, marginBody, options);
+            cursor = close + 1;
+        }
+
+        return boxes;
+    }
+
+    private static HtmlCssPageMarginTemplate CreateMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, string body, HtmlRenderOptions options) {
+        string family = HtmlRenderCssValues.FirstFontFamily(FindTopLevelDeclaration(body, "font-family"), options.DefaultFontFamily);
+        double fontSize = options.DefaultFontSize;
+        HtmlRenderCssValues.TryLength(FindTopLevelDeclaration(body, "font-size"), options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, out fontSize);
+        if (fontSize <= 0D) fontSize = options.DefaultFontSize;
+        OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
+        string weight = FindTopLevelDeclaration(body, "font-weight");
+        if (string.Equals(weight, "bold", StringComparison.OrdinalIgnoreCase) || int.TryParse(weight, out int numericWeight) && numericWeight >= 600) fontStyle |= OfficeFontStyle.Bold;
+        string style = FindTopLevelDeclaration(body, "font-style");
+        if (style.StartsWith("italic", StringComparison.OrdinalIgnoreCase) || style.StartsWith("oblique", StringComparison.OrdinalIgnoreCase)) fontStyle |= OfficeFontStyle.Italic;
+        OfficeColor color = HtmlRenderCssValues.TryColor(FindTopLevelDeclaration(body, "color"), out OfficeColor parsedColor) ? parsedColor : OfficeColor.Black;
+        OfficeTextAlignment alignment = ResolveMarginAlignment(position, FindTopLevelDeclaration(body, "text-align"));
+        return new HtmlCssPageMarginTemplate(position, content, new OfficeFontInfo(family, fontSize, fontStyle), color, alignment);
+    }
+
+    private static OfficeTextAlignment ResolveMarginAlignment(HtmlCssPageMarginPosition position, string value) {
+        if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;
+        if (string.Equals(value, "center", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Center;
+        if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;
+        if (position == HtmlCssPageMarginPosition.TopCenter || position == HtmlCssPageMarginPosition.BottomCenter) return OfficeTextAlignment.Center;
+        if (position == HtmlCssPageMarginPosition.TopRight || position == HtmlCssPageMarginPosition.BottomRight) return OfficeTextAlignment.Right;
+        return OfficeTextAlignment.Left;
+    }
+
+    private static bool TryMapMarginPosition(string name, out HtmlCssPageMarginPosition position) {
+        switch (name) {
+            case "top-left": position = HtmlCssPageMarginPosition.TopLeft; return true;
+            case "top-center": position = HtmlCssPageMarginPosition.TopCenter; return true;
+            case "top-right": position = HtmlCssPageMarginPosition.TopRight; return true;
+            case "bottom-left": position = HtmlCssPageMarginPosition.BottomLeft; return true;
+            case "bottom-center": position = HtmlCssPageMarginPosition.BottomCenter; return true;
+            case "bottom-right": position = HtmlCssPageMarginPosition.BottomRight; return true;
+            default: position = HtmlCssPageMarginPosition.TopLeft; return false;
         }
     }
 

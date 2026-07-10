@@ -18,7 +18,7 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var diagnostics = new HtmlDiagnosticReport();
-        HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
@@ -28,7 +28,7 @@ public static class HtmlRenderEngine {
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics).Render();
+        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, pageRules: pageRules).Render();
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var diagnostics = new HtmlDiagnosticReport();
-        HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
@@ -53,7 +53,7 @@ public static class HtmlRenderEngine {
         HtmlRenderResourceSet resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources).Render();
+        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules).Render();
     }
 
     /// <summary>

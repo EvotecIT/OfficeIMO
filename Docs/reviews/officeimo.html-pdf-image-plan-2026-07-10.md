@@ -46,7 +46,7 @@ OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
 - `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The current renderer deliberately starts with normal flow, styled text, simple tables, images, generic `@page` rules, stable line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, row-span fragmentation, named page selectors, advanced positioning, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+The current renderer deliberately starts with normal flow, styled text, simple tables, images, generic `@page` geometry, first/left/right page-margin content, stable line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, row-span fragmentation, named pages, pseudo-page body reflow, advanced positioning, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
 ## Implemented Checkpoint
 
@@ -56,6 +56,7 @@ The current renderer deliberately starts with normal flow, styled text, simple t
 - [x] Synchronous APIs for embedded/local content and asynchronous APIs for application-resolved external resources.
 - [x] URL policy, per-resource and total byte budgets, timeout, cancellation, content-type checks, surface limits, page limits, and layout-depth limits.
 - [x] Screen/print media selection, CSS custom-property inheritance/fallback/cycle handling, basic page rules, and stable text/table fragmentation.
+- [x] First/left/right page-margin content with quoted text, page counters, font/color/alignment styling, and shared SVG/PDF output.
 - [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
 - [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, pagination, resources, timeout, cancellation, and diagnostics.
 
@@ -234,9 +235,9 @@ Exit gate: the continuous renderer can place the full target corpus without pagi
 
 ### Phase 5 - Pagination and fragmentation
 
-- [ ] Complete page construction and page masters. Generic `@page` size/margins and print media selection are implemented; named and pseudo-page selectors remain.
+- [ ] Complete page construction and page masters. Generic `@page` size/margins, print media selection, and first/left/right margin-content selection are implemented; named pages and pseudo-page body-geometry reflow remain.
 - [ ] Complete break rules and continuation state. Stable nested text/child/table-row continuation, CSS `widows`/`orphans`, and repeated leading `<thead>` rows are implemented; table footers and advanced fragmentation remain.
-- [ ] Add generated page content, counters, running headers/footers, and margin boxes.
+- [ ] Complete generated page content, counters, running headers/footers, and margin boxes. Quoted text, `counter(page)`, `counter(pages)`, and the six horizontal top/bottom margin boxes are implemented; running strings, element content, vertical side boxes, and richer generated content remain.
 - [ ] Make backgrounds, borders, positioned elements, flex/grid content, and links fragment correctly.
 
 Exit gate: paged geometry and page counts match the accepted corpus.

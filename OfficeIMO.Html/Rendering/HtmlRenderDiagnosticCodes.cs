@@ -20,8 +20,14 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GridLayoutPending = "HtmlRenderGridLayoutPending";
     /// <summary>An inline image used its alternative-text fallback.</summary>
     public const string InlineImageFallback = "HtmlRenderInlineImageFallback";
-    /// <summary>A named or pseudo-page selector could not yet be applied per page.</summary>
+    /// <summary>A named or compound page selector could not yet be applied per page.</summary>
     public const string PageSelectorPending = "HtmlRenderPageSelectorPending";
+    /// <summary>A pseudo-page geometry declaration requires page-by-page content reflow.</summary>
+    public const string PagePseudoGeometryPending = "HtmlRenderPagePseudoGeometryPending";
+    /// <summary>A page-margin generated-content expression was unsupported.</summary>
+    public const string PageMarginContentUnsupported = "HtmlRenderPageMarginContentUnsupported";
+    /// <summary>A page-margin position was unsupported by the current visual model.</summary>
+    public const string PageMarginPositionUnsupported = "HtmlRenderPageMarginPositionUnsupported";
     /// <summary>An <c>@page</c> size declaration was unsupported.</summary>
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
     /// <summary>The dependency-free PNG backend could not decode a retained raster format.</summary>
@@ -56,6 +62,9 @@ public static class HtmlRenderDiagnosticCodes {
         ForcedFragment,
         GridLayoutPending,
         InlineImageFallback,
+        PageMarginContentUnsupported,
+        PageMarginPositionUnsupported,
+        PagePseudoGeometryPending,
         PageSelectorPending,
         PageSizeUnsupported,
         RasterDecoderUnavailable,
