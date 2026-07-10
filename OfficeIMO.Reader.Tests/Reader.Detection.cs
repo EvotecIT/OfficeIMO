@@ -2,6 +2,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Word;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -112,6 +113,80 @@ public sealed class ReaderDetectionTests {
         Assert.Equal(ReaderDetectionConfidence.High, detection.Confidence);
         Assert.True(detection.ContainerInspected);
         Assert.Contains("container:word/document.xml", detection.Evidence);
+    }
+
+    [Fact]
+    public void DocumentReader_Detect_InspectsEntriesAfterDataDescriptors() {
+        byte[] package = CreateStreamingZip(
+            ("first.bin", "descriptor payload"),
+            ("word/document.xml", "<document />"));
+        Assert.NotEqual(0, BitConverter.ToUInt16(package, 6) & 0x0008);
+
+        ReaderDetectionResult detection = DocumentReader.Detect(package, "document.blob");
+
+        Assert.Equal(ReaderInputKind.Word, detection.Kind);
+        Assert.Equal(ReaderDetectionConfidence.High, detection.Confidence);
+        Assert.Contains("container:word/document.xml", detection.Evidence);
+    }
+
+    [Fact]
+    public async Task DocumentReader_DetectAsync_MatchesContainerMarkersOnlyFromEntryNames() {
+        byte[] package = CreateStreamingZip(
+            ("notes.txt", "payload mentions word/document.xml but is not an Office package"),
+            ("prefixword/document.xmlsuffix", "partial entry-name match"));
+
+        ReaderDetectionResult detection = await DocumentReader.DetectAsync(package, "document.blob");
+
+        Assert.Equal(ReaderInputKind.Zip, detection.Kind);
+        Assert.Equal(ReaderInputKind.Zip, detection.ContentKind);
+        Assert.DoesNotContain("container:word/document.xml", detection.Evidence);
+    }
+
+    [Fact]
+    public void DocumentReader_Detect_RecognizesUtf16JsonBeforeBinaryHeuristics() {
+        byte[] bytes = Encoding.Unicode.GetPreamble()
+            .Concat(Encoding.Unicode.GetBytes("{\"name\":\"OfficeIMO\"}"))
+            .ToArray();
+
+        ReaderDetectionResult detection = DocumentReader.Detect(bytes, "document.blob");
+
+        Assert.Equal(ReaderInputKind.Json, detection.Kind);
+        Assert.Equal("application/json", detection.MediaType);
+    }
+
+    [Theory]
+    [InlineData("records.csv", "text/csv")]
+    [InlineData("records.tsv", "text/tab-separated-values")]
+    [InlineData("document.json", "application/json")]
+    [InlineData("document.xml", "application/xml")]
+    [InlineData("document.yaml", "application/yaml")]
+    public void DocumentReader_Detect_PreservesExtensionSpecificMediaTypes(string sourceName, string expectedMediaType) {
+        ReaderDetectionResult detection = DocumentReader.Detect(
+            Array.Empty<byte>(),
+            sourceName,
+            new ReaderDetectionOptions { Mode = ReaderDetectionMode.ExtensionOnly });
+
+        Assert.Equal(ReaderInputKind.Text, detection.Kind);
+        Assert.Equal(expectedMediaType, detection.MediaType);
+    }
+
+    [Fact]
+    public void DocumentReader_ReadDocument_EnforcesPathLimitBeforeContentDetection() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".blob");
+        File.WriteAllBytes(path, new byte[257]);
+
+        try {
+            IOException exception = Assert.Throws<IOException>(() => DocumentReader.ReadDocument(
+                path,
+                new ReaderOptions {
+                    DetectionMode = ReaderDetectionMode.PreferContent,
+                    MaxInputBytes = 256
+                }));
+
+            Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(path);
+        }
     }
 
     [Fact]
@@ -249,6 +324,48 @@ public sealed class ReaderDetectionTests {
         Assert.Equal(OfficeDocumentDiagnosticCategory.Parsing, diagnostic.Category);
         Assert.Equal("officeimo.reader", diagnostic.Source);
         Assert.True(diagnostic.IsRecoverable);
+    }
+
+    private static byte[] CreateStreamingZip(params (string Name, string Content)[] entries) {
+        using var buffer = new MemoryStream();
+        using (var output = new NonSeekableWriteStream(buffer))
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach ((string name, string content) in entries) {
+                ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.NoCompression);
+                using Stream entryStream = entry.Open();
+                byte[] bytes = Encoding.UTF8.GetBytes(content);
+                entryStream.Write(bytes, 0, bytes.Length);
+            }
+        }
+        return buffer.ToArray();
+    }
+
+    private sealed class NonSeekableWriteStream : Stream {
+        private readonly Stream _inner;
+
+        public NonSeekableWriteStream(Stream inner) {
+            _inner = inner;
+        }
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Flush();
+            base.Dispose(disposing);
+        }
     }
 
     private sealed class AsyncOnlyNonSeekableStream : Stream {

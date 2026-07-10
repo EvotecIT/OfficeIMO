@@ -22,6 +22,7 @@ public static partial class DocumentReader {
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
         ReaderOptions opt = NormalizeOptions(options);
+        EnforceFileSize(path, opt.MaxInputBytes);
         bool hasCustomPathHandler = TryResolvePathHandler(
             path,
             opt,
@@ -29,7 +30,6 @@ public static partial class DocumentReader {
             out ReaderDetectionResult detection);
         ReaderInputKind kind = detection.Kind;
         if (hasCustomPathHandler && customPathHandler.ReadDocumentPath != null) {
-            EnforceFileSize(path, opt.MaxInputBytes);
             return ApplyDetectionDiagnostics(
                 ValidateDocumentResult(
                     customPathHandler.ReadDocumentPath(path, opt, cancellationToken),
@@ -81,7 +81,10 @@ public static partial class DocumentReader {
                     detection);
             }
 
-            using MemoryStream snapshot = CopyToMemory(readStream, cancellationToken, opt.MaxInputBytes);
+            using MemoryStream snapshot = ownsReadStream && readStream is MemoryStream bufferedInput
+                ? bufferedInput
+                : CopyToMemory(readStream, cancellationToken, opt.MaxInputBytes);
+            snapshot.Position = 0;
             ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
             snapshot.Position = 0;
             bool customStreamReaderOwnsExtension = hasCustomStreamHandler && customStreamHandler.ReadStream != null;

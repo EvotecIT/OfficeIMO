@@ -21,12 +21,12 @@ public static partial class DocumentReader {
         CancellationToken cancellationToken = default) {
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
+        EnforceFileSize(path, opt.MaxInputBytes);
 
         HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
             ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
-            EnforceFileSize(path, opt.MaxInputBytes);
             SourceInfo source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
@@ -104,12 +104,12 @@ public static partial class DocumentReader {
         CancellationToken cancellationToken = default) {
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
+        EnforceFileSize(path, opt.MaxInputBytes);
 
         HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
             ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
-            EnforceFileSize(path, opt.MaxInputBytes);
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);

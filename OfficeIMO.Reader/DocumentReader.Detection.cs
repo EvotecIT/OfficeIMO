@@ -237,7 +237,6 @@ public static partial class DocumentReader {
                 DetectionCandidate containerCandidate = InspectZipContainer(
                     stream,
                     originalPosition,
-                    prefix,
                     options.MaxContainerEntries);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) {
@@ -276,7 +275,6 @@ public static partial class DocumentReader {
                 DetectionCandidate containerCandidate = await InspectZipContainerAsync(
                     stream,
                     originalPosition,
-                    prefix,
                     options.MaxContainerEntries,
                     cancellationToken).ConfigureAwait(false);
                 containerInspected = true;
@@ -307,7 +305,7 @@ public static partial class DocumentReader {
             Confidence = extensionKind == ReaderInputKind.Unknown
                 ? ReaderDetectionConfidence.None
                 : ReaderDetectionConfidence.Medium,
-            MediaType = GetMediaType(extensionKind),
+            MediaType = GetMediaType(extension, extensionKind),
             Evidence = evidence
         };
     }
@@ -346,9 +344,11 @@ public static partial class DocumentReader {
             ContentConfidence = content.Confidence,
             Kind = effectiveKind,
             Confidence = effectiveConfidence,
-            MediaType = content.Kind == effectiveKind && content.MediaType != null
-                ? content.MediaType
-                : GetMediaType(effectiveKind),
+            MediaType = effectiveKind == extensionResult.ExtensionKind
+                ? extensionResult.MediaType ?? GetMediaType(effectiveKind)
+                : content.Kind == effectiveKind && content.MediaType != null
+                    ? content.MediaType
+                    : GetMediaType(effectiveKind),
             ContentInspected = true,
             ContainerInspected = containerInspected,
             InspectedBytes = inspectedBytes,
@@ -452,120 +452,6 @@ public static partial class DocumentReader {
         return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", "content:mostly-text");
     }
 
-    private static DetectionCandidate InspectZipContainer(Stream stream, long start, byte[] prefix, int maxEntries) {
-        if (ContainsAscii(prefix, "word/document.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.Word, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "container:word/document.xml");
-        }
-        if (ContainsAscii(prefix, "xl/workbook.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.Excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "container:xl/workbook.xml");
-        }
-        if (ContainsAscii(prefix, "ppt/presentation.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.PowerPoint, "application/vnd.openxmlformats-officedocument.presentationml.presentation", "container:ppt/presentation.xml");
-        }
-        if (ContainsAscii(prefix, "visio/document.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.Visio, "application/vnd.ms-visio.drawing.main+xml", "container:visio/document.xml");
-        }
-        if (ContainsAscii(prefix, "application/epub+zip")) {
-            return DetectionCandidate.High(ReaderInputKind.Epub, "application/epub+zip", "container:epub-mimetype");
-        }
-
-        stream.Position = start;
-        var header = new byte[30];
-        for (int entryIndex = 0; entryIndex < maxEntries; entryIndex++) {
-            if (!ReadExact(stream, header, 0, header.Length) || ReadUInt32(header, 0) != 0x04034B50U) {
-                break;
-            }
-
-            ushort flags = ReadUInt16(header, 6);
-            ushort compression = ReadUInt16(header, 8);
-            uint compressedSize = ReadUInt32(header, 18);
-            ushort nameLength = ReadUInt16(header, 26);
-            ushort extraLength = ReadUInt16(header, 28);
-            if (nameLength == 0 || nameLength > 4096) break;
-
-            var nameBytes = new byte[nameLength];
-            if (!ReadExact(stream, nameBytes, 0, nameBytes.Length)) break;
-            string name = Encoding.UTF8.GetString(nameBytes).Replace('\\', '/').ToLowerInvariant();
-            if (extraLength > 0) stream.Seek(extraLength, SeekOrigin.Current);
-            long dataStart = stream.Position;
-
-            DetectionCandidate? match = MatchContainerEntry(name);
-            if (match != null) return match;
-            if (name == "mimetype" && compression == 0 && compressedSize > 0 && compressedSize <= 128) {
-                var mimeBytes = new byte[compressedSize];
-                if (ReadExact(stream, mimeBytes, 0, mimeBytes.Length) &&
-                    string.Equals(Encoding.ASCII.GetString(mimeBytes).Trim(), "application/epub+zip", StringComparison.Ordinal)) {
-                    return DetectionCandidate.High(ReaderInputKind.Epub, "application/epub+zip", "container:epub-mimetype");
-                }
-            }
-
-            if ((flags & 0x0008) != 0 || compressedSize > long.MaxValue - dataStart) break;
-            stream.Position = dataStart + compressedSize;
-        }
-
-        return DetectionCandidate.High(ReaderInputKind.Zip, "application/zip", "container:zip-generic");
-    }
-
-    private static async Task<DetectionCandidate> InspectZipContainerAsync(
-        Stream stream,
-        long start,
-        byte[] prefix,
-        int maxEntries,
-        CancellationToken cancellationToken) {
-        if (ContainsAscii(prefix, "word/document.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.Word, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "container:word/document.xml");
-        }
-        if (ContainsAscii(prefix, "xl/workbook.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.Excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "container:xl/workbook.xml");
-        }
-        if (ContainsAscii(prefix, "ppt/presentation.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.PowerPoint, "application/vnd.openxmlformats-officedocument.presentationml.presentation", "container:ppt/presentation.xml");
-        }
-        if (ContainsAscii(prefix, "visio/document.xml")) {
-            return DetectionCandidate.High(ReaderInputKind.Visio, "application/vnd.ms-visio.drawing.main+xml", "container:visio/document.xml");
-        }
-        if (ContainsAscii(prefix, "application/epub+zip")) {
-            return DetectionCandidate.High(ReaderInputKind.Epub, "application/epub+zip", "container:epub-mimetype");
-        }
-
-        stream.Position = start;
-        var header = new byte[30];
-        for (int entryIndex = 0; entryIndex < maxEntries; entryIndex++) {
-            if (!await ReadExactAsync(stream, header, 0, header.Length, cancellationToken).ConfigureAwait(false) ||
-                ReadUInt32(header, 0) != 0x04034B50U) {
-                break;
-            }
-
-            ushort flags = ReadUInt16(header, 6);
-            ushort compression = ReadUInt16(header, 8);
-            uint compressedSize = ReadUInt32(header, 18);
-            ushort nameLength = ReadUInt16(header, 26);
-            ushort extraLength = ReadUInt16(header, 28);
-            if (nameLength == 0 || nameLength > 4096) break;
-
-            var nameBytes = new byte[nameLength];
-            if (!await ReadExactAsync(stream, nameBytes, 0, nameBytes.Length, cancellationToken).ConfigureAwait(false)) break;
-            string name = Encoding.UTF8.GetString(nameBytes).Replace('\\', '/').ToLowerInvariant();
-            if (extraLength > 0) stream.Seek(extraLength, SeekOrigin.Current);
-            long dataStart = stream.Position;
-
-            DetectionCandidate? match = MatchContainerEntry(name);
-            if (match != null) return match;
-            if (name == "mimetype" && compression == 0 && compressedSize > 0 && compressedSize <= 128) {
-                var mimeBytes = new byte[compressedSize];
-                if (await ReadExactAsync(stream, mimeBytes, 0, mimeBytes.Length, cancellationToken).ConfigureAwait(false) &&
-                    string.Equals(Encoding.ASCII.GetString(mimeBytes).Trim(), "application/epub+zip", StringComparison.Ordinal)) {
-                    return DetectionCandidate.High(ReaderInputKind.Epub, "application/epub+zip", "container:epub-mimetype");
-                }
-            }
-
-            if ((flags & 0x0008) != 0 || compressedSize > long.MaxValue - dataStart) break;
-            stream.Position = dataStart + compressedSize;
-        }
-
-        return DetectionCandidate.High(ReaderInputKind.Zip, "application/zip", "container:zip-generic");
-    }
-
     private static DetectionCandidate? MatchContainerEntry(string name) {
         return name switch {
             "word/document.xml" => DetectionCandidate.High(ReaderInputKind.Word, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "container:word/document.xml"),
@@ -589,6 +475,9 @@ public static partial class DocumentReader {
     }
 
     private static string? DecodeTextPrefix(byte[] bytes) {
+        if (StartsWith(bytes, new byte[] { 0xFF, 0xFE })) return Encoding.Unicode.GetString(bytes);
+        if (StartsWith(bytes, new byte[] { 0xFE, 0xFF })) return Encoding.BigEndianUnicode.GetString(bytes);
+
         int zeroCount = 0;
         int controlCount = 0;
         for (int index = 0; index < bytes.Length; index++) {
@@ -600,8 +489,6 @@ public static partial class DocumentReader {
             return null;
         }
 
-        if (StartsWith(bytes, new byte[] { 0xFF, 0xFE })) return Encoding.Unicode.GetString(bytes);
-        if (StartsWith(bytes, new byte[] { 0xFE, 0xFF })) return Encoding.BigEndianUnicode.GetString(bytes);
         return Encoding.UTF8.GetString(bytes);
     }
 
@@ -611,10 +498,6 @@ public static partial class DocumentReader {
             if (source[index] != signature[index]) return false;
         }
         return true;
-    }
-
-    private static bool ContainsAscii(byte[] source, string value) {
-        return IndexOfAscii(source, value, source.Length) >= 0;
     }
 
     private static int IndexOfAscii(byte[] source, string value, int limit) {
@@ -684,6 +567,22 @@ public static partial class DocumentReader {
             ReaderInputKind.Yaml => "application/yaml",
             ReaderInputKind.Rtf => "application/rtf",
             _ => null
+        };
+    }
+
+    private static string? GetMediaType(string extension, ReaderInputKind kind) {
+        return extension switch {
+            ".docm" => "application/vnd.ms-word.document.macroEnabled.12",
+            ".doc" => "application/msword",
+            ".xlsm" => "application/vnd.ms-excel.sheet.macroEnabled.12",
+            ".xls" => "application/vnd.ms-excel",
+            ".pptm" => "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+            ".csv" => "text/csv",
+            ".tsv" => "text/tab-separated-values",
+            ".json" => "application/json",
+            ".xml" => "application/xml",
+            ".yml" or ".yaml" => "application/yaml",
+            _ => GetMediaType(kind)
         };
     }
 
