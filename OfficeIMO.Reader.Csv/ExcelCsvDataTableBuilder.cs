@@ -25,7 +25,7 @@ internal static class ExcelCsvDataTableBuilder {
         CultureInfo culture,
         bool convertNumbersAndDates) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        using var reader = new StreamReader(path);
+        using var reader = CsvFile.OpenTextReader(path);
         return FromReader(reader, delimiter, headersInFirstRow, skipInitialRecords, culture, convertNumbersAndDates);
     }
 

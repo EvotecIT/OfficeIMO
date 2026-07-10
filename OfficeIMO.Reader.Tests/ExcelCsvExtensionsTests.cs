@@ -1,5 +1,6 @@
 using System.Data;
 using System.Globalization;
+using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 using OfficeIMO.Reader.Csv;
 using Xunit;
@@ -98,6 +99,34 @@ public class ExcelCsvExtensionsTests {
             Assert.Equal(2, result.ColumnCount);
             Assert.True(document["Import"].TryGetCellText(1, 2, out string? header));
             Assert.Equal("Column2", header);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DelimitedCompressedFileImportDetectsDelimiterAndReadsRows() {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.Reader.Csv." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try {
+            using (TextWriter writer = CsvFile.CreateTextWriter(
+                       path,
+                       new CsvSaveOptions { CompressionType = CsvCompressionType.GZip })) {
+                writer.Write("Name;Amount\r\nAlpha;10.5\r\nBeta;11.75");
+            }
+
+            using var stream = new MemoryStream();
+            using var document = ExcelDocument.Create(stream, autoSave: false);
+
+            ExcelDelimitedImportResult result = document.ImportDelimitedFile(path, new ExcelDelimitedImportOptions {
+                Culture = CultureInfo.InvariantCulture,
+                SheetName = "Import"
+            });
+
+            Assert.Equal(';', result.Delimiter);
+            Assert.Equal("A1:B3", result.Range);
+            Assert.Equal(2, result.RowCount);
+            Assert.True(document["Import"].TryGetCellText(2, 2, out string? amount));
+            Assert.Equal("10.5", amount);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

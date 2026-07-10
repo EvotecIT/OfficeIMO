@@ -1,4 +1,5 @@
 using System.Data;
+using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 
 namespace OfficeIMO.Reader.Csv;
@@ -81,7 +82,7 @@ public static class ExcelDocumentCsvExtensions {
     }
 
     private static char DetectDelimiterFromFile(string path, int recordsToSkip) {
-        using var reader = new StreamReader(path);
+        using var reader = CsvFile.OpenTextReader(path);
         return DetectDelimiter(ReadFirstLogicalRecord(reader, recordsToSkip));
     }
 
