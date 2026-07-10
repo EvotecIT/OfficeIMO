@@ -104,6 +104,16 @@ public static partial class DocumentReader {
                 }
             }
 
+            if (options.IncludePowerPointNotes && slide.Notes.TryGetExistingText(out string notesText)) {
+                string notesAnchor = "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture) + "-notes";
+                slideBlocks.Add(new OfficeDocumentBlock {
+                    Id = notesAnchor,
+                    Kind = "speaker-notes",
+                    Text = notesText,
+                    Location = BuildPowerPointLocation(result.Source.Path, slideNumber, null, "speaker-notes", notesAnchor)
+                });
+            }
+
             blocks.AddRange(slideBlocks);
             links.AddRange(slideLinks);
             pages.Add(new OfficeDocumentPage {

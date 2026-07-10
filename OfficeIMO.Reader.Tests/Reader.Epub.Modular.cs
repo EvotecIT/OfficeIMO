@@ -31,6 +31,12 @@ public sealed class ReaderEpubModularTests {
             OfficeDocumentAsset asset = Assert.Single(result.Assets, item => item.MediaType == "image/png");
             Assert.NotNull(asset.PayloadBytes);
             Assert.True(asset.PayloadHashMatches(out _));
+            OfficeDocumentPage coverPage = Assert.Single(result.Pages, page => page.Location.Path?.EndsWith("::OEBPS/chapter2.xhtml", StringComparison.Ordinal) == true);
+            Assert.Contains(coverPage.Assets, pageAsset => ReferenceEquals(pageAsset, asset));
+            OfficeDocumentAsset[] inlineImages = result.Assets.Where(item => item.MediaType == "image/gif").ToArray();
+            Assert.Equal(2, inlineImages.Length);
+            Assert.Equal(2, inlineImages.Select(item => item.FileName).Distinct(StringComparer.Ordinal).Count());
+            Assert.All(result.Pages, page => Assert.Contains(page.Assets, pageAsset => pageAsset.MediaType == "image/gif"));
             ReaderVisual visual = Assert.Single(result.Visuals, item => item.Kind == "image" && item.SourceName == "images/cover.png");
             Assert.StartsWith("epub-chapter-0001-html-image-", visual.Location!.BlockAnchor!, StringComparison.Ordinal);
             using (FileStream stream = File.OpenRead(epubPath)) {
@@ -41,6 +47,26 @@ public sealed class ReaderEpubModularTests {
             Assert.Contains("officeimo.reader.epub.rich-v5", result.CapabilitiesUsed);
         } finally {
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_RichDispatch_HonorsDisabledResourcePayloadsAndKeepsPageAssets() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+
+            OfficeDocumentReadResult result = DocumentReaderEpubExtensions.ReadEpubDocument(
+                epubPath,
+                epubOptions: new EpubReadOptions { IncludeResourceData = false });
+
+            OfficeDocumentAsset asset = Assert.Single(result.Assets, item => item.MediaType == "image/png");
+            Assert.Null(asset.PayloadBytes);
+            Assert.Null(asset.PayloadHash);
+            OfficeDocumentPage coverPage = Assert.Single(result.Pages, page => page.Location.Path?.EndsWith("::OEBPS/chapter2.xhtml", StringComparison.Ordinal) == true);
+            Assert.Contains(coverPage.Assets, pageAsset => ReferenceEquals(pageAsset, asset));
+        } finally {
             if (File.Exists(epubPath)) File.Delete(epubPath);
         }
     }
@@ -438,12 +464,15 @@ public sealed class ReaderEpubModularTests {
 
         WriteTextEntry(archive, "OEBPS/chapter1.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local One</title></head><body><h1>One</h1><p>First chapter text.</p></body></html>");
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local One</title></head><body><h1>One</h1><p>First chapter text.</p>" +
+            "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/></body></html>");
 
         WriteTextEntry(archive, "OEBPS/chapter2.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local Two</title></head><body><h1>Two</h1><p>Second chapter text. <a href=\"https://example.test/chapter-two\">details</a></p>" +
-            "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Chapter</td><td>2</td></tr></table><img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
+            "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Chapter</td><td>2</td></tr></table>" +
+            "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
+            "<img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
 
         WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
     }

@@ -64,6 +64,7 @@ public static partial class DocumentReaderEpubExtensions {
             var chapterTables = new List<ReaderTable>();
             var chapterLinks = new List<OfficeDocumentLink>();
             var chapterForms = new List<OfficeDocumentFormField>();
+            var chapterAssets = new List<OfficeDocumentAsset>();
             if (!string.IsNullOrWhiteSpace(chapter.Html)) {
                 OfficeDocumentReadResult htmlResult = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
                     chapter.Html!,
@@ -77,7 +78,7 @@ public static partial class DocumentReaderEpubExtensions {
                 chapterLinks.AddRange(htmlResult.Links);
                 chapterForms.AddRange(htmlResult.Forms);
                 visuals.AddRange(htmlResult.Visuals);
-                assets.AddRange(htmlResult.Assets.Where(static asset => asset.PayloadBytes != null));
+                AddEpubChapterAssets(source.Path, chapter.Path, htmlResult.Assets, assets, chapterAssets);
                 diagnostics.AddRange(htmlResult.Diagnostics);
             }
             if (chapterBlocks.Count == 0) {
@@ -100,6 +101,7 @@ public static partial class DocumentReaderEpubExtensions {
                 Location = new ReaderLocation { Path = virtualPath, SourceBlockIndex = chapterIndex, SourceBlockKind = "chapter", BlockAnchor = "epub-chapter-" + (chapterIndex + 1).ToString("D4", CultureInfo.InvariantCulture) },
                 Blocks = chapterBlocks,
                 Tables = chapterTables,
+                Assets = chapterAssets,
                 Links = chapterLinks,
                 Forms = chapterForms
             });
@@ -137,7 +139,7 @@ public static partial class DocumentReaderEpubExtensions {
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
             IncludeRawHtml = true,
-            IncludeResourceData = true,
+            IncludeResourceData = options == null || source.IncludeResourceData,
             MaxResources = source.MaxResources,
             MaxResourceBytes = source.MaxResourceBytes,
             MaxTotalResourceBytes = source.MaxTotalResourceBytes,
@@ -174,6 +176,69 @@ public static partial class DocumentReaderEpubExtensions {
         }
     }
 
+    private static void AddEpubChapterAssets(
+        string sourcePath,
+        string chapterPath,
+        IReadOnlyList<OfficeDocumentAsset> htmlAssets,
+        List<OfficeDocumentAsset> documentAssets,
+        List<OfficeDocumentAsset> chapterAssets) {
+        foreach (OfficeDocumentAsset htmlAsset in htmlAssets) {
+            OfficeDocumentAsset? mappedAsset = null;
+            if (htmlAsset.PayloadBytes == null) {
+                string? resourcePath = ResolveEpubResourcePath(chapterPath, htmlAsset.SourceObjectId);
+                if (!string.IsNullOrWhiteSpace(resourcePath)) {
+                    string virtualResourcePath = BuildVirtualPath(sourcePath, resourcePath!);
+                    mappedAsset = documentAssets.FirstOrDefault(asset => string.Equals(asset.Location.Path, virtualResourcePath, StringComparison.Ordinal));
+                }
+            }
+
+            if (mappedAsset == null) {
+                mappedAsset = htmlAsset;
+                documentAssets.Add(mappedAsset);
+            }
+            if (!chapterAssets.Contains(mappedAsset)) chapterAssets.Add(mappedAsset);
+        }
+    }
+
+    private static string? ResolveEpubResourcePath(string chapterPath, string? sourceObjectId) {
+        if (string.IsNullOrWhiteSpace(sourceObjectId)) return null;
+        string candidate = sourceObjectId!.Trim();
+        int fragmentIndex = candidate.IndexOfAny(new[] { '#', '?' });
+        if (fragmentIndex >= 0) candidate = candidate.Substring(0, fragmentIndex);
+        if (candidate.Length == 0
+            || candidate.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || Uri.TryCreate(candidate, UriKind.Absolute, out _)) {
+            return null;
+        }
+
+        try {
+            candidate = Uri.UnescapeDataString(candidate).Replace('\\', '/');
+        } catch {
+            candidate = candidate.Replace('\\', '/');
+        }
+
+        string combined;
+        if (candidate.StartsWith("/", StringComparison.Ordinal)) {
+            combined = candidate.TrimStart('/');
+        } else {
+            int lastSlash = chapterPath.LastIndexOf('/');
+            string chapterDirectory = lastSlash < 0 ? string.Empty : chapterPath.Substring(0, lastSlash + 1);
+            combined = chapterDirectory + candidate;
+        }
+
+        var segments = new List<string>();
+        foreach (string segment in combined.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)) {
+            if (segment == ".") continue;
+            if (segment == "..") {
+                if (segments.Count == 0) return null;
+                segments.RemoveAt(segments.Count - 1);
+            } else {
+                segments.Add(segment);
+            }
+        }
+        return segments.Count == 0 ? null : string.Join("/", segments);
+    }
+
     private static void PrefixHtmlProjection(string prefix, OfficeDocumentReadResult result, ref int tableIndex) {
         foreach (OfficeDocumentBlock block in result.Blocks) {
             block.Id = prefix + block.Id;
@@ -195,6 +260,10 @@ public static partial class DocumentReaderEpubExtensions {
         }
         foreach (OfficeDocumentAsset asset in result.Assets) {
             asset.Id = prefix + asset.Id;
+            string? extension = string.IsNullOrWhiteSpace(asset.Extension)
+                ? Path.GetExtension(asset.FileName)
+                : asset.Extension;
+            asset.FileName = OfficeDocumentAssetNaming.BuildFileName(asset.Id, extension);
             if (!string.IsNullOrWhiteSpace(asset.Location.BlockAnchor)) asset.Location.BlockAnchor = prefix + asset.Location.BlockAnchor;
         }
         foreach (ReaderVisual visual in result.Visuals) {

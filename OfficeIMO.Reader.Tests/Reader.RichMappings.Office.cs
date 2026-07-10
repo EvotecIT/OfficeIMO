@@ -15,6 +15,9 @@ public sealed class ReaderOfficeRichMappingTests {
             document.BuiltinDocumentProperties.Creator = "OfficeIMO";
             document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("Read ").AddHyperLink("the policy", new Uri("https://example.test/policy"));
+            WordParagraph noteReference = document.AddParagraph("Supporting references");
+            noteReference.AddFootNote("Footnote detail");
+            noteReference.AddEndNote("Endnote detail");
             WordTable table = document.AddTable(2, 2);
             table.Title = "Inventory";
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
@@ -35,7 +38,16 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Equal("Inventory", mapped.Title);
         Assert.Equal("Bandage", mapped.Rows[0][0]);
         Assert.Equal("https://example.test/policy", Assert.Single(result.Links).Uri);
+        Assert.Contains(result.Blocks, block => block.Kind == "footnote" && block.Text.Contains("Footnote detail", StringComparison.Ordinal));
+        Assert.Contains(result.Blocks, block => block.Kind == "endnote" && block.Text.Contains("Endnote detail", StringComparison.Ordinal));
         Assert.Contains("officeimo.word.inspection-snapshot", result.CapabilitiesUsed);
+
+        stream.Position = 0;
+        OfficeDocumentReadResult withoutNotes = DocumentReader.ReadDocument(
+            stream,
+            "policy.docx",
+            new ReaderOptions { IncludeWordFootnotes = false });
+        Assert.DoesNotContain(withoutNotes.Blocks, block => block.Kind == "footnote" || block.Kind == "endnote");
     }
 
     [Fact]
@@ -51,6 +63,10 @@ public sealed class ReaderOfficeRichMappingTests {
             sheet.Cell(2, 2, 4);
             sheet.AddTable("A1:B2", hasHeader: true, name: "InventoryTable", style: TableStyle.TableStyleMedium2);
             sheet.SetHyperlink(2, 1, "https://example.test/bandage", display: "Bandage");
+            sheet.Cell(1, 4, "Loose");
+            sheet.Cell(1, 5, "Value");
+            sheet.Cell(2, 4, "Unstructured");
+            sheet.Cell(2, 5, 7);
             ExcelSheet rawSheet = document.AddWorkSheet("Raw");
             rawSheet.Cell(1, 1, "Metric");
             rawSheet.Cell(1, 2, "Value");
@@ -73,9 +89,47 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Equal("Inventory", link.Location.Sheet);
         Assert.Equal("A2", link.Location.A1Range);
         Assert.Equal("https://example.test/bandage", link.Uri);
+        ReaderTable looseInventory = Assert.Single(result.Tables, table => table.Kind != "excel-table" && table.Location?.Sheet == "Inventory");
+        Assert.Contains(looseInventory.Columns, column => column == "Loose");
         OfficeDocumentPage inventoryPage = Assert.Single(result.Pages, page => page.Name == "Inventory");
-        Assert.Same(mapped, Assert.Single(inventoryPage.Tables));
+        Assert.Contains(inventoryPage.Tables, table => ReferenceEquals(table, mapped));
+        Assert.Contains(inventoryPage.Tables, table => ReferenceEquals(table, looseInventory));
         Assert.Contains("officeimo.excel.inspection-snapshot", result.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void DocumentReader_ExcelRichMapping_HonorsSelectedRangeAcrossRichArtifacts() {
+        using var stream = new MemoryStream();
+        using (ExcelDocument document = ExcelDocument.Create(stream)) {
+            ExcelSheet sheet = document.AddWorkSheet("Inventory");
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(1, 2, "Qty");
+            sheet.Cell(2, 1, "Bandage");
+            sheet.CellFormula(2, 2, "1+1");
+            sheet.Cell(3, 1, "Gauze");
+            sheet.Cell(3, 2, 3);
+            sheet.AddTable("A1:B3", hasHeader: true, name: "InventoryTable", style: TableStyle.TableStyleMedium2);
+            sheet.SetHyperlink(2, 1, "https://example.test/inside", display: "Bandage");
+            sheet.SetComment(2, 1, "Inside comment");
+            sheet.CellFormula(2, 4, "2+2");
+            sheet.SetHyperlink(2, 4, "https://example.test/outside", display: "Outside");
+            sheet.SetComment(2, 4, "Outside comment");
+            document.Save();
+        }
+        stream.Position = 0;
+
+        OfficeDocumentReadResult result = DocumentReader.ReadDocument(
+            stream,
+            "inventory.xlsx",
+            new ReaderOptions { ExcelA1Range = "A1:B2" });
+
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Equal("https://example.test/inside", link.Uri);
+        ReaderTable table = Assert.Single(result.Tables, candidate => candidate.Kind == "excel-table");
+        Assert.Equal("A1:B2", table.Location!.A1Range);
+        Assert.Single(table.Rows);
+        Assert.Equal("1", Assert.Single(result.Metadata, item => item.Name == "FormulaCount").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, item => item.Name == "CommentCount").Value);
     }
 
     [Fact]
@@ -85,6 +139,7 @@ public sealed class ReaderOfficeRichMappingTests {
             presentation.BuiltinDocumentProperties.Title = "Rich deck";
             presentation.BuiltinDocumentProperties.Creator = "OfficeIMO";
             PowerPointSlide slide = presentation.AddSlide();
+            slide.Notes.Text = "Speaker guidance";
             PowerPointTextBox title = slide.AddTextBox("Overview");
             title.AddParagraph("Summary");
             title.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/deck");
@@ -114,6 +169,17 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Equal("chart", chart.Kind);
         Assert.Contains("Sales", chart.Content, StringComparison.Ordinal);
         Assert.Equal("3", Assert.Single(result.Metadata, item => item.Name == "ShapeCount").Value);
+        OfficeDocumentBlock notes = Assert.Single(result.Blocks, block => block.Kind == "speaker-notes");
+        Assert.Equal("Speaker guidance", notes.Text);
+        Assert.Same(notes, Assert.Single(page.Blocks, block => block.Kind == "speaker-notes"));
         Assert.Contains("officeimo.powerpoint.chart-snapshot", result.CapabilitiesUsed);
+
+        stream.Position = 0;
+        OfficeDocumentReadResult withoutNotes = DocumentReader.ReadDocument(
+            stream,
+            "deck.pptx",
+            new ReaderOptions { IncludePowerPointNotes = false });
+        Assert.DoesNotContain(withoutNotes.Blocks, block => block.Kind == "speaker-notes");
+        Assert.DoesNotContain(Assert.Single(withoutNotes.Pages).Blocks, block => block.Kind == "speaker-notes");
     }
 }

@@ -44,6 +44,10 @@ public static partial class DocumentReader {
             ProjectWordHeaderFooter(section.EvenFooter, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
         }
 
+        if (options.IncludeWordFootnotes) {
+            ProjectWordNotes(snapshot, result.Source.Path, blocks, ref sourceBlockIndex);
+        }
+
         var metadata = new[] {
             BuildCountMetadataEntry("word-section-count", "word.structure", "SectionCount", snapshot.Sections.Count)
         };
@@ -56,6 +60,90 @@ public static partial class DocumentReader {
             result.Visuals,
             result.Pages,
             metadata);
+    }
+
+    private static void ProjectWordNotes(
+        WordDocumentSnapshot snapshot,
+        string? sourcePath,
+        List<OfficeDocumentBlock> blocks,
+        ref int sourceBlockIndex) {
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
+        int noteIndex = 0;
+        foreach (WordSectionSnapshot section in snapshot.Sections) {
+            foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(section)) {
+                foreach (WordRunSnapshot run in paragraph.Runs) {
+                    if (run.Footnote != null) {
+                        ProjectWordNote("footnote", run.Footnote.ReferenceId, run.Footnote.Paragraphs, sourcePath, blocks, emitted, ref sourceBlockIndex, ref noteIndex);
+                    }
+                    if (run.Endnote != null) {
+                        ProjectWordNote("endnote", run.Endnote.ReferenceId, run.Endnote.Paragraphs, sourcePath, blocks, emitted, ref sourceBlockIndex, ref noteIndex);
+                    }
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<WordParagraphSnapshot> EnumerateWordParagraphs(WordSectionSnapshot section) {
+        foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(section.Elements)) yield return paragraph;
+        foreach (WordHeaderFooterSnapshot? headerFooter in new[] {
+            section.DefaultHeader, section.FirstHeader, section.EvenHeader,
+            section.DefaultFooter, section.FirstFooter, section.EvenFooter
+        }) {
+            if (headerFooter == null) continue;
+            foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(headerFooter.Elements)) yield return paragraph;
+        }
+    }
+
+    private static IEnumerable<WordParagraphSnapshot> EnumerateWordParagraphs(IReadOnlyList<WordBlockSnapshot> elements) {
+        foreach (WordBlockSnapshot element in elements) {
+            if (element is WordParagraphSnapshot paragraph) {
+                yield return paragraph;
+            } else if (element is WordTableSnapshot table) {
+                foreach (WordTableRowSnapshot row in table.Rows) {
+                    foreach (WordTableCellSnapshot cell in row.Cells) {
+                        foreach (WordParagraphSnapshot cellParagraph in cell.Paragraphs) yield return cellParagraph;
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ProjectWordNote(
+        string kind,
+        long? referenceId,
+        IReadOnlyList<WordParagraphSnapshot> noteParagraphs,
+        string? sourcePath,
+        List<OfficeDocumentBlock> blocks,
+        HashSet<string> emitted,
+        ref int sourceBlockIndex,
+        ref int noteIndex) {
+        string text = string.Join(
+            Environment.NewLine,
+            noteParagraphs.Select(static paragraph => paragraph.Text).Where(static value => !string.IsNullOrWhiteSpace(value)));
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        string identity = referenceId.HasValue
+            ? kind + ":" + referenceId.Value.ToString(CultureInfo.InvariantCulture)
+            : kind + ":ordinal:" + noteIndex.ToString(CultureInfo.InvariantCulture);
+        if (!emitted.Add(identity)) return;
+
+        string reference = referenceId.HasValue
+            ? referenceId.Value.ToString(CultureInfo.InvariantCulture).Replace("-", "negative-")
+            : noteIndex.ToString("D4", CultureInfo.InvariantCulture);
+        string anchor = "word-" + kind + "-" + reference;
+        blocks.Add(new OfficeDocumentBlock {
+            Id = anchor,
+            Kind = kind,
+            Text = text,
+            Location = new ReaderLocation {
+                Path = sourcePath,
+                SourceBlockIndex = sourceBlockIndex,
+                SourceBlockKind = kind,
+                BlockAnchor = anchor
+            }
+        });
+        sourceBlockIndex++;
+        noteIndex++;
     }
 
     private static void ProjectWordHeaderFooter(

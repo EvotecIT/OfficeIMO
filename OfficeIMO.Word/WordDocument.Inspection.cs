@@ -209,6 +209,7 @@ namespace OfficeIMO.Word {
                     HyperlinkUri = hyperlink?.Uri?.ToString(),
                     HyperlinkAnchor = hyperlink?.Anchor,
                     Footnote = BuildFootnoteSnapshot(run.FootNote),
+                    Endnote = BuildEndnoteSnapshot(run.EndNote),
                     InlineImage = image == null ? null : new WordInlineImageSnapshot {
                         FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
                         FileName = image.FileName,
@@ -320,6 +321,27 @@ namespace OfficeIMO.Word {
             };
 
             foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.FootNote == null))) {
+                snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup));
+            }
+
+            return snapshot.Paragraphs.Count > 0 ? snapshot : null;
+        }
+
+        private WordEndnoteSnapshot? BuildEndnoteSnapshot(WordEndNote? endnote) {
+            if (endnote == null) {
+                return null;
+            }
+
+            var paragraphs = endnote.Paragraphs;
+            if (paragraphs == null || paragraphs.Count == 0) {
+                return null;
+            }
+
+            var snapshot = new WordEndnoteSnapshot {
+                ReferenceId = endnote.ReferenceId,
+            };
+
+            foreach (var paragraphGroup in GroupParagraphs(paragraphs).Where(paragraph => paragraph.GetRuns().Any(run => run.EndNote == null))) {
                 snapshot.AddParagraph(BuildParagraphSnapshot(paragraphGroup));
             }
 
