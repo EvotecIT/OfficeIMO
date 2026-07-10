@@ -40,18 +40,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ReportUnsupportedOverflowValues(IElement element, HtmlRenderBoxStyle style) {
-        if (style.UnsupportedOverflowX.Length == 0 && style.UnsupportedOverflowY.Length == 0) return;
-        if (!_reportedOverflowValueFallbacks.Add(element)) return;
-        var details = new List<string>(2);
-        if (style.UnsupportedOverflowX.Length > 0) details.Add("overflow-x=" + style.UnsupportedOverflowX);
-        if (style.UnsupportedOverflowY.Length > 0) details.Add("overflow-y=" + style.UnsupportedOverflowY);
-        _diagnostics.Add(
-            ComponentName,
-            HtmlRenderDiagnosticCodes.OverflowValueUnsupported,
-            "An overflow value used the visible fallback.",
-            HtmlDiagnosticSeverity.Warning,
-            HtmlRenderStyleResolver.DescribeSource(element),
-            string.Join(";", details.Distinct(StringComparer.Ordinal)));
+        if ((style.UnsupportedOverflowX.Length > 0 || style.UnsupportedOverflowY.Length > 0)
+            && _reportedOverflowValueFallbacks.Add(element)) {
+            var details = new List<string>(2);
+            if (style.UnsupportedOverflowX.Length > 0) details.Add("overflow-x=" + style.UnsupportedOverflowX);
+            if (style.UnsupportedOverflowY.Length > 0) details.Add("overflow-y=" + style.UnsupportedOverflowY);
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.OverflowValueUnsupported,
+                "An overflow value used the visible fallback.",
+                HtmlDiagnosticSeverity.Warning,
+                HtmlRenderStyleResolver.DescribeSource(element),
+                string.Join(";", details.Distinct(StringComparer.Ordinal)));
+        }
+        if (style.UnsupportedOverflowClipMargin.Length > 0
+            && _reportedOverflowClipMarginFallbacks.Add(element)) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported,
+                "An overflow-clip-margin value used its initial padding-box zero fallback.",
+                HtmlDiagnosticSeverity.Warning,
+                HtmlRenderStyleResolver.DescribeSource(element),
+                "overflow-clip-margin=" + style.UnsupportedOverflowClipMargin);
+        }
     }
 
     private void AppendOverflowContent(
@@ -70,6 +81,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        ResolveOverflowClipEdge(style, ref clipX, ref clipY, ref clipWidth, ref clipHeight);
         if (ShouldReportOverflowSnapshot(content, style, clipX, clipY, clipWidth, clipHeight)
             && _reportedOverflowScrollSnapshots.Add(element)) {
             _diagnostics.Add(
@@ -92,6 +104,56 @@ internal sealed partial class HtmlRenderLayoutEngine {
             content,
             target.Count,
             HtmlRenderStyleResolver.DescribeSource(element)));
+    }
+
+    private static void ResolveOverflowClipEdge(
+        HtmlRenderBoxStyle style,
+        ref double clipX,
+        ref double clipY,
+        ref double clipWidth,
+        ref double clipHeight) {
+        if (style.OverflowX == "clip") {
+            ResolveOverflowClipAxis(
+                style.OverflowClipMarginBox,
+                style.OverflowClipMargin,
+                style.PaddingLeft,
+                style.PaddingRight,
+                style.BorderLeftWidth,
+                style.BorderRightWidth,
+                ref clipX,
+                ref clipWidth);
+        }
+        if (style.OverflowY == "clip") {
+            ResolveOverflowClipAxis(
+                style.OverflowClipMarginBox,
+                style.OverflowClipMargin,
+                style.PaddingTop,
+                style.PaddingBottom,
+                style.BorderTopWidth,
+                style.BorderBottomWidth,
+                ref clipY,
+                ref clipHeight);
+        }
+    }
+
+    private static void ResolveOverflowClipAxis(
+        string box,
+        double margin,
+        double paddingStart,
+        double paddingEnd,
+        double borderStart,
+        double borderEnd,
+        ref double origin,
+        ref double size) {
+        if (box == "content-box") {
+            origin += paddingStart;
+            size -= paddingStart + paddingEnd;
+        } else if (box == "border-box") {
+            origin -= borderStart;
+            size += borderStart + borderEnd;
+        }
+        origin -= margin;
+        size = Math.Max(0.01D, size + margin * 2D);
     }
 
     private static bool ShouldReportOverflowSnapshot(

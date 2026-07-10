@@ -66,6 +66,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OverflowScrollSnapshot = "HtmlRenderOverflowScrollSnapshot";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
     public const string OverflowValueUnsupported = "HtmlRenderOverflowValueUnsupported";
+    /// <summary>An overflow-clip-margin value used its initial padding-box zero fallback.</summary>
+    public const string OverflowClipMarginValueUnsupported = "HtmlRenderOverflowClipMarginValueUnsupported";
     /// <summary>A CSS transform or transform-origin value used the identity fallback.</summary>
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
@@ -156,6 +158,7 @@ public static class HtmlRenderDiagnosticCodes {
         GridTrackLimitExceeded,
         GridValueUnsupported,
         ReplacedElementValueUnsupported,
+        OverflowClipMarginValueUnsupported,
         OverflowScrollSnapshot,
         OverflowValueUnsupported,
         TransformValueUnsupported,

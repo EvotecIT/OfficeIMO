@@ -79,6 +79,9 @@ public static partial class HtmlComputedStyleEngine {
             || string.Equals(propertyName, "overflow-y", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "visible", "hidden", "clip", "auto", "scroll");
         }
+        if (string.Equals(propertyName, "overflow-clip-margin", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssOverflowClipMarginParser.TryParse(normalized, 16D, 16D, out _, out _);
+        }
         if (string.Equals(propertyName, "column-count", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "auto" || int.TryParse(normalized, out int count) && count > 0;
         }

@@ -155,6 +155,64 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(45, 25));
     }
 
+    [Theory]
+    [InlineData("content-box", 11D, 28D)]
+    [InlineData("padding-box", 8D, 34D)]
+    [InlineData("border-box", 6D, 38D)]
+    public void HtmlOverflowClipMargin_ResolvesVisualBoxEdges(string visualBox, double expectedX, double expectedWidth) {
+        string html = "<body style='margin:0'><div id='clip-margin' style='position:relative;width:20px;height:20px;margin:10px;padding:3px;border:2px solid black;overflow:clip;overflow-clip-margin:"
+            + visualBox + " 4px'>X</div></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 60D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderClipGroup group = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(),
+            item => item.Source == "div#clip-margin");
+
+        Assert.Equal(expectedX, group.ClipX, 3);
+        Assert.Equal(expectedWidth, group.ClipWidth, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlOverflowClipMargin_ExpandsOnlyClipOverflowAcrossBackends() {
+        const string clipHtml = "<body style='margin:0'><div id='expanded' style='position:relative;width:20px;height:20px;margin:10px;overflow:clip;overflow-clip-margin:5px'>"
+            + "<span style='position:absolute;left:-4px;top:0;width:3px;height:20px;background:red'></span></div></body>";
+        const string hiddenHtml = "<body style='margin:0'><div id='hidden' style='width:20px;height:20px;margin:10px;overflow:hidden;overflow-clip-margin:5px'>X</div></body>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument clipped = HtmlRenderEngine.Render(clipHtml, options);
+        HtmlRenderDocument hidden = HtmlRenderEngine.Render(hiddenHtml, options);
+        HtmlRenderClipGroup clippedGroup = Assert.Single(EnumerateRenderVisuals(clipped.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#expanded");
+        HtmlRenderClipGroup hiddenGroup = Assert.Single(EnumerateRenderVisuals(hidden.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#hidden");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(clipped.Pages[0].CreateDrawing());
+        string svg = Encoding.UTF8.GetString(clipHtml.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        byte[] pdf = clipHtml.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(5D, clippedGroup.ClipX, 3);
+        Assert.Equal(30D, clippedGroup.ClipWidth, 3);
+        Assert.Equal(10D, hiddenGroup.ClipX, 3);
+        Assert.Equal(20D, hiddenGroup.ClipWidth, 3);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(7, 15));
+        Assert.Contains("clipPath", svg, StringComparison.Ordinal);
+        Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
     [Fact]
     public void HtmlOverflowAuto_ReportsOnlyAnActualStaticScrollSnapshot() {
         const string overflowingHtml = "<div id='auto-overflow' style='position:relative;width:40px;height:30px;margin:0;overflow:auto'>"
@@ -275,6 +333,26 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.OverflowScrollSnapshot, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(overflow:hidden auto)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(overflow:sideways)"));
+    }
+
+    [Fact]
+    public void HtmlOverflowClipMargin_InvalidValuesUseInitialFallbackAndCatalogedDiagnostics() {
+        const string html = "<div id='invalid-clip-margin' style='overflow:clip;overflow-clip-margin:border-box -2px'>Text</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
+
+        Assert.Equal("div#invalid-clip-margin", diagnostic.Source);
+        Assert.Contains("overflow-clip-margin=border-box -2px", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains(HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported, out _));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(overflow-clip-margin:content-box 3px)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(overflow-clip-margin:4px border-box)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(overflow-clip-margin:padding-box -1px)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(overflow-clip-margin:10%)"));
     }
 
     private static IEnumerable<HtmlRenderVisual> EnumerateRenderVisuals(IEnumerable<HtmlRenderVisual> visuals) {

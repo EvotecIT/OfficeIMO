@@ -119,8 +119,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal string Direction = "ltr";
     internal string OverflowX = "visible";
     internal string OverflowY = "visible";
+    internal string OverflowClipMarginBox = "padding-box";
+    internal double OverflowClipMargin;
     internal string UnsupportedOverflowX = string.Empty;
     internal string UnsupportedOverflowY = string.Empty;
+    internal string UnsupportedOverflowClipMargin = string.Empty;
     internal string Transform = "none";
     internal string TransformOrigin = "50% 50%";
     internal bool OpacityWasSpecified;

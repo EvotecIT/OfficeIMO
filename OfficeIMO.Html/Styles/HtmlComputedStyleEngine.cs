@@ -141,6 +141,7 @@ public static partial class HtmlComputedStyleEngine {
         "outline-style",
         "outline-width",
         "overflow",
+        "overflow-clip-margin",
         "overflow-x",
         "overflow-y",
         "overflow-wrap",

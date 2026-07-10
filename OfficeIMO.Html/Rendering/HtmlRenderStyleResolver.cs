@@ -84,7 +84,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return style;
     }
 
-    private static void ApplyOverflow(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+    private void ApplyOverflow(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string shorthand = computed.GetValue("overflow");
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(shorthand);
         if (values.Count == 1) {
@@ -105,6 +105,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         string overflowY = computed.GetValue("overflow-y");
         if (!string.IsNullOrWhiteSpace(overflowY)) {
             style.OverflowY = NormalizeOverflow(overflowY, out style.UnsupportedOverflowY);
+        }
+        string overflowClipMargin = computed.GetValue("overflow-clip-margin");
+        if (!string.IsNullOrWhiteSpace(overflowClipMargin)
+            && !HtmlCssOverflowClipMarginParser.TryParse(
+                overflowClipMargin,
+                style.Font.Size,
+                _options.DefaultFontSize,
+                out style.OverflowClipMarginBox,
+                out style.OverflowClipMargin)) {
+            style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
         }
 
         if (style.OverflowX == "visible" && style.OverflowY != "visible" && style.OverflowY != "clip") style.OverflowX = "auto";
