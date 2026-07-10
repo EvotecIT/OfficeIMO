@@ -47,16 +47,21 @@ public static partial class ReaderHierarchicalChunker {
             }
 
             HierarchyHeading[] headings = SplitHeadingPath(location.HeadingPath, state);
+            state.HeadingSlugsByChunkId.TryGetValue(chunk.Id, out IReadOnlyList<string?>? fallbackHeadingSlugs);
             int remainingDepth = Math.Max(0, state.Options.MaxHierarchyDepth - parent.Depth);
             if (headings.Length > remainingDepth) {
                 state.AddLimitDiagnostic("hierarchical-depth-limit", state.Options.MaxHierarchyDepth, "hierarchy depth");
                 headings = CollapseHeadingDepth(headings, remainingDepth, state);
             }
             for (int headingIndex = 0; headingIndex < headings.Length; headingIndex++) {
-                bool finalHeading = headingIndex == headings.Length - 1;
                 string key = "heading:" + headings[headingIndex].Identity;
-                if (finalHeading && !string.IsNullOrWhiteSpace(location.HeadingSlug)) {
-                    key += "|slug:" + location.HeadingSlug!.Trim();
+                string? headingSlug = fallbackHeadingSlugs != null && fallbackHeadingSlugs.Count == headings.Length
+                    ? fallbackHeadingSlugs[headingIndex]
+                    : headingIndex == headings.Length - 1
+                        ? location.HeadingSlug
+                        : null;
+                if (!string.IsNullOrWhiteSpace(headingSlug)) {
+                    key += "|slug:" + headingSlug!.Trim();
                 }
                 parent = GetOrCreateNode(
                     parent,

@@ -336,14 +336,24 @@ public static partial class ReaderHierarchicalChunker {
     }
 
     private static string BuildSegmentId(ReaderChunk source, int inputIndex, int segmentIndex, int start, int end) {
-        string value = string.Join("|",
-            GetSourceIdentity(source) ?? string.Empty,
-            source.Id ?? string.Empty,
-            inputIndex.ToString(CultureInfo.InvariantCulture),
-            segmentIndex.ToString(CultureInfo.InvariantCulture),
-            start.ToString(CultureInfo.InvariantCulture),
-            end.ToString(CultureInfo.InvariantCulture));
-        return "rag:" + ComputeSha256Hex(value);
+        var identity = new StringBuilder();
+        AppendSegmentIdentity(identity, GetSourceIdentity(source));
+        AppendSegmentIdentity(identity, source.Id);
+        AppendSegmentIdentity(identity, inputIndex.ToString(CultureInfo.InvariantCulture));
+        AppendSegmentIdentity(identity, segmentIndex.ToString(CultureInfo.InvariantCulture));
+        AppendSegmentIdentity(identity, start.ToString(CultureInfo.InvariantCulture));
+        AppendSegmentIdentity(identity, end.ToString(CultureInfo.InvariantCulture));
+        return "rag:" + ComputeSha256Hex(identity.ToString());
+    }
+
+    private static void AppendSegmentIdentity(StringBuilder builder, string? value) {
+        if (value == null) {
+            builder.Append("-1:");
+            return;
+        }
+        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture));
+        builder.Append(':');
+        builder.Append(value);
     }
 
     private static string ComputeSegmentHash(string chunkId, string content) =>

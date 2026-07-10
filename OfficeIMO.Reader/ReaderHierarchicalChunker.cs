@@ -2,12 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace OfficeIMO.Reader;
 
 /// <summary>Creates bounded token-aware chunks and a document/container/heading hierarchy.</summary>
 public static partial class ReaderHierarchicalChunker {
+    private static readonly ConditionalWeakTable<ReaderChunk, FallbackHeadingIdentityPath> FallbackHeadingIdentities =
+        new ConditionalWeakTable<ReaderChunk, FallbackHeadingIdentityPath>();
+
     /// <summary>Chunks an already-read rich document.</summary>
     public static ReaderChunkHierarchyResult Chunk(
         OfficeDocumentReadResult document,
@@ -120,7 +124,7 @@ public static partial class ReaderHierarchicalChunker {
                 location.HeadingSlug ??= location.BlockAnchor;
             }
             string sourceIdentity = document.Source?.SourceId ?? document.Source?.Path ?? string.Empty;
-            yield return new ReaderChunk {
+            var sourceChunk = new ReaderChunk {
                 Id = "block:" + ComputeSha256Hex(sourceIdentity + "|" + block.Id + "|" + index.ToString(CultureInfo.InvariantCulture)),
                 Kind = document.Kind,
                 Location = location,
@@ -130,6 +134,10 @@ public static partial class ReaderHierarchicalChunker {
                 SourceLengthBytes = document.Source?.LengthBytes,
                 Text = text
             };
+            FallbackHeadingIdentities.Add(
+                sourceChunk,
+                new FallbackHeadingIdentityPath(headings.Select(heading => heading.Slug).ToArray()));
+            yield return sourceChunk;
             index++;
         }
         if (index == 0 && !string.IsNullOrEmpty(document.Markdown)) {
@@ -204,10 +212,13 @@ public static partial class ReaderHierarchicalChunker {
     }
 
     private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
-        if (GetSourceIdentity(chunk) != null || source == null ||
+        if (source == null ||
             (string.IsNullOrWhiteSpace(source.SourceId) && string.IsNullOrWhiteSpace(source.Path))) {
             return chunk;
         }
+        bool inheritSourceId = string.IsNullOrWhiteSpace(chunk.SourceId) && !string.IsNullOrWhiteSpace(source.SourceId);
+        bool inheritPath = string.IsNullOrWhiteSpace(chunk.Location?.Path) && !string.IsNullOrWhiteSpace(source.Path);
+        if (!inheritSourceId && !inheritPath) return chunk;
 
         ReaderLocation location = CloneLocation(chunk.Location);
         location.Path ??= source.Path;
@@ -215,7 +226,7 @@ public static partial class ReaderHierarchicalChunker {
             Id = chunk.Id,
             Kind = chunk.Kind,
             Location = location,
-            SourceId = source.SourceId,
+            SourceId = inheritSourceId ? source.SourceId : chunk.SourceId,
             SourceHash = chunk.SourceHash ?? source.SourceHash,
             ChunkHash = chunk.ChunkHash,
             SourceLastWriteUtc = chunk.SourceLastWriteUtc ?? source.LastWriteUtc,
@@ -303,7 +314,7 @@ public static partial class ReaderHierarchicalChunker {
 
     private static OfficeDocumentSource InferSource(IReadOnlyList<ReaderChunk> chunks) {
         if (chunks.Count == 0) return new OfficeDocumentSource();
-        ReaderChunk first = chunks[0];
+        ReaderChunk first = chunks.FirstOrDefault(chunk => GetSourceIdentity(chunk) != null) ?? chunks[0];
         return new OfficeDocumentSource {
             Path = first.Location?.Path,
             SourceId = first.SourceId,
@@ -352,6 +363,8 @@ public static partial class ReaderHierarchicalChunker {
         internal List<ReaderChunk> Chunks { get; } = new List<ReaderChunk>();
         internal List<ReaderChunkSegment> Segments { get; } = new List<ReaderChunkSegment>();
         internal List<OfficeDocumentDiagnostic> Diagnostics { get; } = new List<OfficeDocumentDiagnostic>();
+        internal Dictionary<string, IReadOnlyList<string?>> HeadingSlugsByChunkId { get; } =
+            new Dictionary<string, IReadOnlyList<string?>>(StringComparer.Ordinal);
         internal long SourceTokenCount { get; set; }
         internal long OutputTokenCount { get; set; }
         internal long OverlapTokenCount { get; set; }
@@ -365,7 +378,13 @@ public static partial class ReaderHierarchicalChunker {
             else if (sourceIdentity != null && !string.Equals(SourceIdentity, sourceIdentity, StringComparison.Ordinal)) {
                 throw new InvalidOperationException("One chunk hierarchy cannot contain chunks from multiple source documents.");
             }
+            int firstOutputIndex = Chunks.Count;
             SplitSourceChunk(source, inputIndex, this);
+            if (FallbackHeadingIdentities.TryGetValue(source, out FallbackHeadingIdentityPath? identityPath)) {
+                for (int index = firstOutputIndex; index < Chunks.Count; index++) {
+                    HeadingSlugsByChunkId[Chunks[index].Id] = identityPath.Slugs;
+                }
+            }
         }
 
         internal void AddLimitDiagnostic(string code, int limit, string target) {
@@ -426,5 +445,13 @@ public static partial class ReaderHierarchicalChunker {
         internal int Level { get; }
         internal string Title { get; }
         internal string? Slug { get; }
+    }
+
+    private sealed class FallbackHeadingIdentityPath {
+        internal FallbackHeadingIdentityPath(IReadOnlyList<string?> slugs) {
+            Slugs = slugs;
+        }
+
+        internal IReadOnlyList<string?> Slugs { get; }
     }
 }

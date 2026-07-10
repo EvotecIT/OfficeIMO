@@ -451,6 +451,83 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_SeparatesRepeatedFallbackAncestorHeadingsByPerLevelSlug() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "repeated-ancestors" },
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "overview-a", Kind = "heading", Level = 1, Text = "Overview" },
+                new OfficeDocumentBlock { Id = "details-a", Kind = "heading", Level = 2, Text = "Details" },
+                new OfficeDocumentBlock { Id = "body-a", Kind = "paragraph", Text = "First body" },
+                new OfficeDocumentBlock { Id = "overview-b", Kind = "heading", Level = 1, Text = "Overview" },
+                new OfficeDocumentBlock { Id = "details-b", Kind = "heading", Level = 2, Text = "Details" },
+                new OfficeDocumentBlock { Id = "body-b", Kind = "paragraph", Text = "Second body" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        ReaderChunkHierarchyNode[] overviews = result.Nodes
+            .Where(node => node.Kind == ReaderChunkHierarchyNodeKind.Heading && node.Title == "Overview")
+            .ToArray();
+        Assert.Equal(2, overviews.Length);
+        Assert.All(overviews, overview => Assert.Single(
+            overview.ChildNodeIds.Select(id => result.Nodes.Single(node => node.Id == id)),
+            child => child.Kind == ReaderChunkHierarchyNodeKind.Heading && child.Title == "Details"));
+    }
+
+    [Fact]
+    public void Chunk_InheritsEnvelopeSourceIdForPathOnlyChunks() {
+        ReaderChunk first = CreateChunk("chunk", "body");
+        first.SourceId = null;
+        first.Location.Path = "shared-name.txt";
+        var firstDocument = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "tenant-a", Path = "shared-name.txt" },
+            Chunks = new[] { first }
+        };
+        ReaderChunk second = CreateChunk("chunk", "body");
+        second.SourceId = null;
+        second.Location.Path = "shared-name.txt";
+        var secondDocument = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "tenant-b", Path = "shared-name.txt" },
+            Chunks = new[] { second }
+        };
+
+        ReaderChunkHierarchyResult firstResult = ReaderHierarchicalChunker.Chunk(firstDocument);
+        ReaderChunkHierarchyResult secondResult = ReaderHierarchicalChunker.Chunk(secondDocument);
+
+        Assert.Equal("tenant-a", Assert.Single(firstResult.Chunks).SourceId);
+        Assert.NotEqual(Assert.Single(firstResult.Chunks).Id, Assert.Single(secondResult.Chunks).Id);
+    }
+
+    [Fact]
+    public void Chunk_LengthPrefixesSegmentIdentityFields() {
+        ReaderChunk first = CreateChunk("c", "body");
+        first.SourceId = "a|b";
+        ReaderChunk second = CreateChunk("b|c", "body");
+        second.SourceId = "a";
+
+        string firstId = Assert.Single(ReaderHierarchicalChunker.Chunk(new[] { first }).Chunks).Id;
+        string secondId = Assert.Single(ReaderHierarchicalChunker.Chunk(new[] { second }).Chunks).Id;
+
+        Assert.NotEqual(firstId, secondId);
+    }
+
+    [Fact]
+    public void Chunk_InfersSourceFromFirstIdentifiedChunk() {
+        ReaderChunk anonymous = CreateChunk("anonymous", "preface");
+        anonymous.SourceId = null;
+        anonymous.Location.Path = null;
+        ReaderChunk identified = CreateChunk("identified", "body");
+        identified.SourceId = null;
+        identified.Location.Path = "guide.txt";
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(new[] { anonymous, identified });
+
+        Assert.Equal("guide.txt", result.Source.Path);
+        Assert.Equal("guide.txt", result.Nodes.Single(node => node.Kind == ReaderChunkHierarchyNodeKind.Document).Title);
+    }
+
+    [Fact]
     public void Chunk_DerivesContextTokensFromCombinedTokenizerOutput() {
         ReaderChunk source = CreateChunk("source", "a", page: 3);
 
