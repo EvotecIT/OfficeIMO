@@ -251,6 +251,61 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_EnforcesWidowsAndOrphansThroughNestedBlocks() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(3D, 2D),
+            Margins = HtmlRenderMargins.All(16D)
+        };
+        int selectedWordCount = 0;
+        for (int wordCount = 20; wordCount <= 100; wordCount++) {
+            string candidateWords = string.Join(" ", Enumerable.Range(0, wordCount).Select(index => "word" + index.ToString("D3")));
+            HtmlRenderDocument baseline = HtmlRenderEngine.Render("<div><p style='margin:0;orphans:1;widows:1'>" + candidateWords + "</p></div>", options);
+            int finalPageLines = CountRenderedTextLines(baseline.Pages[baseline.Pages.Count - 1]);
+            if (baseline.Pages.Count > 1 && finalPageLines > 0 && finalPageLines < 4) {
+                selectedWordCount = wordCount;
+                break;
+            }
+        }
+
+        Assert.True(selectedWordCount > 0, "The deterministic text corpus should expose a short final fragment without widow protection.");
+        string words = string.Join(" ", Enumerable.Range(0, selectedWordCount).Select(index => "word" + index.ToString("D3")));
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render("<div><p style='margin:0;orphans:4;widows:4'>" + words + "</p></div>", options);
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.All(rendered.Pages, page => Assert.True(CountRenderedTextLines(page) >= 4));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_RepeatsLeadingTableHeaderRowsInImagesAndSearchablePdf() {
+        string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index => "<tr><td>Row" + index.ToString("D2") + "</td></tr>"));
+        string html = "<div style='padding:2px'><table><thead><tr><th>HeaderMarker</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+        var renderOptions = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(3D, 2D),
+            Margins = HtmlRenderMargins.All(16D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, renderOptions);
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.All(rendered.Pages, page =>
+            Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "HeaderMarker"));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed);
+        IReadOnlyList<OfficeImageExportResult> images = html.ExportImages(OfficeImageExportFormat.Png, renderOptions);
+        Assert.Equal(rendered.Pages.Count, images.Count);
+        Assert.All(images, image => Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Bytes.Take(8)));
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = renderOptions;
+        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        int repeatedHeaderCount = pdfText.Split(new[] { "HeaderMarker" }, StringSplitOptions.None).Length - 1;
+        Assert.Equal(rendered.Pages.Count, repeatedHeaderCount);
+    }
+
+    [Fact]
     public void HtmlImageExport_RendersPngSvgTableAndDataImageWithoutNewRuntimeDependencies() {
         string pngData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(12, 8));
         string html = $"""
@@ -327,4 +382,11 @@ public sealed class HtmlRenderingTests {
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));
     }
+
+    private static int CountRenderedTextLines(HtmlRenderPage page) =>
+        page.Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Text.StartsWith("word", StringComparison.Ordinal))
+            .Select(text => Math.Round(text.Y, 3))
+            .Distinct()
+            .Count();
 }

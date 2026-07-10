@@ -87,12 +87,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else {
                 double blockOffset = 0D;
                 while (blockOffset < block.Height - 0.0001D) {
-                    double available = pageHeight - _options.Margins.Bottom - y;
+                    HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
+                    bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
+                    double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
+                    double available = pageHeight - _options.Margins.Bottom - y - continuationHeight;
                     if (available <= 0.0001D) {
-                        CommitPage(pages, visuals, pageWidth, pageHeight);
-                        visuals = CreatePageVisuals(pageWidth, pageHeight);
-                        y = _options.Margins.Top;
+                        if (visuals.Count > 1) {
+                            CommitPage(pages, visuals, pageWidth, pageHeight);
+                            visuals = CreatePageVisuals(pageWidth, pageHeight);
+                            y = _options.Margins.Top;
+                            continue;
+                        }
+
+                        repeatContinuation = false;
+                        continuationHeight = 0D;
                         available = contentHeight;
+                        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, "A repeated table header was suppressed because it consumed the available page content area.", HtmlDiagnosticSeverity.Warning, block.Source);
                     }
 
                     double fragmentEnd = FindFragmentEnd(block, blockOffset, available);
@@ -104,8 +114,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             continue;
                         }
 
-                        fragmentEnd = Math.Min(block.Height, blockOffset + available);
-                        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ForcedFragment, "A layout block had no safe break opportunity within one page and was force-fragmented.", HtmlDiagnosticSeverity.Warning, block.Source);
+                        if (repeatContinuation) {
+                            double fallbackAvailable = pageHeight - _options.Margins.Bottom - y;
+                            double fallbackEnd = FindFragmentEnd(block, blockOffset, fallbackAvailable);
+                            if (fallbackEnd > blockOffset + 0.0001D) {
+                                repeatContinuation = false;
+                                continuationHeight = 0D;
+                                available = fallbackAvailable;
+                                fragmentEnd = fallbackEnd;
+                                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, "A repeated table header was suppressed because it left no safe body-row break on an empty page.", HtmlDiagnosticSeverity.Warning, block.Source);
+                            }
+                        }
+
+                        if (fragmentEnd <= blockOffset + 0.0001D) {
+                            fragmentEnd = Math.Min(block.Height, blockOffset + available);
+                            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ForcedFragment, "A layout block had no safe break opportunity within one page and was force-fragmented.", HtmlDiagnosticSeverity.Warning, block.Source);
+                        }
+                    }
+
+                    if (repeatContinuation) {
+                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, _options.Margins.Left, y);
+                        y += continuationHeight;
                     }
 
                     IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd);
@@ -158,10 +187,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double limit = Math.Min(block.Height, start + available);
         double best = start;
         foreach (double offset in block.BreakOffsets) {
-            if (offset > start + 0.0001D && offset <= limit + 0.0001D) best = offset;
+            if (offset > start + 0.0001D
+                && offset <= limit + 0.0001D
+                && IsAllowedLineBreak(block, start, offset)) {
+                best = offset;
+            }
         }
 
         return best;
+    }
+
+    private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate) {
+        foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
+            if (!group.Offsets.Any(offset => Math.Abs(offset - candidate) <= 0.0001D)) continue;
+            int fragmentLines = group.Offsets.Count(offset => offset > start + 0.0001D && offset <= candidate + 0.0001D);
+            int remainingLines = group.Offsets.Count(offset => offset > candidate + 0.0001D);
+            if (remainingLines == 0 && candidate < block.Height - 0.0001D) return false;
+            return fragmentLines >= group.Orphans && (remainingLines == 0 || remainingLines >= group.Widows);
+        }
+
+        return true;
     }
 
     private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end) {

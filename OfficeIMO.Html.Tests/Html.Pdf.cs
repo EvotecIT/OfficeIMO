@@ -606,8 +606,10 @@ public sealed class HtmlPdfTests {
         Assert.Equal("html-pdf-rendered", rendered.Id);
         Assert.Contains("OfficeIMO.Html layout", rendered.Pipeline, StringComparison.Ordinal);
         Assert.Contains("data-uri-images", rendered.SupportedHtmlFeatures);
+        Assert.Contains("repeated-table-headers", rendered.SupportedHtmlFeatures);
         Assert.Contains("print-media", rendered.SupportedCssFeatures);
         Assert.Contains("generic-page-size-margin", rendered.SupportedCssFeatures);
+        Assert.Contains("widows-orphans", rendered.SupportedCssFeatures);
         Assert.Contains("caller-resolved-external-images", rendered.SupportedResourceFeatures);
         Assert.Contains("shared-html-render-diagnostics", rendered.DiagnosticGuarantees);
         Assert.Contains("no-new-external-dependencies", rendered.RendererBoundaries);

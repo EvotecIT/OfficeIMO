@@ -50,17 +50,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (column >= columnCount) break;
             }
 
-            rowLayouts.Add(new TableRowLayout(cellLayouts, Math.Max(1D, rowHeight)));
+            rowLayouts.Add(new TableRowLayout(cellLayouts, Math.Max(1D, rowHeight), IsHeaderRow(row, table)));
         }
 
         double rowsHeight = rowLayouts.Sum(row => row.Height);
         double tableHeight = style.VerticalInsets + rowsHeight;
         var visuals = new List<HtmlRenderVisual>();
         var breakOffsets = new List<double>();
+        var continuationVisuals = new List<HtmlRenderVisual>();
+        double continuationHeight = 0D;
+        bool collectingLeadingHeaders = true;
         AddBoxShape(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double rowY = style.MarginTop + style.BorderWidth + style.PaddingTop;
-        foreach (TableRowLayout row in rowLayouts) {
+        double headerStart = rowY;
+        for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
+            TableRowLayout row = rowLayouts[rowIndex];
+            int rowVisualStart = visuals.Count;
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + cell.Column * columnWidth;
                 OfficeShape box = OfficeShape.Rectangle(cell.Width, row.Height);
@@ -75,13 +81,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
+            if (collectingLeadingHeaders && row.IsHeader) {
+                for (int visualIndex = rowVisualStart; visualIndex < visuals.Count; visualIndex++) {
+                    continuationVisuals.Add(visuals[visualIndex].Translate(0D, -headerStart, continuationVisuals.Count));
+                }
+
+                continuationHeight += row.Height;
+            } else {
+                collectingLeadingHeaders = false;
+            }
+
             rowY += row.Height;
-            breakOffsets.Add(rowY);
+            bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader);
+            if (!headerHasBodyAfter) breakOffsets.Add(rowY);
         }
 
         double outerHeight = style.MarginTop + tableHeight + style.MarginBottom;
         breakOffsets.Add(outerHeight);
-        return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, true, source, breakOffsets);
+        return new HtmlRenderFlowBlock(
+            containingWidth,
+            outerHeight,
+            visuals,
+            style.BreakBefore,
+            style.BreakAfter,
+            true,
+            source,
+            breakOffsets,
+            continuationVisuals: continuationVisuals,
+            continuationHeight: continuationHeight,
+            continuationStartsAfter: headerStart + continuationHeight);
     }
 
     private static bool BelongsToTable(IElement row, IElement table) {
@@ -98,19 +126,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool IsTableCell(IElement element) => string.Equals(element.TagName, "td", StringComparison.OrdinalIgnoreCase) || string.Equals(element.TagName, "th", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsHeaderRow(IElement row, IElement table) {
+        IElement? current = row.ParentElement;
+        while (current != null && !ReferenceEquals(current, table)) {
+            if (string.Equals(current.TagName, "thead", StringComparison.OrdinalIgnoreCase)) return true;
+            current = current.ParentElement;
+        }
+
+        return false;
+    }
+
     private static int ReadSpan(string? value, int maximum) {
         if (!int.TryParse(value, out int span) || span <= 0) span = 1;
         return Math.Max(1, Math.Min(span, maximum));
     }
 
     private sealed class TableRowLayout {
-        internal TableRowLayout(IReadOnlyList<TableCellLayout> cells, double height) {
+        internal TableRowLayout(IReadOnlyList<TableCellLayout> cells, double height, bool isHeader) {
             Cells = cells;
             Height = height;
+            IsHeader = isHeader;
         }
 
         internal IReadOnlyList<TableCellLayout> Cells { get; }
         internal double Height { get; }
+        internal bool IsHeader { get; }
     }
 
     private sealed class TableCellLayout {

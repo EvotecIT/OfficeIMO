@@ -17,9 +17,11 @@ public static partial class HtmlComputedStyleEngine {
         "font-style",
         "font-weight",
         "line-height",
+        "orphans",
         "text-align",
         "text-transform",
         "visibility",
+        "widows",
         "white-space"
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
@@ -74,6 +76,7 @@ public static partial class HtmlComputedStyleEngine {
         "min-width",
         "object-fit",
         "opacity",
+        "orphans",
         "outline-color",
         "overflow",
         "overflow-wrap",
@@ -92,6 +95,7 @@ public static partial class HtmlComputedStyleEngine {
         "visibility",
         "white-space",
         "width",
+        "widows",
         "word-break"
     };
 

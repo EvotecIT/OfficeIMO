@@ -1,7 +1,23 @@
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderFlowBlock {
-    internal HtmlRenderFlowBlock(double width, double height, IEnumerable<HtmlRenderVisual> visuals, bool breakBefore, bool breakAfter, bool avoidBreakInside, string source, IEnumerable<double>? breakOffsets = null) {
+    internal HtmlRenderFlowBlock(
+        double width,
+        double height,
+        IEnumerable<HtmlRenderVisual> visuals,
+        bool breakBefore,
+        bool breakAfter,
+        bool avoidBreakInside,
+        string source,
+        IEnumerable<double>? breakOffsets = null,
+        IEnumerable<double>? lineBreakOffsets = null,
+        int orphans = 2,
+        int widows = 2,
+        IEnumerable<HtmlRenderLineBreakGroup>? lineBreakGroups = null,
+        IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
+        IEnumerable<HtmlRenderVisual>? continuationVisuals = null,
+        double continuationHeight = 0D,
+        double continuationStartsAfter = 0D) {
         Width = width;
         Height = height;
         Visuals = new List<HtmlRenderVisual>(visuals);
@@ -17,6 +33,29 @@ internal sealed class HtmlRenderFlowBlock {
         }
 
         BreakOffsets = offsets.ToList().AsReadOnly();
+        var lineOffsets = new SortedSet<double>();
+        if (lineBreakOffsets != null) {
+            foreach (double offset in lineBreakOffsets) {
+                if (offset > 0D && offset < height && !double.IsNaN(offset) && !double.IsInfinity(offset)) lineOffsets.Add(offset);
+            }
+        }
+
+        IReadOnlyList<double> resolvedLineOffsets = lineOffsets.ToList().AsReadOnly();
+        int resolvedOrphans = Math.Max(1, orphans);
+        int resolvedWidows = Math.Max(1, widows);
+        var groups = new List<HtmlRenderLineBreakGroup>();
+        if (lineBreakGroups != null) groups.AddRange(lineBreakGroups);
+        if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(resolvedLineOffsets, resolvedOrphans, resolvedWidows));
+        LineBreakGroups = groups.AsReadOnly();
+        IReadOnlyList<HtmlRenderVisual> repeatedVisuals = new List<HtmlRenderVisual>(continuationVisuals ?? Array.Empty<HtmlRenderVisual>()).AsReadOnly();
+        double repeatedHeight = Math.Max(0D, continuationHeight);
+        double repeatedStartsAfter = Math.Max(0D, continuationStartsAfter);
+        var repeatedGroups = new List<HtmlRenderContinuationGroup>(continuationGroups ?? Array.Empty<HtmlRenderContinuationGroup>());
+        if (repeatedGroups.Count == 0 && repeatedVisuals.Count > 0 && repeatedHeight > 0D) {
+            repeatedGroups.Add(new HtmlRenderContinuationGroup(repeatedStartsAfter, height, repeatedHeight, repeatedVisuals));
+        }
+
+        ContinuationGroups = repeatedGroups.AsReadOnly();
     }
 
     internal double Width { get; }
@@ -27,6 +66,46 @@ internal sealed class HtmlRenderFlowBlock {
     internal bool AvoidBreakInside { get; }
     internal string Source { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
+    internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
+    internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
+}
+
+internal sealed class HtmlRenderContinuationGroup {
+    internal HtmlRenderContinuationGroup(double startsAfter, double endsAt, double height, IEnumerable<HtmlRenderVisual> visuals) {
+        StartsAfter = startsAfter;
+        EndsAt = endsAt;
+        Height = height;
+        Visuals = new List<HtmlRenderVisual>(visuals).AsReadOnly();
+    }
+
+    internal double StartsAfter { get; }
+    internal double EndsAt { get; }
+    internal double Height { get; }
+    internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
+
+    internal bool AppliesAt(double offset) => offset >= StartsAfter - 0.0001D && offset < EndsAt - 0.0001D;
+
+    internal HtmlRenderContinuationGroup Translate(double offsetX, double offsetY) =>
+        new HtmlRenderContinuationGroup(
+            StartsAfter + offsetY,
+            EndsAt + offsetY,
+            Height,
+            Visuals.Select((visual, index) => visual.Translate(offsetX, 0D, index)));
+}
+
+internal sealed class HtmlRenderLineBreakGroup {
+    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows) {
+        Offsets = new SortedSet<double>(offsets).ToList().AsReadOnly();
+        Orphans = Math.Max(1, orphans);
+        Widows = Math.Max(1, widows);
+    }
+
+    internal IReadOnlyList<double> Offsets { get; }
+    internal int Orphans { get; }
+    internal int Widows { get; }
+
+    internal HtmlRenderLineBreakGroup Translate(double offset) =>
+        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows);
 }
 
 internal sealed class HtmlInlineRun {

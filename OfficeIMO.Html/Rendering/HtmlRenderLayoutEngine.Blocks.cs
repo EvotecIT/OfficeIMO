@@ -45,6 +45,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         var contentVisuals = new List<HtmlRenderVisual>();
         var contentBreakOffsets = new List<double>();
+        var lineBreakOffsets = new List<double>();
+        var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
+        var continuationGroups = new List<HtmlRenderContinuationGroup>();
         double contentHeight = 0D;
         IReadOnlyList<HtmlRenderFlowBlock> children = HasBlockChildren(element, contentWidth, style)
             ? BuildChildBlocks(element, contentWidth, style, depth)
@@ -52,11 +55,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (children.Count > 0) {
             foreach (HtmlRenderFlowBlock child in children) {
+                double childStart = contentHeight;
                 foreach (HtmlRenderVisual visual in child.Visuals) {
-                    contentVisuals.Add(visual.Translate(0D, contentHeight, contentVisuals.Count));
+                    contentVisuals.Add(visual.Translate(0D, childStart, contentVisuals.Count));
                 }
 
                 contentHeight += child.Height;
+                foreach (double offset in child.BreakOffsets) {
+                    contentBreakOffsets.Add(childStart + offset);
+                }
+
+                foreach (HtmlRenderLineBreakGroup group in child.LineBreakGroups) {
+                    lineBreakGroups.Add(group.Translate(childStart));
+                }
+
+                foreach (HtmlRenderContinuationGroup group in child.ContinuationGroups) {
+                    continuationGroups.Add(group.Translate(0D, childStart));
+                }
+
                 contentBreakOffsets.Add(contentHeight);
             }
         } else {
@@ -65,6 +81,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
+            lineBreakOffsets.AddRange(inline.BreakOffsets);
         }
 
         if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && style.BorderWidth <= 0D) {
@@ -86,7 +103,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentYForBreaks = style.MarginTop + style.BorderWidth + style.PaddingTop;
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
-        return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), breakOffsets);
+        IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
+        IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));
+        IEnumerable<HtmlRenderContinuationGroup> adjustedContinuationGroups = continuationGroups.Select(group => group.Translate(contentX, contentYForBreaks));
+        return new HtmlRenderFlowBlock(
+            containingWidth,
+            outerHeight,
+            visuals,
+            style.BreakBefore,
+            style.BreakAfter,
+            style.AvoidBreakInside,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            breakOffsets,
+            adjustedLineBreakOffsets,
+            style.Orphans,
+            style.Widows,
+            adjustedLineBreakGroups,
+            adjustedContinuationGroups);
     }
 
     private void FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
@@ -94,7 +127,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null);
         nodes.Clear();
         if (inline.Height <= 0D || inline.Visuals.Count == 0) return;
-        blocks.Add(new HtmlRenderFlowBlock(width, inline.Height, inline.Visuals, false, false, false, HtmlRenderStyleResolver.DescribeSource(sourceElement), inline.BreakOffsets));
+        blocks.Add(new HtmlRenderFlowBlock(
+            width,
+            inline.Height,
+            inline.Visuals,
+            false,
+            false,
+            false,
+            HtmlRenderStyleResolver.DescribeSource(sourceElement),
+            inline.BreakOffsets,
+            inline.BreakOffsets,
+            style.Orphans,
+            style.Widows));
     }
 
     private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle) {

@@ -238,7 +238,14 @@ internal sealed class HtmlRenderStyleResolver {
         style.BreakBefore = IsForcedPageBreak(before);
         style.BreakAfter = IsForcedPageBreak(after);
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase) || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
+        style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
+        style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
     }
+
+    private static int ReadPositiveInteger(string value, int fallback) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed > 0
+            ? parsed
+            : fallback;
 
     private void ApplyLength(string value, double reference, double fontSize, ref double target) {
         if (HtmlRenderCssValues.TryLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed)) target = Math.Max(0D, parsed);

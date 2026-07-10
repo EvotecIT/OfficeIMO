@@ -119,8 +119,8 @@ public static class HtmlPdfProfileContracts {
             "Authored print HTML that needs direct CSS geometry, searchable text, links, images, and the same layout used by HTML image export.",
             "Uses the first-party paged renderer directly and reports every currently unsupported or approximated layout feature through stable diagnostics.",
             "The first implementation contract covers normal flow, inline text, basic boxes, data and asynchronously resolved external images, simple tables, generic page rules, and stable line/row fragmentation; flex, grid, advanced positioning and fragmentation, linked stylesheets, font loading, and complex shaping remain diagnostic-backed roadmap items.",
-            new[] { "headings", "paragraphs", "lists", "links", "simple-tables", "data-uri-images", "explicit-page-breaks" },
-            new[] { "cascade-and-inheritance", "custom-properties", "print-media", "font-and-color", "margin-padding-border-background", "width-height", "text-alignment", "generic-page-size-margin", "page-break-before-after" },
+            new[] { "headings", "paragraphs", "lists", "links", "simple-tables", "repeated-table-headers", "data-uri-images", "explicit-page-breaks" },
+            new[] { "cascade-and-inheritance", "custom-properties", "print-media", "font-and-color", "margin-padding-border-background", "width-height", "text-alignment", "generic-page-size-margin", "page-break-before-after", "widows-orphans" },
             new[] { "data-uri-images", "caller-resolved-external-images", "base-uri-link-resolution", "shared-url-policy", "resource-timeout-and-byte-budgets", "resource-manifest-diagnostics" },
             new[] { "shared-html-render-diagnostics", "resource-policy-diagnostics", "pending-layout-feature-diagnostics", "shared-conversion-report" },
             new[] { "no-script-execution", "no-browser-process", "no-new-external-dependencies", "advanced-layout-remains-explicitly-diagnosed" })

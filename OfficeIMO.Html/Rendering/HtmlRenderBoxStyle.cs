@@ -31,6 +31,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool BreakBefore;
     internal bool BreakAfter;
     internal bool AvoidBreakInside;
+    internal int Orphans = 2;
+    internal int Widows = 2;
     internal string SemanticRole = "block";
     internal double Opacity = 1D;
 

@@ -40,6 +40,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ResourceUriInvalid = "HtmlRenderResourceUriInvalid";
     /// <summary>A table row span could not yet be fragmented across pages.</summary>
     public const string TableRowSpanPending = "HtmlRenderTableRowSpanPending";
+    /// <summary>A repeated table header was suppressed because it left no safe body-row break.</summary>
+    public const string TableHeaderRepeatSuppressed = "HtmlRenderTableHeaderRepeatSuppressed";
     /// <summary>Resolved resources exceeded the operation-wide byte budget.</summary>
     public const string TotalResourceByteLimitExceeded = "HtmlRenderTotalResourceByteLimitExceeded";
     /// <summary>A visual could not cross a forced page boundary safely.</summary>
@@ -63,6 +65,7 @@ public static class HtmlRenderDiagnosticCodes {
         ResourceTimeout,
         ResourceUnavailable,
         ResourceUriInvalid,
+        TableHeaderRepeatSuppressed,
         TableRowSpanPending,
         TotalResourceByteLimitExceeded,
         VisualFragmentUnsupported

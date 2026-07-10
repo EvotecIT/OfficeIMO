@@ -235,7 +235,7 @@ Exit gate: the continuous renderer can place the full target corpus without pagi
 ### Phase 5 - Pagination and fragmentation
 
 - [ ] Complete page construction and page masters. Generic `@page` size/margins and print media selection are implemented; named and pseudo-page selectors remain.
-- [ ] Complete break rules, widows/orphans, continuation state, and repeated table groups. Stable text-line, child-block, and table-row continuation is implemented.
+- [ ] Complete break rules and continuation state. Stable nested text/child/table-row continuation, CSS `widows`/`orphans`, and repeated leading `<thead>` rows are implemented; table footers and advanced fragmentation remain.
 - [ ] Add generated page content, counters, running headers/footers, and margin boxes.
 - [ ] Make backgrounds, borders, positioned elements, flex/grid content, and links fragment correctly.
 
