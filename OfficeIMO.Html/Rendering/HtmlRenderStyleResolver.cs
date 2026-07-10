@@ -220,9 +220,18 @@ internal sealed class HtmlRenderStyleResolver {
     }
 
     private void ApplyPaint(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        string backgroundShorthand = computed.GetValue("background");
         string background = computed.GetValue("background-color");
-        if (background.Length == 0) background = computed.GetValue("background");
+        if (background.Length == 0) background = backgroundShorthand;
         if (HtmlRenderCssValues.TryColor(background, out OfficeColor backgroundColor)) style.BackgroundColor = backgroundColor;
+        string backgroundImage = computed.GetValue("background-image");
+        IReadOnlyList<string> backgroundUrls = HtmlResourcePipeline.ExtractCssUrls(
+            backgroundImage.Length > 0 ? backgroundImage : backgroundShorthand);
+        style.BackgroundImageLayerCount = backgroundUrls.Count;
+        if (backgroundUrls.Count > 0) style.BackgroundImageSource = backgroundUrls[0];
+        style.BackgroundRepeat = FirstNonEmpty(computed.GetValue("background-repeat"), ExtractBackgroundRepeat(backgroundShorthand), style.BackgroundRepeat);
+        style.BackgroundSize = FirstNonEmpty(computed.GetValue("background-size"), ExtractBackgroundSize(backgroundShorthand), style.BackgroundSize);
+        style.BackgroundPosition = FirstNonEmpty(computed.GetValue("background-position"), ExtractBackgroundPosition(backgroundShorthand), style.BackgroundPosition);
         if (double.TryParse(computed.GetValue("opacity"), NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)) {
             style.Opacity = Math.Max(0D, Math.Min(1D, opacity));
             style.Color = HtmlRenderCssValues.ApplyOpacity(style.Color, style.Opacity);
@@ -230,6 +239,62 @@ internal sealed class HtmlRenderStyleResolver {
             if (style.BackgroundColor.HasValue) style.BackgroundColor = HtmlRenderCssValues.ApplyOpacity(style.BackgroundColor.Value, style.Opacity);
         }
     }
+
+    private static string ExtractBackgroundRepeat(string shorthand) {
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand)) {
+            string value = token.Trim().ToLowerInvariant();
+            if (value == "repeat" || value == "no-repeat" || value == "repeat-x" || value == "repeat-y" || value == "space" || value == "round") {
+                return value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string ExtractBackgroundSize(string shorthand) {
+        int slash = shorthand.IndexOf('/');
+        if (slash < 0 || slash + 1 >= shorthand.Length) {
+            return string.Empty;
+        }
+
+        var values = new List<string>();
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand.Substring(slash + 1))) {
+            string value = token.Trim().TrimEnd(',');
+            if (value == "cover" || value == "contain" || value == "auto" || LooksLikeBackgroundLength(value)) {
+                values.Add(value);
+                if (values.Count == 2) break;
+            } else if (values.Count > 0) {
+                break;
+            }
+        }
+
+        return string.Join(" ", values);
+    }
+
+    private static string ExtractBackgroundPosition(string shorthand) {
+        string beforeSize = shorthand;
+        int slash = beforeSize.IndexOf('/');
+        if (slash >= 0) beforeSize = beforeSize.Substring(0, slash);
+        var values = new List<string>();
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(beforeSize)) {
+            string value = token.Trim().TrimEnd(',').ToLowerInvariant();
+            if (value == "left" || value == "right" || value == "top" || value == "bottom" || value == "center" || LooksLikeBackgroundLength(value)) {
+                values.Add(value);
+                if (values.Count == 2) break;
+            }
+        }
+
+        return string.Join(" ", values);
+    }
+
+    private static bool LooksLikeBackgroundLength(string value) =>
+        value.EndsWith("%", StringComparison.Ordinal)
+        || value.EndsWith("px", StringComparison.OrdinalIgnoreCase)
+        || value.EndsWith("pt", StringComparison.OrdinalIgnoreCase)
+        || value.EndsWith("in", StringComparison.OrdinalIgnoreCase)
+        || value.EndsWith("cm", StringComparison.OrdinalIgnoreCase)
+        || value.EndsWith("mm", StringComparison.OrdinalIgnoreCase)
+        || value == "0";
 
     private static void ApplyBreaks(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string before = FirstNonEmpty(computed.GetValue("break-before"), computed.GetValue("page-break-before"));
@@ -272,4 +337,7 @@ internal sealed class HtmlRenderStyleResolver {
     }
 
     private static string FirstNonEmpty(string first, string second) => first.Length > 0 ? first.Trim().ToLowerInvariant() : second.Trim().ToLowerInvariant();
+
+    private static string FirstNonEmpty(string first, string second, string third) =>
+        FirstNonEmpty(first, FirstNonEmpty(second, third));
 }

@@ -47,6 +47,10 @@ public static partial class HtmlResourcePipeline {
     }
 
     internal static IReadOnlyList<string> ExtractFontFaceUrls(string source) {
+        return ExtractCssUrls(source);
+    }
+
+    internal static IReadOnlyList<string> ExtractCssUrls(string source) {
         var urls = new List<string>();
         if (string.IsNullOrWhiteSpace(source)) {
             return urls.AsReadOnly();

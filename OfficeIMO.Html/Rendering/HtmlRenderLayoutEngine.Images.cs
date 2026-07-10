@@ -8,25 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
         string? source = element.GetAttribute("src");
-        byte[]? bytes = null;
-        string contentType = string.Empty;
-        OfficeImageInfo? imageInfo = null;
-        string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, _baseUri, _options.UrlPolicy);
-        if (_resources.TryGet(source, resolvedSource, out HtmlResolvedResource resolvedResource)) {
-            bytes = resolvedResource.Bytes;
-            contentType = resolvedResource.ContentType;
-            if (OfficeImageReader.TryIdentify(bytes, OfficeImageInfo.GetDefaultExtension(OfficeImageInfo.FromMimeType(contentType)), out OfficeImageInfo identified)) imageInfo = identified;
-        } else if (HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) && dataUri.TryDecodeBytes(out byte[] decoded)) {
-            bytes = decoded;
-            contentType = dataUri.MediaType;
-            if (OfficeImageReader.TryIdentify(bytes, dataUri.FileExtension, out OfficeImageInfo identified)) imageInfo = identified;
-        } else if (!string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
-            string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
-            string message = resolvedSource.Length == 0
-                ? "An image was rejected before entering the rendered document."
-                : "Synchronous rendering does not load external images; use RenderAsync with an application-supplied resolver or provide a data URI.";
-            _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, sourceDescription, source);
-        }
+        TryResolveImageSource(source, sourceDescription, out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo);
 
         double intrinsicWidth = imageInfo != null && imageInfo.Width > 0 ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiX : 300D;
         double intrinsicHeight = imageInfo != null && imageInfo.Height > 0 ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiY : 150D;
@@ -45,7 +27,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = Math.Min(availableWidth, imageWidth + style.HorizontalInsets);
         double boxHeight = imageHeight + style.VerticalInsets;
         var visuals = new List<HtmlRenderVisual>();
-        AddBoxShape(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double imageX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         string? link = element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
@@ -71,5 +53,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
+    }
+
+    private bool TryResolveImageSource(
+        string? source,
+        string sourceDescription,
+        out byte[]? bytes,
+        out string contentType,
+        out OfficeImageInfo? imageInfo) {
+        bytes = null;
+        contentType = string.Empty;
+        imageInfo = null;
+        string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, _baseUri, _resourceUrlPolicy);
+        string extension = string.Empty;
+        if (_resources.TryGet(source, resolvedSource, out HtmlResolvedResource resolvedResource)) {
+            bytes = resolvedResource.Bytes;
+            contentType = resolvedResource.ContentType;
+            extension = OfficeImageInfo.GetDefaultExtension(OfficeImageInfo.FromMimeType(contentType));
+        } else if (HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) && dataUri.TryDecodeBytes(out byte[] decoded)) {
+            bytes = decoded;
+            contentType = dataUri.MediaType;
+            extension = dataUri.FileExtension;
+        } else if (!string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
+            string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
+            string message = resolvedSource.Length == 0
+                ? "An image was rejected before entering the rendered document."
+                : "Synchronous rendering does not load external images; use RenderAsync with an application-supplied resolver or provide a data URI.";
+            _diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, sourceDescription, source);
+        }
+
+        if (bytes == null || bytes.Length == 0) {
+            return false;
+        }
+
+        if (OfficeImageReader.TryIdentify(bytes, extension, out OfficeImageInfo identified)) {
+            imageInfo = identified;
+        }
+
+        return true;
     }
 }

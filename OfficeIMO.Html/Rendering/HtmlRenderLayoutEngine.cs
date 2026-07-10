@@ -14,6 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlCssPageRuleSet _pageRules;
     private readonly OfficeFontFaceCollection _fonts;
     private readonly Uri? _baseUri;
+    private readonly HtmlUrlPolicy _resourceUrlPolicy;
     private int _paintOrder;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
@@ -25,6 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
+        _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
     }
 
     internal HtmlRenderDocument Render() {

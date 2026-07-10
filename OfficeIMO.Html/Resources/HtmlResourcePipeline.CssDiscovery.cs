@@ -15,10 +15,13 @@ public static partial class HtmlResourcePipeline {
             .Select(import => new SourceRange(import.Start, import.End))
             .ToList();
         foreach (Match match in CssUrlExpression.Matches(normalized)) {
+            string propertyName = GetCssDeclarationPropertyName(normalized, match.Index);
             if (IsCssFunctionNameAt(normalized, match.Index, "url")
                 && !IsInsideCssString(normalized, match.Index)
                 && !IsImportUrl(match.Index, importRanges)
-                && ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Font) {
+                && ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Font
+                && propertyName != "background"
+                && propertyName != "background-image") {
                 return true;
             }
         }

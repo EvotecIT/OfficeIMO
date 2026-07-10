@@ -97,7 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
-        AddBoxShape(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
@@ -195,15 +195,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         return Math.Max(0.01D, height);
-    }
-
-    private static void AddBoxShape(ICollection<HtmlRenderVisual> visuals, HtmlRenderBoxStyle style, double x, double y, double width, double height, IElement source) {
-        if ((!style.BackgroundColor.HasValue || style.BackgroundColor.Value.A == 0) && style.BorderWidth <= 0D) return;
-        OfficeShape shape = OfficeShape.Rectangle(width, height);
-        shape.FillColor = style.BackgroundColor;
-        shape.StrokeColor = style.BorderWidth > 0D ? style.BorderColor : null;
-        shape.StrokeWidth = style.BorderWidth;
-        visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: HtmlRenderStyleResolver.DescribeSource(source)));
     }
 
     private void ReportUnsupportedLayout(IElement element, HtmlRenderBoxStyle style) {

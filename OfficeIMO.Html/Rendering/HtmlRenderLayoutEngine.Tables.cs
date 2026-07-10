@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double trailingHeight = 0D;
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
-        AddBoxShape(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
+        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double rowY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         double headerStart = rowY;
@@ -89,11 +89,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + cell.Column * columnWidth;
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan);
-                OfficeShape box = OfficeShape.Rectangle(cell.Width, cellHeight);
-                box.FillColor = cell.Style.BackgroundColor;
-                box.StrokeColor = cell.Style.BorderColor;
-                box.StrokeWidth = cell.Style.BorderWidth;
-                visuals.Add(new HtmlRenderShape(box, cellX, rowY, visuals.Count, source: HtmlRenderStyleResolver.DescribeSource(cell.Element)));
+                AddBoxPaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
                 double textX = cellX + cell.Style.BorderWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.Style.BorderWidth + cell.Style.PaddingTop;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {

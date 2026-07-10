@@ -15,6 +15,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal double BorderWidth;
     internal OfficeColor BorderColor = OfficeColor.Black;
     internal OfficeColor? BackgroundColor;
+    internal string? BackgroundImageSource;
+    internal int BackgroundImageLayerCount;
+    internal string BackgroundPosition = "0% 0%";
+    internal string BackgroundRepeat = "repeat";
+    internal string BackgroundSize = "auto";
     internal OfficeFontInfo Font;
     internal OfficeColor Color = OfficeColor.Black;
     internal OfficeTextAlignment Alignment;

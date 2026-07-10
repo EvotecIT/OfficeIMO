@@ -46,7 +46,7 @@ OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
 - `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, policy-bound TrueType `@font-face` activation, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, policy-bound external stylesheet/import loading, preserved CSS font-family fallback lists, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. CSS URL paint assets, WOFF/WOFF2 and CFF decoding, flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, policy-bound TrueType `@font-face` activation, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, policy-bound external stylesheet/import loading, preserved CSS font-family fallback lists, tables with row/column spans, images and single-layer CSS background images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Repeating and layered backgrounds, clipped `cover` paint, other CSS URL paint assets, WOFF/WOFF2 and CFF decoding, flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
 ## Implemented Checkpoint
 
@@ -54,7 +54,7 @@ The current renderer deliberately starts with normal flow, styled text, grapheme
 - [x] Direct PNG and SVG export through the existing dependency-free `OfficeIMO.Drawing` backend.
 - [x] Direct searchable PDF output through a thin `OfficeIMO.Html.Pdf` adapter, without a PDF or image intermediate.
 - [x] Synchronous APIs for embedded/local content and asynchronous APIs for application-resolved external resources.
-- [x] Policy-, timeout-, cancellation-, media-type-, byte-, count-, and import-depth-controlled external stylesheet graphs in DOM cascade order, including recursive imports, cycle suppression, media conditions, external `@page` rules, and explicit diagnostics for synchronous or URL-paint gaps.
+- [x] Policy-, timeout-, cancellation-, media-type-, byte-, count-, and import-depth-controlled external stylesheet graphs in DOM cascade order, including recursive imports, cycle suppression, media conditions, external `@page` rules, and explicit diagnostics for synchronous or unsupported URL-paint gaps.
 - [x] URL policy, per-resource and total byte budgets, timeout, cancellation, content-type checks, surface limits, page limits, and layout-depth limits.
 - [x] Screen/print media selection, CSS custom-property inheritance/fallback/cycle handling, basic page rules, and stable text/table fragmentation.
 - [x] First/left/right page-margin content across all standard top, bottom, side, and corner boxes, with quoted text, page counters, font/color/alignment styling, and shared SVG/PDF output.
@@ -63,6 +63,7 @@ The current renderer deliberately starts with normal flow, styled text, grapheme
 - [x] Table occupancy-grid layout for `colspan`, row-group-bounded `rowspan` including `rowspan="0"`, distributed span height, and span-safe page breaks.
 - [x] Shared `OfficeIMO.Drawing` Unicode text-element measurement and HTML long-token fragmentation that preserve combining sequences and surrogate pairs, plus managed TrueType format-12 cmap lookup for non-BMP scalars.
 - [x] Scoped TrueType `@font-face` loading from inline, data-URI, linked, and recursively imported CSS under the shared URL/count/depth/byte policy; the same validated faces drive HTML measurement, PNG rasterization, embedded SVG fonts, and rendered-PDF embedding. Unsupported WOFF/WOFF2/CFF inputs are diagnosed without adding codecs.
+- [x] Single-layer CSS background-image loading from inline, data-URI, linked, and recursively imported CSS, including size and position, on normal boxes and table cells; the same image visual reaches PNG, SVG, and rendered PDF, while repeat, extra layers, and unclipped `cover` cases use explicit deterministic fallback diagnostics.
 - [x] Rendered PDF font fallback and shaping controls over the existing dependency-free `OfficeIMO.Pdf` engine, including caller-supplied embedded families/providers and exact Unicode whitespace extraction across rich text runs.
 - [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
 - [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, pagination, resources, timeout, cancellation, and diagnostics.
@@ -142,7 +143,7 @@ The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains
 ### HTML and resources
 
 - HTML5 parsing, malformed-markup recovery, base URI handling, and nested documents.
-- Inline, embedded, policy-approved linked, and recursively imported stylesheets. TrueType font URLs are active; other CSS URL paint assets remain before this contract is complete.
+- Inline, embedded, policy-approved linked, and recursively imported stylesheets. TrueType font URLs and CSS background-image URLs are active; other CSS URL paint assets remain before this contract is complete.
 - Images, data URIs, SVG, fonts, and controlled remote resources.
 - Source-neutral URL policy, size/count/depth budgets, media-type validation, timeouts, and cancellation.
 - Deterministic handling of unavailable or rejected resources.
@@ -206,7 +207,7 @@ Exit gate: the public behavior and proof corpus exist before implementation deta
 - [x] Split `HtmlResourcePipeline.cs` into focused partials for element discovery, CSS discovery and syntax, custom-property resolution, selector matching, policy, and internal models.
 - [x] Split `HtmlComputedStyleEngine.cs` by rules, media, supports, cascade, selector matching, CSS syntax, and internal models so the existing engine remains the shared owner.
 - [x] Add cancellation and timeout propagation to direct-render resource loading and conversion orchestration.
-- [x] Apply policy-approved linked stylesheets and recursive imports before page-rule and computed-style resolution, with cycle/depth/count/budget enforcement; nested CSS URL paint resources remain.
+- [x] Apply policy-approved linked stylesheets and recursive imports before page-rule and computed-style resolution, with cycle/depth/count/budget enforcement; nested background images and TrueType fonts are active while other CSS URL paint resources remain.
 - [ ] Carry the same cancellation contract through any shared discovery/loading paths reused outside the direct renderer.
 - [x] Add the `OfficeIMO.Drawing` project reference to `OfficeIMO.Html`.
 - [x] Establish initial shared units, coordinate systems, colors, font descriptors, and diagnostic codes.
@@ -233,7 +234,7 @@ Exit gate: multilingual line boxes are deterministic across supported target fra
 
 ### Phase 4 - Core layout
 
-- [ ] Implement block flow, margin collapsing, padding, borders, backgrounds, sizing, and overflow.
+- [ ] Implement block flow, margin collapsing, padding, borders, backgrounds, sizing, and overflow. Basic background colors plus single background images with `auto`, `contain`, explicit size, and position are implemented; clipped `cover`, repeat patterns, layers, gradients, root-canvas propagation, and overflow clipping remain.
 - [ ] Implement replaced elements and image/SVG intrinsic sizing.
 - [ ] Implement floats and relative/absolute/fixed/sticky positioning.
 - [ ] Complete table layout and row/cell fragmentation. Occupancy-grid column placement, column spans, row-group-bounded row spans, span height, and span-safe row breaks are implemented; captions, intrinsic column sizing, border models, and cell-content fragmentation remain.
@@ -253,9 +254,9 @@ Exit gate: paged geometry and page counts match the accepted corpus.
 ### Phase 6 - Shared paint and semantic model
 
 - [x] Convert the initial layout fragments into a backend-neutral ordered visual scene.
-- [ ] Reuse or extend `OfficeIMO.Drawing` for paths, text outlines, images, gradients, transforms, clipping, shadows, and opacity.
+- [ ] Reuse or extend `OfficeIMO.Drawing` for paths, text outlines, images, gradients, transforms, clipping, shadows, and opacity. Shapes, text, images, active font faces, and CSS background-image visuals are shared now; clipping and advanced paint remain.
 - [ ] Keep searchable text runs and semantic nodes beside visual operations. Searchable text runs and links are implemented; semantic nodes remain.
-- [ ] Complete deterministic z-order, clipping, resource reuse, and fallback diagnostics. Initial paint order and stable fallback diagnostics are implemented.
+- [ ] Complete deterministic z-order, clipping, resource reuse, and fallback diagnostics. Initial box paint order and stable background layer/repeat/value fallbacks are implemented; clipped patterns and shared encoded-image reuse remain.
 
 Exit gate: a single rendered result contains everything needed by both image and PDF backends.
 

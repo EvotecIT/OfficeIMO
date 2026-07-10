@@ -5,6 +5,9 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static class HtmlDiagnosticCatalog {
     private static readonly IReadOnlyDictionary<string, HtmlDiagnosticDefinition> Definitions = new Dictionary<string, HtmlDiagnosticDefinition>(StringComparer.OrdinalIgnoreCase) {
+        [HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit] = RenderDefinition(HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit, "PaintFidelity", HtmlDiagnosticSeverity.Warning, "Only the first CSS background-image layer was painted.", "Flatten multiple background layers into one image until shared layered paint is enabled."),
+        [HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported, "PaintFidelity", HtmlDiagnosticSeverity.Warning, "A repeating CSS background image used a single-image fallback.", "Use no-repeat with an explicit size until shared clipped pattern paint is enabled."),
+        [HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported, "PaintFidelity", HtmlDiagnosticSeverity.Warning, "A CSS background image value used a deterministic supported fallback.", "Use no-repeat with auto, contain, cover, or one/two absolute or percentage size values."),
         ["HtmlCommentSkipped"] = new HtmlDiagnosticDefinition(
             "HtmlCommentSkipped",
             "ContentSimplification",

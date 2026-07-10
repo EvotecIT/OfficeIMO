@@ -152,6 +152,20 @@ internal static class HtmlRenderResourceLoader {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics) {
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        foreach (HtmlResourceReference imageResource in analysis.ImageResources) {
+            if (imageResource.IsAllowed) {
+                pending.Enqueue(new PendingResource(imageResource, importDepth));
+            } else {
+                diagnostics.Add(
+                    ComponentName,
+                    imageResource.DiagnosticCode.Length == 0 ? "ImageResourceRejectedByPolicy" : imageResource.DiagnosticCode,
+                    "A stylesheet image source was rejected by the configured URL policy.",
+                    HtmlDiagnosticSeverity.Warning,
+                    imageResource.Source,
+                    stylesheetUri.AbsoluteUri);
+            }
+        }
+
         foreach (HtmlResourceReference fontResource in analysis.FontResources) {
             if (fontResource.IsAllowed) {
                 pending.Enqueue(new PendingResource(fontResource, importDepth));
