@@ -5,6 +5,7 @@
   "ExpectedVersionMap": {
     "OfficeIMO.CSV": "0.1.X",
     "OfficeIMO.Drawing": "1.0.X",
+    "OfficeIMO.Email": "0.1.X",
     "OfficeIMO.Epub": "0.0.X",
     "OfficeIMO.Excel": "0.6.X",
     "OfficeIMO.Excel.GoogleSheets": "0.1.X",
@@ -87,4 +88,3 @@
   "GitHubTagTemplate": "{Repo}-v{UtcTimestamp}",
   "GitHubReleaseName": "{Repo} {UtcDateTime}"
 }
-

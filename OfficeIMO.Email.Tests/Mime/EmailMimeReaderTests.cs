@@ -1,0 +1,77 @@
+using OfficeIMO.Email;
+using Xunit;
+
+namespace OfficeIMO.Email.Tests;
+
+public sealed class EmailMimeReaderTests {
+    [Fact]
+    public void ReadsMultipartAlternativesAndAttachmentsWithStandardEncodings() {
+        const string eml = "From: =?utf-8?B?Sm9zw6kgU2VuZGVy?= <sender@example.com>\r\n" +
+            "To: Alice <alice@example.com>, bob@example.com\r\n" +
+            "Cc: Team <team@example.com>\r\n" +
+            "Subject: =?utf-8?B?UsOpc3Vtw6k=?=\r\n" +
+            "X-Trace: first\r\n" +
+            "X-Trace: second\r\n" +
+            "Message-ID: <sample@example.com>\r\n" +
+            "Date: Fri, 10 Jul 2026 12:30:00 +0200\r\n" +
+            "MIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=outer\r\n\r\n" +
+            "preamble\r\n--outer\r\n" +
+            "Content-Type: multipart/alternative; boundary=inner\r\n\r\n" +
+            "--inner\r\nContent-Type: text/plain; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: quoted-printable\r\n\r\nHello =C5=BC=C3=B3=C5=82=C4=87\r\n" +
+            "--inner\r\nContent-Type: text/html; charset=utf-8\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nPHA+SGVsbG88L3A+\r\n" +
+            "--inner--\r\n" +
+            "--outer\r\nContent-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename*=utf-8''c%C3%A9.txt\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nAQIDBA==\r\n" +
+            "--outer--\r\nepilogue\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+
+        Assert.Equal(EmailFileFormat.Eml, result.Document.Format);
+        Assert.Equal("Résumé", result.Document.Subject);
+        Assert.Equal("José Sender", result.Document.From!.DisplayName);
+        Assert.Equal("sender@example.com", result.Document.From.Address);
+        Assert.Equal(3, result.Document.Recipients.Count);
+        Assert.Equal("Hello żółć", result.Document.Body.Text!.Trim());
+        Assert.Equal("<p>Hello</p>", result.Document.Body.Html!.Trim());
+        Assert.Equal(2, result.Document.Headers.Count(header => header.Name == "X-Trace"));
+        EmailAttachment attachment = Assert.Single(result.Document.Attachments);
+        Assert.Equal("cé.txt", attachment.FileName);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, attachment.Content);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void ReadsEmbeddedMessageAsStructuredAttachment() {
+        const string eml = "Subject: Parent\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain\r\n\r\nParent body\r\n" +
+            "--x\r\nContent-Type: message/rfc822; name=child.eml\r\n" +
+            "Content-Disposition: attachment; filename=child.eml\r\n\r\n" +
+            "From: child@example.com\r\nSubject: Child\r\nContent-Type: text/plain\r\n\r\nChild body\r\n" +
+            "--x--\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        EmailAttachment attachment = Assert.Single(result.Document.Attachments);
+        Assert.Equal("child.eml", attachment.FileName);
+        Assert.NotNull(attachment.EmbeddedDocument);
+        Assert.Equal("Child", attachment.EmbeddedDocument!.Subject);
+        Assert.Equal("Child body", attachment.EmbeddedDocument.Body.Text!.Trim());
+    }
+
+    [Fact]
+    public void ReportsRecoverableMalformedContent() {
+        const string eml = "Subject: malformed\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n%%%\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
+        Assert.Single(result.Document.Attachments);
+    }
+}

@@ -1,0 +1,115 @@
+namespace OfficeIMO.Email;
+
+/// <summary>Reads bounded email and Outlook artifacts into the shared <see cref="EmailDocument"/> model.</summary>
+public sealed class EmailDocumentReader {
+    private static readonly byte[] CompoundSignature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+    private static readonly byte[] TnefSignature = { 0x78, 0x9F, 0x3E, 0x22 };
+    private readonly EmailReaderOptions _options;
+
+    /// <summary>Creates a reader with the default bounded policy.</summary>
+    public EmailDocumentReader() : this(EmailReaderOptions.Default) { }
+
+    /// <summary>Creates a reader with an immutable bounded policy.</summary>
+    public EmailDocumentReader(EmailReaderOptions options) {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+    }
+
+    /// <summary>Reader policy used by this instance.</summary>
+    public EmailReaderOptions Options => _options;
+
+    /// <summary>Reads an artifact from a file.</summary>
+    public EmailReadResult Read(string filePath, CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        using (FileStream stream = File.OpenRead(filePath)) return Read(stream, cancellationToken);
+    }
+
+    /// <summary>Reads an artifact from memory.</summary>
+    public EmailReadResult Read(byte[] data, CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (data.LongLength > _options.MaxInputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), data.LongLength, _options.MaxInputBytes);
+        }
+        return Parse(data);
+    }
+
+    /// <summary>Reads an artifact from the stream's current position without closing it.</summary>
+    public EmailReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
+        return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken));
+    }
+
+    /// <summary>Asynchronously reads an artifact from a file.</summary>
+    public async Task<EmailReadResult> ReadAsync(string filePath, CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+            return await ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Asynchronously reads an artifact from the stream's current position without closing it.</summary>
+    public async Task<EmailReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
+        byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
+        return Parse(data);
+    }
+
+    /// <summary>Detects the artifact format from content rather than the filename.</summary>
+    public static EmailFileFormat DetectFormat(byte[] data) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (StartsWith(data, CompoundSignature)) return EmailFileFormat.OutlookMsg;
+        if (StartsWith(data, TnefSignature)) return EmailFileFormat.Tnef;
+        if (data.Length >= 5 && data[0] == 'F' && data[1] == 'r' && data[2] == 'o' && data[3] == 'm' && data[4] == ' ') {
+            return EmailFileFormat.Mbox;
+        }
+        return LooksLikeMessage(data) ? EmailFileFormat.Eml : EmailFileFormat.Unknown;
+    }
+
+    private EmailReadResult Parse(byte[] data) {
+        EmailFileFormat format = DetectFormat(data);
+        List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
+        EmailDocument document;
+        switch (format) {
+            case EmailFileFormat.Eml:
+                document = MimeParser.Parse(data, _options, diagnostics);
+                break;
+            case EmailFileFormat.Unknown:
+                diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
+                    "The artifact has no recognized email signature or RFC message header.", EmailDiagnosticSeverity.Error));
+                document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
+                break;
+            default:
+                diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_NOT_IMPLEMENTED",
+                    string.Concat(format.ToString(), " support is not available in this delivery slice."), EmailDiagnosticSeverity.Error));
+                document = new EmailDocument { Format = format, OutlookItemKind = OutlookItemKind.Unknown };
+                break;
+        }
+        if (_options.PreserveRawSource) document.RawSource = (byte[])data.Clone();
+        return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+    }
+
+    private static bool StartsWith(byte[] data, byte[] signature) {
+        if (data.Length < signature.Length) return false;
+        for (int i = 0; i < signature.Length; i++) {
+            if (data[i] != signature[i]) return false;
+        }
+        return true;
+    }
+
+    private static bool LooksLikeMessage(byte[] data) {
+        int limit = Math.Min(data.Length, 64 * 1024);
+        int lineStart = 0;
+        while (lineStart < limit) {
+            int lineEnd = lineStart;
+            while (lineEnd < limit && data[lineEnd] != '\r' && data[lineEnd] != '\n') lineEnd++;
+            if (lineEnd == lineStart) return false;
+            for (int i = lineStart; i < lineEnd; i++) {
+                if (data[i] == ':' && i > lineStart) return true;
+                if (data[i] < 33 || data[i] > 126) break;
+            }
+            lineStart = lineEnd;
+            if (lineStart < limit && data[lineStart] == '\r') lineStart++;
+            if (lineStart < limit && data[lineStart] == '\n') lineStart++;
+        }
+        return false;
+    }
+}
