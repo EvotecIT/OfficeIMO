@@ -22,13 +22,73 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
-        HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#svg-image");
+        HtmlRenderDrawing image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), item => item.Source == "img#svg-image");
         string exportedSvg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal(200D, image.Width, 3);
         Assert.Equal(100D, image.Height, 3);
-        Assert.Equal("image/svg+xml", image.ContentType);
-        Assert.Contains("<image x=\"0\" y=\"0\" width=\"200\" height=\"100\"", exportedSvg, StringComparison.Ordinal);
+        Assert.Single(image.Drawing.Shapes);
+        Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlImages_SvgPrimitivesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='20' height='20' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 90D,
+            ViewportHeight = 55D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDrawing vector = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), visual => visual.Source == "img#vector");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string exportedSvg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(90D / HtmlRenderOptions.CssPixelsPerInch, 55D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(2, vector.Drawing.Shapes.Count);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(60, 20));
+        Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("<ellipse", exportedSvg, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("SvgPdf", pdfText, StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlImages_SvgUnsupportedFeaturesAreDiagnosedWhilePrimitivesRemain() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' fill='lime'/><path d='M0 0L20 20'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<img id='partial-svg' src='data:image/svg+xml;base64," + data + "'>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.Equal("img#partial-svg", diagnostic.Source);
+        Assert.Contains("features=1", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains(HtmlRenderDiagnosticCodes.SvgContentUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.SvgContentUnsupported, out _));
     }
 
     [Fact]

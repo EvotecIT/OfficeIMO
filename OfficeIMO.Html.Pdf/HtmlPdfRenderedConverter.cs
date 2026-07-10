@@ -70,6 +70,8 @@ internal static class HtmlPdfRenderedConverter {
             AddText(canvas, text, webFonts);
         } else if (visual is HtmlRenderImage image) {
             AddImage(canvas, image);
+        } else if (visual is HtmlRenderDrawing drawing) {
+            AddDrawing(canvas, drawing);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
             AddImagePattern(canvas, imagePattern);
         } else if (visual is HtmlRenderClipGroup group) {
@@ -201,6 +203,17 @@ internal static class HtmlPdfRenderedConverter {
             linkUri: visual.LinkUri,
             linkContents: visual.LinkUri == null ? null : visual.Source,
             alternativeText: visual.AlternativeText);
+    }
+
+    private static void AddDrawing(PdfCore.PdfPageCanvas canvas, HtmlRenderDrawing visual) {
+        canvas.Drawing(
+            visual.Drawing,
+            visual.X * PointsPerCssPixel,
+            visual.Y * PointsPerCssPixel,
+            visual.Width * PointsPerCssPixel,
+            visual.Height * PointsPerCssPixel,
+            linkUri: visual.LinkUri,
+            linkContents: visual.LinkUri == null ? null : visual.Source);
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual) {

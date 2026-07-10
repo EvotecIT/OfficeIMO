@@ -73,6 +73,12 @@ public sealed class HtmlRenderPage {
         } else if (visual is HtmlRenderImage image) {
             var placement = new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height);
             drawing.AddImage(image.EncodedBytes, image.ContentType, new OfficeImageProjection(placement, image.SourceCrop), image.AlternativeText);
+        } else if (visual is HtmlRenderDrawing vector) {
+            OfficeTransform transform = OfficeTransform.Scale(
+                    vector.Width / vector.InnerDrawing.Width,
+                    vector.Height / vector.InnerDrawing.Height)
+                .Then(OfficeTransform.Translate(vector.X, vector.Y));
+            drawing.AddEffectDrawing(vector.InnerDrawing, transform);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
             drawing.AddImagePattern(
                 imagePattern.EncodedBytes,

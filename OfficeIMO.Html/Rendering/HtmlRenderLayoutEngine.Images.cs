@@ -33,23 +33,59 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentSize.Height,
             intrinsicWidth,
             intrinsicHeight);
+        bool addedObject = false;
         if (bytes != null && bytes.Length > 0 && placement.IsVisible) {
-            objectVisuals.Add(new HtmlRenderImage(
-                bytes,
-                contentType,
-                imageX + placement.X,
-                imageY + placement.Y,
-                placement.Width,
-                placement.Height,
-                objectVisuals.Count,
-                alternativeText,
-                link,
-                sourceDescription,
-                placement.SourceCrop));
-            if (!OfficeRasterImageDecoder.TryDecode(bytes, out _) && !string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.RasterDecoderUnavailable, "The image can be retained for SVG/PDF but the dependency-free PNG backend cannot decode this image format yet.", HtmlDiagnosticSeverity.Warning, sourceDescription, contentType);
+            if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                if (OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? svgDrawing, out int unsupportedFeatures) && svgDrawing != null) {
+                    objectVisuals.Add(new HtmlRenderDrawing(
+                        svgDrawing,
+                        imageX + placement.X,
+                        imageY + placement.Y,
+                        placement.Width,
+                        placement.Height,
+                        objectVisuals.Count,
+                        alternativeText,
+                        link,
+                        sourceDescription));
+                    addedObject = true;
+                    if (unsupportedFeatures > 0) {
+                        _diagnostics.Add(
+                            ComponentName,
+                            HtmlRenderDiagnosticCodes.SvgContentUnsupported,
+                            "Unsupported SVG content was omitted while supported vector primitives remained active.",
+                            HtmlDiagnosticSeverity.Warning,
+                            sourceDescription,
+                            "features=" + unsupportedFeatures);
+                    }
+                } else {
+                    _diagnostics.Add(
+                        ComponentName,
+                        HtmlRenderDiagnosticCodes.SvgContentUnsupported,
+                        "The SVG image could not be interpreted as a bounded shared vector scene.",
+                        HtmlDiagnosticSeverity.Warning,
+                        sourceDescription,
+                        contentType);
+                }
+            } else {
+                objectVisuals.Add(new HtmlRenderImage(
+                    bytes,
+                    contentType,
+                    imageX + placement.X,
+                    imageY + placement.Y,
+                    placement.Width,
+                    placement.Height,
+                    objectVisuals.Count,
+                    alternativeText,
+                    link,
+                    sourceDescription,
+                    placement.SourceCrop));
+                addedObject = true;
+                if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
+                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.RasterDecoderUnavailable, "The image can be retained for SVG/PDF but the dependency-free PNG backend cannot decode this image format yet.", HtmlDiagnosticSeverity.Warning, sourceDescription, contentType);
+                }
             }
-        } else if (placement.IsVisible) {
+        }
+        if (!addedObject && placement.IsVisible) {
             OfficeShape placeholder = OfficeShape.Rectangle(placement.Width, placement.Height);
             placeholder.FillColor = OfficeColor.FromRgb(245, 245, 245);
             placeholder.StrokeColor = OfficeColor.FromRgb(160, 160, 160);

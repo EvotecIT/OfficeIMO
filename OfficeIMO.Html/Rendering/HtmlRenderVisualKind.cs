@@ -23,5 +23,8 @@ public enum HtmlRenderVisualKind {
     PathClipGroup,
 
     /// <summary>Ordered child visuals painted through an affine transform and isolated opacity.</summary>
-    EffectGroup
+    EffectGroup,
+
+    /// <summary>Positioned shared vector drawing.</summary>
+    Drawing
 }
