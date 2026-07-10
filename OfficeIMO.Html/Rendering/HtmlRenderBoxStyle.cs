@@ -17,6 +17,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeColor? BackgroundColor;
     internal string? BackgroundImageSource;
     internal int BackgroundImageLayerCount;
+    internal int UnsupportedBackgroundImageLayerCount;
+    internal IReadOnlyList<HtmlRenderBackgroundLayer> BackgroundImageLayers = Array.Empty<HtmlRenderBackgroundLayer>();
     internal string BackgroundPosition = "0% 0%";
     internal string BackgroundRepeat = "repeat";
     internal string BackgroundSize = "auto";

@@ -43,10 +43,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals.Add(new HtmlRenderShape(fill, x, y, visuals.Count, source: visualSourceDescription));
         }
 
-        AddBackgroundImage(visuals, style, x, y, width, height, borderWidth, source, diagnosticSourceDescription, visualSourceDescription);
+        AddBackgroundImages(visuals, style, x, y, width, height, borderWidth, source, diagnosticSourceDescription, visualSourceDescription);
     }
 
-    private void AddBackgroundImage(
+    private void AddBackgroundImages(
         ICollection<HtmlRenderVisual> visuals,
         HtmlRenderBoxStyle style,
         double x,
@@ -57,19 +57,58 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
-        if (string.IsNullOrWhiteSpace(style.BackgroundImageSource)) {
-            return;
-        }
+        if (style.BackgroundImageLayerCount == 0) return;
 
-        if (style.BackgroundImageLayerCount > 1) {
+        if (style.BackgroundImageLayerCount > _options.MaxBackgroundImageLayers) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit,
-                "Only the first CSS background-image layer was painted.",
+                "CSS background-image layers beyond the configured per-element limit were omitted.",
                 source,
-                "layers=" + style.BackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture));
+                "layers=" + style.BackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture)
+                    + ";limit=" + _options.MaxBackgroundImageLayers.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (!TryResolveImageSource(style.BackgroundImageSource, diagnosticSourceDescription + ":background-image", out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo)
+        if (style.UnsupportedBackgroundImageLayerCount > 0) {
+            AddUnsupported(
+                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "CSS gradient background layers were omitted until shared gradient-image paint is available.",
+                source,
+                "layers=" + style.UnsupportedBackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture));
+        }
+
+        for (int layerIndex = style.BackgroundImageLayers.Count - 1; layerIndex >= 0; layerIndex--) {
+            AddBackgroundImageLayer(
+                visuals,
+                style,
+                style.BackgroundImageLayers[layerIndex],
+                layerIndex,
+                x,
+                y,
+                width,
+                height,
+                borderWidth,
+                source,
+                diagnosticSourceDescription,
+                visualSourceDescription);
+        }
+    }
+
+    private void AddBackgroundImageLayer(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        HtmlRenderBackgroundLayer layer,
+        int layerIndex,
+        double x,
+        double y,
+        double width,
+        double height,
+        double borderWidth,
+        IElement source,
+        string diagnosticSourceDescription,
+        string visualSourceDescription) {
+        string layerVisualSource = visualSourceDescription + ":background-image"
+            + (style.BackgroundImageLayers.Count > 1 ? "[" + layerIndex.ToString(CultureInfo.InvariantCulture) + "]" : string.Empty);
+        if (!TryResolveImageSource(layer.Source, diagnosticSourceDescription + ":background-image", out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo)
             || bytes == null) {
             return;
         }
@@ -84,26 +123,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
             ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : areaHeight;
-        BackgroundImageSize imageSize = ResolveBackgroundImageSize(style.BackgroundSize, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback);
+        BackgroundImageSize imageSize = ResolveBackgroundImageSize(layer.Size, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback);
         if (usedSizeFallback) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS background-size value used a contained deterministic fallback.",
                 source,
-                style.BackgroundSize);
+                layer.Size);
         }
 
-        bool repeatSupported = TryResolveBackgroundRepeat(style.BackgroundRepeat, out bool repeatX, out bool repeatY);
+        bool repeatSupported = TryResolveBackgroundRepeat(layer.Repeat, out bool repeatX, out bool repeatY);
         if (!repeatSupported) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported,
                 "A CSS background-repeat value used a single-image fallback.",
                 source,
-                style.BackgroundRepeat);
+                layer.Repeat);
         }
 
         (double offsetX, double offsetY) = ResolveBackgroundPosition(
-            style.BackgroundPosition,
+            layer.Position,
             areaWidth - imageSize.Width,
             areaHeight - imageSize.Height,
             style.Font.Size);
@@ -123,7 +162,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     pattern,
                     _options.MaxBackgroundImageTiles,
                     visuals.Count,
-                    visualSourceDescription + ":background-image"));
+                    layerVisualSource));
                 _backgroundImageTileCount += tileCount;
             } else if (tileCount > 0L) {
                 _diagnostics.Add(
@@ -133,10 +172,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Error,
                     diagnosticSourceDescription,
                     "tiles=" + tileCount.ToString(CultureInfo.InvariantCulture) + ";limit=" + _options.MaxBackgroundImageTiles.ToString(CultureInfo.InvariantCulture));
-                AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, visualSourceDescription);
+                AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
             }
         } else {
-            AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, visualSourceDescription);
+            AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
         }
 
         if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)
@@ -163,7 +202,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double areaY,
         double areaWidth,
         double areaHeight,
-        string sourceDescription) {
+        string visualSourceDescription) {
         double visibleLeft = Math.Max(tileX, areaX);
         double visibleTop = Math.Max(tileY, areaY);
         double visibleRight = Math.Min(tileX + tileWidth, areaX + areaWidth);
@@ -183,7 +222,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visibleRight - visibleLeft,
             visibleBottom - visibleTop,
             visuals.Count,
-            source: sourceDescription + ":background-image",
+            source: visualSourceDescription,
             sourceCrop: crop));
     }
 

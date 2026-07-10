@@ -183,6 +183,37 @@ internal static class HtmlRenderCssValues {
         return parts;
     }
 
+    internal static IReadOnlyList<string> SplitTopLevelCommas(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return Array.Empty<string>();
+
+        var parts = new List<string>();
+        int start = 0;
+        int depth = 0;
+        char quote = '\0';
+        string text = value!;
+        for (int index = 0; index < text.Length; index++) {
+            char current = text[index];
+            if (quote != '\0') {
+                if (current == quote && (index == 0 || text[index - 1] != '\\')) quote = '\0';
+                continue;
+            }
+
+            if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '(') {
+                depth++;
+            } else if (current == ')' && depth > 0) {
+                depth--;
+            } else if (current == ',' && depth == 0) {
+                parts.Add(text.Substring(start, index - start).Trim());
+                start = index + 1;
+            }
+        }
+
+        parts.Add(text.Substring(start).Trim());
+        return parts.AsReadOnly();
+    }
+
     internal static OfficeColor ApplyOpacity(OfficeColor color, double opacity) {
         if (opacity >= 1D) return color;
         if (opacity <= 0D) return OfficeColor.FromRgba(color.R, color.G, color.B, 0);

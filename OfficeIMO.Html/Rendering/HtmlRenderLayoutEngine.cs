@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? documentRoot = _document.DocumentElement;
         if (documentRoot != null && !ReferenceEquals(documentRoot, root)) {
             HtmlRenderBoxStyle documentRootStyle = _styleResolver.Resolve(documentRoot, contentWidth);
-            if (HasRenderableBackground(documentRootStyle)) {
+            if (HasDeclaredCanvasBackground(documentRootStyle)) {
                 _surfaceRootElement = documentRoot;
                 _surfaceRootStyle = documentRootStyle;
             }
@@ -288,9 +288,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool HasPageFlowContent(IEnumerable<HtmlRenderVisual> visuals) => visuals.Any(visual => visual.PaintOrder >= 0);
 
-    private static bool HasRenderableBackground(HtmlRenderBoxStyle style) =>
+    private static bool HasDeclaredCanvasBackground(HtmlRenderBoxStyle style) =>
         style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
-        || !string.IsNullOrWhiteSpace(style.BackgroundImageSource);
+        || style.BackgroundImageLayerCount > 0;
 
     private void CommitPage(ICollection<HtmlRenderPage> pages, List<HtmlRenderVisual> visuals, double width, double height, string? pageName) {
         if (pages.Count >= _options.MaxPageCount) {

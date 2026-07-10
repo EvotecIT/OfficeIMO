@@ -55,6 +55,58 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_ResolvesEveryExternalBackgroundLayerRelativeToTheStylesheet() {
+        byte[] red = PdfPngTestImages.CreateRgbPng(255, 0, 0);
+        byte[] blue = PdfPngTestImages.CreateRgbPng(0, 0, 255);
+        var requested = new List<string>();
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(8D),
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                requested.Add(request.Uri.AbsoluteUri);
+                if (request.Kind == HtmlResourceKind.Stylesheet) {
+                    const string css = ".hero{width:40px;height:40px;background:url('../images/top.png') left top / 10px 10px no-repeat,url('../images/bottom.png') left top / 20px 20px no-repeat}";
+                    return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css"));
+                }
+
+                Assert.Equal(HtmlResourceKind.Image, request.Kind);
+                return Task.FromResult<HtmlResolvedResource?>(request.Uri.AbsolutePath.EndsWith("/top.png", StringComparison.Ordinal)
+                    ? new HtmlResolvedResource(red, "image/png")
+                    : new HtmlResolvedResource(blue, "image/png"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><div class='hero'></div>",
+            options);
+
+        Assert.Equal(new[] {
+            "https://assets.example.test/css/site.css",
+            "https://assets.example.test/images/top.png",
+            "https://assets.example.test/images/bottom.png"
+        }, requested);
+        IReadOnlyList<HtmlRenderImage> layers = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(2, layers.Count);
+        Assert.EndsWith(":background-image[1]", layers[0].Source, StringComparison.Ordinal);
+        Assert.EndsWith(":background-image[0]", layers[1].Source, StringComparison.Ordinal);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 8));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(18, 18));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+    }
+
+    [Fact]
+    public void HtmlRender_ValidatesAndClonesTheBackgroundLayerLimit() {
+        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7 };
+
+        Assert.Equal(7, options.Clone().MaxBackgroundImageLayers);
+        options.MaxBackgroundImageLayers = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<div></div>", options));
+    }
+
+    [Fact]
     public void HtmlBackgroundImage_FlowsThroughSharedPngSvgAndSearchablePdfBackends() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(6, 4));
         string html = "<div style=\"width:100px;height:60px;background-image:url('data:image/png;base64,"
@@ -101,11 +153,71 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         });
 
-        HtmlRenderImage background = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
-        Assert.Equal(100D, background.Width, 3);
-        Assert.Equal(50D, background.Height, 3);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
+        IReadOnlyList<HtmlRenderImage> backgrounds = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
+        Assert.Equal(2, backgrounds.Count);
+        Assert.All(backgrounds, background => Assert.Equal(100D, background.Width, 3));
+        Assert.All(backgrounds, background => Assert.Equal(50D, background.Height, 3));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlBackgroundLayers_PaintBackToFrontAcrossPngSvgAndPdf() {
+        string red = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
+        string html = "<div style=\"width:40px;height:40px;background-image:url('data:image/png;base64,"
+            + red
+            + "'),url('data:image/png;base64,"
+            + blue
+            + "');background-size:10px 10px,20px 20px;background-position:left top,left top;background-repeat:no-repeat,no-repeat\"></div>";
+        var imageOptions = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        IReadOnlyList<HtmlRenderImage> layers = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(imageOptions);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(2, layers.Count);
+        Assert.EndsWith(":background-image[1]", layers[0].Source, StringComparison.Ordinal);
+        Assert.EndsWith(":background-image[0]", layers[1].Source, StringComparison.Ordinal);
+        Assert.Equal(20D, layers[0].Width, 3);
+        Assert.Equal(10D, layers[1].Width, 3);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 8));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(18, 18));
+        Assert.Equal(2, CountBackgroundOccurrences(svg, "data:image/png;base64,"));
+        Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
+        Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
+    }
+
+    [Fact]
+    public void HtmlRender_BoundsBackgroundLayersAndDiagnosesOmittedGradients() {
+        string red = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
+        string green = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 255, 0));
+        string html = "<div style=\"width:40px;height:40px;background-image:linear-gradient(red,blue),url('data:image/png;base64,"
+            + red
+            + "'),url('data:image/png;base64,"
+            + blue
+            + "'),url('data:image/png;base64,"
+            + green
+            + "');background-repeat:no-repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D),
+            MaxBackgroundImageLayers = 2
+        });
+
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 

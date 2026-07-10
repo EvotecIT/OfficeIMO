@@ -224,20 +224,62 @@ internal sealed class HtmlRenderStyleResolver {
         string background = computed.GetValue("background-color");
         if (background.Length == 0) background = backgroundShorthand;
         if (HtmlRenderCssValues.TryColor(background, out OfficeColor backgroundColor)) style.BackgroundColor = backgroundColor;
-        string backgroundImage = computed.GetValue("background-image");
-        IReadOnlyList<string> backgroundUrls = HtmlResourcePipeline.ExtractCssUrls(
-            backgroundImage.Length > 0 ? backgroundImage : backgroundShorthand);
-        style.BackgroundImageLayerCount = backgroundUrls.Count;
-        if (backgroundUrls.Count > 0) style.BackgroundImageSource = backgroundUrls[0];
-        style.BackgroundRepeat = FirstNonEmpty(computed.GetValue("background-repeat"), ExtractBackgroundRepeat(backgroundShorthand), style.BackgroundRepeat);
-        style.BackgroundSize = FirstNonEmpty(computed.GetValue("background-size"), ExtractBackgroundSize(backgroundShorthand), style.BackgroundSize);
-        style.BackgroundPosition = FirstNonEmpty(computed.GetValue("background-position"), ExtractBackgroundPosition(backgroundShorthand), style.BackgroundPosition);
+        ApplyBackgroundLayers(computed, style, backgroundShorthand);
         if (double.TryParse(computed.GetValue("opacity"), NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)) {
             style.Opacity = Math.Max(0D, Math.Min(1D, opacity));
             style.Color = HtmlRenderCssValues.ApplyOpacity(style.Color, style.Opacity);
             style.BorderColor = HtmlRenderCssValues.ApplyOpacity(style.BorderColor, style.Opacity);
             if (style.BackgroundColor.HasValue) style.BackgroundColor = HtmlRenderCssValues.ApplyOpacity(style.BackgroundColor.Value, style.Opacity);
         }
+    }
+
+    private void ApplyBackgroundLayers(HtmlComputedStyle computed, HtmlRenderBoxStyle style, string backgroundShorthand) {
+        string backgroundImage = computed.GetValue("background-image");
+        string sourceValue = backgroundImage.Length > 0 ? backgroundImage : backgroundShorthand;
+        IReadOnlyList<string> sourceLayers = HtmlRenderCssValues.SplitTopLevelCommas(sourceValue);
+        IReadOnlyList<string> positionLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-position"));
+        IReadOnlyList<string> repeatLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-repeat"));
+        IReadOnlyList<string> sizeLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-size"));
+        var layers = new List<HtmlRenderBackgroundLayer>();
+        int declaredLayerCount = 0;
+        int unsupportedLayerCount = 0;
+        for (int index = 0; index < sourceLayers.Count; index++) {
+            string sourceLayer = sourceLayers[index];
+            IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(sourceLayer);
+            bool hasUnsupportedImage = urls.Count == 0
+                && sourceLayer.IndexOf("gradient(", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (urls.Count == 0 && !hasUnsupportedImage) continue;
+
+            declaredLayerCount++;
+            if (hasUnsupportedImage) {
+                unsupportedLayerCount++;
+                continue;
+            }
+
+            if (declaredLayerCount > _options.MaxBackgroundImageLayers) continue;
+            string position = GetLayerValue(positionLayers, index, ExtractBackgroundPosition(sourceLayer), "0% 0%");
+            string repeat = GetLayerValue(repeatLayers, index, ExtractBackgroundRepeat(sourceLayer), "repeat");
+            string size = GetLayerValue(sizeLayers, index, ExtractBackgroundSize(sourceLayer), "auto");
+            layers.Add(new HtmlRenderBackgroundLayer(urls[0], position, repeat, size));
+        }
+
+        style.BackgroundImageLayerCount = declaredLayerCount;
+        style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
+        style.BackgroundImageLayers = layers.AsReadOnly();
+        if (layers.Count == 0) return;
+        style.BackgroundImageSource = layers[0].Source;
+        style.BackgroundPosition = layers[0].Position;
+        style.BackgroundRepeat = layers[0].Repeat;
+        style.BackgroundSize = layers[0].Size;
+    }
+
+    private static string GetLayerValue(IReadOnlyList<string> values, int index, string shorthandValue, string fallback) {
+        if (values.Count > 0) {
+            string value = values[index % values.Count].Trim();
+            if (value.Length > 0) return value;
+        }
+
+        return shorthandValue.Length > 0 ? shorthandValue : fallback;
     }
 
     private static string ExtractBackgroundRepeat(string shorthand) {
@@ -258,7 +300,7 @@ internal sealed class HtmlRenderStyleResolver {
     }
 
     private static string ExtractBackgroundSize(string shorthand) {
-        int slash = shorthand.IndexOf('/');
+        int slash = FindTopLevelCharacter(shorthand, '/');
         if (slash < 0 || slash + 1 >= shorthand.Length) {
             return string.Empty;
         }
@@ -279,7 +321,7 @@ internal sealed class HtmlRenderStyleResolver {
 
     private static string ExtractBackgroundPosition(string shorthand) {
         string beforeSize = shorthand;
-        int slash = beforeSize.IndexOf('/');
+        int slash = FindTopLevelCharacter(beforeSize, '/');
         if (slash >= 0) beforeSize = beforeSize.Substring(0, slash);
         var values = new List<string>();
         foreach (string token in HtmlRenderCssValues.SplitWhitespace(beforeSize)) {
@@ -301,6 +343,30 @@ internal sealed class HtmlRenderStyleResolver {
         || value.EndsWith("cm", StringComparison.OrdinalIgnoreCase)
         || value.EndsWith("mm", StringComparison.OrdinalIgnoreCase)
         || value == "0";
+
+    private static int FindTopLevelCharacter(string value, char target) {
+        int depth = 0;
+        char quote = '\0';
+        for (int index = 0; index < value.Length; index++) {
+            char current = value[index];
+            if (quote != '\0') {
+                if (current == quote && (index == 0 || value[index - 1] != '\\')) quote = '\0';
+                continue;
+            }
+
+            if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '(') {
+                depth++;
+            } else if (current == ')' && depth > 0) {
+                depth--;
+            } else if (current == target && depth == 0) {
+                return index;
+            }
+        }
+
+        return -1;
+    }
 
     private static void ApplyBreaks(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string before = FirstNonEmpty(computed.GetValue("break-before"), computed.GetValue("page-break-before"));

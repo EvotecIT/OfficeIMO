@@ -81,6 +81,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum total repeated background-image tiles accepted in one render operation.</summary>
     public int MaxBackgroundImageTiles { get; set; } = 16384;
 
+    /// <summary>Maximum background-image layers accepted on one element.</summary>
+    public int MaxBackgroundImageLayers { get; set; } = 32;
+
     /// <summary>Gets the CSS media context selected by the current render mode.</summary>
     public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
 
@@ -118,6 +121,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxPageCount = MaxPageCount;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxBackgroundImageTiles = MaxBackgroundImageTiles;
+        target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         return target;
     }
 
@@ -152,6 +156,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxBackgroundImageTiles <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxBackgroundImageTiles), "Maximum background-image tile count must be positive.");
+        }
+
+        if (MaxBackgroundImageLayers <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxBackgroundImageLayers), "Maximum background-image layer count must be positive.");
         }
 
         if (ResourceTimeout <= TimeSpan.Zero || ResourceTimeout == System.Threading.Timeout.InfiniteTimeSpan) {

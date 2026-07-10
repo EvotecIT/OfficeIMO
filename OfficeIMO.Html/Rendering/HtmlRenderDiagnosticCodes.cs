@@ -6,11 +6,11 @@ namespace OfficeIMO.Html;
 /// Stable diagnostic codes emitted by the first-party HTML renderer.
 /// </summary>
 public static class HtmlRenderDiagnosticCodes {
-    /// <summary>Only the first CSS background-image layer was painted.</summary>
+    /// <summary>CSS background-image layers beyond the configured per-element limit were omitted.</summary>
     public const string BackgroundImageLayerLimit = "HtmlRenderBackgroundImageLayerLimit";
     /// <summary>A CSS background-repeat value used a single-image fallback.</summary>
     public const string BackgroundImageRepeatUnsupported = "HtmlRenderBackgroundImageRepeatUnsupported";
-    /// <summary>A CSS background image value used a deterministic supported fallback.</summary>
+    /// <summary>A CSS background image value used a deterministic supported fallback or was omitted.</summary>
     public const string BackgroundImageValueUnsupported = "HtmlRenderBackgroundImageValueUnsupported";
     /// <summary>Repeated CSS background images exceeded the configured operation-wide tile limit.</summary>
     public const string BackgroundImageTileLimitExceeded = "HtmlRenderBackgroundImageTileLimitExceeded";
