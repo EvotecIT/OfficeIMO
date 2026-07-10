@@ -41,7 +41,9 @@ public static partial class DocumentReader {
             ReaderWarningBehavior warningBehavior,
             bool deterministicOutput,
             Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
-            Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream) {
+            Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream,
+            Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentPath,
+            Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream) {
             Id = id;
             DisplayName = displayName;
             Description = description;
@@ -52,6 +54,8 @@ public static partial class DocumentReader {
             DeterministicOutput = deterministicOutput;
             ReadPath = readPath;
             ReadStream = readStream;
+            ReadDocumentPath = readDocumentPath;
+            ReadDocumentStream = readDocumentStream;
         }
 
         public string Id { get; }
@@ -64,6 +68,8 @@ public static partial class DocumentReader {
         public bool DeterministicOutput { get; }
         public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
         public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
+        public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; }
+        public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; }
 
         public ReaderHandlerCapability ToCapability() {
             return new ReaderHandlerCapability {
@@ -73,8 +79,10 @@ public static partial class DocumentReader {
                 Kind = Kind,
                 Extensions = Extensions.ToArray(),
                 IsBuiltIn = false,
-                SupportsPath = ReadPath != null,
-                SupportsStream = ReadStream != null,
+                SupportsPath = ReadPath != null || ReadDocumentPath != null,
+                SupportsStream = ReadStream != null || ReadDocumentStream != null,
+                SupportsDocumentPath = ReadDocumentPath != null,
+                SupportsDocumentStream = ReadDocumentStream != null,
                 SchemaId = ReaderCapabilitySchema.Id,
                 SchemaVersion = ReaderCapabilitySchema.Version,
                 DefaultMaxInputBytes = DefaultMaxInputBytes,

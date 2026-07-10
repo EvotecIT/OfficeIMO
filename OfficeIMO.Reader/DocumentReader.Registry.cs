@@ -57,6 +57,8 @@ public static partial class DocumentReader {
             IsBuiltIn = capability.IsBuiltIn,
             SupportsPath = capability.SupportsPath,
             SupportsStream = capability.SupportsStream,
+            SupportsDocumentPath = capability.SupportsDocumentPath,
+            SupportsDocumentStream = capability.SupportsDocumentStream,
             SchemaId = capability.SchemaId,
             SchemaVersion = capability.SchemaVersion,
             DefaultMaxInputBytes = capability.DefaultMaxInputBytes,

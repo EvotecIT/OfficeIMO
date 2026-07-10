@@ -32,6 +32,17 @@ public static class DocumentReaderPdfRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderPdfExtensions.ReadPdfDocument(
+                pdfPath: path,
+                readerOptions: readerOptions,
+                pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderPdfExtensions.ReadPdfDocument(
+                pdfStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
         }, replaceExisting);
     }

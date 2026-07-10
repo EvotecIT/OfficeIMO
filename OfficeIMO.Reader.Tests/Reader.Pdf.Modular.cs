@@ -2155,6 +2155,18 @@ public sealed class ReaderPdfModularTests {
                 c.Kind == ReaderInputKind.Pdf &&
                 string.Equals(c.Location.Path, "registry.pdf", StringComparison.OrdinalIgnoreCase) &&
                 (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
+
+            stream.Position = 0;
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "registry.pdf");
+            Assert.Contains("officeimo.pdf.logical-document", result.CapabilitiesUsed);
+            Assert.Equal(2, result.Pages.Count);
+            Assert.NotEmpty(result.Blocks);
+
+            ReaderHandlerCapability capability = Assert.Single(
+                DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true),
+                item => item.Id == DocumentReaderPdfRegistrationExtensions.HandlerId);
+            Assert.True(capability.SupportsDocumentPath);
+            Assert.True(capability.SupportsDocumentStream);
         } finally {
             DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
         }

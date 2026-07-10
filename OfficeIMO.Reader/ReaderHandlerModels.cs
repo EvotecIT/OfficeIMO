@@ -46,6 +46,20 @@ public sealed class ReaderHandlerRegistration {
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; set; }
 
     /// <summary>
+    /// Optional path-based rich document reader delegate. When present,
+    /// <see cref="DocumentReader.ReadDocument(string, ReaderOptions?, CancellationToken)"/>
+    /// dispatches directly to this delegate instead of rebuilding a generic result from chunks.
+    /// </summary>
+    public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; set; }
+
+    /// <summary>
+    /// Optional stream-based rich document reader delegate. The delegate must not close the caller-owned stream.
+    /// When present, <see cref="DocumentReader.ReadDocument(Stream, string?, ReaderOptions?, CancellationToken)"/>
+    /// dispatches directly to this delegate instead of rebuilding a generic result from chunks.
+    /// </summary>
+    public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; set; }
+
+    /// <summary>
     /// Optional advertised default max input bytes for this handler.
     /// Null means "no handler-specific default advertised".
     /// </summary>
@@ -107,6 +121,16 @@ public sealed class ReaderHandlerCapability {
     public bool SupportsStream { get; set; }
 
     /// <summary>
+    /// True when the handler supplies a native path-based <see cref="OfficeDocumentReadResult"/> projection.
+    /// </summary>
+    public bool SupportsDocumentPath { get; set; }
+
+    /// <summary>
+    /// True when the handler supplies a native stream-based <see cref="OfficeDocumentReadResult"/> projection.
+    /// </summary>
+    public bool SupportsDocumentStream { get; set; }
+
+    /// <summary>
     /// Capability schema identifier for host integration contracts.
     /// </summary>
     public string SchemaId { get; set; } = ReaderCapabilitySchema.Id;
@@ -145,7 +169,7 @@ public static class ReaderCapabilitySchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 2;
 }
 
 /// <summary>

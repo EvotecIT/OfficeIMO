@@ -48,8 +48,11 @@ public static partial class DocumentReader {
         SourceInfo source,
         CancellationToken cancellationToken) {
         IEnumerable<ReaderChunk> raw;
-        if (TryResolveCustomHandlerByPath(path, out var customPathHandler) && customPathHandler.ReadPath != null) {
-            raw = customPathHandler.ReadPath(path, opt, cancellationToken);
+        if (TryResolveCustomHandlerByPath(path, out var customPathHandler) &&
+            (customPathHandler.ReadPath != null || customPathHandler.ReadDocumentPath != null)) {
+            raw = customPathHandler.ReadPath != null
+                ? customPathHandler.ReadPath(path, opt, cancellationToken)
+                : GetDocumentResultChunks(customPathHandler.ReadDocumentPath!(path, opt, cancellationToken), customPathHandler.Id);
         } else {
             var kind = DetectKind(path);
             raw = kind switch {

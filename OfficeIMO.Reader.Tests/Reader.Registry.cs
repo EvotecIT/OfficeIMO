@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderRegistryNonParallelCollection;
 
 [Collection("ReaderRegistryNonParallel")]
-public sealed class ReaderRegistryTests {
+public sealed partial class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_GetCapabilities_IncludesBuiltInHandlers() {
         try {
@@ -77,6 +77,8 @@ public sealed class ReaderRegistryTests {
             (c.Text?.Contains("officeimo.reader.capability", StringComparison.Ordinal) ?? false));
         Assert.Contains(chunks, c =>
             (c.Text?.Contains("$.handlers[0].id", StringComparison.Ordinal) ?? false));
+        Assert.Contains("\"supportsDocumentPath\":", jsonA, StringComparison.Ordinal);
+        Assert.Contains("\"supportsDocumentStream\":", jsonA, StringComparison.Ordinal);
     }
 
     [Fact]

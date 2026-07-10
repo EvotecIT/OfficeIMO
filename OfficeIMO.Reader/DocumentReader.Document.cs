@@ -23,7 +23,15 @@ public static partial class DocumentReader {
 
         ReaderOptions opt = NormalizeOptions(options);
         ReaderInputKind kind = DetectKind(path);
-        bool customPathReaderOwnsExtension = TryResolveCustomHandlerByPath(path, out CustomReaderHandler customPathHandler) && customPathHandler.ReadPath != null;
+        bool hasCustomPathHandler = TryResolveCustomHandlerByPath(path, out CustomReaderHandler customPathHandler);
+        if (hasCustomPathHandler && customPathHandler.ReadDocumentPath != null) {
+            EnforceFileSize(path, opt.MaxInputBytes);
+            return ValidateDocumentResult(
+                customPathHandler.ReadDocumentPath(path, opt, cancellationToken),
+                customPathHandler.Id);
+        }
+
+        bool customPathReaderOwnsExtension = hasCustomPathHandler && customPathHandler.ReadPath != null;
         ReaderChunk[] chunks = Read(path, opt, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = customPathReaderOwnsExtension
             ? Array.Empty<OfficeDocumentAsset>()
@@ -46,19 +54,49 @@ public static partial class DocumentReader {
         ReaderOptions opt = NormalizeOptions(options);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         ReaderInputKind kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName);
-        bool customStreamReaderOwnsExtension = TryResolveCustomHandlerBySourceName(logicalSourceName, out CustomReaderHandler customStreamHandler) && customStreamHandler.ReadStream != null;
+        bool hasCustomStreamHandler = TryResolveCustomHandlerBySourceName(logicalSourceName, out CustomReaderHandler customStreamHandler);
         if (stream.CanSeek) {
             ReaderInputLimits.EnforceSeekableStreamRemainingSize(stream, opt.MaxInputBytes);
+        }
+
+        if (hasCustomStreamHandler && customStreamHandler.ReadDocumentStream != null) {
+            Stream handlerStream = ReaderInputLimits.EnsureSeekableReadStream(
+                stream,
+                opt.MaxInputBytes,
+                cancellationToken,
+                out bool ownsHandlerStream);
+            try {
+                return ValidateDocumentResult(
+                    customStreamHandler.ReadDocumentStream(handlerStream, logicalSourceName, opt, cancellationToken),
+                    customStreamHandler.Id);
+            } finally {
+                if (ownsHandlerStream) {
+                    handlerStream.Dispose();
+                }
+            }
         }
 
         using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
         ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
         snapshot.Position = 0;
+        bool customStreamReaderOwnsExtension = hasCustomStreamHandler && customStreamHandler.ReadStream != null;
         IReadOnlyList<OfficeDocumentAsset> assets = customStreamReaderOwnsExtension
             ? Array.Empty<OfficeDocumentAsset>()
             : ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);
         ReaderInputKind fallbackKind = customStreamReaderOwnsExtension ? customStreamHandler.Kind : kind;
         return BuildChunkDocumentResult(chunks, logicalSourceName, fallbackKind, BuildStreamDocumentSource(snapshot, logicalSourceName, chunks), assets);
+    }
+
+    private static IReadOnlyList<ReaderChunk> GetDocumentResultChunks(OfficeDocumentReadResult? result, string handlerId) {
+        return ValidateDocumentResult(result, handlerId).Chunks ?? Array.Empty<ReaderChunk>();
+    }
+
+    private static OfficeDocumentReadResult ValidateDocumentResult(OfficeDocumentReadResult? result, string handlerId) {
+        if (result == null) {
+            throw new InvalidOperationException($"Reader handler '{handlerId}' returned a null document result.");
+        }
+
+        return result;
     }
 
     /// <summary>
