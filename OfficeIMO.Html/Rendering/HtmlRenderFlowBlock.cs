@@ -183,7 +183,18 @@ internal sealed class HtmlInlineRun {
         PaintOffsetY = paintOffsetY;
     }
 
+    internal HtmlInlineRun(HtmlRenderFlowBlock atomicBlock, HtmlRenderBoxStyle style, string? linkUri, string source, double paintOffsetX = 0D, double paintOffsetY = 0D) {
+        AtomicBlock = atomicBlock;
+        Text = string.Empty;
+        Style = style;
+        LinkUri = linkUri;
+        Source = source;
+        PaintOffsetX = paintOffsetX;
+        PaintOffsetY = paintOffsetY;
+    }
+
     internal string Text { get; }
+    internal HtmlRenderFlowBlock? AtomicBlock { get; }
     internal HtmlRenderBoxStyle Style { get; }
     internal string? LinkUri { get; }
     internal string Source { get; }

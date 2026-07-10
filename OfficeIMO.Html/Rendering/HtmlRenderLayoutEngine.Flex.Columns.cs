@@ -22,9 +22,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             item.HasExplicitCrossSize = item.Style.ExplicitWidth.HasValue;
             item.CrossBasis = ResolveColumnFlexCrossBasis(item, contentWidth);
             string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
-            double initialCrossSize = !wrapping && alignment == "stretch" ? contentWidth : item.CrossBasis;
+            double initialCrossSize = !wrapping && alignment == "stretch" && !HasColumnFlexCrossAutoMargin(item.Style) ? contentWidth : item.CrossBasis;
             ApplyColumnFlexCrossSize(item, initialCrossSize);
-            item.Block = LayoutElement(item.Element, Math.Max(1D, initialCrossSize), item.Style, style, depth + 1);
+            item.Block = LayoutFlexItem(item, Math.Max(1D, initialCrossSize), style, depth + 1);
         }
 
         bool hasDefiniteHeight = style.ExplicitHeight.HasValue;
@@ -49,13 +49,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double crossGap = lines.Count > 1 ? style.ColumnGap : 0D;
         ResolveFlexLineOffsets(lines, style, contentWidth, crossGap, source);
         foreach (FlexLine line in lines) {
-            ResolveFlexMainOffsets(line.Items, style, contentHeight, mainGap, style.FlexDirection == "column-reverse", source);
+            ResolveFlexMainOffsets(line.Items, style, contentHeight, mainGap, style.FlexDirection == "column-reverse", vertical: true, source: source);
             foreach (FlexItem item in line.Items) {
                 string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
-                double targetCrossSize = alignment == "stretch" && !item.HasExplicitCrossSize ? line.CrossSize : item.CrossBasis;
+                double targetCrossSize = alignment == "stretch" && !item.HasExplicitCrossSize && !HasColumnFlexCrossAutoMargin(item.Style) ? line.CrossSize : item.CrossBasis;
                 ApplyColumnFlexCrossSize(item, targetCrossSize);
                 ApplyColumnFlexMainSize(item);
-                item.Block = LayoutElement(item.Element, Math.Max(1D, line.CrossSize), item.Style, style, depth + 1);
+                item.Block = LayoutFlexItem(item, Math.Max(1D, line.CrossSize), style, depth + 1);
                 item.CrossOffset = ResolveColumnFlexCrossOffset(item, style, line.CrossSize);
             }
         }
@@ -95,13 +95,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth) {
         HtmlRenderBoxStyle style = item.Style;
         if (style.ExplicitWidth.HasValue) return ResolveColumnFlexOuterWidth(style, contentWidth);
-        string tag = item.Element.TagName.ToLowerInvariant();
+        string tag = item.TagName;
         if (tag == "table") return contentWidth;
         double boxBasis;
         if (tag == "img") {
             boxBasis = 300D + style.HorizontalInsets;
         } else {
-            string content = CollapseFlexText(item.Element.TextContent);
+            string content = CollapseFlexText(item.TextContent);
             double measured = content.Length == 0 ? 1D : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
             boxBasis = measured + style.HorizontalInsets;
         }
@@ -120,7 +120,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return boxBasis + item.Style.MarginTop + item.Style.MarginBottom;
         }
 
-        ReportUnsupportedFlexValue(item.Element, "flex-basis=" + basis);
+        ReportUnsupportedFlexValue(item, "flex-basis=" + basis);
         return item.Block!.Height;
     }
 
@@ -147,13 +147,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string alignment = ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems);
         double outerWidth = ResolveColumnFlexOuterWidth(item.Style, lineCrossSize);
         double remaining = Math.Max(0D, lineCrossSize - outerWidth);
+        if (item.Style.MarginLeftAuto || item.Style.MarginRightAuto) {
+            if (item.Style.MarginLeftAuto && item.Style.MarginRightAuto) return remaining / 2D;
+            return item.Style.MarginLeftAuto ? remaining : 0D;
+        }
         bool reverse = containerStyle.FlexWrap == "wrap-reverse";
         if (alignment == "flex-end") return reverse ? 0D : remaining;
         if (alignment == "end") return remaining;
         if (alignment == "center") return remaining / 2D;
         if (alignment == "stretch" || alignment == "flex-start") return reverse ? remaining : 0D;
         if (alignment == "start") return 0D;
-        ReportUnsupportedFlexValue(item.Element, "align-self=" + alignment);
+        ReportUnsupportedFlexValue(item, "align-self=" + alignment);
         return 0D;
     }
 
@@ -161,4 +165,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double available = Math.Max(1D, availableCrossSize - style.MarginLeft - style.MarginRight);
         return style.MarginLeft + ResolveBoxWidth(available, style) + style.MarginRight;
     }
+
+    private static bool HasColumnFlexCrossAutoMargin(HtmlRenderBoxStyle style) => style.MarginLeftAuto || style.MarginRightAuto;
 }

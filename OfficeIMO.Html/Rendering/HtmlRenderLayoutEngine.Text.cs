@@ -59,18 +59,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.Display == "none") return;
-        if (style.Display == "inline-flex") {
-            AddUnsupported(HtmlRenderDiagnosticCodes.FlexLayoutPending, "Inline flex layout is not active yet; content uses inline flow.", element);
-        } else if (style.Display == "inline-grid") {
+        if (style.Display == "inline-grid") {
             AddUnsupported(HtmlRenderDiagnosticCodes.GridLayoutPending, "Inline grid layout is not active yet; content uses inline flow.", element);
         }
-        ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double elementPaintOffsetX, out double elementPaintOffsetY);
-        double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
-        double paintOffsetY = inheritedPaintOffsetY + elementPaintOffsetY;
         string? link = inheritedLink;
         if (tag == "a") {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
         }
+
+        if (style.Display == "inline-flex") {
+            AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
+            return;
+        }
+
+        ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double elementPaintOffsetX, out double elementPaintOffsetY);
+        double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
+        double paintOffsetY = inheritedPaintOffsetY + elementPaintOffsetY;
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
 
@@ -94,6 +98,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var line = new InlineLine();
         bool previousWasCollapsibleSpace = false;
         foreach (HtmlInlineRun run in runs) {
+            if (run.AtomicBlock != null) {
+                previousWasCollapsibleSpace = false;
+                double atomicWidth = Math.Min(width, run.AtomicBlock.Width);
+                if (line.Segments.Count > 0 && line.Width + atomicWidth > width) {
+                    TrimTrailingWhitespace(line);
+                    lines.Add(line);
+                    line = new InlineLine();
+                }
+
+                line.Add(new InlineSegment(string.Empty, atomicWidth, run));
+                continue;
+            }
+
             foreach (string token in Tokenize(run.Text, paragraphStyle.PreserveWhitespace)) {
                 if (token == "\u2028" || paragraphStyle.PreserveWhitespace && (token == "\n" || token == "\r\n")) {
                     lines.Add(line);
@@ -139,7 +156,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double offsetX = ResolveLineOffset(paragraphStyle.Alignment, width, current.Width);
             double x = offsetX;
             foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
-                if (segment.Text.Length > 0 && segment.Width > 0D) {
+                if (segment.Run.AtomicBlock != null) {
+                    HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
+                    double atomicY = y + Math.Max(0D, lineHeight - atomic.Height);
+                    foreach (HtmlRenderVisual visual in atomic.Visuals) {
+                        HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
+                        if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
+                            translated = translated.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                        }
+                        visuals.Add(translated);
+                    }
+                    if (segment.Run.LinkUri != null) {
+                        OfficeShape linkArea = OfficeShape.Rectangle(Math.Max(0.01D, segment.Width), Math.Max(0.01D, atomic.Height));
+                        linkArea.FillColor = null;
+                        linkArea.StrokeWidth = 0D;
+                        visuals.Add(new HtmlRenderShape(linkArea, x, atomicY, visuals.Count, segment.Run.LinkUri, segment.Run.Source));
+                    }
+                } else if (segment.Text.Length > 0 && segment.Width > 0D) {
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
                     double frameWidth = Math.Min(Math.Max(0.01D, width - x), segment.Width + frameTolerance);
                     HtmlRenderVisual visual = new HtmlRenderText(
@@ -172,7 +205,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
         var merged = new List<InlineSegment>(segments.Count);
         foreach (InlineSegment segment in segments) {
-            if (merged.Count > 0 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
+            if (segment.Run.AtomicBlock == null && merged.Count > 0 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
                 InlineSegment previous = merged[merged.Count - 1];
                 merged[merged.Count - 1] = new InlineSegment(previous.Text + segment.Text, previous.Width + segment.Width, previous.Run);
             } else {
@@ -325,7 +358,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal double ResolveLineHeight(double fallback) {
             double height = fallback;
-            for (int i = 0; i < Segments.Count; i++) height = Math.Max(height, Segments[i].Run.Style.LineHeight);
+            for (int i = 0; i < Segments.Count; i++) {
+                height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
+            }
             return Math.Max(0.01D, height);
         }
     }

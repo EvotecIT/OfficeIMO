@@ -215,11 +215,7 @@ internal sealed class HtmlRenderStyleResolver {
 
     private void ApplyBoxValues(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
         string margin = computed.GetValue("margin");
-        style.HasAutoMargin = HtmlRenderCssValues.SplitWhitespace(margin).Any(value => string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase))
-            || string.Equals(computed.GetValue("margin-top"), "auto", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(computed.GetValue("margin-right"), "auto", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(computed.GetValue("margin-bottom"), "auto", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(computed.GetValue("margin-left"), "auto", StringComparison.OrdinalIgnoreCase);
+        ApplyAutoMargins(computed, margin, style);
         if (margin.Length > 0) HtmlRenderCssValues.ApplyBoxShorthand(margin, reference, fontSize, _options.DefaultFontSize, ref style.MarginTop, ref style.MarginRight, ref style.MarginBottom, ref style.MarginLeft);
         ApplyLength(computed.GetValue("margin-top"), reference, fontSize, ref style.MarginTop);
         ApplyLength(computed.GetValue("margin-right"), reference, fontSize, ref style.MarginRight);
@@ -244,6 +240,26 @@ internal sealed class HtmlRenderStyleResolver {
 
         string borderColor = computed.GetValue("border-color");
         if (HtmlRenderCssValues.TryColor(borderColor.Length > 0 ? borderColor : border, out OfficeColor parsedBorderColor)) style.BorderColor = parsedBorderColor;
+    }
+
+    private static void ApplyAutoMargins(HtmlComputedStyle computed, string shorthand, HtmlRenderBoxStyle style) {
+        IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(shorthand);
+        string top = values.Count > 0 ? values[0] : string.Empty;
+        string right = values.Count > 1 ? values[1] : top;
+        string bottom = values.Count > 2 ? values[2] : top;
+        string left = values.Count > 3 ? values[3] : right;
+        style.MarginTopAuto = string.Equals(top, "auto", StringComparison.OrdinalIgnoreCase);
+        style.MarginRightAuto = string.Equals(right, "auto", StringComparison.OrdinalIgnoreCase);
+        style.MarginBottomAuto = string.Equals(bottom, "auto", StringComparison.OrdinalIgnoreCase);
+        style.MarginLeftAuto = string.Equals(left, "auto", StringComparison.OrdinalIgnoreCase);
+        OverrideAutoMargin(computed.GetValue("margin-top"), ref style.MarginTopAuto);
+        OverrideAutoMargin(computed.GetValue("margin-right"), ref style.MarginRightAuto);
+        OverrideAutoMargin(computed.GetValue("margin-bottom"), ref style.MarginBottomAuto);
+        OverrideAutoMargin(computed.GetValue("margin-left"), ref style.MarginLeftAuto);
+    }
+
+    private static void OverrideAutoMargin(string value, ref bool target) {
+        if (!string.IsNullOrWhiteSpace(value)) target = string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
     }
 
     private void ApplyDimensions(IElement element, HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style, bool includeAttributes) {

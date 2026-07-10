@@ -24,7 +24,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal double ColumnGap;
     internal string UnsupportedRowGap = string.Empty;
     internal string UnsupportedColumnGap = string.Empty;
-    internal bool HasAutoMargin;
+    internal bool MarginTopAuto;
+    internal bool MarginRightAuto;
+    internal bool MarginBottomAuto;
+    internal bool MarginLeftAuto;
     internal double MarginTop;
     internal double MarginRight;
     internal double MarginBottom;

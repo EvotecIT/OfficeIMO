@@ -517,26 +517,97 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFlexFallbacks_RemainExplicitForContentsDirectTextAutoMarginsAndInlineFlex() {
+    public void HtmlFlexItems_IncludeAnonymousTextGeneratedContentDisplayContentsAndLinks() {
         const string html = """
-            <div class="contents" style="display:flex"><span style="display:contents">Contents</span></div>
-            <div class="text" style="display:flex">Direct text</div>
-            <div class="margin" style="display:flex"><span style="margin-left:auto">Auto</span></div>
-            <span class="inline" style="display:inline-flex"><span>Inline</span></span>
+            <style>
+              #flex::before { content:'Before'; order:-1; width:60px; height:20px; background:#00ff00 }
+              #flex::after { content:'After' }
+            </style>
+            <div id="flex" style="display:flex;width:400px;gap:10px">
+              Direct
+              <span style="display:contents"><span id="middle" style="width:80px;height:20px;background:#ff0000">Middle</span></span>
+            </div>
+            <a href="https://example.com/path" style="display:flex">LinkedDirect</a>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 420D);
+        IReadOnlyList<HtmlRenderText> texts = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToList();
+        HtmlRenderText before = Assert.Single(texts, text => text.Text == "Before");
+        HtmlRenderText direct = Assert.Single(texts, text => text.Text == "Direct");
+        HtmlRenderText middle = Assert.Single(texts, text => text.Text == "Middle");
+        HtmlRenderText after = Assert.Single(texts, text => text.Text == "After");
+        HtmlRenderText linked = Assert.Single(texts, text => text.Text == "LinkedDirect");
+
+        Assert.True(before.X < direct.X);
+        Assert.True(direct.X < middle.X);
+        Assert.True(middle.X < after.X);
+        Assert.Equal(60D, FindFlexShape(rendered, "div#flex::before").Width, 3);
+        Assert.Equal("https://example.com/path", linked.LinkUri);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlFlexAutoMargins_AbsorbMainAndCrossAxisFreeSpace() {
+        HtmlRenderDocument row = RenderFlex("""
+            <div style="display:flex;width:300px">
+              <div id="row-auto-a" style="margin-left:auto;width:50px;height:20px;background:#ff0000"></div>
+              <div id="row-auto-b" style="width:50px;height:20px;background:#0000ff"></div>
+            </div>
+            """, 320D);
+        HtmlRenderDocument rowReverse = RenderFlex("""
+            <div style="display:flex;flex-direction:row-reverse;width:300px">
+              <div id="row-reverse-auto-a" style="margin-right:auto;width:50px;height:20px;background:#ff0000"></div>
+              <div id="row-reverse-auto-b" style="width:50px;height:20px;background:#0000ff"></div>
+            </div>
+            """, 320D);
+        HtmlRenderDocument rowCross = RenderFlex("""
+            <div style="display:flex;width:100px;height:100px">
+              <div id="row-cross-auto" style="margin-top:auto;width:20px;height:20px;background:#00ff00"></div>
+            </div>
+            """, 120D);
+        HtmlRenderDocument column = RenderFlex("""
+            <div style="display:flex;flex-direction:column;width:100px;height:300px">
+              <div id="column-auto-a" style="margin-top:auto;height:50px;background:#ff0000"></div>
+              <div id="column-auto-b" style="height:50px;background:#0000ff"></div>
+            </div>
+            """, 120D);
+        HtmlRenderDocument columnCross = RenderFlex("""
+            <div style="display:flex;flex-direction:column;width:100px;height:40px;align-items:flex-start">
+              <div id="column-cross-auto" style="margin-left:auto;width:20px;height:40px;background:#ffff00"></div>
+            </div>
+            """, 120D);
+
+        Assert.Equal(200D, FindFlexShape(row, "div#row-auto-a").X, 3);
+        Assert.Equal(250D, FindFlexShape(row, "div#row-auto-b").X, 3);
+        Assert.Equal(50D, FindFlexShape(rowReverse, "div#row-reverse-auto-a").X, 3);
+        Assert.Equal(0D, FindFlexShape(rowReverse, "div#row-reverse-auto-b").X, 3);
+        Assert.Equal(80D, FindFlexShape(rowCross, "div#row-cross-auto").Y, 3);
+        Assert.Equal(200D, FindFlexShape(column, "div#column-auto-a").Y, 3);
+        Assert.Equal(250D, FindFlexShape(column, "div#column-auto-b").Y, 3);
+        Assert.Equal(80D, FindFlexShape(columnCross, "div#column-cross-auto").X, 3);
+    }
+
+    [Fact]
+    public void HtmlInlineFlex_ParticipatesAsAnAtomicInlineBox() {
+        const string html = """
+            <p style="margin:0">Before <a href="https://example.com/inline"><span id="inline" style="display:inline-flex;width:80px;height:20px;gap:10px">
+              <span id="inline-a" style="width:20px;height:20px;background:#ff0000"></span>
+              <span id="inline-b" style="width:20px;height:20px;background:#0000ff"></span>
+            </span></a> After</p>
             """;
 
         HtmlRenderDocument rendered = RenderFlex(html, 240D);
-        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics.Diagnostics
-            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending)
-            .ToList();
+        HtmlRenderShape a = FindFlexShape(rendered, "span#inline-a");
+        HtmlRenderShape b = FindFlexShape(rendered, "span#inline-b");
+        HtmlRenderText before = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Before", StringComparison.Ordinal));
+        HtmlRenderText after = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("After", StringComparison.Ordinal));
 
-        Assert.Equal(4, diagnostics.Count);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.contents");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.text");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.margin");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "span.inline");
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Direct", StringComparison.Ordinal));
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Auto");
+        Assert.True(a.X > before.X);
+        Assert.Equal(a.X + 30D, b.X, 3);
+        Assert.True(after.X > b.X);
+        Assert.Equal(a.Y, b.Y, 3);
+        Assert.Contains(rendered.Pages[0].Visuals, visual => visual.Source == "span#inline" && visual.LinkUri == "https://example.com/inline");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
