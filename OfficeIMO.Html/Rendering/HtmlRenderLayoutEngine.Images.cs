@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style) {
+    private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
         string? source = element.GetAttribute("src");
         TryResolveImageSource(source, sourceDescription, out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo);
@@ -23,9 +23,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double imageX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
-        string? link = element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
+        string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
-            : null;
+            : null);
         string? alternativeText = element.GetAttribute("alt");
         ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
             style,

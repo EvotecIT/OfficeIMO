@@ -231,7 +231,9 @@ public sealed partial class HtmlRenderingTests {
             yield return visual;
             IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
                 ? clipGroup.Visuals
-                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+                : visual is HtmlRenderPathClipGroup pathClipGroup
+                    ? pathClipGroup.Visuals
+                    : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateRenderVisuals(children)) yield return child;
         }

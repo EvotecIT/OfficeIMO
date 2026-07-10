@@ -244,7 +244,8 @@ internal sealed class HtmlInlineRun {
         string source,
         double paintOffsetX = 0D,
         double paintOffsetY = 0D,
-        IElement? ownerElement = null) {
+        IElement? ownerElement = null,
+        bool isReplacedImage = false) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
         Style = style;
@@ -253,6 +254,7 @@ internal sealed class HtmlInlineRun {
         PaintOffsetX = paintOffsetX;
         PaintOffsetY = paintOffsetY;
         OwnerElement = ownerElement;
+        IsReplacedImage = isReplacedImage;
     }
 
     internal HtmlInlineRun(
@@ -283,6 +285,7 @@ internal sealed class HtmlInlineRun {
     internal double PaintOffsetY { get; }
     internal IElement? OwnerElement { get; }
     internal IElement? PositionedMarkerElement { get; }
+    internal bool IsReplacedImage { get; }
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
 }

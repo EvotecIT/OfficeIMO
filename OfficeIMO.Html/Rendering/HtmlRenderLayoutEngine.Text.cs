@@ -89,15 +89,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (style.Display == "inline-block") {
+        if (tag != "img" && style.Display == "inline-block") {
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (style.Display == "inline-flex") {
+        if (tag != "img" && style.Display == "inline-flex") {
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
-        if (style.Display == "inline-grid") {
+        if (tag != "img" && style.Display == "inline-grid") {
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
@@ -111,9 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
 
         if (tag == "img") {
-            string alternativeText = element.GetAttribute("alt") ?? string.Empty;
-            if (alternativeText.Length > 0) runs.Add(new HtmlInlineRun(alternativeText, style, link, HtmlRenderStyleResolver.DescribeSource(element), paintOffsetX, paintOffsetY, element));
-            AddUnsupported(HtmlRenderDiagnosticCodes.InlineImageFallback, "An inline image was represented by its alternative text; block image layout is supported separately.", element);
+            AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, runs);
             return;
         }
 
@@ -140,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
-                double atomicWidth = Math.Min(width, run.AtomicBlock.Width);
+                double atomicWidth = run.AtomicBlock.Width;
                 if (line.Segments.Count > 0 && line.Width + atomicWidth > width) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
@@ -360,7 +358,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int i = 0; i < Segments.Count; i++) {
                 height = Math.Max(height, Segments[i].Run.AtomicBlock?.Height ?? Segments[i].Run.Style.LineHeight);
             }
-            return Math.Max(0.01D, height);
+            if (!HasReplacedImage) return Math.Max(0.01D, height);
+
+            double ascent = 0D;
+            double descent = 0D;
+            for (int i = 0; i < Segments.Count; i++) {
+                HtmlInlineRun run = Segments[i].Run;
+                if (run.AtomicBlock != null) {
+                    ascent = Math.Max(ascent, run.AtomicBlock.Height);
+                } else {
+                    ascent = Math.Max(ascent, ResolveTextAscent(run.Style));
+                    descent = Math.Max(descent, Math.Max(0D, run.Style.LineHeight - ResolveTextAscent(run.Style)));
+                }
+            }
+            return Math.Max(0.01D, ascent + descent);
+        }
+
+        internal bool HasReplacedImage => Segments.Any(segment => segment.Run.IsReplacedImage);
+
+        internal double ResolveBaseline(double fallback) {
+            if (!HasReplacedImage) return ResolveLineHeight(fallback);
+            double ascent = 0D;
+            for (int i = 0; i < Segments.Count; i++) {
+                HtmlInlineRun run = Segments[i].Run;
+                ascent = Math.Max(ascent, run.AtomicBlock?.Height ?? ResolveTextAscent(run.Style));
+            }
+            return ascent;
         }
     }
 
@@ -374,5 +397,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string Text { get; }
         internal double Width { get; }
         internal HtmlInlineRun Run { get; }
+    }
+
+    private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
+        double leading = Math.Max(0D, style.LineHeight - style.Font.Size);
+        return Math.Min(style.LineHeight, leading / 2D + style.Font.Size * 0.8D);
     }
 }

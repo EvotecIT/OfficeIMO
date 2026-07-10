@@ -103,7 +103,6 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText firstLine = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().OrderBy(text => text.Y).First();
         Assert.Equal(0D, floating.X, 3);
         Assert.True(firstLine.X >= floating.X + floating.Width - 0.001D);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.InlineImageFallback);
     }
 
     [Fact]
@@ -123,7 +122,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, image.Width, 3);
         Assert.Equal(20D, image.Height, 3);
         Assert.True(firstLine.X >= image.X + image.Width - 0.001D);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.InlineImageFallback);
     }
 
     [Fact]

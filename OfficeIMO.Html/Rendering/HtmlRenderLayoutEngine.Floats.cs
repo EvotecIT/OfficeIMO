@@ -91,14 +91,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
-                double atomicWidth = Math.Min(width, run.AtomicBlock.Width);
+                double atomicWidth = run.AtomicBlock.Width;
                 if (line.Segments.Count == 0 && atomicWidth > line.AvailableWidth + 0.0001D) {
                     MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, atomicWidth);
                 }
                 if (line.Segments.Count > 0 && line.Width + atomicWidth > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                 }
-                line.Add(new InlineSegment(string.Empty, Math.Min(atomicWidth, line.AvailableWidth), run));
+                line.Add(new InlineSegment(string.Empty, atomicWidth, run));
                 continue;
             }
 
@@ -234,6 +234,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double flowY = 0D;
         foreach (InlineLine current in lines) {
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
+            double baseline = current.ResolveBaseline(paragraphStyle.LineHeight);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
             double lineX = current.HasExplicitPlacement ? current.X : 0D;
@@ -246,7 +247,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
-                    double atomicY = lineY + Math.Max(0D, lineHeight - atomic.Height);
+                    double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomic.Height);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
                     foreach (HtmlRenderVisual visual in atomic.Visuals) {
                         HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
@@ -266,19 +267,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         AddInlineOwnedVisual(visuals, ownedVisuals, linkVisual, segment.Run.OwnerElement, formattingContainer);
                     }
                 } else if (segment.Text.Length > 0 && segment.Width > 0D) {
-                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, segment.Width, lineHeight, inlineBounds);
+                    double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
+                    double textY = current.HasReplacedImage
+                        ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
+                        : lineY;
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, segment.Width, textLineHeight, inlineBounds);
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
                     double frameWidth = Math.Min(Math.Max(0.01D, lineRight - x), segment.Width + frameTolerance);
                     HtmlRenderVisual visual = new HtmlRenderText(
                         segment.Text,
                         x,
-                        lineY,
+                        textY,
                         Math.Max(0.01D, frameWidth),
-                        Math.Max(0.01D, lineHeight),
+                        Math.Max(0.01D, textLineHeight),
                         segment.Run.Style.Font,
                         segment.Run.Style.Color,
                         OfficeTextAlignment.Left,
-                        lineHeight,
+                        textLineHeight,
                         visuals.Count,
                         segment.Run.LinkUri,
                         segment.Run.Source,

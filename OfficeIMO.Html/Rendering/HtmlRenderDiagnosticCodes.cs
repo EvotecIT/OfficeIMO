@@ -54,8 +54,6 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GeneratedContentUnsupported = "HtmlRenderGeneratedContentUnsupported";
     /// <summary>A CSS counter declaration was ignored because it could not be represented.</summary>
     public const string GeneratedCounterUnsupported = "HtmlRenderGeneratedCounterUnsupported";
-    /// <summary>An inline image used its alternative-text fallback.</summary>
-    public const string InlineImageFallback = "HtmlRenderInlineImageFallback";
     /// <summary>A replaced-element sizing or object-placement value used a deterministic fallback.</summary>
     public const string ReplacedElementValueUnsupported = "HtmlRenderReplacedElementValueUnsupported";
     /// <summary>A positioned inset could not be resolved by the current length model.</summary>
@@ -155,7 +153,6 @@ public static class HtmlRenderDiagnosticCodes {
         GridLayoutPending,
         GridTrackLimitExceeded,
         GridValueUnsupported,
-        InlineImageFallback,
         ReplacedElementValueUnsupported,
         OverflowScrollSnapshot,
         OverflowValueUnsupported,

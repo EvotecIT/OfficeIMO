@@ -133,6 +133,56 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_NormalInlineBoxesWrapAndParticipateInBaselineAcrossBackends() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
+        string html = $"<p id='inline-line' style='width:60px;margin:0;font-size:10px;line-height:12px'>Before<a href='https://example.com/image'><img id='inline-image' src='data:image/png;base64,{data}' alt='inline image' style='width:18px;height:14px;margin:0 2px;border:1px solid #0000ff;border-radius:4px;object-fit:cover'></a>After</p>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 65D,
+            ViewportHeight = 45D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<HtmlRenderVisual> flattened = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToList();
+        HtmlRenderPathClipGroup clip = Assert.Single(flattened.OfType<HtmlRenderPathClipGroup>(), group => group.Source == "img#inline-image:content-clip");
+        HtmlRenderImage image = Assert.Single(flattened.OfType<HtmlRenderImage>(), visual => visual.Source == "img#inline-image");
+        HtmlRenderText before = Assert.Single(flattened.OfType<HtmlRenderText>(), text => text.Text == "Before");
+        HtmlRenderText after = Assert.Single(flattened.OfType<HtmlRenderText>(), text => text.Text == "After");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(65D / HtmlRenderOptions.CssPixelsPerInch, 45D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(18D, clip.Width, 3);
+        Assert.Equal(14D, clip.Height, 3);
+        Assert.Equal(18D, image.Width, 3);
+        Assert.Equal(14D, image.Height, 3);
+        Assert.True(image.SourceCrop.Left > 0D);
+        Assert.True(image.SourceCrop.Right > 0D);
+        Assert.Equal("https://example.com/image", image.LinkUri);
+        Assert.True(image.X > before.X);
+        Assert.True(image.Y < before.Y);
+        Assert.True(after.Y > before.Y);
+        Assert.True(raster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("<image", svg, StringComparison.Ordinal);
+        Assert.Contains("Before", pdfText, StringComparison.Ordinal);
+        Assert.Contains("After", pdfText, StringComparison.Ordinal);
+        Assert.Single(PdfCore.PdfLogicalDocument.Load(pdf).GetLinksByUri("https://example.com/image"));
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), extracted => extracted.IsImageFile && extracted.MimeType == "image/png");
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
     public void HtmlImages_InvalidValuesAndRoundedClipUseSharedPathAndCatalogedDiagnostics() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='invalid-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;object-fit:stretch;object-position:sideways;aspect-ratio:0/1'>"
