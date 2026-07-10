@@ -4,12 +4,15 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Examples.PowerPoint {
     /// <summary>
-    /// Generates one inspectable proof bundle: editable PPTX, PNG/SVG previews, PDF, and JSON preflight.
+    /// Generates one inspectable proof bundle: editable PPTX, PNG/SVG previews, PDF, HTML, and structured reports.
     /// </summary>
     public static class EndToEndPowerPointProof {
         public static void Example_EndToEndPowerPointProof(string folderPath, bool openPowerPoint) {
@@ -18,7 +21,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             Directory.CreateDirectory(outputFolder);
             string presentationPath = Path.Combine(outputFolder, "Executive Delivery Review.pptx");
             string pdfPath = Path.Combine(outputFolder, "Executive Delivery Review.pdf");
+            string handoutPath = Path.Combine(outputFolder, "Executive Delivery Review.handout.pdf");
+            string htmlPath = Path.Combine(outputFolder, "Executive Delivery Review.html");
             string reportPath = Path.Combine(outputFolder, "Executive Delivery Review.preflight.json");
+            string accessibilityPath = Path.Combine(outputFolder, "Executive Delivery Review.accessibility.json");
+            string visualProofPath = Path.Combine(outputFolder, "Executive Delivery Review.visual-proof.json");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -115,6 +122,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             };
             PowerPointDeckPreflightReport report = presentation.Preflight(preflightOptions);
             report.SaveJson(reportPath);
+            PowerPointAccessibilityReport accessibility = presentation.InspectAccessibility();
+            accessibility.EnsureCompliant().SaveJson(accessibilityPath);
             presentation.Save();
 
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
@@ -122,7 +131,27 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Slides[slideIndex].SaveAsPng(Path.Combine(outputFolder, stem + ".png"));
                 presentation.Slides[slideIndex].SaveAsSvg(Path.Combine(outputFolder, stem + ".svg"));
             }
-            presentation.SaveAsPdf(pdfPath);
+            var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
+            presentation.SaveAsPdf(pdfPath, pdfOptions);
+            presentation.SaveAsPdf(handoutPath, new PowerPointPdfSaveOptions {
+                PageLayout = PowerPointPdfPageLayout.Handouts,
+                HandoutSlidesPerPage = 3,
+                IncludeSpeakerNotes = true
+            });
+            var htmlOptions = new PowerPointHtmlSaveOptions {
+                Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
+            };
+            presentation.SaveAsHtml(htmlPath, htmlOptions);
+
+            PowerPointVisualProofReport visualProof = presentation.CreateVisualProofReport()
+                .RecordArtifact(Path.GetFileName(presentationPath),
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    File.ReadAllBytes(presentationPath))
+                .RecordArtifact(Path.GetFileName(pdfPath), "application/pdf", File.ReadAllBytes(pdfPath),
+                    pdfOptions.Warnings.Count)
+                .RecordArtifact(Path.GetFileName(htmlPath), "text/html", File.ReadAllBytes(htmlPath),
+                    htmlOptions.SnapshotDiagnostics.Count);
+            visualProof.SaveJson(visualProofPath);
 
             List<ValidationErrorInfo> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
@@ -134,8 +163,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("    Deck: " + presentationPath);
             Console.WriteLine("    Slides: " + presentation.Slides.Count);
             Console.WriteLine("    Preflight: " + report.ErrorCount + " errors, " + report.WarningCount + " warnings");
+            Console.WriteLine("    Accessibility: " + accessibility.ErrorCount + " errors, " +
+                              accessibility.WarningCount + " warnings");
             Console.WriteLine("    Rhythm: " + rhythm.Score + "/100, " + rhythm.Findings.Count + " finding(s)");
-            Console.WriteLine("    Proof: PNG, SVG, PDF, JSON, and Open XML validation");
+            Console.WriteLine("    Proof: PPTX, PNG, SVG, PDF, handout PDF, HTML, JSON, and Open XML validation");
             Helpers.Open(presentationPath, openPowerPoint);
         }
     }

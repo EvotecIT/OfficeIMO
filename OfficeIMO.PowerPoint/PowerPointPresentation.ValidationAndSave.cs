@@ -67,6 +67,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Save() {
             ThrowIfDisposed();
+            ApplySignatureMutationPolicy();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
@@ -83,6 +84,8 @@ namespace OfficeIMO.PowerPoint {
             ThrowIfDisposed();
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            ApplySignatureMutationPolicy();
 
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();

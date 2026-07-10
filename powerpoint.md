@@ -20,13 +20,13 @@ OfficeIMO should not try to become a free Aspose clone feature by feature. It sh
 
 ## Proof Run
 
-The current dedicated PowerPoint lane passes on the reviewed baseline:
+The current dedicated PowerPoint lane passes on the implemented P0-P6 branch:
 
 ```powershell
 dotnet test OfficeIMO.PowerPoint.Tests\OfficeIMO.PowerPoint.Tests.csproj -c Release -f net8.0 --nologo
 ```
 
-Result: `584/584` tests passed, with no failures or skips.
+Result: `621/621` tests passed, with no failures or skips.
 
 The reviewed area contains:
 
@@ -121,13 +121,13 @@ Those are closer to OfficeIMO's intended generated-document workflow than obscur
 | Tables | Strong on one slide | Typed binding, formatting, merges, sizing, style metadata | No overflow-to-next-slide workflow; no reusable appendix/table-story component |
 | Charts | Strong shared authoring | All 16 `OfficeChartKind` families, categorical combo charts, secondary value axes, embedded data, accessibility summaries, and shared snapshots | Bubble, stock, surface, 3D, modern, and unusual extension families remain demand-driven gaps |
 | Media and visual assets | Partial | Pictures, crop, SVG input, audio/video, poster frames, logo images | No semantic asset pipeline, annotation/callout workflow, icon strategy, or content-aware crop/focal point |
-| SmartArt and diagrams | Partial | Basic Process authoring and existing-node text editing; Mermaid adapter | One authored SmartArt layout; no general diagram model integrated with deck planning |
-| Transitions and motion | Partial | 19 transition values including Morph fallback; media timing | Shape/text/chart animation timelines are preserve-only |
-| Review workflows | Preserve-only | Comments detected and preserved | No typed comment authoring, reply/resolution, or review report |
-| Accessibility | Basic | Shape `AltText`, names, drawing order, language defaults in some generated XML | No title/decorative flags, reading-order API, language propagation policy, contrast checks, or accessibility report |
-| PowerPoint fidelity and repair safety | Good foundation | Validator, package tests, feature report, template fixtures | No broad golden-deck corpus or application-level compatibility matrix |
-| Image export | Partial | Dependency-free PNG/SVG, charts, tables, groups, effects, diagnostics | Raster input decode is currently limited; unsupported shapes and typography can diverge from PowerPoint |
-| PDF export | Partial | First-party vector/text/table/chart path with warnings | Supported subset only; no notes/handout layouts; shape, background, text, and font fidelity gaps remain |
+| SmartArt and diagrams | Partial | Editable Basic Process, Basic Hierarchy, and Basic Cycle semantic workflows; Mermaid adapter | Broader SmartArt gallery semantics and a general deck-plan diagram model remain demand-driven |
+| Transitions and motion | Partial | 19 transition values, Morph fallback, media timing, and typed timing-tree inspection | Shape/text/chart animation authoring remains preserve-only |
+| Review workflows | Read-only typed | Classic and modern comments, replies, authors, status, anchors, and JSON review inspection | Mutation, reply, and resolution APIs remain intentionally deferred |
+| Accessibility | Strong generated-deck contract | Title/description/decorative/language/reading-order APIs, link/table/color/contrast checks, strict/default policies, CI JSON | Imported decks can still need remediation; more nuanced non-solid contrast and RTL policy can deepen later |
+| PowerPoint fidelity and repair safety | Proven shared path | Validator, feature report, generated and PowerPoint-authored fixtures, artifact hashes, compatibility lanes, opt-in Desktop reference | Keynote/Google Slides still require external authenticated evidence; LibreOffice depends on local availability |
+| Image export | Shared visual owner | Dependency-free PNG/SVG with inherited content, typography, images, groups, custom geometry, effects, tables, charts, and diagnostics | Unsupported extension content remains reported rather than silently approximated |
+| PDF export | Shared and layout-aware | Faithful shared-snapshot pages, legacy selective path, warnings, notes pages, and 1/2/3/4/6/9-up handouts | Application-specific print nuances and unsupported extension content remain bounded gaps |
 | HTML round trip | Bounded | Semantic/positioned export and bounded semantic import | Import is not arbitrary HTML-to-slide design and may reconstruct chart placeholder data |
 | Markup-to-deck | Promising | Designer-backed semantic slides, native charts, images, Mermaid, transitions, notes | No measured overflow pagination, proof report, or reusable template/brand input |
 | Performance and scale evidence | Missing | No PowerPoint benchmark project found | No repeatable generation/load/save/render baselines for large decks |
@@ -328,11 +328,11 @@ Exit criteria:
 
 ### P4: Accessibility and validation
 
-- [ ] Add an accessibility inspection model and strict policy profile.
-- [ ] Support shape title, description, decorative state, reading order, language, and meaningful link labels where OOXML allows it.
-- [ ] Add contrast, missing-title, missing-alt-text, table-header, and color-only-meaning checks.
-- [ ] Make designer components emit accessible defaults.
-- [ ] Add fixture-based reports for generated and imported decks.
+- [x] Add an accessibility inspection model and strict policy profile.
+- [x] Support shape title, description, decorative state, reading order, language, and meaningful link labels where OOXML allows it.
+- [x] Add contrast, missing-title, missing-alt-text, table-header, and color-only-meaning checks.
+- [x] Make designer components emit accessible defaults.
+- [x] Add fixture-based reports for generated and imported decks.
 
 Exit criteria:
 
@@ -341,12 +341,12 @@ Exit criteria:
 
 ### P5: Fixed-layout fidelity and proof corpus
 
-- [ ] Define one shared slide visual snapshot used by dependency-free image, positioned HTML, and PDF paths.
-- [ ] Close inherited master/layout, typography, image-codec, group-transform, custom-geometry, effect, table, and chart fidelity gaps in that shared owner.
-- [ ] Build a sanitized golden-deck corpus covering generated decks and PowerPoint-authored real-world decks.
-- [ ] Record structural, extraction, accessibility, conversion-warning, and perceptual visual evidence per deck.
-- [ ] Add opt-in PowerPoint desktop reference rendering without making Office automation the default engine.
-- [ ] Validate LibreOffice and, where practical, Keynote/Google Slides import for the supported generated profile.
+- [x] Define one shared slide visual snapshot used by dependency-free image, positioned HTML, and PDF paths.
+- [x] Close inherited master/layout, typography, image-codec, group-transform, custom-geometry, effect, table, and chart fidelity gaps in that shared owner.
+- [x] Build a sanitized golden-deck corpus covering generated decks and PowerPoint-authored real-world decks.
+- [x] Record structural, extraction, accessibility, conversion-warning, artifact-hash, and perceptual visual evidence per deck.
+- [x] Add opt-in PowerPoint desktop reference rendering without making Office automation the default engine.
+- [x] Add explicit LibreOffice, Keynote, and Google Slides compatibility lanes. LibreOffice runs when installed; Keynote and Google Slides accept externally recorded evidence because those environments are not available in ordinary Windows CI.
 
 Exit criteria:
 
@@ -355,12 +355,12 @@ Exit criteria:
 
 ### P6: Advanced presentation workflows
 
-- [ ] Add typed comment/review read models before comment mutation.
-- [ ] Add animation inspection before shape/text/chart animation authoring.
-- [ ] Deepen SmartArt through a small set of real semantic diagram workflows.
-- [ ] Add rich notes/handout export after ordinary slide fidelity is stable.
-- [ ] Add signature mutation policy before any signing API.
-- [ ] Revisit OLE, macros, custom shows, and additional file formats only when concrete consumers justify them.
+- [x] Add typed classic/modern comment and reply read models before comment mutation.
+- [x] Add animation/timing-tree inspection before shape/text/chart animation authoring.
+- [x] Deepen SmartArt through Basic Process, Basic Hierarchy, and Basic Cycle semantic workflows.
+- [x] Add speaker-notes pages and 1/2/3/4/6/9-up handout PDF export after ordinary slide fidelity is stable.
+- [x] Add a safe block/remove/preserve signature mutation policy before any signing API.
+- [x] Keep OLE, macros, custom shows, and additional file-format authoring behind concrete consumer demand; existing feature inspection and package preservation remain the contract.
 
 ## PR-Sized First Implementation Train
 

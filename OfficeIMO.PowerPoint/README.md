@@ -263,6 +263,45 @@ foreach (PowerPointFeatureFinding feature in report.PreservedFeatures) {
 }
 ```
 
+### Accessibility, review, and animation inspection
+
+Generated and imported decks can be inspected with structured policies before they enter CI or a publishing workflow:
+
+```csharp
+using var presentation = PowerPointPresentation.Open("incoming.pptx");
+
+PowerPointAccessibilityReport accessibility = presentation.InspectAccessibility(
+    PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict));
+accessibility.SaveJson("incoming.accessibility.json");
+accessibility.EnsureCompliant();
+
+PowerPointReviewReport review = presentation.InspectReviewComments();
+PowerPointAnimationReport animations = presentation.InspectAnimations();
+Console.WriteLine($"{review.Comments.Count} comments, {animations.Nodes.Count} timing nodes");
+```
+
+Shapes expose `Title`, `Description`, `Decorative`, `ReadingOrder`, `MoveToReadingOrder(...)`, and language helpers. Designer slides apply accessible defaults. The default report treats missing alternative text, table headers, slide titles, and resolvable contrast failures as errors; the strict profile also requires explicit document and shape metadata.
+
+Saving a signed package is blocked by default because mutation invalidates existing signatures. Choose `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup` explicitly only after inspecting `InspectSignatures()`.
+
+### SmartArt and visual proof
+
+Use the bounded semantic SmartArt workflows when native editable diagram data is more useful than flattened artwork:
+
+```csharp
+PowerPointSmartArt process = slide.AddSmartArt(
+    PowerPointSmartArtType.BasicProcess,
+    new[] { "Discover", "Design", "Deliver" });
+
+PowerPointVisualProofReport proof = presentation.CreateVisualProofReport();
+proof.RecordArtifact("deck.pptx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    File.ReadAllBytes("deck.pptx"));
+proof.SaveJson("deck.visual-proof.json");
+```
+
+The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering is available through `PowerPointDesktopReferenceRenderer.TryRender(...)` only when the caller explicitly enables it; normal generation and export never use Office automation.
+
 ### Designer composition
 
 Use the designer APIs when a deck needs readable business composition without hand-positioning every object:
