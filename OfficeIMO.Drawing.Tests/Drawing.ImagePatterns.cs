@@ -20,6 +20,56 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeImagePatternLayout_UsesIndependentRepeatStepsAcrossTransforms() {
+        var layout = new OfficeImagePatternLayout(
+            new OfficeImagePlacement(0D, 0D, 30D, 4D),
+            new OfficeImagePlacement(0D, 0D, 6D, 4D),
+            repeatX: true,
+            repeatY: false,
+            horizontalStep: 12D);
+
+        IReadOnlyList<OfficeImagePlacement> tiles = layout.GetTilePlacements(8);
+        OfficeImagePatternLayout translated = layout.Translate(5D, 3D);
+        OfficeImagePatternLayout scaled = layout.Scale(2D);
+
+        Assert.Equal(3L, layout.EstimatedTileCount);
+        Assert.Equal(new[] { 0D, 12D, 24D }, tiles.Select(tile => tile.X));
+        Assert.All(tiles, tile => Assert.Equal(6D, tile.Width));
+        Assert.Equal(12D, translated.HorizontalStep);
+        Assert.Equal(24D, scaled.HorizontalStep);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImagePatternLayout(
+            new OfficeImagePlacement(0D, 0D, 10D, 10D),
+            new OfficeImagePlacement(0D, 0D, 2D, 2D),
+            horizontalStep: 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeImagePatternLayout(
+            new OfficeImagePlacement(0D, 0D, 10D, 10D),
+            new OfficeImagePlacement(0D, 0D, 2D, 2D),
+            horizontalStep: 1D));
+    }
+
+    [Fact]
+    public void OfficeDrawingImagePattern_PreservesGapsInRasterAndSvg() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
+        var layout = new OfficeImagePatternLayout(
+            new OfficeImagePlacement(0D, 0D, 10D, 2D),
+            new OfficeImagePlacement(0D, 0D, 2D, 2D),
+            repeatX: true,
+            repeatY: false,
+            horizontalStep: 4D);
+        var drawing = new OfficeDrawing(10D, 2D).AddImagePattern(png, "image/png", layout, maximumTileCount: 8);
+
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(OfficeColor.Red, rendered.GetPixel(0, 0));
+        Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(2, 0));
+        Assert.Equal(OfficeColor.Red, rendered.GetPixel(4, 0));
+        Assert.Contains("<pattern", svg, StringComparison.Ordinal);
+        Assert.Contains("width=\"4\" height=\"2\"><image", svg, StringComparison.Ordinal);
+        Assert.Contains("width=\"2\" height=\"2\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingImagePattern_RendersClippedRasterAndCompactSvg() {
         var source = new OfficeRasterImage(2, 1);
         source.SetPixel(0, 0, OfficeColor.Red);

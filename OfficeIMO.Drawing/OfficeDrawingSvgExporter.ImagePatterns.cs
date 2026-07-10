@@ -14,8 +14,8 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeImagePlacement tile = layout.Tile;
         double patternX = layout.RepeatX ? tile.X : area.X;
         double patternY = layout.RepeatY ? tile.Y : area.Y;
-        double patternWidth = layout.RepeatX ? tile.Width : area.Width;
-        double patternHeight = layout.RepeatY ? tile.Height : area.Height;
+        double patternWidth = layout.RepeatX ? layout.HorizontalStep : area.Width;
+        double patternHeight = layout.RepeatY ? layout.VerticalStep : area.Height;
         string patternId = "officeimo-image-pattern-" + (++elementId).ToString(CultureInfo.InvariantCulture);
         sb.Append("<defs><pattern")
             .AppendAttribute("id", patternId)
