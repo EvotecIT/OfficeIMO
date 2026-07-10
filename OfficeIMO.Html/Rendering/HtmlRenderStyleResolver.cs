@@ -45,6 +45,7 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyBoxValues(computed, containingWidth, fontSize, style);
         ApplyDimensions(element, computed, containingWidth, fontSize, style);
         ApplyPaint(computed, style);
+        ApplyPositioning(computed, style);
         ApplyBreaks(computed, style);
         return style;
     }
@@ -398,6 +399,18 @@ internal sealed class HtmlRenderStyleResolver {
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
         style.PageName = ResolvePageName(computed.GetValue("page"));
     }
+
+    private static void ApplyPositioning(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        style.Position = NormalizeCssValue(computed.GetValue("position"), "static");
+        style.Top = NormalizeCssValue(computed.GetValue("top"), "auto");
+        style.Right = NormalizeCssValue(computed.GetValue("right"), "auto");
+        style.Bottom = NormalizeCssValue(computed.GetValue("bottom"), "auto");
+        style.Left = NormalizeCssValue(computed.GetValue("left"), "auto");
+        style.ZIndex = NormalizeCssValue(computed.GetValue("z-index"), "auto");
+    }
+
+    private static string NormalizeCssValue(string value, string fallback) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value.Trim().ToLowerInvariant();
 
     private static string? ResolvePageName(string value) {
         string normalized = value.Trim();

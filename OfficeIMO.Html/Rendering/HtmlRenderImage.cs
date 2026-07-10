@@ -19,8 +19,9 @@ public sealed class HtmlRenderImage : HtmlRenderVisual {
         string? alternativeText = null,
         string? linkUri = null,
         string? source = null,
-        OfficeImageSourceCrop sourceCrop = default)
-        : this(new HtmlRenderImageData(bytes), contentType, x, y, width, height, paintOrder, alternativeText, linkUri, source, sourceCrop) {
+        OfficeImageSourceCrop sourceCrop = default,
+        double? layoutY = null)
+        : this(new HtmlRenderImageData(bytes), contentType, x, y, width, height, paintOrder, alternativeText, linkUri, source, sourceCrop, layoutY) {
     }
 
     private HtmlRenderImage(
@@ -34,8 +35,9 @@ public sealed class HtmlRenderImage : HtmlRenderVisual {
         string? alternativeText,
         string? linkUri,
         string? source,
-        OfficeImageSourceCrop sourceCrop)
-        : base(HtmlRenderVisualKind.Image, x, y, width, height, paintOrder, linkUri, source) {
+        OfficeImageSourceCrop sourceCrop,
+        double? layoutY)
+        : base(HtmlRenderVisualKind.Image, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType;
         AlternativeText = alternativeText;
@@ -57,5 +59,8 @@ public sealed class HtmlRenderImage : HtmlRenderVisual {
     internal byte[] EncodedBytes => _data.EncodedBytes;
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderImage(_data, ContentType, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText, LinkUri, Source, SourceCrop);
+        new HtmlRenderImage(_data, ContentType, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText, LinkUri, Source, SourceCrop, LayoutY + offsetY);
+
+    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderImage(_data, ContentType, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText, LinkUri, Source, SourceCrop, LayoutY);
 }

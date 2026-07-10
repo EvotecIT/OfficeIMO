@@ -12,13 +12,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         foreach (INode node in nodes) {
-            CollectInlineRuns(node, width, parentStyle, null, depth, runs);
+            CollectInlineRuns(node, width, ResolveContainingBlockHeight(parentStyle), parentStyle, null, depth, 0D, 0D, runs);
         }
 
         return LayoutInlineRuns(runs, width, parentStyle);
     }
 
-    private void CollectInlineRuns(INode node, double width, HtmlRenderBoxStyle inheritedStyle, string? inheritedLink, int depth, ICollection<HtmlInlineRun> runs) {
+    private void CollectInlineRuns(
+        INode node,
+        double width,
+        double? containingHeight,
+        HtmlRenderBoxStyle inheritedStyle,
+        string? inheritedLink,
+        int depth,
+        double inheritedPaintOffsetX,
+        double inheritedPaintOffsetY,
+        ICollection<HtmlInlineRun> runs) {
         if (depth > _options.MaxLayoutDepth) {
             if (node is IElement limitedElement) EnsureDepth(depth, limitedElement);
             throw new InvalidOperationException("HTML inline layout exceeded the configured maximum depth.");
@@ -26,7 +35,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
-                runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle.TextTransform), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole));
+                runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle.TextTransform), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY));
             }
 
             return;
@@ -35,12 +44,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "br") {
-            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element)));
+            runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY));
             return;
         }
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.Display == "none") return;
+        ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double elementPaintOffsetX, out double elementPaintOffsetY);
+        double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
+        double paintOffsetY = inheritedPaintOffsetY + elementPaintOffsetY;
         string? link = inheritedLink;
         if (tag == "a") {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
@@ -48,13 +60,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (tag == "img") {
             string alternativeText = element.GetAttribute("alt") ?? string.Empty;
-            if (alternativeText.Length > 0) runs.Add(new HtmlInlineRun(alternativeText, style, link, HtmlRenderStyleResolver.DescribeSource(element)));
+            if (alternativeText.Length > 0) runs.Add(new HtmlInlineRun(alternativeText, style, link, HtmlRenderStyleResolver.DescribeSource(element), paintOffsetX, paintOffsetY));
             AddUnsupported(HtmlRenderDiagnosticCodes.InlineImageFallback, "An inline image was represented by its alternative text; block image layout is supported separately.", element);
             return;
         }
 
         foreach (INode child in element.ChildNodes) {
-            CollectInlineRuns(child, width, style, link, depth + 1, runs);
+            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, runs);
         }
     }
 
@@ -112,7 +124,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (segment.Text.Length > 0 && segment.Width > 0D) {
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
                     double frameWidth = Math.Min(Math.Max(0.01D, width - x), segment.Width + frameTolerance);
-                    visuals.Add(new HtmlRenderText(
+                    HtmlRenderVisual visual = new HtmlRenderText(
                         segment.Text,
                         x,
                         y,
@@ -125,7 +137,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         visuals.Count,
                         segment.Run.LinkUri,
                         segment.Run.Source,
-                        paragraphStyle.SemanticRole));
+                        paragraphStyle.SemanticRole);
+                    visuals.Add(visual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count));
                 }
 
                 x += segment.Width;

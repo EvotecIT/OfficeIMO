@@ -14,8 +14,9 @@ public sealed class HtmlRenderImagePattern : HtmlRenderVisual {
         OfficeImagePatternLayout layout,
         int maximumTileCount,
         int paintOrder,
-        string? source = null)
-        : this(new HtmlRenderImageData(bytes), contentType, layout, maximumTileCount, paintOrder, source) {
+        string? source = null,
+        double? layoutY = null)
+        : this(new HtmlRenderImageData(bytes), contentType, layout, maximumTileCount, paintOrder, source, layoutY) {
     }
 
     private HtmlRenderImagePattern(
@@ -24,7 +25,8 @@ public sealed class HtmlRenderImagePattern : HtmlRenderVisual {
         OfficeImagePatternLayout layout,
         int maximumTileCount,
         int paintOrder,
-        string? source)
+        string? source,
+        double? layoutY)
         : base(
             HtmlRenderVisualKind.ImagePattern,
             layout.Area.X,
@@ -33,7 +35,8 @@ public sealed class HtmlRenderImagePattern : HtmlRenderVisual {
             layout.Area.Height,
             paintOrder,
             linkUri: null,
-            source) {
+            source,
+            layoutY) {
         if (maximumTileCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTileCount));
         if (layout.EstimatedTileCount > maximumTileCount) throw new ArgumentException("Image pattern exceeds the configured tile-count limit.", nameof(layout));
         _data = data ?? throw new ArgumentNullException(nameof(data));
@@ -57,5 +60,8 @@ public sealed class HtmlRenderImagePattern : HtmlRenderVisual {
     internal byte[] EncodedBytes => _data.EncodedBytes;
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderImagePattern(_data, ContentType, Pattern.Translate(offsetX, offsetY), MaximumTileCount, paintOrder, Source);
+        new HtmlRenderImagePattern(_data, ContentType, Pattern.Translate(offsetX, offsetY), MaximumTileCount, paintOrder, Source, LayoutY + offsetY);
+
+    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderImagePattern(_data, ContentType, Pattern.Translate(offsetX, offsetY), MaximumTileCount, paintOrder, Source, LayoutY);
 }

@@ -4,9 +4,10 @@ namespace OfficeIMO.Html;
 /// Immutable positioned visual emitted by the shared HTML layout engine.
 /// </summary>
 public abstract class HtmlRenderVisual {
-    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source) {
+    internal HtmlRenderVisual(HtmlRenderVisualKind kind, double x, double y, double width, double height, int paintOrder, string? linkUri, string? source, double? layoutY = null) {
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
+        ValidateFinite(layoutY ?? y, nameof(layoutY));
         ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
         Kind = kind;
@@ -17,6 +18,7 @@ public abstract class HtmlRenderVisual {
         PaintOrder = paintOrder;
         LinkUri = linkUri;
         Source = source;
+        LayoutY = layoutY ?? y;
     }
 
     /// <summary>Visual operation kind.</summary>
@@ -43,7 +45,15 @@ public abstract class HtmlRenderVisual {
     /// <summary>Optional source element description used by diagnostics and inspection.</summary>
     public string? Source { get; }
 
+    /// <summary>
+    /// Gets the normal-flow top coordinate used internally for fragmentation.
+    /// Paint-only CSS positioning deliberately leaves this coordinate unchanged.
+    /// </summary>
+    internal double LayoutY { get; }
+
     internal abstract HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder);
+
+    internal abstract HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder);
 
     private static void ValidateFinite(double value, string parameterName) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {

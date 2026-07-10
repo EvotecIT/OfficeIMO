@@ -362,8 +362,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end) {
         var fragment = new List<HtmlRenderVisual>();
         foreach (HtmlRenderVisual visual in block.Visuals) {
-            double visualTop = visual.Y;
-            double visualBottom = visual.Y + visual.Height;
+            double visualTop = visual.LayoutY;
+            double visualBottom = visual.LayoutY + visual.Height;
             double intersectionTop = Math.Max(start, visualTop);
             double intersectionBottom = Math.Min(end, visualBottom);
             if (intersectionBottom <= intersectionTop + 0.0001D) continue;
@@ -379,7 +379,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeShape sliced = shape.Shape.Clone();
                 sliced.Height = intersectionBottom - intersectionTop;
                 if (sliced.Kind == OfficeShapeKind.RoundedRectangle) sliced.CornerRadius = Math.Min(sliced.CornerRadius, sliced.Height / 2D);
-                fragment.Add(new HtmlRenderShape(sliced, shape.X, intersectionTop - start, fragment.Count, shape.LinkUri, shape.Source));
+                double paintOffsetY = shape.Y - shape.LayoutY;
+                fragment.Add(new HtmlRenderShape(sliced, shape.X, intersectionTop - start + paintOffsetY, fragment.Count, shape.LinkUri, shape.Source, intersectionTop - start));
                 continue;
             }
 

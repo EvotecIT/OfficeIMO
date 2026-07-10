@@ -74,6 +74,21 @@ internal sealed class HtmlRenderFlowBlock {
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
     internal string? PageName { get; }
+
+    internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
+        new HtmlRenderFlowBlock(
+            Width,
+            Height,
+            Visuals.Select(visual => visual.TranslatePaint(offsetX, offsetY, visual.PaintOrder)),
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets,
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups.Select(group => group.TranslatePaint(offsetX, offsetY)),
+            trailingGroups: TrailingGroups.Select(group => group.TranslatePaint(offsetX, offsetY)),
+            pageName: PageName);
 }
 
 internal sealed class HtmlRenderContinuationGroup {
@@ -97,6 +112,13 @@ internal sealed class HtmlRenderContinuationGroup {
             EndsAt + offsetY,
             Height,
             Visuals.Select((visual, index) => visual.Translate(offsetX, 0D, index)));
+
+    internal HtmlRenderContinuationGroup TranslatePaint(double offsetX, double offsetY) =>
+        new HtmlRenderContinuationGroup(
+            StartsAfter,
+            EndsAt,
+            Height,
+            Visuals.Select(visual => visual.TranslatePaint(offsetX, offsetY, visual.PaintOrder)));
 }
 
 internal sealed class HtmlRenderTrailingGroup {
@@ -126,6 +148,14 @@ internal sealed class HtmlRenderTrailingGroup {
             Height + Math.Max(0D, resolvedSourceEnd - translatedSourceEnd),
             Visuals.Select((visual, index) => visual.Translate(offsetX, 0D, index)));
     }
+
+    internal HtmlRenderTrailingGroup TranslatePaint(double offsetX, double offsetY) =>
+        new HtmlRenderTrailingGroup(
+            StartsAt,
+            ContentEndsAt,
+            SourceEndsAt,
+            Height,
+            Visuals.Select(visual => visual.TranslatePaint(offsetX, offsetY, visual.PaintOrder)));
 }
 
 internal sealed class HtmlRenderLineBreakGroup {
@@ -144,17 +174,21 @@ internal sealed class HtmlRenderLineBreakGroup {
 }
 
 internal sealed class HtmlInlineRun {
-    internal HtmlInlineRun(string text, HtmlRenderBoxStyle style, string? linkUri, string source) {
+    internal HtmlInlineRun(string text, HtmlRenderBoxStyle style, string? linkUri, string source, double paintOffsetX = 0D, double paintOffsetY = 0D) {
         Text = text;
         Style = style;
         LinkUri = linkUri;
         Source = source;
+        PaintOffsetX = paintOffsetX;
+        PaintOffsetY = paintOffsetY;
     }
 
     internal string Text { get; }
     internal HtmlRenderBoxStyle Style { get; }
     internal string? LinkUri { get; }
     internal string Source { get; }
+    internal double PaintOffsetX { get; }
+    internal double PaintOffsetY { get; }
 }
 
 internal sealed class HtmlInlineLayout {

@@ -32,6 +32,7 @@ public static partial class HtmlComputedStyleEngine {
         "background-position",
         "background-repeat",
         "background-size",
+        "bottom",
         "border",
         "border-bottom",
         "border-bottom-color",
@@ -66,6 +67,7 @@ public static partial class HtmlComputedStyleEngine {
         "font-style",
         "font-weight",
         "height",
+        "left",
         "line-height",
         "list-style",
         "list-style-type",
@@ -93,15 +95,19 @@ public static partial class HtmlComputedStyleEngine {
         "padding-left",
         "padding-right",
         "padding-top",
+        "position",
+        "right",
         "text-align",
         "text-decoration-line",
         "text-transform",
+        "top",
         "vertical-align",
         "visibility",
         "white-space",
         "width",
         "widows",
-        "word-break"
+        "word-break",
+        "z-index"
     };
 
     /// <summary>

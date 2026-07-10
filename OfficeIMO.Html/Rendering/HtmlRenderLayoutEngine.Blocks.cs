@@ -36,9 +36,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, element);
         string tag = element.TagName.ToLowerInvariant();
-        if (tag == "img") return LayoutImage(element, containingWidth, style);
-        if (tag == "table") return LayoutTable(element, containingWidth, style, depth);
-        if (tag == "hr") return LayoutHorizontalRule(element, containingWidth, style);
+        double? containingHeight = ResolveContainingBlockHeight(parentStyle);
+        if (tag == "img") return ApplyElementPositioning(LayoutImage(element, containingWidth, style), style, containingWidth, containingHeight, element);
+        if (tag == "table") return ApplyElementPositioning(LayoutTable(element, containingWidth, style, depth), style, containingWidth, containingHeight, element);
+        if (tag == "hr") return ApplyElementPositioning(LayoutHorizontalRule(element, containingWidth, style), style, containingWidth, containingHeight, element);
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -121,7 +122,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             pageName = children[0].PageName;
         }
 
-        return new HtmlRenderFlowBlock(
+        var block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
             visuals,
@@ -137,6 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedContinuationGroups,
             adjustedTrailingGroups,
             pageName: pageName);
+        return ApplyElementPositioning(block, style, containingWidth, containingHeight, element);
     }
 
     private void FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {

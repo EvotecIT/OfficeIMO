@@ -19,8 +19,9 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         int paintOrder,
         string? linkUri = null,
         string? source = null,
-        string? semanticRole = null)
-        : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source) {
+        string? semanticRole = null,
+        double? layoutY = null)
+        : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         Font = font;
         Color = color;
@@ -48,5 +49,8 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     public string? SemanticRole { get; }
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY);
+
+    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY);
 }

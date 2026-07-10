@@ -40,6 +40,12 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GridLayoutPending = "HtmlRenderGridLayoutPending";
     /// <summary>An inline image used its alternative-text fallback.</summary>
     public const string InlineImageFallback = "HtmlRenderInlineImageFallback";
+    /// <summary>A relative-position inset could not be resolved by the current length model.</summary>
+    public const string PositionInsetUnsupported = "HtmlRenderPositionInsetUnsupported";
+    /// <summary>A positioned layout mode used the documented normal-flow fallback.</summary>
+    public const string PositioningModeUnsupported = "HtmlRenderPositioningModeUnsupported";
+    /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
+    public const string PositionZIndexPending = "HtmlRenderPositionZIndexPending";
     /// <summary>A complex page selector could not be applied per page.</summary>
     public const string PageSelectorPending = "HtmlRenderPageSelectorPending";
     /// <summary>A pseudo-page geometry declaration requires page-by-page content reflow.</summary>
@@ -102,6 +108,9 @@ public static class HtmlRenderDiagnosticCodes {
         ForcedFragment,
         GridLayoutPending,
         InlineImageFallback,
+        PositionInsetUnsupported,
+        PositioningModeUnsupported,
+        PositionZIndexPending,
         PageMarginContentUnsupported,
         PageMarginPositionUnsupported,
         PagePseudoGeometryPending,
