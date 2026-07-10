@@ -6,6 +6,18 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentOdsTests {
+    [Fact]
+    public void MergeRejectsMaterializationBeyondTheConfiguredBoundWithoutMutation() {
+        using OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => sheet.Merge(0, 0, 1_000, 1_000));
+
+        Assert.Contains("configured limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(OdsCellValueKind.Empty, sheet.GetValue(0, 0).Kind);
+        Assert.Equal(1, sheet.RowCount);
+    }
+
     [Theory]
     [InlineData("libreoffice-calc-basic.ods")]
     [InlineData("microsoft-excel-basic.ods")]

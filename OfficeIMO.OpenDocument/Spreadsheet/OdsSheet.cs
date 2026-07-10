@@ -2,6 +2,9 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>An XML-backed ODS worksheet with sparse repeat-run editing.</summary>
 public sealed class OdsSheet {
+    /// <summary>Default maximum number of cells that one merge operation may materialize.</summary>
+    public const long DefaultMaximumMergeCells = 100_000;
+
     private readonly OdsDocument _document;
 
     internal OdsSheet(OdsDocument document, XElement element) { _document = document; Element = element; }
@@ -155,8 +158,27 @@ public sealed class OdsSheet {
 
     /// <summary>Merges a rectangular cell range and marks non-anchor positions as covered cells.</summary>
     public OdsCell Merge(long row, long column, long rowSpan, long columnSpan) {
+        return Merge(row, column, rowSpan, columnSpan, DefaultMaximumMergeCells);
+    }
+
+    /// <summary>Merges a rectangular cell range under an explicit materialization bound.</summary>
+    public OdsCell Merge(long row, long column, long rowSpan, long columnSpan, long maximumMaterializedCells) {
+        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
+        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
         if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));
         if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
+        if (maximumMaterializedCells < 1) throw new ArgumentOutOfRangeException(nameof(maximumMaterializedCells));
+        long mergeCells;
+        try {
+            mergeCells = checked(rowSpan * columnSpan);
+            _ = checked(row + rowSpan - 1);
+            _ = checked(column + columnSpan - 1);
+        } catch (OverflowException) {
+            throw new ArgumentOutOfRangeException(nameof(rowSpan), "Merge dimensions exceed the supported coordinate range.");
+        }
+        if (mergeCells > maximumMaterializedCells) {
+            throw new InvalidOperationException($"Merge would materialize {mergeCells} cells, exceeding the configured limit of {maximumMaterializedCells}.");
+        }
         OdsCell anchor = Cell(row, column);
         anchor.SetSpans(rowSpan, columnSpan);
         for (long rowOffset = 0; rowOffset < rowSpan; rowOffset++) {

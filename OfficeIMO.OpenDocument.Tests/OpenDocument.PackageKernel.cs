@@ -106,6 +106,33 @@ public class OpenDocumentPackageKernelTests {
         Assert.Equal("1.3", (string?)ReadXml(archive.GetEntry("META-INF/manifest.xml")!).Root!.Attribute(manifest + "version"));
     }
 
+    [Fact]
+    public void SaveReportDescribesOnlyTheMostRecentSave() {
+        using OdtDocument document = OdtDocument.Create();
+        document.ToBytes();
+        document.Metadata.Title = "Changed";
+
+        document.ToBytes();
+        Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+
+        document.ToBytes();
+        Assert.Empty(document.LastSaveReport!.RewrittenEntries);
+        Assert.Empty(document.LastSaveReport.RemovedEntries);
+        Assert.Contains("meta.xml", document.LastSaveReport.CopiedEntries);
+    }
+
+    [Fact]
+    public void FailedDestinationWriteDoesNotAcceptDirtyState() {
+        using OdtDocument document = OdtDocument.Create();
+        document.ToBytes();
+        document.Metadata.Title = "Pending";
+
+        Assert.Throws<IOException>(() => document.Save(new ThrowingWriteStream()));
+        document.ToBytes();
+
+        Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+    }
+
     private static OdfDocument Create(OdfDocumentKind kind) {
         switch (kind) {
             case OdfDocumentKind.Text: return OdtDocument.Create();
@@ -147,4 +174,8 @@ public class OpenDocumentPackageKernelTests {
 
     private static uint ReadUInt32(byte[] bytes, int offset) =>
         (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
+
+    private sealed class ThrowingWriteStream : MemoryStream {
+        public override void Write(byte[] buffer, int offset, int count) => throw new IOException("Simulated destination failure.");
+    }
 }

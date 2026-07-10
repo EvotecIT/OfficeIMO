@@ -45,13 +45,14 @@ internal sealed class OdfPackage {
             throw new InvalidDataException($"OpenDocument package size {info.Length} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
         }
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return Open(stream, effective);
+        return OpenSeekable(stream, effective);
     }
 
     internal static OdfPackage Open(Stream stream, OdfOpenOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         OdfOpenOptions effective = (options ?? new OdfOpenOptions()).Normalize();
+        if (stream.CanSeek && stream.Position == 0) return OpenSeekable(stream, effective);
         byte[] bytes = ReadAllBytesBounded(stream, effective.MaxPackageBytes);
         return Open(bytes, effective);
     }
@@ -62,15 +63,23 @@ internal sealed class OdfPackage {
         if (packageBytes.LongLength > effective.MaxPackageBytes) {
             throw new InvalidDataException($"OpenDocument package size {packageBytes.LongLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
         }
-        OdfZipHeaderInspector.ValidateMimetypeEntry(packageBytes);
+        using var stream = new MemoryStream(packageBytes, writable: false);
+        return OpenSeekable(stream, effective);
+    }
+
+    private static OdfPackage OpenSeekable(Stream packageStream, OdfOpenOptions effective) {
+        long packageLength = packageStream.Length - packageStream.Position;
+        if (packageLength > effective.MaxPackageBytes) {
+            throw new InvalidDataException($"OpenDocument package size {packageLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
+        }
+        OdfZipHeaderInspector.ValidateMimetypeEntry(packageStream);
 
         var loaded = new List<OdfPackageEntry>();
         var exactNames = new HashSet<string>(StringComparer.Ordinal);
         var foldedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long totalUncompressed = 0;
 
-        using (var stream = new MemoryStream(packageBytes, writable: false))
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false)) {
+        using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true)) {
             if (archive.Entries.Count > effective.MaxEntries) {
                 throw new InvalidDataException($"OpenDocument package entry count {archive.Entries.Count} exceeds MaxEntries ({effective.MaxEntries}).");
             }
@@ -198,7 +207,8 @@ internal sealed class OdfPackage {
 
     internal byte[] Write(OdfSaveOptions? options = null) {
         OdfSaveOptions effective = options ?? new OdfSaveOptions();
-        bool hasChanges = _entryGraphChanged || _entries.Any(entry => entry.IsDirty);
+        OdfVersion outputVersion = ResolveOutputVersion(effective.CompatibilityProfile);
+        bool hasChanges = outputVersion != Version || _entryGraphChanged || _entries.Any(entry => entry.IsDirty);
         if (IsSigned && hasChanges) {
             if (effective.SignatureHandling == OdfSignatureHandling.RejectInvalidation) {
                 throw new InvalidOperationException("Saving this changed document would invalidate its signatures. Set SignatureHandling to RemoveInvalidated to continue.");
@@ -209,7 +219,6 @@ internal sealed class OdfPackage {
             _entryGraphChanged = true;
         }
 
-        OdfVersion outputVersion = ResolveOutputVersion(effective.CompatibilityProfile);
         if (outputVersion != Version) {
             UpdateXmlVersions(outputVersion);
             _entryGraphChanged = true;
@@ -243,6 +252,15 @@ internal sealed class OdfPackage {
             _entries.Where(entry => !entry.IsRemoved && entry.IsDirty).Select(entry => entry.Name).ToArray(),
             _entries.Where(entry => !entry.IsRemoved && !entry.IsDirty).Select(entry => entry.Name).ToArray(),
             _entries.Where(entry => entry.IsRemoved).Select(entry => entry.Name).ToArray());
+    }
+
+    internal void AcceptChanges() {
+        foreach (OdfPackageEntry entry in _entries.Where(entry => !entry.IsRemoved)) entry.AcceptChanges();
+        foreach (OdfPackageEntry removed in _entries.Where(entry => entry.IsRemoved).ToList()) {
+            _entries.Remove(removed);
+            _entriesByName.Remove(removed.Name);
+        }
+        _entryGraphChanged = false;
     }
 
     private void AddInitialEntry(string name, byte[] data, string? mediaType) {

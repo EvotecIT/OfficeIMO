@@ -33,8 +33,10 @@ public abstract partial class OdfDocument {
         ThrowIfDisposed();
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-        byte[] bytes = OdfXmlCodec.Save(ToFlatXml());
+        XDocument flat = ToFlatXml();
+        byte[] bytes = OdfXmlCodec.Save(flat);
         destination.Write(bytes, 0, bytes.Length);
+        LastSaveReport = CreateFlatXmlSaveReport();
     }
 
     /// <summary>Writes flat OpenDocument XML to a path.</summary>
@@ -46,8 +48,10 @@ public abstract partial class OdfDocument {
         Directory.CreateDirectory(directory);
         string temporary = Path.Combine(directory, "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
         try {
-            File.WriteAllBytes(temporary, OdfXmlCodec.Save(ToFlatXml()));
+            XDocument flat = ToFlatXml();
+            File.WriteAllBytes(temporary, OdfXmlCodec.Save(flat));
             ReplaceFile(temporary, fullPath);
+            LastSaveReport = CreateFlatXmlSaveReport();
         } finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
@@ -177,6 +181,39 @@ public abstract partial class OdfDocument {
     private static void AddClone(XElement target, XElement? source) { if (source != null) target.Add(new XElement(source)); }
     private static XNode CloneNode(XNode node) => node is XElement element ? new XElement(element) :
         node is XText text ? new XText(text.Value) : node is XComment comment ? new XComment(comment.Value) : new XText(node.ToString());
+
+    private OdfSaveReport CreateFlatXmlSaveReport() {
+        var represented = new HashSet<string>(StringComparer.Ordinal) {
+            "mimetype", "content.xml", "styles.xml", "meta.xml", "settings.xml", "META-INF/manifest.xml"
+        };
+        XDocument content = GetXml("content.xml");
+        foreach (XElement image in content.Descendants(OdfNamespaces.Draw + "image")) {
+            string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
+            if (!string.IsNullOrWhiteSpace(href) && !href!.Contains("://") && Package.ContainsEntry(href)) represented.Add(href);
+        }
+
+        var lossy = Package.Entries.Where(entry => !represented.Contains(entry.Name)).Select(entry => entry.Name).ToList();
+        AddUnprojectedPart(lossy, "content.xml", content.Root,
+            OdfNamespaces.Office + "scripts", OdfNamespaces.Office + "font-face-decls",
+            OdfNamespaces.Office + "automatic-styles", OdfNamespaces.Office + "body");
+        XDocument styles = GetXml("styles.xml");
+        AddUnprojectedPart(lossy, "styles.xml", styles.Root,
+            OdfNamespaces.Office + "font-face-decls", OdfNamespaces.Office + "styles",
+            OdfNamespaces.Office + "automatic-styles", OdfNamespaces.Office + "master-styles");
+        AddUnprojectedPart(lossy, "meta.xml", GetXml("meta.xml").Root, OdfNamespaces.Office + "meta");
+        AddUnprojectedPart(lossy, "settings.xml", GetXml("settings.xml").Root, OdfNamespaces.Office + "settings");
+
+        string[] rewritten = represented.Where(path => Package.ContainsEntry(path) && path != "mimetype" && path != "META-INF/manifest.xml")
+            .OrderBy(path => path, StringComparer.Ordinal).ToArray();
+        return new OdfSaveReport(rewritten, Array.Empty<string>(), Array.Empty<string>(),
+            lossy.Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray());
+    }
+
+    private static void AddUnprojectedPart(List<string> lossy, string partPath, XElement? root, params XName[] projectedChildren) {
+        if (root == null) return;
+        var projected = new HashSet<XName>(projectedChildren);
+        if (root.Elements().Any(element => !projected.Contains(element.Name))) lossy.Add(partPath);
+    }
 
     private static byte[] ReadFlatBytes(Stream stream, long maxBytes) {
         if (stream.CanSeek && stream.Length - stream.Position > maxBytes) throw new InvalidDataException("Flat OpenDocument stream exceeds MaxPackageBytes.");

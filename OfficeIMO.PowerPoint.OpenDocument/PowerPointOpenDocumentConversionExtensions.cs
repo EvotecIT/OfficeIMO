@@ -150,12 +150,13 @@ public static class PowerPointOpenDocumentConversionExtensions {
         target.SlideSize.SetSizePoints(source.PageWidth.ToPoints(), source.PageHeight.ToPoints());
 
         int textBoxes = 0, paragraphs = 0, textRuns = 0, pictures = 0, tables = 0, basicShapes = 0;
-        int notes = 0, transitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
+        int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
             targetSlide.Hidden = sourceSlide.Hidden;
             if (sourceSlide.BackgroundColor.HasValue) targetSlide.BackgroundColor = sourceSlide.BackgroundColor.Value.ToString().TrimStart('#');
             if (MapTransition(sourceSlide, targetSlide)) transitions++;
+            else if (!string.IsNullOrWhiteSpace(sourceSlide.TransitionStyle) || !string.IsNullOrWhiteSpace(sourceSlide.TransitionType)) unsupportedTransitions++;
 
             foreach (OdpShape shape in sourceSlide.Shapes) {
                 if (shape is OdpTextBox textBox) {
@@ -253,14 +254,15 @@ public static class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "speaker-notes", notes);
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common ODF transition styles are mapped to PowerPoint transition families.");
+        AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");
         AddUnsupported(report, "shape-transforms", transformedShapes, "Raw ODF transform expressions are not translated.");
         if (source.MasterPages.Count > 1 || source.Layouts.Count > 1) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
             source.MasterPages.Count + source.Layouts.Count, "Content is placed on PowerPoint's default master and layout.");
-        foreach (OdfFeatureFinding finding in source.InspectFeatures().Findings.Where(item => item.Support == OdfFeatureSupport.Preserved)) {
+        foreach (OdfFeatureFinding finding in source.InspectFeatures().Findings.Where(item => item.Name != "presentation-transitions")) {
             report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, finding.Count,
-                "The feature is preserved by the source ODP model but cannot be transferred to PPTX by this adapter.");
+                "The source ODP feature cannot be transferred to PPTX by this adapter.");
         }
         return new OdfConversionResult<PowerPointPresentation>(target, report);
     }

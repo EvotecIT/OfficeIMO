@@ -68,9 +68,9 @@ jobs:
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
   opendocument-schema:
-    name: 'OpenDocument OASIS 1.3/1.4 schema'
+    name: 'OpenDocument schema and LibreOffice'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -80,10 +80,10 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Install schema tools
+      - name: Install schema and OpenDocument interoperability tools
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libxml2-utils unzip
+          sudo apt-get install --yes --no-install-recommends libxml2-utils unzip libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress
 
       - name: Build OpenDocument schema probe
         run: |
@@ -97,6 +97,17 @@ jobs:
 
       - name: Validate pinned OASIS schemas
         run: bash Build/validate-opendocument-schema.sh "${{ runner.temp }}/officeimo-odf-artifacts" "${{ runner.temp }}/officeimo-odf-schema"
+
+      - name: Report LibreOffice test-oracle version
+        run: soffice --version
+
+      - name: Open and resave generated packages with LibreOffice
+        run: bash Build/validate-opendocument-libreoffice.sh "${{ runner.temp }}/officeimo-odf-artifacts" "${{ runner.temp }}/officeimo-odf-libreoffice"
+
+      - name: Reopen LibreOffice outputs and verify semantics
+        env:
+          OFFICEIMO_ODF_INTEROP_INPUT: ${{ runner.temp }}/officeimo-odf-libreoffice
+        run: dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --filter Category=OpenDocumentLibreOfficeArtifact
 
   test-windows:
     name: 'Windows'

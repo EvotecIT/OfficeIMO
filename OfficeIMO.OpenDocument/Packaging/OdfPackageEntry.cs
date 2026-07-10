@@ -16,7 +16,7 @@ internal sealed class OdfPackageEntry {
     internal string Name { get; }
     internal string? MediaType { get; set; }
     internal DateTimeOffset LastWriteTime { get; }
-    internal bool IsNew { get; }
+    internal bool IsNew { get; private set; }
     internal bool IsDirty { get; private set; }
     internal bool IsRemoved { get; private set; }
 
@@ -46,5 +46,12 @@ internal sealed class OdfPackageEntry {
     internal void Remove() {
         IsRemoved = true;
         IsDirty = true;
+    }
+
+    internal void AcceptChanges() {
+        if (IsRemoved) return;
+        if (IsDirty && _xml != null) _data = OdfXmlCodec.Save(_xml);
+        IsNew = false;
+        IsDirty = false;
     }
 }

@@ -17,12 +17,18 @@ public static class ExcelOpenDocumentConversionExtensions {
         target.Metadata.Title = snapshot.Title;
 
         int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, comments = 0, merges = 0;
-        int rows = 0, columns = 0, validations = 0, tables = 0, filters = 0, unsupportedStyles = 0;
+        int rows = 0, columns = 0, validations = 0, tables = 0, filters = 0, unsupportedStyles = 0, skippedStyles = 0;
+        long materializedCells = 0, skippedCells = 0, skippedRows = 0, skippedColumns = 0, skippedMerges = 0;
+        bool truncated = false;
         var dataStyles = new Dictionary<uint, string>();
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
             OdsSheet sheet = target.AddSheet(worksheet.Name);
             sheet.Hidden = worksheet.Hidden;
             foreach (ExcelColumnSnapshot column in worksheet.Columns) {
+                if (column.EndIndex > effective.MaximumColumns) {
+                    skippedColumns += Math.Max(0, column.EndIndex - Math.Max(effective.MaximumColumns + 1, column.StartIndex) + 1L);
+                    truncated = true;
+                }
                 int last = Math.Min(column.EndIndex, effective.MaximumColumns);
                 for (int index = Math.Max(1, column.StartIndex); index <= last; index++) {
                     OdsColumn converted = sheet.Column(index - 1L);
@@ -32,7 +38,7 @@ public static class ExcelOpenDocumentConversionExtensions {
                 }
             }
             foreach (ExcelRowSnapshot row in worksheet.Rows) {
-                if (row.Index < 1 || row.Index > effective.MaximumRows) continue;
+                if (row.Index < 1 || row.Index > effective.MaximumRows) { skippedRows++; truncated = true; continue; }
                 OdsRow converted = sheet.Row(row.Index - 1L);
                 converted.Hidden = row.Hidden;
                 if (row.Height.HasValue) converted.Height = OdfLength.Points(row.Height.Value);
@@ -40,7 +46,15 @@ public static class ExcelOpenDocumentConversionExtensions {
             }
 
             foreach (ExcelCellSnapshot cell in worksheet.Cells) {
-                if (cell.Row < 1 || cell.Column < 1 || cell.Row > effective.MaximumRows || cell.Column > effective.MaximumColumns) continue;
+                if (cell.Comment != null) comments++;
+                if (cell.ThreadedComment != null) comments++;
+                if (cell.Row < 1 || cell.Column < 1 || cell.Row > effective.MaximumRows || cell.Column > effective.MaximumColumns ||
+                    materializedCells >= effective.MaximumExpandedCells) {
+                    skippedCells++;
+                    truncated = true;
+                    continue;
+                }
+                materializedCells++;
                 OdsCell converted = sheet.Cell(cell.Row - 1L, cell.Column - 1L);
                 if (!string.IsNullOrWhiteSpace(cell.Formula)) {
                     converted.Formula = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(cell.Formula!);
@@ -55,17 +69,32 @@ public static class ExcelOpenDocumentConversionExtensions {
                 if (effective.IncludeBasicStyles && cell.Style != null) {
                     ApplyExcelStyle(target, converted, cell.Style, dataStyles, ref unsupportedStyles);
                     styles++;
+                } else if (cell.Style != null) {
+                    skippedStyles++;
                 }
-                if (cell.Comment != null) comments++;
-                if (cell.ThreadedComment != null) comments++;
                 cells++;
             }
 
             foreach (ExcelMergedRangeSnapshot merged in worksheet.MergedRanges) {
-                if (merged.StartRow < 1 || merged.StartColumn < 1 || merged.StartRow > effective.MaximumRows || merged.StartColumn > effective.MaximumColumns) continue;
-                long rowSpan = Math.Min(merged.EndRow, effective.MaximumRows) - merged.StartRow + 1L;
-                long columnSpan = Math.Min(merged.EndColumn, effective.MaximumColumns) - merged.StartColumn + 1L;
-                sheet.Merge(merged.StartRow - 1L, merged.StartColumn - 1L, rowSpan, columnSpan);
+                if (merged.StartRow < 1 || merged.StartColumn < 1 || merged.StartRow > effective.MaximumRows ||
+                    merged.StartColumn > effective.MaximumColumns || merged.EndRow > effective.MaximumRows ||
+                    merged.EndColumn > effective.MaximumColumns) {
+                    skippedMerges++;
+                    truncated = true;
+                    continue;
+                }
+                long rowSpan = merged.EndRow - merged.StartRow + 1L;
+                long columnSpan = merged.EndColumn - merged.StartColumn + 1L;
+                long mergeCells = checked(rowSpan * columnSpan);
+                long remaining = effective.MaximumExpandedCells - materializedCells;
+                long mergeLimit = Math.Min(OdsSheet.DefaultMaximumMergeCells, Math.Max(0, remaining));
+                if (mergeCells > mergeLimit) {
+                    skippedMerges++;
+                    truncated = true;
+                    continue;
+                }
+                sheet.Merge(merged.StartRow - 1L, merged.StartColumn - 1L, rowSpan, columnSpan, mergeLimit);
+                materializedCells += mergeCells;
                 merges++;
             }
             validations += worksheet.Validations.Count;
@@ -99,6 +128,8 @@ public static class ExcelOpenDocumentConversionExtensions {
             "Formula text and cached values are retained; local A1 references are translated to an OpenFormula subset.");
         if (styles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Approximated, styles,
             "Bold, italic, font, foreground, fill, and common number formats are mapped; other Excel style details are omitted.");
+        if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
+            "Cell styles were omitted because IncludeBasicStyles is disabled.");
         if (unsupportedStyles > 0) report.Add("cell-format-details", OdfConversionMappingStatus.Unsupported, unsupportedStyles);
         AddUnsupported(report, "comments", comments, "ODS annotations are not exposed by the current native spreadsheet model.");
         AddUnsupported(report, "validations", validations, "Cell values remain, but Excel validation rules are not translated yet.");
@@ -109,6 +140,8 @@ public static class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "timelines", snapshot.TimelinePartCount, null);
         AddUnsupported(report, "connections", snapshot.ConnectionPartCount, null);
         AddUnsupported(report, "query-tables", snapshot.QueryTablePartCount, null);
+        if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
+            $"Configured limits omitted {skippedCells} cells, {skippedRows} rows, {skippedColumns} columns, and {skippedMerges} merges.");
         return new OdfConversionResult<OdsDocument>(target, report);
     }
 
@@ -125,14 +158,19 @@ public static class ExcelOpenDocumentConversionExtensions {
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
-        int invalidValues = 0, validations = 0;
+        int invalidValues = 0, validations = 0, skippedStyles = 0, renamedSheets = 0, worksheetCount = 0;
         bool truncated = false;
+        ExcelSheet? activeTarget = null;
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorkSheet(odsSheet.Name);
+            worksheetCount++;
+            if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
             sheet.SetHidden(odsSheet.Hidden);
+            if (!odsSheet.Hidden && activeTarget == null) activeTarget = sheet;
 
             foreach (OdsColumnRun columnRun in odsSheet.ColumnRuns) {
-                long lastExclusive = Math.Min(checked(columnRun.StartColumn + columnRun.RepeatCount), effective.MaximumColumns);
+                long columnEnd = SaturatingAdd(columnRun.StartColumn, columnRun.RepeatCount);
+                long lastExclusive = Math.Min(columnEnd, effective.MaximumColumns);
                 for (long column = columnRun.StartColumn; column < lastExclusive; column++) {
                     if (!columnRun.Hidden && !columnRun.Width.HasValue) continue;
                     int excelColumn = checked((int)column + 1);
@@ -140,11 +178,11 @@ public static class ExcelOpenDocumentConversionExtensions {
                     if (columnRun.Width.HasValue) sheet.SetColumnWidth(excelColumn, PointsToExcelWidth(columnRun.Width.Value.ToPoints()));
                     columnLayouts++;
                 }
-                if (checked(columnRun.StartColumn + columnRun.RepeatCount) > effective.MaximumColumns) truncated = true;
+                if (columnEnd > effective.MaximumColumns) truncated = true;
             }
 
             foreach (OdsRowRun rowRun in odsSheet.RowRuns) {
-                long rowEnd = checked(rowRun.StartRow + rowRun.RepeatCount);
+                long rowEnd = SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount);
                 long lastRowExclusive = Math.Min(rowEnd, effective.MaximumRows);
                 if (rowEnd > effective.MaximumRows) truncated = true;
                 for (long row = rowRun.StartRow; row < lastRowExclusive; row++) {
@@ -153,9 +191,9 @@ public static class ExcelOpenDocumentConversionExtensions {
                     if (rowRun.Height.HasValue) { sheet.SetRowHeight(excelRow, rowRun.Height.Value.ToPoints()); rowLayouts++; }
 
                     foreach (OdsCellRun cellRun in rowRun.CellRuns) {
-                        long columnEnd = checked(cellRun.StartColumn + cellRun.RepeatCount);
-                        long lastColumnExclusive = Math.Min(columnEnd, effective.MaximumColumns);
-                        if (columnEnd > effective.MaximumColumns) truncated = true;
+                        long cellColumnEnd = SaturatingAdd(cellRun.StartColumn, cellRun.RepeatCount);
+                        long lastColumnExclusive = Math.Min(cellColumnEnd, effective.MaximumColumns);
+                        if (cellColumnEnd > effective.MaximumColumns) truncated = true;
                         if (cellRun.IsCovered || !IsSignificant(cellRun)) continue;
                         for (long column = cellRun.StartColumn; column < lastColumnExclusive; column++) {
                             if (expandedCells >= effective.MaximumExpandedCells) { truncated = true; break; }
@@ -174,13 +212,15 @@ public static class ExcelOpenDocumentConversionExtensions {
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {
                                 ApplyOdsStyle(converted, cellRun, dataStyles);
                                 styles++;
+                            } else if (cellRun.StyleName != null) {
+                                skippedStyles++;
                             }
                             if (cellRun.ValidationName != null) validations++;
                             cells++;
 
                             if (cellRun.RowSpan > 1 || cellRun.ColumnSpan > 1) {
-                                long mergeLastRow = row + cellRun.RowSpan;
-                                long mergeLastColumn = column + cellRun.ColumnSpan;
+                                long mergeLastRow = SaturatingAdd(row, cellRun.RowSpan);
+                                long mergeLastColumn = SaturatingAdd(column, cellRun.ColumnSpan);
                                 if (mergeLastRow <= effective.MaximumRows && mergeLastColumn <= effective.MaximumColumns) {
                                     string start = SpreadsheetAddressConverter.ToA1(excelRow, excelColumn);
                                     string end = SpreadsheetAddressConverter.ToA1(
@@ -196,12 +236,10 @@ public static class ExcelOpenDocumentConversionExtensions {
                 }
                 if (expandedCells >= effective.MaximumExpandedCells) break;
             }
-            if (expandedCells >= effective.MaximumExpandedCells) break;
         }
 
-        if (target.Sheets.Count == 0) target.AddWorkSheet("Sheet1");
-        OdsSheet? activeSource = source.Sheets.FirstOrDefault(sheet => !sheet.Hidden);
-        if (activeSource != null) target.SetActiveWorksheet(activeSource.Name);
+        if (target.Sheets.Count == 0) activeTarget = target.AddWorkSheet("Sheet1");
+        if (activeTarget != null) target.SetActiveWorksheet(activeTarget);
 
         int namedRanges = 0;
         foreach (OdsNamedRange named in source.NamedRanges) {
@@ -211,7 +249,7 @@ public static class ExcelOpenDocumentConversionExtensions {
             namedRanges++;
         }
 
-        AddConverted(report, "worksheets", source.Sheets.Count);
+        AddConverted(report, "worksheets", worksheetCount);
         AddConverted(report, "cells", cells);
         AddConverted(report, "row-layout", rowLayouts);
         if (columnLayouts > 0) report.Add("column-layout", OdfConversionMappingStatus.Approximated, columnLayouts,
@@ -223,10 +261,15 @@ public static class ExcelOpenDocumentConversionExtensions {
             "OpenFormula text is translated to an Excel formula subset; cached ODS values remain available only when independently represented.");
         if (styles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Approximated, styles,
             "Basic font, fill, and data-style categories are mapped.");
+        if (skippedStyles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Skipped, skippedStyles,
+            "Cell styles were omitted because IncludeBasicStyles is disabled.");
+        if (renamedSheets > 0) report.Add("worksheet-names", OdfConversionMappingStatus.Approximated, renamedSheets,
+            "Worksheet names that are not valid in XLSX were sanitized; formulas and named-range text may still use the source names.");
         AddUnsupported(report, "validations", validations, "ODF validation conditions are retained in the source but are not translated to Excel rules.");
         AddUnsupported(report, "invalid-values", invalidValues, "Invalid typed lexemes were transferred as display text.");
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
+        AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, validations, hyperlinks);
         target = Normalize(target);
         return new OdfConversionResult<ExcelDocument>(target, report);
     }
@@ -328,6 +371,8 @@ public static class ExcelOpenDocumentConversionExtensions {
         return Math.Min(10, count);
     }
 
+    private static long SaturatingAdd(long left, long right) => right > long.MaxValue - left ? long.MaxValue : left + right;
+
     private static bool TryCurrencySymbol(string format, out string symbol) {
         foreach (char candidate in new[] { '$', '€', '£', '¥' }) {
             if (format.IndexOf(candidate) >= 0) { symbol = candidate.ToString(); return true; }
@@ -342,6 +387,26 @@ public static class ExcelOpenDocumentConversionExtensions {
 
     private static void AddUnsupported(OdfConversionReport report, string feature, int count, string? message) {
         if (count > 0) report.Add(feature, OdfConversionMappingStatus.Unsupported, count, message);
+    }
+
+    private static void AddUnmappedOdfFindings(OdfFeatureReport features, OdfConversionReport report,
+        int formulas, int validations, int hyperlinks) {
+        int remainingFormulas = formulas, remainingValidations = validations, remainingHyperlinks = hyperlinks;
+        foreach (OdfFeatureFinding finding in features.Findings) {
+            int handled = 0;
+            if (finding.Name == "spreadsheet-formulas") handled = Consume(ref remainingFormulas, finding.Count);
+            else if (finding.Name == "spreadsheet-validations") handled = Consume(ref remainingValidations, finding.Count);
+            else if (finding.Name == "external-links") handled = Consume(ref remainingHyperlinks, finding.Count);
+            int remaining = Math.Max(0, finding.Count - handled);
+            if (remaining > 0) report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, remaining,
+                "The source feature is not represented by the XLSX conversion surface.");
+        }
+    }
+
+    private static int Consume(ref int available, int requested) {
+        int consumed = Math.Min(available, requested);
+        available -= consumed;
+        return consumed;
     }
 
     private static ExcelDocument Normalize(ExcelDocument document) {

@@ -54,10 +54,11 @@ public abstract partial class OdfDocument : IDisposable {
         Directory.CreateDirectory(directory);
         string tempPath = Path.Combine(directory, "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
         try {
-            byte[] bytes = Render(options);
+            byte[] bytes = Render(options, out OdfSaveReport report);
             File.WriteAllBytes(tempPath, bytes);
             ReplaceFile(tempPath, fullPath);
             _sourcePath = fullPath;
+            CompleteSave(report);
         } finally {
             if (File.Exists(tempPath)) File.Delete(tempPath);
         }
@@ -68,8 +69,9 @@ public abstract partial class OdfDocument : IDisposable {
         ThrowIfDisposed();
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-        byte[] bytes = Render(options);
+        byte[] bytes = Render(options, out OdfSaveReport report);
         destination.Write(bytes, 0, bytes.Length);
+        CompleteSave(report);
     }
 
     /// <summary>Asynchronously saves to a path.</summary>
@@ -81,7 +83,7 @@ public abstract partial class OdfDocument : IDisposable {
         Directory.CreateDirectory(directory);
         string tempPath = Path.Combine(directory, "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
         try {
-            byte[] bytes = Render(options);
+            byte[] bytes = Render(options, out OdfSaveReport report);
             using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true)) {
 #if NET8_0_OR_GREATER
                 await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
@@ -91,6 +93,7 @@ public abstract partial class OdfDocument : IDisposable {
             }
             ReplaceFile(tempPath, fullPath);
             _sourcePath = fullPath;
+            CompleteSave(report);
         } finally {
             if (File.Exists(tempPath)) File.Delete(tempPath);
         }
@@ -101,18 +104,21 @@ public abstract partial class OdfDocument : IDisposable {
         ThrowIfDisposed();
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-        byte[] bytes = Render(options);
+        byte[] bytes = Render(options, out OdfSaveReport report);
 #if NET8_0_OR_GREATER
         await destination.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
 #else
         await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
 #endif
+        CompleteSave(report);
     }
 
     /// <summary>Serializes the document to a byte array.</summary>
     public byte[] ToBytes(OdfSaveOptions? options = null) {
         ThrowIfDisposed();
-        return Render(options);
+        byte[] bytes = Render(options, out OdfSaveReport report);
+        CompleteSave(report);
+        return bytes;
     }
 
     /// <summary>Validates package and supported semantic invariants.</summary>
@@ -154,10 +160,15 @@ public abstract partial class OdfDocument : IDisposable {
         return officeBody.Element(expectedBodyName) ?? throw new InvalidDataException($"OpenDocument body does not contain '{expectedBodyName}'.");
     }
 
-    private byte[] Render(OdfSaveOptions? options) {
+    private byte[] Render(OdfSaveOptions? options, out OdfSaveReport report) {
         byte[] bytes = Package.Write(options);
-        LastSaveReport = Package.CreateSaveReport();
+        report = Package.CreateSaveReport();
         return bytes;
+    }
+
+    private void CompleteSave(OdfSaveReport report) {
+        LastSaveReport = report;
+        Package.AcceptChanges();
     }
 
     private static OdfDocument CreateForPackage(OdfPackage package, string? sourcePath) {

@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 public sealed class ExcelOpenDocumentConversionOptions {
     /// <summary>Copy the basic font, fill, and number-format subset exposed by both typed models.</summary>
     public bool IncludeBasicStyles { get; set; } = true;
-    /// <summary>Maximum number of non-empty repeated ODS cells that may be expanded into XLSX cells.</summary>
+    /// <summary>Maximum number of cells that conversion may materialize, including covered cells created by merges.</summary>
     public long MaximumExpandedCells { get; set; } = 1_000_000;
     /// <summary>Maximum XLSX row index produced from an ODS sheet.</summary>
     public int MaximumRows { get; set; } = 1_048_576;

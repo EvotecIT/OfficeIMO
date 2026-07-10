@@ -71,7 +71,7 @@ public sealed class OdfStyleRepository {
         while (current != null) {
             string key = FamilyToken(current.Family) + ":" + current.Name;
             if (!visited.Add(key)) {
-                _document.AddDiagnostic(new OdfDiagnostic("ODF101", OdfDiagnosticSeverity.Warning,
+                _document.AddDiagnostic(new OdfDiagnostic("ODF203", OdfDiagnosticSeverity.Warning,
                     $"Style parent cycle detected at '{current.Name}'.", current.PartPath));
                 break;
             }

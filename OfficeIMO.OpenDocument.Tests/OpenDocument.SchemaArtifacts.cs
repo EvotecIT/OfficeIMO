@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -58,6 +59,33 @@ public class OpenDocumentSchemaArtifactTests {
             }
         } finally {
             if (!keep && Directory.Exists(output)) Directory.Delete(output, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "OpenDocumentLibreOfficeArtifact")]
+    public void ReopensLibreOfficeResavedArtifactsWithExpectedSemantics() {
+        string? requestedInput = Environment.GetEnvironmentVariable("OFFICEIMO_ODF_INTEROP_INPUT");
+        if (string.IsNullOrWhiteSpace(requestedInput)) return;
+        string input = Path.GetFullPath(requestedInput!);
+        string[] files = Directory.GetFiles(input, "*.*", SearchOption.AllDirectories)
+            .Where(path => path.EndsWith(".odt", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(".ods", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(".odp", StringComparison.OrdinalIgnoreCase)).ToArray();
+        Assert.Equal(6, files.Length);
+
+        foreach (string path in files) {
+            using OdfDocument document = OdfDocument.OpenAny(path);
+            OdfValidationResult validation = document.Validate();
+            Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Diagnostics.Select(item => item.Id + ": " + item.Message)));
+            if (document is OdtDocument text) {
+                Assert.Contains(text.ContentBlocks, block => block.Paragraph?.Text.Contains("Schema proof", StringComparison.Ordinal) == true);
+            } else if (document is OdsDocument spreadsheet) {
+                Assert.Equal("Value", spreadsheet.GetSheet("Data")!.GetValue(0, 0).DisplayText);
+            } else if (document is OdpPresentation presentation) {
+                Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>(),
+                    box => box.Paragraphs.Any(paragraph => paragraph.Text.Contains("Native ODP", StringComparison.Ordinal)));
+            }
         }
     }
 }

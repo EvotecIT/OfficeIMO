@@ -111,6 +111,20 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
     }
 
     [Fact]
+    public void FlatXmlSaveReportsPackageOnlyContentAsLossy() {
+        using OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("Flat projection");
+        document.Package.AddOrReplaceEntry("Thumbnails/thumbnail.png", TinyPng, "image/png");
+        using var output = new MemoryStream();
+
+        document.SaveFlatXml(output);
+
+        Assert.NotNull(document.LastSaveReport);
+        Assert.Contains("Thumbnails/thumbnail.png", document.LastSaveReport!.LossyEntries);
+        Assert.Contains("content.xml", document.LastSaveReport.RewrittenEntries);
+    }
+
+    [Fact]
     public void AdvancedCapabilityLinesAreStableAndDistinct() {
         string[] expected = { "formula-evaluation", "tracked-change-editing", "advanced-charts", "presentation-animations", "flat-xml", "encryption", "digital-signatures" };
         Assert.Equal(expected, OdfCapabilityCatalog.Advanced.Select(capability => capability.Id));

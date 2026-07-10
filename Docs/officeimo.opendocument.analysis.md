@@ -420,7 +420,7 @@ Production validation should be dependency-free and cover the contracts OfficeIM
 Tests should add stronger external evidence without turning it into a runtime dependency:
 
 1. Validate generated XML against the official pinned OASIS 1.3 and 1.4 Relax NG schemas in a Linux CI lane.
-2. Open and resave generated fixtures with a pinned LibreOffice headless build, then inspect package and semantic results.
+2. Open and resave generated fixtures with LibreOffice headless in CI, log the exact test-oracle version, and inspect the resulting packages. Pin the build when the runner lane supports a maintainable verified pin.
 3. Keep small LibreOffice-authored and Microsoft Office-authored ODT/ODS/ODP fixtures with source/version notes.
 4. Verify untouched-entry hashes and targeted-edit preservation across the corpus.
 5. Convert representative outputs to PDF or images with LibreOffice for optional visual baselines.
@@ -477,6 +477,20 @@ Keep the implementation in reviewable vertical slices.
 - [x] Measure package size and build time before deciding whether to split the dependency-free package.
 
 The M5 measurement on Apple M4/macOS with .NET SDK 10.0.102 produced a 302,725-byte `OfficeIMO.OpenDocument` package with empty NuGet dependency groups. A clean Release build of its three non-Windows targets took 1.18 seconds. This does not justify splitting the native package; the format-specific source folders remain the simpler boundary. BenchmarkDotNet coverage lives in `OfficeIMO.OpenDocument.Benchmarks` for ODT open/enumeration, extreme sparse ODS writing, and bounded range-formula evaluation.
+
+### Milestone 6: hardening and truthful diagnostics
+
+- [x] Treat compatibility-profile rewrites as signature-invalidating changes and accept dirty state after a successful save.
+- [x] Bound ODS merge materialization and both directions of spreadsheet conversion.
+- [x] Report tracked changes, animations, option-driven omissions, truncation, and advanced source features through conversion reports.
+- [x] Validate both directions of manifest membership, known media types, style parents/cycles/references, spreadsheet value/formula/merge consistency, and package-backed image/object references.
+- [x] Give style-cycle diagnostics a distinct stable ID and inspect external links and event listeners explicitly.
+- [x] Report lossy flat XML projections and avoid duplicating seekable compressed package streams during open.
+- [x] Open and resave generated ODF 1.3/1.4 packages with LibreOffice in the Linux schema lane.
+- [x] Add an opt-in Windows desktop canary script for Office-equipped machines; do not claim that hosted runners provide Microsoft Office.
+
+M6 closes the known silent-data-loss and misleading-diagnostic paths. `Build/Test-OpenDocumentMicrosoftOffice.ps1` provides an automation smoke test on a current Office-equipped Windows machine; an interactive no-repair-prompt check is still required before declaring the first stable release complete.
+The Release `OfficeIMO.OpenDocument` package measured 323,842 bytes after M6 and still has empty dependency groups for every packed target framework.
 
 ## Repository Integration Points
 

@@ -15,8 +15,16 @@ public static class WordOpenDocumentConversionExtensions {
         OdtDocument target = OdtDocument.Create();
         var report = new OdfConversionReport("DOCX", "ODT");
 
-        int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0;
+        int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, bookmarks = 0;
         int unsupportedFootnotes = 0;
+        IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
+        int paragraphFormatting = sourceParagraphs.Count(HasUnsupportedParagraphFormatting);
+        int runFormatting = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
+        int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableSnapshot>().Count(HasUnsupportedTableFormatting);
+        int imageLayout = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(run => run.InlineImage != null &&
+            (!string.IsNullOrWhiteSpace(run.InlineImage.Description) || !string.IsNullOrWhiteSpace(run.InlineImage.Title) ||
+             (!run.InlineImage.IsInline && !string.IsNullOrWhiteSpace(run.InlineImage.WrapText))));
+        if (snapshot.Sections.Count > 0) ApplyWordPageLayout(snapshot.Sections[0], target.PageLayout);
         foreach (WordSectionSnapshot section in snapshot.Sections) {
             OdtList? currentList = null;
             bool? currentOrdered = null;
@@ -30,7 +38,7 @@ public static class WordOpenDocumentConversionExtensions {
                             lists++;
                         }
                         OdtParagraph listParagraph = currentList.AddItem().Paragraphs[0];
-                        CopyParagraph(paragraph, listParagraph, effective, ref hyperlinks, ref images, ref unsupportedFootnotes);
+                        CopyParagraph(paragraph, listParagraph, effective, ref hyperlinks, ref images, ref bookmarks, ref unsupportedFootnotes);
                         paragraphs++;
                         continue;
                     }
@@ -39,7 +47,7 @@ public static class WordOpenDocumentConversionExtensions {
                     currentOrdered = null;
                     int headingLevel = GetHeadingLevel(paragraph);
                     OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
-                    CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref images, ref unsupportedFootnotes);
+                    CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref images, ref bookmarks, ref unsupportedFootnotes);
                     if (headingLevel > 0) headings++; else paragraphs++;
                 } else if (block is WordTableSnapshot table) {
                     currentList = null;
@@ -50,6 +58,7 @@ public static class WordOpenDocumentConversionExtensions {
             }
         }
 
+        int headerFooterBlocks = snapshot.Sections.Sum(CountHeaderFooterBlocks);
         if (effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0) {
             WordSectionSnapshot first = snapshot.Sections[0];
             CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header);
@@ -59,6 +68,9 @@ public static class WordOpenDocumentConversionExtensions {
                 (section.EvenHeader == null ? 0 : 1) + (section.EvenFooter == null ? 0 : 1));
             if (alternate > 0) report.Add("alternate-headers-footers", OdfConversionMappingStatus.Unsupported, alternate,
                 "ODT conversion currently maps only the first section's default header and footer.");
+        } else if (headerFooterBlocks > 0) {
+            report.Add("headers-footers", OdfConversionMappingStatus.Skipped, headerFooterBlocks,
+                "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
 
         AddCount(report, "paragraphs", paragraphs);
@@ -67,10 +79,21 @@ public static class WordOpenDocumentConversionExtensions {
         AddCount(report, "tables", tables);
         AddCount(report, "hyperlinks", hyperlinks);
         AddCount(report, "images", images);
+        AddCount(report, "bookmarks", bookmarks);
+        if (snapshot.Sections.Count > 0) report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);
         if (snapshot.Sections.Count > 1) report.Add("sections", OdfConversionMappingStatus.Approximated, snapshot.Sections.Count,
             "Section content is retained in order, but section-specific layout is collapsed to one ODT page layout.");
+        if (paragraphFormatting > 0) report.Add("paragraph-formatting", OdfConversionMappingStatus.Approximated, paragraphFormatting,
+            "Alignment, indentation, spacing, borders, shading, tab stops, and pagination controls outside the shared subset are omitted.");
+        if (runFormatting > 0) report.Add("run-formatting", OdfConversionMappingStatus.Approximated, runFormatting,
+            "Underline, strike-through, highlight, capitalization, vertical alignment, and other Word-only run details are omitted.");
+        if (tableFormatting > 0) report.Add("table-formatting", OdfConversionMappingStatus.Approximated, tableFormatting,
+            "Table text and merges are retained; widths, borders, shading, styles, and repeated-header behavior are not fully mapped.");
+        if (imageLayout > 0) report.Add("image-layout", OdfConversionMappingStatus.Approximated, imageLayout,
+            "Image descriptions, titles, and advanced wrapping are not represented by the current ODT adapter.");
         if (unsupportedFootnotes > 0) report.Add("footnotes", OdfConversionMappingStatus.Unsupported, unsupportedFootnotes,
             "Footnote references are omitted from the current ODT adapter.");
+        AddUnmappedWordFindings(source.InspectFeatures(), report, images, hyperlinks, bookmarks);
         return new OdfConversionResult<OdtDocument>(target, report);
     }
 
@@ -82,6 +105,7 @@ public static class WordOpenDocumentConversionExtensions {
         WordDocument target = WordDocument.Create();
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, approximatedRuns = 0;
+        int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count);
         WordList? currentList = null;
         bool? currentOrdered = null;
 
@@ -120,6 +144,9 @@ public static class WordOpenDocumentConversionExtensions {
             CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref images, ref approximatedRuns);
         }
 
+        ApplyOdtPageLayout(source.PageLayout, target.Sections[0]);
+        report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);
+
         if (effective.IncludeHeadersAndFooters &&
             (source.PageLayout.Header.Paragraphs.Count > 0 || source.PageLayout.Footer.Paragraphs.Count > 0)) {
             target.AddHeadersAndFooters();
@@ -127,6 +154,11 @@ public static class WordOpenDocumentConversionExtensions {
             foreach (OdtParagraph paragraph in source.PageLayout.Footer.Paragraphs) target.Footer!.Default!.AddParagraph(paragraph.Text);
             report.Add("headers-footers", OdfConversionMappingStatus.Converted,
                 source.PageLayout.Header.Paragraphs.Count + source.PageLayout.Footer.Paragraphs.Count);
+        } else if (!effective.IncludeHeadersAndFooters &&
+            (source.PageLayout.Header.Paragraphs.Count > 0 || source.PageLayout.Footer.Paragraphs.Count > 0)) {
+            report.Add("headers-footers", OdfConversionMappingStatus.Skipped,
+                source.PageLayout.Header.Paragraphs.Count + source.PageLayout.Footer.Paragraphs.Count,
+                "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
 
         AddCount(report, "paragraphs", paragraphs);
@@ -137,12 +169,15 @@ public static class WordOpenDocumentConversionExtensions {
         AddCount(report, "images", images);
         if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
             "Mixed plain text, spans, and links are flattened when their exact inline order is not exposed by the typed ODT surface.");
+        if (sourceImages > images) report.Add("images", OdfConversionMappingStatus.Skipped, sourceImages - images,
+            "Images were omitted because IncludeImages is disabled or their source bytes were unavailable.");
+        AddUnmappedOdfFindings(source.InspectFeatures(), report, hyperlinks);
         target = Normalize(target);
         return new OdfConversionResult<WordDocument>(target, report);
     }
 
     private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedFootnotes) {
+        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int bookmarks, ref int unsupportedFootnotes) {
         bool wrote = false;
         foreach (WordRunSnapshot run in source.Runs) {
             if (!string.IsNullOrEmpty(run.Text)) {
@@ -170,7 +205,7 @@ public static class WordOpenDocumentConversionExtensions {
         }
         if (!wrote && source.Text.Length > 0) target.Text = source.Text;
         target.PageBreakBefore = source.PageBreakBefore;
-        if (!string.IsNullOrWhiteSpace(source.BookmarkName)) target.AddBookmark(source.BookmarkName!);
+        if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { target.AddBookmark(source.BookmarkName!); bookmarks++; }
     }
 
     private static void CopyParagraph(OdtParagraph source, WordParagraph target,
@@ -282,6 +317,80 @@ public static class WordOpenDocumentConversionExtensions {
     private static void AddCount(OdfConversionReport report, string feature, int count) {
         if (count > 0) report.Add(feature, OdfConversionMappingStatus.Converted, count);
     }
+
+    private static IEnumerable<WordParagraphSnapshot> EnumerateParagraphs(WordDocumentSnapshot snapshot) {
+        foreach (WordSectionSnapshot section in snapshot.Sections) {
+            foreach (WordBlockSnapshot block in section.Elements) {
+                if (block is WordParagraphSnapshot paragraph) yield return paragraph;
+                else if (block is WordTableSnapshot table) {
+                    foreach (WordParagraphSnapshot nested in table.Rows.SelectMany(row => row.Cells).SelectMany(cell => cell.Paragraphs)) yield return nested;
+                }
+            }
+        }
+    }
+
+    private static bool HasUnsupportedParagraphFormatting(WordParagraphSnapshot paragraph) =>
+        paragraph.Alignment != null || paragraph.IndentStartPoints.HasValue || paragraph.IndentEndPoints.HasValue ||
+        paragraph.IndentFirstLinePoints.HasValue || paragraph.SpaceAbovePoints.HasValue || paragraph.SpaceBelowPoints.HasValue ||
+        paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingRule != null || paragraph.ShadingFillColorHex != null ||
+        paragraph.LeftBorder != null || paragraph.RightBorder != null || paragraph.TopBorder != null || paragraph.BottomBorder != null ||
+        paragraph.IsRightToLeft || paragraph.KeepWithNext || paragraph.KeepLinesTogether || paragraph.AvoidWidowAndOrphan || paragraph.TabStops.Count > 0;
+
+    private static bool HasUnsupportedRunFormatting(WordRunSnapshot run) => run.Underline || run.Strike ||
+        !string.IsNullOrWhiteSpace(run.FontFamily) || !string.IsNullOrWhiteSpace(run.HighlightColor) ||
+        !string.IsNullOrWhiteSpace(run.VerticalTextAlignment) || !string.IsNullOrWhiteSpace(run.CapsStyle);
+
+    private static bool HasUnsupportedTableFormatting(WordTableSnapshot table) => table.StyleName != null ||
+        table.Description != null || table.RepeatHeaderRow || table.ColumnWidthPoints.Count > 0 ||
+        table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColorHex != null || cell.LeftBorder != null ||
+            cell.RightBorder != null || cell.TopBorder != null || cell.BottomBorder != null);
+
+    private static int CountHeaderFooterBlocks(WordSectionSnapshot section) => new[] {
+        section.DefaultHeader, section.DefaultFooter, section.FirstHeader, section.FirstFooter, section.EvenHeader, section.EvenFooter
+    }.Where(item => item != null).Sum(item => item!.Elements.Count);
+
+    private static void ApplyWordPageLayout(WordSectionSnapshot source, OdtPageLayout target) {
+        if (source.PageWidthPoints.HasValue) target.Width = OdfLength.Points(source.PageWidthPoints.Value);
+        if (source.PageHeightPoints.HasValue) target.Height = OdfLength.Points(source.PageHeightPoints.Value);
+        if (source.MarginTopPoints.HasValue) target.MarginTop = OdfLength.Points(source.MarginTopPoints.Value);
+        if (source.MarginBottomPoints.HasValue) target.MarginBottom = OdfLength.Points(source.MarginBottomPoints.Value);
+        if (source.MarginLeftPoints.HasValue) target.MarginLeft = OdfLength.Points(source.MarginLeftPoints.Value);
+        if (source.MarginRightPoints.HasValue) target.MarginRight = OdfLength.Points(source.MarginRightPoints.Value);
+    }
+
+    private static void ApplyOdtPageLayout(OdtPageLayout source, WordSection target) {
+        target.PageSettings.Width = checked((uint)Math.Round(source.Width.ToPoints() * 20D));
+        target.PageSettings.Height = checked((uint)Math.Round(source.Height.ToPoints() * 20D));
+        target.Margins.Top = checked((int)Math.Round(source.MarginTop.ToPoints() * 20D));
+        target.Margins.Bottom = checked((int)Math.Round(source.MarginBottom.ToPoints() * 20D));
+        target.Margins.Left = checked((uint)Math.Round(source.MarginLeft.ToPoints() * 20D));
+        target.Margins.Right = checked((uint)Math.Round(source.MarginRight.ToPoints() * 20D));
+    }
+
+    private static void AddUnmappedWordFindings(WordFeatureReport features, OdfConversionReport report,
+        int images, int hyperlinks, int bookmarks) {
+        var structural = new HashSet<string>(StringComparer.Ordinal) { "Paragraphs", "Tables", "Sections", "Footnotes" };
+        foreach (WordFeatureFinding finding in features.Features.Where(item => item.Count > 0 && !structural.Contains(item.Name))) {
+            int handled = finding.Name == "Images" ? images : finding.Name == "External hyperlinks" ? hyperlinks :
+                finding.Name == "Bookmarks" ? bookmarks : 0;
+            int remaining = Math.Max(0, finding.Count - handled);
+            if (remaining > 0) report.Add("source-" + Slug(finding.Name), OdfConversionMappingStatus.Unsupported, remaining, finding.Note);
+        }
+    }
+
+    private static void AddUnmappedOdfFindings(OdfFeatureReport features, OdfConversionReport report, int hyperlinks) {
+        int remainingHyperlinks = hyperlinks;
+        foreach (OdfFeatureFinding finding in features.Findings) {
+            int handled = finding.Name == "external-links" ? Math.Min(remainingHyperlinks, finding.Count) : 0;
+            remainingHyperlinks -= handled;
+            int remaining = Math.Max(0, finding.Count - handled);
+            if (remaining > 0) report.Add("source-" + finding.Name, OdfConversionMappingStatus.Unsupported, remaining,
+                "The source feature is not represented by the DOCX conversion surface.");
+        }
+    }
+
+    private static string Slug(string value) => new string(value.ToLowerInvariant().Select(character =>
+        char.IsLetterOrDigit(character) ? character : '-').ToArray()).Trim('-');
 
     private static WordDocument Normalize(WordDocument document) {
         var stream = new MemoryStream();

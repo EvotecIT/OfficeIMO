@@ -79,6 +79,22 @@ public sealed class OpenDocumentHardeningTests {
     }
 
     [Fact]
+    public void CompatibilityProfileRewriteInvalidatesSignaturesBeforeSerialization() {
+        using OdtDocument created = OdtDocument.Create();
+        byte[] odf13 = created.ToBytes(new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
+        byte[] signedBytes = RewritePackage(odf13, additions: new[] {
+            new ArchiveItem("META-INF/documentsignatures.xml", Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><signatures/>"))
+        });
+
+        using OdtDocument signed = OdtDocument.Open(new MemoryStream(signedBytes));
+
+        Assert.Throws<InvalidOperationException>(() => signed.ToBytes());
+        byte[] unsigned = signed.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
+        Assert.False(ContainsEntry(unsigned, "META-INF/documentsignatures.xml"));
+        Assert.Equal(OdfVersion.V1_4, signed.Version);
+    }
+
+    [Fact]
     public void MalformedFormulaCorpusReturnsErrorsWithinConfiguredBounds() {
         using OdsDocument document = OdsDocument.Create();
         document.AddSheet("Data");
@@ -116,7 +132,7 @@ public sealed class OpenDocumentHardeningTests {
         OdfStyle first = styled.Styles.CreateNamed("First", OdfStyleFamily.Paragraph, "Second");
         styled.Styles.CreateNamed("Second", OdfStyleFamily.Paragraph, "First");
         Assert.Equal(2, styled.Styles.Resolve(first).Count);
-        Assert.Contains(styled.Diagnostics, diagnostic => diagnostic.Id == "ODF101" && diagnostic.Message.Contains("cycle", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(styled.Diagnostics, diagnostic => diagnostic.Id == "ODF203" && diagnostic.Message.Contains("cycle", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

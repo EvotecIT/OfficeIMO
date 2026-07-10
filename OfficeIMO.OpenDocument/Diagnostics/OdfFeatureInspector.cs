@@ -7,7 +7,7 @@ internal static class OdfFeatureInspector {
         OdfNamespaces.Number.NamespaceName, OdfNamespaces.Fo.NamespaceName, OdfNamespaces.Svg.NamespaceName,
         OdfNamespaces.XLink.NamespaceName, OdfNamespaces.Meta.NamespaceName, OdfNamespaces.Dc.NamespaceName,
         OdfNamespaces.Manifest.NamespaceName, OdfNamespaces.Config.NamespaceName, OdfNamespaces.Of.NamespaceName,
-        OdfNamespaces.Anim.NamespaceName, OdfNamespaces.Smil.NamespaceName,
+        OdfNamespaces.Anim.NamespaceName, OdfNamespaces.Smil.NamespaceName, OdfNamespaces.Script.NamespaceName,
         XNamespace.Xml.NamespaceName, XNamespace.Xmlns.NamespaceName, string.Empty
     };
 
@@ -20,8 +20,13 @@ internal static class OdfFeatureInspector {
 
             AddElementFinding(document, OdfNamespaces.Office + "scripts", "scripts", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
-            AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Inspected, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Draw + "object", "embedded-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
+            int eventListeners = document.Descendants().Count(element => element.Name.LocalName == "event-listener");
+            if (eventListeners > 0) findings.Add(new OdfFeatureFinding("event-listeners", OdfFeatureSupport.Preserved, entry.Name, eventListeners));
+            int externalLinks = document.Root.DescendantsAndSelf().Attributes(OdfNamespaces.XLink + "href")
+                .Count(attribute => IsExternalHref(attribute.Value));
+            if (externalLinks > 0) findings.Add(new OdfFeatureFinding("external-links", OdfFeatureSupport.Preserved, entry.Name, externalLinks));
             AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
             int formulas = document.Descendants(OdfNamespaces.Table + "table-cell")
                 .Count(element => element.Attribute(OdfNamespaces.Table + "formula") != null);
@@ -49,5 +54,10 @@ internal static class OdfFeatureInspector {
         string partPath, List<OdfFeatureFinding> findings) {
         int count = document.Descendants(elementName).Count();
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
+    }
+
+    private static bool IsExternalHref(string href) {
+        if (string.IsNullOrWhiteSpace(href) || href.StartsWith("#", StringComparison.Ordinal)) return false;
+        return href.StartsWith("//", StringComparison.Ordinal) || Uri.TryCreate(href, UriKind.Absolute, out _);
     }
 }

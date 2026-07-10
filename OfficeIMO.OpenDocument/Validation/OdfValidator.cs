@@ -1,6 +1,6 @@
 namespace OfficeIMO.OpenDocument;
 
-internal static class OdfValidator {
+internal static partial class OdfValidator {
     internal static OdfValidationResult Validate(OdfPackage package) {
         var diagnostics = new List<OdfDiagnostic>();
         RequireEntry(package, "mimetype", diagnostics);
@@ -29,6 +29,8 @@ internal static class OdfValidator {
 
         ValidateManifest(package, diagnostics);
         ValidateVersionConsistency(package, diagnostics);
+        ValidateStyles(package, diagnostics);
+        ValidatePackageReferences(package, diagnostics);
         if (package.Kind == OdfDocumentKind.Spreadsheet) ValidateSpreadsheet(package, diagnostics);
         if (package.Kind == OdfDocumentKind.Presentation) ValidatePresentation(package, diagnostics);
         return new OdfValidationResult(diagnostics);
@@ -57,19 +59,46 @@ internal static class OdfValidator {
         XDocument manifest = package.GetXml("META-INF/manifest.xml");
         XElement? root = manifest.Root;
         if (root == null) return;
-        Dictionary<string, int> listed = root.Elements(OdfNamespaces.Manifest + "file-entry")
+        List<XElement> fileEntries = root.Elements(OdfNamespaces.Manifest + "file-entry").ToList();
+        Dictionary<string, int> listed = fileEntries
             .Select(element => (string?)element.Attribute(OdfNamespaces.Manifest + "full-path"))
             .Where(path => !string.IsNullOrEmpty(path))
             .GroupBy(path => path!, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        foreach (IGrouping<string, XElement> duplicate in fileEntries
+            .Where(element => !string.IsNullOrEmpty((string?)element.Attribute(OdfNamespaces.Manifest + "full-path")))
+            .GroupBy(element => (string)element.Attribute(OdfNamespaces.Manifest + "full-path")!, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)) {
+            diagnostics.Add(new OdfDiagnostic("ODF104", OdfDiagnosticSeverity.Error,
+                $"Manifest lists package path '{duplicate.Key}' {duplicate.Count()} times.", "META-INF/manifest.xml"));
+        }
         foreach (OdfPackageEntry entry in package.Entries) {
             if (entry.Name == "mimetype" || entry.Name.StartsWith("META-INF/", StringComparison.Ordinal)) continue;
-            if (!listed.TryGetValue(entry.Name, out int count)) {
+            if (!listed.ContainsKey(entry.Name)) {
                 diagnostics.Add(new OdfDiagnostic("ODF103", OdfDiagnosticSeverity.Error,
                     $"Manifest does not list package entry '{entry.Name}'.", "META-INF/manifest.xml"));
-            } else if (count != 1) {
-                diagnostics.Add(new OdfDiagnostic("ODF104", OdfDiagnosticSeverity.Error,
-                    $"Manifest lists package entry '{entry.Name}' {count} times.", "META-INF/manifest.xml"));
+            }
+        }
+        foreach (XElement fileEntry in fileEntries) {
+            string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
+            if (string.IsNullOrEmpty(path)) continue;
+            string manifestPath = path!;
+            string mediaType = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "media-type") ?? string.Empty;
+            if (manifestPath == "/") {
+                if (!string.Equals(mediaType, package.MediaType, StringComparison.Ordinal)) {
+                    diagnostics.Add(new OdfDiagnostic("ODF106", OdfDiagnosticSeverity.Error,
+                        $"Root manifest media type '{mediaType}' does not match '{package.MediaType}'.", "META-INF/manifest.xml"));
+                }
+                continue;
+            }
+            if (!manifestPath.EndsWith("/", StringComparison.Ordinal) && manifestPath != "mimetype" && manifestPath != "META-INF/manifest.xml" && !package.ContainsEntry(manifestPath)) {
+                diagnostics.Add(new OdfDiagnostic("ODF107", OdfDiagnosticSeverity.Error,
+                    $"Manifest references missing package entry '{manifestPath}'.", "META-INF/manifest.xml"));
+            }
+            string? expectedMediaType = ExpectedMediaType(manifestPath);
+            if (expectedMediaType != null && !string.Equals(mediaType, expectedMediaType, StringComparison.Ordinal)) {
+                diagnostics.Add(new OdfDiagnostic("ODF108", OdfDiagnosticSeverity.Error,
+                    $"Manifest media type '{mediaType}' for '{manifestPath}' should be '{expectedMediaType}'.", "META-INF/manifest.xml"));
             }
         }
     }
@@ -82,6 +111,13 @@ internal static class OdfValidator {
             if (!string.Equals(actual, expected, StringComparison.Ordinal)) {
                 diagnostics.Add(new OdfDiagnostic("ODF105", OdfDiagnosticSeverity.Warning,
                     $"Part version '{actual ?? "<missing>"}' does not match package version '{expected}'.", partPath));
+            }
+        }
+        if (package.ContainsEntry("META-INF/manifest.xml")) {
+            string? manifestVersion = (string?)package.GetXml("META-INF/manifest.xml").Root?.Attribute(OdfNamespaces.Manifest + "version");
+            if (!string.Equals(manifestVersion, expected, StringComparison.Ordinal)) {
+                diagnostics.Add(new OdfDiagnostic("ODF105", OdfDiagnosticSeverity.Warning,
+                    $"Manifest version '{manifestVersion ?? "<missing>"}' does not match package version '{expected}'.", "META-INF/manifest.xml"));
             }
         }
     }
@@ -111,7 +147,9 @@ internal static class OdfValidator {
                 diagnostics.Add(new OdfDiagnostic("ODS101", OdfDiagnosticSeverity.Error,
                     $"Spreadsheet cell type '{valueType}' is missing '{required.LocalName}'.", "content.xml"));
             }
+            ValidateSpreadsheetCell(element, valueType, diagnostics);
         }
+        ValidateSpreadsheetMerges(content, diagnostics);
     }
 
     private static void ValidatePresentation(OdfPackage package, List<OdfDiagnostic> diagnostics) {
@@ -133,12 +171,19 @@ internal static class OdfValidator {
                     $"Presentation slide references missing master page '{master}'.", "content.xml"));
             }
         }
-        foreach (XElement image in content.Descendants(OdfNamespaces.Draw + "image")) {
-            string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
-            if (!string.IsNullOrEmpty(href) && !href!.StartsWith("#", StringComparison.Ordinal) && !href.Contains("://") && !package.ContainsEntry(href)) {
-                diagnostics.Add(new OdfDiagnostic("ODP102", OdfDiagnosticSeverity.Error,
-                    $"Presentation image references missing package entry '{href}'.", "content.xml"));
-            }
+    }
+
+    private static string? ExpectedMediaType(string path) {
+        string extension = Path.GetExtension(path).ToLowerInvariant();
+        switch (extension) {
+            case ".xml": return "text/xml";
+            case ".png": return "image/png";
+            case ".jpg": case ".jpeg": return "image/jpeg";
+            case ".gif": return "image/gif";
+            case ".svg": return "image/svg+xml";
+            case ".bmp": return "image/bmp";
+            case ".tif": case ".tiff": return "image/tiff";
+            default: return null;
         }
     }
 }

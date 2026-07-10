@@ -77,6 +77,7 @@ document.Save("output.odt", new OdfSaveOptions {
 });
 
 IReadOnlyList<string> rewritten = document.LastSaveReport!.RewrittenEntries;
+IReadOnlyList<string> lossy = document.LastSaveReport.LossyEntries;
 ```
 
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
@@ -85,11 +86,11 @@ New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output n
 
 | Area | Current support |
 | --- | --- |
-| Package | Bounded ZIP/XML loading, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection, unknown-entry preservation |
+| Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
 | ODT | Paragraphs, headings, runs, whitespace controls, styles, lists, tables and spans, links, bookmarks, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
 | ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, named ranges, links, validation, print ranges |
 | ODP | Slide order and visibility, page size, masters/layouts, text and lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
-| Inspection | Annotations, tracked changes, extension namespaces, scripts, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |
+| Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |
 
 Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawing features are preserved when their owning part is not replaced. The library never executes scripts, macros, event listeners, embedded objects, or external links. Formula evaluation is a bounded, side-effect-free parser for the documented local subset; it does not execute active content or fetch data.
 
@@ -104,5 +105,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - Signature creation and cryptographic validation, pivot-table editing, and complete chart editing are outside the current surface.
 - Flat XML variants (`.fodt`, `.fods`, `.fodp`) can be opened and written, including embedded raster images. Exotic embedded objects and package-only features may not project losslessly.
+- `OdsSheet.Merge` rejects merges above its default 100,000-cell materialization limit. Use the overload with an explicit lower limit when processing untrusted dimensions.
+- Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.
 
-The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. Generated ODF 1.3 and 1.4 XML is checked against pinned OASIS Relax NG schemas in CI.
+The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. CI checks generated ODF 1.3 and 1.4 XML against pinned OASIS Relax NG schemas, then opens and resaves the generated packages with the runner's reported LibreOffice version.
