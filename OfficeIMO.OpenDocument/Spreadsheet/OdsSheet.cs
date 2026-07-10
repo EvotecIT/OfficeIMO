@@ -242,7 +242,14 @@ public sealed class OdsSheet {
         return result;
     }
 
-    private IEnumerable<XElement> RowElements() => Element.Elements(OdfNamespaces.Table + "table-row");
+    private IEnumerable<XElement> RowElements() {
+        foreach (XElement child in Element.Elements()) {
+            if (child.Name == OdfNamespaces.Table + "table-row") yield return child;
+            else if (child.Name == OdfNamespaces.Table + "table-header-rows") {
+                foreach (XElement row in child.Elements(OdfNamespaces.Table + "table-row")) yield return row;
+            }
+        }
+    }
     internal static IEnumerable<XElement> CellElements(XElement row) => row.Elements()
         .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell");
     private void Dirty() => _document.MarkPartDirty("content.xml");

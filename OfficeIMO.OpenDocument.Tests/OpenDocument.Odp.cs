@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -93,5 +94,29 @@ public class OpenDocumentOdpTests {
         Assert.True(actual.Shapes.OfType<OdpTable>().Single().Cell(1, 1).IsCovered);
         Assert.Equal("Explain the native package boundary.", actual.SpeakerNotes!.Paragraphs.Single().Text);
         Assert.Contains("presentation-transitions", reopened.InspectFeatures().Findings.Select(finding => finding.Name));
+    }
+
+    [Fact]
+    public void RepeatedPresentationTableCellsAreLogicalCellsAndSplitWhenEdited() {
+        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpTable table = presentation.AddSlide("Repeated").AddTable(
+            OdfRect.FromCentimeters(1, 1, 10, 3), 1, 1, "Repeated");
+        table.Cell(0, 0).Text = "Same";
+        XElement cell = table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        presentation.MarkPartDirty("content.xml");
+
+        using OdpPresentation reopened = OdpPresentation.Open(new MemoryStream(presentation.ToBytes()));
+        OdpTable actual = reopened.Slides.Single().Shapes.OfType<OdpTable>().Single();
+
+        Assert.Equal(3, actual.Rows.Single().Cells.Count);
+        Assert.Equal(new[] { "Same", "Same", "Same" }, actual.Rows.Single().Cells.Select(item => item.Text));
+        actual.Cell(0, 1).Text = "Changed";
+        Assert.Equal(new[] { "Same", "Changed", "Same" }, actual.Rows.Single().Cells.Select(item => item.Text));
+        Assert.True(reopened.Validate().IsValid);
+
+        using OdpPresentation roundTrip = OdpPresentation.Open(new MemoryStream(reopened.ToBytes()));
+        OdpTable persisted = roundTrip.Slides.Single().Shapes.OfType<OdpTable>().Single();
+        Assert.Equal(new[] { "Same", "Changed", "Same" }, persisted.Rows.Single().Cells.Select(item => item.Text));
     }
 }

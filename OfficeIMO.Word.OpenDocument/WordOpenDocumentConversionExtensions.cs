@@ -247,11 +247,12 @@ public static class WordOpenDocumentConversionExtensions {
         if (source.Color.HasValue) target.ColorHex = source.Color.Value.ToString();
         if (options.IncludeImages) {
             foreach (OdtImage image in source.Images) {
-                using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
                 try {
+                    using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
                     target.AddImage(stream, Path.GetFileName(image.Path), image.Width.ToPoints(), image.Height.ToPoints());
                     images++;
-                } catch (NotSupportedException) {
+                } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
+                    exception is ArgumentException) {
                     // The loss report compares sourceImages with images and records the skipped media.
                 }
             }

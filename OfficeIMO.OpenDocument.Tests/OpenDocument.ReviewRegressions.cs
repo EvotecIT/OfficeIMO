@@ -42,6 +42,21 @@ public sealed class OpenDocumentReviewRegressionTests {
     }
 
     [Fact]
+    public void ExistingHeaderImageEditsRewriteStylesPart() {
+        using OdtDocument source = OdtDocument.Create();
+        source.PageLayout.Header.AddParagraph().AddImage(TinyPng, "header.png",
+            OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+
+        using OdtDocument edited = OdtDocument.Open(new MemoryStream(source.ToBytes()));
+        edited.PageLayout.Header.Paragraphs.Single().Images.Single().Width = OdfLength.Centimeters(2);
+        byte[] output = edited.ToBytes();
+
+        Assert.Contains("styles.xml", edited.LastSaveReport!.RewrittenEntries);
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
+        Assert.Equal(OdfLength.Centimeters(2), reopened.PageLayout.Header.Paragraphs.Single().Images.Single().Width);
+    }
+
+    [Fact]
     public void DirectFormattingClonesSharedAutomaticStyles() {
         using OdtDocument document = OdtDocument.Create();
         OdtParagraph first = document.AddParagraph("First");
@@ -103,6 +118,54 @@ public sealed class OpenDocumentReviewRegressionTests {
         Assert.False(reopened.Paragraphs.Single().Bold);
         Assert.True(reopened.PageLayout.Header.Paragraphs.Single().Bold);
         Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void StyleEnumerationToleratesMissingOptionalStylesPart() {
+        using OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("Minimal");
+        document.Package.RemoveEntry("styles.xml");
+
+        Assert.Empty(document.Styles.Named);
+        Assert.Empty(document.Styles.Automatic);
+        Assert.Null(document.Styles.Find(OdfStyleFamily.Paragraph, "Missing"));
+    }
+
+    [Fact]
+    public void PageDimensionsDoNotUseTheCommonMarginAsFallback() {
+        using OdtDocument document = OdtDocument.Create();
+        _ = document.PageLayout;
+        XElement properties = document.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "page-layout-properties").Single();
+        properties.Attribute(OdfNamespaces.Fo + "page-width")?.Remove();
+        properties.Attribute(OdfNamespaces.Fo + "page-height")?.Remove();
+        properties.SetAttributeValue(OdfNamespaces.Fo + "margin", "2cm");
+        document.Package.MarkXmlDirty("styles.xml");
+
+        Assert.Equal(OdfLength.Centimeters(21), document.PageLayout.Width);
+        Assert.Equal(OdfLength.Centimeters(29.7), document.PageLayout.Height);
+        Assert.Equal(OdfLength.Centimeters(2), document.PageLayout.MarginLeft);
+    }
+
+    [Fact]
+    public void OdsHeaderRowsParticipateInTheLogicalRowModel() {
+        using OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Header");
+        sheet.Cell(1, 0).SetString("Body");
+        XElement table = document.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table").Single();
+        XElement[] rows = table.Elements(OdfNamespaces.Table + "table-row").ToArray();
+        rows[0].Remove();
+        rows[1].AddBeforeSelf(new XElement(OdfNamespaces.Table + "table-header-rows", rows[0]));
+        document.Package.MarkXmlDirty("content.xml");
+
+        using OdsDocument reopened = OdsDocument.Open(new MemoryStream(document.ToBytes()));
+        OdsSheet actual = reopened.Sheets.Single();
+
+        Assert.Equal(2, actual.RowRuns.Count);
+        Assert.Equal("Header", actual.GetValue(0, 0).ToString());
+        Assert.Equal("Body", actual.GetValue(1, 0).ToString());
+        Assert.Equal(1, actual.UsedRange!.Value.LastRow);
     }
 
     [Fact]

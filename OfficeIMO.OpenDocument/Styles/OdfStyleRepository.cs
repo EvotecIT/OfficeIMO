@@ -165,6 +165,7 @@ public sealed class OdfStyleRepository {
     }
 
     private IReadOnlyList<OdfStyle> EnumerateContainer(string partPath, XName containerName, bool automatic) {
+        if (!_document.Package.ContainsEntry(partPath)) return Array.Empty<OdfStyle>();
         XDocument xml = _document.GetXml(partPath);
         XElement? root = xml.Root;
         XElement? container = root?.Element(containerName);

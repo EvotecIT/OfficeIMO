@@ -60,7 +60,7 @@ public sealed class OdtParagraph {
     /// <summary>Embedded image frames in this paragraph.</summary>
     public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
         .Where(element => element.Element(OdfNamespaces.Draw + "image") != null)
-        .Select(element => new OdtImage(_document, element)).ToList();
+        .Select(element => new OdtImage(_document, element, _partPath)).ToList();
 
     /// <summary>Controls whether this paragraph starts on a new page.</summary>
     public bool PageBreakBefore {

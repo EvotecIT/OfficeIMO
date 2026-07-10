@@ -11,9 +11,11 @@ public enum OdtImageAnchor {
 /// <summary>An XML-backed ODT image frame.</summary>
 public sealed class OdtImage {
     private readonly OdtDocument _document;
+    private readonly string _partPath;
 
-    internal OdtImage(OdtDocument document, XElement element) {
+    internal OdtImage(OdtDocument document, XElement element, string partPath = "content.xml") {
         _document = document;
+        _partPath = partPath;
         Element = element;
     }
 
@@ -56,5 +58,5 @@ public sealed class OdtImage {
         return new OdtImage(document, frame);
     }
 
-    private void Dirty() => _document.MarkPartDirty("content.xml");
+    private void Dirty() => _document.MarkPartDirty(_partPath);
 }

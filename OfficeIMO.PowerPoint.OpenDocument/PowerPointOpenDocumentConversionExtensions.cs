@@ -195,12 +195,17 @@ public static class PowerPointOpenDocumentConversionExtensions {
                         unsupportedPictures++;
                         continue;
                     }
-                    using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
-                    PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, ToPowerPointBox(image.Bounds));
-                    converted.Name = image.Name;
-                    CopyShapeAppearance(image, converted, effective);
-                    if (image.Crop.HasValue) ApplyOdpCrop(image, converted);
-                    pictures++;
+                    try {
+                        using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
+                        PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, ToPowerPointBox(image.Bounds));
+                        converted.Name = image.Name;
+                        CopyShapeAppearance(image, converted, effective);
+                        if (image.Crop.HasValue) ApplyOdpCrop(image, converted);
+                        pictures++;
+                    } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
+                        exception is ArgumentException) {
+                        unsupportedPictures++;
+                    }
                 } else if (shape is OdpTable table) {
                     int rowCount = Math.Max(1, table.Rows.Count);
                     int columnCount = Math.Max(1, table.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());

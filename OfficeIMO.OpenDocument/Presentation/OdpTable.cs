@@ -42,15 +42,18 @@ public sealed class OdpTableRow {
     private readonly OdpPresentation _presentation; private readonly XElement _element;
     internal OdpTableRow(OdpPresentation presentation, XElement element) { _presentation = presentation; _element = element; }
     /// <summary>Cells, including covered merged positions.</summary>
-    public IReadOnlyList<OdpTableCell> Cells => _element.Elements()
+    public IReadOnlyList<OdpTableCell> Cells => new OdfRepeatedElementCollection<OdpTableCell>(_element.Elements()
         .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
-        .Select(element => new OdpTableCell(_presentation, element)).ToList();
+        .ToList(), OdfNamespaces.Table + "number-columns-repeated",
+        (element, offset) => new OdpTableCell(_presentation, element, offset));
 }
 
 /// <summary>An XML-backed presentation table cell.</summary>
 public sealed class OdpTableCell {
-    private readonly OdpPresentation _presentation; private XElement _element;
-    internal OdpTableCell(OdpPresentation presentation, XElement element) { _presentation = presentation; _element = element; }
+    private readonly OdpPresentation _presentation; private XElement _element; private readonly long _repeatOffset;
+    internal OdpTableCell(OdpPresentation presentation, XElement element, long repeatOffset = 0) {
+        _presentation = presentation; _element = element; _repeatOffset = repeatOffset;
+    }
     /// <summary>True when covered by a merged cell.</summary>
     public bool IsCovered => _element.Name == OdfNamespaces.Table + "covered-table-cell";
     /// <summary>Number of rows spanned by a merged-cell anchor.</summary>
@@ -62,18 +65,24 @@ public sealed class OdpTableCell {
         get => string.Join("\n", _element.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
+            EnsureMaterialized();
             _element.RemoveNodes(); var paragraph = new XElement(OdfNamespaces.Text + "p"); OdfTextCodec.Append(paragraph, value); _element.Add(paragraph); Dirty();
         }
     }
     internal static XElement CreateElement() => new XElement(OdfNamespaces.Table + "table-cell", new XElement(OdfNamespaces.Text + "p"));
     internal void SetSpans(int rows, int columns) {
+        EnsureMaterialized();
         _element.SetAttributeValue(OdfNamespaces.Table + "number-rows-spanned", rows > 1 ? rows : (int?)null);
         _element.SetAttributeValue(OdfNamespaces.Table + "number-columns-spanned", columns > 1 ? columns : (int?)null); Dirty();
     }
-    internal void ReplaceWithCoveredCell() { var covered = new XElement(OdfNamespaces.Table + "covered-table-cell"); _element.ReplaceWith(covered); _element = covered; Dirty(); }
+    internal void ReplaceWithCoveredCell() { EnsureMaterialized(); var covered = new XElement(OdfNamespaces.Table + "covered-table-cell"); _element.ReplaceWith(covered); _element = covered; Dirty(); }
     private int ReadSpan(XName name) {
         string? lexical = (string?)_element.Attribute(name);
         return int.TryParse(lexical, NumberStyles.None, CultureInfo.InvariantCulture, out int value) && value > 0 ? value : 1;
+    }
+    private void EnsureMaterialized() {
+        if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
+        _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
     }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

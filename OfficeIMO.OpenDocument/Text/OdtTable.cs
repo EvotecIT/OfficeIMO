@@ -75,9 +75,10 @@ public sealed class OdtTableRow {
     }
 
     /// <summary>Cells, including covered cells, in source order.</summary>
-    public IReadOnlyList<OdtTableCell> Cells => new OdtTableCellCollection(_document, _element.Elements()
+    public IReadOnlyList<OdtTableCell> Cells => new OdfRepeatedElementCollection<OdtTableCell>(_element.Elements()
         .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
-        .ToList());
+        .ToList(), OdfNamespaces.Table + "number-columns-repeated",
+        (element, offset) => new OdtTableCell(_document, element, offset));
 
     /// <summary>Adds a cell.</summary>
     public OdtTableCell AddCell(string? text = null) {
@@ -168,45 +169,4 @@ public sealed class OdtTableCell {
     }
 
     private void Dirty() => _document.MarkPartDirty("content.xml");
-}
-
-internal sealed class OdtTableCellCollection : IReadOnlyList<OdtTableCell> {
-    private readonly OdtDocument _document;
-    private readonly IReadOnlyList<XElement> _elements;
-    private readonly int _count;
-
-    internal OdtTableCellCollection(OdtDocument document, IReadOnlyList<XElement> elements) {
-        _document = document;
-        _elements = elements;
-        long count = 0;
-        foreach (XElement element in elements) {
-            count = checked(count + OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated"));
-            if (count > int.MaxValue) throw new InvalidDataException("ODT table row exceeds the supported logical cell count.");
-        }
-        _count = (int)count;
-    }
-
-    public int Count => _count;
-
-    public OdtTableCell this[int index] {
-        get {
-            if (index < 0 || index >= _count) throw new ArgumentOutOfRangeException(nameof(index));
-            long current = 0;
-            foreach (XElement element in _elements) {
-                long repeat = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
-                if (index < current + repeat) return new OdtTableCell(_document, element, index - current);
-                current += repeat;
-            }
-            throw new ArgumentOutOfRangeException(nameof(index));
-        }
-    }
-
-    public IEnumerator<OdtTableCell> GetEnumerator() {
-        foreach (XElement element in _elements) {
-            long repeat = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
-            for (long offset = 0; offset < repeat; offset++) yield return new OdtTableCell(_document, element, offset);
-        }
-    }
-
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

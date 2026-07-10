@@ -72,4 +72,17 @@ public sealed class OpenDocumentFormulaTests {
         Assert.Equal(OdsCellValueKind.Empty, sheet.GetValue(0, 2).Kind);
         Assert.True(document.Validate().IsValid);
     }
+
+    [Theory]
+    [InlineData("of:=ROUND(2.5;0)", 3D)]
+    [InlineData("of:=ROUND(-2.5;0)", -3D)]
+    public void RoundUsesSpreadsheetMidpointSemantics(string formula, double expected) {
+        using OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data");
+
+        OdsFormulaEvaluationResult result = OdsFormulaEvaluator.EvaluateExpression(document, "Data", formula);
+
+        Assert.True(result.Success, result.Error);
+        Assert.Equal(expected, result.Value.AsNumber());
+    }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
@@ -123,6 +124,35 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
+    public void UnavailableOdfImagesAreReportedWithoutAbortingOfficeExport() {
+        XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
+        XNamespace xlink = "http://www.w3.org/1999/xlink";
+        XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+        using OdtDocument textSource = OdtDocument.Create();
+        textSource.AddParagraph().AddImage(png, "missing.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        using OdtDocument brokenText = OpenBrokenFlat(textSource.ToFlatXml(), draw, xlink, office,
+            stream => OdtDocument.OpenFlatXml(stream));
+        OdfConversionResult<WordDocument> wordConversion = brokenText.ToWordDocument();
+        using WordDocument word = wordConversion.Document;
+
+        Assert.Contains(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+
+        using OdpPresentation presentationSource = OdpPresentation.Create();
+        presentationSource.AddSlide("Broken").AddImage(png, "missing.png", OdfRect.FromCentimeters(1, 1, 2, 2));
+        using OdpPresentation brokenPresentation = OpenBrokenFlat(presentationSource.ToFlatXml(), draw, xlink, office,
+            stream => OdpPresentation.OpenFlatXml(stream));
+        OdfConversionResult<PowerPointPresentation> powerPointConversion = brokenPresentation.ToPowerPointPresentation();
+        using PowerPointPresentation powerPoint = powerPointConversion.Document;
+
+        Assert.Contains(powerPointConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void UnsupportedPowerPointImageFormatsAreReportedWithoutAbortingConversion() {
         using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), autoSave: false);
         PowerPointSlide slide = source.AddSlide();
@@ -215,5 +245,20 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-styles" && mapping.Status == OdfConversionMappingStatus.Skipped);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits" && mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    private static T OpenBrokenFlat<T>(XDocument flat, XNamespace draw, XNamespace xlink, XNamespace office,
+        Func<Stream, T> open) where T : IDisposable {
+        XElement image = flat.Descendants(draw + "image").Single();
+        image.SetAttributeValue(xlink + "href", "https://example.test/missing.png");
+        image.Elements(office + "binary-data").Remove();
+        var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        try {
+            return open(stream);
+        } finally {
+            stream.Dispose();
+        }
     }
 }

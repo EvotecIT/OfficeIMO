@@ -16,12 +16,12 @@ public sealed class OdtPageLayout {
 
     /// <summary>Page width.</summary>
     public OdfLength Width {
-        get => ReadLength(OdfNamespaces.Fo + "page-width", "21cm");
+        get => ReadLength(OdfNamespaces.Fo + "page-width", "21cm", useCommonMargin: false);
         set => Set(OdfNamespaces.Fo + "page-width", value.ToString());
     }
     /// <summary>Page height.</summary>
     public OdfLength Height {
-        get => ReadLength(OdfNamespaces.Fo + "page-height", "29.7cm");
+        get => ReadLength(OdfNamespaces.Fo + "page-height", "29.7cm", useCommonMargin: false);
         set => Set(OdfNamespaces.Fo + "page-height", value.ToString());
     }
     /// <summary>Top page margin.</summary>
@@ -98,8 +98,9 @@ public sealed class OdtPageLayout {
         return new OdtHeaderFooter(_document, element);
     }
 
-    private OdfLength ReadLength(XName name, string fallback) {
-        string? value = (string?)_properties.Attribute(name) ?? (string?)_properties.Attribute(OdfNamespaces.Fo + "margin");
+    private OdfLength ReadLength(XName name, string fallback, bool useCommonMargin = true) {
+        string? value = (string?)_properties.Attribute(name);
+        if (value == null && useCommonMargin) value = (string?)_properties.Attribute(OdfNamespaces.Fo + "margin");
         return OdfLength.Parse(value ?? fallback);
     }
 
