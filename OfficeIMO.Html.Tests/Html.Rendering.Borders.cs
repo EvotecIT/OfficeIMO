@@ -189,8 +189,47 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlBorders_AsymmetricRadiusUsesCatalogedSquareFallback() {
-        const string html = "<div id='asymmetric' style='width:30px;height:20px;margin:0;border-radius:8px 2px;background:#ff0000'></div>";
+    public void HtmlBorders_AsymmetricEllipticalRadiusFlowsThroughSharedPathBackends() {
+        const string html = "<div id='asymmetric' style='width:40px;height:24px;margin:3px;border:2px dashed #0000ff;outline:2px dotted #008000;outline-offset:1px;border-radius:12px 3px 8px 5px / 4px 9px 2px 7px;background-color:#ffffff;background-image:linear-gradient(90deg,#ff0000,#00ff00);box-shadow:2px 1px 0 #000000;font-size:6px;line-height:8px'>PathPdf</div>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 50D,
+            ViewportHeight = 35D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        List<HtmlRenderShape> shapes = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(item => item.Source != null && item.Source.StartsWith("div#asymmetric", StringComparison.Ordinal))
+            .ToList();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.True(shapes.Count >= 5);
+        Assert.All(shapes, shape => Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind));
+        Assert.All(shapes, shape => Assert.True(shape.Shape.PathCommands.Count >= 10));
+        Assert.True(raster.GetPixel(20, 15).A > 0);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
+        Assert.Contains("PathPdf", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px 2px)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:12px / 4px)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px 2px)"));
+    }
+
+    [Fact]
+    public void HtmlBorders_InvalidRadiusUsesCatalogedSquareFallback() {
+        const string html = "<div id='invalid-radius' style='width:30px;height:20px;margin:0;border-radius:calc(6px);background:#ff0000'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 40D,
@@ -198,18 +237,31 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         });
-
-        HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#asymmetric");
+        HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#invalid-radius");
         HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
 
         Assert.Equal(OfficeShapeKind.Rectangle, shape.Shape.Kind);
-        Assert.Equal("div#asymmetric", diagnostic.Source);
-        Assert.Contains("asymmetric-or-elliptical", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Equal("div#invalid-radius", diagnostic.Source);
+        Assert.Contains("border-radius=", diagnostic.Detail, StringComparison.Ordinal);
         Assert.Contains(HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px)"));
-        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px 2px)"));
-        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px 2px)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:calc(6px))"));
+    }
+
+    [Fact]
+    public void HtmlBorders_RadiusOverlapUsesCssProportionalNormalization() {
+        const string html = "<div id='normalized-radius' style='width:40px;height:20px;margin:0;border-radius:30px 20px 10px 5px / 20px 20px 10px 5px;background:#ff0000'></div>";
+
+        HtmlRenderShape shape = Assert.Single(HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 45D,
+            ViewportHeight = 25D,
+            Margins = HtmlRenderMargins.All(0D)
+        }).Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#normalized-radius");
+
+        Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind);
+        Assert.Equal(20D, shape.Shape.PathCommands[0].Point.X, 3);
+        Assert.Equal(40D - (20D * 2D / 3D), shape.Shape.PathCommands[1].Point.X, 3);
     }
 }

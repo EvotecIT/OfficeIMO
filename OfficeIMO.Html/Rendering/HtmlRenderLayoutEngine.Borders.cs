@@ -11,7 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
         if (style.UnsupportedBorderPaint.Length > 0) {
@@ -27,12 +27,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.BorderWidth <= 0D || style.BorderStyle == "none" || style.BorderStyle == "hidden") return;
         if (style.BorderStyle == "double") {
             double strokeWidth = Math.Max(0.01D, style.BorderWidth / 3D);
-            AddStrokeVisual(visuals, x, y, width, height, cornerRadius, style.BorderColor, strokeWidth, "solid", sourceDescription + ":border-outer");
+            AddStrokeVisual(visuals, x, y, width, height, radii, style.BorderColor, strokeWidth, "solid", sourceDescription + ":border-outer");
             double inset = style.BorderWidth * 2D / 3D;
-            AddExpandedStrokeVisual(visuals, x, y, width, height, cornerRadius, style.BorderColor, strokeWidth, "solid", -inset, sourceDescription + ":border-inner");
+            AddExpandedStrokeVisual(visuals, x, y, width, height, radii, style.BorderColor, strokeWidth, "solid", -inset, sourceDescription + ":border-inner");
             return;
         }
-        AddStrokeVisual(visuals, x, y, width, height, cornerRadius, style.BorderColor, style.BorderWidth, style.BorderStyle, sourceDescription);
+        AddStrokeVisual(visuals, x, y, width, height, radii, style.BorderColor, style.BorderWidth, style.BorderStyle, sourceDescription);
     }
 
     private void AddOutlinePaint(
@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
         if (style.UnsupportedOutlinePaint.Length > 0) {
@@ -58,8 +58,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.OutlineWidth <= 0D || style.OutlineStyle == "none" || style.OutlineStyle == "hidden") return;
         if (style.OutlineStyle == "double") {
             double strokeWidth = Math.Max(0.01D, style.OutlineWidth / 3D);
-            AddExpandedStrokeVisual(visuals, x, y, width, height, cornerRadius, style.OutlineColor, strokeWidth, "solid", style.OutlineOffset + style.OutlineWidth / 6D, sourceDescription + ":outline-inner");
-            AddExpandedStrokeVisual(visuals, x, y, width, height, cornerRadius, style.OutlineColor, strokeWidth, "solid", style.OutlineOffset + style.OutlineWidth * 5D / 6D, sourceDescription + ":outline-outer");
+            AddExpandedStrokeVisual(visuals, x, y, width, height, radii, style.OutlineColor, strokeWidth, "solid", style.OutlineOffset + style.OutlineWidth / 6D, sourceDescription + ":outline-inner");
+            AddExpandedStrokeVisual(visuals, x, y, width, height, radii, style.OutlineColor, strokeWidth, "solid", style.OutlineOffset + style.OutlineWidth * 5D / 6D, sourceDescription + ":outline-outer");
             return;
         }
         AddExpandedStrokeVisual(
@@ -68,7 +68,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             y,
             width,
             height,
-            cornerRadius,
+            radii,
             style.OutlineColor,
             style.OutlineWidth,
             style.OutlineStyle,
@@ -93,12 +93,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         OfficeColor color,
         double strokeWidth,
         string style,
         string source) {
-        OfficeShape shape = CreateBoxShape(width, height, cornerRadius);
+        OfficeShape shape = CreateBoxShape(width, height, radii);
         shape.FillColor = null;
         shape.StrokeColor = color;
         shape.StrokeWidth = strokeWidth;
@@ -112,7 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         OfficeColor color,
         double strokeWidth,
         string style,
@@ -121,7 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double targetWidth = width + expansion * 2D;
         double targetHeight = height + expansion * 2D;
         if (targetWidth <= 0.01D || targetHeight <= 0.01D) return;
-        OfficeShape shape = CreateBoxShape(targetWidth, targetHeight, Math.Max(0D, cornerRadius + expansion));
+        OfficeShape shape = CreateBoxShape(targetWidth, targetHeight, radii.Expand(expansion, targetWidth, targetHeight));
         shape.FillColor = null;
         shape.StrokeColor = color;
         shape.StrokeWidth = strokeWidth;

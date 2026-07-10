@@ -60,16 +60,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 objectVisuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, objectVisuals.Count, link, sourceDescription, "figure-alternative-text"));
             }
         }
-        double outerRadius = ResolveBoxCornerRadius(style, boxWidth, boxHeight, element, sourceDescription);
-        double contentInset = style.BorderWidth + Math.Max(Math.Max(style.PaddingLeft, style.PaddingRight), Math.Max(style.PaddingTop, style.PaddingBottom));
-        AddRoundedClipVisuals(
+        HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);
+        HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(
+            style.BorderWidth + style.PaddingLeft,
+            style.BorderWidth + style.PaddingTop,
+            style.BorderWidth + style.PaddingRight,
+            style.BorderWidth + style.PaddingBottom,
+            contentSize.Width,
+            contentSize.Height);
+        AddBoxClipVisuals(
             visuals,
             objectVisuals,
             imageX,
             imageY,
             contentSize.Width,
             contentSize.Height,
-            Math.Max(0D, outerRadius - contentInset),
+            contentRadii,
             sourceDescription + ":content-clip");
         ReportReplacedElementFallbacks(style, element);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);

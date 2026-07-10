@@ -74,7 +74,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
     public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";
-    /// <summary>A CSS border radius could not be represented by the current uniform rounded-box geometry.</summary>
+    /// <summary>A CSS border radius contained invalid or unsupported syntax and used square-corner fallback.</summary>
     public const string BorderRadiusValueUnsupported = "HtmlRenderBorderRadiusValueUnsupported";
     /// <summary>A CSS box shadow could not be represented by the current outer-shadow model.</summary>
     public const string BoxShadowValueUnsupported = "HtmlRenderBoxShadowValueUnsupported";

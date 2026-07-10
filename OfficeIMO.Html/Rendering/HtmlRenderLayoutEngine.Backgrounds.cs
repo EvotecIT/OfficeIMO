@@ -14,11 +14,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
-        double cornerRadius = ResolveBoxCornerRadius(style, width, height, source, sourceDescription);
-        AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, source, sourceDescription, sourceDescription);
+        HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
+        AddBoxShadow(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, radii, source, sourceDescription, sourceDescription);
 
-        AddBorderPaint(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
+        AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
     }
 
     private void AddBoxOutlinePaint(
@@ -30,8 +30,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
-        double cornerRadius = ResolveBoxCornerRadius(style, width, height, source, sourceDescription);
-        AddOutlinePaint(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
+        HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
+        AddOutlinePaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
     }
 
     private void AddBoxBackground(
@@ -45,9 +45,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
-        double cornerRadius = ResolveBoxCornerRadius(style, width, height, source, diagnosticSourceDescription);
-        AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, source, diagnosticSourceDescription);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, borderWidth, cornerRadius, source, diagnosticSourceDescription, visualSourceDescription);
+        HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
+        AddBoxShadow(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, borderWidth, radii, source, diagnosticSourceDescription, visualSourceDescription);
     }
 
     private void AddBoxBackgroundCore(
@@ -58,18 +58,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         double borderWidth,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
-            OfficeShape fill = CreateBoxShape(width, height, cornerRadius);
+            OfficeShape fill = CreateBoxShape(width, height, radii);
             fill.FillColor = style.BackgroundColor;
             fill.StrokeWidth = 0D;
             visuals.Add(new HtmlRenderShape(fill, x, y, visuals.Count, source: visualSourceDescription));
         }
 
-        AddBackgroundImages(visuals, style, x, y, width, height, borderWidth, cornerRadius, source, diagnosticSourceDescription, visualSourceDescription);
+        AddBackgroundImages(visuals, style, x, y, width, height, borderWidth, radii, source, diagnosticSourceDescription, visualSourceDescription);
     }
 
     private void AddBackgroundImages(
@@ -80,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         double borderWidth,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
@@ -125,7 +125,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 width,
                 height,
                 borderWidth,
-                cornerRadius,
+                radii,
                 source,
                 diagnosticSourceDescription,
                 visualSourceDescription);
@@ -142,7 +142,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         double borderWidth,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
@@ -154,6 +154,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double areaY = y + borderWidth;
         double areaWidth = Math.Max(0.01D, width - (borderWidth * 2D));
         double areaHeight = Math.Max(0.01D, height - (borderWidth * 2D));
+        HtmlResolvedBorderRadii innerRadii = radii.Inset(borderWidth, borderWidth, borderWidth, borderWidth, areaWidth, areaHeight);
         if (layer.LinearGradient != null || layer.RadialGradient != null) {
             AddGradientBackground(
                 visuals,
@@ -163,7 +164,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 areaY,
                 areaWidth,
                 areaHeight,
-                Math.Max(0D, cornerRadius - borderWidth),
+                innerRadii,
                 source,
                 visualSourceDescription + ":background-gradient" + layerSuffix);
             return;
@@ -247,14 +248,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
         }
-        AddRoundedClipVisuals(
+        AddBoxClipVisuals(
             visuals,
             layerVisuals,
             areaX,
             areaY,
             areaWidth,
             areaHeight,
-            Math.Max(0D, cornerRadius - borderWidth),
+            innerRadii,
             layerVisualSource + ":clip");
 
         if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)
@@ -277,7 +278,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double areaY,
         double areaWidth,
         double areaHeight,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string visualSourceDescription) {
         if (!string.Equals(layer.Size.Trim(), "auto", StringComparison.OrdinalIgnoreCase)) {
@@ -288,7 +289,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 layer.Size);
         }
 
-        OfficeShape fill = CreateBoxShape(areaWidth, areaHeight, cornerRadius);
+        OfficeShape fill = CreateBoxShape(areaWidth, areaHeight, radii);
         fill.FillColor = null;
         fill.FillGradient = layer.LinearGradient?.Clone();
         fill.FillRadialGradient = layer.RadialGradient?.Clone();
@@ -296,14 +297,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         visuals.Add(new HtmlRenderShape(fill, areaX, areaY, visuals.Count, source: visualSourceDescription));
     }
 
-    private double ResolveBoxCornerRadius(
+    private HtmlResolvedBorderRadii ResolveBoxRadii(
         HtmlRenderBoxStyle style,
         double width,
         double height,
         IElement source,
         string sourceDescription) {
-        if (HtmlCssBorderRadiusParser.TryResolveUniformRadius(style, width, height, _options.DefaultFontSize, out double radius, out string detail)) {
-            return radius;
+        if (HtmlCssBorderRadiusParser.TryResolve(style, width, height, _options.DefaultFontSize, out HtmlResolvedBorderRadii radii, out string detail)) {
+            return radii;
         }
         if (_reportedBorderRadiusFallbacks.Add(sourceDescription)) {
             _diagnostics.Add(
@@ -314,13 +315,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderStyleResolver.DescribeSource(source),
                 detail);
         }
-        return 0D;
+        return default;
     }
 
-    private static OfficeShape CreateBoxShape(double width, double height, double cornerRadius) =>
-        cornerRadius > 0.0001D
-            ? OfficeShape.RoundedRectangle(width, height, Math.Min(cornerRadius, Math.Min(width, height) / 2D))
-            : OfficeShape.Rectangle(width, height);
+    private static OfficeShape CreateBoxShape(double width, double height, HtmlResolvedBorderRadii radii) {
+        HtmlResolvedBorderRadii normalized = radii.Normalize(width, height);
+        if (normalized.IsZero) return OfficeShape.Rectangle(width, height);
+        return normalized.IsUniformCircular
+            ? OfficeShape.RoundedRectangle(width, height, normalized.UniformRadius)
+            : OfficeShape.Path(normalized.CreatePathCommands(width, height));
+    }
 
     private void AddBoxShadow(
         ICollection<HtmlRenderVisual> visuals,
@@ -329,7 +333,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double cornerRadius,
+        HtmlResolvedBorderRadii radii,
         IElement source,
         string sourceDescription) {
         if (style.UnsupportedBoxShadow.Length > 0) {
@@ -345,7 +349,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         if (style.BoxShadow == null || style.BoxShadow.Opacity <= 0D) return;
-        OfficeShape carrier = CreateBoxShape(width, height, cornerRadius);
+        OfficeShape carrier = CreateBoxShape(width, height, radii);
         carrier.FillColor = null;
         carrier.StrokeColor = null;
         carrier.StrokeWidth = 0D;

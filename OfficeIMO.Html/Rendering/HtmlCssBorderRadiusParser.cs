@@ -1,14 +1,14 @@
 namespace OfficeIMO.Html;
 
 internal static class HtmlCssBorderRadiusParser {
-    internal static bool TryResolveUniformRadius(
+    internal static bool TryResolve(
         HtmlRenderBoxStyle style,
         double width,
         double height,
         double rootFontSize,
-        out double radius,
+        out HtmlResolvedBorderRadii radii,
         out string detail) {
-        radius = 0D;
+        radii = default;
         detail = string.Empty;
         if (!TryParseShorthand(style.BorderRadius, width, height, style.Font.Size, rootFontSize, out double[] horizontal, out double[] vertical)) {
             detail = "border-radius=" + style.BorderRadius;
@@ -29,16 +29,11 @@ internal static class HtmlCssBorderRadiusParser {
             }
         }
 
-        double candidate = horizontal[0];
-        for (int index = 0; index < 4; index++) {
-            if (Math.Abs(horizontal[index] - candidate) > 0.0001D
-                || Math.Abs(vertical[index] - candidate) > 0.0001D) {
-                detail = "border-radius=" + style.BorderRadius + ";asymmetric-or-elliptical";
-                return false;
-            }
-        }
-
-        radius = Math.Max(0D, Math.Min(candidate, Math.Min(width, height) / 2D));
+        radii = new HtmlResolvedBorderRadii(
+            horizontal[0], vertical[0],
+            horizontal[1], vertical[1],
+            horizontal[2], vertical[2],
+            horizontal[3], vertical[3]).Normalize(width, height);
         return true;
     }
 
@@ -47,12 +42,11 @@ internal static class HtmlCssBorderRadiusParser {
             BorderRadius = value,
             Font = new OfficeIMO.Drawing.OfficeFontInfo("Arial", 16D)
         };
-        return TryResolveUniformRadius(style, 100D, 100D, 16D, out _, out _);
+        return TryResolve(style, 100D, 100D, 16D, out _, out _);
     }
 
     internal static bool IsSupportedCornerSyntax(string value) =>
-        TryParseCorner(value, 100D, 100D, 16D, 16D, out double horizontal, out double vertical)
-        && Math.Abs(horizontal - vertical) <= 0.0001D;
+        TryParseCorner(value, 100D, 100D, 16D, 16D, out _, out _);
 
     private static bool TryParseShorthand(
         string value,

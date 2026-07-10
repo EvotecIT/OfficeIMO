@@ -136,7 +136,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlImages_InvalidValuesAndRoundedClipUseSharedPathAndCatalogedDiagnostics() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='invalid-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;object-fit:stretch;object-position:sideways;aspect-ratio:0/1'>"
-            + $"<img id='rounded-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;border-radius:4px'>";
+            + $"<img id='rounded-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;border-radius:8px 2px / 3px 6px'>";
 
         var options = new HtmlImageExportOptions {
             ViewportWidth = 50D,
@@ -154,12 +154,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("object-fit=stretch", replaced.Detail, StringComparison.Ordinal);
         Assert.Contains("object-position=sideways", replaced.Detail, StringComparison.Ordinal);
         Assert.Contains("aspect-ratio=0/1", replaced.Detail, StringComparison.Ordinal);
-        Assert.Equal(OfficeClipPathKind.RoundedRectangle, rounded.ClipPath.Kind);
-        Assert.Equal(4D, rounded.ClipPath.CornerRadius, 3);
+        Assert.Equal(OfficeClipPathKind.Path, rounded.ClipPath.Kind);
+        Assert.True(rounded.ClipPath.Commands.Count >= 10);
         Assert.Single(rounded.Visuals.OfType<HtmlRenderImage>());
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(0, 20));
         Assert.True(raster.GetPixel(15, 30).A > 0);
-        Assert.Contains("rx=\"4\" ry=\"4\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.Contains(HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported, out _));
@@ -175,7 +176,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlImages_RoundedRepeatedBackgroundUsesSharedPathClipAcrossPngSvgAndPdf() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 4));
-        string html = $"<div id='rounded-background' style='width:30px;height:20px;border-radius:6px;background-image:url(data:image/png;base64,{data});background-size:4px 4px;background-repeat:repeat'></div>";
+        string html = $"<div id='rounded-background' style='width:30px;height:20px;border-radius:10px 2px / 4px 8px;background-image:url(data:image/png;base64,{data});background-size:4px 4px;background-repeat:repeat'></div>";
         var options = new HtmlImageExportOptions {
             ViewportWidth = 35D,
             ViewportHeight = 25D,
@@ -197,12 +198,13 @@ public sealed partial class HtmlRenderingTests {
         };
         byte[] pdf = html.SaveAsPdf(pdfOptions);
 
-        Assert.Equal(OfficeClipPathKind.RoundedRectangle, group.ClipPath.Kind);
-        Assert.Equal(6D, group.ClipPath.CornerRadius, 3);
+        Assert.Equal(OfficeClipPathKind.Path, group.ClipPath.Kind);
+        Assert.True(group.ClipPath.Commands.Count >= 10);
         Assert.Single(group.Visuals.OfType<HtmlRenderImagePattern>());
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(0, 0));
         Assert.True(raster.GetPixel(15, 10).A > 0);
-        Assert.Contains("rx=\"6\" ry=\"6\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);

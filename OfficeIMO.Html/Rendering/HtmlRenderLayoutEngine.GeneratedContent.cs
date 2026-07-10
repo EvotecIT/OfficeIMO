@@ -95,10 +95,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement element,
         string source) {
-        double cornerRadius = ResolveBoxCornerRadius(style, width, height, element, source);
-        AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, element, source);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, element, source, source);
-        AddBorderPaint(visuals, style, x, y, width, height, cornerRadius, element, source);
+        HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, element, source);
+        AddBoxShadow(visuals, style, x, y, width, height, radii, element, source);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, radii, element, source, source);
+        AddBorderPaint(visuals, style, x, y, width, height, radii, element, source);
     }
 
     private void AddGeneratedBoxOutlinePaint(
@@ -110,8 +110,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement element,
         string source) {
-        double cornerRadius = ResolveBoxCornerRadius(style, width, height, element, source);
-        AddOutlinePaint(visuals, style, x, y, width, height, cornerRadius, element, source);
+        HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, element, source);
+        AddOutlinePaint(visuals, style, x, y, width, height, radii, element, source);
     }
 
     private static string DescribePseudoSource(IElement element, HtmlPseudoElementKind kind) =>
