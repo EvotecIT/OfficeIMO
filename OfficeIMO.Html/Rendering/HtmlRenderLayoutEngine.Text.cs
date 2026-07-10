@@ -59,9 +59,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.Display == "none") return;
-        if (style.Display == "inline-grid") {
-            AddUnsupported(HtmlRenderDiagnosticCodes.GridLayoutPending, "Inline grid layout is not active yet; content uses inline flow.", element);
-        }
         string? link = inheritedLink;
         if (tag == "a") {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
@@ -69,6 +66,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (style.Display == "inline-flex") {
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
+            return;
+        }
+        if (style.Display == "inline-grid") {
+            AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
 

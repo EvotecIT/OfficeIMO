@@ -113,6 +113,72 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_MapsNamedTemplateAreasToRectangularCells() {
+        const string html = """
+            <div style='display:grid;width:200px;grid-template-areas:"header header" "side main";grid-template-columns:80px 1fr;grid-auto-rows:30px'>
+              <div id="area-header" style="grid-area:header;background:#ff0000"></div>
+              <div id="area-side" style="grid-area:side;background:#0000ff"></div>
+              <div id="area-main" style="grid-area:main;background:#00ff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+        HtmlRenderShape header = FindGridShape(rendered, "div#area-header");
+        HtmlRenderShape side = FindGridShape(rendered, "div#area-side");
+        HtmlRenderShape main = FindGridShape(rendered, "div#area-main");
+
+        Assert.Equal(0D, header.X, 3);
+        Assert.Equal(200D, header.Width, 3);
+        Assert.Equal(0D, header.Y, 3);
+        Assert.Equal(0D, side.X, 3);
+        Assert.Equal(80D, side.Width, 3);
+        Assert.Equal(30D, side.Y, 3);
+        Assert.Equal(80D, main.X, 3);
+        Assert.Equal(120D, main.Width, 3);
+        Assert.Equal(30D, main.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_ColumnAutoFlowFillsRowsBeforeCreatingImplicitColumns() {
+        const string html = """
+            <div style="display:grid;width:200px;grid-template-rows:repeat(2,30px);grid-auto-columns:50px;grid-auto-flow:column;gap:5px 10px;justify-content:start">
+              <div id="flow-column-a" style="background:#ff0000"></div>
+              <div id="flow-column-b" style="background:#0000ff"></div>
+              <div id="flow-column-c" style="background:#00ff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+
+        Assert.Equal(0D, FindGridShape(rendered, "div#flow-column-a").X, 3);
+        Assert.Equal(0D, FindGridShape(rendered, "div#flow-column-a").Y, 3);
+        Assert.Equal(0D, FindGridShape(rendered, "div#flow-column-b").X, 3);
+        Assert.Equal(35D, FindGridShape(rendered, "div#flow-column-b").Y, 3);
+        Assert.Equal(60D, FindGridShape(rendered, "div#flow-column-c").X, 3);
+        Assert.Equal(0D, FindGridShape(rendered, "div#flow-column-c").Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_ResolvesNamedTemplateLines() {
+        const string html = """
+            <div style="display:grid;width:200px;grid-template-columns:[side-start] 80px [side-end main-start] 1fr [main-end];grid-template-rows:[top] 30px [bottom]">
+              <div id="named-side" style="grid-column:side-start / side-end;grid-row:top / bottom;background:#ff0000"></div>
+              <div id="named-main" style="grid-column:main-start / main-end;grid-row:top / bottom;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+
+        Assert.Equal(0D, FindGridShape(rendered, "div#named-side").X, 3);
+        Assert.Equal(80D, FindGridShape(rendered, "div#named-side").Width, 3);
+        Assert.Equal(80D, FindGridShape(rendered, "div#named-main").X, 3);
+        Assert.Equal(120D, FindGridShape(rendered, "div#named-main").Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_AppliesContainerAndItemAlignment() {
         const string html = """
             <div style="display:grid;width:200px;height:100px;grid-template-columns:repeat(2,1fr);grid-template-rows:100px;justify-items:center;align-items:end">
@@ -183,9 +249,31 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlInlineGrid_ParticipatesAsAnAtomicLinkedInlineBox() {
+        const string html = """
+            <p style="margin:0">Before <a href="https://example.com/grid"><span id="inline-grid" style="display:inline-grid;width:80px;height:20px;grid-template-columns:20px 20px;column-gap:10px">
+              <span id="inline-grid-a" style="background:#ff0000"></span>
+              <span id="inline-grid-b" style="background:#0000ff"></span>
+            </span></a> After</p>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 240D);
+        HtmlRenderShape a = FindGridShape(rendered, "span#inline-grid-a");
+        HtmlRenderShape b = FindGridShape(rendered, "span#inline-grid-b");
+        HtmlRenderText before = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Before", StringComparison.Ordinal));
+        HtmlRenderText after = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("After", StringComparison.Ordinal));
+
+        Assert.True(a.X > before.X);
+        Assert.Equal(a.X + 30D, b.X, 3);
+        Assert.True(after.X > b.X);
+        Assert.Contains(rendered.Pages[0].Visuals, visual => visual.Source == "span#inline-grid" && visual.LinkUri == "https://example.com/grid");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+    }
+
+    [Fact]
     public void HtmlGrid_DiagnosesUnsupportedValuesAndBoundsTrackExpansion() {
         const string html = """
-            <div style="display:grid;width:200px;grid-template-columns:subgrid 1fr;grid-auto-flow:column">
+            <div style="display:grid;width:200px;grid-template-columns:subgrid 1fr;grid-auto-flow:sideways">
               <div style="grid-column-start:named">One</div><div>Two</div>
             </div>
             """;

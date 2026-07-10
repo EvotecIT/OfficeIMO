@@ -144,6 +144,7 @@ internal static class HtmlRenderCssValues {
         var parts = new List<string>();
         int start = -1;
         int depth = 0;
+        int bracketDepth = 0;
         char quote = '\0';
         string text = value!;
         for (int i = 0; i < text.Length; i++) {
@@ -164,7 +165,9 @@ internal static class HtmlRenderCssValues {
 
             if (current == '(') depth++;
             if (current == ')' && depth > 0) depth--;
-            if (char.IsWhiteSpace(current) && depth == 0) {
+            if (current == '[') bracketDepth++;
+            if (current == ']' && bracketDepth > 0) bracketDepth--;
+            if (char.IsWhiteSpace(current) && depth == 0 && bracketDepth == 0) {
                 if (start >= 0) {
                     parts.Add(text.Substring(start, i - start));
                     start = -1;

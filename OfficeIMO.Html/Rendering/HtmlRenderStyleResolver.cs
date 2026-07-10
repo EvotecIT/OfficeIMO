@@ -481,6 +481,7 @@ internal sealed class HtmlRenderStyleResolver {
     private static void ApplyGrid(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         style.GridTemplateColumns = NormalizeCssValue(computed.GetValue("grid-template-columns"), "none");
         style.GridTemplateRows = NormalizeCssValue(computed.GetValue("grid-template-rows"), "none");
+        style.GridTemplateAreas = NormalizeCssValue(computed.GetValue("grid-template-areas"), "none");
         style.GridAutoColumns = NormalizeCssValue(computed.GetValue("grid-auto-columns"), "auto");
         style.GridAutoRows = NormalizeCssValue(computed.GetValue("grid-auto-rows"), "auto");
         style.GridAutoFlow = NormalizeCssValue(computed.GetValue("grid-auto-flow"), "row");
@@ -488,6 +489,7 @@ internal sealed class HtmlRenderStyleResolver {
         style.JustifySelf = NormalizeCssValue(computed.GetValue("justify-self"), "auto");
         ApplyGridPair(computed.GetValue("grid-column"), ref style.GridColumnStart, ref style.GridColumnEnd);
         ApplyGridPair(computed.GetValue("grid-row"), ref style.GridRowStart, ref style.GridRowEnd);
+        style.GridArea = NormalizeCssValue(computed.GetValue("grid-area"), "auto");
         ApplyGridArea(computed.GetValue("grid-area"), style);
         OverrideGridValue(computed.GetValue("grid-column-start"), ref style.GridColumnStart);
         OverrideGridValue(computed.GetValue("grid-column-end"), ref style.GridColumnEnd);

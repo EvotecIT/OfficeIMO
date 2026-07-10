@@ -93,6 +93,7 @@ public static partial class HtmlComputedStyleEngine {
         "grid-row-end",
         "grid-row-start",
         "grid-template-columns",
+        "grid-template-areas",
         "grid-template-rows",
         "height",
         "left",

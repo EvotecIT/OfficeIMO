@@ -18,9 +18,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedColumnGap.Length > 0) ReportUnsupportedGridValue(source, "column-gap=" + style.UnsupportedColumnGap);
         if (style.UnsupportedRowGap.Length > 0) ReportUnsupportedGridValue(source, "row-gap=" + style.UnsupportedRowGap);
 
+        double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
         List<GridTrack> columnTracks = ParseGridTracks(style.GridTemplateColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
-        int explicitColumnCount = Math.Max(1, columnTracks.Count);
-        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, style, source, out int columnCount, out int rowCount);
+        List<GridTrack> rowTracks = ParseGridTracks(
+            style.GridTemplateRows,
+            declaredContentHeight ?? 0D,
+            declaredContentHeight.HasValue,
+            style,
+            source,
+            "grid-template-rows");
+        IReadOnlyDictionary<string, GridAreaDefinition> areas = ParseGridTemplateAreas(style.GridTemplateAreas, source, out int areaRowCount, out int areaColumnCount);
+        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(style.GridTemplateColumns);
+        IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(style.GridTemplateRows);
+        int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
+        int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
+        List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
+        rowCount = Math.Max(rowCount, Math.Max(1, areaRowCount));
         EnsureGridTrackCount(columnTracks, columnCount, style.GridAutoColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
         double columnGap = columnCount > 1 ? style.ColumnGap : 0D;
         List<double> columnSizes = ResolveGridTrackSizes(columnTracks, contentWidth, columnGap);
@@ -32,14 +45,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             item.Block = LayoutFlexItem(item.Item, Math.Max(1D, cellWidth), style, depth + 1);
         }
 
-        double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
-        List<GridTrack> rowTracks = ParseGridTracks(
-            style.GridTemplateRows,
-            declaredContentHeight ?? 0D,
-            declaredContentHeight.HasValue,
-            style,
-            source,
-            "grid-template-rows");
         EnsureGridTrackCount(
             rowTracks,
             rowCount,
