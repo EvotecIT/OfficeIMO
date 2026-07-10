@@ -416,8 +416,8 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_Paged_DiagnosesUnsupportedNamedPagesMarginPositionsAndGeneratedContent() {
-        string html = "<style>@page invoice { @top-left { content:\"Named\"; } } @page { @left-middle { content:\"Side\"; } @top-left { content:attr(title); } }</style><p>Body</p>";
+    public void HtmlRender_Paged_DiagnosesNamedPagesUnknownMarginPositionsAndGeneratedContent() {
+        string html = "<style>@page invoice { @top-left { content:\"Named\"; } } @page { @left-middle { content:\"Side\"; } @unknown-zone { content:\"Unknown\"; } @top-left { content:attr(title); } }</style><p>Body</p>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(3D, 2D),
@@ -427,6 +427,50 @@ public sealed class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported);
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Side");
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_RendersCornerAndSideMarginBoxesAcrossSvgAndPdf() {
+        string html = """
+            <style>
+              @page {
+                size: 3in 3in;
+                margin: 0.4in;
+                @top-left-corner { content:"TLC"; }
+                @top-right-corner { content:"TRC"; }
+                @left-top { content:"LT"; }
+                @left-middle { content:"LM"; }
+                @left-bottom { content:"LB"; }
+                @right-top { content:"RT"; }
+                @right-middle { content:"RM"; }
+                @right-bottom { content:"RB"; }
+                @bottom-left-corner { content:"BLC"; }
+                @bottom-right-corner { content:"BRC"; }
+              }
+            </style>
+            <p>Body</p>
+            """;
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        };
+        string[] markers = { "TLC", "TRC", "LT", "LM", "LB", "RT", "RM", "RB", "BLC", "BRC" };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        IReadOnlyList<string> visualText = page.Visuals.OfType<HtmlRenderText>().Select(text => text.Text).ToList();
+        foreach (string marker in markers) Assert.Contains(marker, visualText);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
+
+        string svg = Encoding.UTF8.GetString(Assert.Single(html.ExportImages(OfficeImageExportFormat.Svg, options)).Bytes);
+        foreach (string marker in markers) Assert.Contains(marker, svg, StringComparison.Ordinal);
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        foreach (string marker in markers) Assert.Contains(marker, pdfText, StringComparison.Ordinal);
     }
 
     [Fact]

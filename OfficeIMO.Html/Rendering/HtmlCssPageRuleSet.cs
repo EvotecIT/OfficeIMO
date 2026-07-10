@@ -66,10 +66,20 @@ internal enum HtmlCssPageSelector {
 }
 
 internal enum HtmlCssPageMarginPosition {
+    TopLeftCorner,
     TopLeft,
     TopCenter,
     TopRight,
+    TopRightCorner,
+    LeftTop,
+    LeftMiddle,
+    LeftBottom,
+    RightTop,
+    RightMiddle,
+    RightBottom,
+    BottomLeftCorner,
     BottomLeft,
     BottomCenter,
-    BottomRight
+    BottomRight,
+    BottomRightCorner
 }

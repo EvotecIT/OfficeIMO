@@ -241,7 +241,7 @@ internal static class HtmlCssPageSettingsResolver {
             if (close < 0) break;
             string marginBody = pageBody.Substring(boundary + 1, close - boundary - 1);
             if (!TryMapMarginPosition(name, out HtmlCssPageMarginPosition position)) {
-                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported, "A page-margin position is not yet represented by the horizontal margin-box renderer.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector, "@" + name);
+                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported, "A page-margin position is not recognized by the direct renderer.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector, "@" + name);
                 cursor = close + 1;
                 continue;
             }
@@ -280,18 +280,31 @@ internal static class HtmlCssPageSettingsResolver {
         if (string.Equals(value, "center", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Center;
         if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;
         if (position == HtmlCssPageMarginPosition.TopCenter || position == HtmlCssPageMarginPosition.BottomCenter) return OfficeTextAlignment.Center;
-        if (position == HtmlCssPageMarginPosition.TopRight || position == HtmlCssPageMarginPosition.BottomRight) return OfficeTextAlignment.Right;
+        if (position == HtmlCssPageMarginPosition.LeftTop || position == HtmlCssPageMarginPosition.LeftMiddle || position == HtmlCssPageMarginPosition.LeftBottom
+            || position == HtmlCssPageMarginPosition.RightTop || position == HtmlCssPageMarginPosition.RightMiddle || position == HtmlCssPageMarginPosition.RightBottom) return OfficeTextAlignment.Center;
+        if (position == HtmlCssPageMarginPosition.TopRight || position == HtmlCssPageMarginPosition.TopRightCorner
+            || position == HtmlCssPageMarginPosition.BottomRight || position == HtmlCssPageMarginPosition.BottomRightCorner) return OfficeTextAlignment.Right;
         return OfficeTextAlignment.Left;
     }
 
     private static bool TryMapMarginPosition(string name, out HtmlCssPageMarginPosition position) {
         switch (name) {
+            case "top-left-corner": position = HtmlCssPageMarginPosition.TopLeftCorner; return true;
             case "top-left": position = HtmlCssPageMarginPosition.TopLeft; return true;
             case "top-center": position = HtmlCssPageMarginPosition.TopCenter; return true;
             case "top-right": position = HtmlCssPageMarginPosition.TopRight; return true;
+            case "top-right-corner": position = HtmlCssPageMarginPosition.TopRightCorner; return true;
+            case "left-top": position = HtmlCssPageMarginPosition.LeftTop; return true;
+            case "left-middle": position = HtmlCssPageMarginPosition.LeftMiddle; return true;
+            case "left-bottom": position = HtmlCssPageMarginPosition.LeftBottom; return true;
+            case "right-top": position = HtmlCssPageMarginPosition.RightTop; return true;
+            case "right-middle": position = HtmlCssPageMarginPosition.RightMiddle; return true;
+            case "right-bottom": position = HtmlCssPageMarginPosition.RightBottom; return true;
+            case "bottom-left-corner": position = HtmlCssPageMarginPosition.BottomLeftCorner; return true;
             case "bottom-left": position = HtmlCssPageMarginPosition.BottomLeft; return true;
             case "bottom-center": position = HtmlCssPageMarginPosition.BottomCenter; return true;
             case "bottom-right": position = HtmlCssPageMarginPosition.BottomRight; return true;
+            case "bottom-right-corner": position = HtmlCssPageMarginPosition.BottomRightCorner; return true;
             default: position = HtmlCssPageMarginPosition.TopLeft; return false;
         }
     }
