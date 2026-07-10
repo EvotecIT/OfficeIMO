@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -37,6 +38,9 @@ internal static partial class PdfWriter {
                         break;
                     case PdfCanvasClipItem clip:
                         RenderCanvasClip(clip);
+                        break;
+                    case PdfCanvasEffectItem effect:
+                        RenderCanvasEffect(effect);
                         break;
                 }
             }
@@ -331,6 +335,93 @@ internal static partial class PdfWriter {
                 .RestoreState();
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
+        }
+
+        private void RenderCanvasEffect(PdfCanvasEffectItem item) {
+            OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
+            int annotationStart = currentPage!.Annotations.Count;
+            int textAnnotationStart = currentPage.TextAnnotations.Count;
+            int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
+            int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
+            int formFieldStart = currentPage.FormFields.Count;
+            string? opacityState = EnsureGraphicsState(item.Opacity, item.Opacity);
+            int contentStart = sb.Length;
+            _canvasClipDepth++;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _canvasClipDepth--;
+            }
+            string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
+            sb.Length = contentStart;
+            string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            currentPage.EffectGroups.Add(new PageEffectGroup {
+                Content = groupContent,
+                Token = token,
+                Transform = transform,
+                GraphicsStateName = opacityState
+            });
+            sb.Append(token);
+            TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);
+            TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.HighlightAnnotations, highlightAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
+            pageDirty = true;
+        }
+
+        private static OfficeTransform ConvertTopLeftCanvasTransform(OfficeTransform transform, double pageHeight) =>
+            new OfficeTransform(
+                transform.M11,
+                -transform.M12,
+                -transform.M21,
+                transform.M22,
+                transform.M21 * pageHeight + transform.OffsetX,
+                pageHeight * (1D - transform.M22) - transform.OffsetY);
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<TextAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<FreeTextAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<HighlightAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<FormFieldAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangle(LinkAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(TextAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(FreeTextAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(HighlightAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static (double X1, double Y1, double X2, double Y2) TransformRectangle(double x1, double y1, double x2, double y2, OfficeTransform transform) {
+            (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(x1, y1, x2 - x1, y2 - y1);
+            return (left, top, right, bottom);
         }
 
         private void ValidateCanvasBox(double x, double yFromTop, double boxWidth, double boxHeight, string name) {

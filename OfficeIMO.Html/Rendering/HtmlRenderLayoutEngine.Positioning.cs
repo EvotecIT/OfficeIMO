@@ -10,10 +10,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         double? containingHeight,
         IElement element) {
+        HtmlRenderFlowBlock effected = ApplyElementPaintEffects(block, style, containingWidth, element, out bool effectStackingContext);
         string source = HtmlRenderStyleResolver.DescribeSource(element);
-        HtmlRenderFlowBlock positioned = ApplyPositioning(block, style, containingWidth, containingHeight, source);
-        return style.Position == "relative" || style.Position == "sticky"
-            ? positioned.WithStacking(ResolvePositionedZIndex(element, style), GetPositionedSourceOrder(element))
+        HtmlRenderFlowBlock positioned = ApplyPositioning(effected, style, containingWidth, containingHeight, source);
+        if (style.Position == "relative" || style.Position == "sticky") {
+            return positioned.WithStacking(ResolvePositionedZIndex(element, style), GetPositionedSourceOrder(element));
+        }
+        return effectStackingContext
+            ? positioned.WithStacking(0, GetPositionedSourceOrder(element))
             : positioned;
     }
 

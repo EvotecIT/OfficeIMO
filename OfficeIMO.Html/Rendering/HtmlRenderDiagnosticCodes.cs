@@ -66,6 +66,12 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OverflowScrollSnapshot = "HtmlRenderOverflowScrollSnapshot";
     /// <summary>An overflow property value used a documented visible fallback.</summary>
     public const string OverflowValueUnsupported = "HtmlRenderOverflowValueUnsupported";
+    /// <summary>A CSS transform or transform-origin value used the identity fallback.</summary>
+    public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
+    /// <summary>A CSS opacity value used the opaque fallback.</summary>
+    public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
+    /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
+    public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";
     /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
     public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
     /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
@@ -142,6 +148,9 @@ public static class HtmlRenderDiagnosticCodes {
         InlineImageFallback,
         OverflowScrollSnapshot,
         OverflowValueUnsupported,
+        TransformValueUnsupported,
+        OpacityValueUnsupported,
+        InlinePaintEffectUnsupported,
         PositionInsetUnsupported,
         PositioningModeUnsupported,
         PositionStaticAnchorFallback,

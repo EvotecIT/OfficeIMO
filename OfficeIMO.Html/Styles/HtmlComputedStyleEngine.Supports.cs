@@ -142,6 +142,20 @@ public static partial class HtmlComputedStyleEngine {
             }
             return true;
         }
+        if (string.Equals(propertyName, "opacity", StringComparison.OrdinalIgnoreCase)) {
+            string number = normalized.EndsWith("%", StringComparison.Ordinal)
+                ? normalized.Substring(0, normalized.Length - 1)
+                : normalized;
+            return double.TryParse(number, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double opacity)
+                && !double.IsNaN(opacity)
+                && !double.IsInfinity(opacity);
+        }
+        if (string.Equals(propertyName, "transform", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTransformParser.IsSupportedTransformSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
+        }
         return IsSupportedDeclarationValue(propertyName, value);
     }
 

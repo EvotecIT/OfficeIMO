@@ -39,8 +39,11 @@ public sealed class HtmlRenderDocument {
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;
-            if (visual is not HtmlRenderClipGroup group) continue;
-            foreach (HtmlRenderVisual child in EnumerateVisuals(group.Visuals)) yield return child;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
+                ? clipGroup.Visuals
+                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+            if (children == null) continue;
+            foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
     }
 }

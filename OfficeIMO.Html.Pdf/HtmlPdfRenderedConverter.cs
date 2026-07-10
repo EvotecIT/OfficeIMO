@@ -74,7 +74,30 @@ internal static class HtmlPdfRenderedConverter {
             AddImagePattern(canvas, imagePattern);
         } else if (visual is HtmlRenderClipGroup group) {
             AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight);
+        } else if (visual is HtmlRenderEffectGroup effectGroup) {
+            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight);
         }
+    }
+
+    private static void AddEffectGroup(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderEffectGroup group,
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        double surfaceWidth,
+        double surfaceHeight) {
+        OfficeTransform transform = group.Transform;
+        var scaled = new OfficeTransform(
+            transform.M11,
+            transform.M12,
+            transform.M21,
+            transform.M22,
+            transform.OffsetX * PointsPerCssPixel,
+            transform.OffsetY * PointsPerCssPixel);
+        canvas.Effect(scaled, group.Opacity, nested => {
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight);
+            }
+        });
     }
 
     private static void AddClipGroup(
@@ -246,8 +269,11 @@ internal static class HtmlPdfRenderedConverter {
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;
-            if (visual is not HtmlRenderClipGroup group) continue;
-            foreach (HtmlRenderVisual child in EnumerateVisuals(group.Visuals)) yield return child;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
+                ? clipGroup.Visuals
+                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+            if (children == null) continue;
+            foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
     }
 

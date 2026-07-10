@@ -263,6 +263,18 @@ public sealed class PdfPageCanvas {
         return this;
     }
 
+    /// <summary>Adds nested canvas content through one top-left-coordinate affine transform and opacity state.</summary>
+    public PdfPageCanvas Effect(OfficeTransform transform, double opacity, Action<PdfPageCanvas> build) {
+        if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
+            throw new ArgumentOutOfRangeException(nameof(opacity), "Canvas effect opacity must be between zero and one.");
+        }
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, transform, opacity));
+        return this;
+    }
+
     private static OfficeShape CreateRotatedShape(OfficeShape shape, double rotationAngle) {
         if (rotationAngle == 0D) {
             return shape;
@@ -542,4 +554,17 @@ internal sealed class PdfCanvasClipItem : PdfCanvasItem {
     public IReadOnlyList<PdfCanvasItem> Items { get; }
     public double Width { get; }
     public double Height { get; }
+}
+
+internal sealed class PdfCanvasEffectItem : PdfCanvasItem {
+    public PdfCanvasEffectItem(IReadOnlyList<PdfCanvasItem> items, OfficeTransform transform, double opacity)
+        : base(0D, 0D) {
+        Items = items;
+        Transform = transform;
+        Opacity = opacity;
+    }
+
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+    public OfficeTransform Transform { get; }
+    public double Opacity { get; }
 }

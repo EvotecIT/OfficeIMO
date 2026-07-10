@@ -150,6 +150,8 @@ public static partial class HtmlComputedStyleEngine {
         "text-align",
         "text-decoration-line",
         "text-transform",
+        "transform",
+        "transform-origin",
         "top",
         "vertical-align",
         "visibility",

@@ -155,8 +155,22 @@ public static partial class OfficeDrawingSvgExporter {
                 case OfficeDrawingGroup drawingGroup:
                     AppendGroup(sb, drawingGroup, ref gradientId, ref clipPathId);
                     break;
+                case OfficeDrawingEffectGroup effectGroup:
+                    AppendEffectGroup(sb, effectGroup, ref gradientId, ref clipPathId);
+                    break;
             }
         }
+    }
+
+    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, ref int gradientId, ref int clipPathId) {
+        sb.Append("<g")
+            .Append(BuildMatrixTransformAttribute(effectGroup.Transform, 0D, 0D));
+        if (effectGroup.Opacity < 1D) {
+            sb.Append(" opacity=\"").Append(Format(effectGroup.Opacity)).Append('"');
+        }
+        sb.Append('>');
+        AppendElements(sb, effectGroup.InnerDrawing.Elements, ref gradientId, ref clipPathId);
+        sb.Append("</g>");
     }
 
     private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, ref int gradientId, ref int clipPathId) {

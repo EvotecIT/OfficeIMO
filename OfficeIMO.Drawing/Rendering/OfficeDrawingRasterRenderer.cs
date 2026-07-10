@@ -42,6 +42,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 RenderImagePattern(canvas, imagePattern, scale);
             } else if (element is OfficeDrawingGroup drawingGroup) {
                 RenderGroup(canvas, drawingGroup, scale);
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                RenderEffectGroup(canvas, effectGroup, scale);
             }
         }
     }
@@ -366,6 +368,20 @@ public static partial class OfficeDrawingRasterRenderer {
 
             canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
         }
+    }
+
+    private static void RenderEffectGroup(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effectGroup, double scale) {
+        if (effectGroup.Opacity <= 0D) return;
+        OfficeRasterImage layer = Render(effectGroup.InnerDrawing, scale);
+        OfficeTransform transform = effectGroup.Transform;
+        OfficeTransform pixelTransform = new OfficeTransform(
+            transform.M11,
+            transform.M12,
+            transform.M21,
+            transform.M22,
+            transform.OffsetX * scale,
+            transform.OffsetY * scale);
+        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity);
     }
 
     private static OfficeRasterImage ApplyImageOpacity(OfficeRasterImage image, double opacity) {

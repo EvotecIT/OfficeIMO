@@ -273,13 +273,35 @@ internal static partial class PdfWriter {
                 }
             }
 
+            if (page.EffectGroups.Count > 0) {
+                for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
+                    PageEffectGroup effect = page.EffectGroups[effectIndex];
+                    string effectContent = ReplaceInlineImageDrawTokens(effect.Content, page.Images);
+                    effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
+                    byte[] effectBytes = PdfEncoding.Latin1GetBytes(effectContent);
+                    string dictionary = PdfTransparencyGroupDictionaryBuilder.BuildStreamDictionary(
+                        pageOpts.PageWidth,
+                        pageOpts.PageHeight,
+                        effectBytes.Length,
+                        FilterPdfResources(effectContent, fontResources),
+                        FilterPdfResources(effectContent, xobjects),
+                        FilterPdfResources(effectContent, graphicsStates),
+                        FilterPdfResources(effectContent, shadings));
+                    int effectId = AddStreamObject(objects, dictionary, effectBytes);
+                    effect.Name = "/Fx" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
+                    effect.ObjectId = effectId;
+                    xobjects.Add((effect.Name, effectId));
+                }
+            }
+
             string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo);
             string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
             if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
                 string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources);
                 contentStr += WrapArtifactContent(headerContent, markInfo);
             }
-            contentStr += ReplaceInlineImageDrawTokens(page.Content, page.Images);
+            string pageContent = ReplaceInlineImageDrawTokens(page.Content, page.Images);
+            contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
                 foreach (var img in page.Images) {
@@ -525,10 +547,10 @@ internal static partial class PdfWriter {
                     pageOpts.PageWidth,
                     pageOpts.PageHeight,
                     contentId,
-                    fontResources,
-                    xobjects,
-                    graphicsStates,
-                    shadings,
+                    FilterPdfResources(contentStr, fontResources),
+                    FilterPdfResources(contentStr, xobjects),
+                    FilterPdfResources(contentStr, graphicsStates),
+                    FilterPdfResources(contentStr, shadings),
                     pageAnnotIds,
                     page.StructParentIndex,
                     useStructureTabOrder: markInfo));
@@ -675,6 +697,47 @@ internal static partial class PdfWriter {
         }
 
         return result;
+    }
+
+    private static string ReplaceInlineEffectGroupTokens(string content, IReadOnlyList<PageEffectGroup> effects, int availableCount) {
+        if (string.IsNullOrEmpty(content) || effects.Count == 0 || availableCount <= 0) return content;
+        string result = content;
+        int count = Math.Min(availableCount, effects.Count);
+        for (int index = 0; index < count; index++) {
+            PageEffectGroup effect = effects[index];
+            if (effect.ObjectId <= 0 || string.IsNullOrEmpty(effect.Name) || string.IsNullOrEmpty(effect.Token)) continue;
+            var invocation = new StringBuilder();
+            var stream = new ContentStreamBuilder(invocation).SaveState();
+            if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);
+            stream.TransformMatrix(effect.Transform)
+                .XObject(effect.Name)
+                .RestoreState();
+            result = result.Replace(effect.Token, invocation.ToString());
+        }
+        return result;
+    }
+
+    private static List<(string Name, int Id)> FilterPdfResources(
+        string content,
+        List<(string Name, int Id)> resources) {
+        var used = new List<(string Name, int Id)>();
+        if (string.IsNullOrEmpty(content) || resources.Count == 0) return used;
+        for (int index = 0; index < resources.Count; index++) {
+            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+        }
+        return used;
+    }
+
+    private static bool UsesPdfResource(string content, string name) {
+        int searchIndex = 0;
+        while (searchIndex < content.Length) {
+            int index = content.IndexOf(name, searchIndex, StringComparison.Ordinal);
+            if (index < 0) return false;
+            int next = index + name.Length;
+            if (next >= content.Length || char.IsWhiteSpace(content[next])) return true;
+            searchIndex = next;
+        }
+        return false;
     }
 
     private static string BuildPageBackground(LayoutResult.Page page, PdfOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {

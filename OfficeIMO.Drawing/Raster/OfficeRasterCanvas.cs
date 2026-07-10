@@ -640,6 +640,30 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
+    /// <summary>Draws an image through an arbitrary destination-space affine transform.</summary>
+    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) {
+        if (image == null) throw new ArgumentNullException(nameof(image));
+        if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
+            throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
+        }
+        if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
+
+        (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
+        int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
+        int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
+        int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        for (int py = top; py <= bottom; py++) {
+            for (int px = left; px <= right; px++) {
+                OfficePoint source = inverse.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
+                if (source.X < 0D || source.X >= image.Width || source.Y < 0D || source.Y >= image.Height) continue;
+                OfficeColor color = SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D);
+                if (opacity < 1D) color = OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * opacity));
+                BlendPixel(px, py, color);
+            }
+        }
+    }
+
     private void FillContours(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeColor color, OfficeFillRule fillRule) {
         if (color.A == 0 || contours == null || contours.Count == 0) {
             return;

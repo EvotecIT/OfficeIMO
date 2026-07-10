@@ -17,5 +17,8 @@ public enum HtmlRenderVisualKind {
     ImagePattern,
 
     /// <summary>Ordered child visuals clipped as one paint group.</summary>
-    ClipGroup
+    ClipGroup,
+
+    /// <summary>Ordered child visuals painted through an affine transform and isolated opacity.</summary>
+    EffectGroup
 }

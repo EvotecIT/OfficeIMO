@@ -99,6 +99,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageImage> Images { get; } = new();
             public System.Collections.Generic.List<PageGraphicsState> GraphicsStates { get; } = new();
             public System.Collections.Generic.List<PageShading> Shadings { get; } = new();
+            public System.Collections.Generic.List<PageEffectGroup> EffectGroups { get; } = new();
             public System.Collections.Generic.List<PageBookmark> Bookmarks { get; } = new();
             public System.Collections.Generic.List<PageNamedDestination> NamedDestinations { get; } = new();
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
@@ -272,6 +273,15 @@ internal static partial class PdfWriter {
 
             return true;
         }
+    }
+
+    private sealed class PageEffectGroup {
+        public string Content { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
+        public OfficeTransform Transform { get; set; } = OfficeTransform.Identity;
+        public string? GraphicsStateName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int ObjectId { get; set; }
     }
 
     private sealed class OutlineNode {

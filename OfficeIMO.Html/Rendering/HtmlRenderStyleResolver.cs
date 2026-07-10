@@ -352,12 +352,24 @@ internal sealed class HtmlRenderStyleResolver {
         if (background.Length == 0) background = backgroundShorthand;
         if (HtmlRenderCssValues.TryColor(background, out OfficeColor backgroundColor)) style.BackgroundColor = backgroundColor;
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
-        if (double.TryParse(computed.GetValue("opacity"), NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)) {
-            style.Opacity = Math.Max(0D, Math.Min(1D, opacity));
-            style.Color = HtmlRenderCssValues.ApplyOpacity(style.Color, style.Opacity);
-            style.BorderColor = HtmlRenderCssValues.ApplyOpacity(style.BorderColor, style.Opacity);
-            if (style.BackgroundColor.HasValue) style.BackgroundColor = HtmlRenderCssValues.ApplyOpacity(style.BackgroundColor.Value, style.Opacity);
+        ApplyOpacity(computed.GetValue("opacity"), style);
+        style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
+        style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
+    }
+
+    private static void ApplyOpacity(string value, HtmlRenderBoxStyle style) {
+        if (string.IsNullOrWhiteSpace(value)) return;
+        style.OpacityWasSpecified = true;
+        string normalized = value.Trim().ToLowerInvariant();
+        bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        string numberText = percentage ? normalized.Substring(0, normalized.Length - 1) : normalized;
+        if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity)
+            || double.IsNaN(opacity) || double.IsInfinity(opacity)) {
+            style.UnsupportedOpacity = normalized;
+            return;
         }
+        if (percentage) opacity /= 100D;
+        style.Opacity = Math.Max(0D, Math.Min(1D, opacity));
     }
 
     private void ApplyBackgroundLayers(HtmlComputedStyle computed, HtmlRenderBoxStyle style, string backgroundShorthand) {

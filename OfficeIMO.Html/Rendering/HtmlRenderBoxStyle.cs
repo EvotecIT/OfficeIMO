@@ -92,6 +92,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal string OverflowY = "visible";
     internal string UnsupportedOverflowX = string.Empty;
     internal string UnsupportedOverflowY = string.Empty;
+    internal string Transform = "none";
+    internal string TransformOrigin = "50% 50%";
+    internal bool OpacityWasSpecified;
+    internal string UnsupportedOpacity = string.Empty;
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;

@@ -89,6 +89,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        if (style.Display == "inline-block") {
+            AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
+            return;
+        }
         if (style.Display == "inline-flex") {
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
@@ -97,6 +101,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
+
+        ReportUnsupportedInlinePaintEffects(element, style);
 
         ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double elementPaintOffsetX, out double elementPaintOffsetY);
         double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;

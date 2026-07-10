@@ -446,6 +446,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            if (visual is HtmlRenderEffectGroup effectGroup) {
+                IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, start, end);
+                if (children.Count > 0) {
+                    double translatedY = -start;
+                    OfficeTransform transform = OfficeTransform.Translate(0D, -translatedY)
+                        .Then(effectGroup.Transform)
+                        .Then(OfficeTransform.Translate(0D, translatedY));
+                    fragment.Add(new HtmlRenderEffectGroup(
+                        effectGroup.X,
+                        effectGroup.Y - start,
+                        effectGroup.Width,
+                        Math.Max(0.01D, intersectionBottom - intersectionTop),
+                        transform,
+                        effectGroup.Opacity,
+                        children,
+                        fragment.Count,
+                        effectGroup.Source,
+                        Math.Max(start, effectGroup.LayoutY) - start));
+                }
+                continue;
+            }
+
             if (visual is HtmlRenderShape shape
                 && (shape.Shape.Kind == OfficeShapeKind.Rectangle || shape.Shape.Kind == OfficeShapeKind.RoundedRectangle)) {
                 OfficeShape sliced = shape.Shape.Clone();

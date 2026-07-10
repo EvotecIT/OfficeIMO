@@ -81,7 +81,23 @@ public sealed class HtmlRenderPage {
                 imagePattern.MaximumTileCount);
         } else if (visual is HtmlRenderClipGroup group) {
             AddClipGroup(drawing, group, surfaceWidth, surfaceHeight, fonts);
+        } else if (visual is HtmlRenderEffectGroup effectGroup) {
+            AddEffectGroup(drawing, effectGroup, surfaceWidth, surfaceHeight, fonts);
         }
+    }
+
+    private static void AddEffectGroup(
+        OfficeDrawing drawing,
+        HtmlRenderEffectGroup group,
+        double surfaceWidth,
+        double surfaceHeight,
+        OfficeFontFaceCollection fonts) {
+        double nestedWidth = Math.Max(surfaceWidth, MaximumRight(group.Visuals));
+        double nestedHeight = Math.Max(surfaceHeight, MaximumBottom(group.Visuals));
+        var nested = new OfficeDrawing(Math.Max(0.01D, nestedWidth), Math.Max(0.01D, nestedHeight));
+        nested.Fonts.AddRange(fonts);
+        foreach (HtmlRenderVisual child in group.Visuals) AddVisual(nested, child, nested.Width, nested.Height, fonts);
+        drawing.AddEffectDrawing(nested, group.Transform, group.Opacity);
     }
 
     private static void AddClipGroup(
@@ -111,16 +127,20 @@ public sealed class HtmlRenderPage {
     }
 
     private static double MaximumRight(IEnumerable<HtmlRenderVisual> visuals) => visuals
-        .Select(visual => visual is HtmlRenderClipGroup group
-            ? Math.Max(visual.X + visual.Width, MaximumRight(group.Visuals))
-            : visual.X + visual.Width)
+        .Select(visual => visual is HtmlRenderClipGroup clipGroup
+            ? Math.Max(visual.X + visual.Width, MaximumRight(clipGroup.Visuals))
+            : visual is HtmlRenderEffectGroup effectGroup
+                ? Math.Max(visual.X + visual.Width, MaximumRight(effectGroup.Visuals))
+                : visual.X + visual.Width)
         .DefaultIfEmpty(0.01D)
         .Max();
 
     private static double MaximumBottom(IEnumerable<HtmlRenderVisual> visuals) => visuals
-        .Select(visual => visual is HtmlRenderClipGroup group
-            ? Math.Max(visual.Y + visual.Height, MaximumBottom(group.Visuals))
-            : visual.Y + visual.Height)
+        .Select(visual => visual is HtmlRenderClipGroup clipGroup
+            ? Math.Max(visual.Y + visual.Height, MaximumBottom(clipGroup.Visuals))
+            : visual is HtmlRenderEffectGroup effectGroup
+                ? Math.Max(visual.Y + visual.Height, MaximumBottom(effectGroup.Visuals))
+                : visual.Y + visual.Height)
         .DefaultIfEmpty(0.01D)
         .Max();
 }

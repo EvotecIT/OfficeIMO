@@ -221,6 +221,14 @@ public sealed partial class OfficeDrawing {
         return AddDrawingCore(drawing, x, y, frameTransform);
     }
 
+    /// <summary>Adds another drawing as one affine-transformed, isolated opacity group.</summary>
+    public OfficeDrawing AddEffectDrawing(OfficeDrawing drawing, OfficeTransform transform, double opacity = 1D) {
+        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        Fonts.AddRange(drawing.Fonts);
+        _elements.Add(new OfficeDrawingEffectGroup(drawing, transform, opacity));
+        return this;
+    }
+
     /// <summary>Adds another drawing as a clipped nested group at a local destination offset.</summary>
     public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath) {
         return AddClippedDrawingCore(drawing, x, y, clipPath, 0D, 0D, null);
@@ -298,6 +306,12 @@ public sealed partial class OfficeDrawing {
                 AddNestedImage(image, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingImagePattern imagePattern) {
                 AddNestedImagePattern(imagePattern, x, y, frameTransform, allowOverflow);
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                OfficeTransform translatedTransform = effectGroup.Transform.Then(OfficeTransform.Translate(x, y));
+                if (frameTransform.HasValue && frameTransform.Value.HasTransform) {
+                    translatedTransform = translatedTransform.Then(frameTransform.Value.CreateDestinationTransform());
+                }
+                AddEffectDrawing(effectGroup.InnerDrawing, translatedTransform, effectGroup.Opacity);
             } else if (element is OfficeDrawingGroup group) {
                 AddNestedGroup(group, x, y, frameTransform, allowOverflow);
             }
@@ -538,6 +552,8 @@ public sealed partial class OfficeDrawing {
     private static bool ContainsImagePattern(OfficeDrawing drawing) {
         for (int index = 0; index < drawing.Elements.Count; index++) {
             if (drawing.Elements[index] is OfficeDrawingImagePattern) return true;
+            if (drawing.Elements[index] is OfficeDrawingGroup group && ContainsImagePattern(group.InnerDrawing)) return true;
+            if (drawing.Elements[index] is OfficeDrawingEffectGroup effectGroup && ContainsImagePattern(effectGroup.InnerDrawing)) return true;
         }
 
         return false;
