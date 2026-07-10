@@ -67,18 +67,15 @@ public static partial class DocumentReaderHtmlExtensions {
         HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
         string projectedHtml = html;
-        HtmlLogicalDocument logical;
         ReaderHtmlOptions chunkHtmlOptions = effectiveHtmlOptions;
+        var filtered = new HtmlToMarkdownConverter().ParseFilteredDocument(html, projectionOptions);
+        projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
+        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
         if (hasProjectionFilters) {
-            var filtered = new HtmlToMarkdownConverter().ParseFilteredDocument(html, projectionOptions);
-            projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
-            logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
             projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
             chunkHtmlOptions = effectiveHtmlOptions.Clone();
             chunkHtmlOptions.HtmlToMarkdownOptions?.ExcludeSelectors.Clear();
             chunkHtmlOptions.HtmlToMarkdownOptions?.ElementFilters.Clear();
-        } else {
-            logical = HtmlLogicalDocumentBuilder.FromHtml(html, useBodyContentsOnly: false);
         }
         ReaderChunk[] chunks = ReadHtmlString(projectedHtml, source, readerOptions, chunkHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
@@ -262,6 +259,9 @@ public static partial class DocumentReaderHtmlExtensions {
     private static OfficeDocumentFormField MapHtmlFormControl(HtmlLogicalNode node, string? path, int index) {
         node.Attributes.TryGetValue("name", out string? name);
         bool hasValue = node.Attributes.TryGetValue("value", out string? value);
+        string kind = node.Attributes.TryGetValue("type", out string? type) && !string.IsNullOrWhiteSpace(type)
+            ? type
+            : node.Name;
         if (!hasValue && string.Equals(node.Name, "textarea", StringComparison.OrdinalIgnoreCase)) {
             value = GetHtmlNodeText(node);
         } else if (!hasValue && string.Equals(node.Name, "select", StringComparison.OrdinalIgnoreCase)) {
@@ -273,11 +273,17 @@ public static partial class DocumentReaderHtmlExtensions {
                     ? optionValue
                     : GetHtmlNodeText(option)));
         }
+        if (string.Equals(kind, "checkbox", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(kind, "radio", StringComparison.OrdinalIgnoreCase)) {
+            value = node.Attributes.ContainsKey("checked")
+                ? hasValue ? value : "on"
+                : null;
+        }
         string id = "html-form-" + index.ToString("D4", CultureInfo.InvariantCulture);
         return new OfficeDocumentFormField {
             Id = id,
             Name = name,
-            Kind = node.Attributes.TryGetValue("type", out string? type) && !string.IsNullOrWhiteSpace(type) ? type : node.Name,
+            Kind = kind,
             Value = value,
             IsReadOnly = node.Attributes.ContainsKey("readonly") || node.Attributes.ContainsKey("disabled"),
             IsRequired = node.Attributes.ContainsKey("required"),

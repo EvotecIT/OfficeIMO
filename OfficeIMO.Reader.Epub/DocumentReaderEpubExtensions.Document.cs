@@ -71,6 +71,7 @@ public static partial class DocumentReaderEpubExtensions {
                     virtualPath,
                     readerOptions,
                     cancellationToken: cancellationToken);
+                ResolveEpubChapterLinks(source.Path, chapter.Path, htmlResult.Links);
                 string prefix = "epub-chapter-" + (chapterIndex + 1).ToString("D4", CultureInfo.InvariantCulture) + "-";
                 PrefixHtmlProjection(prefix, htmlResult, ref tableIndex);
                 chapterBlocks.AddRange(htmlResult.Blocks);
@@ -222,6 +223,7 @@ public static partial class DocumentReaderEpubExtensions {
         if (fragmentIndex >= 0) candidate = candidate.Substring(0, fragmentIndex);
         if (candidate.Length == 0
             || candidate.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || candidate.StartsWith("//", StringComparison.Ordinal)
             || Uri.TryCreate(candidate, UriKind.Absolute, out _)) {
             return null;
         }
@@ -252,6 +254,21 @@ public static partial class DocumentReaderEpubExtensions {
             }
         }
         return segments.Count == 0 ? null : string.Join("/", segments);
+    }
+
+    private static void ResolveEpubChapterLinks(
+        string sourcePath,
+        string chapterPath,
+        IReadOnlyList<OfficeDocumentLink> links) {
+        foreach (OfficeDocumentLink link in links) {
+            if (string.IsNullOrWhiteSpace(link.Uri)) continue;
+            string rawUri = link.Uri!.Trim();
+            string? resourcePath = ResolveEpubResourcePath(chapterPath, rawUri);
+            if (resourcePath == null) continue;
+            int suffixIndex = rawUri.IndexOfAny(new[] { '?', '#' });
+            string suffix = suffixIndex < 0 ? string.Empty : rawUri.Substring(suffixIndex);
+            link.Uri = BuildVirtualPath(sourcePath, resourcePath) + suffix;
+        }
     }
 
     private static void PrefixHtmlProjection(string prefix, OfficeDocumentReadResult result, ref int tableIndex) {

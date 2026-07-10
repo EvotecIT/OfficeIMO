@@ -28,6 +28,9 @@ public sealed class ReaderEpubModularTests {
             Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Text == "Two");
             Assert.Contains(result.Tables, table => table.Kind == "html-table" && table.Rows.Any(row => row.Contains("2")));
             Assert.Contains(result.Links, link => link.Uri == "https://example.test/chapter-two" && link.Text == "details");
+            Assert.Equal(
+                result.Source.Path + "::OEBPS/chapter2.xhtml#details",
+                Assert.Single(result.Links, link => link.Text == "next chapter").Uri);
             OfficeDocumentAsset asset = Assert.Single(result.Assets, item => item.MediaType == "image/png");
             Assert.NotNull(asset.PayloadBytes);
             Assert.True(asset.PayloadHashMatches(out _));
@@ -490,6 +493,7 @@ public sealed class ReaderEpubModularTests {
         WriteTextEntry(archive, "OEBPS/chapter1.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local One</title></head><body><h1>One</h1><p>First chapter text.</p>" +
+            "<p><a href=\"chapter2.xhtml#details\">next chapter</a></p>" +
             "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/></body></html>");
 
         WriteTextEntry(archive, "OEBPS/chapter2.xhtml",

@@ -57,6 +57,29 @@ public sealed class ReaderHtmlModularTests {
         Assert.DoesNotContain(result.Links, item => item.Uri?.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_ResolvesDocumentBaseUriWithoutFilters() {
+        const string html = "<html><head><base href=\"https://example.test/docs/\"></head>"
+            + "<body><a href=\"guide.html\">Guide</a></body></html>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "guide.html");
+
+        Assert.Equal("https://example.test/docs/guide.html", Assert.Single(result.Links).Uri);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_RejectsOversizedInputBeforeLogicalProjection() {
+        const string html = "<p>This input exceeds its configured bound.</p>";
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+                html,
+                "bounded-rich.html",
+                htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(12)));
+
+        Assert.Contains("MaxInputCharacters", exception.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(HtmlBase64ImageHandling.Skip)]
     [InlineData(HtmlBase64ImageHandling.SaveToFile)]
@@ -146,6 +169,23 @@ public sealed class ReaderHtmlModularTests {
         Assert.Equal("status", form.Name);
         Assert.Equal("select", form.Kind);
         Assert.Equal("approved", form.Value);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_PreservesCheckedStateForCheckboxesAndRadios() {
+        const string html = "<form>"
+            + "<input type=\"checkbox\" name=\"unchecked\" value=\"yes\">"
+            + "<input type=\"checkbox\" name=\"checked\" value=\"yes\" checked>"
+            + "<input type=\"radio\" name=\"choice\" value=\"a\">"
+            + "<input type=\"radio\" name=\"choice\" value=\"b\" checked>"
+            + "</form>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "controls.html");
+
+        Assert.Null(Assert.Single(result.Forms, form => form.Name == "unchecked").Value);
+        Assert.Equal("yes", Assert.Single(result.Forms, form => form.Name == "checked").Value);
+        Assert.Null(result.Forms.Single(form => form.Kind == "radio" && form.Value == null).Value);
+        Assert.Equal("b", Assert.Single(result.Forms, form => form.Kind == "radio" && form.Value != null).Value);
     }
 
     [Fact]
