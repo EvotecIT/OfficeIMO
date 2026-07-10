@@ -53,6 +53,7 @@ Built-in and modular adapters can extract:
 - Excel (`.xlsx`, `.xlsm`, `.xls`) as table chunks and optional Markdown previews.
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
+- EML/MIME, Outlook MSG/MAPI, TNEF/`winmail.dat`, and mbox as message, body, attachment, and embedded-item chunks. Rich results include attachment assets and typed Outlook metadata.
 - PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
 
 ## Modular adapters
@@ -166,6 +167,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 ## Related packages
 
+- [OfficeIMO.Email](../OfficeIMO.Email/README.md)
 - [OfficeIMO.Reader.Pdf](../OfficeIMO.Reader.Pdf/README.md)
 - [OfficeIMO.Reader.Rtf](../OfficeIMO.Reader.Rtf/README.md)
 - [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
