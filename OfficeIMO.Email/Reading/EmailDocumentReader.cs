@@ -1,3 +1,5 @@
+using OfficeIMO.Shared;
+
 namespace OfficeIMO.Email;
 
 /// <summary>Reads bounded email and Outlook artifacts into the shared <see cref="EmailDocument"/> model.</summary>
@@ -56,7 +58,12 @@ public sealed class EmailDocumentReader {
     /// <summary>Detects the artifact format from content rather than the filename.</summary>
     public static EmailFileFormat DetectFormat(byte[] data) {
         if (data == null) throw new ArgumentNullException(nameof(data));
-        if (StartsWith(data, CompoundSignature)) return EmailFileFormat.OutlookMsg;
+        if (StartsWith(data, CompoundSignature)) {
+            return OfficeCompoundFileReader.TryRead(data, out OfficeCompoundFile? compound, out _) &&
+                compound != null && compound.Streams.ContainsKey("__properties_version1.0")
+                ? EmailFileFormat.OutlookMsg
+                : EmailFileFormat.Unknown;
+        }
         if (StartsWith(data, TnefSignature)) return EmailFileFormat.Tnef;
         if (data.Length >= 5 && data[0] == 'F' && data[1] == 'r' && data[2] == 'o' && data[3] == 'm' && data[4] == ' ') {
             return EmailFileFormat.Mbox;

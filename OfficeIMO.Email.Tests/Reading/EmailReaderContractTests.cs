@@ -4,11 +4,14 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailReaderContractTests {
-    [Theory]
-    [InlineData(new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }, EmailFileFormat.OutlookMsg)]
-    [InlineData(new byte[] { 0x78, 0x9F, 0x3E, 0x22 }, EmailFileFormat.Tnef)]
-    public void DetectsBinaryFormatsFromSignatures(byte[] data, EmailFileFormat expected) {
-        Assert.Equal(expected, EmailDocumentReader.DetectFormat(data));
+    [Fact]
+    public void DetectsTnefAndRequiresMsgDirectoryContractForCompoundFiles() {
+        Assert.Equal(EmailFileFormat.Tnef, EmailDocumentReader.DetectFormat(new byte[] { 0x78, 0x9F, 0x3E, 0x22 }));
+        Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(
+            new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }));
+        EmailDocument msg = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "detect" };
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(msg, EmailFileFormat.OutlookMsg);
+        Assert.Equal(EmailFileFormat.OutlookMsg, EmailDocumentReader.DetectFormat(bytes));
     }
 
     [Fact]
