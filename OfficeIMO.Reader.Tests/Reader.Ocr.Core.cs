@@ -112,6 +112,57 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
+    public async Task ApplyOcrAsync_EnforcesTimeoutWhenEngineIgnoresCancellation() {
+        OfficeDocumentReadResult source = CreateDocument(1);
+        var completion = new TaskCompletionSource<OfficeOcrEngineResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var engine = new DelegateOfficeOcrEngine(
+            "non-cooperative-fixture",
+            (_, _) => new ValueTask<OfficeOcrEngineResult>(completion.Task));
+
+        try {
+            Task<OfficeDocumentOcrExecutionResult> executionTask = source.ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
+                CandidateTimeout = TimeSpan.FromMilliseconds(20),
+                ContinueOnError = true
+            });
+            Task completed = await Task.WhenAny(executionTask, Task.Delay(TimeSpan.FromSeconds(2)));
+
+            Assert.Same(executionTask, completed);
+            OfficeDocumentOcrExecutionResult execution = await executionTask;
+            Assert.Equal(1, execution.Report.FailedCandidateCount);
+            Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-engine-timeout");
+        } finally {
+            completion.TrySetResult(new OfficeOcrEngineResult { Text = "late" });
+        }
+    }
+
+    [Fact]
+    public async Task ApplyOcrAsync_RemovesNonFiniteConfidenceAndNullProviderDiagnostics() {
+        OfficeDocumentReadResult source = CreateDocument(1);
+        var engine = new DelegateOfficeOcrEngine("permissive-fixture", (_, _) => new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult {
+            Text = "recognized",
+            Confidence = double.NaN,
+            Spans = new[] {
+                new OfficeOcrTextSpan { Sequence = 0, Level = OfficeOcrTextSpanLevel.Word, Text = "recognized", Confidence = double.PositiveInfinity }
+            },
+            Diagnostics = new OfficeDocumentDiagnostic[] {
+                null!,
+                new OfficeDocumentDiagnostic { Code = "provider-warning", Message = "Provider warning." }
+            }
+        }));
+
+        OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(engine);
+
+        OfficeOcrEngineResult result = Assert.Single(execution.Recognitions).Result;
+        Assert.Null(result.Confidence);
+        Assert.Null(Assert.Single(result.Spans).Confidence);
+        OfficeDocumentDiagnostic providerDiagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(OfficeDocumentDiagnosticCategory.Ocr, providerDiagnostic.Category);
+        Assert.Equal("permissive-fixture", providerDiagnostic.Source);
+        Assert.NotNull(providerDiagnostic.Location);
+        Assert.Single(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-confidence-out-of-range");
+    }
+
+    [Fact]
     public async Task ApplyOcrAsync_SerializesConcurrentExecutionsForNonConcurrentEngineInstance() {
         var engine = new RecordingOcrEngine(supportsConcurrentRequests: false);
 

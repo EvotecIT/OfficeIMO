@@ -90,11 +90,23 @@ public static class ProcessOfficeOcrProtocol {
     /// <summary>Deserializes an engine result from the process response file.</summary>
     public static OfficeOcrEngineResult DeserializeResult(string json) {
         if (json == null) throw new ArgumentNullException(nameof(json));
+        using (JsonDocument document = JsonDocument.Parse(json)) {
+            if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException("OCR process response must be a JSON object.");
+            if (!HasProperty(document.RootElement, "schemaId")) throw new InvalidDataException("OCR process response did not contain schemaId.");
+            if (!HasProperty(document.RootElement, "schemaVersion")) throw new InvalidDataException("OCR process response did not contain schemaVersion.");
+        }
         ProcessOfficeOcrResponse? response = JsonSerializer.Deserialize<ProcessOfficeOcrResponse>(json, JsonOptions);
         if (response == null) throw new InvalidDataException("OCR process response was empty.");
         if (!string.Equals(response.SchemaId, ResponseSchemaId, StringComparison.Ordinal)) throw new InvalidDataException("OCR process response schema id is not supported.");
         if (response.SchemaVersion != Version) throw new InvalidDataException("OCR process response schema version is not supported.");
         return response.Result ?? throw new InvalidDataException("OCR process response did not contain an engine result.");
+    }
+
+    private static bool HasProperty(JsonElement element, string name) {
+        foreach (JsonProperty property in element.EnumerateObject()) {
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     private static JsonSerializerOptions CreateOptions() {

@@ -140,21 +140,29 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             };
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(options.CandidateTimeout);
+            Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
-                OfficeOcrEngineResult result = await engine.RecognizeAsync(request, timeout.Token).ConfigureAwait(false);
+                recognitionTask = engine.RecognizeAsync(request, timeout.Token).AsTask();
+                OfficeOcrEngineResult result = await WaitWithCancellationAsync(recognitionTask, timeout.Token).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
-            } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested && options.ContinueOnError) {
-                return CandidateOutcome.Failure(job, BuildDiagnostic(
-                    job.Candidate,
-                    job.Asset,
-                    engine.Id,
-                    OfficeDocumentDiagnosticSeverity.Error,
-                    OfficeDocumentDiagnosticCategory.Ocr,
-                    "ocr-engine-timeout",
-                    "OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").",
-                    true));
-            } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
-                throw new TimeoutException("OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").");
+            } catch (OperationCanceledException) {
+                ObserveBackgroundFailure(recognitionTask);
+                if (cancellationToken.IsCancellationRequested) throw;
+                if (timeout.IsCancellationRequested && options.ContinueOnError) {
+                    return CandidateOutcome.Failure(job, BuildDiagnostic(
+                        job.Candidate,
+                        job.Asset,
+                        engine.Id,
+                        OfficeDocumentDiagnosticSeverity.Error,
+                        OfficeDocumentDiagnosticCategory.Ocr,
+                        "ocr-engine-timeout",
+                        "OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").",
+                        true));
+                }
+                if (timeout.IsCancellationRequested) {
+                    throw new TimeoutException("OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").");
+                }
+                throw;
             }
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
@@ -172,6 +180,29 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         } finally {
             gate.Release();
         }
+    }
+
+    private static async Task<T> WaitWithCancellationAsync<T>(Task<T> operation, CancellationToken cancellationToken) {
+        if (operation.IsCompleted) return await operation.ConfigureAwait(false);
+        var cancellation = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(() => cancellation.TrySetResult(null))) {
+            Task completed = await Task.WhenAny(operation, cancellation.Task).ConfigureAwait(false);
+            if (completed != operation) throw new OperationCanceledException(cancellationToken);
+        }
+        return await operation.ConfigureAwait(false);
+    }
+
+    private static void ObserveBackgroundFailure(Task? operation) {
+        if (operation == null) return;
+        if (operation.IsCompleted) {
+            _ = operation.Exception;
+            return;
+        }
+        _ = operation.ContinueWith(
+            static completed => { _ = completed.Exception; },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
     }
 
     private static IReadOnlyList<string> AppendCapabilities(IReadOnlyList<string>? existing, string engineId) {

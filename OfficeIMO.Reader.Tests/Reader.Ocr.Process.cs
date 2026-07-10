@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Ocr.Process;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Xunit;
@@ -14,6 +15,15 @@ public sealed class ReaderOcrProcessTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ProcessOfficeOcrProtocol.DeserializeResult(json));
 
         Assert.Contains("version", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("{\"schemaVersion\":1,\"result\":{\"text\":\"unversioned\"}}", "schemaId")]
+    [InlineData("{\"schemaId\":\"officeimo.reader.ocr.process-response\",\"result\":{\"text\":\"unversioned\"}}", "schemaVersion")]
+    public void ProcessOfficeOcrProtocol_RejectsMissingResponseSchemaFields(string json, string field) {
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ProcessOfficeOcrProtocol.DeserializeResult(json));
+
+        Assert.Contains(field, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -34,6 +44,28 @@ public sealed class ReaderOcrProcessTests {
             Assert.Equal(0, result.ExitCode);
             Assert.Equal("12345", result.StandardOutput);
             Assert.True(result.StandardOutputTruncated);
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task OfficeOcrProcessRunner_KeepsTimeoutActiveWhileDrainingInheritedPipes() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-runner-pipe-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string scriptPath = Path.Combine(directory, "inherited-pipe.sh");
+            File.WriteAllText(scriptPath, "(trap '' HUP; sleep 2) &\nexit 0\n");
+            var stopwatch = Stopwatch.StartNew();
+
+            await Assert.ThrowsAsync<TimeoutException>(() => OfficeOcrProcessRunner.RunAsync(new OfficeOcrProcessCommand {
+                FileName = "/bin/sh",
+                Arguments = new[] { scriptPath },
+                Timeout = TimeSpan.FromMilliseconds(100)
+            }));
+
+            Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(1.5), "The process runner waited for inherited pipe handles after its timeout.");
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }

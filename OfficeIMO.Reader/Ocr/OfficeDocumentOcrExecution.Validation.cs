@@ -163,10 +163,12 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         result.Spans = spans;
         if (adjustedConfidence) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
-                "ocr-confidence-out-of-range", "One or more OCR confidence values were outside the normalized 0 through 1 range and were clamped.", true));
+                "ocr-confidence-out-of-range", "One or more OCR confidence values were normalized; non-finite values were removed and out-of-range values were clamped.", true));
         }
 
-        OfficeDocumentDiagnostic[] providerDiagnostics = (result.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>()).ToArray();
+        OfficeDocumentDiagnostic[] providerDiagnostics = (result.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>())
+            .Where(static diagnostic => diagnostic != null)
+            .ToArray();
         foreach (OfficeDocumentDiagnostic diagnostic in providerDiagnostics) {
             if (diagnostic.Category == OfficeDocumentDiagnosticCategory.General) diagnostic.Category = OfficeDocumentDiagnosticCategory.Ocr;
             if (string.IsNullOrWhiteSpace(diagnostic.Source)) diagnostic.Source = engineId;
@@ -176,7 +178,12 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
     }
 
     private static double? NormalizeConfidence(double? value, ref bool adjusted) {
-        if (!value.HasValue || (value.Value >= 0D && value.Value <= 1D)) return value;
+        if (!value.HasValue) return null;
+        if (double.IsNaN(value.Value) || double.IsInfinity(value.Value)) {
+            adjusted = true;
+            return null;
+        }
+        if (value.Value >= 0D && value.Value <= 1D) return value;
         adjusted = true;
         return value.Value < 0D ? 0D : 1D;
     }

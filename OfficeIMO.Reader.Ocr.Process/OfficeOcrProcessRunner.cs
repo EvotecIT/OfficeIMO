@@ -76,22 +76,54 @@ public static class OfficeOcrProcessRunner {
         Task<BoundedText> errorTask = ReadBoundedAsync(process.StandardError, command.MaxStandardErrorCharacters);
         try {
             await WaitForExitAsync(process, linked.Token).ConfigureAwait(false);
+            BoundedText[] streams = await WaitWithCancellationAsync(Task.WhenAll(outputTask, errorTask), linked.Token).ConfigureAwait(false);
+            return new OfficeOcrProcessResult {
+                ExitCode = process.ExitCode,
+                StandardOutput = streams[0].Text,
+                StandardError = streams[1].Text,
+                StandardOutputTruncated = streams[0].Truncated,
+                StandardErrorTruncated = streams[1].Truncated
+            };
         } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
             TryKill(process);
+            CloseRedirectedStreams(process);
+            ObserveReadFailure(outputTask);
+            ObserveReadFailure(errorTask);
             throw new TimeoutException("OCR process exceeded timeout " + command.Timeout + ".");
         } catch {
             TryKill(process);
+            CloseRedirectedStreams(process);
+            ObserveReadFailure(outputTask);
+            ObserveReadFailure(errorTask);
             throw;
         }
+    }
 
-        BoundedText[] streams = await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
-        return new OfficeOcrProcessResult {
-            ExitCode = process.ExitCode,
-            StandardOutput = streams[0].Text,
-            StandardError = streams[1].Text,
-            StandardOutputTruncated = streams[0].Truncated,
-            StandardErrorTruncated = streams[1].Truncated
-        };
+    private static async Task<T> WaitWithCancellationAsync<T>(Task<T> operation, CancellationToken cancellationToken) {
+        if (operation.IsCompleted) return await operation.ConfigureAwait(false);
+        var cancellation = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(() => cancellation.TrySetResult(null))) {
+            Task completed = await Task.WhenAny(operation, cancellation.Task).ConfigureAwait(false);
+            if (completed != operation) throw new OperationCanceledException(cancellationToken);
+        }
+        return await operation.ConfigureAwait(false);
+    }
+
+    private static void CloseRedirectedStreams(System.Diagnostics.Process process) {
+        try { process.StandardOutput.Dispose(); } catch (InvalidOperationException) { }
+        try { process.StandardError.Dispose(); } catch (InvalidOperationException) { }
+    }
+
+    private static void ObserveReadFailure(Task operation) {
+        if (operation.IsCompleted) {
+            _ = operation.Exception;
+            return;
+        }
+        _ = operation.ContinueWith(
+            static completed => { _ = completed.Exception; },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
     }
 
     private static async Task<BoundedText> ReadBoundedAsync(TextReader reader, int maxCharacters) {
