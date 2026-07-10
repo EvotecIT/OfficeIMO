@@ -300,6 +300,75 @@ public sealed class OfficeDocumentReader {
     }
 
     /// <summary>
+    /// Detects a file kind from extension and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public ReaderDetectionResult Detect(string path, ReaderDetectionOptions? options = null) {
+        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            return DocumentReader.Detect(path, options);
+        }
+    }
+
+    /// <summary>
+    /// Detects a stream kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public ReaderDetectionResult Detect(
+        Stream stream,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null) {
+        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            return DocumentReader.Detect(stream, sourceName, options);
+        }
+    }
+
+    /// <summary>
+    /// Detects a byte payload kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public ReaderDetectionResult Detect(
+        byte[] bytes,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null) {
+        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            return DocumentReader.Detect(bytes, sourceName, options);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously detects a file kind from extension and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public Task<ReaderDetectionResult> DetectAsync(
+        string path,
+        ReaderDetectionOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteAsync(() => DocumentReader.DetectAsync(path, options, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously detects a stream kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public Task<ReaderDetectionResult> DetectAsync(
+        Stream stream,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteAsync(
+            () => DocumentReader.DetectAsync(stream, sourceName, options, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously detects a byte payload kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public Task<ReaderDetectionResult> DetectAsync(
+        byte[] bytes,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteAsync(
+            () => DocumentReader.DetectAsync(bytes, sourceName, options, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>
     /// Lists capabilities visible to this reader instance.
     /// </summary>
     public IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {

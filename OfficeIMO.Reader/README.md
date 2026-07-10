@@ -115,6 +115,29 @@ IReadOnlyList<OfficeDocumentReadResult> documents = await reader.ReadDocumentsAs
 
 `ReadDocumentsAsync(...)` starts no more than the configured degree of parallelism, rejects input beyond `MaxDocuments`, cancels sibling workers after a failure, and returns results in the same order as the input paths. Handlers can provide `ReadDocumentPathAsync` or `ReadDocumentStreamAsync` for native asynchronous work. Existing synchronous format engines remain compatible and are scheduled through the instance's bounded worker gate.
 
+## Content detection and structured diagnostics
+
+`Detect(...)` and `DetectAsync(...)` report extension and content evidence without reducing the answer to one opaque enum:
+
+```csharp
+ReaderDetectionResult detection = reader.Detect(@"C:\Inbox\upload.bin");
+
+Console.WriteLine($"Selected: {detection.Kind}");
+Console.WriteLine($"Extension: {detection.ExtensionKind}");
+Console.WriteLine($"Content: {detection.ContentKind} ({detection.ContentConfidence})");
+Console.WriteLine(string.Join(", ", detection.Evidence));
+```
+
+Standalone detection prefers medium- or high-confidence content evidence. Normal reads use `ContentWhenUnknown` by default, which preserves known-extension behavior while identifying unknown uploads. Opt into mislabeled-file routing when needed:
+
+```csharp
+OfficeDocumentReadResult result = reader.ReadDocument(
+    @"C:\Inbox\actually-markdown.txt",
+    new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+```
+
+Seekable stream probes restore the original position. Prefix probing is capped at 4 MiB, and ZIP-based Office/Visio/EPUB inspection walks at most 4,096 local entries without decompressing archive payloads. Detection mismatches, detected unknown inputs, parser failures, limits, truncation, unsupported content, read failures, and OCR readiness are exposed through `OfficeDocumentDiagnostic` with stable `Category`, `Code`, `Source`, `IsRecoverable`, and `Attributes` fields.
+
 ## Host examples
 
 ### Capability discovery
@@ -181,6 +204,8 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `OfficeDocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose the frozen configuration of that reader instance.
 - Capability records distinguish basic path/stream support from native rich-result support through `SupportsDocumentPath` and `SupportsDocumentStream`.
 - `SupportsAsyncPath` and `SupportsAsyncStream` identify handlers with native asynchronous delegates; false means the async facade uses the bounded synchronous fallback.
+- `DocumentReader.Detect(...)` / `DetectAsync(...)` and `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
+- `OfficeDocumentDiagnostic` carries stable categories, codes, sources, recoverability, and attributes so hosts do not need to parse warning text.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 

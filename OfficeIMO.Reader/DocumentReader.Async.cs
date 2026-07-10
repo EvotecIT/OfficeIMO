@@ -22,8 +22,9 @@ public static partial class DocumentReader {
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
 
-        if (TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler) &&
-            handler.ReadDocumentPathAsync != null) {
+        HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
+        if (resolution.Handler?.ReadDocumentPathAsync != null) {
+            ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
             EnforceFileSize(path, opt.MaxInputBytes);
             SourceInfo source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
@@ -50,30 +51,35 @@ public static partial class DocumentReader {
         ReaderOptions opt = NormalizeOptions(options);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
 
-        if (TryResolveCustomHandlerBySourceName(logicalSourceName, out ReaderHandlerDescriptor handler) &&
-            handler.ReadDocumentStreamAsync != null) {
-            cancellationToken.ThrowIfCancellationRequested();
-            Stream handlerStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
-                stream,
-                opt.MaxInputBytes,
+        cancellationToken.ThrowIfCancellationRequested();
+        Stream readStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
+            stream,
+            opt.MaxInputBytes,
+            cancellationToken).ConfigureAwait(false);
+        bool ownsReadStream = !ReferenceEquals(readStream, stream);
+        try {
+            HandlerDetectionResolution resolution = await ResolveStreamHandlerAsync(
+                readStream,
+                logicalSourceName,
+                opt,
                 cancellationToken).ConfigureAwait(false);
-            bool ownsHandlerStream = !ReferenceEquals(handlerStream, stream);
-            try {
-                SourceInfo source = BuildSourceInfoFromStream(handlerStream, logicalSourceName, opt.ComputeHashes);
+            if (resolution.Handler?.ReadDocumentStreamAsync != null) {
+                ReaderHandlerDescriptor handler = resolution.Handler;
+                SourceInfo source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
                 OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
-                    handler.ReadDocumentStreamAsync(handlerStream, logicalSourceName, opt, cancellationToken),
+                    handler.ReadDocumentStreamAsync(readStream, logicalSourceName, opt, cancellationToken),
                     handler.Id).ConfigureAwait(false);
                 return EnrichChunks(result.Chunks, source, opt.ComputeHashes, cancellationToken);
-            } finally {
-                if (ownsHandlerStream) {
-                    handlerStream.Dispose();
-                }
+            }
+
+            return await Task.Run<IReadOnlyList<ReaderChunk>>(
+                () => Read(readStream, logicalSourceName, opt, cancellationToken).ToArray(),
+                cancellationToken).ConfigureAwait(false);
+        } finally {
+            if (ownsReadStream) {
+                readStream.Dispose();
             }
         }
-
-        return await Task.Run<IReadOnlyList<ReaderChunk>>(
-            () => Read(stream, logicalSourceName, opt, cancellationToken).ToArray(),
-            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -99,13 +105,15 @@ public static partial class DocumentReader {
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
 
-        if (TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler) &&
-            handler.ReadDocumentPathAsync != null) {
+        HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
+        if (resolution.Handler?.ReadDocumentPathAsync != null) {
+            ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
             EnforceFileSize(path, opt.MaxInputBytes);
-            return await ValidateDocumentTaskAsync(
+            OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
+            return ApplyDetectionDiagnostics(result, resolution.Detection);
         }
 
         return await Task.Run(
@@ -125,28 +133,34 @@ public static partial class DocumentReader {
         ReaderOptions opt = NormalizeOptions(options);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
 
-        if (TryResolveCustomHandlerBySourceName(logicalSourceName, out ReaderHandlerDescriptor handler) &&
-            handler.ReadDocumentStreamAsync != null) {
-            cancellationToken.ThrowIfCancellationRequested();
-            Stream handlerStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
-                stream,
-                opt.MaxInputBytes,
+        cancellationToken.ThrowIfCancellationRequested();
+        Stream readStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
+            stream,
+            opt.MaxInputBytes,
+            cancellationToken).ConfigureAwait(false);
+        bool ownsReadStream = !ReferenceEquals(readStream, stream);
+        try {
+            HandlerDetectionResolution resolution = await ResolveStreamHandlerAsync(
+                readStream,
+                logicalSourceName,
+                opt,
                 cancellationToken).ConfigureAwait(false);
-            bool ownsHandlerStream = !ReferenceEquals(handlerStream, stream);
-            try {
-                return await ValidateDocumentTaskAsync(
-                    handler.ReadDocumentStreamAsync(handlerStream, logicalSourceName, opt, cancellationToken),
+            if (resolution.Handler?.ReadDocumentStreamAsync != null) {
+                ReaderHandlerDescriptor handler = resolution.Handler;
+                OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
+                    handler.ReadDocumentStreamAsync(readStream, logicalSourceName, opt, cancellationToken),
                     handler.Id).ConfigureAwait(false);
-            } finally {
-                if (ownsHandlerStream) {
-                    handlerStream.Dispose();
-                }
+                return ApplyDetectionDiagnostics(result, resolution.Detection);
+            }
+
+            return await Task.Run(
+                () => ReadDocument(readStream, logicalSourceName, opt, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
+        } finally {
+            if (ownsReadStream) {
+                readStream.Dispose();
             }
         }
-
-        return await Task.Run(
-            () => ReadDocument(stream, logicalSourceName, opt, cancellationToken),
-            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

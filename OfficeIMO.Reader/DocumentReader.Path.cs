@@ -48,7 +48,12 @@ public static partial class DocumentReader {
         SourceInfo source,
         CancellationToken cancellationToken) {
         IEnumerable<ReaderChunk> raw;
-        if (TryResolveCustomHandlerByPath(path, out var customPathHandler)) {
+        bool hasCustomPathHandler = TryResolvePathHandler(
+            path,
+            opt,
+            out ReaderHandlerDescriptor customPathHandler,
+            out ReaderDetectionResult detection);
+        if (hasCustomPathHandler) {
             if (customPathHandler.ReadPath != null || customPathHandler.ReadDocumentPath != null) {
                 raw = customPathHandler.ReadPath != null
                     ? customPathHandler.ReadPath(path, opt, cancellationToken)
@@ -56,10 +61,10 @@ public static partial class DocumentReader {
             } else if (customPathHandler.ReadDocumentPathAsync != null) {
                 throw CreateAsyncOnlyHandlerException(customPathHandler.Id, "path");
             } else {
-                raw = ReadBuiltInPath(path, opt, cancellationToken);
+                raw = ReadBuiltInPath(path, opt, cancellationToken, detection.Kind);
             }
         } else {
-            raw = ReadBuiltInPath(path, opt, cancellationToken);
+            raw = ReadBuiltInPath(path, opt, cancellationToken, detection.Kind);
         }
 
         foreach (var chunk in raw) {
@@ -68,8 +73,12 @@ public static partial class DocumentReader {
         }
     }
 
-    private static IEnumerable<ReaderChunk> ReadBuiltInPath(string path, ReaderOptions opt, CancellationToken cancellationToken) {
-        var kind = DetectBuiltInKind(path);
+    private static IEnumerable<ReaderChunk> ReadBuiltInPath(
+        string path,
+        ReaderOptions opt,
+        CancellationToken cancellationToken,
+        ReaderInputKind detectedKind) {
+        ReaderInputKind kind = NormalizeBuiltInDispatchKind(detectedKind);
         return kind switch {
             ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
             ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),

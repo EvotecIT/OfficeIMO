@@ -414,9 +414,13 @@ public static class OfficeDocumentReadResultJson {
     private static object ProjectDiagnostic(OfficeDocumentDiagnostic diagnostic) {
         return new {
             severity = diagnostic.Severity.ToString(),
+            category = diagnostic.Category.ToString(),
             code = diagnostic.Code,
             message = diagnostic.Message,
-            location = ProjectLocation(diagnostic.Location)
+            source = diagnostic.Source,
+            isRecoverable = diagnostic.IsRecoverable,
+            location = ProjectLocation(diagnostic.Location),
+            attributes = ProjectAttributes(diagnostic.Attributes)
         };
     }
 
