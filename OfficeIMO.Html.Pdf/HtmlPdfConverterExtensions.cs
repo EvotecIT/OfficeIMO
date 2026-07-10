@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word;
@@ -13,6 +15,50 @@ namespace OfficeIMO.Html.Pdf;
 /// </summary>
 public static class HtmlPdfConverterExtensions {
     /// <summary>
+    /// Converts HTML to a PDF document while asynchronously resolving resources for the direct rendered profile.
+    /// Semantic and document profiles retain their existing synchronous conversion internals.
+    /// </summary>
+    public static async Task<PdfCore.PdfDocument> ToPdfDocumentAsync(this string html, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        if (html == null) throw new ArgumentNullException(nameof(html));
+        options ??= new HtmlPdfSaveOptions();
+        options.ResetExportState();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (options.Profile != HtmlPdfProfile.Rendered) {
+            return html.ToPdfDocument(options);
+        }
+
+        PdfCore.PdfDocument pdf = await HtmlPdfRenderedConverter.ConvertAsync(html, options, cancellationToken).ConfigureAwait(false);
+        AddCurrentHtmlDiagnostics(options);
+        return pdf;
+    }
+
+    /// <summary>Converts HTML to PDF bytes with asynchronous resource resolution and cancellation.</summary>
+    public static async Task<byte[]> SaveAsPdfAsync(this string html, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = await html.ToPdfDocumentAsync(options, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = pdf.ToBytes();
+        SyncSelectedProfileReport(options);
+        return bytes;
+    }
+
+    /// <summary>Writes HTML as PDF to a stream with asynchronous resource resolution and cancellation.</summary>
+    public static async Task SaveAsPdfAsync(this string html, Stream stream, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The output stream must be writable.", nameof(stream));
+        byte[] bytes = await html.SaveAsPdfAsync(options, cancellationToken).ConfigureAwait(false);
+        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Saves HTML as a PDF file with asynchronous resource resolution and cancellation.</summary>
+    public static async Task SaveAsPdfAsync(this string html, string path, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
+        byte[] bytes = await html.SaveAsPdfAsync(options, cancellationToken).ConfigureAwait(false);
+        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Converts HTML text to a first-party OfficeIMO PDF document model.
     /// </summary>
     public static PdfCore.PdfDocument ToPdfDocument(this string html, HtmlPdfSaveOptions? options = null) {
@@ -26,9 +72,10 @@ public static class HtmlPdfConverterExtensions {
         PdfCore.PdfDocument pdf = options.Profile switch {
             HtmlPdfProfile.Semantic => ConvertSemantic(html, options),
             HtmlPdfProfile.Document => ConvertDocument(html, options),
+            HtmlPdfProfile.Rendered => HtmlPdfRenderedConverter.Convert(html, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported HTML PDF profile.")
         };
-        AddCurrentHtmlImportDiagnostics(options);
+        AddCurrentHtmlDiagnostics(options);
         return pdf;
     }
 
@@ -41,6 +88,13 @@ public static class HtmlPdfConverterExtensions {
         }
 
         options ??= new HtmlPdfSaveOptions();
+        if (options.Profile == HtmlPdfProfile.Rendered) {
+            options.ResetExportState();
+            PdfCore.PdfDocument renderedPdf = HtmlPdfRenderedConverter.Convert(document.HtmlForConversion, options);
+            AddCurrentHtmlDiagnostics(options);
+            return renderedPdf;
+        }
+
         bool useDocumentProfile = document.ProfileContract.Profile == HtmlConversionProfile.Document
             || document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint;
         options.Profile = useDocumentProfile
@@ -58,7 +112,7 @@ public static class HtmlPdfConverterExtensions {
 
         options.ResetExportState();
         PdfCore.PdfDocument pdf = ConvertDocument(document, options);
-        AddCurrentHtmlImportDiagnostics(options);
+        AddCurrentHtmlDiagnostics(options);
         return pdf;
     }
 
@@ -335,18 +389,16 @@ public static class HtmlPdfConverterExtensions {
             ? new List<PdfCore.PdfConversionWarning>()
             : new List<PdfCore.PdfConversionWarning>(source.Warnings);
         AddHtmlImportDiagnostics(options, warnings);
+        AddHtmlRenderDiagnostics(options, warnings);
         options.ConversionReport.ClearLinkedReports();
         options.ConversionReport.Clear();
         options.ConversionReport.AddRange(warnings);
     }
 
-    private static void AddCurrentHtmlImportDiagnostics(HtmlPdfSaveOptions options) {
-        if (options.Profile != HtmlPdfProfile.Document) {
-            return;
-        }
-
+    private static void AddCurrentHtmlDiagnostics(HtmlPdfSaveOptions options) {
         var warnings = new List<PdfCore.PdfConversionWarning>();
         AddHtmlImportDiagnostics(options, warnings);
+        AddHtmlRenderDiagnostics(options, warnings);
         options.ConversionReport.AddRange(warnings);
     }
 
@@ -365,6 +417,27 @@ public static class HtmlPdfConverterExtensions {
                 diagnostic.Component,
                 diagnostic.Code,
                 diagnostic.Source ?? "html",
+                diagnostic.Message,
+                MapSeverity(diagnostic.Severity),
+                details: details));
+        }
+    }
+
+    private static void AddHtmlRenderDiagnostics(HtmlPdfSaveOptions options, List<PdfCore.PdfConversionWarning> warnings) {
+        if (options.Profile != HtmlPdfProfile.Rendered || options.RenderDiagnostics == null) {
+            return;
+        }
+
+        foreach (HtmlDiagnostic diagnostic in options.RenderDiagnostics.Diagnostics) {
+            var details = string.IsNullOrWhiteSpace(diagnostic.Detail)
+                ? null
+                : new Dictionary<string, string> {
+                    ["Detail"] = diagnostic.Detail!
+                };
+            warnings.Add(new PdfCore.PdfConversionWarning(
+                diagnostic.Component,
+                diagnostic.Code,
+                diagnostic.Source ?? "html-render",
                 diagnostic.Message,
                 MapSeverity(diagnostic.Severity),
                 details: details));

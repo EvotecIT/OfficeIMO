@@ -2,7 +2,7 @@
 
 Date: 2026-07-10
 
-Status: proposed implementation plan
+Status: active implementation; initial end-to-end renderer slice complete
 
 ## Goal
 
@@ -38,14 +38,28 @@ The renderer should ultimately cover the full business-document HTML/CSS surface
 
 ## Current State
 
-OfficeIMO already has most of the surrounding pieces:
+OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 
-- `OfficeIMO.Html` parses HTML with AngleSharp, evaluates CSS media, computes a limited style summary, discovers resources, enforces URL and document limits, and reports diagnostics.
+- `OfficeIMO.Html` parses HTML with AngleSharp, evaluates CSS media, resolves custom properties, discovers resources, enforces URL and document limits, and reports diagnostics.
 - `OfficeIMO.Drawing` already supports the PNG/SVG rendering path used by Excel, Word, PowerPoint, and Visio.
 - `OfficeIMO.Pdf` already supplies text, images, drawings, annotations, outlines, metadata, font embedding, extraction, security, and PDF inspection.
-- `OfficeIMO.Html.Pdf` already exposes HTML-to-PDF APIs and profile contracts, but the current paths translate through Markdown or Word instead of directly laying out authored HTML/CSS.
+- `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
+- `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The missing shared capability is a direct HTML/CSS layout, pagination, and paint model. That is the component both HTML-to-image and authored-CSS HTML-to-PDF need.
+The current renderer deliberately starts with normal flow, styled text, simple tables, images, generic `@page` rules, stable line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, row-span fragmentation, named page selectors, advanced positioning, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+
+## Implemented Checkpoint
+
+- [x] One shared render document and visual model in `OfficeIMO.Html` for continuous and paged output.
+- [x] Direct PNG and SVG export through the existing dependency-free `OfficeIMO.Drawing` backend.
+- [x] Direct searchable PDF output through a thin `OfficeIMO.Html.Pdf` adapter, without a PDF or image intermediate.
+- [x] Synchronous APIs for embedded/local content and asynchronous APIs for application-resolved external resources.
+- [x] URL policy, per-resource and total byte budgets, timeout, cancellation, content-type checks, surface limits, page limits, and layout-depth limits.
+- [x] Screen/print media selection, CSS custom-property inheritance/fallback/cycle handling, basic page rules, and stable text/table fragmentation.
+- [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
+- [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, pagination, resources, timeout, cancellation, and diagnostics.
+
+This checkpoint establishes the architecture and usable basic output. It does not close the remaining phases or justify full HTML/CSS fidelity claims.
 
 ## End-to-End Pipeline
 
@@ -170,8 +184,9 @@ Text shaping must be implemented with first-party managed code and existing Offi
 
 ### Phase 0 - Lock contracts and evidence
 
-- [ ] Define the paged and continuous render-option contracts.
-- [ ] Define the shared rendered-document, page, visual-operation, text-run, link, and semantic-node contracts.
+- [x] Define the paged and continuous render-option contracts.
+- [x] Define the initial shared rendered-document, page, shape, image, text-run, and link contracts.
+- [ ] Add semantic-node, glyph, clipping, transform, and advanced paint contracts as their formatting phases land.
 - [ ] Build a representative corpus: invoices, statements, reports, letters, certificates, catalog pages, dashboards, multilingual documents, and hostile-resource cases.
 - [ ] Record expected geometry, page counts, extracted text, links, diagnostics, and visual baselines.
 - [ ] Define performance and memory budgets by document class.
@@ -182,15 +197,16 @@ Exit gate: the public behavior and proof corpus exist before implementation deta
 
 - [ ] Split `HtmlResourcePipeline.cs` by responsibility: discovery, CSS URL extraction, resolution, policy, loading, decoding, and reporting.
 - [ ] Split/refactor `HtmlComputedStyleEngine.cs` so the existing cascade is extended rather than replaced by a second engine.
-- [ ] Add cancellation and timeout propagation to resource discovery/loading and conversion orchestration.
-- [ ] Add the `OfficeIMO.Drawing` project reference to `OfficeIMO.Html`.
-- [ ] Establish shared units, coordinate systems, colors, font descriptors, and immutable diagnostics.
+- [x] Add cancellation and timeout propagation to direct-render resource loading and conversion orchestration.
+- [ ] Carry the same cancellation contract through any shared discovery/loading paths reused outside the direct renderer.
+- [x] Add the `OfficeIMO.Drawing` project reference to `OfficeIMO.Html`.
+- [x] Establish initial shared units, coordinate systems, colors, font descriptors, and diagnostic codes.
 
 Exit gate: parsing, CSS, resources, and diagnostics can serve Word/RTF conversion and the new renderer without duplicated logic.
 
 ### Phase 2 - Computed values and formatting tree
 
-- [ ] Complete cascade, inheritance, custom-property, media, and computed-value handling required by the corpus.
+- [ ] Complete cascade, inheritance, media, and computed-value handling required by the corpus. Custom-property inheritance, fallback, and cycle handling are implemented.
 - [ ] Build a typed formatting tree separate from the AngleSharp DOM.
 - [ ] Resolve display roles, generated content, counters, replaced elements, pseudo-elements, and stacking contexts.
 - [ ] Preserve source and semantic references needed for diagnostics, links, accessibility, and extraction order.
@@ -218,8 +234,8 @@ Exit gate: the continuous renderer can place the full target corpus without pagi
 
 ### Phase 5 - Pagination and fragmentation
 
-- [ ] Add page construction, page masters, `@page`, named pages, and print media selection.
-- [ ] Add break rules, widows/orphans, continuation state, and repeated table groups.
+- [ ] Complete page construction and page masters. Generic `@page` size/margins and print media selection are implemented; named and pseudo-page selectors remain.
+- [ ] Complete break rules, widows/orphans, continuation state, and repeated table groups. Stable text-line, child-block, and table-row continuation is implemented.
 - [ ] Add generated page content, counters, running headers/footers, and margin boxes.
 - [ ] Make backgrounds, borders, positioned elements, flex/grid content, and links fragment correctly.
 
@@ -227,29 +243,29 @@ Exit gate: paged geometry and page counts match the accepted corpus.
 
 ### Phase 6 - Shared paint and semantic model
 
-- [ ] Convert layout fragments into a backend-neutral ordered visual scene.
+- [x] Convert the initial layout fragments into a backend-neutral ordered visual scene.
 - [ ] Reuse or extend `OfficeIMO.Drawing` for paths, text outlines, images, gradients, transforms, clipping, shadows, and opacity.
-- [ ] Keep searchable text runs and semantic nodes beside visual operations.
-- [ ] Add deterministic z-order, clipping, resource reuse, and fallback diagnostics.
+- [ ] Keep searchable text runs and semantic nodes beside visual operations. Searchable text runs and links are implemented; semantic nodes remain.
+- [ ] Complete deterministic z-order, clipping, resource reuse, and fallback diagnostics. Initial paint order and stable fallback diagnostics are implemented.
 
 Exit gate: a single rendered result contains everything needed by both image and PDF backends.
 
 ### Phase 7 - HTML to PNG and SVG
 
-- [ ] Add `OfficeIMO.Html` image-export options aligned with `OfficeImageExportOptions`.
-- [ ] Add continuous `ToPng`, `ToSvg`, save, stream, and builder APIs.
-- [ ] Add paged `ExportImages` APIs with page numbering and per-page diagnostics.
-- [ ] Add maximum surface, tiling, scale, DPI, transparency, and background behavior.
+- [x] Add `OfficeIMO.Html` image-export options aligned with `OfficeImageExportOptions`.
+- [x] Add continuous `ToPng`, `ToSvg`, file, stream, synchronous, and asynchronous APIs.
+- [x] Add paged `ExportImages` APIs with page numbering and diagnostics.
+- [ ] Complete maximum surface, tiling, scale, DPI, transparency, and background behavior. Surface limits, scale, and background are implemented.
 - [ ] Activate image baselines for both paged and continuous modes.
 
 Exit gate: HTML image output uses only `OfficeIMO.Html` plus existing OfficeIMO projects and produces no PDF intermediate.
 
 ### Phase 8 - Direct HTML to PDF
 
-- [ ] Change the direct/paged profile in `OfficeIMO.Html.Pdf` to consume the shared rendered-document model.
-- [ ] Map text runs to PDF text, visual operations to PDF drawing primitives, and links/semantics to PDF structures.
-- [ ] Preserve existing semantic/document conversion profiles for users who want those contracts.
-- [ ] Add async/cancellable save APIs with honest buffering behavior.
+- [x] Add a direct/paged `Rendered` profile in `OfficeIMO.Html.Pdf` that consumes the shared rendered-document model.
+- [ ] Complete mapping to PDF structures. Searchable text, basic shapes, images, and external links are implemented; richer semantics remain.
+- [x] Preserve existing semantic/document conversion profiles for users who want those contracts.
+- [x] Add async/cancellable save APIs with explicitly buffered final PDF serialization.
 - [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure.
 
 Exit gate: PDF and image output agree on layout while PDF preserves text and document semantics.
@@ -281,7 +297,7 @@ These are part of the roadmap, but they should not distort the dependency order 
 |---|---|---|
 | Legacy PDF encryption output | Add a modern standard-security writer, prefer AES-256, make modern encryption the default, and keep RC4 only as an explicit legacy option if required | Before calling direct HTML-to-PDF production-ready for sensitive documents; can be implemented in parallel with layout |
 | No first-party complex text shaping | Build managed shaping and shared font behavior from existing OfficeIMO primitives; do not add native or external packages | Before Phase 3 exits and before multilingual fidelity claims |
-| Synchronous HTML-to-PDF orchestration | Add cancellation-aware async resource and conversion APIs; state clearly when final output is buffered | Before public renderer APIs stabilize |
+| Buffered HTML-to-PDF orchestration | Async resource resolution and cancellation are implemented; keep final serialization explicitly documented as buffered until incremental PDF writing exists | Before claiming streaming output |
 | Oversized HTML resource/style files | Split by semantic responsibility and retain one shared CSS/resource engine | Before substantial renderer code is added |
 | Incomplete computed-style surface | Extend the existing style engine with typed computed values and diagnostics | Before layout phases can be correct |
 | No active end-to-end visual proof | Commit real paged and continuous baselines plus geometry/text assertions | Before fidelity claims or release |

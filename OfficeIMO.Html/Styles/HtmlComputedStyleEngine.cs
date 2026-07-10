@@ -24,9 +24,33 @@ public static class HtmlComputedStyleEngine {
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "background",
+        "background-color",
         "background-image",
         "border",
+        "border-bottom",
+        "border-bottom-color",
+        "border-bottom-style",
+        "border-bottom-width",
+        "border-collapse",
         "border-color",
+        "border-left",
+        "border-left-color",
+        "border-left-style",
+        "border-left-width",
+        "border-right",
+        "border-right-color",
+        "border-right-style",
+        "border-right-width",
+        "border-style",
+        "border-top",
+        "border-top-color",
+        "border-top-style",
+        "border-top-width",
+        "border-width",
+        "box-sizing",
+        "break-after",
+        "break-before",
+        "break-inside",
         "color",
         "cursor",
         "direction",
@@ -35,15 +59,40 @@ public static class HtmlComputedStyleEngine {
         "font-size",
         "font-style",
         "font-weight",
+        "height",
         "line-height",
         "list-style",
+        "list-style-type",
+        "margin",
+        "margin-bottom",
+        "margin-left",
+        "margin-right",
+        "margin-top",
+        "max-height",
+        "max-width",
+        "min-height",
+        "min-width",
+        "object-fit",
+        "opacity",
         "outline-color",
+        "overflow",
+        "overflow-wrap",
+        "page-break-after",
+        "page-break-before",
+        "page-break-inside",
         "padding",
+        "padding-bottom",
+        "padding-left",
+        "padding-right",
+        "padding-top",
         "text-align",
         "text-decoration-line",
         "text-transform",
+        "vertical-align",
         "visibility",
-        "white-space"
+        "white-space",
+        "width",
+        "word-break"
     };
 
     /// <summary>
@@ -118,7 +167,7 @@ public static class HtmlComputedStyleEngine {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         if (parent != null) {
             foreach (var pair in parent.Properties) {
-                if (InheritedProperties.Contains(pair.Key)) {
+                if (IsInheritedProperty(pair.Key)) {
                     properties[pair.Key] = new CascadedProperty(pair.Value, false, Specificity.Inherited, -1);
                 }
             }
@@ -133,9 +182,7 @@ public static class HtmlComputedStyleEngine {
         }
 
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
-        var style = new HtmlComputedStyle(properties
-            .Where(pair => pair.Value.HasValue)
-            .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
+        var style = new HtmlComputedStyle(ResolveComputedProperties(properties, parent?.Properties));
         computed[element] = style;
 
         foreach (IElement child in element.Children) {
@@ -228,6 +275,18 @@ public static class HtmlComputedStyleEngine {
                     styleRule.Style.GetPropertyValue(propertyName),
                     string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
             }
+        }
+
+        // AngleSharp can retain a var()-backed shorthand while enumerating only empty
+        // expanded longhands. Query supported properties directly so the cascade keeps
+        // the authored shorthand for custom-property resolution.
+        foreach (string propertyName in SupportedProperties) {
+            if (declarations.ContainsKey(propertyName)) continue;
+            string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
+            if (string.IsNullOrWhiteSpace(propertyValue)) continue;
+            declarations[propertyName] = new StyleDeclaration(
+                propertyValue,
+                string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
         }
 
         foreach (string selector in SplitSelectorList(styleRule.SelectorText)) {
@@ -523,6 +582,10 @@ public static class HtmlComputedStyleEngine {
             return false;
         }
 
+        if (HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            return true;
+        }
+
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         switch (propertyName.ToLowerInvariant()) {
             case "display":
@@ -559,6 +622,36 @@ public static class HtmlComputedStyleEngine {
         }
 
         return false;
+    }
+
+    private static bool IsInheritedProperty(string propertyName) =>
+        InheritedProperties.Contains(propertyName) || propertyName.StartsWith("--", StringComparison.Ordinal);
+
+    private static IDictionary<string, string> ResolveComputedProperties(
+        IReadOnlyDictionary<string, CascadedProperty> properties,
+        IReadOnlyDictionary<string, string>? parentProperties) {
+        var raw = properties
+            .Where(pair => pair.Value.HasValue)
+            .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase);
+        var resolved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, string> pair in raw) {
+            if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
+                resolved[pair.Key] = pair.Value;
+                continue;
+            }
+
+            bool success = HtmlCssCustomPropertyResolver.TryResolve(
+                pair.Value,
+                name => raw.TryGetValue(name, out string? local)
+                    ? local
+                    : parentProperties != null && parentProperties.TryGetValue(name, out string? inherited) ? inherited : null,
+                out string value);
+            if (success && IsSupportedDeclarationValue(pair.Key, value)) {
+                resolved[pair.Key] = value;
+            }
+        }
+
+        return resolved;
     }
 
     private static bool StartsWithLogicalNot(string conditionText) {

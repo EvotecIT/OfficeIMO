@@ -39,6 +39,16 @@ public sealed class HtmlPdfSaveOptions {
     };
 
     /// <summary>
+    /// Creates the direct paged HTML renderer profile backed by OfficeIMO.Html and OfficeIMO.Pdf.
+    /// </summary>
+    public static HtmlPdfSaveOptions CreateRenderedProfile() => new HtmlPdfSaveOptions {
+        Profile = HtmlPdfProfile.Rendered,
+        RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged
+        }
+    };
+
+    /// <summary>
     /// Internal conversion path used before rendering through <see cref="PdfCore.PdfDocument"/>.
     /// Defaults to the semantic Markdown-backed path.
     /// </summary>
@@ -65,6 +75,11 @@ public sealed class HtmlPdfSaveOptions {
     public WordPdf.PdfSaveOptions? WordPdfOptions { get; set; }
 
     /// <summary>
+    /// Shared layout options used by the direct rendered profile.
+    /// </summary>
+    public HtmlRenderOptions? RenderOptions { get; set; }
+
+    /// <summary>
     /// Shared conversion report populated from the selected internal HTML and PDF path.
     /// </summary>
     public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
@@ -77,5 +92,8 @@ public sealed class HtmlPdfSaveOptions {
     internal void ResetExportState() {
         ConversionReport.Clear();
         ConversionReport.ClearLinkedReports();
+        RenderDiagnostics = null;
     }
+
+    internal HtmlDiagnosticReport? RenderDiagnostics { get; set; }
 }

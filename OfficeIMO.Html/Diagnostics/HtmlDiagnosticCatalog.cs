@@ -58,7 +58,26 @@ public static class HtmlDiagnosticCatalog {
             "ResourcePolicy",
             HtmlDiagnosticSeverity.Warning,
             "A resource dependency was rejected before loading because its URI is not allowed by policy.",
-            "Adjust the URL policy only for trusted sources, or package the dependency with the HTML input.")
+            "Adjust the URL policy only for trusted sources, or package the dependency with the HTML input."),
+        [HtmlRenderDiagnosticCodes.DepthLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.DepthLimitExceeded, "Safety", HtmlDiagnosticSeverity.Error, "HTML layout exceeded the configured nesting-depth limit.", "Reduce nesting or raise the explicit layout-depth limit for trusted input."),
+        [HtmlRenderDiagnosticCodes.EmptyTable] = RenderDefinition(HtmlRenderDiagnosticCodes.EmptyTable, "LayoutFidelity", HtmlDiagnosticSeverity.Info, "A table contained no renderable rows or cells.", "Add table rows and cells or remove the empty table."),
+        [HtmlRenderDiagnosticCodes.ExternalImagePending] = RenderDefinition(HtmlRenderDiagnosticCodes.ExternalImagePending, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "An external image requires asynchronous resource resolution.", "Use RenderAsync with an application-supplied resource resolver or embed the image as a data URI."),
+        [HtmlRenderDiagnosticCodes.FlexLayoutPending] = RenderDefinition(HtmlRenderDiagnosticCodes.FlexLayoutPending, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "Flex layout currently falls back to normal flow.", "Use normal document flow for the current contract or wait for the dedicated flex formatting context."),
+        [HtmlRenderDiagnosticCodes.ForcedFragment] = RenderDefinition(HtmlRenderDiagnosticCodes.ForcedFragment, "PagedMedia", HtmlDiagnosticSeverity.Warning, "Content had no safe break opportunity within one page.", "Add break opportunities or reduce the size of the unbreakable content."),
+        [HtmlRenderDiagnosticCodes.GridLayoutPending] = RenderDefinition(HtmlRenderDiagnosticCodes.GridLayoutPending, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "Grid layout currently falls back to normal flow.", "Use tables or normal flow for the current contract or wait for the dedicated grid formatting context."),
+        [HtmlRenderDiagnosticCodes.InlineImageFallback] = RenderDefinition(HtmlRenderDiagnosticCodes.InlineImageFallback, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "An inline image was represented by alternative text.", "Place the image as a block for the current contract or provide meaningful alternative text."),
+        [HtmlRenderDiagnosticCodes.PageSelectorPending] = RenderDefinition(HtmlRenderDiagnosticCodes.PageSelectorPending, "PagedMedia", HtmlDiagnosticSeverity.Warning, "A named or pseudo-page selector is not yet applied per page.", "Use a generic @page rule until named and pseudo-page masters are enabled."),
+        [HtmlRenderDiagnosticCodes.PageSizeUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.PageSizeUnsupported, "PagedMedia", HtmlDiagnosticSeverity.Warning, "An @page size declaration could not be mapped.", "Use a supported named size or two absolute physical lengths."),
+        [HtmlRenderDiagnosticCodes.RasterDecoderUnavailable] = RenderDefinition(HtmlRenderDiagnosticCodes.RasterDecoderUnavailable, "ImageFidelity", HtmlDiagnosticSeverity.Warning, "The dependency-free PNG backend cannot decode an image format retained for SVG or PDF.", "Use PNG, uncompressed BMP, first-frame GIF, or an application-provided pre-conversion."),
+        [HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "A resource exceeded the configured per-resource byte limit.", "Reduce the resource or raise the explicit limit for trusted input."),
+        [HtmlRenderDiagnosticCodes.ResourceContentTypeRejected] = RenderDefinition(HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "A resolver returned an incompatible media type.", "Return an image media type and matching bytes for image requests."),
+        [HtmlRenderDiagnosticCodes.ResourceLoadFailed] = RenderDefinition(HtmlRenderDiagnosticCodes.ResourceLoadFailed, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "The configured resource resolver failed.", "Inspect the resolver boundary and return null for intentionally unavailable resources."),
+        [HtmlRenderDiagnosticCodes.ResourceTimeout] = RenderDefinition(HtmlRenderDiagnosticCodes.ResourceTimeout, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "Resource resolution exceeded its timeout.", "Reduce resolver latency or raise the bounded timeout for trusted workloads."),
+        [HtmlRenderDiagnosticCodes.ResourceUnavailable] = RenderDefinition(HtmlRenderDiagnosticCodes.ResourceUnavailable, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "The configured resolver returned no resource.", "Provide the resource or accept the diagnosed placeholder."),
+        [HtmlRenderDiagnosticCodes.ResourceUriInvalid] = RenderDefinition(HtmlRenderDiagnosticCodes.ResourceUriInvalid, "ResourcePolicy", HtmlDiagnosticSeverity.Warning, "A resource URI could not be represented as an absolute URI.", "Provide a valid base URI and resource reference."),
+        [HtmlRenderDiagnosticCodes.TableRowSpanPending] = RenderDefinition(HtmlRenderDiagnosticCodes.TableRowSpanPending, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "A table row span is not yet fragmented across pages.", "Avoid page-crossing row spans until row-span fragmentation is enabled."),
+        [HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded, "ResourcePolicy", HtmlDiagnosticSeverity.Error, "Resolved resources exceeded the total byte budget.", "Reduce resource volume or raise the explicit total limit for trusted input."),
+        [HtmlRenderDiagnosticCodes.VisualFragmentUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.VisualFragmentUnsupported, "PagedMedia", HtmlDiagnosticSeverity.Warning, "A visual could not cross a forced page boundary safely.", "Resize the visual or add a safe break before it.")
     };
 
     /// <summary>
@@ -100,4 +119,7 @@ public static class HtmlDiagnosticCatalog {
             "The HTML workflow emitted a diagnostic that is not yet cataloged.",
             "Use the diagnostic source and detail fields to decide whether input, policy, or converter support should be adjusted.");
     }
+
+    private static HtmlDiagnosticDefinition RenderDefinition(string code, string category, HtmlDiagnosticSeverity severity, string message, string remediation) =>
+        new HtmlDiagnosticDefinition(code, category, severity, message, remediation);
 }

@@ -335,6 +335,7 @@ public sealed class HtmlPdfTests {
         HtmlPdfSaveOptions semantic = HtmlPdfSaveOptions.CreateSemanticProfile();
         HtmlPdfSaveOptions document = HtmlPdfSaveOptions.CreateDocumentProfile();
         HtmlPdfSaveOptions trustedDocument = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+        HtmlPdfSaveOptions rendered = HtmlPdfSaveOptions.CreateRenderedProfile();
 
         Assert.Equal(HtmlPdfProfile.Semantic, semantic.Profile);
         Assert.NotNull(semantic.MarkdownHtmlOptions);
@@ -345,6 +346,9 @@ public sealed class HtmlPdfTests {
         Assert.Equal(HtmlPdfProfile.Document, trustedDocument.Profile);
         Assert.NotNull(trustedDocument.WordHtmlOptions);
         Assert.NotNull(trustedDocument.WordPdfOptions);
+        Assert.Equal(HtmlPdfProfile.Rendered, rendered.Profile);
+        Assert.NotNull(rendered.RenderOptions);
+        Assert.Equal(HtmlRenderMode.Paged, rendered.RenderOptions!.Mode);
     }
 
     [Fact]
@@ -577,8 +581,9 @@ public sealed class HtmlPdfTests {
     public void HtmlPdf_ProfileContracts_CoverSupportedProfiles() {
         HtmlPdfProfileContract semantic = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
         HtmlPdfProfileContract document = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document);
+        HtmlPdfProfileContract rendered = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Rendered);
 
-        Assert.Equal(2, HtmlPdfProfileContracts.All.Count);
+        Assert.Equal(3, HtmlPdfProfileContracts.All.Count);
         Assert.Equal(HtmlConversionProfile.Semantic, semantic.SharedProfile);
         Assert.Equal("html-pdf-semantic", semantic.Id);
         Assert.Contains("Markdown", semantic.Pipeline, StringComparison.Ordinal);
@@ -597,6 +602,15 @@ public sealed class HtmlPdfTests {
         Assert.Contains("linked-stylesheets-when-enabled", document.SupportedCssFeatures);
         Assert.Contains("resource-policy-summary", document.SupportedResourceFeatures);
         Assert.Contains("no-css-grid-or-flex-layout-contract", document.RendererBoundaries);
+        Assert.Equal(HtmlConversionProfile.HighFidelityPrint, rendered.SharedProfile);
+        Assert.Equal("html-pdf-rendered", rendered.Id);
+        Assert.Contains("OfficeIMO.Html layout", rendered.Pipeline, StringComparison.Ordinal);
+        Assert.Contains("data-uri-images", rendered.SupportedHtmlFeatures);
+        Assert.Contains("print-media", rendered.SupportedCssFeatures);
+        Assert.Contains("generic-page-size-margin", rendered.SupportedCssFeatures);
+        Assert.Contains("caller-resolved-external-images", rendered.SupportedResourceFeatures);
+        Assert.Contains("shared-html-render-diagnostics", rendered.DiagnosticGuarantees);
+        Assert.Contains("no-new-external-dependencies", rendered.RendererBoundaries);
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlPdfProfileContracts.Get((HtmlPdfProfile)99));
     }
 
