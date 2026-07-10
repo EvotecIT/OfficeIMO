@@ -9,12 +9,26 @@ public sealed class OfficeImageInfo {
     /// <summary>
     /// Creates a new image metadata value.
     /// </summary>
-    public OfficeImageInfo(OfficeImageFormat format, int width, int height, double dpiX = 96.0, double dpiY = 96.0) {
+    public OfficeImageInfo(OfficeImageFormat format, int width, int height, double dpiX = 96.0, double dpiY = 96.0)
+        : this(format, width, height, dpiX, dpiY, null) { }
+
+    /// <summary>
+    /// Creates image metadata with an explicit intrinsic aspect ratio when dimensions alone cannot preserve it.
+    /// </summary>
+    public OfficeImageInfo(OfficeImageFormat format, int width, int height, double dpiX, double dpiY, double? aspectRatio) {
         Format = format;
         Width = width;
         Height = height;
         DpiX = dpiX > 0 ? dpiX : 96.0;
         DpiY = dpiY > 0 ? dpiY : 96.0;
+        double? resolvedRatio = aspectRatio;
+        if (!resolvedRatio.HasValue && width > 0 && height > 0) resolvedRatio = (double)width / height;
+        AspectRatio = resolvedRatio.HasValue
+            && !double.IsNaN(resolvedRatio.Value)
+            && !double.IsInfinity(resolvedRatio.Value)
+            && resolvedRatio.Value > 0D
+                ? resolvedRatio
+                : null;
     }
 
     /// <summary>Image format.</summary>
@@ -31,6 +45,9 @@ public sealed class OfficeImageInfo {
 
     /// <summary>Vertical resolution in DPI. Defaults to 96 when absent.</summary>
     public double DpiY { get; }
+
+    /// <summary>Intrinsic width-to-height ratio when known independently of complete pixel dimensions.</summary>
+    public double? AspectRatio { get; }
 
     /// <summary>Default MIME type for the detected format.</summary>
     public string MimeType => GetMimeType(Format);

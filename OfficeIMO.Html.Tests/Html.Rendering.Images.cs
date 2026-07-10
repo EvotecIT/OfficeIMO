@@ -10,6 +10,28 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlImages_SvgPartialIntrinsicDimensionsUseViewBoxRatioInSharedLayout() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' width='200' viewBox='0 0 100 50'><rect width='100' height='50' fill='red'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<body style='margin:0'><img id='svg-image' src='data:image/svg+xml;base64," + data + "' alt='vector'></body>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 220D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#svg-image");
+        string exportedSvg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+
+        Assert.Equal(200D, image.Width, 3);
+        Assert.Equal(100D, image.Height, 3);
+        Assert.Equal("image/svg+xml", image.ContentType);
+        Assert.Contains("<image x=\"0\" y=\"0\" width=\"200\" height=\"100\"", exportedSvg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlImages_ContainAndPositionFlowThroughPngSvgAndSearchablePdf() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='contained' src='data:image/png;base64,{data}' alt='contained image' style='display:block;width:40px;height:40px;object-fit:contain;object-position:right bottom'>"

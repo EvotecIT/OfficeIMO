@@ -475,17 +475,28 @@ public static class OfficeImageReader {
                 return false;
             }
 
-            double width = ParseSvgLength(root.Attribute("width")?.Value);
-            double height = ParseSvgLength(root.Attribute("height")?.Value);
-            if ((width <= 0 || height <= 0) && root.Attribute("viewBox")?.Value is string viewBox) {
-                var parts = viewBox.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 4) {
-                    double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out width);
-                    double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out height);
-                }
+            bool hasWidth = TryParseSvgLength(root.Attribute("width")?.Value, out double width);
+            bool hasHeight = TryParseSvgLength(root.Attribute("height")?.Value, out double height);
+            bool hasViewBox = TryParseSvgViewBox(root.Attribute("viewBox")?.Value, out double viewBoxWidth, out double viewBoxHeight);
+            double? aspectRatio = hasViewBox ? viewBoxWidth / viewBoxHeight : (double?)null;
+            if (!aspectRatio.HasValue && hasWidth && hasHeight) aspectRatio = width / height;
+
+            if (hasWidth && !hasHeight && aspectRatio.HasValue) {
+                height = width / aspectRatio.Value;
+                hasHeight = true;
+            } else if (!hasWidth && hasHeight && aspectRatio.HasValue) {
+                width = height * aspectRatio.Value;
+                hasWidth = true;
+            } else if (!hasWidth && !hasHeight && hasViewBox) {
+                width = viewBoxWidth;
+                height = viewBoxHeight;
+                hasWidth = true;
+                hasHeight = true;
             }
 
-            info = new OfficeImageInfo(OfficeImageFormat.Svg, (int)Math.Round(width), (int)Math.Round(height));
+            int pixelWidth = hasWidth ? Math.Max(1, (int)Math.Round(width)) : 0;
+            int pixelHeight = hasHeight ? Math.Max(1, (int)Math.Round(height)) : 0;
+            info = new OfficeImageInfo(OfficeImageFormat.Svg, pixelWidth, pixelHeight, 96D, 96D, aspectRatio);
             return true;
         } catch (XmlException) {
             info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
@@ -502,20 +513,73 @@ public static class OfficeImageReader {
         }
     }
 
-    private static double ParseSvgLength(string? value) {
+    private static bool TryParseSvgLength(string? value, out double result) {
+        result = 0D;
         if (string.IsNullOrWhiteSpace(value)) {
-            return 0;
+            return false;
         }
 
-        var text = value!.Trim().ToLowerInvariant();
-        double multiplier = 1.0;
-        if (text.EndsWith("pt", StringComparison.Ordinal)) multiplier = 96.0 / 72.0;
-        else if (text.EndsWith("in", StringComparison.Ordinal)) multiplier = 96.0;
-        else if (text.EndsWith("cm", StringComparison.Ordinal)) multiplier = 96.0 / 2.54;
-        else if (text.EndsWith("mm", StringComparison.Ordinal)) multiplier = 96.0 / 25.4;
+        string normalized = value!.Trim().ToLowerInvariant();
+        int unitStart = normalized.Length;
+        while (unitStart > 0 && (char.IsLetter(normalized[unitStart - 1]) || normalized[unitStart - 1] == '%')) unitStart--;
+        string numberText = normalized.Substring(0, unitStart).Trim();
+        string unit = normalized.Substring(unitStart);
+        if (!double.TryParse(numberText, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            || double.IsNaN(number)
+            || double.IsInfinity(number)
+            || number <= 0D) return false;
 
-        text = text.TrimEnd('p', 'x', 't', 'i', 'n', 'c', 'm');
-        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number * multiplier : 0;
+        double multiplier;
+        switch (unit) {
+            case "":
+            case "px":
+                multiplier = 1D;
+                break;
+            case "pt":
+                multiplier = 96D / 72D;
+                break;
+            case "pc":
+                multiplier = 16D;
+                break;
+            case "in":
+                multiplier = 96D;
+                break;
+            case "cm":
+                multiplier = 96D / 2.54D;
+                break;
+            case "mm":
+                multiplier = 96D / 25.4D;
+                break;
+            case "q":
+                multiplier = 96D / 101.6D;
+                break;
+            default:
+                return false;
+        }
+        result = number * multiplier;
+        return !double.IsNaN(result) && !double.IsInfinity(result) && result > 0D;
+    }
+
+    private static bool TryParseSvgViewBox(string? value, out double width, out double height) {
+        width = 0D;
+        height = 0D;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string[] parts = value!.Split(new[] { ' ', '\t', '\r', '\n', '\f', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 4
+            || !double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double minX)
+            || !double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double minY)
+            || !double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out width)
+            || !double.TryParse(parts[3], NumberStyles.Float, CultureInfo.InvariantCulture, out height)
+            || double.IsNaN(minX) || double.IsInfinity(minX)
+            || double.IsNaN(minY) || double.IsInfinity(minY)
+            || double.IsNaN(width) || double.IsInfinity(width)
+            || double.IsNaN(height) || double.IsInfinity(height)
+            || width <= 0D || height <= 0D) {
+            width = 0D;
+            height = 0D;
+            return false;
+        }
+        return true;
     }
 
     private static bool StartsWith(byte[] data, byte[] prefix) {

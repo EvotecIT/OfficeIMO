@@ -3577,6 +3577,31 @@ public partial class DrawingTests {
         Assert.Equal(48, image.Height);
     }
 
+    [Theory]
+    [InlineData("width=\"200\" viewBox=\"0 0 100 50\"", 200, 100)]
+    [InlineData("height=\"75\" viewBox=\"-10 -20 100 50\"", 150, 75)]
+    [InlineData("width=\"100%\" height=\"2em\" viewBox=\"0,0,320,180\"", 320, 180)]
+    public void OfficeImageReaderResolvesPartialSvgDimensionsFromViewBoxRatio(string attributes, int expectedWidth, int expectedHeight) {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" " + attributes + "></svg>");
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "partial.svg", out OfficeImageInfo image));
+
+        Assert.Equal(expectedWidth, image.Width);
+        Assert.Equal(expectedHeight, image.Height);
+        Assert.Equal((double)expectedWidth / expectedHeight, image.AspectRatio!.Value, 3);
+    }
+
+    [Fact]
+    public void OfficeImageReaderReadsSvgPicaAndQuarterMillimeterUnits() {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"6pc\" height=\"101.6q\"></svg>");
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "absolute-units.svg", out OfficeImageInfo image));
+
+        Assert.Equal(96, image.Width);
+        Assert.Equal(96, image.Height);
+        Assert.Equal(1D, image.AspectRatio!.Value, 3);
+    }
+
     [Fact]
     public void OfficeImageReaderRejectsSvgWithDtdWhenNoExtensionFallbackExists() {
         var svg = System.Text.Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><!DOCTYPE svg [<!ENTITY xxe SYSTEM \"file:///c:/windows/win.ini\">]><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\">&xxe;</svg>");
