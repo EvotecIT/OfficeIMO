@@ -179,6 +179,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_DistinguishesResponsiveAutoFitAndAutoFillTracks() {
+        const string html = """
+            <div style="display:grid;width:450px;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));column-gap:10px;grid-auto-rows:20px">
+              <div id="auto-fit-a" style="background:#ff0000"></div><div id="auto-fit-b" style="background:#0000ff"></div>
+            </div>
+            <div style="display:grid;width:450px;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));column-gap:10px;grid-auto-rows:20px">
+              <div id="auto-fill-a" style="background:#00ff00"></div><div id="auto-fill-b" style="background:#ffff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 470D);
+
+        Assert.Equal(220D, FindGridShape(rendered, "div#auto-fit-a").Width, 3);
+        Assert.Equal(230D, FindGridShape(rendered, "div#auto-fit-b").X, 3);
+        Assert.Equal(105D, FindGridShape(rendered, "div#auto-fill-a").Width, 3);
+        Assert.Equal(115D, FindGridShape(rendered, "div#auto-fill-b").X, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_AppliesContainerAndItemAlignment() {
         const string html = """
             <div style="display:grid;width:200px;height:100px;grid-template-columns:repeat(2,1fr);grid-template-rows:100px;justify-items:center;align-items:end">

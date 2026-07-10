@@ -38,6 +38,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     continue;
                 }
+                if (arguments.Count == 2
+                    && (string.Equals(arguments[0], "auto-fit", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(arguments[0], "auto-fill", StringComparison.OrdinalIgnoreCase))) {
+                    var pattern = new List<GridTrack>();
+                    AddGridTrackTokens(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis, pattern);
+                    double responsiveGap = axis.IndexOf("columns", StringComparison.Ordinal) >= 0 ? style.ColumnGap : style.RowGap;
+                    double patternMinimum = pattern.Sum(GridTrackMinimumForRepeat) + responsiveGap * Math.Max(0, pattern.Count - 1);
+                    if (!percentageReferenceIsDefinite || pattern.Count == 0 || patternMinimum <= 0D) {
+                        ReportUnsupportedGridValue(source, axis + "=" + token);
+                        if (pattern.Count == 0) pattern.Add(GridTrack.Auto("auto"));
+                        foreach (GridTrack track in pattern) AddGridTrack(tracks, track.Clone());
+                        continue;
+                    }
+
+                    int responsiveCount = Math.Max(1, (int)Math.Floor((reference + responsiveGap) / (patternMinimum + responsiveGap)));
+                    for (int iteration = 0; iteration < responsiveCount; iteration++) {
+                        foreach (GridTrack track in pattern) AddGridTrack(tracks, track.Clone());
+                    }
+                    continue;
+                }
 
                 ReportUnsupportedGridValue(source, axis + "=" + token);
                 AddGridTrack(tracks, GridTrack.Auto(token));
@@ -46,6 +66,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             AddGridTrackToken(token, reference, percentageReferenceIsDefinite, style, source, axis, tracks);
         }
+    }
+
+    private static double GridTrackMinimumForRepeat(GridTrack track) {
+        if (track.Kind == GridTrackKind.Fixed) return Math.Max(track.Value, track.Minimum);
+        return track.Minimum;
+    }
+
+    private static void CollapseTrailingAutoFitColumns(
+        HtmlRenderBoxStyle style,
+        IReadOnlyList<GridItem> items,
+        IList<GridTrack> tracks,
+        ref int columnCount) {
+        if (style.GridTemplateColumns.IndexOf("repeat(auto-fit", StringComparison.OrdinalIgnoreCase) < 0) return;
+        int usedColumns = items.Count == 0 ? 1 : items.Max(item => item.Column + item.ColumnSpan);
+        columnCount = Math.Max(1, Math.Min(columnCount, usedColumns));
+        while (tracks.Count > columnCount) tracks.RemoveAt(tracks.Count - 1);
     }
 
     private void AddGridTrackToken(

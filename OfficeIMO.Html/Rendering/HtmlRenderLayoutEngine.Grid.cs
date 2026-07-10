@@ -33,6 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
+        CollapseTrailingAutoFitColumns(style, items, columnTracks, ref columnCount);
         rowCount = Math.Max(rowCount, Math.Max(1, areaRowCount));
         EnsureGridTrackCount(columnTracks, columnCount, style.GridAutoColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
         double columnGap = columnCount > 1 ? style.ColumnGap : 0D;

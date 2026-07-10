@@ -51,6 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int explicitColumns = Math.Max(1, Math.Max(tracks.Count, areaColumnCount));
         int explicitRows = Math.Max(1, Math.Max(rows.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumns, explicitRows, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out _);
+        CollapseTrailingAutoFitColumns(style, items, tracks, ref columnCount);
         EnsureGridTrackCount(tracks, columnCount, style.GridAutoColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
         var sizes = tracks.Select(track => track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum).ToList();
         foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
