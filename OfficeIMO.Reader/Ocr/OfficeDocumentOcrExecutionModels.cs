@@ -89,7 +89,7 @@ public sealed class OfficeDocumentOcrExecutionReport {
     /// <summary>Successful engine calls that returned no recognized text.</summary>
     public int EmptyCandidateCount { get; set; }
 
-    /// <summary>Candidates skipped by configured limits, missing payloads, unsupported media, or integrity checks.</summary>
+    /// <summary>Candidates skipped by configured limits, validation checks, or engine capacity held by a timed-out call.</summary>
     public int SkippedCandidateCount { get; set; }
 
     /// <summary>Engine calls that failed and were converted to diagnostics.</summary>

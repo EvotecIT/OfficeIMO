@@ -38,6 +38,7 @@ Available argument placeholders are `{request}`, `{input}`, `{output}`, `{langua
 
 - Candidate count, input bytes, concurrency, engine duration, recognized text, and span counts remain bounded by `OfficeDocumentOcrExecutionOptions`.
 - Process stdout and stderr, response JSON size, and runtime are bounded separately by `ProcessOfficeOcrEngineOptions`.
+- The runner contains descendants in a kill-on-close Windows Job Object, a `setsid` process group on Linux/Unix, or a POSIX session launched through the system Perl on macOS. It fails closed when the host cannot provide one of those containment boundaries.
 - Executable paths, arguments, environment variables, and provider options are trusted host configuration. Do not build them directly from document content.
 - Payload bytes are temporary local files and are deleted by default. Set `KeepTemporaryFiles` only for controlled diagnostics.
 

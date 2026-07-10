@@ -57,9 +57,10 @@ public static class OfficeOcrProcessRunner {
         using var timeout = new CancellationTokenSource(command.Timeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
+        IReadOnlyList<string> arguments = command.Arguments ?? Array.Empty<string>();
         var startInfo = new ProcessStartInfo {
             FileName = command.FileName,
-            Arguments = string.Join(" ", (command.Arguments ?? Array.Empty<string>()).Select(QuoteArgument)),
+            Arguments = string.Join(" ", arguments.Select(QuoteArgument)),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -70,8 +71,10 @@ public static class OfficeOcrProcessRunner {
             startInfo.EnvironmentVariables[variable.Key] = variable.Value;
         }
 
+        using OfficeOcrProcessLifetime processLifetime = OfficeOcrProcessLifetime.Configure(startInfo, command.FileName, arguments);
         using var process = new System.Diagnostics.Process { StartInfo = startInfo, EnableRaisingEvents = true };
         if (!process.Start()) throw new InvalidOperationException("Failed to start OCR process '" + command.FileName + "'.");
+        processLifetime.Attach(process);
         Task<BoundedText> outputTask = ReadBoundedAsync(process.StandardOutput, command.MaxStandardOutputCharacters);
         Task<BoundedText> errorTask = ReadBoundedAsync(process.StandardError, command.MaxStandardErrorCharacters);
         try {
@@ -85,13 +88,13 @@ public static class OfficeOcrProcessRunner {
                 StandardErrorTruncated = streams[1].Truncated
             };
         } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
-            TryKill(process);
+            processLifetime.Terminate(process);
             CloseRedirectedStreams(process);
             ObserveReadFailure(outputTask);
             ObserveReadFailure(errorTask);
             throw new TimeoutException("OCR process exceeded timeout " + command.Timeout + ".");
         } catch {
-            TryKill(process);
+            processLifetime.Terminate(process);
             CloseRedirectedStreams(process);
             ObserveReadFailure(outputTask);
             ObserveReadFailure(errorTask);
@@ -148,7 +151,6 @@ public static class OfficeOcrProcessRunner {
         handler = (_, _) => completion.TrySetResult(null);
         process.Exited += handler;
         registration = cancellationToken.Register(() => {
-            TryKill(process);
             completion.TrySetCanceled();
         });
         if (process.HasExited) completion.TrySetResult(null);
@@ -161,19 +163,6 @@ public static class OfficeOcrProcessRunner {
         } finally {
             process.Exited -= handler;
             registration.Dispose();
-        }
-    }
-
-    private static void TryKill(System.Diagnostics.Process process) {
-        try {
-            if (!process.HasExited) {
-#if NET8_0_OR_GREATER
-                process.Kill(entireProcessTree: true);
-#else
-                process.Kill();
-#endif
-            }
-        } catch (InvalidOperationException) {
         }
     }
 

@@ -36,24 +36,27 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         SemaphoreSlim? sharedEngineGate = !capabilities.SupportsConcurrentRequests && jobs.Count > 0
             ? NonConcurrentEngineGates.GetValue(engine, static _ => new SemaphoreSlim(1, 1))
             : null;
+        var abandonedOperations = new AbandonedOcrOperationTracker();
         if (sharedEngineGate != null) await sharedEngineGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             using var gate = new SemaphoreSlim(degree, degree);
             Task<CandidateOutcome>[] tasks = jobs
-                .Select(job => ExecuteCandidateAsync(document, engine, job, effective, gate, cancellationToken))
+                .Select(job => ExecuteCandidateAsync(document, engine, job, effective, gate, abandonedOperations, cancellationToken))
                 .ToArray();
             outcomes = await Task.WhenAll(tasks).ConfigureAwait(false);
         } finally {
-            sharedEngineGate?.Release();
+            if (sharedEngineGate != null) ReleaseSharedEngineGate(sharedEngineGate, abandonedOperations);
         }
 
         var recognitions = new List<OfficeDocumentOcrRecognition>(outcomes.Length);
         var recognizedText = new List<OfficeDocumentOcrTextResult>(outcomes.Length);
         int failedCount = 0;
         int emptyCount = 0;
+        int attemptedCount = 0;
         foreach (CandidateOutcome outcome in outcomes.OrderBy(static outcome => outcome.Job.Index)) {
+            if (outcome.WasAttempted) attemptedCount++;
             if (outcome.FailureDiagnostic != null) {
-                failedCount++;
+                if (outcome.WasAttempted) failedCount++;
                 diagnostics.Add(outcome.FailureDiagnostic);
                 continue;
             }
@@ -94,12 +97,12 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         OfficeDocumentReadResult enriched = enrichment.Document;
         enriched.CapabilitiesUsed = AppendCapabilities(enriched.CapabilitiesUsed, engine.Id);
         enriched.Diagnostics = (enriched.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>()).Concat(diagnostics).ToArray();
-        int skippedCount = candidates.Count - jobs.Count;
+        int skippedCount = candidates.Count - attemptedCount;
         var report = new OfficeDocumentOcrExecutionReport {
             EngineId = engine.Id,
             CandidateCount = candidates.Count,
             SelectedCandidateCount = Math.Min(candidates.Count, effective.MaxCandidates),
-            AttemptedCandidateCount = jobs.Count,
+            AttemptedCandidateCount = attemptedCount,
             RecognizedCandidateCount = recognizedText.Count,
             EmptyCandidateCount = emptyCount,
             SkippedCandidateCount = skippedCount,
@@ -107,8 +110,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             LineSpanCount = CountSpans(recognitions, OfficeOcrTextSpanLevel.Line),
             WordSpanCount = CountSpans(recognitions, OfficeOcrTextSpanLevel.Word),
             CharacterSpanCount = CountSpans(recognitions, OfficeOcrTextSpanLevel.Character),
-            InputBytes = jobs.Sum(static job => (long)job.Payload.LongLength),
-            EffectiveDegreeOfParallelism = jobs.Count == 0 ? 0 : degree
+            InputBytes = outcomes.Where(static outcome => outcome.WasAttempted).Sum(static outcome => (long)outcome.Job.Payload.LongLength),
+            EffectiveDegreeOfParallelism = attemptedCount == 0 ? 0 : degree
         };
         enriched.Metadata = BuildExecutionMetadata(enriched.Metadata, report);
 
@@ -126,10 +129,22 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         CandidateJob job,
         ExecutionOptionsSnapshot options,
         SemaphoreSlim gate,
+        AbandonedOcrOperationTracker abandonedOperations,
         CancellationToken cancellationToken) {
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             cancellationToken.ThrowIfCancellationRequested();
+            if (abandonedOperations.HasPendingOperations) {
+                return CandidateOutcome.Skipped(job, BuildDiagnostic(
+                    job.Candidate,
+                    job.Asset,
+                    engine.Id,
+                    OfficeDocumentDiagnosticSeverity.Error,
+                    OfficeDocumentDiagnosticCategory.Ocr,
+                    "ocr-engine-timeout",
+                    "OCR was not started because an earlier timed-out call is still running for this execution.",
+                    true));
+            }
             var request = new OfficeOcrEngineRequest {
                 Candidate = job.Candidate,
                 Asset = job.Asset,
@@ -146,6 +161,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 OfficeOcrEngineResult result = await WaitWithCancellationAsync(recognitionTask, timeout.Token).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
             } catch (OperationCanceledException) {
+                abandonedOperations.Track(recognitionTask);
                 ObserveBackgroundFailure(recognitionTask);
                 if (cancellationToken.IsCancellationRequested) throw;
                 if (timeout.IsCancellationRequested && options.ContinueOnError) {
@@ -273,18 +289,21 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
     }
 
     private sealed class CandidateOutcome {
-        private CandidateOutcome(CandidateJob job, OfficeOcrEngineResult? result, OfficeDocumentDiagnostic? failureDiagnostic) {
+        private CandidateOutcome(CandidateJob job, OfficeOcrEngineResult? result, OfficeDocumentDiagnostic? failureDiagnostic, bool wasAttempted) {
             Job = job;
             Result = result;
             FailureDiagnostic = failureDiagnostic;
+            WasAttempted = wasAttempted;
         }
 
         internal CandidateJob Job { get; }
         internal OfficeOcrEngineResult? Result { get; }
         internal OfficeDocumentDiagnostic? FailureDiagnostic { get; }
+        internal bool WasAttempted { get; }
 
-        internal static CandidateOutcome Success(CandidateJob job, OfficeOcrEngineResult result) => new CandidateOutcome(job, result, null);
-        internal static CandidateOutcome Failure(CandidateJob job, OfficeDocumentDiagnostic diagnostic) => new CandidateOutcome(job, null, diagnostic);
+        internal static CandidateOutcome Success(CandidateJob job, OfficeOcrEngineResult result) => new CandidateOutcome(job, result, null, true);
+        internal static CandidateOutcome Failure(CandidateJob job, OfficeDocumentDiagnostic diagnostic) => new CandidateOutcome(job, null, diagnostic, true);
+        internal static CandidateOutcome Skipped(CandidateJob job, OfficeDocumentDiagnostic diagnostic) => new CandidateOutcome(job, null, diagnostic, false);
     }
 
     private sealed class ExecutionOptionsSnapshot {
