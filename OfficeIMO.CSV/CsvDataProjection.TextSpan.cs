@@ -75,6 +75,16 @@ internal static partial class CsvDataProjectionConverter
             return int.TryParse(text, NumberStyles.Any, culture, out value);
         }
 
+        if (TryParseInvariantInt32(text, out value))
+        {
+            return true;
+        }
+
+        return int.TryParse(text, NumberStyles.Any, culture, out value);
+    }
+
+    private static bool TryParseInvariantInt32(ReadOnlySpan<char> text, out int value)
+    {
         value = 0;
         if (text.Length == 0)
         {

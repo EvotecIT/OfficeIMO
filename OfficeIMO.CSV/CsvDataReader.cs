@@ -128,6 +128,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override bool GetBoolean(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Boolean)
         {
             var rawValue = GetRawValue(ordinal);
@@ -390,6 +391,11 @@ public sealed class CsvDataReader : DbDataReader
             var rawValue = GetRawValue(ordinal);
             if (rawValue is string text)
             {
+                if (text.Length == 0 && _columns[ordinal].SchemaColumn?.IsRequired == true)
+                {
+                    CsvDataProjectionConverter.GetDirectMissingValue(_columns[ordinal], _rowIndex);
+                }
+
                 return text;
             }
         }
@@ -555,8 +561,16 @@ public sealed class CsvDataReader : DbDataReader
 
         if (_hasBufferedRow)
         {
-            _currentRawRow = _bufferedRawRow;
-            _currentStringRow = _bufferedStringRow;
+            if (_textRowSource is not null)
+            {
+                _hasCurrentTextRow = true;
+            }
+            else
+            {
+                _currentRawRow = _bufferedRawRow;
+                _currentStringRow = _bufferedStringRow;
+            }
+
             _bufferedRawRow = null;
             _bufferedStringRow = null;
             _hasBufferedRow = false;
@@ -672,7 +686,6 @@ public sealed class CsvDataReader : DbDataReader
                 return false;
             }
 
-            _hasCurrentTextRow = true;
             _hasBufferedRow = true;
             return true;
         }

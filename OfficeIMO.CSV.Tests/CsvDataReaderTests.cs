@@ -81,20 +81,56 @@ public class CsvDataReaderTests
     {
         var schema = new CsvSchemaBuilder()
             .Column("Id").AsInt32()
+            .Column("Active").AsBoolean()
             .Done()
             .Build();
         var doc = CsvDocument.Parse(
-            "Id\n1\n",
+            "Id,Active\n1,true\n",
             new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
 
         Assert.Throws<InvalidOperationException>(() => reader.GetInt32(0));
+        Assert.Throws<InvalidOperationException>(() => reader.GetBoolean(1));
         Assert.True(reader.Read());
         Assert.Equal(1, reader.GetInt32(0));
+        Assert.True(reader.GetBoolean(1));
 
         reader.Close();
 
         Assert.Throws<InvalidOperationException>(() => reader.GetInt32(0));
+        Assert.Throws<InvalidOperationException>(() => reader.GetBoolean(1));
+    }
+
+    [Fact]
+    public void HasRows_DoesNotPositionTextBackedReader()
+    {
+        var doc = CsvDocument.Parse(
+            "Name\nAlpha\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.HasRows);
+        Assert.Throws<InvalidOperationException>(() => reader.GetString(0));
+        Assert.True(reader.Read());
+        Assert.Equal("Alpha", reader.GetString(0));
+    }
+
+    [Fact]
+    public void GetBoolean_RequiresAnOpenInMemoryRow()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Active")
+            .AddRow(true);
+        doc.EnsureSchema(schema => schema.Column("Active").AsBoolean());
+        using var reader = doc.CreateDataReader();
+
+        Assert.Throws<InvalidOperationException>(() => reader.GetBoolean(0));
+        Assert.True(reader.Read());
+        Assert.True(reader.GetBoolean(0));
+
+        reader.Close();
+
+        Assert.Throws<InvalidOperationException>(() => reader.GetBoolean(0));
     }
 
     [Fact]
@@ -539,7 +575,30 @@ public class CsvDataReaderTests
         using var reader = doc.CreateDataReader();
 
         Assert.True(reader.Read());
-        var ex = Assert.Throws<CsvException>(() => reader.GetValue(0));
-        Assert.Contains("Column 'Name' is required", ex.Message);
+        var valueException = Assert.Throws<CsvException>(() => reader.GetValue(0));
+        Assert.Contains("Column 'Name' is required", valueException.Message);
+        var stringException = Assert.Throws<CsvException>(() => reader.GetString(0));
+        Assert.Contains("Column 'Name' is required", stringException.Message);
+    }
+
+    [Fact]
+    public void CreateDataReader_TextBackedInt32UsesInvariantParserFallbacks()
+    {
+        var schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Done()
+            .Build();
+        var doc = CsvDocument.Parse(
+            "Id\n 1 \n\"1,234\"\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
+
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetValue(0));
+
+        Assert.True(reader.Read());
+        var values = new object[1];
+        Assert.Equal(1, reader.GetValues(values));
+        Assert.Equal(1234, values[0]);
     }
 }
