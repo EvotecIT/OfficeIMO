@@ -95,24 +95,31 @@ public static partial class ReaderHierarchicalChunker {
     private static IEnumerable<ReaderChunk> GetSourceChunks(OfficeDocumentReadResult document) {
         IReadOnlyList<ReaderChunk> chunks = document.Chunks ?? Array.Empty<ReaderChunk>();
         if (chunks.Count > 0) {
-            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) yield return chunks[chunkIndex];
+            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                ReaderChunk? chunk = chunks[chunkIndex];
+                yield return chunk == null ? null! : InheritDocumentSource(chunk, document.Source);
+            }
             yield break;
         }
 
         var headings = new List<KeyValuePair<int, string>>();
         int index = 0;
-        foreach (OfficeDocumentBlock block in OfficeDocumentModelTraversal.Blocks(document)) {
+        foreach (FallbackBlock fallback in EnumerateFallbackBlocks(document)) {
+            OfficeDocumentBlock block = fallback.Block;
             string text = block.Text ?? string.Empty;
             bool isHeading = string.Equals(block.Kind?.Trim(), "heading", StringComparison.OrdinalIgnoreCase);
             if (isHeading) UpdateFallbackHeadings(headings, block.Level ?? 1, text);
             ReaderLocation location = CloneLocation(block.Location);
+            InheritPageLocation(location, fallback.Page);
+            location.Path ??= document.Source?.Path;
             location.SourceBlockIndex ??= index;
             location.SourceBlockKind ??= block.Kind;
             location.BlockAnchor ??= string.IsNullOrWhiteSpace(block.Id) ? "block-" + index.ToString(CultureInfo.InvariantCulture) : block.Id;
             location.HeadingPath ??= BuildFallbackHeadingPath(headings);
             if (isHeading) location.HeadingSlug ??= string.IsNullOrWhiteSpace(block.Id) ? null : block.Id;
+            string sourceIdentity = document.Source?.SourceId ?? document.Source?.Path ?? string.Empty;
             yield return new ReaderChunk {
-                Id = "block:" + ComputeSha256Hex((document.Source?.SourceId ?? string.Empty) + "|" + block.Id + "|" + index.ToString(CultureInfo.InvariantCulture)),
+                Id = "block:" + ComputeSha256Hex(sourceIdentity + "|" + block.Id + "|" + index.ToString(CultureInfo.InvariantCulture)),
                 Kind = document.Kind,
                 Location = location,
                 SourceId = document.Source?.SourceId,
@@ -136,6 +143,58 @@ public static partial class ReaderHierarchicalChunker {
                 Markdown = document.Markdown
             };
         }
+    }
+
+    private static IEnumerable<FallbackBlock> EnumerateFallbackBlocks(OfficeDocumentReadResult document) {
+        var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
+            if (block != null && seen.Add(block)) yield return new FallbackBlock(block, null);
+        }
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
+            if (page?.Blocks == null) continue;
+            foreach (OfficeDocumentBlock block in page.Blocks) {
+                if (block != null && seen.Add(block)) yield return new FallbackBlock(block, page);
+            }
+        }
+    }
+
+    private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
+        if (GetSourceIdentity(chunk) != null || source == null ||
+            (string.IsNullOrWhiteSpace(source.SourceId) && string.IsNullOrWhiteSpace(source.Path))) {
+            return chunk;
+        }
+
+        ReaderLocation location = CloneLocation(chunk.Location);
+        location.Path ??= source.Path;
+        return new ReaderChunk {
+            Id = chunk.Id,
+            Kind = chunk.Kind,
+            Location = location,
+            SourceId = source.SourceId,
+            SourceHash = chunk.SourceHash ?? source.SourceHash,
+            ChunkHash = chunk.ChunkHash,
+            SourceLastWriteUtc = chunk.SourceLastWriteUtc ?? source.LastWriteUtc,
+            SourceLengthBytes = chunk.SourceLengthBytes ?? source.LengthBytes,
+            TokenEstimate = chunk.TokenEstimate,
+            Text = chunk.Text,
+            Markdown = chunk.Markdown,
+            Tables = chunk.Tables,
+            Visuals = chunk.Visuals,
+            FormFields = chunk.FormFields,
+            Actions = chunk.Actions,
+            Diagnostics = chunk.Diagnostics,
+            Warnings = chunk.Warnings
+        };
+    }
+
+    private static void InheritPageLocation(ReaderLocation location, OfficeDocumentPage? page) {
+        if (page == null) return;
+        ReaderLocation container = page.Location ?? new ReaderLocation();
+        location.Path ??= container.Path;
+        location.Sheet ??= container.Sheet;
+        location.A1Range ??= container.A1Range;
+        location.Slide ??= container.Slide;
+        location.Page ??= page.Number > 0 ? page.Number : container.Page;
     }
 
     private static void UpdateFallbackHeadings(List<KeyValuePair<int, string>> headings, int level, string text) {
@@ -262,5 +321,15 @@ public static partial class ReaderHierarchicalChunker {
             : !string.IsNullOrWhiteSpace(sourcePath)
                 ? "path:" + sourcePath
                 : null;
+    }
+
+    private readonly struct FallbackBlock {
+        internal FallbackBlock(OfficeDocumentBlock block, OfficeDocumentPage? page) {
+            Block = block;
+            Page = page;
+        }
+
+        internal OfficeDocumentBlock Block { get; }
+        internal OfficeDocumentPage? Page { get; }
     }
 }

@@ -234,7 +234,7 @@ public static partial class ReaderHierarchicalChunker {
             throw new InvalidOperationException("Token-aware splitting emitted a chunk beyond the configured token budget.");
         }
         int contentTokens = CountTokens(state.Options.TokenCounter, segmentContent);
-        int contextTokens = prefix.Length == 0 ? 0 : CountTokens(state.Options.TokenCounter, prefix);
+        int contextTokens = prefix.Length == 0 ? 0 : Math.Max(0, outputTokens - contentTokens);
         string chunkId = BuildSegmentId(source, inputIndex, segmentIndex, start, end);
         var chunk = new ReaderChunk {
             Id = chunkId,

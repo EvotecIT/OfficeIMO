@@ -260,6 +260,92 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_InheritsEnvelopePathForExistingChunksWithoutSourceIdentity() {
+        ReaderChunk source = CreateChunk("same", "body");
+        source.SourceId = null;
+        source.Location.Path = null;
+        var first = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "first.txt" },
+            Chunks = new[] { source }
+        };
+        var second = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "second.txt" },
+            Chunks = new[] { source }
+        };
+        var options = new ReaderHierarchicalChunkingOptions {
+            MaxTokens = 10,
+            OverlapTokens = 0,
+            IncludeContextInText = false,
+            TokenCounter = WordCounter
+        };
+
+        ReaderChunk firstChunk = Assert.Single(ReaderHierarchicalChunker.Chunk(first, options).Chunks);
+        ReaderChunk secondChunk = Assert.Single(ReaderHierarchicalChunker.Chunk(second, options).Chunks);
+
+        Assert.Equal("first.txt", firstChunk.Location.Path);
+        Assert.NotEqual(firstChunk.Id, secondChunk.Id);
+        Assert.Null(source.Location.Path);
+    }
+
+    [Fact]
+    public void Chunk_UsesEnvelopePathForFallbackBlockIdentity() {
+        var block = new OfficeDocumentBlock { Id = "same", Kind = "paragraph", Text = "body" };
+        var first = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "first.txt" },
+            Blocks = new[] { block }
+        };
+        var second = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "second.txt" },
+            Blocks = new[] { block }
+        };
+
+        ReaderChunk firstChunk = Assert.Single(ReaderHierarchicalChunker.Chunk(first).Chunks);
+        ReaderChunk secondChunk = Assert.Single(ReaderHierarchicalChunker.Chunk(second).Chunks);
+
+        Assert.Equal("first.txt", firstChunk.Location.Path);
+        Assert.NotEqual(firstChunk.Id, secondChunk.Id);
+    }
+
+    [Fact]
+    public void Chunk_InheritsPageContainerForPageOnlyBlocks() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "pages.pdf" },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 4,
+                    Blocks = new[] { new OfficeDocumentBlock { Id = "p4", Kind = "paragraph", Text = "Page body" } }
+                }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        Assert.Equal(4, Assert.Single(result.Chunks).Location.Page);
+        ReaderChunkHierarchyNode page = Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Container);
+        Assert.Equal("Page 4", page.Title);
+    }
+
+    [Fact]
+    public void Chunk_DerivesContextTokensFromCombinedTokenizerOutput() {
+        ReaderChunk source = CreateChunk("source", "a", page: 3);
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            new[] { source },
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                IncludeContextInText = true,
+                TokenCounter = new NonAdditiveContextTokenCounter()
+            });
+
+        ReaderChunkSegment segment = Assert.Single(result.Segments);
+        Assert.Equal(3, segment.TokenCount);
+        Assert.Equal(1, segment.ContentTokenCount);
+        Assert.Equal(2, segment.ContextTokenCount);
+        Assert.Equal(2, result.ContextTokenCount);
+    }
+
+    [Fact]
     public void Chunk_EnforcesInputOutputAndDepthBoundsWithDiagnostics() {
         ReaderChunk[] chunks = {
             CreateChunk("c1", "one two three four five six", headingPath: "A > B > C > D"),
