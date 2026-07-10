@@ -9,6 +9,57 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlViewportOverflow_DocumentRootClipsSharedContinuousAndPdfContent() {
+        const string html = "<style>html{overflow:hidden}body{overflow:visible}</style><div style='width:100px;height:12px;margin:0;font-size:6px;line-height:8px'>RootPdf</div>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 50D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderClipGroup viewport = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "html:viewport-overflow");
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.True(viewport.ClipHorizontal);
+        Assert.True(viewport.ClipVertical);
+        Assert.Equal(50D, viewport.ClipWidth, 3);
+        Assert.Equal(30D, viewport.ClipHeight, 3);
+        Assert.Contains("clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("RootPdf", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlViewportOverflow_UsesBodyWhenDocumentRootRemainsVisible() {
+        const string html = "<style>html{overflow:visible}body{overflow-x:clip;overflow-y:visible}</style><div style='width:80px;height:10px;margin:0'>Body overflow</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 25D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+        HtmlRenderClipGroup viewport = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "body:viewport-overflow");
+
+        Assert.True(viewport.ClipHorizontal);
+        Assert.False(viewport.ClipVertical);
+        Assert.DoesNotContain(viewport.Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "html:viewport-overflow");
+    }
+
+    [Fact]
     public void HtmlOverflowHidden_ClipsPositionedContentInSharedScene() {
         const string html = "<div id='clip' style='position:relative;width:40px;height:30px;margin:0;overflow:hidden'>"
             + "<div id='overflowing' style='position:absolute;left:20px;top:10px;width:40px;height:40px;background:#ff0000;color:#ff0000'>ClippedPdfMarker</div></div>";

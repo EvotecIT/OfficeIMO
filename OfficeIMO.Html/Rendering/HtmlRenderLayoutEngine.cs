@@ -18,6 +18,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlUrlPolicy _resourceUrlPolicy;
     private IElement? _surfaceRootElement;
     private HtmlRenderBoxStyle? _surfaceRootStyle;
+    private IElement? _viewportOverflowElement;
+    private HtmlRenderBoxStyle? _viewportOverflowStyle;
     private int _paintOrder;
     private int _positionedSourceOrder;
     private long _backgroundImageTileCount;
@@ -67,12 +69,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[root] = rootStyle.Clone();
         _surfaceRootElement = root;
         _surfaceRootStyle = rootStyle;
+        _viewportOverflowElement = root;
+        _viewportOverflowStyle = rootStyle;
         IElement? documentRoot = _document.DocumentElement;
         if (documentRoot != null && !ReferenceEquals(documentRoot, root)) {
             HtmlRenderBoxStyle documentRootStyle = _styleResolver.Resolve(documentRoot, contentWidth);
             if (HasDeclaredCanvasBackground(documentRootStyle)) {
                 _surfaceRootElement = documentRoot;
                 _surfaceRootStyle = documentRootStyle;
+            }
+            if (HasNonVisibleOverflow(documentRootStyle)) {
+                _viewportOverflowElement = documentRoot;
+                _viewportOverflowStyle = documentRootStyle;
             }
         }
 
@@ -106,6 +114,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddTranslatedVisuals(visuals, placement.Block.Visuals, placement.X, placement.Y, placement.Block);
         }
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
+        ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts);
     }
@@ -344,6 +353,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PrepareGlobalPositionedRequests(includeRoot, width, height, contentWidth, contentHeight);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
+        ApplyViewportOverflow(visuals, width, height);
         pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts));
     }
 
