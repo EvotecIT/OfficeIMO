@@ -30,9 +30,43 @@ public static class DocumentReaderJsonRegistrationExtensions {
     /// </param>
     /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     public static void RegisterJsonHandler(JsonReadOptions? jsonOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        var registered = Clone(jsonOptions);
+        ReaderHandlerRegistration registration = CreateRegistration(jsonOptions);
 
-        var registration = new ReaderHandlerRegistration {
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
+    }
+
+    /// <summary>
+    /// Adds JSON ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddJsonHandler(
+        this OfficeDocumentReaderBuilder builder,
+        JsonReadOptions? jsonOptions = null,
+        bool replaceExisting = true,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration(jsonOptions);
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Unregisters JSON ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterJsonHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(JsonReadOptions? jsonOptions) {
+        JsonReadOptions? registered = Clone(jsonOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "JSON Reader Adapter",
             Description = "Modular JSON AST parser with path/type/value chunk output.",
@@ -50,19 +84,6 @@ public static class DocumentReaderJsonRegistrationExtensions {
                 jsonOptions: Clone(registered),
                 cancellationToken: ct)
         };
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters JSON ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterJsonHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 
     private static JsonReadOptions? Clone(JsonReadOptions? options) {
