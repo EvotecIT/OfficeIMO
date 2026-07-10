@@ -53,6 +53,42 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
+    public void OpenFormulaConversionMapsArgumentSeparatorsOutsideStrings() {
+        using OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetNumber(1);
+        sheet.Cell(0, 1).Formula = "of:=IF([.A1]>0;\"yes;still\";\"no\")";
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocument();
+        using ExcelDocument target = conversion.Document;
+
+        ExcelCellSnapshot formula = target.CreateInspectionSnapshot().Worksheets.Single().Cells
+            .Single(cell => cell.Row == 1 && cell.Column == 2);
+        Assert.Equal("IF(A1>0,\"yes;still\",\"no\")", formula.Formula);
+    }
+
+    [Fact]
+    public void DuplicateSheetLocalExcelNamesAreDisambiguatedWithoutAborting() {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        ExcelSheet first = source.AddWorkSheet("First Sheet");
+        ExcelSheet second = source.AddWorkSheet("Second Sheet");
+        first.CellAt(1, 1).SetValue(1);
+        second.CellAt(1, 1).SetValue(2);
+        first.SetNamedRange("LocalValue", "A1", save: false);
+        second.SetNamedRange("LocalValue", "A1", save: false);
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
+        using OdsDocument target = conversion.Document;
+
+        Assert.Equal(2, target.NamedRanges.Count);
+        Assert.Equal(2, target.NamedRanges.Select(named => named.Name).Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains(target.NamedRanges, named => named.CellRangeAddress.Contains("First Sheet"));
+        Assert.Contains(target.NamedRanges, named => named.CellRangeAddress.Contains("Second Sheet"));
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "sheet-local-named-ranges" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Fact]
     public void WordAutomaticColorsAndUnsupportedImagesDoNotAbortConversion() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Automatic color").ColorHex = "auto";
@@ -67,6 +103,23 @@ public sealed class OpenDocumentConversionLossReportTests {
         Assert.Empty(target.Paragraphs.SelectMany(paragraph => paragraph.Images));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void OdtToWordPreservesRelativeLinksAndSkipsUnsupportedImages() {
+        using OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddHyperlink("Relative", "docs/page.html");
+        byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
+        source.AddParagraph("Image").AddImage(webp, "pixel.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocument();
+        using WordDocument target = conversion.Document;
+
+        WordRunSnapshot link = target.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
+            .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Relative").Runs.Single();
+        Assert.Equal("docs/page.html", link.HyperlinkUri);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
     }
 
     [Fact]

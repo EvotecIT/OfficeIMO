@@ -230,10 +230,11 @@ public static class WordOpenDocumentConversionExtensions {
             }
         } else if (links.Count == 1 && string.Equals(links[0].Text, source.Text, StringComparison.Ordinal)) {
             string href = links[0].Href;
+            bool convertedLink = true;
             if (href.StartsWith("#", StringComparison.Ordinal)) target.AddHyperLink(links[0].Text, href.Substring(1), addStyle: true);
-            else if (Uri.TryCreate(href, UriKind.Absolute, out Uri? uri)) target.AddHyperLink(links[0].Text, uri, addStyle: true);
-            else target.AddText(source.Text);
-            hyperlinks++;
+            else if (Uri.TryCreate(href, UriKind.RelativeOrAbsolute, out Uri? uri)) target.AddHyperLink(links[0].Text, uri, addStyle: true);
+            else { target.AddText(source.Text); convertedLink = false; }
+            if (convertedLink) hyperlinks++; else approximatedRuns++;
         } else {
             target.AddText(source.Text);
             if (spans.Count > 0 || links.Count > 0) approximatedRuns++;
@@ -247,8 +248,12 @@ public static class WordOpenDocumentConversionExtensions {
         if (options.IncludeImages) {
             foreach (OdtImage image in source.Images) {
                 using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
-                target.AddImage(stream, Path.GetFileName(image.Path), image.Width.ToPoints(), image.Height.ToPoints());
-                images++;
+                try {
+                    target.AddImage(stream, Path.GetFileName(image.Path), image.Width.ToPoints(), image.Height.ToPoints());
+                    images++;
+                } catch (NotSupportedException) {
+                    // The loss report compares sourceImages with images and records the skipped media.
+                }
             }
         }
     }

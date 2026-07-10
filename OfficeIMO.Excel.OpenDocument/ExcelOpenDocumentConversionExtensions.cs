@@ -107,12 +107,18 @@ public static class ExcelOpenDocumentConversionExtensions {
             if (worksheet.Protection != null) report.Add("worksheet-protection", OdfConversionMappingStatus.Unsupported, 1);
         }
 
-        int namedRanges = 0, builtInNames = 0;
+        int namedRanges = 0, builtInNames = 0, disambiguatedNames = 0;
+        var usedNamedRanges = new HashSet<string>(StringComparer.Ordinal);
         foreach (ExcelNamedRangeSnapshot named in snapshot.NamedRanges) {
             if (named.IsBuiltIn) { builtInNames++; continue; }
             string address = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(named.ReferenceA1, named.SheetName);
             if (address.Length == 0) continue;
-            target.AddNamedRange(named.Name, address);
+            string outputName = named.Name;
+            if (!usedNamedRanges.Add(outputName)) {
+                outputName = CreateUniqueNamedRangeName(named.Name, named.SheetName, usedNamedRanges);
+                disambiguatedNames++;
+            }
+            target.AddNamedRange(outputName, address);
             namedRanges++;
         }
 
@@ -124,6 +130,8 @@ public static class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "merges", merges);
         AddConverted(report, "hyperlinks", hyperlinks);
         AddConverted(report, "named-ranges", namedRanges);
+        if (disambiguatedNames > 0) report.Add("sheet-local-named-ranges", OdfConversionMappingStatus.Approximated, disambiguatedNames,
+            "Duplicate sheet-local Excel names were made unique because ODS named ranges are workbook scoped.");
         if (formulas > 0) report.Add("formulas", OdfConversionMappingStatus.Approximated, formulas,
             "Formula text and cached values are retained; local A1 references are translated to an OpenFormula subset.");
         if (styles > 0) report.Add("cell-styles", OdfConversionMappingStatus.Approximated, styles,
@@ -143,6 +151,15 @@ public static class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             $"Configured limits omitted {skippedCells} cells, {skippedRows} rows, {skippedColumns} columns, and {skippedMerges} merges.");
         return new OdfConversionResult<OdsDocument>(target, report);
+    }
+
+    private static string CreateUniqueNamedRangeName(string name, string? sheetName, HashSet<string> usedNames) {
+        string suffix = new string((sheetName ?? "Sheet").Select(character => char.IsLetterOrDigit(character) ? character : '_').ToArray());
+        if (suffix.Length == 0) suffix = "Sheet";
+        string candidate = name + "__" + suffix;
+        int index = 2;
+        while (!usedNames.Add(candidate)) candidate = name + "__" + suffix + "_" + index++.ToString(CultureInfo.InvariantCulture);
+        return candidate;
     }
 
     /// <summary>Converts an ODS document to an in-memory Excel workbook and reports every lossy mapping.</summary>

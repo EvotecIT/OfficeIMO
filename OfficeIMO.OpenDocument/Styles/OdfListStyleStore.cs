@@ -22,11 +22,19 @@ internal static class OdfListStyleStore {
 
     internal static bool IsOrdered(OdfDocument document, string? styleName, string partPath = "content.xml") {
         if (string.IsNullOrWhiteSpace(styleName)) return false;
-        XDocument xml = document.GetXml(partPath);
-        XElement? root = xml.Root;
-        XElement? automatic = root?.Element(OdfNamespaces.Office + "automatic-styles");
-        XElement? style = automatic?.Elements(OdfNamespaces.Text + "list-style")
-            .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
+        XElement? style = Find(document, partPath, OdfNamespaces.Office + "automatic-styles", styleName!);
+        if (style == null && !string.Equals(partPath, "styles.xml", StringComparison.Ordinal) && document.Package.ContainsEntry("styles.xml")) {
+            style = Find(document, "styles.xml", OdfNamespaces.Office + "automatic-styles", styleName!) ??
+                Find(document, "styles.xml", OdfNamespaces.Office + "styles", styleName!);
+        } else if (style == null && string.Equals(partPath, "styles.xml", StringComparison.Ordinal)) {
+            style = Find(document, "styles.xml", OdfNamespaces.Office + "styles", styleName!);
+        }
         return style?.Elements().Any(element => element.Name == OdfNamespaces.Text + "list-level-style-number") == true;
+    }
+
+    private static XElement? Find(OdfDocument document, string partPath, XName containerName, string styleName) {
+        XElement? container = document.GetXml(partPath).Root?.Element(containerName);
+        return container?.Elements(OdfNamespaces.Text + "list-style")
+            .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
     }
 }

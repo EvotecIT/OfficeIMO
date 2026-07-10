@@ -11,8 +11,8 @@ public abstract partial class OdfDocument {
 
         XDocument content = GetXml("content.xml");
         XDocument styles = GetXml("styles.xml");
-        XDocument meta = GetXml("meta.xml");
-        XDocument settings = GetXml("settings.xml");
+        XDocument meta = Package.ContainsEntry("meta.xml") ? GetXml("meta.xml") : OdfPackageTemplates.CreateMetadata(Version);
+        XDocument settings = Package.ContainsEntry("settings.xml") ? GetXml("settings.xml") : OdfPackageTemplates.CreateSettings(Version);
         AddClone(root, meta.Root?.Element(OdfNamespaces.Office + "meta"));
         XElement? flatSettings = settings.Root?.Element(OdfNamespaces.Office + "settings");
         if (flatSettings != null && flatSettings.HasElements) AddClone(root, flatSettings);
@@ -23,8 +23,8 @@ public abstract partial class OdfDocument {
         AddClone(root, styles.Root?.Element(OdfNamespaces.Office + "master-styles"));
         XElement body = new XElement(content.Root?.Element(OdfNamespaces.Office + "body")
             ?? throw new InvalidDataException("OpenDocument content has no body."));
-        EmbedFlatBinaryData(body);
         root.Add(body);
+        EmbedFlatBinaryData(root);
         return new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
     }
 
@@ -82,13 +82,13 @@ public abstract partial class OdfDocument {
         string? versionToken = (string?)root.Attribute(OdfNamespaces.Office + "version");
         if (!OdfVersionExtensions.TryParse(versionToken, out OdfVersion version)) version = OdfVersion.V1_4;
         OdfPackage package = OdfPackage.Create(kind, version);
+        ExtractFlatBinaryData(root, package, options);
 
         XDocument content = OdfPackageTemplates.CreateContent(kind, version);
         ReplaceContainer(content.Root!, OdfNamespaces.Office + "scripts", root.Element(OdfNamespaces.Office + "scripts"));
         ReplaceContainer(content.Root!, OdfNamespaces.Office + "font-face-decls", root.Element(OdfNamespaces.Office + "font-face-decls"));
         XElement body = new XElement(root.Element(OdfNamespaces.Office + "body")
             ?? throw new InvalidDataException("Flat OpenDocument XML has no office:body."));
-        ExtractFlatBinaryData(body, package, options);
         ReplaceContainer(content.Root!, OdfNamespaces.Office + "body", body);
 
         XDocument styles = OdfPackageTemplates.CreateStyles(version);
@@ -112,8 +112,8 @@ public abstract partial class OdfDocument {
         return CreateForPackage(package, null);
     }
 
-    private void EmbedFlatBinaryData(XElement body) {
-        foreach (XElement image in body.Descendants(OdfNamespaces.Draw + "image")) {
+    private void EmbedFlatBinaryData(XElement flatRoot) {
+        foreach (XElement image in flatRoot.Descendants(OdfNamespaces.Draw + "image")) {
             string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
             if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
             string normalized = OdfPackagePath.NormalizeHref(href);
@@ -129,9 +129,9 @@ public abstract partial class OdfDocument {
         }
     }
 
-    private static void ExtractFlatBinaryData(XElement body, OdfPackage package, OdfOpenOptions options) {
+    private static void ExtractFlatBinaryData(XElement flatRoot, OdfPackage package, OdfOpenOptions options) {
         int index = 1;
-        foreach (XElement image in body.Descendants(OdfNamespaces.Draw + "image").ToList()) {
+        foreach (XElement image in flatRoot.Descendants(OdfNamespaces.Draw + "image").ToList()) {
             XElement? binary = image.Element(OdfNamespaces.Office + "binary-data");
             if (binary == null) continue;
             byte[] data;
@@ -235,28 +235,33 @@ public abstract partial class OdfDocument {
             "mimetype", "content.xml", "styles.xml", "meta.xml", "settings.xml", "META-INF/manifest.xml"
         };
         XDocument content = GetXml("content.xml");
-        foreach (XElement image in content.Descendants(OdfNamespaces.Draw + "image")) {
-            string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
-            if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
-            string normalized = OdfPackagePath.NormalizeHref(href);
-            if (Package.ContainsEntry(normalized)) represented.Add(normalized);
-        }
+        XDocument styles = GetXml("styles.xml");
+        AddRepresentedImages(content, represented);
+        AddRepresentedImages(styles, represented);
 
         var lossy = Package.Entries.Where(entry => !represented.Contains(entry.Name)).Select(entry => entry.Name).ToList();
         AddUnprojectedPart(lossy, "content.xml", content.Root,
             OdfNamespaces.Office + "scripts", OdfNamespaces.Office + "font-face-decls",
             OdfNamespaces.Office + "automatic-styles", OdfNamespaces.Office + "body");
-        XDocument styles = GetXml("styles.xml");
         AddUnprojectedPart(lossy, "styles.xml", styles.Root,
             OdfNamespaces.Office + "font-face-decls", OdfNamespaces.Office + "styles",
             OdfNamespaces.Office + "automatic-styles", OdfNamespaces.Office + "master-styles");
-        AddUnprojectedPart(lossy, "meta.xml", GetXml("meta.xml").Root, OdfNamespaces.Office + "meta");
-        AddUnprojectedPart(lossy, "settings.xml", GetXml("settings.xml").Root, OdfNamespaces.Office + "settings");
+        if (Package.ContainsEntry("meta.xml")) AddUnprojectedPart(lossy, "meta.xml", GetXml("meta.xml").Root, OdfNamespaces.Office + "meta");
+        if (Package.ContainsEntry("settings.xml")) AddUnprojectedPart(lossy, "settings.xml", GetXml("settings.xml").Root, OdfNamespaces.Office + "settings");
 
         string[] rewritten = represented.Where(path => Package.ContainsEntry(path) && path != "mimetype" && path != "META-INF/manifest.xml")
             .OrderBy(path => path, StringComparer.Ordinal).ToArray();
         return new OdfSaveReport(rewritten, Array.Empty<string>(), Array.Empty<string>(),
             lossy.Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray());
+    }
+
+    private void AddRepresentedImages(XDocument document, HashSet<string> represented) {
+        foreach (XElement image in document.Descendants(OdfNamespaces.Draw + "image")) {
+            string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
+            if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
+            string normalized = OdfPackagePath.NormalizeHref(href);
+            if (Package.ContainsEntry(normalized)) represented.Add(normalized);
+        }
     }
 
     private static void AddUnprojectedPart(List<string> lossy, string partPath, XElement? root, params XName[] projectedChildren) {

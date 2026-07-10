@@ -104,6 +104,30 @@ public sealed class OpenDocumentReviewRegressionTests {
         Assert.True(reopened.PageLayout.Header.Paragraphs.Single().Bold);
     }
 
+    [Fact]
+    public void OrderedListsResolveCommonStylesFromStylesPart() {
+        using OdtDocument document = OdtDocument.Create();
+        document.AddList(ordered: true).AddItem("Numbered");
+        XDocument content = document.Package.GetXml("content.xml");
+        XDocument styles = document.Package.GetXml("styles.xml");
+        XElement list = content.Descendants(OdfNamespaces.Text + "list").Single();
+        string styleName = (string)list.Attribute(OdfNamespaces.Text + "style-name")!;
+        XElement listStyle = content.Root!.Element(OdfNamespaces.Office + "automatic-styles")!
+            .Elements(OdfNamespaces.Text + "list-style").Single();
+        listStyle.Remove();
+        styles.Root!.Element(OdfNamespaces.Office + "styles")!.Add(listStyle);
+        document.Package.MarkXmlDirty("content.xml");
+        document.Package.MarkXmlDirty("styles.xml");
+
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+
+        OdtContentBlock item = reopened.ContentBlocks.Single(block => block.IsListItem);
+        Assert.Equal(styleName, (string?)reopened.TextBody.Descendants(OdfNamespaces.Text + "list").Single()
+            .Attribute(OdfNamespaces.Text + "style-name"));
+        Assert.True(item.IsOrderedList);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
     private static void AddParagraphStyle(XDocument document, string name, string weight) {
         XElement automatic = document.Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
         automatic.Add(new XElement(OdfNamespaces.Style + "style",

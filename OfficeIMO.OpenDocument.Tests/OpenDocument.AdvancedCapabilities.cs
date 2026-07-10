@@ -90,6 +90,37 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
     }
 
     [Fact]
+    public void FlatXmlRoundTripsHeaderImagesAndReportsThemAsRepresented() {
+        using OdtDocument document = OdtDocument.Create();
+        OdtImage image = document.PageLayout.Header.AddParagraph("Logo").AddImage(TinyPng, "header.png",
+            OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        using var stream = new MemoryStream();
+
+        document.SaveFlatXml(stream);
+
+        Assert.DoesNotContain(image.Path, document.LastSaveReport!.LossyEntries);
+        stream.Position = 0;
+        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        Assert.Equal(TinyPng, reopened.PageLayout.Header.Paragraphs.Single().Images.Single().GetImageBytes());
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void FlatXmlExportToleratesMissingOptionalSettingsPart() {
+        using OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("No settings");
+        document.Package.RemoveEntry("settings.xml");
+        using var stream = new MemoryStream();
+
+        document.SaveFlatXml(stream);
+
+        stream.Position = 0;
+        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        Assert.Equal("No settings", reopened.Paragraphs.Single().Text);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
     public void FlatXmlRoundTripsAllThreeDocumentKinds() {
         using OdtDocument text = OdtDocument.Create();
         text.AddParagraph("Text");

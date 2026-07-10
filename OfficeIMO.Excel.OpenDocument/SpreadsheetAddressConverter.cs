@@ -77,6 +77,10 @@ internal static class SpreadsheetAddressConverter {
                 }
                 continue;
             }
+            if (!quoted && character == ';') {
+                output.Append(',');
+                continue;
+            }
             if (quoted || character != '[') {
                 output.Append(character);
                 continue;
