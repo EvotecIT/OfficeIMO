@@ -17,7 +17,7 @@ public sealed class OdtList {
     /// <summary>Adds an item containing one paragraph.</summary>
     public OdtListItem AddItem(string? text = null) {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(paragraph, text);
+        OdfTextCodec.Append(paragraph, text);
         var item = new XElement(OdfNamespaces.Text + "list-item", paragraph);
         _element.Add(item);
         _document.MarkPartDirty("content.xml");
@@ -43,7 +43,7 @@ public sealed class OdtListItem {
     /// <summary>Adds another paragraph to this item.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(paragraph, text);
+        OdfTextCodec.Append(paragraph, text);
         _element.Add(paragraph);
         _document.MarkPartDirty("content.xml");
         return new OdtParagraph(_document, paragraph);

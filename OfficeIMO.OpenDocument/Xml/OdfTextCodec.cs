@@ -1,6 +1,6 @@
 namespace OfficeIMO.OpenDocument;
 
-internal static class OdtTextCodec {
+internal static class OdfTextCodec {
     internal static string Read(XElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
         var builder = new StringBuilder();

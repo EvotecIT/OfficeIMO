@@ -115,7 +115,7 @@ public sealed class OdtTableCell {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             _element.RemoveNodes();
             var paragraph = new XElement(OdfNamespaces.Text + "p");
-            OdtTextCodec.Append(paragraph, value);
+            OdfTextCodec.Append(paragraph, value);
             _element.Add(paragraph);
             _element.SetAttributeValue(OdfNamespaces.Office + "value-type", "string");
             Dirty();
@@ -126,7 +126,7 @@ public sealed class OdtTableCell {
     public OdtParagraph AddParagraph(string? text = null) {
         if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain paragraphs.");
         var paragraph = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(paragraph, text);
+        OdfTextCodec.Append(paragraph, text);
         _element.Add(paragraph);
         Dirty();
         return new OdtParagraph(_document, paragraph);
@@ -134,7 +134,7 @@ public sealed class OdtTableCell {
 
     internal static XElement CreateElement(string? text = null) {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(paragraph, text);
+        OdfTextCodec.Append(paragraph, text);
         return new XElement(OdfNamespaces.Table + "table-cell",
             new XAttribute(OdfNamespaces.Office + "value-type", "string"), paragraph);
     }

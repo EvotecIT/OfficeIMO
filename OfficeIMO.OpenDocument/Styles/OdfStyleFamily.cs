@@ -18,6 +18,8 @@ public enum OdfStyleFamily {
     Graphic,
     /// <summary>Presentation page formatting.</summary>
     Presentation,
+    /// <summary>Drawing page background and transition formatting.</summary>
+    DrawingPage,
     /// <summary>Chart formatting.</summary>
     Chart
 }

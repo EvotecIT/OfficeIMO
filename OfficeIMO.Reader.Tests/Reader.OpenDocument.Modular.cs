@@ -6,6 +6,32 @@ namespace OfficeIMO.Reader.Tests;
 
 public class ReaderOpenDocumentModularTests {
     [Fact]
+    public void RegisteredAdapterEmitsSlideAlignedOdpChunkWithNotesAndTable() {
+        using OdpPresentation document = OdpPresentation.Create();
+        OdpSlide slide = document.AddSlide("Summary");
+        slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 20, 3), "Native presentation");
+        OdpTable table = slide.AddTable(OdfRect.FromCentimeters(1, 5, 12, 4), 2, 2, "Metrics");
+        table.Cell(0, 0).Text = "Name";
+        table.Cell(0, 1).Text = "Value";
+        table.Cell(1, 0).Text = "Revenue";
+        table.Cell(1, 1).Text = "42";
+        slide.GetOrCreateSpeakerNotes().AddParagraph("Explain the result.");
+
+        DocumentReaderOpenDocumentRegistrationExtensions.RegisterOpenDocumentHandler(replaceExisting: true);
+        try {
+            ReaderChunk chunk = Assert.Single(DocumentReader.Read(document.ToBytes(), "summary.odp"));
+
+            Assert.Equal(1, chunk.Location.Slide);
+            Assert.Equal("Summary", chunk.Location.HeadingPath);
+            Assert.Contains("Native presentation", chunk.Text, StringComparison.Ordinal);
+            Assert.Contains("Notes: Explain the result.", chunk.Text, StringComparison.Ordinal);
+            Assert.Equal("42", Assert.Single(chunk.Tables!).Rows[1][1]);
+        } finally {
+            DocumentReaderOpenDocumentRegistrationExtensions.UnregisterOpenDocumentHandler();
+        }
+    }
+
+    [Fact]
     public void RegisteredAdapterEmitsBoundedOdsSheetTableChunk() {
         using OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Metrics");

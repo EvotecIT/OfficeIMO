@@ -28,7 +28,7 @@ public sealed class OdtSection {
     /// <summary>Adds a paragraph to the section.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(paragraph, text);
+        OdfTextCodec.Append(paragraph, text);
         _element.Add(paragraph);
         Dirty();
         return new OdtParagraph(_document, paragraph);
@@ -38,7 +38,7 @@ public sealed class OdtSection {
     public OdtParagraph AddHeading(string text, int level = 1) {
         if (level < 1 || level > 10) throw new ArgumentOutOfRangeException(nameof(level));
         var heading = new XElement(OdfNamespaces.Text + "h", new XAttribute(OdfNamespaces.Text + "outline-level", level));
-        OdtTextCodec.Append(heading, text);
+        OdfTextCodec.Append(heading, text);
         _element.Add(heading);
         Dirty();
         return new OdtParagraph(_document, heading);

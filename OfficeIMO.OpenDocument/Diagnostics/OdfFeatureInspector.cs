@@ -25,6 +25,9 @@ internal static class OdfFeatureInspector {
             int formulas = document.Descendants(OdfNamespaces.Table + "table-cell")
                 .Count(element => element.Attribute(OdfNamespaces.Table + "formula") != null);
             if (formulas > 0) findings.Add(new OdfFeatureFinding("spreadsheet-formulas", OdfFeatureSupport.Editable, entry.Name, formulas));
+            int transitions = document.Descendants(OdfNamespaces.Style + "drawing-page-properties")
+                .Count(element => element.Attribute(OdfNamespaces.Presentation + "transition-type") != null || element.Attribute(OdfNamespaces.Presentation + "transition-style") != null);
+            if (transitions > 0) findings.Add(new OdfFeatureFinding("presentation-transitions", OdfFeatureSupport.Editable, entry.Name, transitions));
 
             var foreign = document.Root.DescendantsAndSelf()
                 .Select(element => element.Name.NamespaceName)

@@ -129,7 +129,7 @@ public sealed class OdtHeaderFooter {
     /// <summary>Adds a paragraph.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
         var paragraph = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(paragraph, text);
+        OdfTextCodec.Append(paragraph, text);
         _element.Add(paragraph);
         _document.MarkPartDirty("styles.xml");
         return new OdtParagraph(_document, paragraph, "styles.xml");

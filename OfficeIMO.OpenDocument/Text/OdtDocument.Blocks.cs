@@ -26,7 +26,7 @@ public sealed partial class OdtDocument {
     /// <summary>Adds a paragraph to the document body.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(element, text);
+        OdfTextCodec.Append(element, text);
         TextBody.Add(element);
         MarkPartDirty("content.xml");
         return new OdtParagraph(this, element);
@@ -37,7 +37,7 @@ public sealed partial class OdtDocument {
         if (level < 1 || level > 10) throw new ArgumentOutOfRangeException(nameof(level), "Heading level must be between 1 and 10.");
         var element = new XElement(OdfNamespaces.Text + "h",
             new XAttribute(OdfNamespaces.Text + "outline-level", level));
-        OdtTextCodec.Append(element, text);
+        OdfTextCodec.Append(element, text);
         TextBody.Add(element);
         MarkPartDirty("content.xml");
         return new OdtParagraph(this, element);
@@ -45,7 +45,7 @@ public sealed partial class OdtDocument {
 
     /// <summary>Adds an ordered or unordered list.</summary>
     public OdtList AddList(bool ordered = false) {
-        string styleName = CreateListStyle(ordered);
+        string styleName = OdfListStyleStore.Create(this, ordered);
         var element = new XElement(OdfNamespaces.Text + "list",
             new XAttribute(OdfNamespaces.Text + "style-name", styleName));
         TextBody.Add(element);
@@ -109,28 +109,6 @@ public sealed partial class OdtDocument {
                 foreach (OdtContentBlock block in EnumerateContentBlocks(element)) yield return block;
             }
         }
-    }
-
-    private string CreateListStyle(bool ordered) {
-        XDocument content = GetXml("content.xml");
-        XElement root = content.Root ?? throw new InvalidDataException("OpenDocument content has no root element.");
-        XElement styles = root.Element(OdfNamespaces.Office + "automatic-styles") ?? throw new InvalidDataException("OpenDocument content has no automatic styles.");
-        var existingNames = new HashSet<string>(styles.Elements(OdfNamespaces.Text + "list-style")
-            .Select(element => (string?)element.Attribute(OdfNamespaces.Style + "name"))
-            .Where(value => !string.IsNullOrEmpty(value))!, StringComparer.Ordinal);
-        int index = 1;
-        string name;
-        do { name = "ofList" + index++.ToString("D4", CultureInfo.InvariantCulture); } while (existingNames.Contains(name));
-        XElement level = ordered
-            ? new XElement(OdfNamespaces.Text + "list-level-style-number",
-                new XAttribute(OdfNamespaces.Text + "level", 1),
-                new XAttribute(OdfNamespaces.Style + "num-format", "1"))
-            : new XElement(OdfNamespaces.Text + "list-level-style-bullet",
-                new XAttribute(OdfNamespaces.Text + "level", 1),
-                new XAttribute(OdfNamespaces.Text + "bullet-char", "•"));
-        styles.Add(new XElement(OdfNamespaces.Text + "list-style", new XAttribute(OdfNamespaces.Style + "name", name), level));
-        MarkPartDirty("content.xml");
-        return name;
     }
 
     private string NextTableName() {

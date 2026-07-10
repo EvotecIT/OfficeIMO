@@ -30,6 +30,7 @@ internal static class OdfValidator {
         ValidateManifest(package, diagnostics);
         ValidateVersionConsistency(package, diagnostics);
         if (package.Kind == OdfDocumentKind.Spreadsheet) ValidateSpreadsheet(package, diagnostics);
+        if (package.Kind == OdfDocumentKind.Presentation) ValidatePresentation(package, diagnostics);
         return new OdfValidationResult(diagnostics);
     }
 
@@ -109,6 +110,34 @@ internal static class OdfValidator {
             if (required != null && element.Attribute(required) == null) {
                 diagnostics.Add(new OdfDiagnostic("ODS101", OdfDiagnosticSeverity.Error,
                     $"Spreadsheet cell type '{valueType}' is missing '{required.LocalName}'.", "content.xml"));
+            }
+        }
+    }
+
+    private static void ValidatePresentation(OdfPackage package, List<OdfDiagnostic> diagnostics) {
+        XDocument content = package.GetXml("content.xml");
+        XDocument? styles = package.ContainsEntry("styles.xml") ? package.GetXml("styles.xml") : null;
+        var masters = new HashSet<string>(styles?.Descendants(OdfNamespaces.Style + "master-page")
+            .Select(element => (string?)element.Attribute(OdfNamespaces.Style + "name"))
+            .Where(value => !string.IsNullOrEmpty(value)).Select(value => value!) ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+        var slideNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement slide in content.Descendants(OdfNamespaces.Draw + "page")) {
+            string? name = (string?)slide.Attribute(OdfNamespaces.Draw + "name");
+            if (string.IsNullOrEmpty(name) || !slideNames.Add(name!)) {
+                diagnostics.Add(new OdfDiagnostic("ODP100", OdfDiagnosticSeverity.Error,
+                    "Presentation slide names must be present and unique.", "content.xml"));
+            }
+            string? master = (string?)slide.Attribute(OdfNamespaces.Draw + "master-page-name");
+            if (!string.IsNullOrEmpty(master) && !masters.Contains(master!)) {
+                diagnostics.Add(new OdfDiagnostic("ODP101", OdfDiagnosticSeverity.Error,
+                    $"Presentation slide references missing master page '{master}'.", "content.xml"));
+            }
+        }
+        foreach (XElement image in content.Descendants(OdfNamespaces.Draw + "image")) {
+            string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
+            if (!string.IsNullOrEmpty(href) && !href!.StartsWith("#", StringComparison.Ordinal) && !href.Contains("://") && !package.ContainsEntry(href)) {
+                diagnostics.Add(new OdfDiagnostic("ODP102", OdfDiagnosticSeverity.Error,
+                    $"Presentation image references missing package entry '{href}'.", "content.xml"));
             }
         }
     }

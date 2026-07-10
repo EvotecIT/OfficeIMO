@@ -10,4 +10,8 @@
 
 `extreme-repeats.ods` was generated with OfficeIMO.OpenDocument on 2026-07-10. Its last used cell is XFD1048576, represented by row and cell repeat runs instead of expanded XML nodes.
 
+`libreoffice-impress-basic.odp` was produced with LibreOfficeDev 26.8 by converting `Assets/PowerPointTemplates/PowerPointWithTitle.pptx` with the `impress8` filter on 2026-07-10.
+
+`microsoft-powerpoint-basic.odp` was saved from the same source presentation with Microsoft PowerPoint for Mac 16.99 on 2026-07-10 using PowerPoint's OpenDocument Presentation export.
+
 Keep fixtures small and record the producing application, source file, and date here. Binary fixtures are test evidence; they are not public examples.

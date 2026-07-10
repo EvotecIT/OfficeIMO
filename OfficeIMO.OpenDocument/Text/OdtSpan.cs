@@ -14,8 +14,8 @@ public sealed class OdtSpan {
 
     /// <summary>Decoded span text.</summary>
     public string Text {
-        get => OdtTextCodec.Read(_element);
-        set { OdtTextCodec.Replace(_element, value); Dirty(); }
+        get => OdfTextCodec.Read(_element);
+        set { OdfTextCodec.Replace(_element, value); Dirty(); }
     }
     /// <summary>Referenced text style name.</summary>
     public string? StyleName {
@@ -32,7 +32,7 @@ public sealed class OdtSpan {
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
 
     /// <summary>Appends decoded plain text.</summary>
-    public OdtSpan AddText(string text) { OdtTextCodec.Append(_element, text); Dirty(); return this; }
+    public OdtSpan AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
 
     private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
         _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofT", _partPath);

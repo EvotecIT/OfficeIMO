@@ -14,8 +14,8 @@ public sealed class OdtHyperlink {
 
     /// <summary>Decoded display text.</summary>
     public string Text {
-        get => OdtTextCodec.Read(_element);
-        set { OdtTextCodec.Replace(_element, value); Dirty(); }
+        get => OdfTextCodec.Read(_element);
+        set { OdfTextCodec.Replace(_element, value); Dirty(); }
     }
     /// <summary>Link target.</summary>
     public string Href {

@@ -124,7 +124,7 @@ public sealed class OdsCell {
         var link = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
-        OdtTextCodec.Append(link, text);
+        OdfTextCodec.Append(link, text);
         paragraph.Add(link); Dirty();
     }
 
@@ -166,7 +166,7 @@ public sealed class OdsCell {
         _element.ReplaceWith(covered); _element = covered; Dirty();
     }
 
-    private static string ReadDisplayText(XElement element) => string.Join("\n", element.Elements(OdfNamespaces.Text + "p").Select(OdtTextCodec.Read));
+    private static string ReadDisplayText(XElement element) => string.Join("\n", element.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
 
     private void SetNumeric(string valueType, string lexical, string display) {
         EnsureEditable(); ClearValueAttributes();
@@ -193,7 +193,7 @@ public sealed class OdsCell {
     private void ReplaceDisplayText(string text) {
         foreach (XElement paragraph in _element.Elements(OdfNamespaces.Text + "p").ToList()) paragraph.Remove();
         var replacement = new XElement(OdfNamespaces.Text + "p");
-        OdtTextCodec.Append(replacement, text);
+        OdfTextCodec.Append(replacement, text);
         _element.Add(replacement);
     }
 

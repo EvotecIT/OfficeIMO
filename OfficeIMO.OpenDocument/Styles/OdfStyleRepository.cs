@@ -102,6 +102,7 @@ public sealed class OdfStyleRepository {
             case OdfStyleFamily.TableCell: return "table-cell";
             case OdfStyleFamily.Graphic: return "graphic";
             case OdfStyleFamily.Presentation: return "presentation";
+            case OdfStyleFamily.DrawingPage: return "drawing-page";
             case OdfStyleFamily.Chart: return "chart";
             default: throw new ArgumentOutOfRangeException(nameof(family));
         }

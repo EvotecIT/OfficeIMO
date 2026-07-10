@@ -14,9 +14,9 @@ public sealed class OdtParagraph {
 
     /// <summary>Plain text with ODF spaces, tabs, and line breaks decoded.</summary>
     public string Text {
-        get => OdtTextCodec.Read(_element);
+        get => OdfTextCodec.Read(_element);
         set {
-            OdtTextCodec.Replace(_element, value);
+            OdfTextCodec.Replace(_element, value);
             Dirty();
         }
     }
@@ -92,7 +92,7 @@ public sealed class OdtParagraph {
 
     /// <summary>Appends plain text while encoding ODF whitespace semantics.</summary>
     public OdtParagraph AddText(string text) {
-        OdtTextCodec.Append(_element, text);
+        OdfTextCodec.Append(_element, text);
         Dirty();
         return this;
     }
@@ -100,7 +100,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends a styled text span.</summary>
     public OdtSpan AddSpan(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");
-        OdtTextCodec.Append(element, text);
+        OdfTextCodec.Append(element, text);
         _element.Add(element);
         Dirty();
         return new OdtSpan(_document, element, _partPath);
@@ -112,7 +112,7 @@ public sealed class OdtParagraph {
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
-        OdtTextCodec.Append(element, text);
+        OdfTextCodec.Append(element, text);
         _element.Add(element);
         Dirty();
         return new OdtHyperlink(_document, element, _partPath);
