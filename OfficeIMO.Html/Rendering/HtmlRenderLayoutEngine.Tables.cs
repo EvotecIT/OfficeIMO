@@ -9,6 +9,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
+        TableCaptionLayout? caption = LayoutTableCaption(table, tableWidth, style, depth);
+        double topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;
+        double bottomCaptionHeight = caption != null && caption.Side == "bottom" ? caption.Height : 0D;
+        double tableY = style.MarginTop + topCaptionHeight;
         IReadOnlyList<IElement> sourceRows = table.QuerySelectorAll("tr").Where(row => BelongsToTable(row, table)).ToList();
         IReadOnlyList<IElement> rows = sourceRows.Where(row => IsHeaderRow(row, table))
             .Concat(sourceRows.Where(row => !IsHeaderRow(row, table) && !IsFooterRow(row, table)))
@@ -17,8 +21,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int columnCount = DetermineColumnCount(rows, table);
         if (columnCount == 0) {
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.EmptyTable, "A table contained no renderable rows or cells.", HtmlDiagnosticSeverity.Info, source);
-            double emptyHeight = style.MarginTop + Math.Max(1D, style.VerticalInsets) + style.MarginBottom;
-            return new HtmlRenderFlowBlock(containingWidth, emptyHeight, Array.Empty<HtmlRenderVisual>(), style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source, pageName: style.PageName);
+            double emptyTableHeight = Math.Max(1D, style.VerticalInsets);
+            var emptyVisuals = new List<HtmlRenderVisual>();
+            if (caption != null && caption.Side == "top") AppendTableCaption(emptyVisuals, caption, style.MarginLeft, style.MarginTop);
+            AddBoxPaint(emptyVisuals, style, style.MarginLeft, tableY, tableWidth, emptyTableHeight, table);
+            AddBoxOutlinePaint(emptyVisuals, style, style.MarginLeft, tableY, tableWidth, emptyTableHeight, table);
+            if (caption != null && caption.Side == "bottom") AppendTableCaption(emptyVisuals, caption, style.MarginLeft, tableY + emptyTableHeight);
+            double emptyHeight = style.MarginTop + topCaptionHeight + emptyTableHeight + bottomCaptionHeight + style.MarginBottom;
+            return new HtmlRenderFlowBlock(containingWidth, emptyHeight, emptyVisuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source, pageName: style.PageName);
         }
 
         double columnWidth = contentWidth / columnCount;
@@ -79,9 +89,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double trailingHeight = 0D;
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
-        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
+        if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
+        AddBoxPaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double rowY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double rowY = tableY + style.BorderTopWidth + style.PaddingTop;
         double headerStart = rowY;
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
             TableRowLayout row = rowLayouts[rowIndex];
@@ -121,9 +132,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader && !candidate.IsFooter);
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
         }
-        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
+        if (caption != null && caption.Side == "bottom") AppendTableCaption(visuals, caption, style.MarginLeft, tableY + tableHeight);
 
-        double outerHeight = style.MarginTop + tableHeight + style.MarginBottom;
+        double outerHeight = style.MarginTop + topCaptionHeight + tableHeight + bottomCaptionHeight + style.MarginBottom;
         breakOffsets.Add(outerHeight);
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
             ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, outerHeight, outerHeight - trailingStart, trailingVisuals) }
@@ -277,6 +289,69 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static int ReadSpan(string? value, int maximum) {
         if (!int.TryParse(value, out int span) || span <= 0) span = 1;
         return Math.Max(1, Math.Min(span, maximum));
+    }
+
+    private TableCaptionLayout? LayoutTableCaption(
+        IElement table,
+        double tableWidth,
+        HtmlRenderBoxStyle tableStyle,
+        int depth) {
+        IElement? element = table.Children.FirstOrDefault(child => string.Equals(child.TagName, "caption", StringComparison.OrdinalIgnoreCase));
+        if (element == null) {
+            ReportUnsupportedCaptionSide(table, tableStyle);
+            return null;
+        }
+
+        HtmlRenderBoxStyle style = _styleResolver.Resolve(element, tableWidth, tableStyle);
+        _layoutStyles[element] = style.Clone();
+        if (tableStyle.UnsupportedCaptionSide.Length > 0) ReportUnsupportedCaptionSide(table, tableStyle);
+        else ReportUnsupportedCaptionSide(element, style);
+        if (style.Display == "none") return null;
+
+        double availableWidth = Math.Max(1D, tableWidth - style.MarginLeft - style.MarginRight);
+        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
+        HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth + 1, null, element);
+        double contentHeight = Math.Max(style.LineHeight, inline.Height);
+        double boxHeight = ResolveBoxHeight(contentHeight, style);
+        var visuals = new List<HtmlRenderVisual>();
+        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        foreach (HtmlRenderVisual visual in inline.Visuals) visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        return new TableCaptionLayout(style.CaptionSide, style.MarginTop + boxHeight + style.MarginBottom, visuals);
+    }
+
+    private void ReportUnsupportedCaptionSide(IElement element, HtmlRenderBoxStyle style) {
+        if (style.UnsupportedCaptionSide.Length == 0) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.TableValueUnsupported,
+            "An unsupported caption-side value used the top fallback.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            "caption-side=" + style.UnsupportedCaptionSide);
+    }
+
+    private static void AppendTableCaption(
+        ICollection<HtmlRenderVisual> target,
+        TableCaptionLayout caption,
+        double x,
+        double y) {
+        foreach (HtmlRenderVisual visual in caption.Visuals) target.Add(visual.Translate(x, y, target.Count));
+    }
+
+    private sealed class TableCaptionLayout {
+        internal TableCaptionLayout(string side, double height, IReadOnlyList<HtmlRenderVisual> visuals) {
+            Side = side;
+            Height = height;
+            Visuals = visuals;
+        }
+
+        internal string Side { get; }
+        internal double Height { get; }
+        internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     }
 
     private sealed class TableRowLayout {

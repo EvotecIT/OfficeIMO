@@ -80,6 +80,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyFlex(computed, containingWidth, fontSize, style);
         ApplyColumns(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
+        ApplyTable(computed, style);
         ApplyBreaks(computed, style);
         return style;
     }
@@ -129,6 +130,18 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (normalized == "visible" || normalized == "hidden" || normalized == "clip" || normalized == "auto" || normalized == "scroll") return normalized;
         unsupported = normalized;
         return "visible";
+    }
+
+    private static void ApplyTable(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        string captionSide = computed.GetValue("caption-side").Trim().ToLowerInvariant();
+        if (captionSide.Length == 0 || captionSide == "top") {
+            style.CaptionSide = "top";
+        } else if (captionSide == "bottom") {
+            style.CaptionSide = "bottom";
+        } else {
+            style.UnsupportedCaptionSide = captionSide;
+            style.CaptionSide = "top";
+        }
     }
 
     private static void ApplyFloat(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {

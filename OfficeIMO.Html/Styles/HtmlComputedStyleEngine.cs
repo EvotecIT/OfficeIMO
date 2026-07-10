@@ -10,6 +10,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static partial class HtmlComputedStyleEngine {
     private static readonly HashSet<string> InheritedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "caption-side",
         "color",
         "direction",
         "font-family",
@@ -68,6 +69,7 @@ public static partial class HtmlComputedStyleEngine {
         "break-after",
         "break-before",
         "break-inside",
+        "caption-side",
         "clear",
         "color",
         "column-gap",

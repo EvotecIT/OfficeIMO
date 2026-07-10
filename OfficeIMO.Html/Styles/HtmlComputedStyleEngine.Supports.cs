@@ -70,6 +70,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "clear", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "both", "inline-start", "inline-end");
         }
+        if (string.Equals(propertyName, "caption-side", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "top", "bottom");
+        }
         if (string.Equals(propertyName, "overflow", StringComparison.OrdinalIgnoreCase)) {
             string[] values = normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
             return values.Length >= 1 && values.Length <= 2

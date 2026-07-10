@@ -10,6 +10,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string ClearSide = "none";
     internal string UnsupportedFloat = string.Empty;
     internal string UnsupportedClear = string.Empty;
+    internal string CaptionSide = "top";
+    internal string UnsupportedCaptionSide = string.Empty;
     internal string Top = "auto";
     internal string Right = "auto";
     internal string Bottom = "auto";

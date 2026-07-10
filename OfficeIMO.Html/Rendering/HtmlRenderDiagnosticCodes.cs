@@ -126,6 +126,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string TableHeaderRepeatSuppressed = "HtmlRenderTableHeaderRepeatSuppressed";
     /// <summary>A repeated table footer was suppressed because it left no safe body-row break.</summary>
     public const string TableFooterRepeatSuppressed = "HtmlRenderTableFooterRepeatSuppressed";
+    /// <summary>A table formatting property used its documented fallback.</summary>
+    public const string TableValueUnsupported = "HtmlRenderTableValueUnsupported";
     /// <summary>Resolved resources exceeded the operation-wide byte budget.</summary>
     public const string TotalResourceByteLimitExceeded = "HtmlRenderTotalResourceByteLimitExceeded";
     /// <summary>A visual could not cross a forced page boundary safely.</summary>
@@ -193,6 +195,7 @@ public static class HtmlRenderDiagnosticCodes {
         StylesheetUrlResourcesPending,
         TableFooterRepeatSuppressed,
         TableHeaderRepeatSuppressed,
+        TableValueUnsupported,
         TotalResourceByteLimitExceeded,
         VisualFragmentUnsupported
     });
