@@ -90,6 +90,7 @@ public sealed class ReaderEpubModularTests {
             OfficeDocumentOcrCandidate candidate = Assert.Single(result.OcrCandidates);
             Assert.Equal(asset.Id, candidate.AssetId);
             Assert.Same(candidate, Assert.Single(page.OcrCandidates));
+            Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
         } finally {
             if (File.Exists(epubPath)) File.Delete(epubPath);
         }

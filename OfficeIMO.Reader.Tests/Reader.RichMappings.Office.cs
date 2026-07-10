@@ -16,7 +16,10 @@ public sealed class ReaderOfficeRichMappingTests {
             document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("Read ").AddHyperLink("the policy", new Uri("https://example.test/policy"));
             WordParagraph noteReference = document.AddParagraph("Supporting references");
-            noteReference.AddFootNote("Footnote detail");
+            WordParagraph footnoteReference = noteReference.AddFootNote("Footnote detail ");
+            footnoteReference.FootNote!.Paragraphs![1].AddHyperLink(
+                "footnote source",
+                new Uri("https://example.test/footnote"));
             noteReference.AddEndNote("Endnote detail");
             WordTable table = document.AddTable(2, 2);
             table.Title = "Inventory";
@@ -37,7 +40,9 @@ public sealed class ReaderOfficeRichMappingTests {
         ReaderTable mapped = Assert.Single(result.Tables);
         Assert.Equal("Inventory", mapped.Title);
         Assert.Equal("Bandage", mapped.Rows[0][0]);
-        Assert.Equal("https://example.test/policy", Assert.Single(result.Links).Uri);
+        Assert.Equal("https://example.test/policy", Assert.Single(result.Links, link => link.Uri == "https://example.test/policy").Uri);
+        OfficeDocumentLink noteLink = Assert.Single(result.Links, link => link.Uri == "https://example.test/footnote");
+        Assert.StartsWith("word-footnote-", noteLink.Location.BlockAnchor, StringComparison.Ordinal);
         Assert.Contains(result.Blocks, block => block.Kind == "footnote" && block.Text.Contains("Footnote detail", StringComparison.Ordinal));
         Assert.Contains(result.Blocks, block => block.Kind == "endnote" && block.Text.Contains("Endnote detail", StringComparison.Ordinal));
         Assert.Contains("officeimo.word.inspection-snapshot", result.CapabilitiesUsed);

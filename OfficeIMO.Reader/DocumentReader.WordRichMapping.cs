@@ -45,7 +45,7 @@ public static partial class DocumentReader {
         }
 
         if (options.IncludeWordFootnotes) {
-            ProjectWordNotes(snapshot, result.Source.Path, blocks, ref sourceBlockIndex);
+            ProjectWordNotes(snapshot, result.Source.Path, blocks, links, ref sourceBlockIndex, ref linkIndex);
         }
 
         var metadata = new[] {
@@ -66,17 +66,19 @@ public static partial class DocumentReader {
         WordDocumentSnapshot snapshot,
         string? sourcePath,
         List<OfficeDocumentBlock> blocks,
-        ref int sourceBlockIndex) {
+        List<OfficeDocumentLink> links,
+        ref int sourceBlockIndex,
+        ref int linkIndex) {
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         int noteIndex = 0;
         foreach (WordSectionSnapshot section in snapshot.Sections) {
             foreach (WordParagraphSnapshot paragraph in EnumerateWordParagraphs(section)) {
                 foreach (WordRunSnapshot run in paragraph.Runs) {
                     if (run.Footnote != null) {
-                        ProjectWordNote("footnote", run.Footnote.ReferenceId, run.Footnote.Paragraphs, sourcePath, blocks, emitted, ref sourceBlockIndex, ref noteIndex);
+                        ProjectWordNote("footnote", run.Footnote.ReferenceId, run.Footnote.Paragraphs, sourcePath, blocks, links, emitted, ref sourceBlockIndex, ref noteIndex, ref linkIndex);
                     }
                     if (run.Endnote != null) {
-                        ProjectWordNote("endnote", run.Endnote.ReferenceId, run.Endnote.Paragraphs, sourcePath, blocks, emitted, ref sourceBlockIndex, ref noteIndex);
+                        ProjectWordNote("endnote", run.Endnote.ReferenceId, run.Endnote.Paragraphs, sourcePath, blocks, links, emitted, ref sourceBlockIndex, ref noteIndex, ref linkIndex);
                     }
                 }
             }
@@ -114,9 +116,11 @@ public static partial class DocumentReader {
         IReadOnlyList<WordParagraphSnapshot> noteParagraphs,
         string? sourcePath,
         List<OfficeDocumentBlock> blocks,
+        List<OfficeDocumentLink> links,
         HashSet<string> emitted,
         ref int sourceBlockIndex,
-        ref int noteIndex) {
+        ref int noteIndex,
+        ref int linkIndex) {
         string text = string.Join(
             Environment.NewLine,
             noteParagraphs.Select(static paragraph => paragraph.Text).Where(static value => !string.IsNullOrWhiteSpace(value)));
@@ -131,17 +135,21 @@ public static partial class DocumentReader {
             ? referenceId.Value.ToString(CultureInfo.InvariantCulture).Replace("-", "negative-")
             : noteIndex.ToString("D4", CultureInfo.InvariantCulture);
         string anchor = "word-" + kind + "-" + reference;
+        var location = new ReaderLocation {
+            Path = sourcePath,
+            SourceBlockIndex = sourceBlockIndex,
+            SourceBlockKind = kind,
+            BlockAnchor = anchor
+        };
         blocks.Add(new OfficeDocumentBlock {
             Id = anchor,
             Kind = kind,
             Text = text,
-            Location = new ReaderLocation {
-                Path = sourcePath,
-                SourceBlockIndex = sourceBlockIndex,
-                SourceBlockKind = kind,
-                BlockAnchor = anchor
-            }
+            Location = location
         });
+        foreach (WordParagraphSnapshot paragraph in noteParagraphs) {
+            AddWordParagraphLinks(paragraph, location, links, ref linkIndex);
+        }
         sourceBlockIndex++;
         noteIndex++;
     }

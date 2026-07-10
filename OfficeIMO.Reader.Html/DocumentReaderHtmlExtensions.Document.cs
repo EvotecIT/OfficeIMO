@@ -128,20 +128,23 @@ public static partial class DocumentReaderHtmlExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         string? nextListName = node.Kind == HtmlLogicalNodeKind.List ? node.Name : listName;
         int nextListLevel = node.Kind == HtmlLogicalNodeKind.List ? listLevel + 1 : listLevel;
+        ReaderTable? mappedTable = node.Kind == HtmlLogicalNodeKind.Table
+            ? MapHtmlTable(node, path, tableIndex++, maxTableRows)
+            : null;
         if (IsHtmlBlock(node.Kind)) {
             string kind = NormalizeHtmlBlockKind(node.Kind);
             string anchor = "html-" + kind + "-" + blockIndex.ToString("D4", CultureInfo.InvariantCulture);
             projection.Blocks.Add(new OfficeDocumentBlock {
                 Id = anchor,
                 Kind = kind,
-                Text = GetHtmlNodeText(node),
+                Text = mappedTable == null ? GetHtmlNodeText(node) : BuildHtmlTableBlockText(mappedTable),
                 Level = node.Kind == HtmlLogicalNodeKind.Heading ? ParseHtmlHeadingLevel(node.Name) : node.Kind == HtmlLogicalNodeKind.ListItem ? nextListLevel : null,
                 Marker = node.Kind == HtmlLogicalNodeKind.ListItem ? (string.Equals(nextListName, "ol", StringComparison.OrdinalIgnoreCase) ? "1." : "-") : null,
                 Location = BuildHtmlLocation(path, blockIndex, kind, anchor)
             });
             blockIndex++;
         }
-        if (node.Kind == HtmlLogicalNodeKind.Table) projection.Tables.Add(MapHtmlTable(node, path, tableIndex++, maxTableRows));
+        if (mappedTable != null) projection.Tables.Add(mappedTable);
         if (node.Kind == HtmlLogicalNodeKind.Link && node.Attributes.TryGetValue("href", out string? href)) {
             string resolvedHref = HtmlUrlPolicyEvaluator.ResolveUrl(href, htmlOptions.BaseUri, htmlOptions.UrlPolicy);
             if (!string.IsNullOrWhiteSpace(resolvedHref)) {
@@ -205,10 +208,9 @@ public static partial class DocumentReaderHtmlExtensions {
     }
 
     private static OfficeDocumentAsset? MapHtmlImage(HtmlLogicalNode node, string? path, int index, HtmlToMarkdownOptions htmlOptions) {
-        node.Attributes.TryGetValue("src", out string? source);
         node.Attributes.TryGetValue("alt", out string? altText);
         node.Attributes.TryGetValue("title", out string? title);
-        string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, htmlOptions.BaseUri, htmlOptions.UrlPolicy);
+        string resolvedSource = ResolveHtmlImageSource(node, htmlOptions);
         if (string.IsNullOrWhiteSpace(resolvedSource)) return null;
         byte[]? payload = null;
         string? mediaType = null;
@@ -239,7 +241,10 @@ public static partial class DocumentReaderHtmlExtensions {
 
     private static OfficeDocumentFormField MapHtmlFormControl(HtmlLogicalNode node, string? path, int index) {
         node.Attributes.TryGetValue("name", out string? name);
-        node.Attributes.TryGetValue("value", out string? value);
+        bool hasValue = node.Attributes.TryGetValue("value", out string? value);
+        if (!hasValue && string.Equals(node.Name, "textarea", StringComparison.OrdinalIgnoreCase)) {
+            value = GetHtmlNodeText(node);
+        }
         string id = "html-form-" + index.ToString("D4", CultureInfo.InvariantCulture);
         return new OfficeDocumentFormField {
             Id = id,
@@ -250,6 +255,29 @@ public static partial class DocumentReaderHtmlExtensions {
             IsRequired = node.Attributes.ContainsKey("required"),
             Location = BuildHtmlLocation(path, null, "form-control", id)
         };
+    }
+
+    private static string BuildHtmlTableBlockText(ReaderTable table) {
+        IEnumerable<IReadOnlyList<string>> rows = table.Columns.Count == 0
+            ? table.Rows
+            : new[] { table.Columns }.Concat(table.Rows);
+        return string.Join(Environment.NewLine, rows.Select(static row => string.Join(" | ", row)));
+    }
+
+    private static string ResolveHtmlImageSource(HtmlLogicalNode node, HtmlToMarkdownOptions options) {
+        foreach (string attribute in new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
+            if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, options.UrlPolicy);
+            if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
+        }
+        foreach (string attribute in new[] { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" }) {
+            if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
+            string resolved = HtmlImageSourceResolver.ResolveUrlFromSrcSet(value, options.BaseUri, options.UrlPolicy);
+            if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
+        }
+        return node.Attributes.TryGetValue("src", out string? source)
+            ? HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.UrlPolicy)
+            : string.Empty;
     }
 
     private static ReaderVisual MapHtmlVisual(

@@ -117,11 +117,11 @@ public static partial class DocumentReaderRtfExtensions {
                     ProjectRtfParagraphContent(paragraph, location, projection, ref linkIndex, ref assetIndex, ref formIndex);
                     break;
                 case RtfTable table:
-                    projection.Blocks.Add(new OfficeDocumentBlock { Id = location.BlockAnchor!, Kind = "table", Text = BuildRtfTableText(table), Location = location });
                     ReaderTable mapped = BuildReaderTable(table, tableIndex);
                     mapped.Kind = "rtf-table";
                     mapped.Location = BuildRtfRichLocation(sourcePath, blockIndex, "table", location.BlockAnchor!, tableIndex);
                     ApplyRtfTableLimit(mapped, maxTableRows);
+                    projection.Blocks.Add(new OfficeDocumentBlock { Id = location.BlockAnchor!, Kind = "table", Text = BuildRtfTableText(mapped), Location = location });
                     projection.Tables.Add(mapped);
                     foreach (RtfTableRow row in table.Rows) foreach (RtfTableCell cell in row.Cells) foreach (RtfParagraph paragraph in cell.Paragraphs) ProjectRtfParagraphContent(paragraph, location, projection, ref linkIndex, ref assetIndex, ref formIndex);
                     tableIndex++;
@@ -145,22 +145,30 @@ public static partial class DocumentReaderRtfExtensions {
         }
         if (options.IncludeHeadersAndFooters) foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
             string id = "rtf-header-footer-" + blockIndex.ToString("D4", CultureInfo.InvariantCulture);
+            ReaderLocation location = BuildRtfRichLocation(sourcePath, blockIndex, "header-footer", id);
             projection.Blocks.Add(new OfficeDocumentBlock {
                 Id = id,
                 Kind = "header-footer",
                 Text = headerFooter.ToPlainText(),
-                Location = BuildRtfRichLocation(sourcePath, blockIndex, "header-footer", id)
+                Location = location
             });
+            foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
+                ProjectRtfParagraphContent(paragraph, location, projection, ref linkIndex, ref assetIndex, ref formIndex);
+            }
             blockIndex++;
         }
         if (options.IncludeNotes) foreach (RtfNote note in document.Notes) {
             string id = "rtf-note-" + blockIndex.ToString("D4", CultureInfo.InvariantCulture);
+            ReaderLocation location = BuildRtfRichLocation(sourcePath, blockIndex, "note", id);
             projection.Blocks.Add(new OfficeDocumentBlock {
                 Id = id,
                 Kind = "note",
                 Text = note.ToPlainText(),
-                Location = BuildRtfRichLocation(sourcePath, blockIndex, "note", id)
+                Location = location
             });
+            foreach (RtfParagraph paragraph in note.Paragraphs) {
+                ProjectRtfParagraphContent(paragraph, location, projection, ref linkIndex, ref assetIndex, ref formIndex);
+            }
             blockIndex++;
         }
         return projection;
@@ -245,10 +253,8 @@ public static partial class DocumentReaderRtfExtensions {
         table.ColumnProfiles = ReaderTableProfiler.CreateProfiles(table.Columns, table.Rows);
     }
 
-    private static string BuildRtfTableText(RtfTable table) {
-        return string.Join(Environment.NewLine, table.Rows.Select(row =>
-            string.Join(" | ", row.Cells.Select(static cell =>
-                string.Join(" ", cell.Paragraphs.Select(static paragraph => paragraph.ToPlainText()).Where(static text => !string.IsNullOrWhiteSpace(text)))))));
+    private static string BuildRtfTableText(ReaderTable table) {
+        return string.Join(Environment.NewLine, table.Rows.Select(static row => string.Join(" | ", row)));
     }
 
     private static IEnumerable<OfficeDocumentDiagnostic> MapRtfDiagnostics(IReadOnlyList<RtfDiagnostic> diagnostics, string path) {

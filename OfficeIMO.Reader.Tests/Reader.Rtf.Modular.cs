@@ -13,11 +13,13 @@ public sealed class ReaderRtfModularTests {
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "Rich RTF";
         document.Info.Author = "OfficeIMO";
-        document.AddHeader().AddParagraph("Confidential");
+        RtfParagraph headerParagraph = document.AddHeader().AddParagraph("Confidential ");
+        headerParagraph.AddText("header portal").SetHyperlink(new Uri("https://example.test/header"));
         RtfParagraph paragraph = document.AddParagraph("Portal ");
         paragraph.AddText("open").SetHyperlink(new Uri("https://example.test/rtf"));
         RtfNote sourceNote = document.AddNote(RtfNoteKind.Footnote);
-        sourceNote.AddParagraph("Review note");
+        RtfParagraph noteParagraph = sourceNote.AddParagraph("Review note ");
+        noteParagraph.AddText("note portal").SetHyperlink(new Uri("https://example.test/note"));
         paragraph.AddNoteReference(sourceNote, "1");
         RtfField field = paragraph.AddField("FORMTEXT");
         field.AddText("Ada");
@@ -34,7 +36,13 @@ public sealed class ReaderRtfModularTests {
 
         Assert.Equal("Rich RTF", result.Source.Title);
         Assert.Equal("OfficeIMO", result.Source.Author);
-        Assert.Equal("https://example.test/rtf", Assert.Single(result.Links).Uri);
+        Assert.Contains(result.Links, link => link.Uri == "https://example.test/rtf");
+        Assert.Contains(result.Links, link =>
+            link.Uri == "https://example.test/header" &&
+            link.Location.BlockAnchor?.StartsWith("rtf-header-footer-", StringComparison.Ordinal) == true);
+        Assert.Contains(result.Links, link =>
+            link.Uri == "https://example.test/note" &&
+            link.Location.BlockAnchor?.StartsWith("rtf-note-", StringComparison.Ordinal) == true);
         OfficeDocumentFormField form = Assert.Single(result.Forms);
         Assert.Equal("Patient", form.Name);
         Assert.True(form.IsReadOnly);
@@ -51,6 +59,28 @@ public sealed class ReaderRtfModularTests {
             DocumentReaderRtfExtensions.ReadRtfDocumentResultJson(document, "rich.rtf"));
         Assert.Equal(ReaderInputKind.Rtf, jsonResult.Kind);
         Assert.Contains("officeimo.reader.rtf.rich-v5", result.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void DocumentReaderRtf_RichTables_ApplyRowLimitToTableBlocks() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable table = document.AddTable(3, 1);
+        table.Rows[0].Cells[0].AddParagraph("Row 1");
+        table.Rows[1].Cells[0].AddParagraph("Row 2");
+        table.Rows[2].Cells[0].AddParagraph("Row 3");
+
+        OfficeDocumentReadResult result = DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+            document,
+            "bounded.rtf",
+            new ReaderOptions { MaxTableRows = 1 });
+
+        ReaderTable mapped = Assert.Single(result.Tables);
+        Assert.Single(mapped.Rows);
+        Assert.True(mapped.Truncated);
+        OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
+        Assert.Contains("Row 1", block.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 2", block.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 3", block.Text, StringComparison.Ordinal);
     }
 
     [Fact]

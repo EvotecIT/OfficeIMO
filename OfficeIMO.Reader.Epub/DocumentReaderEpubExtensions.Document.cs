@@ -79,7 +79,8 @@ public static partial class DocumentReaderEpubExtensions {
                 chapterForms.AddRange(htmlResult.Forms);
                 visuals.AddRange(htmlResult.Visuals);
                 AddEpubChapterAssets(source.Path, chapter.Path, htmlResult.Assets, assets, chapterAssets);
-                diagnostics.AddRange(htmlResult.Diagnostics);
+                diagnostics.AddRange(htmlResult.Diagnostics.Where(static diagnostic =>
+                    !string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal)));
             }
             if (chapterBlocks.Count == 0) {
                 string anchor = "epub-chapter-" + (chapterIndex + 1).ToString("D4", CultureInfo.InvariantCulture);

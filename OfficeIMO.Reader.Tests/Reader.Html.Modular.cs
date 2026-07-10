@@ -101,6 +101,41 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_RichTables_ApplyRowLimitToTableBlocks() {
+        const string html = "<table><tr><th>Name</th></tr><tr><td>Row 1</td></tr>"
+            + "<tr><td>Row 2</td></tr><tr><td>Row 3</td></tr></table>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+            html,
+            "bounded.html",
+            new ReaderOptions { MaxTableRows = 1 });
+
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Single(table.Rows);
+        Assert.True(table.Truncated);
+        OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
+        Assert.Contains("Row 1", block.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 2", block.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 3", block.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_MapsTextareaAndResponsiveImageSources() {
+        const string html = "<form><textarea name=\"comments\">Hello there</textarea></form>"
+            + "<img alt=\"Responsive\" srcset=\"small.png 1x, large.png 2x\"/>"
+            + "<img alt=\"Lazy\" data-src=\"lazy.png\"/>"
+            + "<picture><source srcset=\"picture.png 1x\"/></picture>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "responsive.html");
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms, item => item.Name == "comments");
+        Assert.Equal("Hello there", form.Value);
+        Assert.Contains(result.Assets, asset => asset.SourceObjectId == "small.png");
+        Assert.Contains(result.Assets, asset => asset.SourceObjectId == "lazy.png");
+        Assert.Contains(result.Assets, asset => asset.SourceObjectId == "picture.png");
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsChunks() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
 
