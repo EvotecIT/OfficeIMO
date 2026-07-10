@@ -78,7 +78,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BorderRadiusValueUnsupported = "HtmlRenderBorderRadiusValueUnsupported";
     /// <summary>A CSS box shadow could not be represented by the current outer-shadow model.</summary>
     public const string BoxShadowValueUnsupported = "HtmlRenderBoxShadowValueUnsupported";
-    /// <summary>A CSS border paint declaration could not be represented by the uniform border model.</summary>
+    /// <summary>A CSS border paint declaration used invalid or unsupported syntax.</summary>
     public const string BorderPaintValueUnsupported = "HtmlRenderBorderPaintValueUnsupported";
     /// <summary>A CSS outline paint declaration could not be represented by the current outline model.</summary>
     public const string OutlinePaintValueUnsupported = "HtmlRenderOutlinePaintValueUnsupported";

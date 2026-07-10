@@ -60,8 +60,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         bool paintsBlockBox = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item";
         if (paintsBlockBox) AddGeneratedBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
-        double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in inline.Visuals) {
             visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
         }
@@ -97,7 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source) {
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, element, source);
         AddBoxShadow(visuals, style, x, y, width, height, radii, element, source);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, radii, element, source, source);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, element, source, source);
         AddBorderPaint(visuals, style, x, y, width, height, radii, element, source);
     }
 

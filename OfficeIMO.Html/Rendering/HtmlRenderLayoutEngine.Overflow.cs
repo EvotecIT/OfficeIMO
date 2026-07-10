@@ -32,10 +32,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             content,
             style,
             element,
-            style.MarginLeft + style.BorderWidth,
-            style.MarginTop + style.BorderWidth,
-            Math.Max(0.01D, boxWidth - style.BorderWidth * 2D),
-            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D));
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
+            Math.Max(0.01D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth));
         return block.WithVisuals(outside);
     }
 

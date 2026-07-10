@@ -11,16 +11,11 @@ internal sealed partial class HtmlRenderStyleResolver {
                 fontSize,
                 _options.DefaultFontSize,
                 style.Color,
-                out double borderWidth,
-                out string borderStyle,
-                out OfficeColor borderColor,
+                out HtmlRenderBorderEdges borders,
                 out string borderDetail)) {
-            style.BorderWidth = borderWidth;
-            style.BorderStyle = borderStyle;
-            style.BorderColor = borderColor;
+            style.Borders = borders;
         } else {
-            style.BorderWidth = 0D;
-            style.BorderStyle = "none";
+            style.Borders = HtmlRenderBorderEdges.Uniform(0D, "none", style.Color);
             style.UnsupportedBorderPaint = borderDetail;
         }
 

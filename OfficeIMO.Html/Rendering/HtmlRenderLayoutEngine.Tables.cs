@@ -43,10 +43,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
                 }
 
-                if (cellStyle.BorderWidth <= 0D && !cellStyle.BorderDeclared) {
-                    cellStyle.BorderWidth = style.BorderWidth > 0D ? style.BorderWidth : 1D;
-                    cellStyle.BorderColor = style.BorderWidth > 0D ? style.BorderColor : OfficeColor.FromRgb(160, 160, 160);
-                    cellStyle.BorderStyle = style.BorderWidth > 0D ? style.BorderStyle : "solid";
+                if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
+                    cellStyle.Borders = style.HasBorderLayout
+                        ? style.Borders
+                        : HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(160, 160, 160));
                 }
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
@@ -80,8 +80,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
-        double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
-        double rowY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double rowY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         double headerStart = rowY;
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
             TableRowLayout row = rowLayouts[rowIndex];
@@ -91,8 +91,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double cellX = contentX + cell.Column * columnWidth;
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan);
                 AddBoxPaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
-                double textX = cellX + cell.Style.BorderWidth + cell.Style.PaddingLeft;
-                double textY = rowY + cell.Style.BorderWidth + cell.Style.PaddingTop;
+                double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
+                double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     visuals.Add(visual.Translate(textX, textY, visuals.Count));
                 }

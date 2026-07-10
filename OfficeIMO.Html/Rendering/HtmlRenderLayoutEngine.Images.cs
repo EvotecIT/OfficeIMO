@@ -21,8 +21,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         var objectVisuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
-        double imageX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
-        double imageY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double imageX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double imageY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         string? link = element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
             : null;
@@ -62,10 +62,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, sourceDescription);
         HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(
-            style.BorderWidth + style.PaddingLeft,
-            style.BorderWidth + style.PaddingTop,
-            style.BorderWidth + style.PaddingRight,
-            style.BorderWidth + style.PaddingBottom,
+            style.BorderLeftWidth + style.PaddingLeft,
+            style.BorderTopWidth + style.PaddingTop,
+            style.BorderRightWidth + style.PaddingRight,
+            style.BorderBottomWidth + style.PaddingBottom,
             contentSize.Width,
             contentSize.Height);
         AddBoxClipVisuals(

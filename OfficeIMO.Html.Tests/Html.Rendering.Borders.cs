@@ -115,37 +115,75 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlBorders_UnsupportedPaintUsesCatalogedDiagnosticsAndSupportsTruth() {
-        const string html = "<div id='side-border' style='width:20px;height:10px;border-left:3px solid red'></div>"
+    public void HtmlBorders_SideSpecificPaintUsesSharedGeometryAndTruthfulSupports() {
+        const string html = "<div id='side-border' style='width:20px;height:10px;border-left:3px solid red;background:#ffffff'></div>"
             + "<div id='overridden-border' style='width:20px;height:10px;border:2px solid red;border-left-color:blue'></div>"
+            + "<div id='mixed-border' style='width:32px;height:18px;border-width:2px 3px 4px 5px;border-style:solid dashed dotted double;border-color:red green blue black;border-radius:10px 3px / 4px 8px;background:#ffffff;font-size:6px;line-height:8px'>BorderPdf</div>"
+            + "<div id='invalid-border' style='width:20px;height:10px;border-left:2px groove red'></div>"
             + "<div id='groove-outline' style='width:20px;height:10px;outline:2px groove blue'></div>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 70D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
-            ViewportWidth = 50D,
-            ViewportHeight = 30D,
-            Margins = HtmlRenderMargins.All(0D)
-        });
-        List<HtmlDiagnostic> borderDiagnostics = rendered.Diagnostics.Diagnostics.Where(item => item.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported).ToList();
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        List<HtmlRenderShape> mixed = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source != null && shape.Source.StartsWith("div#mixed-border:border-", StringComparison.Ordinal))
+            .ToList();
+        HtmlRenderShape sideBackground = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#side-border");
+        HtmlRenderShape mixedBackground = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#mixed-border" && shape.Shape.FillColor == OfficeColor.White);
+        HtmlRenderText mixedText = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "BorderPdf");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(70D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        HtmlDiagnostic borderDiagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported);
         HtmlDiagnostic outlineDiagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
 
-        Assert.Equal(2, borderDiagnostics.Count);
-        Assert.All(borderDiagnostics, diagnostic => Assert.Contains("asymmetric-side", diagnostic.Detail, StringComparison.Ordinal));
-        Assert.Contains(borderDiagnostics, diagnostic => diagnostic.Source == "div#side-border");
-        Assert.Contains(borderDiagnostics, diagnostic => diagnostic.Source == "div#overridden-border");
+        Assert.Equal(23D, sideBackground.Width, 3);
+        Assert.Equal(40D, mixedBackground.Width, 3);
+        Assert.Equal(24D, mixedBackground.Height, 3);
+        Assert.Equal(5D, mixedText.X, 3);
+        Assert.Equal(5, mixed.Count);
+        Assert.Contains(mixed, shape => shape.Source == "div#mixed-border:border-top" && shape.Shape.StrokeWidth == 2D && shape.Shape.StrokeColor == OfficeColor.Red);
+        Assert.Contains(mixed, shape => shape.Source == "div#mixed-border:border-right" && shape.Shape.StrokeWidth == 3D && shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dash && shape.Shape.StrokeColor == OfficeColor.Green);
+        Assert.Contains(mixed, shape => shape.Source == "div#mixed-border:border-bottom" && shape.Shape.StrokeWidth == 4D && shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dot && shape.Shape.StrokeColor == OfficeColor.Blue);
+        Assert.Equal(2, mixed.Count(shape => shape.Source != null && shape.Source.StartsWith("div#mixed-border:border-left-", StringComparison.Ordinal) && Math.Abs(shape.Shape.StrokeWidth - 5D / 3D) < 0.0001D));
+        Assert.All(mixed, shape => Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind));
+        Assert.Equal("div#invalid-border", borderDiagnostic.Source);
+        Assert.Contains("border-left=", borderDiagnostic.Detail, StringComparison.Ordinal);
         Assert.Equal("div#groove-outline", outlineDiagnostic.Source);
         Assert.Contains("outline=", outlineDiagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains(Enumerable.Range(0, raster.Width).SelectMany(x => Enumerable.Range(0, raster.Height).Select(y => raster.GetPixel(x, y))), pixel => pixel.A > 0 && pixel.B > pixel.R);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
+        Assert.Contains("stroke-dasharray=", svg, StringComparison.Ordinal);
+        Assert.Contains("BorderPdf", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Source == "div#side-border" || diagnostic.Source == "div#overridden-border" || diagnostic.Source == "div#mixed-border");
         Assert.Contains(HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported, out _));
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border:2px dashed red)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(outline:thin dotted currentColor)"));
-        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-width:2px 2px 2px 2px)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-width:2px 3px 4px 5px)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-style:solid dashed dotted double)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-color:red green blue black)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-left:2px dashed red)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-right-width:3px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(outline-offset:-2px)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border:2px groove red)"));
-        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-width:2px 3px)"));
-        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-left:2px dashed red)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-left:2px groove red)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(outline-offset:20%)"));
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

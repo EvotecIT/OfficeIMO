@@ -16,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddBoxShadow(visuals, style, x, y, width, height, radii, source, sourceDescription);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, radii, source, sourceDescription, sourceDescription);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription, sourceDescription);
 
         AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
     }
@@ -47,7 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string visualSourceDescription) {
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddBoxShadow(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
-        AddBoxBackgroundCore(visuals, style, x, y, width, height, borderWidth, radii, source, diagnosticSourceDescription, visualSourceDescription);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
     }
 
     private void AddBoxBackgroundCore(
@@ -57,7 +57,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double borderWidth,
+        HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
         IElement source,
         string diagnosticSourceDescription,
@@ -69,7 +69,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals.Add(new HtmlRenderShape(fill, x, y, visuals.Count, source: visualSourceDescription));
         }
 
-        AddBackgroundImages(visuals, style, x, y, width, height, borderWidth, radii, source, diagnosticSourceDescription, visualSourceDescription);
+        AddBackgroundImages(visuals, style, x, y, width, height, borderInsets, radii, source, diagnosticSourceDescription, visualSourceDescription);
     }
 
     private void AddBackgroundImages(
@@ -79,7 +79,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double borderWidth,
+        HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
         IElement source,
         string diagnosticSourceDescription,
@@ -124,7 +124,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 y,
                 width,
                 height,
-                borderWidth,
+                borderInsets,
                 radii,
                 source,
                 diagnosticSourceDescription,
@@ -141,7 +141,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
-        double borderWidth,
+        HtmlRenderBorderInsets borderInsets,
         HtmlResolvedBorderRadii radii,
         IElement source,
         string diagnosticSourceDescription,
@@ -150,11 +150,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? "[" + layerIndex.ToString(CultureInfo.InvariantCulture) + "]"
             : string.Empty;
         string layerVisualSource = visualSourceDescription + ":background-image" + layerSuffix;
-        double areaX = x + borderWidth;
-        double areaY = y + borderWidth;
-        double areaWidth = Math.Max(0.01D, width - (borderWidth * 2D));
-        double areaHeight = Math.Max(0.01D, height - (borderWidth * 2D));
-        HtmlResolvedBorderRadii innerRadii = radii.Inset(borderWidth, borderWidth, borderWidth, borderWidth, areaWidth, areaHeight);
+        double areaX = x + borderInsets.Left;
+        double areaY = y + borderInsets.Top;
+        double areaWidth = Math.Max(0.01D, width - borderInsets.Horizontal);
+        double areaHeight = Math.Max(0.01D, height - borderInsets.Vertical);
+        HtmlResolvedBorderRadii innerRadii = radii.Inset(borderInsets.Left, borderInsets.Top, borderInsets.Right, borderInsets.Bottom, areaWidth, areaHeight);
         if (layer.LinearGradient != null || layer.RadialGradient != null) {
             AddGradientBackground(
                 visuals,

@@ -154,8 +154,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         origin = new PositionedPoint(
-            parentOrigin.X + placement.X + placement.Style.MarginLeft + placement.Style.BorderWidth + placement.Style.PaddingLeft,
-            parentOrigin.Y + placement.Y + placement.Style.MarginTop + placement.Style.BorderWidth + placement.Style.PaddingTop);
+            parentOrigin.X + placement.X + placement.Style.MarginLeft + placement.Style.BorderLeftWidth + placement.Style.PaddingLeft,
+            parentOrigin.Y + placement.Y + placement.Style.MarginTop + placement.Style.BorderTopWidth + placement.Style.PaddingTop);
         return true;
     }
 

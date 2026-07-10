@@ -31,8 +31,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicRatio = intrinsicWidth / intrinsicHeight;
         bool useAuthoredRatio = style.AspectRatio.HasValue && (!style.AspectRatioPrefersIntrinsic || !hasIntrinsicSize);
         double preferredRatio = useAuthoredRatio ? style.AspectRatio!.Value : intrinsicRatio;
-        double? declaredWidth = ResolveReplacedDimension(style.ExplicitWidth, style.PaddingLeft + style.PaddingRight + style.BorderWidth * 2D, style.BorderBox);
-        double? declaredHeight = ResolveReplacedDimension(style.ExplicitHeight, style.PaddingTop + style.PaddingBottom + style.BorderWidth * 2D, style.BorderBox);
+        double? declaredWidth = ResolveReplacedDimension(style.ExplicitWidth, style.PaddingLeft + style.PaddingRight + style.BorderLeftWidth + style.BorderRightWidth, style.BorderBox);
+        double? declaredHeight = ResolveReplacedDimension(style.ExplicitHeight, style.PaddingTop + style.PaddingBottom + style.BorderTopWidth + style.BorderBottomWidth, style.BorderBox);
 
         double width;
         double height;

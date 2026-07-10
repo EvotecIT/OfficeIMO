@@ -81,8 +81,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         if (item.PaintAnonymousBox) AddGeneratedBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, item.SourceElement, item.Source);
-        double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in inline.Visuals) visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
         if (item.PaintAnonymousBox) AddGeneratedBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, item.SourceElement, item.Source);
         IEnumerable<double> breakOffsets = inline.BreakOffsets.Select(offset => contentY + offset).Concat(new[] { outerHeight });

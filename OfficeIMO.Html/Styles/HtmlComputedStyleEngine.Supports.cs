@@ -177,32 +177,44 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "border-top", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-right", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-bottom", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-top-width", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "border-left", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBoxStrokeParser.IsSupportedBorderSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "border-top-width", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-right-width", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-bottom-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-top-style", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "border-left-width", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "border-top-style", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-right-style", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-bottom-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-left-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "border-top-color", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "border-left-style", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "border-top-color", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-right-color", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-bottom-color", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-left-color", StringComparison.OrdinalIgnoreCase)) {
-            return false;
+            return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
         }
-        if (string.Equals(propertyName, "border-width", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(propertyName, "border-width", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedWidthSyntax(normalized);
         }
-        if (string.Equals(propertyName, "border-style", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "outline-style", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "border-style", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedStyleSyntax(normalized);
         }
-        if (string.Equals(propertyName, "border-color", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(propertyName, "outline-color", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(propertyName, "outline-style", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBoxStrokeParser.IsSupportedSideStyleSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "border-color", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedColorSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "outline-color", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBoxStrokeParser.IsSupportedSideColorSyntax(normalized);
         }
         if (string.Equals(propertyName, "outline", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedOutlineSyntax(normalized);

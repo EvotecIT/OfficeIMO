@@ -3,12 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal static class HtmlCssBoxStrokeParser {
-    private static readonly string[] SideProperties = {
-        "border-top", "border-right", "border-bottom", "border-left",
-        "border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
-        "border-top-style", "border-right-style", "border-bottom-style", "border-left-style",
-        "border-top-color", "border-right-color", "border-bottom-color", "border-left-color"
-    };
+    private static readonly string[] SideNames = { "top", "right", "bottom", "left" };
+    private static readonly string[] SideProperties = SideNames.SelectMany(side => new[] {
+        "border-" + side,
+        "border-" + side + "-width",
+        "border-" + side + "-style",
+        "border-" + side + "-color"
+    }).ToArray();
 
     internal static bool HasBorderDeclaration(HtmlComputedStyle computed) =>
         computed.GetValue("border").Length > 0
@@ -23,50 +24,97 @@ internal static class HtmlCssBoxStrokeParser {
         double fontSize,
         double rootFontSize,
         OfficeColor currentColor,
-        out double width,
-        out string style,
-        out OfficeColor color,
+        out HtmlRenderBorderEdges borders,
         out string detail) {
         string shorthand = computed.GetValue("border").Trim();
         string widthValue = computed.GetValue("border-width").Trim();
         string styleValue = computed.GetValue("border-style").Trim();
         string colorValue = computed.GetValue("border-color").Trim();
-        width = 3D;
-        style = "none";
-        color = currentColor;
+        var sides = Enumerable.Range(0, 4)
+            .Select(_ => new HtmlRenderBorderSide(3D, "none", currentColor))
+            .ToArray();
+        borders = HtmlRenderBorderEdges.Uniform(0D, "none", currentColor);
         detail = string.Empty;
-        bool declared = shorthand.Length > 0 || widthValue.Length > 0 || styleValue.Length > 0 || colorValue.Length > 0;
-        string side = SideProperties.FirstOrDefault(property => computed.GetValue(property).Length > 0) ?? string.Empty;
-        if (side.Length > 0) {
-            width = 0D;
-            detail = side + "=" + computed.GetValue(side).Trim() + ";asymmetric-side";
-            return false;
-        }
+        bool declared = shorthand.Length > 0 || widthValue.Length > 0 || styleValue.Length > 0 || colorValue.Length > 0
+            || SideProperties.Any(property => computed.GetValue(property).Length > 0);
         if (!declared) {
-            width = 0D;
             return true;
         }
-        if (shorthand.Length > 0 && !TryParseStrokeShorthand(shorthand, reference, fontSize, rootFontSize, currentColor, ref width, ref style, ref color)) {
-            width = 0D;
-            detail = "border=" + shorthand;
-            return false;
+        if (shorthand.Length > 0) {
+            double width = 3D;
+            string style = "none";
+            OfficeColor color = currentColor;
+            if (!TryParseStrokeShorthand(shorthand, reference, fontSize, rootFontSize, currentColor, ref width, ref style, ref color)) {
+                detail = "border=" + shorthand;
+                return false;
+            }
+            for (int index = 0; index < sides.Length; index++) sides[index] = new HtmlRenderBorderSide(width, style, color);
         }
-        if (widthValue.Length > 0 && !TryParseUniformWidths(widthValue, reference, fontSize, rootFontSize, out width)) {
-            width = 0D;
-            detail = "border-width=" + widthValue;
-            return false;
+        if (widthValue.Length > 0) {
+            if (!TryParseWidths(widthValue, reference, fontSize, rootFontSize, out double[] widths)) {
+                detail = "border-width=" + widthValue;
+                return false;
+            }
+            for (int index = 0; index < sides.Length; index++) sides[index] = sides[index].WithWidth(widths[index]);
         }
-        if (styleValue.Length > 0 && !TryParseUniformStyles(styleValue, out style)) {
-            width = 0D;
-            detail = "border-style=" + styleValue;
-            return false;
+        if (styleValue.Length > 0) {
+            if (!TryParseStyles(styleValue, out string[] styles)) {
+                detail = "border-style=" + styleValue;
+                return false;
+            }
+            for (int index = 0; index < sides.Length; index++) sides[index] = sides[index].WithStyle(styles[index]);
         }
-        if (colorValue.Length > 0 && !TryParseUniformColors(colorValue, currentColor, out color)) {
-            width = 0D;
-            detail = "border-color=" + colorValue;
-            return false;
+        if (colorValue.Length > 0) {
+            if (!TryParseColors(colorValue, currentColor, out OfficeColor[] colors)) {
+                detail = "border-color=" + colorValue;
+                return false;
+            }
+            for (int index = 0; index < sides.Length; index++) sides[index] = sides[index].WithColor(colors[index]);
         }
-        if (style == "none" || style == "hidden") width = 0D;
+
+        for (int index = 0; index < SideNames.Length; index++) {
+            string prefix = "border-" + SideNames[index];
+            string sideShorthand = computed.GetValue(prefix).Trim();
+            if (sideShorthand.Length > 0) {
+                double width = 3D;
+                string style = "none";
+                OfficeColor color = currentColor;
+                if (!TryParseStrokeShorthand(sideShorthand, reference, fontSize, rootFontSize, currentColor, ref width, ref style, ref color)) {
+                    detail = prefix + "=" + sideShorthand;
+                    return false;
+                }
+                sides[index] = new HtmlRenderBorderSide(width, style, color);
+            }
+
+            string sideWidth = computed.GetValue(prefix + "-width").Trim();
+            if (sideWidth.Length > 0) {
+                if (!TryStrokeWidth(sideWidth, reference, fontSize, rootFontSize, out double width)) {
+                    detail = prefix + "-width=" + sideWidth;
+                    return false;
+                }
+                sides[index] = sides[index].WithWidth(width);
+            }
+
+            string sideStyle = computed.GetValue(prefix + "-style").Trim();
+            if (sideStyle.Length > 0) {
+                if (!TryStrokeStyle(sideStyle, out string parsedStyle)) {
+                    detail = prefix + "-style=" + sideStyle;
+                    return false;
+                }
+                sides[index] = sides[index].WithStyle(parsedStyle);
+            }
+
+            string sideColor = computed.GetValue(prefix + "-color").Trim();
+            if (sideColor.Length > 0) {
+                if (!TryStrokeColor(sideColor, currentColor, out OfficeColor parsedColor)) {
+                    detail = prefix + "-color=" + sideColor;
+                    return false;
+                }
+                sides[index] = sides[index].WithColor(parsedColor);
+            }
+        }
+
+        borders = new HtmlRenderBorderEdges(sides[0], sides[1], sides[2], sides[3]);
         return true;
     }
 
@@ -135,9 +183,12 @@ internal static class HtmlCssBoxStrokeParser {
     }
 
     internal static bool IsSupportedOutlineSyntax(string value) => IsSupportedBorderSyntax(value);
-    internal static bool IsSupportedWidthSyntax(string value) => TryParseUniformWidths(value, 100D, 16D, 16D, out _);
-    internal static bool IsSupportedStyleSyntax(string value) => TryParseUniformStyles(value, out _);
-    internal static bool IsSupportedColorSyntax(string value) => TryParseUniformColors(value, OfficeColor.Black, out _);
+    internal static bool IsSupportedWidthSyntax(string value) => TryParseWidths(value, 100D, 16D, 16D, out _);
+    internal static bool IsSupportedStyleSyntax(string value) => TryParseStyles(value, out _);
+    internal static bool IsSupportedColorSyntax(string value) => TryParseColors(value, OfficeColor.Black, out _);
+    internal static bool IsSupportedSideWidthSyntax(string value) => TryStrokeWidth(value, 100D, 16D, 16D, out _);
+    internal static bool IsSupportedSideStyleSyntax(string value) => TryStrokeStyle(value, out _);
+    internal static bool IsSupportedSideColorSyntax(string value) => TryStrokeColor(value, OfficeColor.Black, out _);
 
     private static bool TryParseStrokeShorthand(
         string value,
@@ -170,36 +221,44 @@ internal static class HtmlCssBoxStrokeParser {
         return true;
     }
 
-    private static bool TryParseUniformWidths(string value, double reference, double fontSize, double rootFontSize, out double width) {
-        width = 0D;
+    private static bool TryParseWidths(string value, double reference, double fontSize, double rootFontSize, out double[] widths) {
+        widths = new double[4];
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
-        if (tokens.Count < 1 || tokens.Count > 4 || !TryStrokeWidth(tokens[0], reference, fontSize, rootFontSize, out width)) return false;
-        for (int index = 1; index < tokens.Count; index++) {
-            if (!TryStrokeWidth(tokens[index], reference, fontSize, rootFontSize, out double other) || Math.Abs(other - width) > 0.0001D) return false;
-        }
+        if (tokens.Count < 1 || tokens.Count > 4) return false;
+        var parsed = new double[tokens.Count];
+        for (int index = 0; index < tokens.Count; index++)
+            if (!TryStrokeWidth(tokens[index], reference, fontSize, rootFontSize, out parsed[index])) return false;
+        ExpandFour(parsed, widths);
         return true;
     }
 
-    private static bool TryParseUniformStyles(string value, out string style) {
-        style = "none";
+    private static bool TryParseStyles(string value, out string[] styles) {
+        styles = new string[4];
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
-        if (tokens.Count < 1 || tokens.Count > 4 || !TryStrokeStyle(tokens[0], out style)) return false;
-        string expected = style;
-        for (int index = 1; index < tokens.Count; index++) {
-            if (!TryStrokeStyle(tokens[index], out string other) || other != expected) return false;
-        }
+        if (tokens.Count < 1 || tokens.Count > 4) return false;
+        var parsed = new string[tokens.Count];
+        for (int index = 0; index < tokens.Count; index++)
+            if (!TryStrokeStyle(tokens[index], out parsed[index])) return false;
+        ExpandFour(parsed, styles);
         return true;
     }
 
-    private static bool TryParseUniformColors(string value, OfficeColor currentColor, out OfficeColor color) {
-        color = OfficeColor.Black;
+    private static bool TryParseColors(string value, OfficeColor currentColor, out OfficeColor[] colors) {
+        colors = new OfficeColor[4];
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
-        if (tokens.Count < 1 || tokens.Count > 4 || !TryStrokeColor(tokens[0], currentColor, out color)) return false;
-        OfficeColor expected = color;
-        for (int index = 1; index < tokens.Count; index++) {
-            if (!TryStrokeColor(tokens[index], currentColor, out OfficeColor other) || other != expected) return false;
-        }
+        if (tokens.Count < 1 || tokens.Count > 4) return false;
+        var parsed = new OfficeColor[tokens.Count];
+        for (int index = 0; index < tokens.Count; index++)
+            if (!TryStrokeColor(tokens[index], currentColor, out parsed[index])) return false;
+        ExpandFour(parsed, colors);
         return true;
+    }
+
+    private static void ExpandFour<T>(IReadOnlyList<T> source, T[] target) {
+        target[0] = source[0];
+        target[1] = source.Count > 1 ? source[1] : source[0];
+        target[2] = source.Count > 2 ? source[2] : source[0];
+        target[3] = source.Count > 3 ? source[3] : target[1];
     }
 
     private static bool TryStrokeWidth(string value, double reference, double fontSize, double rootFontSize, out double width) {

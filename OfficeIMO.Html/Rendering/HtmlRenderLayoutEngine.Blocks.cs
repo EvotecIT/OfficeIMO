@@ -137,7 +137,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lineBreakOffsets.AddRange(inline.BreakOffsets);
         }
 
-        if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && style.BorderWidth <= 0D) {
+        if (contentHeight <= 0D && style.ExplicitHeight == null && style.BackgroundColor == null && !style.HasBorderLayout) {
             contentHeight = tag == "div" || tag == "section" || tag == "article" ? 0D : style.LineHeight;
         }
 
@@ -149,24 +149,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
-            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
-            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
-            style.MarginLeft + style.BorderWidth,
-            style.MarginTop + style.BorderWidth,
+            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
             overflowContent);
-        double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
             overflowContent.Add(visual.Translate(contentX, contentY, overflowContent.Count));
         }
         if (style.Position != "static" || _localPositionedElements.ContainsKey(element)) {
             AppendLocalPositionedVisuals(
                 element,
-                Math.Max(1D, boxWidth - style.BorderWidth * 2D),
-                Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
-                style.MarginLeft + style.BorderWidth,
-                style.MarginTop + style.BorderWidth,
+                Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+                Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+                style.MarginLeft + style.BorderLeftWidth,
+                style.MarginTop + style.BorderTopWidth,
                 PositionedPaintBand.NonNegative,
                 overflowContent);
         }
@@ -175,14 +175,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             overflowContent,
             style,
             element,
-            style.MarginLeft + style.BorderWidth,
-            style.MarginTop + style.BorderWidth,
-            Math.Max(0.01D, boxWidth - style.BorderWidth * 2D),
-            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D));
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
+            Math.Max(0.01D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth));
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         ReportUnsupportedLayout(element, style);
-        double contentYForBreaks = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);

@@ -66,9 +66,25 @@ internal sealed class HtmlRenderBoxStyle {
     internal double PaddingRight;
     internal double PaddingBottom;
     internal double PaddingLeft;
-    internal double BorderWidth;
-    internal OfficeColor BorderColor = OfficeColor.Black;
-    internal string BorderStyle = "none";
+    internal HtmlRenderBorderEdges Borders = HtmlRenderBorderEdges.Uniform(0D, "none", OfficeColor.Black);
+    internal double BorderWidth {
+        get => Borders.MaximumLayoutWidth;
+        set => Borders = Borders.WithUniformWidth(value);
+    }
+    internal OfficeColor BorderColor {
+        get => Borders.Top.Color;
+        set => Borders = Borders.WithUniformColor(value);
+    }
+    internal string BorderStyle {
+        get => Borders.IsUniform ? Borders.Top.Style : "mixed";
+        set => Borders = Borders.WithUniformStyle(value);
+    }
+    internal double BorderTopWidth => Borders.Top.LayoutWidth;
+    internal double BorderRightWidth => Borders.Right.LayoutWidth;
+    internal double BorderBottomWidth => Borders.Bottom.LayoutWidth;
+    internal double BorderLeftWidth => Borders.Left.LayoutWidth;
+    internal bool HasBorderLayout => Borders.HasLayout;
+    internal HtmlRenderBorderInsets BorderInsets => Borders.Insets;
     internal bool BorderDeclared;
     internal string UnsupportedBorderPaint = string.Empty;
     internal string BorderRadius = "0";
@@ -125,8 +141,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string SemanticRole = "block";
     internal double Opacity = 1D;
 
-    internal double HorizontalInsets => BorderWidth * 2D + PaddingLeft + PaddingRight;
-    internal double VerticalInsets => BorderWidth * 2D + PaddingTop + PaddingBottom;
+    internal double HorizontalInsets => BorderLeftWidth + BorderRightWidth + PaddingLeft + PaddingRight;
+    internal double VerticalInsets => BorderTopWidth + BorderBottomWidth + PaddingTop + PaddingBottom;
 
     internal HtmlRenderBoxStyle Clone() => (HtmlRenderBoxStyle)MemberwiseClone();
 }

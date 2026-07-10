@@ -55,14 +55,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
-            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
-            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
-            style.MarginLeft + style.BorderWidth,
-            style.MarginTop + style.BorderWidth,
+            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.Negative,
             visuals);
-        double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         AddColumnRuleVisuals(visuals, style, contentX, contentY, columnWidth, gap, Math.Max(requestedCount, plan.ColumnCount), contentHeight, source);
         foreach (MultiColumnFragment fragment in plan.Fragments) {
             double x = contentX + fragment.Column * (columnWidth + gap);
@@ -74,10 +74,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendLocalPositionedVisuals(
             element,
-            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
-            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
-            style.MarginLeft + style.BorderWidth,
-            style.MarginTop + style.BorderWidth,
+            Math.Max(1D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
+            Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth),
+            style.MarginLeft + style.BorderLeftWidth,
+            style.MarginTop + style.BorderTopWidth,
             PositionedPaintBand.NonNegative,
             visuals);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
