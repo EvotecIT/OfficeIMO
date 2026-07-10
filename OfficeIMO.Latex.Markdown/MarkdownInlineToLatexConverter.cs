@@ -49,7 +49,11 @@ internal static class MarkdownInlineToLatexConverter {
                     state.Packages.Add("graphicx");
                     output.Append("\\includegraphics{").Append(EscapeArgument(image.Src)).Append('}');
                     break;
-                case FootnoteRefInline footnote: output.Append("\\footnote{").Append(EscapeText(footnote.Label)).Append('}'); break;
+                case FootnoteRefInline footnote:
+                    output.Append("\\footnote{")
+                        .Append(MarkdownToLatexConverter.ConvertFootnoteReference(footnote, owner, state, diagnostics))
+                        .Append('}');
+                    break;
                 case HardBreakInline: output.Append("\\\\").Append(state.LineEnding); break;
                 case SoftBreakInline: output.Append(state.LineEnding); break;
                 case HtmlRawInline html:
@@ -126,9 +130,25 @@ internal static class MarkdownInlineToLatexConverter {
 }
 
 internal sealed class ConversionState {
-    internal ConversionState(string lineEnding) { LineEnding = lineEnding; }
-    internal string LineEnding { get; }
+    private readonly Dictionary<string, FootnoteDefinitionBlock> _footnotes;
+    private readonly HashSet<string> _resolvingFootnotes = new HashSet<string>(StringComparer.Ordinal);
+
+    internal ConversionState(MarkdownToLatexOptions options, IEnumerable<FootnoteDefinitionBlock> footnotes) {
+        Options = options;
+        _footnotes = footnotes
+            .GroupBy(static footnote => footnote.Label, StringComparer.Ordinal)
+            .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
+    }
+    internal MarkdownToLatexOptions Options { get; }
+    internal string LineEnding => Options.LineEnding;
     internal HashSet<string> Packages { get; } = new HashSet<string>(StringComparer.Ordinal);
     internal HashSet<string> TheoremEnvironments { get; } = new HashSet<string>(StringComparer.Ordinal);
     internal bool TitleConsumed { get; set; }
+
+    internal bool TryBeginFootnote(string label, out FootnoteDefinitionBlock? definition) {
+        if (!_footnotes.TryGetValue(label, out definition)) return false;
+        return _resolvingFootnotes.Add(label);
+    }
+
+    internal void EndFootnote(string label) => _resolvingFootnotes.Remove(label);
 }

@@ -86,4 +86,17 @@ public sealed class ReaderAsciiDocModularTests {
         Assert.DoesNotContain(chunks, chunk => chunk.Location.SourceBlockKind == "raw");
         Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "table" && chunk.Text.Contains("A\tB", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void BlockChunks_ResolveDocumentAttributes() {
+        const string source = ":product: OfficeIMO\n\nUse {product}.\n";
+
+        ReaderChunk paragraph = Assert.Single(DocumentReaderAsciiDocExtensions.ReadAsciiDocDocument(
+            AsciiDocDocument.Parse(source).Document,
+            "attributes.adoc"));
+
+        Assert.Contains("OfficeIMO", paragraph.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{product}", paragraph.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(paragraph.Warnings ?? Array.Empty<string>(), warning => warning.StartsWith("ADOCMD101:", StringComparison.Ordinal));
+    }
 }

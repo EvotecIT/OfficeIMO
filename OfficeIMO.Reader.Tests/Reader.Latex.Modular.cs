@@ -62,6 +62,19 @@ public sealed class ReaderLatexModularTests {
     }
 
     [Fact]
+    public void WholeDocumentPlainTex_EmitsFallbackChunk() {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Plain \\hbox{TeX}"), writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderLatexExtensions.ReadLatex(
+            stream,
+            "plain.tex",
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = false }));
+
+        Assert.Contains("Plain \\hbox{TeX}", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("```latex", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void NonSeekableStream_EnforcesInputLimit() {
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(Source));
 
@@ -105,5 +118,23 @@ public sealed class ReaderLatexModularTests {
         ReaderChunk figure = Assert.Single(chunks, static chunk => chunk.Location.SourceBlockKind == "figure");
         Assert.Contains("Plot caption", figure.Text, StringComparison.Ordinal);
         Assert.Contains("Plot caption", figure.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FloatingTableChunk_IncludesWrapperCaptionAndLabelMetadata() {
+        const string source =
+            "\\documentclass{article}\n\\begin{document}\n" +
+            "\\begin{table}\\caption{Important values}\\label{tab:values}" +
+            "\\begin{tabular}{ll}A & B\\\\\\end{tabular}\\end{table}\n" +
+            "\\end{document}\n";
+
+        ReaderChunk table = Assert.Single(DocumentReaderLatexExtensions.ReadLatexDocument(
+            LatexDocument.Parse(source).Document,
+            "table.tex"), static chunk => chunk.Location.SourceBlockKind == "table");
+
+        Assert.Contains("Important values", table.Text, StringComparison.Ordinal);
+        Assert.Contains("caption=\"Important values\"", table.Markdown, StringComparison.Ordinal);
+        Assert.Contains("#tab:values", table.Markdown, StringComparison.Ordinal);
+        Assert.Equal(3, table.Location.StartLine);
     }
 }

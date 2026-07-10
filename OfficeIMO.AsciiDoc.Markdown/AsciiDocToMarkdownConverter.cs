@@ -29,12 +29,13 @@ public static class AsciiDocToMarkdownConverter {
 
     internal static AsciiDocMarkdownConversionResult ConvertBlock(
         AsciiDocBlock block,
+        AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions? options = null) {
         if (block == null) throw new ArgumentNullException(nameof(block));
+        if (attributes == null) throw new ArgumentNullException(nameof(attributes));
         options ??= new AsciiDocToMarkdownOptions();
         var markdown = MarkdownDoc.Create();
         var diagnostics = new List<AsciiDocMarkdownConversionDiagnostic>();
-        AsciiDocDocumentAttributes attributes = AsciiDocDocument.Parse(string.Empty).Document.GetAttributes();
         AddBlock(markdown, block, attributes, options, diagnostics);
         return new AsciiDocMarkdownConversionResult(markdown, diagnostics);
     }
@@ -52,7 +53,7 @@ public static class AsciiDocToMarkdownConverter {
             case IAsciiDocBlockMetadata metadata when metadata.Target != null:
                 break;
             case AsciiDocHeading heading:
-                int level = heading.IsDocumentTitle ? 1 : Math.Max(1, Math.Min(6, heading.SectionLevel));
+                int level = heading.IsDocumentTitle ? 1 : Math.Max(1, Math.Min(6, heading.SectionLevel + 1));
                 var markdownHeading = new HeadingBlock(level,
                     AsciiDocInlineToMarkdownConverter.Convert(heading.Inlines, attributes, options, diagnostics, heading));
                 ApplyMetadata(markdownHeading, heading);
@@ -351,6 +352,7 @@ public static class AsciiDocToMarkdownConverter {
                 }
             }
         }
+        if (target is TableBlock && source.BlockTitle != null) values["caption"] = source.BlockTitle.Title;
         if (id != null || roles.Count > 0 || values.Count > 0) {
             target.SetAttributes(MarkdownAttributeSet.Create(id, roles, values));
         }

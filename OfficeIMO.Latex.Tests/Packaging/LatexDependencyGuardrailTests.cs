@@ -19,8 +19,8 @@ public sealed class LatexDependencyGuardrailTests {
     public void ProductionProjects_DoNotUseRegexOrExternalProcesses(string projectFolderName) {
         string folder = Path.Combine(GetRepositoryRoot(), projectFolderName);
         string[] files = Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories)
-            .Where(static file => !file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            .Where(static file => !file.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            .Where(static file => file.IndexOf(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) < 0)
+            .Where(static file => file.IndexOf(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) < 0)
             .ToArray();
 
         Assert.NotEmpty(files);

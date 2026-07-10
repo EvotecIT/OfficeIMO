@@ -10,7 +10,7 @@ public static class MarkdownToLatexConverter {
         options ??= new MarkdownToLatexOptions();
         Validate(options);
         var diagnostics = new List<LatexMarkdownConversionDiagnostic>();
-        var state = new ConversionState(options.LineEnding);
+        var state = new ConversionState(options, document.Blocks.OfType<FootnoteDefinitionBlock>());
 
         string? title = GetFrontMatter(document, "title");
         HeadingBlock? firstHeading = options.FirstHeadingIsTitle
@@ -89,8 +89,32 @@ public static class MarkdownToLatexConverter {
                 return ConvertCallout(callout, options, state, diagnostics);
             case QuoteBlock quote:
                 return ConvertQuote(quote, options, state, diagnostics);
+            case FootnoteDefinitionBlock:
+                return string.Empty;
             default:
                 return ConvertUnsupported(block, options, diagnostics);
+        }
+    }
+
+    internal static string ConvertFootnoteReference(
+        FootnoteRefInline source,
+        MarkdownObject owner,
+        ConversionState state,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        if (!state.TryBeginFootnote(source.Label, out FootnoteDefinitionBlock? definition)) {
+            diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                "MDLATEX104", LatexMarkdownConversionOutcome.SourceFallback, "footnote-reference",
+                "Markdown footnote reference has no resolvable definition and was retained as visible source.", null, owner.SourceSpan));
+            return "\\texttt{" + MarkdownInlineToLatexConverter.EscapeText("[^" + source.Label + "]") + "}";
+        }
+
+        try {
+            IReadOnlyList<IMarkdownBlock> blocks = definition!.Blocks;
+            if (blocks.Count == 0) return MarkdownInlineToLatexConverter.EscapeText(definition.Text);
+            return string.Join(state.LineEnding + state.LineEnding,
+                blocks.Select(block => ConvertBlock(block, state.Options, state, diagnostics)).Where(static value => value.Length > 0));
+        } finally {
+            state.EndFootnote(source.Label);
         }
     }
 

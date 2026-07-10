@@ -112,4 +112,16 @@ public sealed class LatexMarkdownConversionTests {
         Assert.Contains("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
         Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Diagnostics).Outcome);
     }
+
+    [Fact]
+    public void MarkdownFootnoteReference_UsesDefinitionBodyAndDoesNotEmitDefinitionFallback() {
+        MarkdownDoc document = MarkdownReader.Parse("Text[^1].\n\n[^1]: real **text**\n");
+
+        MarkdownLatexConversionResult result = document.ToLatexDocument();
+
+        Assert.Contains("\\footnote{real \\textbf{text}}", result.Source, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\footnote{1}", result.Source, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
+    }
 }

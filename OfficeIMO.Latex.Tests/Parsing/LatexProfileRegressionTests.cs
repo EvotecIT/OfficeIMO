@@ -85,7 +85,7 @@ public sealed class LatexProfileRegressionTests {
             static node => node.Kind == LatexSyntaxKind.OptionalGroup);
         Assert.DoesNotContain(result.Diagnostics, static diagnostic => diagnostic.Code is "LATEX001" or "LATEX002");
         Assert.Contains(result.Document.Paragraphs,
-            static paragraph => paragraph.Content.Contains("[literal] and [unterminated", StringComparison.Ordinal));
+            static paragraph => paragraph.Content.IndexOf("[literal] and [unterminated", StringComparison.Ordinal) >= 0);
         Assert.Equal(source, result.Document.ToLatex());
     }
 }

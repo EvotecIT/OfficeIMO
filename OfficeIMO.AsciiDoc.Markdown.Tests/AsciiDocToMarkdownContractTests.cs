@@ -57,6 +57,18 @@ public sealed class AsciiDocToMarkdownContractTests {
     }
 
     [Fact]
+    public void DocumentTitleSectionsAndTableTitle_PreserveHierarchyAndCaptionMetadata() {
+        const string source = "= Guide\n\n== Start\n\n.Important values\n|===\n|A |B\n|===\n";
+
+        AsciiDocMarkdownConversionResult result = AsciiDocDocument.Parse(source).Document.ToMarkdownDocument();
+
+        Assert.Equal(new[] { 1, 2 }, result.Document.Blocks.OfType<HeadingBlock>().Select(static heading => heading.Level));
+        TableBlock table = Assert.Single(result.Document.Blocks.OfType<TableBlock>());
+        Assert.Equal("Important values", table.Attributes.GetAttribute("caption"));
+        Assert.Contains("caption=\"Important values\"", result.Document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Comments_AreOmittedByDefaultWithExplicitDiagnostic() {
         AsciiDocDocument document = AsciiDocDocument.Parse("// internal note\nVisible\n").Document;
 

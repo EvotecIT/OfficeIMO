@@ -60,12 +60,16 @@ internal static class LatexReaderChunkBuilder {
             .OrderBy(static candidate => candidate.Span.Start.Offset)
             .ThenByDescending(static candidate => candidate.Span.Length)
             .ToArray();
+        if (candidates.Length == 0 && result.Document.Source.Text.Length > 0) {
+            candidates = new[] { new Candidate(result.Document.SyntaxTree.Root.Span, result.Document.SyntaxTree.Root, "source-fallback") };
+        }
         int consumedUntil = -1;
         for (int index = 0; index < candidates.Length; index++) {
             Candidate candidate = candidates[index];
             if (candidate.Span.Start.Offset < consumedUntil) continue;
             ProjectedChunk projected = Project(result.Document, candidate, options);
             if (!string.IsNullOrWhiteSpace(projected.Text)) projectedText.Add(projected.Text);
+            if (markdown.Length == 0 && projected.Markdown.Length > 0) markdown = projected.Markdown;
             consumedUntil = candidate.Span.End.Offset;
         }
         string text = string.Join("\n\n", projectedText);
@@ -99,7 +103,10 @@ internal static class LatexReaderChunkBuilder {
         foreach (LatexParagraph paragraph in document.Paragraphs) yield return new Candidate(paragraph.Span, paragraph, "paragraph");
         foreach (LatexList list in document.Lists) yield return new Candidate(list.Environment.Syntax.Span, list, "list-" + list.Kind.ToString().ToLowerInvariant());
         foreach (LatexFigure figure in document.Figures) yield return new Candidate(figure.Environment.Syntax.Span, figure, "figure");
-        foreach (LatexTable table in document.Tables) yield return new Candidate(table.Environment.Syntax.Span, table, "table");
+        foreach (LatexTable table in document.Tables) {
+            LatexEnvironment? container = FindTableContainer(document, table);
+            yield return new Candidate(container?.Syntax.Span ?? table.Environment.Syntax.Span, table, "table");
+        }
         foreach (LatexTheorem theorem in document.Theorems) yield return new Candidate(theorem.Environment.Syntax.Span, theorem, "theorem-" + theorem.Kind);
         foreach (LatexMath math in document.Math.Where(static math => math.Kind != LatexMathKind.InlineDollar && math.Kind != LatexMathKind.InlineParentheses)) {
             yield return new Candidate(math.Syntax.Span, math, "math-display");
@@ -141,7 +148,7 @@ internal static class LatexReaderChunkBuilder {
                 foreach (LatexImage image in figure.Images) markdown.Image(image.Target, figure.Caption);
                 break;
             case LatexTable table:
-                text = ProjectTable(table, markdown);
+                text = ProjectTable(document, table, markdown);
                 break;
             case LatexTheorem theorem: {
                 InlineSequence inlines = theorem.LabelCommand == null
@@ -202,13 +209,40 @@ internal static class LatexReaderChunkBuilder {
         return string.Join("\n", text);
     }
 
-    private static string ProjectTable(LatexTable table, MarkdownDoc markdown) {
+    private static string ProjectTable(LatexDocument document, LatexTable table, MarkdownDoc markdown) {
         var target = new TableBlock();
         int columns = table.Rows.Count == 0 ? 0 : table.Rows.Max(static row => row.Cells.Count);
         for (int index = 0; index < columns; index++) target.Headers.Add(string.Empty);
         foreach (LatexTableRow row in table.Rows) target.Rows.Add(row.Cells.Select(static cell => cell.Content).ToArray());
+        LatexEnvironment? container = FindTableContainer(document, table);
+        string? caption = FindContainerCommand(document, container, "caption")?.GetRequiredArgument(0)?.Content;
+        string? label = FindContainerCommand(document, container, "label")?.GetRequiredArgument(0)?.Content;
+        if (!string.IsNullOrWhiteSpace(caption) || !string.IsNullOrWhiteSpace(label)) {
+            var attributes = string.IsNullOrWhiteSpace(caption)
+                ? null
+                : new[] { new KeyValuePair<string, string?>("caption", caption) };
+            target.SetAttributes(MarkdownAttributeSet.Create(label, attributes: attributes));
+        }
         markdown.Add(target);
-        return string.Join("\n", table.Rows.Select(row => string.Join("\t", row.Cells.Select(static cell => cell.Content))));
+        string rows = string.Join("\n", table.Rows.Select(row => string.Join("\t", row.Cells.Select(static cell => cell.Content))));
+        return string.IsNullOrWhiteSpace(caption) ? rows : caption + (rows.Length == 0 ? string.Empty : "\n" + rows);
+    }
+
+    private static LatexEnvironment? FindTableContainer(LatexDocument document, LatexTable table) {
+        for (LatexSyntaxNode? syntax = table.Environment.Syntax.Parent; syntax != null; syntax = syntax.Parent) {
+            if (syntax.Kind == LatexSyntaxKind.Environment && string.Equals(syntax.Value, "table", StringComparison.Ordinal)) {
+                return document.Environments.FirstOrDefault(environment => ReferenceEquals(environment.Syntax, syntax));
+            }
+        }
+        return null;
+    }
+
+    private static LatexCommand? FindContainerCommand(LatexDocument document, LatexEnvironment? container, string name) {
+        if (container == null) return null;
+        return document.Commands.FirstOrDefault(command =>
+            string.Equals(command.Name, name, StringComparison.Ordinal) &&
+            command.Syntax.Span.Start.Offset >= container.ContentSpan.Start.Offset &&
+            command.Syntax.Span.End.Offset <= container.ContentSpan.End.Offset);
     }
 
     private static IReadOnlyList<string>? BuildWarnings(

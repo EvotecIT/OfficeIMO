@@ -31,7 +31,7 @@ public sealed class LatexLosslessProfileTests {
         LatexHeading heading = Assert.Single(document.Headings);
         Assert.Equal("Introduction", heading.Title);
         Assert.Equal("Intro", heading.ShortTitle);
-        Assert.Contains(document.Paragraphs, paragraph => paragraph.Content.Contains("Text with", StringComparison.Ordinal));
+        Assert.Contains(document.Paragraphs, paragraph => paragraph.Content.IndexOf("Text with", StringComparison.Ordinal) >= 0);
         LatexCommand unknown = Assert.Single(document.Commands, command => command.Name == "unknowncommand");
         Assert.False(unknown.IsProfileKnown);
         Assert.Equal("kept", unknown.GetRequiredArgument(0)!.Content);

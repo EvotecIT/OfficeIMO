@@ -12,6 +12,7 @@ internal static class AsciiDocReaderChunkBuilder {
             result.Document.BlocksOfType<AsciiDocListBlock>()
                 .SelectMany(static list => list.Items)
                 .SelectMany(static item => item.AttachedBlocks));
+        AsciiDocDocumentAttributes attributes = result.Document.GetAttributes();
         int emittedIndex = 0;
         for (int sourceIndex = 0; sourceIndex < result.Document.Blocks.Count; sourceIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -22,7 +23,7 @@ internal static class AsciiDocReaderChunkBuilder {
             if (block is AsciiDocHeading heading) UpdateHeadingStack(headingStack, heading);
             string headingPath = string.Join(" > ", headingStack.Select(static state => state.Title));
             string text = GetPlainText(block);
-            AsciiDocMarkdownConversionResult markdownResult = AsciiDocToMarkdownConverter.ConvertBlock(block, options.MarkdownOptions);
+            AsciiDocMarkdownConversionResult markdownResult = AsciiDocToMarkdownConverter.ConvertBlock(block, attributes, options.MarkdownOptions);
             string markdown = markdownResult.Document.ToMarkdown().TrimEnd();
             if (markdown.Length == 0 && block is AsciiDocAttributeEntry) markdown = block.OriginalText.TrimEnd('\r', '\n');
 
