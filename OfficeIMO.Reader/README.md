@@ -122,11 +122,27 @@ DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
 });
 ```
 
+Handlers that already expose a structured document model can register rich result delegates instead of rebuilding that model as chunks first:
+
+```csharp
+DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+    Id = "custom-rich-reader",
+    DisplayName = "Custom rich reader",
+    Kind = ReaderInputKind.Text,
+    Extensions = new[] { ".rich" },
+    ReadDocumentPath = (path, options, cancellationToken) => ReadRichDocument(path),
+    ReadDocumentStream = (stream, sourceName, options, cancellationToken) => ReadRichDocument(stream, sourceName)
+});
+```
+
+`DocumentReader.ReadDocument(...)` dispatches directly to these delegates. Existing `DocumentReader.Read(...)` calls remain usable by projecting the returned result's `Chunks` collection. A handler may continue to register `ReadPath` and `ReadStream` when chunk production is its native contract.
+
 ## Host contracts
 
 - `ReaderOptions` controls chunk size, table row limits, footnotes/notes, Excel ranges, Markdown heading chunking, hashes, and input budgets.
 - `ReaderFolderOptions` controls recursion, file limits, byte limits, reparse-point handling, and deterministic folder order.
 - `DocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose a stable host-discovery surface.
+- Capability records distinguish basic path/stream support from native rich-result support through `SupportsDocumentPath` and `SupportsDocumentStream`.
 - Custom handlers can be registered with `DocumentReader.RegisterHandler(...)`.
 
 ## Boundaries

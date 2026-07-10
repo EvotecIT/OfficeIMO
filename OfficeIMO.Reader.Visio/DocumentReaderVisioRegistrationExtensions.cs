@@ -39,6 +39,17 @@ public static class DocumentReaderVisioRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderVisioExtensions.ReadVisioDocument(
+                visioPath: path,
+                readerOptions: readerOptions,
+                visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderVisioExtensions.ReadVisioDocument(
+                visioStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
         };
 

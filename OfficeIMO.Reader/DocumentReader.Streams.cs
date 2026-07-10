@@ -49,8 +49,11 @@ public static partial class DocumentReader {
             var source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
 
             IEnumerable<ReaderChunk> raw;
-            if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
-                raw = customStreamHandler.ReadStream(readStream, logicalSourceName, opt, cancellationToken);
+            if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler) &&
+                (customStreamHandler.ReadStream != null || customStreamHandler.ReadDocumentStream != null)) {
+                raw = customStreamHandler.ReadStream != null
+                    ? customStreamHandler.ReadStream(readStream, logicalSourceName, opt, cancellationToken)
+                    : GetDocumentResultChunks(customStreamHandler.ReadDocumentStream!(readStream, logicalSourceName, opt, cancellationToken), customStreamHandler.Id);
             } else {
                 var kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName!);
                 raw = kind switch {

@@ -157,8 +157,13 @@ public static partial class DocumentReader {
         var id = (registration.Id ?? string.Empty).Trim();
         if (id.Length == 0) throw new ArgumentException("Handler Id cannot be empty.", nameof(registration));
 
-        if (registration.ReadPath == null && registration.ReadStream == null) {
-            throw new ArgumentException("Handler must define ReadPath and/or ReadStream.", nameof(registration));
+        if (registration.ReadPath == null &&
+            registration.ReadStream == null &&
+            registration.ReadDocumentPath == null &&
+            registration.ReadDocumentStream == null) {
+            throw new ArgumentException(
+                "Handler must define a chunk reader or rich document reader for paths and/or streams.",
+                nameof(registration));
         }
         if (registration.DefaultMaxInputBytes.HasValue && registration.DefaultMaxInputBytes.Value < 1) {
             throw new ArgumentException("DefaultMaxInputBytes must be greater than 0 when specified.", nameof(registration));
@@ -231,7 +236,9 @@ public static partial class DocumentReader {
                 warningBehavior: registration.WarningBehavior,
                 deterministicOutput: registration.DeterministicOutput,
                 readPath: registration.ReadPath,
-                readStream: registration.ReadStream);
+                readStream: registration.ReadStream,
+                readDocumentPath: registration.ReadDocumentPath,
+                readDocumentStream: registration.ReadDocumentStream);
 
             CustomHandlersById[id] = custom;
             foreach (var ext in custom.Extensions) {

@@ -172,7 +172,8 @@ public sealed class ReaderVisioModularTests {
     [Fact]
     public void DocumentReaderVisio_Registration_DispatchesVisioStream() {
         try {
-            DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+            DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler(
+                new ReaderVisioOptions { IncludeSvgPreviewAssets = true });
             using MemoryStream stream = BuildSampleVisio();
 
             List<ReaderChunk> chunks = DocumentReader.Read(stream, "registered.vsdx").ToList();
@@ -180,6 +181,18 @@ public sealed class ReaderVisioModularTests {
             ReaderChunk chunk = Assert.Single(chunks);
             Assert.Equal(ReaderInputKind.Visio, chunk.Kind);
             Assert.Contains("Gateway", chunk.Markdown, StringComparison.Ordinal);
+
+            stream.Position = 0;
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "registered.vsdx");
+            Assert.Contains("officeimo.visio.inspection-snapshot", result.CapabilitiesUsed);
+            Assert.NotEmpty(result.Links);
+            Assert.Equal("preview-svg", Assert.Single(result.Assets).Kind);
+
+            ReaderHandlerCapability capability = Assert.Single(
+                DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true),
+                item => item.Id == DocumentReaderVisioRegistrationExtensions.HandlerId);
+            Assert.True(capability.SupportsDocumentPath);
+            Assert.True(capability.SupportsDocumentStream);
         } finally {
             DocumentReaderVisioRegistrationExtensions.UnregisterVisioHandler();
         }
