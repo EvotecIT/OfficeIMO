@@ -7,7 +7,9 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static IReadOnlyList<StyleRule> ParseStyleRules(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
         var rules = new List<StyleRule>();
-        var parser = new CssParser();
+        var parser = new CssParser(new CssParserOptions {
+            IsIncludingUnknownDeclarations = true
+        });
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)) {
                 continue;

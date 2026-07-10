@@ -5,14 +5,23 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private HtmlInlineLayout LayoutInlineNodes(IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle parentStyle, int depth, string? prefix) {
+    private HtmlInlineLayout LayoutInlineNodes(IEnumerable<INode> nodes, double width, HtmlRenderBoxStyle parentStyle, int depth, string? prefix, IElement? generatedContentOwner) {
         var runs = new List<HtmlInlineRun>();
         if (!string.IsNullOrEmpty(prefix)) {
             runs.Add(new HtmlInlineRun(prefix!, parentStyle, null, "list-marker"));
         }
 
+        double? containingHeight = ResolveContainingBlockHeight(parentStyle);
+        if (generatedContentOwner != null) {
+            AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.Before, width, containingHeight, parentStyle, null, 0D, 0D, runs);
+        }
+
         foreach (INode node in nodes) {
-            CollectInlineRuns(node, width, ResolveContainingBlockHeight(parentStyle), parentStyle, null, depth, 0D, 0D, runs);
+            CollectInlineRuns(node, width, containingHeight, parentStyle, null, depth, 0D, 0D, runs);
+        }
+
+        if (generatedContentOwner != null) {
+            AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
         }
 
         return LayoutInlineRuns(runs, width, parentStyle);
@@ -58,6 +67,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
         }
 
+        AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
+
         if (tag == "img") {
             string alternativeText = element.GetAttribute("alt") ?? string.Empty;
             if (alternativeText.Length > 0) runs.Add(new HtmlInlineRun(alternativeText, style, link, HtmlRenderStyleResolver.DescribeSource(element), paintOffsetX, paintOffsetY));
@@ -68,6 +79,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (INode child in element.ChildNodes) {
             CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, runs);
         }
+
+        AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
     }
 
     private HtmlInlineLayout LayoutInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle) {
@@ -137,7 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         visuals.Count,
                         segment.Run.LinkUri,
                         segment.Run.Source,
-                        paragraphStyle.SemanticRole);
+                        segment.Run.Style.SemanticRole);
                     visuals.Add(visual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count));
                 }
 

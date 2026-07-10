@@ -5,45 +5,71 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderStyleResolver {
-    private readonly IReadOnlyDictionary<IElement, HtmlComputedStyle> _computedStyles;
+    private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
 
-    internal HtmlRenderStyleResolver(IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options) {
+    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options) {
         _computedStyles = computedStyles;
         _options = options;
     }
 
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
-        HtmlComputedStyle computed = _computedStyles.TryGetValue(element, out HtmlComputedStyle? found)
+        HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
             ? found
             : new HtmlComputedStyle(new Dictionary<string, string>());
+        return ResolveCore(element, computed, containingWidth, parent, false, string.Empty);
+    }
+
+    internal bool TryResolvePseudo(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        double containingWidth,
+        HtmlRenderBoxStyle parent,
+        out HtmlRenderBoxStyle style) {
+        if (!_computedStyles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle computed)) {
+            style = null!;
+            return false;
+        }
+
+        string semanticRole = kind == HtmlPseudoElementKind.Before ? "generated-before" : "generated-after";
+        style = ResolveCore(element, computed, containingWidth, parent, true, semanticRole);
+        return true;
+    }
+
+    private HtmlRenderBoxStyle ResolveCore(
+        IElement element,
+        HtmlComputedStyle computed,
+        double containingWidth,
+        HtmlRenderBoxStyle? parent,
+        bool pseudoElement,
+        string pseudoSemanticRole) {
         string tag = element.TagName.ToLowerInvariant();
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
         double fontSize = string.IsNullOrWhiteSpace(fontSizeValue)
-            ? ResolveDefaultTagFontSize(tag, parentFontSize)
+            ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
             : ResolveFontSize(fontSizeValue, parentFontSize);
-        OfficeFontStyle fontStyle = ResolveFontStyle(tag, computed);
-        string defaultFamily = tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp"
+        OfficeFontStyle fontStyle = ResolveFontStyle(pseudoElement ? string.Empty : tag, computed);
+        string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
             ? "Consolas"
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
 
         var style = new HtmlRenderBoxStyle {
-            Display = ResolveDisplay(tag, computed.GetValue("display")),
+            Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(tag, computed.GetValue("display")),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
             Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), parent?.Alignment ?? OfficeTextAlignment.Left),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
-            SemanticRole = ResolveSemanticRole(tag),
-            PreserveWhitespace = IsPreformatted(tag, computed.GetValue("white-space")),
+            SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
+            PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
 
-        ApplyDefaultMargins(tag, fontSize, style);
+        if (!pseudoElement) ApplyDefaultMargins(tag, fontSize, style);
         ApplyBoxValues(computed, containingWidth, fontSize, style);
-        ApplyDimensions(element, computed, containingWidth, fontSize, style);
+        ApplyDimensions(element, computed, containingWidth, fontSize, style, !pseudoElement);
         ApplyPaint(computed, style);
         ApplyPositioning(computed, style);
         ApplyBreaks(computed, style);
@@ -128,6 +154,9 @@ internal sealed class HtmlRenderStyleResolver {
         return IsDefaultBlockTag(tag) ? "block" : "inline";
     }
 
+    private static string ResolvePseudoDisplay(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "inline" : value.Trim().ToLowerInvariant();
+
     private static bool IsDefaultBlockTag(string tagName) {
         string tag = tagName.ToLowerInvariant();
         return tag == "html" || tag == "body" || tag == "address" || tag == "article" || tag == "aside" || tag == "blockquote"
@@ -211,9 +240,9 @@ internal sealed class HtmlRenderStyleResolver {
         if (HtmlRenderCssValues.TryColor(borderColor.Length > 0 ? borderColor : border, out OfficeColor parsedBorderColor)) style.BorderColor = parsedBorderColor;
     }
 
-    private void ApplyDimensions(IElement element, HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
-        style.ExplicitWidth = ReadLength(computed.GetValue("width"), element.GetAttribute("width"), reference, fontSize);
-        style.ExplicitHeight = ReadLength(computed.GetValue("height"), element.GetAttribute("height"), reference, fontSize);
+    private void ApplyDimensions(IElement element, HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style, bool includeAttributes) {
+        style.ExplicitWidth = ReadLength(computed.GetValue("width"), includeAttributes ? element.GetAttribute("width") : null, reference, fontSize);
+        style.ExplicitHeight = ReadLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, reference, fontSize);
         style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
         style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, reference, fontSize);
         style.MinHeight = ReadLength(computed.GetValue("min-height"), null, reference, fontSize);

@@ -7,6 +7,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(IElement container, double width, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, container);
         var blocks = new List<HtmlRenderFlowBlock>();
+        AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
         var inlineNodes = new List<INode>();
         foreach (INode node in container.ChildNodes) {
             if (node is IElement element) {
@@ -30,6 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+        AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
     }
 
@@ -83,7 +85,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         } else {
             string? prefix = tag == "li" ? ResolveListPrefix(element) : null;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix);
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element);
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
@@ -143,7 +145,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
         if (nodes.Count == 0) return;
-        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null);
+        HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
         nodes.Clear();
         if (inline.Height <= 0D || inline.Visuals.Count == 0) return;
         blocks.Add(new HtmlRenderFlowBlock(

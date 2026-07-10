@@ -23,6 +23,36 @@ public static partial class HtmlComputedStyleEngine {
         return string.Equals(element.TagName, selector, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool TryParsePseudoElementSelector(string selector, out string hostSelector, out HtmlPseudoElementKind kind) {
+        string value = selector.TrimEnd();
+        if (TryTrimPseudoElement(value, "::before", out hostSelector)
+            || TryTrimPseudoElement(value, ":before", out hostSelector)) {
+            kind = HtmlPseudoElementKind.Before;
+            return true;
+        }
+
+        if (TryTrimPseudoElement(value, "::after", out hostSelector)
+            || TryTrimPseudoElement(value, ":after", out hostSelector)) {
+            kind = HtmlPseudoElementKind.After;
+            return true;
+        }
+
+        hostSelector = string.Empty;
+        kind = HtmlPseudoElementKind.Before;
+        return false;
+    }
+
+    private static bool TryTrimPseudoElement(string selector, string suffix, out string hostSelector) {
+        if (!selector.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) {
+            hostSelector = string.Empty;
+            return false;
+        }
+
+        hostSelector = selector.Substring(0, selector.Length - suffix.Length).TrimEnd();
+        if (hostSelector.Length == 0) hostSelector = "*";
+        return true;
+    }
+
 
     private static Specificity CalculateSpecificity(string selector) {
         int ids = 0;
@@ -84,6 +114,13 @@ public static partial class HtmlComputedStyleEngine {
                             i = close;
                             continue;
                         }
+                    }
+
+                    if (string.Equals(pseudoName, "before", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(pseudoName, "after", StringComparison.OrdinalIgnoreCase)) {
+                        elements++;
+                        i = nameEnd;
+                        continue;
                     }
 
                     classesAttributesAndPseudoClasses++;

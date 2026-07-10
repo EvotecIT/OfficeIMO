@@ -59,6 +59,10 @@ public static partial class HtmlComputedStyleEngine {
         "break-before",
         "break-inside",
         "color",
+        "content",
+        "counter-increment",
+        "counter-reset",
+        "counter-set",
         "cursor",
         "direction",
         "display",
@@ -114,18 +118,26 @@ public static partial class HtmlComputedStyleEngine {
     /// Computes styles for every element in the supplied document using style tags and inline style attributes.
     /// </summary>
     public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
+        return ComputeStyleSet(document, mediaContext, false).Elements;
+    }
+
+    internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
+        ComputeStyleSet(document, mediaContext, true);
+
+    private static HtmlComputedStyleSet ComputeStyleSet(IHtmlDocument document, HtmlCssMediaContext mediaContext, bool includePseudoElements) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, mediaContext);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
+        var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
-            ComputeElement(root, null, rules, computed);
+            ComputeElement(root, null, rules, computed, pseudoElements, includePseudoElements);
         }
 
-        return computed;
+        return new HtmlComputedStyleSet(computed, pseudoElements);
     }
 
     /// <summary>
@@ -178,7 +190,13 @@ public static partial class HtmlComputedStyleEngine {
             colorValues);
     }
 
-    private static void ComputeElement(IElement element, HtmlComputedStyle? parent, IReadOnlyList<StyleRule> rules, IDictionary<IElement, HtmlComputedStyle> computed) {
+    private static void ComputeElement(
+        IElement element,
+        HtmlComputedStyle? parent,
+        IReadOnlyList<StyleRule> rules,
+        IDictionary<IElement, HtmlComputedStyle> computed,
+        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
+        bool includePseudoElements) {
         var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
         if (parent != null) {
             foreach (var pair in parent.Properties) {
@@ -189,7 +207,8 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (StyleRule rule in rules) {
-            if (MatchesSelector(element, rule.Selector)) {
+            if (!TryParsePseudoElementSelector(rule.Selector, out _, out _)
+                && MatchesSelector(element, rule.Selector)) {
                 foreach (var declaration in rule.Declarations) {
                     ApplyDeclaration(properties, parent?.Properties, declaration.Key, declaration.Value.Value, declaration.Value.IsImportant, rule.Specificity, rule.Order);
                 }
@@ -199,10 +218,60 @@ public static partial class HtmlComputedStyleEngine {
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
         var style = new HtmlComputedStyle(ResolveComputedProperties(properties, parent?.Properties));
         computed[element] = style;
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements);
 
         foreach (IElement child in element.Children) {
-            ComputeElement(child, style, rules, computed);
+            ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements);
         }
+    }
+
+    private static void ComputePseudoElementStyles(
+        IElement element,
+        HtmlComputedStyle originatingStyle,
+        IReadOnlyList<StyleRule> rules,
+        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements) {
+        HtmlComputedStyle? before = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.Before);
+        HtmlComputedStyle? after = ComputePseudoElementStyle(element, originatingStyle, rules, HtmlPseudoElementKind.After);
+        if (before == null && after == null) return;
+        pseudoElements[element] = new HtmlPseudoElementStylePair { Before = before, After = after };
+    }
+
+    private static HtmlComputedStyle? ComputePseudoElementStyle(
+        IElement element,
+        HtmlComputedStyle originatingStyle,
+        IReadOnlyList<StyleRule> rules,
+        HtmlPseudoElementKind kind) {
+        var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, string> pair in originatingStyle.Properties) {
+            if (IsInheritedProperty(pair.Key)) {
+                properties[pair.Key] = new CascadedProperty(pair.Value, false, Specificity.Inherited, -1);
+            }
+        }
+
+        bool matched = false;
+        foreach (StyleRule rule in rules) {
+            if (!TryParsePseudoElementSelector(rule.Selector, out string hostSelector, out HtmlPseudoElementKind ruleKind)
+                || ruleKind != kind
+                || !MatchesSelector(element, hostSelector)) {
+                continue;
+            }
+
+            matched = true;
+            foreach (KeyValuePair<string, StyleDeclaration> declaration in rule.Declarations) {
+                ApplyDeclaration(
+                    properties,
+                    originatingStyle.Properties,
+                    declaration.Key,
+                    declaration.Value.Value,
+                    declaration.Value.IsImportant,
+                    rule.Specificity,
+                    rule.Order);
+            }
+        }
+
+        return matched
+            ? new HtmlComputedStyle(ResolveComputedProperties(properties, originatingStyle.Properties))
+            : null;
     }
 
 }

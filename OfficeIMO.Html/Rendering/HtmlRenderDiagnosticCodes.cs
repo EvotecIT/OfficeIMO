@@ -38,6 +38,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ForcedFragment = "HtmlRenderForcedFragment";
     /// <summary>Grid layout used the documented normal-flow fallback.</summary>
     public const string GridLayoutPending = "HtmlRenderGridLayoutPending";
+    /// <summary>A generated-content expression was omitted because it could not be represented.</summary>
+    public const string GeneratedContentUnsupported = "HtmlRenderGeneratedContentUnsupported";
+    /// <summary>A CSS counter declaration was ignored because it could not be represented.</summary>
+    public const string GeneratedCounterUnsupported = "HtmlRenderGeneratedCounterUnsupported";
     /// <summary>An inline image used its alternative-text fallback.</summary>
     public const string InlineImageFallback = "HtmlRenderInlineImageFallback";
     /// <summary>A relative-position inset could not be resolved by the current length model.</summary>
@@ -106,6 +110,8 @@ public static class HtmlRenderDiagnosticCodes {
         FontFormatUnsupported,
         FlexLayoutPending,
         ForcedFragment,
+        GeneratedContentUnsupported,
+        GeneratedCounterUnsupported,
         GridLayoutPending,
         InlineImageFallback,
         PositionInsetUnsupported,

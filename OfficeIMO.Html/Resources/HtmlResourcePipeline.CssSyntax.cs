@@ -582,48 +582,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static string DecodeCssEscapes(string source) {
-        if (source.IndexOf('\\') < 0) {
-            return source;
-        }
-
-        var result = new System.Text.StringBuilder(source.Length);
-        for (int i = 0; i < source.Length; i++) {
-            char current = source[i];
-            if (current != '\\' || i + 1 >= source.Length) {
-                result.Append(current);
-                continue;
-            }
-
-            int cursor = i + 1;
-            int hexStart = cursor;
-            while (cursor < source.Length && cursor - hexStart < 6 && IsHexDigit(source[cursor])) {
-                cursor++;
-            }
-
-            if (cursor > hexStart) {
-                string hex = source.Substring(hexStart, cursor - hexStart);
-                if (!int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int codePoint)
-                    || codePoint == 0
-                    || codePoint > 0x10FFFF
-                    || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
-                    result.Append('\uFFFD');
-                } else {
-                    result.Append(char.ConvertFromUtf32(codePoint));
-                }
-
-                if (cursor < source.Length && char.IsWhiteSpace(source[cursor])) {
-                    cursor++;
-                }
-
-                i = cursor - 1;
-                continue;
-            }
-
-            result.Append(source[cursor]);
-            i = cursor;
-        }
-
-        return result.ToString();
+        return HtmlCssEscapeDecoder.Decode(source);
     }
 
 }

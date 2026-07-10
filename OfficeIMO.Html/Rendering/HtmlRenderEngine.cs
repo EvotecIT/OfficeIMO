@@ -30,7 +30,7 @@ public static class HtmlRenderEngine {
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
-        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved.MediaContext);
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts).Render();
     }
 
@@ -58,7 +58,7 @@ public static class HtmlRenderEngine {
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
-        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved.MediaContext);
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts).Render();
     }
 

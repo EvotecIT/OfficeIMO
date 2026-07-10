@@ -9,13 +9,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         double? containingHeight,
         IElement element) {
-        ResolvePositionPaintOffset(
-            style,
-            containingWidth,
-            containingHeight,
-            HtmlRenderStyleResolver.DescribeSource(element),
-            out double offsetX,
-            out double offsetY);
+        return ApplyPositioning(block, style, containingWidth, containingHeight, HtmlRenderStyleResolver.DescribeSource(element));
+    }
+
+    private HtmlRenderFlowBlock ApplyPositioning(
+        HtmlRenderFlowBlock block,
+        HtmlRenderBoxStyle style,
+        double containingWidth,
+        double? containingHeight,
+        string source) {
+        ResolvePositionPaintOffset(style, containingWidth, containingHeight, source, out double offsetX, out double offsetY);
         return Math.Abs(offsetX) <= 0.0001D && Math.Abs(offsetY) <= 0.0001D
             ? block
             : block.TranslatePaint(offsetX, offsetY);

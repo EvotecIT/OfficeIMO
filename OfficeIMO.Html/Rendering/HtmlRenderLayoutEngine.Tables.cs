@@ -49,7 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
-                HtmlInlineLayout inline = LayoutInlineNodes(cell.ChildNodes, cellContentWidth, cellStyle, depth + 1, null);
+                HtmlInlineLayout inline = LayoutInlineNodes(cell.ChildNodes, cellContentWidth, cellStyle, depth + 1, null, cell);
                 double cellHeight = Math.Max(cellStyle.LineHeight, inline.Height) + cellStyle.VerticalInsets;
                 if (rowSpan == 1) rowHeight = Math.Max(rowHeight, cellHeight);
                 cellLayouts.Add(new TableCellLayout(cell, cellStyle, inline, column, columnSpan, rowSpan, cellOuterWidth, cellHeight));
