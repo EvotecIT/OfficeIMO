@@ -53,21 +53,21 @@ namespace OfficeIMO.PowerPoint {
 
             if (options.IncludeSlideContent) {
                 A.ColorScheme? colorScheme = GetSlideColorScheme(slide);
-                AddSlideContent(slide.GetInheritedShapesForExport(), drawing, diagnostics, PowerPointShapeBoundsMapping.Identity, colorScheme);
-                AddSlideContent(slide.Shapes, drawing, diagnostics, PowerPointShapeBoundsMapping.Identity, colorScheme);
+                AddSlideContent(slide.GetInheritedShapesForExport(), drawing, diagnostics, PowerPointShapeBoundsMapping.Identity, colorScheme, options.IncludeHiddenShapes);
+                AddSlideContent(slide.Shapes, drawing, diagnostics, PowerPointShapeBoundsMapping.Identity, colorScheme, options.IncludeHiddenShapes);
             }
 
             return drawing;
         }
 
-        private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+        private static void AddSlideContent(IEnumerable<PowerPointShape> shapes, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool includeHiddenShapes = false) {
             foreach (PowerPointShape shape in shapes) {
-                if (shape.Hidden) {
+                if (shape.Hidden && !includeHiddenShapes) {
                     continue;
                 }
 
                 if (shape is PowerPointGroupShape groupShape) {
-                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme);
+                    AddGroupShape(drawing, groupShape, diagnostics, mapping, colorScheme, includeHiddenShapes);
                 } else if (shape is PowerPointPicture picture) {
                     AddPicture(drawing, picture, diagnostics, mapping);
                 } else if (shape is PowerPointTable table) {
@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
         private static A.ColorScheme? GetSlideColorScheme(PowerPointSlide slide) =>
             slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
 
-        private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
+        private static void AddGroupShape(OfficeDrawing drawing, PowerPointGroupShape groupShape, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool includeHiddenShapes) {
             if (groupShape.OwnerSlide == null) {
                 AddUnsupportedShapeDiagnostic(diagnostics, groupShape, "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
                 return;
@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
 
                 var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - left), Math.Max(1D, drawing.Height - top));
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
-                AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics, localChildMapping, colorScheme);
+                AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics, localChildMapping, colorScheme, includeHiddenShapes);
 
                 try {
                     OfficeImageFrameTransform groupFrameTransform = CreateGroupFrameTransform(groupShape, left, top, width, height);
@@ -126,14 +126,14 @@ namespace OfficeIMO.PowerPoint {
             if (TryGetBounds(groupShape, drawing, diagnostics, mapping, out double clipLeft, out double clipTop, out double clipWidth, out double clipHeight)) {
                 var groupDrawing = new OfficeDrawing(Math.Max(1D, drawing.Width - clipLeft), Math.Max(1D, drawing.Height - clipTop));
                 PowerPointShapeBoundsMapping localChildMapping = CreateGroupLocalChildMapping(groupShape, mapping);
-                AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics, localChildMapping, colorScheme);
+                AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), groupDrawing, diagnostics, localChildMapping, colorScheme, includeHiddenShapes);
                 if (RequiresGroupClip(groupDrawing, clipWidth, clipHeight)) {
                     drawing.AddClippedDrawing(groupDrawing, clipLeft, clipTop, OfficeClipPath.Rectangle(clipWidth, clipHeight));
                     return;
                 }
             }
 
-            AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), drawing, diagnostics, childMapping, colorScheme);
+            AddSlideContent(groupShape.OwnerSlide.GetGroupChildren(groupShape), drawing, diagnostics, childMapping, colorScheme, includeHiddenShapes);
         }
 
         private static bool RequiresGroupClip(OfficeDrawing groupDrawing, double width, double height) {

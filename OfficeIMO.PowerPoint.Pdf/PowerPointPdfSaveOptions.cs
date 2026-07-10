@@ -44,6 +44,12 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
     public bool IncludeHiddenSlides { get; set; }
 
+    /// <summary>
+    /// When true, faithful slide pages use the same shared visual snapshot as PNG/SVG and visual-review HTML.
+    /// Selective export profiles automatically retain the legacy per-shape path.
+    /// </summary>
+    public bool UseSharedVisualSnapshot { get; set; }
+
     /// <summary>Maximum nested group-shape depth rendered during PDF export. Defaults to 32.</summary>
     public int MaxGroupShapeDepth { get; set; } = 32;
 
@@ -87,6 +93,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeTables = true;
                 IncludeCharts = true;
                 IncludeHiddenSlides = false;
+                UseSharedVisualSnapshot = true;
                 break;
             case PdfCore.PdfExportProfile.Lightweight:
                 IncludePictures = false;
@@ -95,6 +102,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
+                UseSharedVisualSnapshot = false;
                 break;
             case PdfCore.PdfExportProfile.PrintReady:
                 IncludePictures = true;
@@ -104,6 +112,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeTables = true;
                 IncludeCharts = true;
                 IncludeHiddenSlides = false;
+                UseSharedVisualSnapshot = true;
                 break;
             case PdfCore.PdfExportProfile.TextOnly:
                 IncludePictures = false;
@@ -112,6 +121,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
+                UseSharedVisualSnapshot = false;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");

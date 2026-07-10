@@ -107,12 +107,33 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
         pdf.Canvas(canvas => {
+            if (options.UseSharedVisualSnapshot && CanUseSharedVisualSnapshot(options)) {
+                PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                    new PptCore.PowerPointImageExportOptions {
+                        IncludeSlideBackground = options.IncludeSlideBackgrounds,
+                        IncludeSlideContent = true
+                    });
+                canvas.Drawing(snapshot.Drawing, 0D, 0D, pageWidth, pageHeight);
+                foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
+                    AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message);
+                }
+                return;
+            }
+            if (options.UseSharedVisualSnapshot) {
+                AddWarning(options, slideNumber, "snapshot-selective-fallback",
+                    "Used the per-shape PDF renderer because the selected content filters or style overrides cannot be represented by a complete shared slide snapshot.");
+            }
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
             RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
             RenderShapes(canvas, slide.Shapes, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: true, groupDepth: 0);
         });
     }
+
+    private static bool CanUseSharedVisualSnapshot(PowerPointPdfSaveOptions options) =>
+        options.IncludePictures && options.IncludeAutoShapes && options.IncludeTextBoxes &&
+        options.IncludeTables && options.IncludeCharts && options.PictureFit == OfficeImageFit.Stretch &&
+        options.ChartStyle == null && options.ChartLayout == null;
 
     private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {

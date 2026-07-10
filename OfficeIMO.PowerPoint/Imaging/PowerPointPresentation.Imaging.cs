@@ -87,7 +87,8 @@ namespace OfficeIMO.PowerPoint {
             Scale = options.Scale,
             BackgroundColor = options.BackgroundColor,
             IncludeSlideBackground = options.IncludeSlideBackground,
-            IncludeSlideContent = options.IncludeSlideContent
+            IncludeSlideContent = options.IncludeSlideContent,
+            IncludeHiddenShapes = options.IncludeHiddenShapes
         };
     }
 }

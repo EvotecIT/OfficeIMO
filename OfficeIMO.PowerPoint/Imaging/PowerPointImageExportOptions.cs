@@ -17,11 +17,17 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool IncludeSlideContent { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether hidden slide shapes should be included.
+        /// </summary>
+        public bool IncludeHiddenShapes { get; set; }
+
         internal PowerPointImageExportOptions Clone() => new PowerPointImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
             IncludeSlideBackground = IncludeSlideBackground,
-            IncludeSlideContent = IncludeSlideContent
+            IncludeSlideContent = IncludeSlideContent,
+            IncludeHiddenShapes = IncludeHiddenShapes
         };
     }
 
@@ -44,6 +50,7 @@ namespace OfficeIMO.PowerPoint {
             BackgroundColor = BackgroundColor,
             IncludeSlideBackground = IncludeSlideBackground,
             IncludeSlideContent = IncludeSlideContent,
+            IncludeHiddenShapes = IncludeHiddenShapes,
             IncludeHiddenSlides = IncludeHiddenSlides,
             SlideNumbers = SlideNumbers?.ToArray()
         };
