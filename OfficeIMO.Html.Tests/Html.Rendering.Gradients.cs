@@ -110,8 +110,104 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRadialGradient_DiagnosesCircularFormsPendingPaintAreaResolution() {
+    public void HtmlRadialGradient_CircleFlowsThroughPngSvgAndSearchablePdf() {
+        const string html = "<div style='width:160px;height:60px;background:radial-gradient(circle closest-side at 25% 50%,red,blue)'></div><p>CircleMarker</p>";
+        var imageOptions = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        OfficeRadialGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(imageOptions);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = imageOptions;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(0.1875D, gradient.EndRadiusX, 4);
+        Assert.Equal(0.5D, gradient.EndRadiusY, 4);
+        Assert.True(raster.GetPixel(48, 38).R > raster.GetPixel(48, 38).B);
+        Assert.True(raster.GetPixel(78, 38).B > raster.GetPixel(78, 38).R);
+        Assert.Contains("gradientTransform=\"matrix(0.188 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("/ShadingType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlRadialGradient_ResolvesCircularExtentAgainstThePaintArea() {
         const string html = "<div style='width:40px;height:20px;background:radial-gradient(circle at left,red,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeRadialGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        Assert.Equal(0D, gradient.EndX, 3);
+        Assert.Equal(0.5D, gradient.EndY, 3);
+        Assert.Equal(Math.Sqrt(1700D) / 40D, gradient.EndRadiusX, 3);
+        Assert.Equal(Math.Sqrt(1700D) / 20D, gradient.EndRadiusY, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRadialGradient_DegenerateCircleKeepsAUniformPhysicalRadius() {
+        const string html = "<div style='width:40px;height:20px;background:radial-gradient(circle closest-side at left,red,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeRadialGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        Assert.True(gradient.EndRadiusX > 0D);
+        Assert.Equal(gradient.EndRadiusX * 40D, gradient.EndRadiusY * 20D, 9);
+    }
+
+    [Theory]
+    [InlineData("8px circle at 10px 5px", 0.25D, 0.25D, 0.2D, 0.4D)]
+    [InlineData("12px at center", 0.5D, 0.5D, 0.3D, 0.6D)]
+    [InlineData("ellipse 25% 10px at 25% 75%", 0.25D, 0.75D, 0.25D, 0.5D)]
+    public void HtmlRadialGradient_ResolvesExplicitLengthGeometry(
+        string descriptor,
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY) {
+        string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeRadialGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        Assert.Equal(centerX, gradient.EndX, 3);
+        Assert.Equal(centerY, gradient.EndY, 3);
+        Assert.Equal(radiusX, gradient.EndRadiusX, 3);
+        Assert.Equal(radiusY, gradient.EndRadiusY, 3);
+    }
+
+    [Theory]
+    [InlineData("circle 20%")]
+    [InlineData("ellipse 12px")]
+    [InlineData("circle 10px 20px")]
+    [InlineData("ellipse -10px 20px")]
+    [InlineData("circle at")]
+    public void HtmlRadialGradient_DiagnosesInvalidShapeAndSizeCombinations(string descriptor) {
+        string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 80D,

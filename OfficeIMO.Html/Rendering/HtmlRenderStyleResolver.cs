@@ -453,7 +453,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                     continue;
                 }
 
-                if (HtmlCssRadialGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out OfficeRadialGradient? radialGradient, out bool radialStopLimitExceeded)
+                if (HtmlCssRadialGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssRadialGradientDefinition? radialGradient, out bool radialStopLimitExceeded)
                     && radialGradient != null) {
                     layers.Add(new HtmlRenderBackgroundLayer(radialGradient, position, repeat, size));
                     continue;

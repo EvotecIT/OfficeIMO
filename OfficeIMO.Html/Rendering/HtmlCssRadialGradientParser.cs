@@ -1,14 +1,14 @@
 using OfficeIMO.Drawing;
-using System.Globalization;
 
 namespace OfficeIMO.Html;
 
 internal static class HtmlCssRadialGradientParser {
-    private const double MinimumRadius = 0.000001D;
-    private static readonly double CornerScale = Math.Sqrt(2D);
-
-    internal static bool TryParse(string? value, int maximumStops, out OfficeRadialGradient? gradient, out bool stopLimitExceeded) {
-        gradient = null;
+    internal static bool TryParse(
+        string? value,
+        int maximumStops,
+        out HtmlCssRadialGradientDefinition? definition,
+        out bool stopLimitExceeded) {
+        definition = null;
         stopLimitExceeded = false;
         if (string.IsNullOrWhiteSpace(value) || maximumStops < 2) return false;
 
@@ -20,100 +20,72 @@ internal static class HtmlCssRadialGradientParser {
 
         IReadOnlyList<string> arguments = HtmlRenderCssValues.SplitTopLevelCommas(text.Substring(open + 1, text.Length - open - 2));
         if (arguments.Count < 2) return false;
-        int stopStart = 0;
-        double centerX = 0.5D;
-        double centerY = 0.5D;
-        double radiusX = 0.5D * CornerScale;
-        double radiusY = 0.5D * CornerScale;
-        if (!HtmlCssGradientStops.IsColorStop(arguments[0])) {
-            if (!TryParseEllipse(arguments[0], out centerX, out centerY, out radiusX, out radiusY)) return false;
-            stopStart = 1;
-        }
-
+        int stopStart = HtmlCssGradientStops.IsColorStop(arguments[0]) ? 0 : 1;
         if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded)
-            || stops == null) {
+            || stops == null
+            || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], stops, out definition)) {
             return false;
         }
 
-        gradient = new OfficeRadialGradient(centerX, centerY, 0D, 0D, centerX, centerY, radiusX, radiusY, stops);
         return true;
     }
 
-    private static bool TryParseEllipse(string value, out double centerX, out double centerY, out double radiusX, out double radiusY) {
-        centerX = 0.5D;
-        centerY = 0.5D;
-        radiusX = 0.5D * CornerScale;
-        radiusY = 0.5D * CornerScale;
-        List<string> parts = HtmlRenderCssValues.SplitWhitespace(value)
+    private static bool TryParseDescriptor(
+        string descriptor,
+        IReadOnlyList<OfficeGradientStop> stops,
+        out HtmlCssRadialGradientDefinition? definition) {
+        definition = null;
+        List<string> parts = HtmlRenderCssValues.SplitWhitespace(descriptor)
             .Select(part => part.ToLowerInvariant())
             .ToList();
         int at = parts.IndexOf("at");
-        if (at >= 0) {
-            if (!TryParsePosition(parts.Skip(at + 1).ToList(), out centerX, out centerY)) return false;
-            parts.RemoveRange(at, parts.Count - at);
+        if (at >= 0 && at != parts.LastIndexOf("at")) return false;
+        IReadOnlyList<string> positionParts = at >= 0 ? parts.Skip(at + 1).ToList() : Array.Empty<string>();
+        if (at >= 0 && positionParts.Count == 0) return false;
+        if (!TryParsePosition(positionParts, out string centerX, out string centerY)) return false;
+        if (at >= 0) parts.RemoveRange(at, parts.Count - at);
+
+        bool circle = RemoveSingle(parts, "circle", out bool duplicateCircle);
+        bool ellipse = RemoveSingle(parts, "ellipse", out bool duplicateEllipse);
+        if (duplicateCircle || duplicateEllipse || circle && ellipse) return false;
+
+        HtmlCssRadialGradientShape shape;
+        HtmlCssRadialGradientSize size;
+        string? radiusX = null;
+        string? radiusY = null;
+        if (parts.Count == 0) {
+            shape = circle ? HtmlCssRadialGradientShape.Circle : HtmlCssRadialGradientShape.Ellipse;
+            size = HtmlCssRadialGradientSize.FarthestCorner;
+        } else if (parts.Count == 1 && TryParseExtent(parts[0], out size)) {
+            shape = circle ? HtmlCssRadialGradientShape.Circle : HtmlCssRadialGradientShape.Ellipse;
+        } else if (parts.Count == 1
+            && !ellipse
+            && parts[0].IndexOf('%') < 0
+            && IsNonNegativeLength(parts[0])) {
+            shape = HtmlCssRadialGradientShape.Circle;
+            size = HtmlCssRadialGradientSize.Explicit;
+            radiusX = parts[0];
+        } else if (parts.Count == 2
+            && !circle
+            && IsNonNegativeLength(parts[0])
+            && IsNonNegativeLength(parts[1])) {
+            shape = HtmlCssRadialGradientShape.Ellipse;
+            size = HtmlCssRadialGradientSize.Explicit;
+            radiusX = parts[0];
+            radiusY = parts[1];
+        } else {
+            return false;
         }
 
-        if (parts.Remove("circle")) return false;
-        parts.Remove("ellipse");
-        if (parts.Count == 0) return ResolveExtent("farthest-corner", centerX, centerY, out radiusX, out radiusY);
-        if (parts.Count == 1) return ResolveExtent(parts[0], centerX, centerY, out radiusX, out radiusY);
-        if (parts.Count == 2
-            && TryParseNonNegativePercentage(parts[0], out radiusX)
-            && TryParseNonNegativePercentage(parts[1], out radiusY)) {
-            radiusX = Math.Max(MinimumRadius, radiusX);
-            radiusY = Math.Max(MinimumRadius, radiusY);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool ResolveExtent(string extent, double centerX, double centerY, out double radiusX, out double radiusY) {
-        bool closest;
-        bool corner;
-        switch (extent) {
-            case "closest-side":
-                closest = true;
-                corner = false;
-                break;
-            case "closest-corner":
-                closest = true;
-                corner = true;
-                break;
-            case "farthest-side":
-                closest = false;
-                corner = false;
-                break;
-            case "farthest-corner":
-                closest = false;
-                corner = true;
-                break;
-            default:
-                radiusX = 0D;
-                radiusY = 0D;
-                return false;
-        }
-
-        double left = Math.Abs(centerX);
-        double right = Math.Abs(1D - centerX);
-        double top = Math.Abs(centerY);
-        double bottom = Math.Abs(1D - centerY);
-        radiusX = closest ? Math.Min(left, right) : Math.Max(left, right);
-        radiusY = closest ? Math.Min(top, bottom) : Math.Max(top, bottom);
-        if (corner) {
-            radiusX *= CornerScale;
-            radiusY *= CornerScale;
-        }
-
-        radiusX = Math.Max(MinimumRadius, radiusX);
-        radiusY = Math.Max(MinimumRadius, radiusY);
+        definition = new HtmlCssRadialGradientDefinition(shape, size, centerX, centerY, radiusX, radiusY, stops);
         return true;
     }
 
-    private static bool TryParsePosition(IReadOnlyList<string> parts, out double x, out double y) {
-        x = 0.5D;
-        y = 0.5D;
-        if (parts.Count == 0 || parts.Count > 2) return false;
+    private static bool TryParsePosition(IReadOnlyList<string> parts, out string x, out string y) {
+        x = "50%";
+        y = "50%";
+        if (parts.Count == 0) return true;
+        if (parts.Count > 2) return false;
         if (parts.Count == 1) {
             if (TryParseHorizontalPosition(parts[0], out x)) return true;
             if (TryParseVerticalPosition(parts[0], out y)) return true;
@@ -124,52 +96,78 @@ internal static class HtmlCssRadialGradientParser {
         return TryParseHorizontalPosition(parts[1], out x) && TryParseVerticalPosition(parts[0], out y);
     }
 
-    private static bool TryParseHorizontalPosition(string value, out double position) {
+    private static bool TryParseHorizontalPosition(string value, out string result) {
         switch (value) {
             case "left":
-                position = 0D;
+                result = "0%";
                 return true;
             case "center":
-                position = 0.5D;
+                result = "50%";
                 return true;
             case "right":
-                position = 1D;
+                result = "100%";
                 return true;
+            case "top":
+            case "bottom":
+                result = string.Empty;
+                return false;
             default:
-                return TryParsePercentage(value, out position);
+                result = value;
+                return IsLength(value);
         }
     }
 
-    private static bool TryParseVerticalPosition(string value, out double position) {
+    private static bool TryParseVerticalPosition(string value, out string result) {
         switch (value) {
             case "top":
-                position = 0D;
+                result = "0%";
                 return true;
             case "center":
-                position = 0.5D;
+                result = "50%";
                 return true;
             case "bottom":
-                position = 1D;
+                result = "100%";
+                return true;
+            case "left":
+            case "right":
+                result = string.Empty;
+                return false;
+            default:
+                result = value;
+                return IsLength(value);
+        }
+    }
+
+    private static bool TryParseExtent(string value, out HtmlCssRadialGradientSize size) {
+        switch (value) {
+            case "closest-side":
+                size = HtmlCssRadialGradientSize.ClosestSide;
+                return true;
+            case "closest-corner":
+                size = HtmlCssRadialGradientSize.ClosestCorner;
+                return true;
+            case "farthest-side":
+                size = HtmlCssRadialGradientSize.FarthestSide;
+                return true;
+            case "farthest-corner":
+                size = HtmlCssRadialGradientSize.FarthestCorner;
                 return true;
             default:
-                return TryParsePercentage(value, out position);
+                size = default;
+                return false;
         }
     }
 
-    private static bool TryParsePercentage(string value, out double result) {
-        result = 0D;
-        if (!value.EndsWith("%", StringComparison.Ordinal)
-            || !double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)
-            || double.IsNaN(percent)
-            || double.IsInfinity(percent)) {
-            return false;
-        }
-
-        result = percent / 100D;
-        return true;
+    private static bool RemoveSingle(ICollection<string> parts, string value, out bool duplicate) {
+        duplicate = false;
+        bool found = parts.Remove(value);
+        if (found && parts.Contains(value)) duplicate = true;
+        return found;
     }
 
-    private static bool TryParseNonNegativePercentage(string value, out double result) =>
-        TryParsePercentage(value, out result) && result >= 0D;
+    private static bool IsLength(string value) =>
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out _);
 
+    private static bool IsNonNegativeLength(string value) =>
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length) && length >= 0D;
 }
