@@ -16,6 +16,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeColor BorderColor = OfficeColor.Black;
     internal OfficeColor? BackgroundColor;
     internal int BackgroundImageLayerCount;
+    internal bool HasDeclaredBackgroundImage;
     internal int UnsupportedBackgroundImageLayerCount;
     internal int GradientStopLimitExceededCount;
     internal IReadOnlyList<HtmlRenderBackgroundLayer> BackgroundImageLayers = Array.Empty<HtmlRenderBackgroundLayer>();

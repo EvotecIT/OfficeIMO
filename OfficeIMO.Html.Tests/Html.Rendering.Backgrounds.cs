@@ -150,7 +150,7 @@ public sealed partial class HtmlRenderingTests {
             + source
             + "'),url('"
             + source
-            + "');background-size:unsupported-size;background-repeat:space\"></div>";
+            + "');background-size:unsupported-size;background-repeat:no-repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 160D,
@@ -162,7 +162,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(backgrounds, background => Assert.Equal(100D, background.Width, 3));
         Assert.All(backgrounds, background => Assert.Equal(50D, background.Height, 3));
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
@@ -417,6 +416,105 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBackgroundRepeatSpace_DistributesWholeTilesAcrossPngSvgAndPdf() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<div style=\"width:30px;height:8px;background-image:url('data:image/png;base64,"
+            + imageData
+            + "');background-size:8px 4px;background-repeat:space no-repeat\"></div>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 60D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(8D, pattern.Pattern.Tile.Width, 3);
+        Assert.Equal(11D, pattern.Pattern.HorizontalStep, 3);
+        Assert.Equal(3L, pattern.Pattern.EstimatedTileCount);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 9));
+        Assert.NotEqual(OfficeColor.Red, raster.GetPixel(17, 9));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
+        Assert.Contains("width=\"11\" height=\"8\"><image", svg, StringComparison.Ordinal);
+        Assert.Contains("width=\"8\" height=\"4\"", svg, StringComparison.Ordinal);
+        Assert.Equal(3, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+    }
+
+    [Fact]
+    public void HtmlBackgroundRepeatRound_ResizesTilesToFillTheAxisAcrossPngSvgAndPdf() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<div style=\"width:30px;height:8px;background-image:url('data:image/png;base64,"
+            + imageData
+            + "');background-size:8px 4px;background-repeat:round no-repeat\"></div>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 60D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(7.5D, pattern.Pattern.Tile.Width, 3);
+        Assert.Equal(7.5D, pattern.Pattern.HorizontalStep, 3);
+        Assert.Equal(4L, pattern.Pattern.EstimatedTileCount);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 9));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(37, 9));
+        Assert.Contains("width=\"7.5\"", svg, StringComparison.Ordinal);
+        Assert.Equal(4, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+    }
+
+    [Fact]
+    public void HtmlBackgroundRepeatRound_RestoresAspectRatioForTheOtherAutoAxis() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 1));
+        string html = "<div style=\"width:30px;height:8px;background-image:url('data:image/png;base64,"
+            + imageData
+            + "');background-size:8px auto;background-repeat:round no-repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 60D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
+        Assert.Equal(7.5D, pattern.Pattern.Tile.Width, 3);
+        Assert.Equal(3.75D, pattern.Pattern.Tile.Height, 3);
+    }
+
+    [Fact]
+    public void HtmlBackgroundRepeatSpace_UsesBackgroundPositionWhenOnlyOneTileFits() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<div style=\"width:10px;height:8px;background-image:url('data:image/png;base64,"
+            + imageData
+            + "');background-size:8px 4px;background-repeat:space no-repeat;background-position:right top\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(10D, image.X, 3);
+        Assert.Equal(8D, image.Y, 3);
+        Assert.Equal(8D, image.Width, 3);
+    }
+
+    [Fact]
     public void HtmlRender_BoundsOperationWideBackgroundTileExpansion() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1, 1));
         string html = "<div style=\"width:100px;height:100px;background-image:url('data:image/png;base64,"
@@ -487,6 +585,21 @@ public sealed partial class HtmlRenderingTests {
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "render-root-background");
         Assert.Equal(OfficeColor.FromRgb(0x65, 0x43, 0x21), rootBackground.Shape.FillColor);
+    }
+
+    [Fact]
+    public void HtmlRender_NoneDocumentRootLayerDoesNotBlockBodyCanvasPropagation() {
+        const string html = "<style>html{background-image:none}body{background:#123456}</style><p>BodyCanvasMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        HtmlRenderShape rootBackground = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "render-root-background");
+        Assert.Equal(OfficeColor.FromRgb(0x12, 0x34, 0x56), rootBackground.Shape.FillColor);
     }
 
     [Fact]

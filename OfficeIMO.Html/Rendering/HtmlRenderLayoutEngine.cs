@@ -290,7 +290,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool HasDeclaredCanvasBackground(HtmlRenderBoxStyle style) =>
         style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
-        || style.BackgroundImageLayerCount > 0;
+        || style.HasDeclaredBackgroundImage;
 
     private void CommitPage(ICollection<HtmlRenderPage> pages, List<HtmlRenderVisual> visuals, double width, double height, string? pageName) {
         if (pages.Count >= _options.MaxPageCount) {

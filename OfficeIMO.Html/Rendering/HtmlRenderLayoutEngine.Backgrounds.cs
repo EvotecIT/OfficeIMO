@@ -160,7 +160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 layer.Size);
         }
 
-        bool repeatSupported = TryResolveBackgroundRepeat(layer.Repeat, out bool repeatX, out bool repeatY);
+        bool repeatSupported = TryResolveBackgroundRepeat(layer.Repeat, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY);
         if (!repeatSupported) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported,
@@ -169,6 +169,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 layer.Repeat);
         }
 
+        if (!repeatSupported) {
+            repeatX = BackgroundRepeatMode.NoRepeat;
+            repeatY = BackgroundRepeatMode.NoRepeat;
+        }
+
+        imageSize = ApplyRoundBackgroundSize(imageSize, layer.Size, areaWidth, areaHeight, repeatX, repeatY);
+
         (double offsetX, double offsetY) = ResolveBackgroundPosition(
             layer.Position,
             areaWidth - imageSize.Width,
@@ -176,12 +183,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Font.Size);
         double tileX = areaX + offsetX;
         double tileY = areaY + offsetY;
-        if (repeatSupported && (repeatX || repeatY)) {
+        BackgroundRepeatAxis horizontal = ResolveBackgroundRepeatAxis(repeatX, areaX, areaWidth, tileX, imageSize.Width);
+        BackgroundRepeatAxis vertical = ResolveBackgroundRepeatAxis(repeatY, areaY, areaHeight, tileY, imageSize.Height);
+        if (horizontal.Repeat || vertical.Repeat) {
             var pattern = new OfficeImagePatternLayout(
                 new OfficeImagePlacement(areaX, areaY, areaWidth, areaHeight),
-                new OfficeImagePlacement(tileX, tileY, imageSize.Width, imageSize.Height),
-                repeatX,
-                repeatY);
+                new OfficeImagePlacement(horizontal.Origin, vertical.Origin, imageSize.Width, imageSize.Height),
+                horizontal.Repeat,
+                vertical.Repeat,
+                horizontal.Step,
+                vertical.Step);
             long tileCount = pattern.EstimatedTileCount;
             if (tileCount > 0L && tileCount <= _options.MaxBackgroundImageTiles - _backgroundImageTileCount) {
                 visuals.Add(new HtmlRenderImagePattern(
@@ -280,38 +291,122 @@ internal sealed partial class HtmlRenderLayoutEngine {
             sourceCrop: crop));
     }
 
-    private static bool TryResolveBackgroundRepeat(string value, out bool repeatX, out bool repeatY) {
-        repeatX = false;
-        repeatY = false;
+    private static bool TryResolveBackgroundRepeat(string value, out BackgroundRepeatMode repeatX, out BackgroundRepeatMode repeatY) {
+        repeatX = BackgroundRepeatMode.Repeat;
+        repeatY = BackgroundRepeatMode.Repeat;
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty)
             .Select(token => token.Trim().ToLowerInvariant())
             .Where(token => token.Length > 0)
             .ToList()
             .AsReadOnly();
+        if (values.Count == 0) return true;
         if (values.Count > 2) return false;
-        if (values.Count == 0 || values[0] == "repeat") {
-            repeatX = true;
-            repeatY = values.Count < 2 || values[1] == "repeat";
-            return values.Count < 2 || values[1] == "repeat" || values[1] == "no-repeat";
-        }
-
-        if (values[0] == "no-repeat") {
-            repeatX = false;
-            repeatY = values.Count > 1 && values[1] == "repeat";
-            return values.Count < 2 || values[1] == "repeat" || values[1] == "no-repeat";
-        }
-
         if (values.Count == 1 && values[0] == "repeat-x") {
-            repeatX = true;
+            repeatX = BackgroundRepeatMode.Repeat;
+            repeatY = BackgroundRepeatMode.NoRepeat;
             return true;
         }
 
         if (values.Count == 1 && values[0] == "repeat-y") {
-            repeatY = true;
+            repeatX = BackgroundRepeatMode.NoRepeat;
+            repeatY = BackgroundRepeatMode.Repeat;
             return true;
         }
 
-        return false;
+        if (!TryParseBackgroundRepeatMode(values[0], out repeatX)) return false;
+        if (values.Count == 1) {
+            repeatY = repeatX;
+            return true;
+        }
+
+        return TryParseBackgroundRepeatMode(values[1], out repeatY);
+    }
+
+    private static bool TryParseBackgroundRepeatMode(string value, out BackgroundRepeatMode mode) {
+        switch (value) {
+            case "repeat":
+                mode = BackgroundRepeatMode.Repeat;
+                return true;
+            case "no-repeat":
+                mode = BackgroundRepeatMode.NoRepeat;
+                return true;
+            case "space":
+                mode = BackgroundRepeatMode.Space;
+                return true;
+            case "round":
+                mode = BackgroundRepeatMode.Round;
+                return true;
+            default:
+                mode = BackgroundRepeatMode.NoRepeat;
+                return false;
+        }
+    }
+
+    private static BackgroundRepeatAxis ResolveBackgroundRepeatAxis(
+        BackgroundRepeatMode mode,
+        double areaStart,
+        double areaLength,
+        double positionedTileStart,
+        double tileLength) {
+        if (mode == BackgroundRepeatMode.NoRepeat) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: false);
+        if (mode == BackgroundRepeatMode.Repeat) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: true);
+        if (mode == BackgroundRepeatMode.Round) return new BackgroundRepeatAxis(areaStart, tileLength, repeat: true);
+
+        long count = Math.Max(0L, (long)Math.Floor((areaLength + 0.0000001D) / tileLength));
+        if (count < 2L) return new BackgroundRepeatAxis(positionedTileStart, tileLength, repeat: false);
+        double step = (areaLength - tileLength) / (count - 1L);
+        return new BackgroundRepeatAxis(areaStart, Math.Max(tileLength, step), repeat: true);
+    }
+
+    private static BackgroundImageSize ApplyRoundBackgroundSize(
+        BackgroundImageSize size,
+        string sizeValue,
+        double areaWidth,
+        double areaHeight,
+        BackgroundRepeatMode repeatX,
+        BackgroundRepeatMode repeatY) {
+        double width = size.Width;
+        double height = size.Height;
+        double originalWidth = width;
+        double originalHeight = height;
+        ResolveBackgroundSizeAutoAxes(sizeValue, out bool widthAuto, out bool heightAuto);
+        if (repeatX == BackgroundRepeatMode.Round) {
+            width = ResolveRoundedTileLength(areaWidth, width);
+            if (repeatY != BackgroundRepeatMode.Round && heightAuto) height *= width / Math.Max(0.01D, originalWidth);
+        }
+
+        if (repeatY == BackgroundRepeatMode.Round) {
+            height = ResolveRoundedTileLength(areaHeight, height);
+            if (repeatX != BackgroundRepeatMode.Round && widthAuto) width *= height / Math.Max(0.01D, originalHeight);
+        }
+
+        return new BackgroundImageSize(Math.Max(0.01D, width), Math.Max(0.01D, height));
+    }
+
+    private static double ResolveRoundedTileLength(double areaLength, double tileLength) {
+        double ratio = areaLength / Math.Max(0.01D, tileLength);
+        long count = Math.Max(1L, (long)Math.Round(ratio, MidpointRounding.AwayFromZero));
+        return areaLength / count;
+    }
+
+    private static void ResolveBackgroundSizeAutoAxes(string value, out bool widthAuto, out bool heightAuto) {
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty);
+        if (parts.Count == 0 || (parts.Count == 1 && string.Equals(parts[0], "auto", StringComparison.OrdinalIgnoreCase))) {
+            widthAuto = true;
+            heightAuto = true;
+            return;
+        }
+
+        if (parts.Count == 1
+            && (string.Equals(parts[0], "cover", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(parts[0], "contain", StringComparison.OrdinalIgnoreCase))) {
+            widthAuto = false;
+            heightAuto = false;
+            return;
+        }
+
+        widthAuto = string.Equals(parts[0], "auto", StringComparison.OrdinalIgnoreCase);
+        heightAuto = parts.Count == 1 || string.Equals(parts[1], "auto", StringComparison.OrdinalIgnoreCase);
     }
 
     private BackgroundImageSize ResolveBackgroundImageSize(
@@ -403,5 +498,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal double Width { get; }
         internal double Height { get; }
+    }
+
+    private readonly struct BackgroundRepeatAxis {
+        internal BackgroundRepeatAxis(double origin, double step, bool repeat) {
+            Origin = origin;
+            Step = step;
+            Repeat = repeat;
+        }
+
+        internal double Origin { get; }
+        internal double Step { get; }
+        internal bool Repeat { get; }
+    }
+
+    private enum BackgroundRepeatMode {
+        NoRepeat,
+        Repeat,
+        Space,
+        Round
     }
 }

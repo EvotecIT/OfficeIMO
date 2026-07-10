@@ -242,17 +242,21 @@ internal sealed class HtmlRenderStyleResolver {
         IReadOnlyList<string> sizeLayers = HtmlRenderCssValues.SplitTopLevelCommas(computed.GetValue("background-size"));
         var layers = new List<HtmlRenderBackgroundLayer>();
         int declaredLayerCount = 0;
+        bool hasDeclaredBackgroundImage = false;
         int unsupportedLayerCount = 0;
         int gradientStopLimitExceededCount = 0;
         for (int index = 0; index < sourceLayers.Count; index++) {
             string sourceLayer = sourceLayers[index];
             IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(sourceLayer);
+            bool isNone = string.Equals(sourceLayer.Trim(), "none", StringComparison.OrdinalIgnoreCase);
             bool hasGradientFunction = urls.Count == 0
                 && sourceLayer.IndexOf("gradient(", StringComparison.OrdinalIgnoreCase) >= 0;
-            if (urls.Count == 0 && !hasGradientFunction) continue;
+            if (urls.Count == 0 && !hasGradientFunction && !isNone) continue;
 
             declaredLayerCount++;
+            if (!isNone) hasDeclaredBackgroundImage = true;
             if (declaredLayerCount > _options.MaxBackgroundImageLayers) continue;
+            if (isNone) continue;
             string position = GetLayerValue(positionLayers, index, ExtractBackgroundPosition(sourceLayer), "0% 0%");
             string repeat = GetLayerValue(repeatLayers, index, ExtractBackgroundRepeat(sourceLayer), "repeat");
             string size = GetLayerValue(sizeLayers, index, ExtractBackgroundSize(sourceLayer), "auto");
@@ -273,6 +277,7 @@ internal sealed class HtmlRenderStyleResolver {
         }
 
         style.BackgroundImageLayerCount = declaredLayerCount;
+        style.HasDeclaredBackgroundImage = hasDeclaredBackgroundImage;
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
         style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
         style.BackgroundImageLayers = layers.AsReadOnly();
