@@ -135,8 +135,8 @@ public static partial class DocumentReaderRtfExtensions {
             RtfTableRow row = table.Rows[rowIndex];
             for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
                 RtfTableCell cell = row.Cells[cellIndex];
-                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
-                    count += CountHyperlinkRuns(cell.Paragraphs[paragraphIndex]);
+                for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
+                    count += CountHyperlinkRuns(cell.Blocks[blockIndex]);
                 }
             }
         }
@@ -224,8 +224,8 @@ public static partial class DocumentReaderRtfExtensions {
             RtfTableRow row = table.Rows[rowIndex];
             for (int cellIndex = 0; cellIndex < row.Cells.Count; cellIndex++) {
                 RtfTableCell cell = row.Cells[cellIndex];
-                for (int paragraphIndex = 0; paragraphIndex < cell.Paragraphs.Count; paragraphIndex++) {
-                    count += CountFormFields(cell.Paragraphs[paragraphIndex]);
+                for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
+                    count += CountFormFields(cell.Blocks[blockIndex]);
                 }
             }
         }

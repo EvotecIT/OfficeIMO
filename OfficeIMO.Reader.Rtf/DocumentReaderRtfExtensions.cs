@@ -245,9 +245,14 @@ public static partial class DocumentReaderRtfExtensions {
     }
 
     private static string CellText(RtfTableCell cell) {
-        if (cell.Paragraphs.Count == 0) return string.Empty;
-        return string.Join(" ", cell.Paragraphs.Select(static paragraph => paragraph.ToPlainText()).Where(static text => !string.IsNullOrWhiteSpace(text)));
+        if (cell.Blocks.Count == 0) return string.Empty;
+        return string.Join(" ", cell.Blocks.Select(block => block is RtfParagraph paragraph
+            ? paragraph.ToPlainText()
+            : block is RtfTable table ? NestedTableText(table) : string.Empty).Where(static text => !string.IsNullOrWhiteSpace(text)));
     }
+
+    private static string NestedTableText(RtfTable table) =>
+        string.Join(" / ", table.Rows.Select(row => string.Join(" | ", row.Cells.Select(CellText))));
 
     private static string BuildTableMarkdown(ReaderTable table) {
         if (table.Columns.Count == 0) return string.Empty;

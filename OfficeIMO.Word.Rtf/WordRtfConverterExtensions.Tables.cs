@@ -151,19 +151,21 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyCellParagraphs(WordTableCell source, RtfTableCell destination, RtfDocument document, Dictionary<string, int> revisionAuthorIndexes) {
-        var seenParagraphs = new HashSet<Paragraph>();
-        foreach (WordParagraph wordParagraph in source.Paragraphs) {
-            if (!seenParagraphs.Add(wordParagraph._paragraph)) {
-                continue;
+        foreach (OpenXmlElement child in source._tableCell.ChildElements) {
+            if (child is Paragraph wordParagraphElement) {
+                var wordParagraph = new WordParagraph(source.Document, wordParagraphElement);
+                RtfParagraph paragraph = destination.AddParagraph();
+                CopyTabStops(wordParagraph, paragraph);
+                CopyParagraphFormatting(wordParagraph, paragraph, document);
+                AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
+            } else if (child is Table nestedTableElement) {
+                var nestedWordTable = new WordTable(source.Document, nestedTableElement);
+                RtfTable nested = destination.AddTable(0, GetColumnCount(nestedWordTable));
+                CopyTable(nestedWordTable, nested, document, revisionAuthorIndexes);
             }
-
-            RtfParagraph paragraph = destination.AddParagraph();
-            CopyTabStops(wordParagraph, paragraph);
-            CopyParagraphFormatting(wordParagraph, paragraph, document);
-            AppendFormattedRuns(wordParagraph, paragraph, document, revisionAuthorIndexes);
         }
 
-        if (destination.Paragraphs.Count == 0) {
+        if (destination.Blocks.Count == 0) {
             destination.AddParagraph();
         }
     }
@@ -403,18 +405,24 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyCellParagraphs(RtfTableCell source, WordTableCell destination, RtfDocument rtfDocument) {
-        if (source.Paragraphs.Count == 0) {
+        if (source.Blocks.Count == 0) {
             destination.AddParagraph(removeExistingParagraphs: true);
             return;
         }
 
         bool first = true;
-        foreach (RtfParagraph sourceParagraph in source.Paragraphs) {
-            WordParagraph paragraph = destination.AddParagraph(removeExistingParagraphs: first);
-            ApplyTabStops(paragraph, sourceParagraph);
-            ApplyParagraphFormatting(paragraph, sourceParagraph, rtfDocument);
-            AppendRuns(paragraph, sourceParagraph, rtfDocument);
-            first = false;
+        foreach (IRtfBlock block in source.Blocks) {
+            if (block is RtfParagraph sourceParagraph) {
+                WordParagraph paragraph = destination.AddParagraph(removeExistingParagraphs: first);
+                ApplyTabStops(paragraph, sourceParagraph);
+                ApplyParagraphFormatting(paragraph, sourceParagraph, rtfDocument);
+                AppendRuns(paragraph, sourceParagraph, rtfDocument);
+                first = false;
+            } else if (block is RtfTable nestedTable) {
+                WordTable wordNestedTable = destination.AddTable(GetRowCount(nestedTable), GetColumnCount(nestedTable), WordTableStyle.TableGrid, removePrecedingParagraph: first);
+                ApplyTable(nestedTable, wordNestedTable, rtfDocument);
+                first = false;
+            }
         }
     }
 

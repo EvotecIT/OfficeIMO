@@ -58,8 +58,10 @@ public sealed class ReaderRtfModularTests {
     [Fact]
     public void DocumentReaderRtf_Diagnostics_CountsNestedLinksAndFormFields() {
         RtfDocument document = RtfDocument.Create();
-        RtfTable table = document.AddTable(1, 1);
-        RtfParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph();
+        RtfTable outerTable = document.AddTable(1, 1);
+        outerTable.Rows[0].Cells[0].AddParagraph("Outer");
+        RtfTable nestedTable = outerTable.Rows[0].Cells[0].AddTable(1, 1);
+        RtfParagraph cellParagraph = nestedTable.Rows[0].Cells[0].AddParagraph();
         cellParagraph.AddText("Portal").SetHyperlink(new Uri("https://example.test/patient/1"));
         RtfField field = cellParagraph.AddField("FORMTEXT");
         field.AddText("Value");
@@ -76,6 +78,9 @@ public sealed class ReaderRtfModularTests {
         Assert.Equal(1, chunk.Diagnostics?.LinkCount);
         Assert.Equal(1, chunk.Diagnostics?.FormFieldCount);
         Assert.Contains("Portal", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains("Outer", chunk.Markdown, StringComparison.Ordinal);
+        Assert.NotNull(chunk.Tables);
+        Assert.Contains("Portal", Assert.Single(chunk.Tables!).Rows[0][0], StringComparison.Ordinal);
     }
 
     [Fact]

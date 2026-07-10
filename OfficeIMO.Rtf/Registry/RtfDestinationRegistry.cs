@@ -107,12 +107,13 @@ public static class RtfDestinationRegistry {
         ["mvfmf"] = RtfDestinationType.Bookmark,
         ["mvfml"] = RtfDestinationType.Bookmark,
         ["mvtof"] = RtfDestinationType.Bookmark,
-        ["mvtol"] = RtfDestinationType.Bookmark
+        ["mvtol"] = RtfDestinationType.Bookmark,
+        ["nesttableprops"] = RtfDestinationType.Metadata
     };
 
     private static readonly HashSet<string> SemanticSkipDestinations = new HashSet<string>(StringComparer.Ordinal) {
         "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "listtable", "listoverridetable", "pntext", "listtext", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl", "htmltag", "mhtmltag",
-        "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol"
+        "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol", "nesttableprops"
     };
 
     private static readonly HashSet<string> UnsupportedSemanticDestinations = new HashSet<string>(StringComparer.Ordinal) {
@@ -121,7 +122,7 @@ public static class RtfDestinationRegistry {
 
     private static readonly HashSet<string> TextReplacementSkipDestinations = new HashSet<string>(StringComparer.Ordinal) {
         "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "pict", "object", "objdata", "listtable", "listoverridetable", "pntext", "listtext", "fldinst", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl", "htmltag", "mhtmltag",
-        "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol"
+        "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol", "nesttableprops"
     };
 
     private static readonly HashSet<string> HeaderControlsBeforeInfo = new HashSet<string>(StringComparer.Ordinal) {

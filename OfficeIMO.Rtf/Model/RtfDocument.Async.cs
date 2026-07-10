@@ -45,7 +45,7 @@ public sealed partial class RtfDocument {
     /// <summary>Serializes the document to encoded RTF bytes.</summary>
     public async Task<byte[]> ToBytesAsync(RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         string rtf = await ToRtfAsync(options, cancellationToken).ConfigureAwait(false);
-        return (encoding ?? Encoding.UTF8).GetBytes(rtf);
+        return (encoding ?? CreateDefaultOutputEncoding()).GetBytes(rtf);
     }
 
     /// <summary>Serializes the document to an encoded RTF memory stream.</summary>
@@ -57,7 +57,7 @@ public sealed partial class RtfDocument {
     /// <summary>Saves the document to an RTF file.</summary>
     public async Task SaveAsync(string path, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        await WriteEncodedFileAsync(path, ToRtf(options), encoding ?? Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        await WriteEncodedFileAsync(path, ToRtf(options), encoding ?? CreateDefaultOutputEncoding(), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>

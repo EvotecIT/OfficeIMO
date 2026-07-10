@@ -517,8 +517,22 @@ internal static class RtfToMarkdownConverter {
         var parts = new List<string>();
         InlineSequence combined = CreateInlineSequence();
         bool hasCombinedContent = false;
-        for (int i = 0; i < cell.Paragraphs.Count; i++) {
-            InlineSequence paragraphInlines = ConvertParagraphInlines(cell.Paragraphs[i], options, ref imageIndex);
+        foreach (IRtfBlock block in cell.Blocks) {
+            if (block is RtfTable nestedTable) {
+                string nestedText = FlattenNestedTable(nestedTable);
+                if (!string.IsNullOrWhiteSpace(nestedText)) {
+                    parts.Add(RtfMarkdownText.EscapeMarkdownText(nestedText));
+                    if (hasCombinedContent) combined.AddRaw(new HardBreakInline());
+                    combined.AddRaw(new DecodedHtmlEntityTextRun(nestedText));
+                    hasCombinedContent = true;
+                }
+
+                options.Report("RTFMD016", RtfMarkdownDiagnosticSeverity.Warning, "Nested RTF table flattened to text inside a Markdown table cell.", "nested-table");
+                continue;
+            }
+
+            if (!(block is RtfParagraph paragraph)) continue;
+            InlineSequence paragraphInlines = ConvertParagraphInlines(paragraph, options, ref imageIndex);
             string text = RenderInlineSequenceMarkdownForTableCell(paragraphInlines);
             if (!string.IsNullOrEmpty(text)) {
                 parts.Add(text.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", "<br>"));
@@ -540,6 +554,15 @@ internal static class RtfToMarkdownConverter {
         }
 
         return new CellContent(string.Join("<br>", parts), combined);
+    }
+
+    private static string FlattenNestedTable(RtfTable table) {
+        return string.Join(" / ", table.Rows.Select(row =>
+            string.Join(" | ", row.Cells.Select(cell =>
+                string.Join(" ", cell.Blocks.Select(block => block is RtfParagraph paragraph
+                    ? paragraph.ToPlainText()
+                    : block is RtfTable nested ? FlattenNestedTable(nested) : string.Empty)
+                    .Where(text => !string.IsNullOrWhiteSpace(text)))))));
     }
 
     private static ImageBlock ConvertImageBlock(RtfImage image, RtfToMarkdownOptions options, ref int imageIndex) {

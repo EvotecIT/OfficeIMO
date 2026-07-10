@@ -81,12 +81,25 @@ internal static partial class RtfPdfConverter {
 
     private static List<PdfCore.TextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options, PdfRenderState state) {
         List<PdfCore.TextRun> runs = new List<PdfCore.TextRun>();
-        for (int i = 0; i < cell.Paragraphs.Count; i++) {
-            if (i > 0) {
+        int blockIndex = 0;
+        foreach (IRtfBlock block in cell.Blocks) {
+            if (blockIndex > 0) {
                 runs.Add(PdfCore.TextRun.LineBreak());
             }
 
-            AppendParagraphRuns(document, cell.Paragraphs[i], runs, options, state);
+            if (block is RtfParagraph paragraph) {
+                AppendParagraphRuns(document, paragraph, runs, options, state);
+            } else if (block is RtfTable nestedTable) {
+                runs.Add(PdfCore.TextRun.Normal(FlattenNestedTableText(nestedTable)));
+                AddConversionWarning(
+                    options,
+                    "NestedTableFlattened",
+                    "TableCell/NestedTable",
+                    "A nested RTF table was flattened to delimited text inside its PDF table cell.",
+                    RtfConversionAction.Flattened);
+            }
+
+            blockIndex++;
         }
 
         if (runs.Count == 0) {
@@ -94,6 +107,15 @@ internal static partial class RtfPdfConverter {
         }
 
         return runs;
+    }
+
+    private static string FlattenNestedTableText(RtfTable table) {
+        return string.Join(" / ", table.Rows.Select(row =>
+            string.Join(" | ", row.Cells.Select(cell =>
+                string.Join(" ", cell.Blocks.Select(block => block is RtfParagraph paragraph
+                    ? paragraph.ToPlainText()
+                    : block is RtfTable nested ? FlattenNestedTableText(nested) : string.Empty)
+                    .Where(text => !string.IsNullOrWhiteSpace(text)))))));
     }
 
     private static List<PdfCore.PdfTableCellImage> BuildCellImages(RtfTableCell cell, RtfPdfSaveOptions options) {

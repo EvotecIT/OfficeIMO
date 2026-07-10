@@ -27,6 +27,7 @@ internal static partial class RtfSemanticReader {
         private RtfShape? _currentShape;
         private RtfSection? _currentSection;
         private int _currentCellIndex;
+        private int _currentCellDefinitionIndex;
         private bool _currentParagraphIsInTable;
         private PendingTableCellProperties _pendingCellProperties = new PendingTableCellProperties();
         private RtfTableRowBorderSide? _currentRowBorderSide;
@@ -37,6 +38,7 @@ internal static partial class RtfSemanticReader {
         private int? _currentSectionColumnNumber;
         private Dictionary<int, RtfListOverride> _listOverridesById = null!;
         private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
+        private List<List<RtfParagraph>>? _nestedCellParagraphs;
 
         public Binder(RtfReadOptions options, List<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
             _options = options;
@@ -160,6 +162,11 @@ internal static partial class RtfSemanticReader {
                 if (TryAppendField(group, state, depth)) {
                     return;
                 }
+            }
+
+            if (destination == "nesttableprops") {
+                ReadNestedTableProperties(group, state);
+                return;
             }
 
             if (allowDestinationSkip && destination == "listtext") {
@@ -461,6 +468,16 @@ internal static partial class RtfSemanticReader {
 
                 _currentParagraph = new RtfParagraph();
                 _currentParagraphIsInTable = false;
+                return;
+            }
+
+            if (_nestedCellParagraphs != null) {
+                if (_currentParagraph.Inlines.Count > 0) {
+                    _nestedCellParagraphs[_nestedCellParagraphs.Count - 1].Add(_currentParagraph);
+                }
+
+                _currentParagraph = new RtfParagraph();
+                _currentParagraphIsInTable = true;
                 return;
             }
 

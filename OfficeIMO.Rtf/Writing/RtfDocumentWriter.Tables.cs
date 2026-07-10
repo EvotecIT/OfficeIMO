@@ -339,6 +339,11 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteCell(StringBuilder builder, RtfTableCell cell, int? defaultLanguageId, int unicodeSkipCount) {
+        if (cell.Blocks.Any(block => block is RtfTable)) {
+            WriteCellWithNestedTables(builder, cell, defaultLanguageId, unicodeSkipCount);
+            return;
+        }
+
         if (cell.Paragraphs.Count == 0) {
             builder.Append(@"\pard\intbl \cell");
             return;
@@ -355,6 +360,61 @@ internal static partial class RtfDocumentWriter {
 
             ResetRunState(builder, state);
             builder.Append(i == cell.Paragraphs.Count - 1 ? @"\cell" : @"\par");
+        }
+    }
+
+    private static void WriteCellWithNestedTables(StringBuilder builder, RtfTableCell cell, int? defaultLanguageId, int unicodeSkipCount) {
+        foreach (IRtfBlock block in cell.Blocks) {
+            if (block is RtfParagraph paragraph) {
+                WriteListText(builder, paragraph.ListText, defaultLanguageId, unicodeSkipCount);
+                WriteParagraphStart(builder, paragraph, inTable: true, unicodeSkipCount);
+                var state = new RunWriteState(defaultLanguageId);
+                foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+                ResetRunState(builder, state);
+                builder.Append(@"\par");
+            } else if (block is RtfTable nested) {
+                WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, 2);
+            }
+        }
+
+        builder.Append(@"\pard\intbl \cell");
+    }
+
+    private static void WriteNestedTable(StringBuilder builder, RtfTable table, int? defaultLanguageId, int unicodeSkipCount, int level) {
+        foreach (RtfTableRow row in table.Rows) {
+            foreach (RtfTableCell cell in row.Cells) {
+                foreach (IRtfBlock block in cell.Blocks) {
+                    if (block is RtfParagraph paragraph) {
+                        WriteListText(builder, paragraph.ListText, defaultLanguageId, unicodeSkipCount);
+                        WriteParagraphStart(builder, paragraph, inTable: true, unicodeSkipCount);
+                        builder.Append(@"\itap");
+                        builder.Append(level.ToString(CultureInfo.InvariantCulture));
+                        builder.Append(' ');
+                        var state = new RunWriteState(defaultLanguageId);
+                        foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+                        ResetRunState(builder, state);
+                        builder.Append(@"\par");
+                    } else if (block is RtfTable nested) {
+                        WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, Math.Min(15, level + 1));
+                    }
+                }
+
+                builder.Append(@"\nestcell{\nonesttables\par}");
+            }
+
+            builder.Append(@"\pard\intbl\itap");
+            builder.Append(level.ToString(CultureInfo.InvariantCulture));
+            builder.Append(@"{\*\nesttableprops\trowd\trgaph");
+            builder.Append(row.CellGapTwips.GetValueOrDefault(108).ToString(CultureInfo.InvariantCulture));
+            int boundary = 0;
+            foreach (RtfTableCell cell in row.Cells) {
+                WriteCellDefinition(builder, cell);
+                boundary = cell.RightBoundaryTwips ?? boundary + 2400;
+                builder.Append(@"\cellx");
+                builder.Append(boundary.ToString(CultureInfo.InvariantCulture));
+            }
+
+            builder.Append(@"\nestrow}{\nonesttables\par}");
         }
     }
 }

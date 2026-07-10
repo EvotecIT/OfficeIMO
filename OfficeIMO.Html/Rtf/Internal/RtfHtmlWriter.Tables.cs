@@ -71,8 +71,12 @@ internal static partial class RtfHtmlWriter {
             }
             AppendCellStyle(builder, cell, document);
             builder.Append('>');
-            for (int i = 0; i < cell.Paragraphs.Count; i++) {
-                AppendParagraph(builder, cell.Paragraphs[i], options, document);
+            foreach (IRtfBlock block in cell.Blocks) {
+                if (block is RtfParagraph paragraph) {
+                    AppendParagraph(builder, paragraph, options, document);
+                } else if (block is RtfTable nestedTable) {
+                    AppendTable(builder, nestedTable, options, document);
+                }
             }
 
             builder.Append("</");
