@@ -51,6 +51,35 @@ public sealed class ReaderOfficeRichMappingTests {
     }
 
     [Fact]
+    public void DocumentReader_WordRichMapping_AppliesTableRowLimitToBlocksAndTables() {
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            WordTable table = document.AddTable(4, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Qty";
+            for (int row = 1; row < 4; row++) {
+                table.Rows[row].Cells[0].Paragraphs[0].Text = "Row " + row;
+                table.Rows[row].Cells[1].Paragraphs[0].Text = row.ToString();
+            }
+            document.Save();
+        }
+        stream.Position = 0;
+
+        OfficeDocumentReadResult result = DocumentReader.ReadDocument(
+            stream,
+            "bounded.docx",
+            new ReaderOptions { MaxTableRows = 1 });
+
+        ReaderTable tableResult = Assert.Single(result.Tables);
+        Assert.Single(tableResult.Rows);
+        Assert.True(tableResult.Truncated);
+        OfficeDocumentBlock tableBlock = Assert.Single(result.Blocks, block => block.Kind == "table");
+        Assert.Contains("Row 1", tableBlock.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 2", tableBlock.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 3", tableBlock.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReader_ExcelRichMapping_UsesFormalTablesCellLinksAndProperties() {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
@@ -143,6 +172,8 @@ public sealed class ReaderOfficeRichMappingTests {
             PowerPointTextBox title = slide.AddTextBox("Overview");
             title.AddParagraph("Summary");
             title.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/deck");
+            PowerPointTextBox hidden = slide.AddTextBox("Hidden guidance");
+            hidden.Hidden = true;
             PowerPointTable table = slide.AddTable(2, 2);
             table.GetCell(0, 0).Text = "Name";
             table.GetCell(0, 1).Text = "Qty";
@@ -164,11 +195,12 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.True(page.Height > 0);
         Assert.Contains(result.Blocks, block => block.Kind == "paragraph" && block.Text == "Overview" && block.Region != null);
         Assert.Equal("Bandage", Assert.Single(result.Tables).Rows[0][0]);
+        Assert.Contains(result.Blocks, block => block.Text == "Hidden guidance");
         Assert.Equal("https://example.test/deck", Assert.Single(result.Links).Uri);
         ReaderVisual chart = Assert.Single(result.Visuals);
         Assert.Equal("chart", chart.Kind);
         Assert.Contains("Sales", chart.Content, StringComparison.Ordinal);
-        Assert.Equal("3", Assert.Single(result.Metadata, item => item.Name == "ShapeCount").Value);
+        Assert.Equal("4", Assert.Single(result.Metadata, item => item.Name == "ShapeCount").Value);
         OfficeDocumentBlock notes = Assert.Single(result.Blocks, block => block.Kind == "speaker-notes");
         Assert.Equal("Speaker guidance", notes.Text);
         Assert.Same(notes, Assert.Single(page.Blocks, block => block.Kind == "speaker-notes"));

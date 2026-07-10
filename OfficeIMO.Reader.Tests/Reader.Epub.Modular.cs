@@ -72,6 +72,30 @@ public sealed class ReaderEpubModularTests {
     }
 
     [Fact]
+    public void DocumentReaderEpub_RichDispatch_PreservesImageOnlySpinePagesAndPageOcrCandidates() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-image-only-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildImageOnlyEpub(epubPath);
+
+            EpubDocument document = EpubReader.Read(epubPath, new EpubReadOptions { IncludeRawHtml = true });
+            EpubChapter chapter = Assert.Single(document.Chapters);
+            Assert.Equal(string.Empty, chapter.Text);
+            Assert.NotNull(chapter.Html);
+
+            OfficeDocumentReadResult result = DocumentReaderEpubExtensions.ReadEpubDocument(epubPath);
+
+            OfficeDocumentPage page = Assert.Single(result.Pages);
+            OfficeDocumentAsset asset = Assert.Single(page.Assets);
+            Assert.Same(asset, Assert.Single(result.Assets));
+            OfficeDocumentOcrCandidate candidate = Assert.Single(result.OcrCandidates);
+            Assert.Equal(asset.Id, candidate.AssetId);
+            Assert.Same(candidate, Assert.Single(page.OcrCandidates));
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
     public void EpubReader_UsesOpfSpineOrderAndMetadata() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
@@ -474,6 +498,29 @@ public sealed class ReaderEpubModularTests {
             "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
             "<img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
 
+        WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+    }
+
+    private static void BuildImageOnlyEpub(string epubPath) {
+        using var fs = new FileStream(epubPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+        using var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);
+
+        WriteTextEntry(archive, "mimetype", "application/epub+zip", CompressionLevel.NoCompression);
+        WriteTextEntry(archive, "META-INF/container.xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">" +
+            "<rootfiles><rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles>" +
+            "</container>");
+        WriteTextEntry(archive, "OEBPS/content.opf",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<package version=\"3.0\" xmlns=\"http://www.idpf.org/2007/opf\">" +
+            "<manifest><item id=\"cover-page\" href=\"cover.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+            "<item id=\"cover\" href=\"images/cover.png\" media-type=\"image/png\" properties=\"cover-image\"/></manifest>" +
+            "<spine><itemref idref=\"cover-page\"/></spine></package>");
+        WriteTextEntry(archive, "OEBPS/cover.xhtml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Cover</title></head>" +
+            "<body><img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
         WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
     }
 

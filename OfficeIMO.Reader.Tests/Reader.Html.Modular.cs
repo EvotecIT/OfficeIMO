@@ -47,6 +47,44 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_RichDispatch_AppliesConfiguredUrlPolicyToLinks() {
+        const string html = "<p><a href=\"javascript:alert(1)\">Unsafe</a> <a href=\"https://example.test/safe\">Safe</a></p>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "links.html");
+
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Equal("https://example.test/safe", link.Uri);
+        Assert.DoesNotContain(result.Links, item => item.Uri?.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    [Theory]
+    [InlineData(HtmlBase64ImageHandling.Skip)]
+    [InlineData(HtmlBase64ImageHandling.SaveToFile)]
+    public void DocumentReaderHtml_RichDispatch_RespectsBase64ImageHandling(HtmlBase64ImageHandling handling) {
+        const string html = "<img alt=\"Inline\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\"/>";
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-html-images-" + Guid.NewGuid().ToString("N"));
+        try {
+            var options = new ReaderHtmlOptions {
+                HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
+                    Base64Images = handling,
+                    Base64ImageOutputDirectory = directory
+                }
+            };
+
+            OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+                html,
+                "inline-image.html",
+                htmlOptions: options);
+
+            Assert.Empty(result.Assets);
+            Assert.Empty(result.Visuals);
+            if (handling == HtmlBase64ImageHandling.SaveToFile) Assert.Single(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderHtml_RichTables_DoNotFoldNestedRowsIntoParentTable() {
         const string html = "<table><caption>Outer</caption><tr><th>Name</th></tr><tr><td>Parent"
             + "<table><caption>Inner</caption><tr><th>Code</th></tr><tr><td>Nested</td></tr></table>"

@@ -38,7 +38,6 @@ public static partial class DocumentReader {
             var slideLinks = new List<OfficeDocumentLink>();
             for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
                 PowerPointShape shape = slide.Shapes[shapeIndex];
-                if (shape.Hidden) continue;
                 shapeCount++;
                 string shapeAnchor = "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)
                     + "-shape-" + (shape.Id?.ToString(CultureInfo.InvariantCulture) ?? shapeIndex.ToString(CultureInfo.InvariantCulture));
@@ -54,7 +53,7 @@ public static partial class DocumentReader {
                     slideBlocks.Add(new OfficeDocumentBlock {
                         Id = shapeAnchor,
                         Kind = "table",
-                        Text = string.Join(Environment.NewLine, table.RowItems.Select(static row => string.Join(" | ", row.Cells.Select(static cell => cell.Text)))),
+                        Text = BuildRichTableText(mapped),
                         Location = location,
                         Region = region
                     });

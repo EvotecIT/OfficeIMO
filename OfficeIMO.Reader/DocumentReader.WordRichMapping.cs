@@ -207,13 +207,13 @@ public static partial class DocumentReader {
                 AddWordParagraphLinks(paragraph, location, links, ref linkIndex);
             } else if (element is WordTableSnapshot table) {
                 location.HeadingPath = BuildWordHeadingPath(headingStack);
+                ReaderTable mapped = MapWordTable(table, location, tableIndex++, options.MaxTableRows);
                 blocks.Add(new OfficeDocumentBlock {
                     Id = anchor,
                     Kind = "table",
-                    Text = BuildWordTableText(table),
+                    Text = BuildRichTableText(mapped),
                     Location = location
                 });
-                ReaderTable mapped = MapWordTable(table, location, tableIndex++, options.MaxTableRows);
                 tables.Add(mapped);
                 foreach (WordTableRowSnapshot row in table.Rows) {
                     foreach (WordTableCellSnapshot cell in row.Cells) {
@@ -290,10 +290,6 @@ public static partial class DocumentReader {
 
     private static IReadOnlyList<string> BuildFallbackColumns(int count) {
         return Enumerable.Range(1, count).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
-    }
-
-    private static string BuildWordTableText(WordTableSnapshot table) {
-        return string.Join(Environment.NewLine, table.Rows.Select(row => string.Join(" | ", BuildWordRowValues(row, table.ColumnCount, useFallbacks: false))));
     }
 
     private static int? ResolveWordHeadingLevel(WordParagraphSnapshot paragraph) {

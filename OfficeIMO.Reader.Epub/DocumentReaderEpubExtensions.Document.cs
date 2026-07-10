@@ -127,10 +127,24 @@ public static partial class DocumentReaderEpubExtensions {
         result.Links = links;
         result.Forms = forms;
         result.Visuals = visuals;
-        result.Pages = pages;
+        result.Pages = AttachEpubOcrCandidates(pages, result.OcrCandidates);
         result.Diagnostics = result.Diagnostics.Concat(diagnostics).ToArray();
         result.Metadata = BuildEpubMetadata(document, blocks.Count, tables.Count, links.Count, assets.Count);
         return result;
+    }
+
+    private static IReadOnlyList<OfficeDocumentPage> AttachEpubOcrCandidates(
+        IReadOnlyList<OfficeDocumentPage> pages,
+        IReadOnlyList<OfficeDocumentOcrCandidate> candidates) {
+        foreach (OfficeDocumentPage page in pages) {
+            var pageAssetIds = new HashSet<string>(
+                page.Assets.Where(static asset => !string.IsNullOrWhiteSpace(asset.Id)).Select(static asset => asset.Id),
+                StringComparer.Ordinal);
+            page.OcrCandidates = candidates
+                .Where(candidate => !string.IsNullOrWhiteSpace(candidate.AssetId) && pageAssetIds.Contains(candidate.AssetId!))
+                .ToArray();
+        }
+        return pages;
     }
 
     private static EpubReadOptions CreateRichOptions(EpubReadOptions? options) {

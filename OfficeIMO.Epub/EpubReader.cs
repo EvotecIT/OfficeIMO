@@ -49,7 +49,7 @@ public static class EpubReader {
             }
 
             var text = ExtractVisibleText(chapterDocument);
-            if (text.Length == 0) {
+            if (text.Length == 0 && (!effective.IncludeRawHtml || !HasStructuredChapterContent(chapterDocument))) {
                 continue;
             }
 
@@ -82,6 +82,24 @@ public static class EpubReader {
             Resources = resources,
             Warnings = warnings
         };
+    }
+
+    private static bool HasStructuredChapterContent(XDocument document) {
+        return document.Descendants().Any(static element => {
+            string name = element.Name.LocalName;
+            return name.Equals("img", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("picture", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("svg", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("table", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("form", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("input", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("select", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("textarea", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("audio", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("video", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("object", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("canvas", StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     private static IReadOnlyList<EpubResource> BuildResources(

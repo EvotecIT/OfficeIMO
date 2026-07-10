@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.Reader;
 using System.Linq;
 using System.Security.Cryptography;
@@ -62,9 +63,11 @@ public static partial class DocumentReaderHtmlExtensions {
     }
 
     private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source, ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
-        ReaderChunk[] chunks = ReadHtmlString(html, source, readerOptions, htmlOptions, cancellationToken).ToArray();
+        ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
+        HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        ReaderChunk[] chunks = ReadHtmlString(html, source, readerOptions, effectiveHtmlOptions, cancellationToken).ToArray();
         HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromHtml(html, useBodyContentsOnly: false);
-        HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, cancellationToken);
+        HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
         var documentSource = new OfficeDocumentSource {
             Path = source.Path,
             SourceId = source.SourceId,
@@ -92,14 +95,19 @@ public static partial class DocumentReaderHtmlExtensions {
         return result;
     }
 
-    private static HtmlProjection ProjectHtml(HtmlLogicalDocument document, string? path, int maxTableRows, CancellationToken cancellationToken) {
+    private static HtmlProjection ProjectHtml(
+        HtmlLogicalDocument document,
+        string? path,
+        int maxTableRows,
+        HtmlToMarkdownOptions htmlOptions,
+        CancellationToken cancellationToken) {
         var projection = new HtmlProjection();
         int blockIndex = 0;
         int tableIndex = 0;
         int linkIndex = 0;
         int assetIndex = 0;
         int formIndex = 0;
-        TraverseHtml(document.Root, null, 0, path, maxTableRows, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
+        TraverseHtml(document.Root, null, 0, path, maxTableRows, htmlOptions, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
         return projection;
     }
 
@@ -109,6 +117,7 @@ public static partial class DocumentReaderHtmlExtensions {
         int listLevel,
         string? path,
         int maxTableRows,
+        HtmlToMarkdownOptions htmlOptions,
         HtmlProjection projection,
         ref int blockIndex,
         ref int tableIndex,
@@ -133,21 +142,27 @@ public static partial class DocumentReaderHtmlExtensions {
             blockIndex++;
         }
         if (node.Kind == HtmlLogicalNodeKind.Table) projection.Tables.Add(MapHtmlTable(node, path, tableIndex++, maxTableRows));
-        if (node.Kind == HtmlLogicalNodeKind.Link && node.Attributes.TryGetValue("href", out string? href) && !string.IsNullOrWhiteSpace(href)) {
-            projection.Links.Add(new OfficeDocumentLink {
-                Id = "html-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
-                Kind = href.StartsWith("#", StringComparison.Ordinal) ? "internal" : "uri",
-                Uri = href.StartsWith("#", StringComparison.Ordinal) ? null : href,
-                DestinationName = href.StartsWith("#", StringComparison.Ordinal) ? href.Substring(1) : null,
-                Text = GetHtmlNodeText(node),
-                Location = BuildHtmlLocation(path, null, "hyperlink", "html-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture))
-            });
-            linkIndex++;
+        if (node.Kind == HtmlLogicalNodeKind.Link && node.Attributes.TryGetValue("href", out string? href)) {
+            string resolvedHref = HtmlUrlPolicyEvaluator.ResolveUrl(href, htmlOptions.BaseUri, htmlOptions.UrlPolicy);
+            if (!string.IsNullOrWhiteSpace(resolvedHref)) {
+                projection.Links.Add(new OfficeDocumentLink {
+                    Id = "html-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
+                    Kind = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? "internal" : "uri",
+                    Uri = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? null : resolvedHref,
+                    DestinationName = resolvedHref.StartsWith("#", StringComparison.Ordinal) ? resolvedHref.Substring(1) : null,
+                    Text = GetHtmlNodeText(node),
+                    Location = BuildHtmlLocation(path, null, "hyperlink", "html-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture))
+                });
+                linkIndex++;
+            }
         }
         if (node.Kind == HtmlLogicalNodeKind.Image) {
-            OfficeDocumentAsset asset = MapHtmlImage(node, path, assetIndex++);
-            projection.Assets.Add(asset);
-            projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType));
+            OfficeDocumentAsset? asset = MapHtmlImage(node, path, assetIndex, htmlOptions);
+            if (asset != null) {
+                assetIndex++;
+                projection.Assets.Add(asset);
+                projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
+            }
         } else if (node.Kind == HtmlLogicalNodeKind.Media) {
             string anchor = "html-media-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
             projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null));
@@ -156,7 +171,7 @@ public static partial class DocumentReaderHtmlExtensions {
             projection.Forms.Add(MapHtmlFormControl(node, path, formIndex++));
         }
         foreach (HtmlLogicalNode child in node.Children) {
-            TraverseHtml(child, nextListName, nextListLevel, path, maxTableRows, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
+            TraverseHtml(child, nextListName, nextListLevel, path, maxTableRows, htmlOptions, projection, ref blockIndex, ref tableIndex, ref linkIndex, ref assetIndex, ref formIndex, cancellationToken);
         }
     }
 
@@ -189,14 +204,18 @@ public static partial class DocumentReaderHtmlExtensions {
         }).ToArray();
     }
 
-    private static OfficeDocumentAsset MapHtmlImage(HtmlLogicalNode node, string? path, int index) {
+    private static OfficeDocumentAsset? MapHtmlImage(HtmlLogicalNode node, string? path, int index, HtmlToMarkdownOptions htmlOptions) {
         node.Attributes.TryGetValue("src", out string? source);
         node.Attributes.TryGetValue("alt", out string? altText);
         node.Attributes.TryGetValue("title", out string? title);
+        string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, htmlOptions.BaseUri, htmlOptions.UrlPolicy);
+        if (string.IsNullOrWhiteSpace(resolvedSource)) return null;
         byte[]? payload = null;
         string? mediaType = null;
         string? extension = null;
-        if (HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) && dataUri.TryDecodeBytes(out byte[] bytes)) {
+        if (HtmlImageDataUri.TryParse(resolvedSource, out HtmlImageDataUri dataUri)) {
+            if (dataUri.IsBase64 && htmlOptions.Base64Images != HtmlBase64ImageHandling.Include) return null;
+            if (!dataUri.TryDecodeBytes(out byte[] bytes)) return null;
             payload = bytes;
             mediaType = dataUri.MediaType;
             extension = dataUri.FileExtension;
@@ -213,7 +232,7 @@ public static partial class DocumentReaderHtmlExtensions {
             LengthBytes = payload?.LongLength,
             PayloadHash = payload == null ? null : ComputeHtmlHash(payload),
             PayloadBytes = payload,
-            SourceObjectId = payload == null ? source : "data-uri",
+            SourceObjectId = payload == null ? resolvedSource : "data-uri",
             Location = BuildHtmlLocation(path, null, "image", id)
         };
     }
@@ -237,8 +256,10 @@ public static partial class DocumentReaderHtmlExtensions {
         HtmlLogicalNode node,
         ReaderLocation location,
         string? payloadHash,
-        string? mediaType) {
+        string? mediaType,
+        string? sourceOverride = null) {
         node.Attributes.TryGetValue("src", out string? source);
+        if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride;
         node.Attributes.TryGetValue("alt", out string? altText);
         node.Attributes.TryGetValue("title", out string? title);
         if (mediaType == null && node.Attributes.TryGetValue("type", out string? declaredType)) mediaType = declaredType;
