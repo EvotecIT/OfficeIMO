@@ -313,8 +313,9 @@ Goal: prepare the model and pipeline for OCR while keeping the core honest.
 
 - Detect likely scanned pages or image-only regions. The first slice flags image-only PDF pages.
 - Add `ocr-needed` diagnostics and `OcrCandidate` records.
-- Add an `IOfficeOcrEngine` abstraction with line, word, character, bounding-box, confidence, language, and diagnostic output.
-- Add merge rules that combine OCR output with native text spans without losing source coordinates.
+- `IOfficeOcrEngine` now exposes line, word, and character spans with coordinate units, bounding boxes, confidence, language, provider identity, and structured diagnostics.
+- `ApplyOcrAsync(...)` resolves candidate assets and bounds candidate count, input bytes, concurrency, duration, recognized characters, and detailed spans before merging recognized text.
+- OCR merge rules retain native content, source containers, candidate geometry, unresolved candidates, and provider trace metadata.
 - Treat OCR results as another source layer that can be compared with native text, not as a replacement for native text.
 - Keep built-in high-quality OCR out of the no-dependency core unless a separate product decision is made.
 
@@ -322,11 +323,11 @@ Goal: prepare the model and pipeline for OCR while keeping the core honest.
 
 Goal: make advanced ingestion possible without changing the core dependency story.
 
-Optional packages can be added after the core contracts are stable:
+The first optional packages keep advanced execution outside the base dependency graph:
 
-- OCR via Windows inbox APIs.
-- OCR via configured external process or service.
-- OCR via native engine package.
+- `OfficeIMO.Reader.Ocr.Process` provides a bounded, versioned JSON file protocol for a configured executable or service bridge.
+- `OfficeIMO.Reader.Ocr.Tesseract` provides a thin Tesseract CLI adapter with TSV line/word geometry and installation discovery.
+- Windows inbox OCR remains a future platform-specific provider rather than a base-package dependency.
 - Model-assisted structured extraction through host-provided clients.
 - Audio/video/transcription adapters if needed by downstream products.
 

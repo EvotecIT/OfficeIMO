@@ -19,8 +19,10 @@ The goal is clean IntelligenceX integration without forcing one large dependency
 - `OfficeIMO.Reader.Text`
 - `OfficeIMO.Reader.Html`
 - `OfficeIMO.Reader.Yaml`
+- `OfficeIMO.Reader.Ocr.Process`
+- `OfficeIMO.Reader.Ocr.Tesseract`
 
-These scaffolded packages are now wired into the publishing pipeline.
+These packages are wired into the publishing pipeline; the OCR packages include working providers rather than placeholders.
 
 ## Delivery Order (Low -> High Effort)
 
@@ -58,7 +60,7 @@ These scaffolded packages are now wired into the publishing pipeline.
 - Keep existing `DocumentReader.Read*` API behavior stable.
 
 6. Optional heavy paths (high)
-- OCR/image text extraction.
+- OCR/image text extraction through bounded process and Tesseract providers. (implemented)
 - Audio transcription.
 - URL/Youtube ingestion.
 - Keep each as separate opt-in package.

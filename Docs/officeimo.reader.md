@@ -188,4 +188,4 @@ Keep raw BenchmarkDotNet artifacts local. When a result is used as a release bas
 - Folder ingestion is best-effort: unreadable/corrupt/oversized files emit warning chunks and processing continues.
 - `ReadFolderDocuments(...)` yields per-source payloads (`ReaderSourceDocument`) for straightforward source/chunk table upserts.
 - `ReadFolderDetailed(...)` provides aggregate counts and per-file status with optional progress callbacks.
-- The core reader identifies OCR candidates but does not include an OCR engine. OCR providers belong in optional packages.
+- The core reader identifies OCR candidates and owns the bounded `IOfficeOcrEngine` execution/merge contract, but it does not include an OCR implementation. Use `OfficeIMO.Reader.Ocr.Process`, `OfficeIMO.Reader.Ocr.Tesseract`, or a host-supplied delegate engine when OCR should run.
