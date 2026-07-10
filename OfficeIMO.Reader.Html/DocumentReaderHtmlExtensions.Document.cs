@@ -65,8 +65,22 @@ public static partial class DocumentReaderHtmlExtensions {
     private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source, ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
         ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
         HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
-        ReaderChunk[] chunks = ReadHtmlString(html, source, readerOptions, effectiveHtmlOptions, cancellationToken).ToArray();
-        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromHtml(html, useBodyContentsOnly: false);
+        bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
+        string projectedHtml = html;
+        HtmlLogicalDocument logical;
+        ReaderHtmlOptions chunkHtmlOptions = effectiveHtmlOptions;
+        if (hasProjectionFilters) {
+            var filtered = new HtmlToMarkdownConverter().ParseFilteredDocument(html, projectionOptions);
+            projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
+            logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
+            projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
+            chunkHtmlOptions = effectiveHtmlOptions.Clone();
+            chunkHtmlOptions.HtmlToMarkdownOptions?.ExcludeSelectors.Clear();
+            chunkHtmlOptions.HtmlToMarkdownOptions?.ElementFilters.Clear();
+        } else {
+            logical = HtmlLogicalDocumentBuilder.FromHtml(html, useBodyContentsOnly: false);
+        }
+        ReaderChunk[] chunks = ReadHtmlString(projectedHtml, source, readerOptions, chunkHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
         var documentSource = new OfficeDocumentSource {
             Path = source.Path,
@@ -85,7 +99,7 @@ public static partial class DocumentReaderHtmlExtensions {
             documentSource,
             new[] { "officeimo.reader.html.rich-v5", "officeimo.html.logical-document" }.Concat(logical.Capabilities.Select(static capability => "officeimo.html." + capability)),
             projection.Assets);
-        result.Html = html;
+        result.Html = projectedHtml;
         result.Blocks = projection.Blocks;
         result.Tables = projection.Tables;
         result.Links = projection.Links;
@@ -170,7 +184,8 @@ public static partial class DocumentReaderHtmlExtensions {
             string anchor = "html-media-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
             projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null));
         }
-        if (node.Kind == HtmlLogicalNodeKind.FormControl) {
+        if (node.Kind == HtmlLogicalNodeKind.FormControl &&
+            !string.Equals(node.Name, "option", StringComparison.OrdinalIgnoreCase)) {
             projection.Forms.Add(MapHtmlFormControl(node, path, formIndex++));
         }
         foreach (HtmlLogicalNode child in node.Children) {
@@ -181,12 +196,17 @@ public static partial class DocumentReaderHtmlExtensions {
     private static ReaderTable MapHtmlTable(HtmlLogicalNode table, string? path, int tableIndex, int maxRows) {
         List<HtmlLogicalNode> rows = GetHtmlTableRows(table).ToList();
         int columnCount = rows.Count == 0 ? 0 : rows.Max(row => row.Children.Count(child => child.Kind == HtmlLogicalNodeKind.TableCell));
-        IReadOnlyList<string> columns = rows.Count == 0
-            ? Array.Empty<string>()
-            : BuildHtmlTableRow(rows[0], columnCount, true);
-        int totalRows = Math.Max(0, rows.Count - 1);
+        bool hasHeaderRow = rows.Count > 0 && rows[0].Children.Any(child =>
+            child.Kind == HtmlLogicalNodeKind.TableCell && string.Equals(child.Name, "th", StringComparison.OrdinalIgnoreCase));
+        IReadOnlyList<string> columns = hasHeaderRow
+            ? BuildHtmlTableRow(rows[0], columnCount, true)
+            : Enumerable.Range(1, columnCount)
+                .Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture))
+                .ToArray();
+        int dataStart = hasHeaderRow ? 1 : 0;
+        int totalRows = Math.Max(0, rows.Count - dataStart);
         int emittedRows = maxRows > 0 ? Math.Min(totalRows, maxRows) : totalRows;
-        IReadOnlyList<IReadOnlyList<string>> values = rows.Skip(1).Take(emittedRows).Select(row => BuildHtmlTableRow(row, columnCount, false)).ToArray();
+        IReadOnlyList<IReadOnlyList<string>> values = rows.Skip(dataStart).Take(emittedRows).Select(row => BuildHtmlTableRow(row, columnCount, false)).ToArray();
         return new ReaderTable {
             Title = table.Children.FirstOrDefault(child => child.Kind == HtmlLogicalNodeKind.TableCaption)?.Text ?? "HTML table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture),
             Kind = "html-table",
@@ -244,6 +264,14 @@ public static partial class DocumentReaderHtmlExtensions {
         bool hasValue = node.Attributes.TryGetValue("value", out string? value);
         if (!hasValue && string.Equals(node.Name, "textarea", StringComparison.OrdinalIgnoreCase)) {
             value = GetHtmlNodeText(node);
+        } else if (!hasValue && string.Equals(node.Name, "select", StringComparison.OrdinalIgnoreCase)) {
+            HtmlLogicalNode[] options = EnumerateHtmlOptions(node).ToArray();
+            HtmlLogicalNode[] selected = options.Where(option => option.Attributes.ContainsKey("selected")).ToArray();
+            if (selected.Length == 0 && options.Length > 0) selected = new[] { options[0] };
+            value = string.Join("\n", selected.Select(option =>
+                option.Attributes.TryGetValue("value", out string? optionValue) && !string.IsNullOrWhiteSpace(optionValue)
+                    ? optionValue
+                    : GetHtmlNodeText(option)));
         }
         string id = "html-form-" + index.ToString("D4", CultureInfo.InvariantCulture);
         return new OfficeDocumentFormField {
@@ -255,6 +283,16 @@ public static partial class DocumentReaderHtmlExtensions {
             IsRequired = node.Attributes.ContainsKey("required"),
             Location = BuildHtmlLocation(path, null, "form-control", id)
         };
+    }
+
+    private static IEnumerable<HtmlLogicalNode> EnumerateHtmlOptions(HtmlLogicalNode node) {
+        foreach (HtmlLogicalNode child in node.Children) {
+            if (child.Kind == HtmlLogicalNodeKind.FormControl &&
+                string.Equals(child.Name, "option", StringComparison.OrdinalIgnoreCase)) {
+                yield return child;
+            }
+            foreach (HtmlLogicalNode descendant in EnumerateHtmlOptions(child)) yield return descendant;
+        }
     }
 
     private static string BuildHtmlTableBlockText(ReaderTable table) {

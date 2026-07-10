@@ -257,11 +257,13 @@ public static partial class DocumentReader {
 
     private static ReaderTable MapWordTable(WordTableSnapshot table, ReaderLocation location, int tableIndex, int maxRows) {
         int columnCount = Math.Max(table.ColumnCount, table.Rows.Count == 0 ? 0 : table.Rows.Max(static row => row.Cells.Count));
-        IReadOnlyList<string> columns = table.Rows.Count == 0
-            ? BuildFallbackColumns(columnCount)
-            : BuildWordRowValues(table.Rows[0], columnCount, useFallbacks: true);
-        int totalRowCount = Math.Max(0, table.Rows.Count - 1);
-        IEnumerable<WordTableRowSnapshot> sourceRows = table.Rows.Skip(1);
+        bool hasHeaderRow = table.RepeatHeaderRow && table.Rows.Count > 0;
+        IReadOnlyList<string> columns = hasHeaderRow
+            ? BuildWordRowValues(table.Rows[0], columnCount, useFallbacks: true)
+            : BuildFallbackColumns(columnCount);
+        int dataStart = hasHeaderRow ? 1 : 0;
+        int totalRowCount = Math.Max(0, table.Rows.Count - dataStart);
+        IEnumerable<WordTableRowSnapshot> sourceRows = table.Rows.Skip(dataStart);
         bool truncated = maxRows > 0 && totalRowCount > maxRows;
         if (truncated) sourceRows = sourceRows.Take(maxRows);
         IReadOnlyList<IReadOnlyList<string>> rows = sourceRows

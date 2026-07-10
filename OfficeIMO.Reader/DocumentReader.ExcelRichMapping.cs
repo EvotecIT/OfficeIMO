@@ -67,11 +67,11 @@ public static partial class DocumentReader {
         IReadOnlyList<ReaderTable> genericTables) {
         if (ownerTables.Count == 0) return genericTables;
         return ownerTables
-            .Concat(genericTables.Where(generic => !ownerTables.Any(owner => IsSameExcelTableRange(owner, generic))))
+            .Concat(genericTables.Where(generic => !ownerTables.Any(owner => ExcelTableRangesOverlap(owner, generic))))
             .ToArray();
     }
 
-    private static bool IsSameExcelTableRange(ReaderTable first, ReaderTable second) {
+    private static bool ExcelTableRangesOverlap(ReaderTable first, ReaderTable second) {
         if (!string.Equals(first.Location?.Sheet, second.Location?.Sheet, StringComparison.Ordinal)
             || string.IsNullOrWhiteSpace(first.Location?.A1Range)
             || string.IsNullOrWhiteSpace(second.Location?.A1Range)) {
@@ -82,7 +82,10 @@ public static partial class DocumentReader {
         ExcelRangeSelection? secondRange = ParseExcelRangeSelection(second.Location!.A1Range);
         return firstRange.HasValue
             && secondRange.HasValue
-            && firstRange.Value.Equals(secondRange.Value);
+            && firstRange.Value.StartRow <= secondRange.Value.EndRow
+            && secondRange.Value.StartRow <= firstRange.Value.EndRow
+            && firstRange.Value.StartColumn <= secondRange.Value.EndColumn
+            && secondRange.Value.StartColumn <= firstRange.Value.EndColumn;
     }
 
     private static IEnumerable<OfficeDocumentLink> BuildExcelLinks(

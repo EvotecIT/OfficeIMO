@@ -221,12 +221,14 @@ public static partial class DocumentReader {
     private static ReaderTable MapPowerPointTable(PowerPointTable table, ReaderLocation location, int tableIndex, int maxRows) {
         IReadOnlyList<PowerPointTableRow> sourceRows = table.RowItems;
         int columnCount = Math.Max(table.Columns, sourceRows.Count == 0 ? 0 : sourceRows.Max(static row => row.Cells.Count));
-        IReadOnlyList<string> columns = sourceRows.Count == 0
-            ? BuildFallbackColumns(columnCount)
-            : Enumerable.Range(0, columnCount).Select(index => GetPowerPointCellText(sourceRows[0], index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture))).ToArray();
-        int totalRows = Math.Max(0, sourceRows.Count - 1);
+        bool hasHeaderRow = table.HeaderRow && sourceRows.Count > 0;
+        IReadOnlyList<string> columns = hasHeaderRow
+            ? Enumerable.Range(0, columnCount).Select(index => GetPowerPointCellText(sourceRows[0], index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture))).ToArray()
+            : BuildFallbackColumns(columnCount);
+        int dataStart = hasHeaderRow ? 1 : 0;
+        int totalRows = Math.Max(0, sourceRows.Count - dataStart);
         int emittedRows = maxRows > 0 ? Math.Min(totalRows, maxRows) : totalRows;
-        IReadOnlyList<IReadOnlyList<string>> rows = sourceRows.Skip(1).Take(emittedRows)
+        IReadOnlyList<IReadOnlyList<string>> rows = sourceRows.Skip(dataStart).Take(emittedRows)
             .Select(row => (IReadOnlyList<string>)Enumerable.Range(0, columnCount).Select(index => GetPowerPointCellText(row, index, string.Empty)).ToArray())
             .ToArray();
         ReaderLocation tableLocation = BuildPowerPointLocation(location.Path, location.Slide!.Value, location.SourceBlockIndex, "table", location.BlockAnchor ?? "powerpoint-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture));

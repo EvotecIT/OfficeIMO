@@ -136,6 +136,57 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_RichProjection_MapsSelectAsOneFormField() {
+        const string html = "<form><select name=\"status\"><option value=\"draft\">Draft</option>"
+            + "<option value=\"approved\" selected>Approved</option></select></form>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "select.html");
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("status", form.Name);
+        Assert.Equal("select", form.Kind);
+        Assert.Equal("approved", form.Value);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_PreservesHeaderlessTableRows() {
+        const string html = "<table><tr><td>A</td></tr><tr><td>B</td></tr></table>";
+
+        ReaderTable table = Assert.Single(DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "headerless.html").Tables);
+
+        Assert.Equal(new[] { "Column 1" }, table.Columns);
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.Equal(new[] { "A", "B" }, table.Rows.Select(row => row[0]));
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_AppliesConfiguredElementFilters() {
+        const string html = "<section class=\"private\"><p>Private text</p><a href=\"https://private.test\">Private link</a></section>"
+            + "<p id=\"delegate-private\">Delegate private</p><p>Public text</p>";
+        var markdownOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        markdownOptions.ExcludeSelectors.Add(".private");
+        int delegateMatchCount = 0;
+        markdownOptions.ElementFilters.Add(element => {
+            if (!string.Equals(element.Id, "delegate-private", StringComparison.Ordinal)) return false;
+            delegateMatchCount++;
+            return true;
+        });
+        var options = new ReaderHtmlOptions { HtmlToMarkdownOptions = markdownOptions };
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+            html,
+            "filtered.html",
+            htmlOptions: options);
+
+        Assert.DoesNotContain(result.Blocks, block => block.Text.Contains("Private", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(result.Links);
+        Assert.DoesNotContain("Private text", result.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Delegate private", result.Html, StringComparison.Ordinal);
+        Assert.Contains(result.Blocks, block => block.Text.Contains("Public text", StringComparison.Ordinal));
+        Assert.Equal(1, delegateMatchCount);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsChunks() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
 

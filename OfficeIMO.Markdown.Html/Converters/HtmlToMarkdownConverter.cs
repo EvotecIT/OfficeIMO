@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 
@@ -44,10 +45,7 @@ public sealed partial class HtmlToMarkdownConverter {
     public MarkdownDoc ConvertToDocument(string html, HtmlToMarkdownOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
-        ValidateInputLength(html, effectiveOptions.MaxInputCharacters, nameof(html));
-
-        var document = HtmlDocumentParser.ParseDocument(html);
-        ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
+        IHtmlDocument document = ParseFilteredDocumentCore(html, effectiveOptions);
         effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         var context = new ConversionContext(effectiveOptions);
 
@@ -62,6 +60,25 @@ public sealed partial class HtmlToMarkdownConverter {
             markdown,
             effectiveOptions.DocumentTransforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
+    }
+
+    /// <summary>
+    /// Parses HTML and applies the same selector and element filters used by Markdown conversion.
+    /// </summary>
+    /// <param name="html">HTML fragment or document.</param>
+    /// <param name="options">Optional conversion options containing exclusion filters.</param>
+    /// <returns>The filtered parsed HTML document.</returns>
+    public IHtmlDocument ParseFilteredDocument(string html, HtmlToMarkdownOptions? options = null) {
+        if (html == null) throw new ArgumentNullException(nameof(html));
+        HtmlToMarkdownOptions effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+        return ParseFilteredDocumentCore(html, effectiveOptions);
+    }
+
+    private static IHtmlDocument ParseFilteredDocumentCore(string html, HtmlToMarkdownOptions effectiveOptions) {
+        ValidateInputLength(html, effectiveOptions.MaxInputCharacters, nameof(html));
+        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
+        return document;
     }
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {

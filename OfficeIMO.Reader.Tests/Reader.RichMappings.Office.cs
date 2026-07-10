@@ -23,6 +23,7 @@ public sealed class ReaderOfficeRichMappingTests {
             noteReference.AddEndNote("Endnote detail");
             WordTable table = document.AddTable(2, 2);
             table.Title = "Inventory";
+            table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Qty";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Bandage";
@@ -60,6 +61,7 @@ public sealed class ReaderOfficeRichMappingTests {
         using var stream = new MemoryStream();
         using (WordDocument document = WordDocument.Create(stream)) {
             WordTable table = document.AddTable(4, 2);
+            table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Qty";
             for (int row = 1; row < 4; row++) {
@@ -82,6 +84,25 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Contains("Row 1", tableBlock.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Row 2", tableBlock.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Row 3", tableBlock.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReader_WordRichMapping_PreservesHeaderlessFirstRow() {
+        using var stream = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(stream)) {
+            WordTable table = document.AddTable(2, 1);
+            table.RepeatAsHeaderRowAtTheTopOfEachPage = false;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "First value";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Second value";
+            document.Save();
+        }
+        stream.Position = 0;
+
+        ReaderTable mapped = Assert.Single(DocumentReader.ReadDocument(stream, "headerless.docx").Tables);
+
+        Assert.Equal(new[] { "Column 1" }, mapped.Columns);
+        Assert.Equal(2, mapped.TotalRowCount);
+        Assert.Equal(new[] { "First value", "Second value" }, mapped.Rows.Select(row => row[0]));
     }
 
     [Fact]
@@ -123,11 +144,11 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Equal("Inventory", link.Location.Sheet);
         Assert.Equal("A2", link.Location.A1Range);
         Assert.Equal("https://example.test/bandage", link.Uri);
-        ReaderTable looseInventory = Assert.Single(result.Tables, table => table.Kind != "excel-table" && table.Location?.Sheet == "Inventory");
-        Assert.Contains(looseInventory.Columns, column => column == "Loose");
+        Assert.DoesNotContain(result.Tables, table => table.Kind != "excel-table" && table.Location?.Sheet == "Inventory");
+        Assert.Contains(result.Blocks, block => block.Location.Sheet == "Inventory" && block.Text.Contains("Unstructured", StringComparison.Ordinal));
         OfficeDocumentPage inventoryPage = Assert.Single(result.Pages, page => page.Name == "Inventory");
         Assert.Contains(inventoryPage.Tables, table => ReferenceEquals(table, mapped));
-        Assert.Contains(inventoryPage.Tables, table => ReferenceEquals(table, looseInventory));
+        Assert.Single(inventoryPage.Tables);
         Assert.Contains("officeimo.excel.inspection-snapshot", result.CapabilitiesUsed);
     }
 
@@ -218,5 +239,24 @@ public sealed class ReaderOfficeRichMappingTests {
             new ReaderOptions { IncludePowerPointNotes = false });
         Assert.DoesNotContain(withoutNotes.Blocks, block => block.Kind == "speaker-notes");
         Assert.DoesNotContain(Assert.Single(withoutNotes.Pages).Blocks, block => block.Kind == "speaker-notes");
+    }
+
+    [Fact]
+    public void DocumentReader_PowerPointRichMapping_PreservesHeaderlessFirstRow() {
+        using var stream = new MemoryStream();
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            PowerPointTable table = presentation.AddSlide().AddTable(2, 1);
+            table.HeaderRow = false;
+            table.GetCell(0, 0).Text = "First value";
+            table.GetCell(1, 0).Text = "Second value";
+            presentation.Save();
+        }
+        stream.Position = 0;
+
+        ReaderTable mapped = Assert.Single(DocumentReader.ReadDocument(stream, "headerless.pptx").Tables);
+
+        Assert.Equal(new[] { "Column 1" }, mapped.Columns);
+        Assert.Equal(2, mapped.TotalRowCount);
+        Assert.Equal(new[] { "First value", "Second value" }, mapped.Rows.Select(row => row[0]));
     }
 }
