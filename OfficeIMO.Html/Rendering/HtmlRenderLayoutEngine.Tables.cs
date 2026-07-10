@@ -33,7 +33,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         int columnCount = Math.Max(rowColumnCount, DetermineDeclaredColumnCount(table));
-        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, contentWidth, style);
+        double horizontalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX;
+        double verticalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingY;
+        double trackWidth = Math.Max(0.01D, contentWidth - horizontalSpacing * (columnCount + 1));
+        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style);
         double[] columnOffsets = CreateColumnOffsets(columnWidths);
         var rowLayouts = new List<TableRowLayout>();
         var occupiedColumns = new int[columnCount];
@@ -50,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int columnSpan = Math.Max(1, Math.Min(requestedColumnSpan, columnCount - column));
                 int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
 
-                double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan);
+                double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, style);
                 if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
                     cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
@@ -79,9 +82,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             DecrementOccupancy(occupiedColumns);
         }
 
-        ResolveSpanningRowHeights(rowLayouts);
+        ResolveSpanningRowHeights(rowLayouts, verticalSpacing);
 
-        double rowsHeight = rowLayouts.Sum(row => row.Height);
+        double rowsHeight = rowLayouts.Sum(row => row.Height) + verticalSpacing * (rowLayouts.Count + 1);
         double tableHeight = style.VerticalInsets + rowsHeight;
         var visuals = new List<HtmlRenderVisual>();
         var breakOffsets = new List<double>();
@@ -95,15 +98,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
         AddBoxPaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double rowY = tableY + style.BorderTopWidth + style.PaddingTop;
+        double rowY = tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing;
         double headerStart = rowY;
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
             TableRowLayout row = rowLayouts[rowIndex];
             int rowVisualStart = visuals.Count;
             if (row.IsFooter && trailingVisuals.Count == 0) trailingStart = rowY;
             foreach (TableCellLayout cell in row.Cells) {
-                double cellX = contentX + columnOffsets[cell.Column];
-                double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan);
+                double cellX = contentX + horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
+                double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);
                 AddBoxPaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
@@ -118,7 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continuationVisuals.Add(visuals[visualIndex].Translate(0D, -headerStart, continuationVisuals.Count));
                 }
 
-                continuationHeight += row.Height;
+                continuationHeight += row.Height + verticalSpacing;
             } else {
                 collectingLeadingHeaders = false;
             }
@@ -128,10 +131,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     trailingVisuals.Add(visuals[visualIndex].Translate(0D, -trailingStart, trailingVisuals.Count));
                 }
 
-                trailingHeight += row.Height;
+                trailingHeight += row.Height + verticalSpacing;
             }
 
-            rowY += row.Height;
+            rowY += row.Height + verticalSpacing;
             bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader && !candidate.IsFooter);
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
         }
@@ -235,10 +238,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return parent == null || ReferenceEquals(parent, table) ? table : parent;
     }
 
-    private static void ResolveSpanningRowHeights(IReadOnlyList<TableRowLayout> rows) {
+    private static void ResolveSpanningRowHeights(IReadOnlyList<TableRowLayout> rows, double verticalSpacing) {
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             foreach (TableCellLayout cell in rows[rowIndex].Cells.Where(cell => cell.RowSpan > 1)) {
-                double currentHeight = GetSpanningHeight(rows, rowIndex, cell.RowSpan);
+                double currentHeight = GetSpanningHeight(rows, rowIndex, cell.RowSpan, verticalSpacing);
                 double deficit = cell.MinimumHeight - currentHeight;
                 if (deficit <= 0.0001D) continue;
                 double addition = deficit / cell.RowSpan;
@@ -247,9 +250,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static double GetSpanningHeight(IReadOnlyList<TableRowLayout> rows, int rowIndex, int rowSpan) {
+    private static double GetSpanningHeight(IReadOnlyList<TableRowLayout> rows, int rowIndex, int rowSpan, double verticalSpacing) {
         double height = 0D;
-        for (int offset = 0; offset < rowSpan && rowIndex + offset < rows.Count; offset++) height += rows[rowIndex + offset].Height;
+        int includedRows = 0;
+        for (int offset = 0; offset < rowSpan && rowIndex + offset < rows.Count; offset++) {
+            height += rows[rowIndex + offset].Height;
+            includedRows++;
+        }
+        if (includedRows > 1) height += verticalSpacing * (includedRows - 1);
         return height;
     }
 
@@ -326,6 +334,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var details = new List<string>(2);
         if (style.UnsupportedCaptionSide.Length > 0) details.Add("caption-side=" + style.UnsupportedCaptionSide);
         if (style.UnsupportedTableLayout.Length > 0) details.Add("table-layout=" + style.UnsupportedTableLayout);
+        if (style.UnsupportedBorderCollapse.Length > 0) details.Add("border-collapse=" + style.UnsupportedBorderCollapse);
+        if (style.UnsupportedBorderSpacing.Length > 0) details.Add("border-spacing=" + style.UnsupportedBorderSpacing);
         if (details.Count == 0) return;
         _diagnostics.Add(
             ComponentName,

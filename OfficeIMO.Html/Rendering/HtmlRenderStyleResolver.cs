@@ -132,7 +132,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return "visible";
     }
 
-    private static void ApplyTable(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+    private void ApplyTable(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         string captionSide = computed.GetValue("caption-side").Trim().ToLowerInvariant();
         if (captionSide.Length == 0 || captionSide == "top") {
             style.CaptionSide = "top";
@@ -151,6 +151,22 @@ internal sealed partial class HtmlRenderStyleResolver {
         } else {
             style.UnsupportedTableLayout = tableLayout;
             style.TableLayout = "auto";
+        }
+
+        string borderCollapse = computed.GetValue("border-collapse").Trim().ToLowerInvariant();
+        if (borderCollapse.Length == 0 || borderCollapse == "separate") {
+            style.BorderCollapse = "separate";
+        } else if (borderCollapse == "collapse") {
+            style.BorderCollapse = "collapse";
+        } else {
+            style.UnsupportedBorderCollapse = borderCollapse;
+            style.BorderCollapse = "separate";
+        }
+
+        string borderSpacing = computed.GetValue("border-spacing");
+        if (!string.IsNullOrWhiteSpace(borderSpacing)
+            && !HtmlCssTableParser.TryParseBorderSpacing(borderSpacing, style.Font.Size, _options.DefaultFontSize, out style.BorderSpacingX, out style.BorderSpacingY)) {
+            style.UnsupportedBorderSpacing = borderSpacing.Trim().ToLowerInvariant();
         }
     }
 

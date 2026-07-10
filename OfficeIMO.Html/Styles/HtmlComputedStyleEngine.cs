@@ -11,6 +11,8 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly HashSet<string> InheritedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "caption-side",
+        "border-collapse",
+        "border-spacing",
         "color",
         "direction",
         "font-family",
@@ -45,6 +47,7 @@ public static partial class HtmlComputedStyleEngine {
         "border-bottom-style",
         "border-bottom-width",
         "border-collapse",
+        "border-spacing",
         "border-color",
         "border-left",
         "border-left-color",

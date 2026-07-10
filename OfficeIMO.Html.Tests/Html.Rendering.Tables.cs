@@ -101,8 +101,45 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_SeparateBordersApplyHorizontalAndVerticalSpacing() {
+        const string html = "<table style='width:100px;margin:0;table-layout:fixed;border-collapse:separate;border-spacing:4px 3px;font-size:8px;line-height:10px'>"
+            + "<tr><td id='first' style='background:red'>A</td><td id='second' style='background:blue'>B</td></tr>"
+            + "<tr><td id='third' style='background:lime'>C</td><td>D</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#first" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape second = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#second" && shape.Shape.FillColor == OfficeColor.Blue);
+        HtmlRenderShape third = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#third" && shape.Shape.FillColor == OfficeColor.Lime);
+
+        Assert.Equal((4D, 3D, 44D), (first.X, first.Y, first.Width));
+        Assert.Equal((52D, 3D, 44D), (second.X, second.Y, second.Width));
+        Assert.Equal(22D, third.Y, 3);
+    }
+
+    [Fact]
+    public void HtmlTables_CollapsedBordersIgnoreBorderSpacingInGridGeometry() {
+        const string html = "<table style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse;border-spacing:10px;font-size:8px;line-height:10px'>"
+            + "<tr><td id='first' style='background:red'>A</td><td id='second' style='background:blue'>B</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#first" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape second = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#second" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.Equal((0D, 0D, 50D), (first.X, first.Y, first.Width));
+        Assert.Equal((50D, 0D, 50D), (second.X, second.Y, second.Width));
+    }
+
+    [Fact]
     public void HtmlTables_InvalidCaptionSideUsesCatalogedTopFallbackAndSupportsTruth() {
-        const string html = "<table id='table' style='caption-side:left;table-layout:balanced;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
+        const string html = "<table id='table' style='caption-side:left;table-layout:balanced;border-collapse:merge;border-spacing:-2px;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 80D,
@@ -116,6 +153,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("table#table", diagnostic.Source);
         Assert.Contains("caption-side=left", diagnostic.Detail, StringComparison.Ordinal);
         Assert.Contains("table-layout=balanced", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains("border-collapse=merge", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains("border-spacing=-2px", diagnostic.Detail, StringComparison.Ordinal);
         Assert.True(caption.Y < cell.Y);
         Assert.Contains(HtmlRenderDiagnosticCodes.TableValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TableValueUnsupported, out _));
@@ -125,5 +164,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(table-layout:auto)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(table-layout:fixed)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(table-layout:balanced)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-collapse:collapse)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-spacing:2px 4px)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-spacing:-1px)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-spacing:10%)"));
     }
 }

@@ -14,6 +14,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedCaptionSide = string.Empty;
     internal string TableLayout = "auto";
     internal string UnsupportedTableLayout = string.Empty;
+    internal string BorderCollapse = "separate";
+    internal string UnsupportedBorderCollapse = string.Empty;
+    internal double BorderSpacingX;
+    internal double BorderSpacingY;
+    internal string UnsupportedBorderSpacing = string.Empty;
     internal string Top = "auto";
     internal string Right = "auto";
     internal string Bottom = "auto";

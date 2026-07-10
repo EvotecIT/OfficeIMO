@@ -76,6 +76,12 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "table-layout", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "auto", "fixed");
         }
+        if (string.Equals(propertyName, "border-collapse", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "separate", "collapse");
+        }
+        if (string.Equals(propertyName, "border-spacing", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssTableParser.TryParseBorderSpacing(normalized, 16D, 16D, out _, out _);
+        }
         if (string.Equals(propertyName, "overflow", StringComparison.OrdinalIgnoreCase)) {
             string[] values = normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
             return values.Length >= 1 && values.Length <= 2
