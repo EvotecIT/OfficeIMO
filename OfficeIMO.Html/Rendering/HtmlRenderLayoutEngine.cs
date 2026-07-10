@@ -456,9 +456,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            if (visual is HtmlRenderShape line
+                && line.Shape.Kind == OfficeShapeKind.Line
+                && line.Shape.Width <= 0.001D
+                && line.Shape.Transform == null
+                && line.Shape.ClipPath == null) {
+                OfficeShape sliced = CreateVerticalLineFragment(line.Shape, intersectionBottom - intersectionTop);
+                double paintOffsetY = line.Y - line.LayoutY;
+                fragment.Add(new HtmlRenderShape(sliced, line.X, intersectionTop - start + paintOffsetY, fragment.Count, line.LinkUri, line.Source, intersectionTop - start));
+                continue;
+            }
+
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.VisualFragmentUnsupported, "A visual crossing a forced page boundary could not be represented safely in the current fragment.", HtmlDiagnosticSeverity.Warning, visual.Source, visual.Kind.ToString());
         }
 
+        return fragment;
+    }
+
+    private static OfficeShape CreateVerticalLineFragment(OfficeShape source, double height) {
+        OfficeShape fragment = OfficeShape.Line(0D, 0D, 0.0001D, Math.Max(0.0001D, height));
+        fragment.StrokeColor = source.StrokeColor;
+        fragment.StrokeWidth = source.StrokeWidth;
+        fragment.StrokeDashStyle = source.StrokeDashStyle;
+        fragment.StrokeLineCap = source.StrokeLineCap;
+        fragment.StrokeLineJoin = source.StrokeLineJoin;
+        fragment.StrokeStartMarker = source.StrokeStartMarker?.Clone();
+        fragment.StrokeEndMarker = source.StrokeEndMarker?.Clone();
+        fragment.StrokeGradient = source.StrokeGradient?.Clone();
+        fragment.StrokeRadialGradient = source.StrokeRadialGradient?.Clone();
+        fragment.StrokeOpacity = source.StrokeOpacity;
         return fragment;
     }
 

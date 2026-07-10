@@ -90,6 +90,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum explicit or implicit tracks accepted on either grid axis.</summary>
     public int MaxGridTracks { get; set; } = 256;
 
+    /// <summary>Maximum generated columns accepted in one multi-column formatting context.</summary>
+    public int MaxColumnCount { get; set; } = 64;
+
     /// <summary>Gets the CSS media context selected by the current render mode.</summary>
     public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
 
@@ -130,6 +133,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxGradientStops = MaxGradientStops;
         target.MaxGridTracks = MaxGridTracks;
+        target.MaxColumnCount = MaxColumnCount;
         return target;
     }
 
@@ -175,6 +179,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         }
         if (MaxGridTracks <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxGridTracks), "Maximum grid track count must be positive.");
+        }
+        if (MaxColumnCount <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxColumnCount), "Maximum multi-column count must be positive.");
         }
 
         if (ResourceTimeout <= TimeSpan.Zero || ResourceTimeout == System.Threading.Timeout.InfiniteTimeSpan) {

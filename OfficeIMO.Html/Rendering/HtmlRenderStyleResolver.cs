@@ -77,6 +77,7 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyFloat(computed, style);
         ApplyPositioning(computed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
+        ApplyColumns(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
         ApplyBreaks(computed, style);
         return style;
@@ -551,6 +552,132 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyGap(computed, reference, fontSize, style);
     }
 
+    private void ApplyColumns(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
+        string shorthand = computed.GetValue("columns");
+        if (!string.IsNullOrWhiteSpace(shorthand)) {
+            style.ColumnCount = null;
+            style.ColumnWidth = null;
+            foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand)) {
+                string normalized = token.Trim().ToLowerInvariant();
+                if (normalized == "auto") continue;
+                if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 0 && !style.ColumnCount.HasValue) {
+                    style.ColumnCount = count;
+                } else if (TryResolveColumnWidth(normalized, reference, fontSize, out double width) && !style.ColumnWidth.HasValue) {
+                    style.ColumnWidth = width;
+                } else {
+                    style.UnsupportedColumns = shorthand.Trim();
+                }
+            }
+        }
+
+        string countValue = computed.GetValue("column-count");
+        if (!string.IsNullOrWhiteSpace(countValue)) {
+            string normalized = countValue.Trim().ToLowerInvariant();
+            if (normalized == "auto") style.ColumnCount = null;
+            else if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) && count > 0) style.ColumnCount = count;
+            else style.UnsupportedColumns = "column-count=" + normalized;
+        }
+        string widthValue = computed.GetValue("column-width");
+        if (!string.IsNullOrWhiteSpace(widthValue)) {
+            string normalized = widthValue.Trim().ToLowerInvariant();
+            if (normalized == "auto") style.ColumnWidth = null;
+            else if (TryResolveColumnWidth(normalized, reference, fontSize, out double width)) style.ColumnWidth = width;
+            else style.UnsupportedColumns = "column-width=" + normalized;
+        }
+
+        string fill = NormalizeCssValue(computed.GetValue("column-fill"), "balance");
+        if (fill == "auto" || fill == "balance") style.ColumnFill = fill;
+        else style.UnsupportedColumnFill = fill;
+        string span = NormalizeCssValue(computed.GetValue("column-span"), "none");
+        if (span == "none" || span == "all") style.ColumnSpan = span;
+        else style.UnsupportedColumnSpan = span;
+        ApplyColumnRule(computed, reference, fontSize, style);
+    }
+
+    private void ApplyColumnRule(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
+        string shorthand = computed.GetValue("column-rule");
+        if (!string.IsNullOrWhiteSpace(shorthand)) {
+            foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand)) {
+                if (TryResolveColumnRuleWidth(token, reference, fontSize, out double width)) {
+                    style.ColumnRuleWidth = width;
+                } else if (TryResolveColumnRuleStyle(token, out string ruleStyle)) {
+                    style.ColumnRuleStyle = ruleStyle;
+                } else if (TryResolveColumnRuleColor(token, style.Color, out OfficeColor color)) {
+                    style.ColumnRuleColor = color;
+                } else {
+                    style.UnsupportedColumnRule = shorthand.Trim();
+                }
+            }
+        }
+
+        string widthValue = computed.GetValue("column-rule-width");
+        if (!string.IsNullOrWhiteSpace(widthValue)) {
+            if (TryResolveColumnRuleWidth(widthValue, reference, fontSize, out double width)) style.ColumnRuleWidth = width;
+            else style.UnsupportedColumnRule = "column-rule-width=" + widthValue.Trim();
+        }
+        string styleValue = computed.GetValue("column-rule-style");
+        if (!string.IsNullOrWhiteSpace(styleValue)) {
+            if (TryResolveColumnRuleStyle(styleValue, out string ruleStyle)) style.ColumnRuleStyle = ruleStyle;
+            else style.UnsupportedColumnRule = "column-rule-style=" + styleValue.Trim();
+        }
+        string colorValue = computed.GetValue("column-rule-color");
+        if (!string.IsNullOrWhiteSpace(colorValue)) {
+            if (TryResolveColumnRuleColor(colorValue, style.Color, out OfficeColor color)) style.ColumnRuleColor = color;
+            else style.UnsupportedColumnRule = "column-rule-color=" + colorValue.Trim();
+        }
+    }
+
+    private bool TryResolveColumnRuleWidth(string value, double reference, double fontSize, out double width) {
+        width = 0D;
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "thin") {
+            width = 1D;
+            return true;
+        }
+        if (normalized == "medium") {
+            width = 3D;
+            return true;
+        }
+        if (normalized == "thick") {
+            width = 5D;
+            return true;
+        }
+        return (normalized == "0" || HasSupportedColumnLengthUnit(normalized))
+            && HtmlRenderCssValues.TryLength(normalized, reference, fontSize, _options.DefaultFontSize, out width)
+            && width >= 0D;
+    }
+
+    private static bool TryResolveColumnRuleStyle(string value, out string style) {
+        style = value.Trim().ToLowerInvariant();
+        return style == "none" || style == "hidden" || style == "solid" || style == "dashed" || style == "dotted" || style == "double";
+    }
+
+    private static bool TryResolveColumnRuleColor(string value, OfficeColor currentColor, out OfficeColor color) {
+        if (string.Equals(value.Trim(), "currentcolor", StringComparison.OrdinalIgnoreCase)) {
+            color = currentColor;
+            return true;
+        }
+        return HtmlRenderCssValues.TryColor(value, out color);
+    }
+
+    private bool TryResolveColumnWidth(string value, double reference, double fontSize, out double width) {
+        width = 0D;
+        return HasSupportedColumnLengthUnit(value)
+            && HtmlRenderCssValues.TryLength(value, reference, fontSize, _options.DefaultFontSize, out width)
+            && width > 0D;
+    }
+
+    private static bool HasSupportedColumnLengthUnit(string value) {
+        string normalized = value.Trim().ToLowerInvariant();
+        int unitStart = 0;
+        while (unitStart < normalized.Length && (char.IsDigit(normalized[unitStart]) || normalized[unitStart] == '.' || normalized[unitStart] == '+' || normalized[unitStart] == '-')) unitStart++;
+        if (unitStart == 0 || unitStart == normalized.Length) return false;
+        if (!double.TryParse(normalized.Substring(0, unitStart), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            || double.IsNaN(number) || double.IsInfinity(number)) return false;
+        string unit = normalized.Substring(unitStart);
+        return unit == "px" || unit == "pt" || unit == "pc" || unit == "in" || unit == "cm" || unit == "mm" || unit == "q" || unit == "em" || unit == "rem";
+    }
+
     private static void ApplyGrid(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
         style.GridTemplateColumns = NormalizeCssValue(computed.GetValue("grid-template-columns"), "none");
         style.GridTemplateRows = NormalizeCssValue(computed.GetValue("grid-template-rows"), "none");
@@ -643,6 +770,7 @@ internal sealed class HtmlRenderStyleResolver {
         string column = gap.Count > 1 ? gap[1] : row;
         if (!string.IsNullOrWhiteSpace(computed.GetValue("row-gap"))) row = computed.GetValue("row-gap");
         if (!string.IsNullOrWhiteSpace(computed.GetValue("column-gap"))) column = computed.GetValue("column-gap");
+        style.ColumnGapWasSpecified = !string.IsNullOrWhiteSpace(column) && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
         style.RowGap = ResolveGap(row, reference, fontSize, out bool rowUnsupported);
         style.ColumnGap = ResolveGap(column, reference, fontSize, out bool columnUnsupported);
         if (rowUnsupported) style.UnsupportedRowGap = row.Trim();

@@ -4,13 +4,23 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(IElement container, double width, HtmlRenderBoxStyle parentStyle, int depth) {
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(IElement container, double width, HtmlRenderBoxStyle parentStyle, int depth) =>
+        BuildChildBlocks(container, container.ChildNodes, width, parentStyle, depth, includeGeneratedBefore: true, includeGeneratedAfter: true);
+
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
+        IElement container,
+        IEnumerable<INode> nodes,
+        double width,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        bool includeGeneratedBefore,
+        bool includeGeneratedAfter) {
         EnsureDepth(depth, container);
         var blocks = new List<HtmlRenderFlowBlock>();
-        AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
+        if (includeGeneratedBefore) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
         double flowHeight = blocks.Sum(block => block.Height);
         var inlineNodes = new List<INode>();
-        foreach (INode node in container.ChildNodes) {
+        foreach (INode node in nodes) {
             if (node is IElement element) {
                 if (ShouldSkipElement(element)) {
                     continue;
@@ -52,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
-        AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
+        if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
     }
 
@@ -60,6 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         EnsureDepth(depth, element);
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
+        ReportUnsupportedMultiColumnValues(element, style);
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
@@ -71,6 +82,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
             return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
+        }
+        if (TryLayoutMultiColumnContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock columnsBlock)) {
+            return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
         }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);

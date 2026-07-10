@@ -38,6 +38,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FlexValueUnsupported = "HtmlRenderFlexValueUnsupported";
     /// <summary>A float or clear property value used a documented deterministic fallback.</summary>
     public const string FloatValueUnsupported = "HtmlRenderFloatValueUnsupported";
+    /// <summary>Multi-column generation exceeded the configured safety limit.</summary>
+    public const string MultiColumnLimitExceeded = "HtmlRenderMultiColumnLimitExceeded";
+    /// <summary>A multi-column property value used a documented deterministic fallback.</summary>
+    public const string MultiColumnValueUnsupported = "HtmlRenderMultiColumnValueUnsupported";
     /// <summary>Content without a safe page break was force-fragmented.</summary>
     public const string ForcedFragment = "HtmlRenderForcedFragment";
     /// <summary>Grid layout used the documented normal-flow fallback.</summary>
@@ -127,6 +131,8 @@ public static class HtmlRenderDiagnosticCodes {
         FlexLayoutPending,
         FlexValueUnsupported,
         FloatValueUnsupported,
+        MultiColumnLimitExceeded,
+        MultiColumnValueUnsupported,
         ForcedFragment,
         GeneratedContentUnsupported,
         GeneratedCounterUnsupported,

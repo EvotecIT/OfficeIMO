@@ -79,7 +79,90 @@ public static partial class HtmlComputedStyleEngine {
             || string.Equals(propertyName, "overflow-y", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "visible", "hidden", "clip", "auto", "scroll");
         }
+        if (string.Equals(propertyName, "column-count", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "auto" || int.TryParse(normalized, out int count) && count > 0;
+        }
+        if (string.Equals(propertyName, "column-fill", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "auto", "balance");
+        }
+        if (string.Equals(propertyName, "column-span", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "none", "all");
+        }
+        if (string.Equals(propertyName, "column-width", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "auto" || IsPositiveCssLength(normalized);
+        }
+        if (string.Equals(propertyName, "columns", StringComparison.OrdinalIgnoreCase)) {
+            IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(normalized);
+            if (values.Count == 0 || values.Count > 2) return false;
+            bool hasCount = false;
+            bool hasWidth = false;
+            foreach (string item in values) {
+                if (item == "auto") continue;
+                if (!hasCount && int.TryParse(item, out int count) && count > 0) {
+                    hasCount = true;
+                    continue;
+                }
+                if (!hasWidth && IsPositiveCssLength(item)) {
+                    hasWidth = true;
+                    continue;
+                }
+                return false;
+            }
+            return true;
+        }
+        if (string.Equals(propertyName, "column-rule-style", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "none", "hidden", "solid", "dashed", "dotted", "double");
+        }
+        if (string.Equals(propertyName, "column-rule-width", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "thin", "medium", "thick") || IsNonNegativeCssLength(normalized);
+        }
+        if (string.Equals(propertyName, "column-rule-color", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "currentcolor" || HtmlRenderCssValues.TryColor(normalized, out _);
+        }
+        if (string.Equals(propertyName, "column-rule", StringComparison.OrdinalIgnoreCase)) {
+            IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(normalized);
+            if (values.Count == 0 || values.Count > 3) return false;
+            bool hasWidth = false;
+            bool hasStyle = false;
+            bool hasColor = false;
+            foreach (string item in values) {
+                if (!hasWidth && (IsKnownKeyword(item, "thin", "medium", "thick") || IsNonNegativeCssLength(item))) {
+                    hasWidth = true;
+                    continue;
+                }
+                if (!hasStyle && IsKnownKeyword(item, "none", "hidden", "solid", "dashed", "dotted", "double")) {
+                    hasStyle = true;
+                    continue;
+                }
+                if (!hasColor && (item == "currentcolor" || HtmlRenderCssValues.TryColor(item, out _))) {
+                    hasColor = true;
+                    continue;
+                }
+                return false;
+            }
+            return true;
+        }
         return IsSupportedDeclarationValue(propertyName, value);
+    }
+
+    private static bool IsPositiveCssLength(string value) {
+        int unitStart = 0;
+        while (unitStart < value.Length && (char.IsDigit(value[unitStart]) || value[unitStart] == '.' || value[unitStart] == '+' || value[unitStart] == '-')) unitStart++;
+        if (unitStart == 0 || unitStart == value.Length) return false;
+        if (!double.TryParse(value.Substring(0, unitStart), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double length)
+            || length <= 0D || double.IsNaN(length) || double.IsInfinity(length)) return false;
+        string unit = value.Substring(unitStart);
+        return IsKnownKeyword(unit, "px", "pt", "pc", "in", "cm", "mm", "q", "em", "rem");
+    }
+
+    private static bool IsNonNegativeCssLength(string value) {
+        if (value == "0") return true;
+        int unitStart = 0;
+        while (unitStart < value.Length && (char.IsDigit(value[unitStart]) || value[unitStart] == '.' || value[unitStart] == '+' || value[unitStart] == '-')) unitStart++;
+        if (unitStart == 0 || unitStart == value.Length) return false;
+        if (!double.TryParse(value.Substring(0, unitStart), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double length)
+            || length < 0D || double.IsNaN(length) || double.IsInfinity(length)) return false;
+        return IsKnownKeyword(value.Substring(unitStart), "px", "pt", "pc", "in", "cm", "mm", "q", "em", "rem");
     }
 
     private static bool IsSupportedDeclarationValue(string propertyName, string value) {

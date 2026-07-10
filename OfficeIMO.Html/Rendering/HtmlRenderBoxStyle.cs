@@ -29,6 +29,18 @@ internal sealed class HtmlRenderBoxStyle {
     internal double ColumnGap;
     internal string UnsupportedRowGap = string.Empty;
     internal string UnsupportedColumnGap = string.Empty;
+    internal bool ColumnGapWasSpecified;
+    internal int? ColumnCount;
+    internal double? ColumnWidth;
+    internal string ColumnFill = "balance";
+    internal string ColumnSpan = "none";
+    internal double ColumnRuleWidth = 3D;
+    internal string ColumnRuleStyle = "none";
+    internal OfficeColor? ColumnRuleColor;
+    internal string UnsupportedColumns = string.Empty;
+    internal string UnsupportedColumnFill = string.Empty;
+    internal string UnsupportedColumnSpan = string.Empty;
+    internal string UnsupportedColumnRule = string.Empty;
     internal string GridTemplateColumns = "none";
     internal string GridTemplateRows = "none";
     internal string GridTemplateAreas = "none";
