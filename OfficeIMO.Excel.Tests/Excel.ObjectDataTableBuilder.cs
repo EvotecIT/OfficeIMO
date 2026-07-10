@@ -214,7 +214,9 @@ namespace OfficeIMO.Tests {
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsWhenColumnsCannotBeInferred() {
             foreach (var items in new[] {
                 new object?[] { "A", "B" },
-                new object?[] { new object() }
+                new object?[] { new object() },
+                new object?[] { new Dictionary<string, object?> { [" "] = 1 } },
+                new object?[] { new System.Collections.Hashtable { [" "] = 1 } }
             }) {
                 var ex = Assert.Throws<InvalidOperationException>(() => ObjectDataTableBuilder.FromObjects(items));
                 Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);

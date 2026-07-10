@@ -168,6 +168,7 @@ namespace OfficeIMO.Tests {
             var values = new object[dataReader.FieldCount];
 
             Assert.Equal(typeof(object), dataReader.GetFieldType(0));
+            Assert.Throws<InvalidOperationException>(() => dataReader.GetValue(0));
             Assert.True(dataReader.Read());
             Assert.Equal(2, dataReader.GetValues(values));
             Assert.Equal(1, dataReader.GetInt32(0));

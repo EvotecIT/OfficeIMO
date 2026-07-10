@@ -65,9 +65,9 @@ namespace OfficeIMO.Excel {
             }
 
             bool hasColumns = first switch {
-                IReadOnlyDictionary<string, object?> readOnlyDictionary => readOnlyDictionary.Count > 0,
-                IDictionary<string, object?> genericDictionary => genericDictionary.Count > 0,
-                IDictionary dictionary => dictionary.Count > 0,
+                IReadOnlyDictionary<string, object?> readOnlyDictionary => readOnlyDictionary.Keys.Any(key => !string.IsNullOrWhiteSpace(key)),
+                IDictionary<string, object?> genericDictionary => genericDictionary.Keys.Any(key => !string.IsNullOrWhiteSpace(key)),
+                IDictionary dictionary => dictionary.Keys.Cast<object?>().Any(key => key != null && !string.IsNullOrWhiteSpace(key.ToString())),
                 _ => first.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                     .Any(property => property.CanRead && property.GetIndexParameters().Length == 0)
             };

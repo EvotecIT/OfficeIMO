@@ -560,6 +560,8 @@ public class CsvDataReaderTests
         using var reader = doc.CreateDataReader();
 
         Assert.True(reader.Read());
+        var nullException = Assert.Throws<CsvException>(() => reader.IsDBNull(0));
+        Assert.Contains("Column 'Id' is required", nullException.Message);
         var ex = Assert.Throws<CsvException>(() => reader.GetValue(0));
         Assert.Contains("Column 'Id' is required", ex.Message);
     }
@@ -575,10 +577,27 @@ public class CsvDataReaderTests
         using var reader = doc.CreateDataReader();
 
         Assert.True(reader.Read());
+        var nullException = Assert.Throws<CsvException>(() => reader.IsDBNull(0));
+        Assert.Contains("Column 'Name' is required", nullException.Message);
         var valueException = Assert.Throws<CsvException>(() => reader.GetValue(0));
         Assert.Contains("Column 'Name' is required", valueException.Message);
         var stringException = Assert.Throws<CsvException>(() => reader.GetString(0));
         Assert.Contains("Column 'Name' is required", stringException.Message);
+    }
+
+    [Fact]
+    public void CreateDataReader_WithDefaultSchemaValue_IsNotDbNull()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Id")
+            .AddRow(new object?[] { null });
+        doc.EnsureSchema(schema => schema.Column("Id").AsInt32().WithDefault(7));
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.False(reader.IsDBNull(0));
+        Assert.Equal(7, reader.GetInt32(0));
     }
 
     [Fact]

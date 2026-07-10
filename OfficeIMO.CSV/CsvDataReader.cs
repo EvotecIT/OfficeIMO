@@ -537,12 +537,27 @@ public sealed class CsvDataReader : DbDataReader
     public override bool IsDBNull(int ordinal)
     {
         EnsureOpenRow();
-        if (_columns[ordinal].ConversionKind != CsvDataConversionKind.General)
+        var column = _columns[ordinal];
+        if (column.ConversionKind != CsvDataConversionKind.General)
         {
             var rawValue = GetRawValue(ordinal);
-            return rawValue is null ||
+            var isMissing = rawValue is null ||
                 rawValue == DBNull.Value ||
-                (rawValue is string { Length: 0 } && _columns[ordinal].ConversionKind != CsvDataConversionKind.String);
+                (rawValue is string { Length: 0 } &&
+                    (column.ConversionKind != CsvDataConversionKind.String ||
+                     column.SchemaColumn?.IsRequired == true ||
+                     column.SchemaColumn?.DefaultValue is not null));
+            if (!isMissing)
+            {
+                return false;
+            }
+
+            if (column.SchemaColumn?.IsRequired == true || column.SchemaColumn?.DefaultValue is not null)
+            {
+                return GetValue(ordinal) == DBNull.Value;
+            }
+
+            return true;
         }
 
         return GetValue(ordinal) == DBNull.Value;
@@ -793,7 +808,10 @@ public sealed class CsvDataReader : DbDataReader
         var ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < columns.Length; i++)
         {
-            ordinals[columns[i].Name] = i;
+            if (!ordinals.ContainsKey(columns[i].Name))
+            {
+                ordinals.Add(columns[i].Name, i);
+            }
         }
 
         return ordinals;

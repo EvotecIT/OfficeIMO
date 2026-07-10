@@ -100,6 +100,7 @@ namespace OfficeIMO.Excel {
                     ? ExcelHeaderNameHelper.BuildUniqueHeaders(fieldCount, c => GetHeaderText(headerValues, c), options.NormalizeHeaders)
                     : CreateGeneratedColumnNames(fieldCount);
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
+                _currentRow = null;
             }
 
             /// <inheritdoc />
