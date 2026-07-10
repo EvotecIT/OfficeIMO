@@ -94,6 +94,11 @@ public sealed class OfficeFontFaceCollection {
     }
 
     internal OfficeTrueTypeFont? Resolve(string? familyNames, OfficeFontStyle style) {
+        return Resolve(familyNames, style, out _);
+    }
+
+    internal OfficeTrueTypeFont? Resolve(string? familyNames, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
+        resolvedStyle = OfficeFontStyle.Regular;
         if (string.IsNullOrWhiteSpace(familyNames) || _faces.Count == 0) {
             return null;
         }
@@ -115,6 +120,7 @@ public sealed class OfficeFontFaceCollection {
 
                 first ??= face;
                 if (face.Style == normalizedStyle) {
+                    resolvedStyle = face.Style;
                     return face.ParsedFont;
                 }
 
@@ -124,10 +130,12 @@ public sealed class OfficeFontFaceCollection {
             }
 
             if (regular != null) {
+                resolvedStyle = regular.Style;
                 return regular.ParsedFont;
             }
 
             if (first != null) {
+                resolvedStyle = first.Style;
                 return first.ParsedFont;
             }
         }

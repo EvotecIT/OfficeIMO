@@ -41,12 +41,12 @@ The renderer should ultimately cover the full business-document HTML/CSS surface
 OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 
 - `OfficeIMO.Html` parses HTML with AngleSharp, evaluates CSS media, resolves custom properties, discovers resources, applies policy-approved external stylesheets and recursive imports in document order, enforces URL and document limits, and reports diagnostics.
-- `OfficeIMO.Drawing` already supports the PNG/SVG rendering path used by Excel, Word, PowerPoint, and Visio.
+- `OfficeIMO.Drawing` supplies the PNG/SVG rendering path used by Excel, Word, PowerPoint, and Visio, plus scoped caller-supplied TrueType faces shared by measurement, rasterization, and portable SVG embedding.
 - `OfficeIMO.Pdf` already supplies text, images, drawings, annotations, outlines, metadata, font embedding, extraction, security, and PDF inspection.
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
 - `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, policy-bound external stylesheet/import loading, preserved CSS font-family fallback lists, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. CSS URL paint assets, web-font activation, flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, policy-bound TrueType `@font-face` activation, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, policy-bound external stylesheet/import loading, preserved CSS font-family fallback lists, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. CSS URL paint assets, WOFF/WOFF2 and CFF decoding, flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
 ## Implemented Checkpoint
 
@@ -62,6 +62,7 @@ The current renderer deliberately starts with normal flow, styled text, grapheme
 - [x] Nested page fragmentation with widows/orphans, repeated table headers and footers, and parity-correct left/right/recto/verso breaks.
 - [x] Table occupancy-grid layout for `colspan`, row-group-bounded `rowspan` including `rowspan="0"`, distributed span height, and span-safe page breaks.
 - [x] Shared `OfficeIMO.Drawing` Unicode text-element measurement and HTML long-token fragmentation that preserve combining sequences and surrogate pairs, plus managed TrueType format-12 cmap lookup for non-BMP scalars.
+- [x] Scoped TrueType `@font-face` loading from inline, data-URI, linked, and recursively imported CSS under the shared URL/count/depth/byte policy; the same validated faces drive HTML measurement, PNG rasterization, embedded SVG fonts, and rendered-PDF embedding. Unsupported WOFF/WOFF2/CFF inputs are diagnosed without adding codecs.
 - [x] Rendered PDF font fallback and shaping controls over the existing dependency-free `OfficeIMO.Pdf` engine, including caller-supplied embedded families/providers and exact Unicode whitespace extraction across rich text runs.
 - [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
 - [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, pagination, resources, timeout, cancellation, and diagnostics.
@@ -141,7 +142,7 @@ The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains
 ### HTML and resources
 
 - HTML5 parsing, malformed-markup recovery, base URI handling, and nested documents.
-- Inline, embedded, policy-approved linked, and recursively imported stylesheets. CSS URL paint assets and web-font activation remain before this contract is complete.
+- Inline, embedded, policy-approved linked, and recursively imported stylesheets. TrueType font URLs are active; other CSS URL paint assets remain before this contract is complete.
 - Images, data URIs, SVG, fonts, and controlled remote resources.
 - Source-neutral URL policy, size/count/depth budgets, media-type validation, timeouts, and cancellation.
 - Deterministic handling of unavailable or rejected resources.
@@ -223,7 +224,7 @@ Exit gate: every rendered node has deterministic computed values or a stable uns
 
 ### Phase 3 - Typography and inline layout
 
-- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Grapheme-safe deterministic measurement, non-BMP TrueType cmap lookup, rendered-PDF fallback wiring, and authored CSS family-list preservation are implemented; `@font-face` activation, shared HTML fallback planning, and richer OpenType metrics remain.
+- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Scoped TrueType face registration, grapheme-safe deterministic measurement, non-BMP TrueType cmap lookup, CSS `@font-face` activation, raster/SVG/PDF reuse, rendered-PDF fallback wiring, and authored CSS family-list preservation are implemented; WOFF/WOFF2/CFF decoding, local-source aliases, shared script-aware fallback planning, subsetting, and richer OpenType metrics remain.
 - [ ] Implement managed shaping, bidi resolution, ligatures, kerning, combining marks, and script-aware fallback. The direct PDF adapter now exposes the existing managed Latin-ligature mode and optional shaping-provider seam, but shared layout must still consume positioned glyph results.
 - [ ] Implement whitespace, line breaking, inline boxes, decorations, baseline alignment, and intrinsic text measurement.
 - [ ] Verify positioned glyphs round-trip to searchable/extractable PDF text. Current scalar text, Unicode fallback, and explicit spaces round-trip exactly; positioned shaped glyph sequences remain.
@@ -263,6 +264,7 @@ Exit gate: a single rendered result contains everything needed by both image and
 - [x] Add `OfficeIMO.Html` image-export options aligned with `OfficeImageExportOptions`.
 - [x] Add continuous `ToPng`, `ToSvg`, file, stream, synchronous, and asynchronous APIs.
 - [x] Add paged `ExportImages` APIs with page numbering and diagnostics.
+- [x] Carry active TrueType web fonts into PNG rasterization and embed them as data-backed `@font-face` definitions in SVG output.
 - [ ] Complete maximum surface, tiling, scale, DPI, transparency, and background behavior. Surface limits, scale, and background are implemented.
 - [ ] Activate image baselines for both paged and continuous modes.
 
@@ -271,7 +273,7 @@ Exit gate: HTML image output uses only `OfficeIMO.Html` plus existing OfficeIMO 
 ### Phase 8 - Direct HTML to PDF
 
 - [x] Add a direct/paged `Rendered` profile in `OfficeIMO.Html.Pdf` that consumes the shared rendered-document model.
-- [ ] Complete mapping to PDF structures. Searchable Unicode text with managed fallback controls, exact explicit spaces, basic shapes, images, and external links are implemented; positioned shaped glyphs and richer semantics remain.
+- [ ] Complete mapping to PDF structures. Searchable Unicode text with managed fallback controls, exact explicit spaces, active TrueType web-font embedding, basic shapes, images, and external links are implemented; more than three simultaneous distinct web-font families currently diagnose and fall back because the PDF writer exposes three semantic generated-font slots, while positioned shaped glyphs and richer semantics remain.
 - [x] Preserve existing semantic/document conversion profiles for users who want those contracts.
 - [x] Add async/cancellable save APIs with explicitly buffered final PDF serialization.
 - [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure.

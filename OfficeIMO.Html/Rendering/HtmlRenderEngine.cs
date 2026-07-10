@@ -27,10 +27,11 @@ public static class HtmlRenderEngine {
         diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
         var resources = new HtmlRenderResourceSet();
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules).Render();
+        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts).Render();
     }
 
     /// <summary>
@@ -54,10 +55,11 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, diagnostics);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules).Render();
+        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts).Render();
     }
 
     /// <summary>

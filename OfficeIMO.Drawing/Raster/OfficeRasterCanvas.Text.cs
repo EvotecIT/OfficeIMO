@@ -62,7 +62,8 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double size = Math.Max(6D, Math.Min(fontSize, height - 2D));
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, style);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, style, out OfficeFontStyle resolvedStyle);
+        OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
             double measured = font.Measure(value, size);
             double availableWidth = Math.Max(1D, width - 6D);
@@ -87,12 +88,12 @@ public sealed partial class OfficeRasterCanvas {
             double top = y + Math.Max(1D, (height - font.LineHeight(size)) / 2D);
             double textX = ResolveTextX(x + 3D, availableWidth, measured, alignment);
             List<List<OfficePoint>> contours = font.GetTextContours(value, textX, top, size);
-            if ((style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) {
+            if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) {
                 SlantContours(contours, top, size);
             }
 
             FillContours(contours, color, OfficeFillRule.EvenOdd);
-            if ((style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
+            if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
                 OffsetContours(contours, 0.45D, 0D);
                 FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
@@ -156,7 +157,9 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
+        bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
@@ -165,18 +168,18 @@ public sealed partial class OfficeRasterCanvas {
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
                 font.GetTextContours(value, x, top, fontHeight),
                 bottom,
-                italic,
+                simulateItalic,
                 rotationRadians,
                 rotationCenterX,
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
             FillContours(contours, color, OfficeFillRule.EvenOdd);
-            if (bold) {
+            if (simulateBold) {
                 contours = TransformTextContours(
                     font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
                     bottom,
-                    italic,
+                    simulateItalic,
                     rotationRadians,
                     rotationCenterX,
                     rotationCenterY,
@@ -229,21 +232,23 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
+        bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         if (font != null) {
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
                 font.GetTextContours(value, x, top, fontHeight),
                 top + fontHeight,
-                italic,
+                simulateItalic,
                 transform);
             FillContours(contours, color, OfficeFillRule.EvenOdd);
-            if (bold) {
+            if (simulateBold) {
                 contours = TransformTextContours(
                     font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
                     top + fontHeight,
-                    italic,
+                    simulateItalic,
                     transform);
                 FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
@@ -377,10 +382,16 @@ public sealed partial class OfficeRasterCanvas {
         return MeasureStrokeText(text, fontSize);
     }
 
-    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) {
-        OfficeTrueTypeFont? scoped = _fonts?.Resolve(fontFamily, style);
-        if (scoped != null) {
-            return scoped;
+    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) =>
+        ResolveTextFont(fontFamily, style, out _);
+
+    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
+        resolvedStyle = OfficeFontStyle.Regular;
+        if (_fonts != null) {
+            OfficeTrueTypeFont? scoped = _fonts.Resolve(fontFamily, style, out resolvedStyle);
+            if (scoped != null) {
+                return scoped;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(fontFamily)) {

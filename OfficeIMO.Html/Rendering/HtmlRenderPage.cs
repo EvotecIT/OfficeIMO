@@ -8,8 +8,9 @@ namespace OfficeIMO.Html;
 /// </summary>
 public sealed class HtmlRenderPage {
     private readonly ReadOnlyCollection<HtmlRenderVisual> _visuals;
+    private readonly OfficeFontFaceCollection _fonts;
 
-    internal HtmlRenderPage(int pageNumber, double width, double height, IEnumerable<HtmlRenderVisual> visuals, string? pageName = null) {
+    internal HtmlRenderPage(int pageNumber, double width, double height, IEnumerable<HtmlRenderVisual> visuals, string? pageName = null, OfficeFontFaceCollection? fonts = null) {
         if (pageNumber <= 0) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -26,6 +27,8 @@ public sealed class HtmlRenderPage {
             .OrderBy(item => item.PaintOrder)
             .ToList()
             .AsReadOnly();
+        // The renderer passes one operation-scoped snapshot to every page. Public access still clones it.
+        _fonts = fonts ?? new OfficeFontFaceCollection();
     }
 
     /// <summary>One-based page number.</summary>
@@ -43,9 +46,13 @@ public sealed class HtmlRenderPage {
     /// <summary>Ordered backend-neutral visuals on this page.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
+    /// <summary>Independent snapshot of scoped font faces used by this page.</summary>
+    public OfficeFontFaceCollection Fonts => _fonts.Clone();
+
     /// <summary>Creates a dependency-free drawing snapshot for PNG or SVG rendering.</summary>
     public OfficeDrawing CreateDrawing() {
         var drawing = new OfficeDrawing(Width, Height);
+        drawing.Fonts.AddRange(_fonts);
         foreach (HtmlRenderVisual visual in _visuals) {
             if (visual is HtmlRenderShape shape) {
                 drawing.AddShape(shape.Shape.Clone(), shape.X, shape.Y);

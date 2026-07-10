@@ -14,6 +14,14 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ExternalImagePending = "HtmlRenderExternalImagePending";
     /// <summary>An external stylesheet requires asynchronous resource resolution.</summary>
     public const string ExternalStylesheetPending = "HtmlRenderExternalStylesheetPending";
+    /// <summary>A font data URI could not be decoded.</summary>
+    public const string FontDataUriInvalid = "HtmlRenderFontDataUriInvalid";
+    /// <summary>An @font-face rule had no usable family descriptor.</summary>
+    public const string FontFaceInvalid = "HtmlRenderFontFaceInvalid";
+    /// <summary>No source from an @font-face rule was available to the renderer.</summary>
+    public const string FontFaceUnavailable = "HtmlRenderFontFaceUnavailable";
+    /// <summary>A font source was not a supported TrueType glyf-outline font.</summary>
+    public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>Flex layout used the documented normal-flow fallback.</summary>
     public const string FlexLayoutPending = "HtmlRenderFlexLayoutPending";
     /// <summary>Content without a safe page break was force-fragmented.</summary>
@@ -71,6 +79,10 @@ public static class HtmlRenderDiagnosticCodes {
         EmptyTable,
         ExternalImagePending,
         ExternalStylesheetPending,
+        FontDataUriInvalid,
+        FontFaceInvalid,
+        FontFaceUnavailable,
+        FontFormatUnsupported,
         FlexLayoutPending,
         ForcedFragment,
         GridLayoutPending,

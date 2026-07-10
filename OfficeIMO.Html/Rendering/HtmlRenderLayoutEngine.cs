@@ -12,16 +12,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlRenderStyleResolver _styleResolver;
     private readonly HtmlRenderResourceSet _resources;
     private readonly HtmlCssPageRuleSet _pageRules;
+    private readonly OfficeFontFaceCollection _fonts;
     private readonly Uri? _baseUri;
     private int _paintOrder;
 
-    internal HtmlRenderLayoutEngine(IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null) {
+    internal HtmlRenderLayoutEngine(IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
         _document = document;
         _options = options;
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
         _resources = resources ?? new HtmlRenderResourceSet();
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
+        _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
     }
 
@@ -54,8 +56,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CreatePageBackground(width, height)
         };
         visuals.AddRange(content);
-        var page = new HtmlRenderPage(1, width, height, visuals);
-        return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics);
+        var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
+        return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts);
     }
 
     private HtmlRenderDocument RenderPaged(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
@@ -216,7 +218,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics);
+        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts);
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) => new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
@@ -254,7 +256,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             throw new InvalidOperationException("HTML rendering exceeded the configured maximum page count.");
         }
 
-        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName));
+        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts));
     }
 
     private void AddTranslatedVisuals(ICollection<HtmlRenderVisual> target, IEnumerable<HtmlRenderVisual> source, double offsetX, double offsetY) {

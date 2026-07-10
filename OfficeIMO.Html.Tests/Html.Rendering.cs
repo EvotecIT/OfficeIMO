@@ -10,7 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-public sealed class HtmlRenderingTests {
+public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlRenderAsync_UsesCallerResolverForPolicyApprovedExternalImages() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(10, 6);

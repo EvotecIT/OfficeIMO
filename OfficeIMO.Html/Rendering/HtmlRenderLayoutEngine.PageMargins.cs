@@ -31,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     semanticRole: "page-margin"));
             }
 
-            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName));
+            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName, _fonts));
         }
 
         return rendered.AsReadOnly();

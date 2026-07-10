@@ -187,6 +187,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double MeasureText(string value, OfficeFontInfo font) {
+        if (_fonts.TryMeasureText(value, font.Size, font.FamilyName, font.Style, out double scopedWidth)) {
+            return scopedWidth;
+        }
+
         OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
         OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
         return measurer.MeasureWidth(value, style);

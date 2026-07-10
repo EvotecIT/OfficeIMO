@@ -5,12 +5,17 @@ internal sealed class HtmlRenderResourceSet {
     private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+    internal long AcceptedResourceBytes { get; private set; }
+    internal int AcceptedResourceCount { get; private set; }
+
     internal void MarkAttempted(HtmlResourceReference reference) {
         if (reference.Source.Length > 0) _attempted.Add(reference.Source);
         if (reference.ResolvedSource.Length > 0) _attempted.Add(reference.ResolvedSource);
     }
 
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
+        AcceptedResourceBytes += resource.Bytes.LongLength;
+        AcceptedResourceCount++;
         if (reference.Source.Length > 0) {
             _resources[reference.Source] = resource;
             _resolvedSources[reference.Source] = reference.ResolvedSource;
@@ -119,7 +124,7 @@ internal static class HtmlRenderResourceLoader {
                 result.Add(reference, resource);
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.Bytes, out string css)) {
-                    EnqueueStylesheetImports(
+                    EnqueueStylesheetResources(
                         pending,
                         css,
                         uri,
@@ -138,7 +143,7 @@ internal static class HtmlRenderResourceLoader {
         return result;
     }
 
-    private static void EnqueueStylesheetImports(
+    private static void EnqueueStylesheetResources(
         Queue<PendingResource> pending,
         string css,
         Uri stylesheetUri,
@@ -147,6 +152,20 @@ internal static class HtmlRenderResourceLoader {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics) {
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        foreach (HtmlResourceReference fontResource in analysis.FontResources) {
+            if (fontResource.IsAllowed) {
+                pending.Enqueue(new PendingResource(fontResource, importDepth));
+            } else {
+                diagnostics.Add(
+                    ComponentName,
+                    fontResource.DiagnosticCode.Length == 0 ? "FontResourceRejectedByPolicy" : fontResource.DiagnosticCode,
+                    "A stylesheet font source was rejected by the configured URL policy.",
+                    HtmlDiagnosticSeverity.Warning,
+                    fontResource.Source,
+                    stylesheetUri.AbsoluteUri);
+            }
+        }
+
         foreach (HtmlExternalStylesheetImport import in analysis.Imports) {
             if (!import.IsApplicable) {
                 continue;
@@ -180,12 +199,19 @@ internal static class HtmlRenderResourceLoader {
     }
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>
-        kind == HtmlResourceKind.Image || kind == HtmlResourceKind.Stylesheet;
+        kind == HtmlResourceKind.Image || kind == HtmlResourceKind.Stylesheet || kind == HtmlResourceKind.Font;
 
     private static bool IsAcceptedContentType(HtmlResourceKind kind, string contentType) {
         string normalized = contentType.Split(';')[0].Trim();
         if (kind == HtmlResourceKind.Image) {
             return normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (kind == HtmlResourceKind.Font) {
+            return normalized.StartsWith("font/", StringComparison.OrdinalIgnoreCase)
+                || normalized.StartsWith("application/font-", StringComparison.OrdinalIgnoreCase)
+                || normalized.StartsWith("application/x-font-", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "application/octet-stream", StringComparison.OrdinalIgnoreCase);
         }
 
         return kind == HtmlResourceKind.Stylesheet

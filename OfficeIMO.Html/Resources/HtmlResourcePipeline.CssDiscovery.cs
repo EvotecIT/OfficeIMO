@@ -17,7 +17,8 @@ public static partial class HtmlResourcePipeline {
         foreach (Match match in CssUrlExpression.Matches(normalized)) {
             if (IsCssFunctionNameAt(normalized, match.Index, "url")
                 && !IsInsideCssString(normalized, match.Index)
-                && !IsImportUrl(match.Index, importRanges)) {
+                && !IsImportUrl(match.Index, importRanges)
+                && ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Font) {
                 return true;
             }
         }

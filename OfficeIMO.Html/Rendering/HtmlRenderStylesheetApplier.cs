@@ -121,7 +121,10 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         activeStylesheets.Remove(currentKey);
-        return builder.ToString();
+        return HtmlResourcePipeline.RebaseExternalStylesheetUrls(
+            builder.ToString(),
+            stylesheetUri,
+            options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile());
     }
 
     private static void ReportCycle(HtmlDiagnosticReport diagnostics, HashSet<string> reportedCycles, string source) {

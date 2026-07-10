@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,24 +39,25 @@ internal static class HtmlPdfRenderedConverter {
 
         pdf.UseTextFallbacks(options.RenderedTextFallbacks)
             .UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(pdf, rendered, options.RenderDiagnostics);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             double pageWidth = renderedPage.Width * PointsPerCssPixel;
             double pageHeight = renderedPage.Height * PointsPerCssPixel;
             pdf.Page(page => page
                 .Size(pageWidth, pageHeight)
                 .Margin(0D)
-                .Canvas(canvas => AddPageVisuals(canvas, renderedPage)));
+                .Canvas(canvas => AddPageVisuals(canvas, renderedPage, webFonts)));
         }
 
         return pdf;
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page) {
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
         foreach (HtmlRenderVisual visual in page.Visuals.OrderBy(item => item.PaintOrder)) {
             if (visual is HtmlRenderShape shape) {
                 AddShape(canvas, shape);
             } else if (visual is HtmlRenderText text) {
-                AddText(canvas, text);
+                AddText(canvas, text, webFonts);
             } else if (visual is HtmlRenderImage image) {
                 AddImage(canvas, image);
             }
@@ -75,7 +77,7 @@ internal static class HtmlPdfRenderedConverter {
             linkContents: visual.LinkUri == null ? null : visual.Source);
     }
 
-    private static void AddText(PdfCore.PdfPageCanvas canvas, HtmlRenderText visual) {
+    private static void AddText(PdfCore.PdfPageCanvas canvas, HtmlRenderText visual, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
         if (visual.Text.Length == 0) return;
         string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
         var run = new PdfCore.TextRun(
@@ -86,7 +88,7 @@ internal static class HtmlPdfRenderedConverter {
             italic: visual.Font.IsItalic,
             strike: visual.Font.IsStrikethrough,
             fontSize: visual.Font.Size * PointsPerCssPixel,
-            font: MapFont(visual.Font.FamilyName),
+            font: MapFont(visual.Font.FamilyName, webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text);
         canvas.Text(
@@ -113,7 +115,13 @@ internal static class HtmlPdfRenderedConverter {
             alternativeText: visual.AlternativeText);
     }
 
-    private static PdfCore.PdfStandardFont MapFont(string familyName) {
+    private static PdfCore.PdfStandardFont MapFont(string familyName, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
+        foreach (string candidate in EnumerateFamilies(familyName)) {
+            if (webFonts.TryGetValue(candidate, out PdfCore.PdfStandardFont embedded)) {
+                return embedded;
+            }
+        }
+
         string normalized = familyName ?? string.Empty;
         if (normalized.IndexOf("times", StringComparison.OrdinalIgnoreCase) >= 0
             || normalized.IndexOf("serif", StringComparison.OrdinalIgnoreCase) >= 0) {
@@ -127,6 +135,96 @@ internal static class HtmlPdfRenderedConverter {
         }
 
         return PdfCore.PdfStandardFont.Helvetica;
+    }
+
+    private static IReadOnlyDictionary<string, PdfCore.PdfStandardFont> RegisterWebFonts(
+        PdfCore.PdfDocument pdf,
+        HtmlRenderDocument rendered,
+        HtmlDiagnosticReport? diagnostics) {
+        OfficeFontFaceCollection faces = rendered.Fonts;
+        var byFamily = faces.Faces
+            .GroupBy(face => face.FamilyName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+        var mappings = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);
+        if (byFamily.Count == 0) {
+            return mappings;
+        }
+
+        var orderedFamilies = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (HtmlRenderText text in rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()) {
+            foreach (string family in EnumerateFamilies(text.Font.FamilyName)) {
+                if (byFamily.ContainsKey(family) && seen.Add(family)) {
+                    orderedFamilies.Add(family);
+                }
+            }
+        }
+
+        PdfCore.PdfStandardFont[] slots = {
+            PdfCore.PdfStandardFont.Helvetica,
+            PdfCore.PdfStandardFont.TimesRoman,
+            PdfCore.PdfStandardFont.Courier
+        };
+        for (int index = 0; index < orderedFamilies.Count; index++) {
+            string family = orderedFamilies[index];
+            if (index >= slots.Length) {
+                diagnostics?.Add(
+                    "OfficeIMO.Html.Pdf",
+                    HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded,
+                    "The rendered PDF can embed three distinct active web-font families; an additional family used standard-font fallback.",
+                    HtmlDiagnosticSeverity.Warning,
+                    family,
+                    "limit=" + slots.Length);
+                continue;
+            }
+
+            PdfCore.PdfStandardFont slot = slots[index];
+            RegisterFamily(pdf, slot, family, byFamily[family]);
+            mappings[family] = slot;
+        }
+
+        return mappings;
+    }
+
+    private static void RegisterFamily(
+        PdfCore.PdfDocument pdf,
+        PdfCore.PdfStandardFont slot,
+        string family,
+        IReadOnlyList<OfficeFontFace> faces) {
+        OfficeFontFace regular = FindFace(faces, OfficeFontStyle.Regular) ?? faces[0];
+        OfficeFontFace bold = FindFace(faces, OfficeFontStyle.Bold) ?? regular;
+        OfficeFontFace italic = FindFace(faces, OfficeFontStyle.Italic) ?? regular;
+        OfficeFontFace boldItalic = FindFace(faces, OfficeFontStyle.Bold | OfficeFontStyle.Italic) ?? bold;
+        EmbedFace(pdf, slot, family, "Regular", regular);
+        EmbedFace(pdf, PdfCore.PdfStandardFontMapper.GetStyledFont(slot, bold: true, italic: false), family, "Bold", bold);
+        EmbedFace(pdf, PdfCore.PdfStandardFontMapper.GetStyledFont(slot, bold: false, italic: true), family, "Italic", italic);
+        EmbedFace(pdf, PdfCore.PdfStandardFontMapper.GetStyledFont(slot, bold: true, italic: true), family, "BoldItalic", boldItalic);
+    }
+
+    private static OfficeFontFace? FindFace(IReadOnlyList<OfficeFontFace> faces, OfficeFontStyle style) {
+        OfficeFontStyle normalized = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+        return faces.FirstOrDefault(face => (face.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic)) == normalized);
+    }
+
+    private static void EmbedFace(
+        PdfCore.PdfDocument pdf,
+        PdfCore.PdfStandardFont slot,
+        string family,
+        string style,
+        OfficeFontFace face) =>
+        pdf.EmbedStandardFont(slot, face.Data, family + "-" + style);
+
+    private static IEnumerable<string> EnumerateFamilies(string? familyNames) {
+        if (string.IsNullOrWhiteSpace(familyNames)) {
+            yield break;
+        }
+
+        foreach (string raw in familyNames!.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+            string family = raw.Trim().Trim('"', '\'');
+            if (family.Length > 0) {
+                yield return family;
+            }
+        }
     }
 
     private static PdfCore.PdfAlign MapAlignment(OfficeTextAlignment alignment) {
