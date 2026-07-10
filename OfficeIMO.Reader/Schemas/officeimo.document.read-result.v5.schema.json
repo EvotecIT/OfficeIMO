@@ -46,7 +46,9 @@
         "Epub",
         "Visio",
         "Yaml",
-        "Rtf"
+        "Rtf",
+        "AsciiDoc",
+        "Latex"
       ]
     },
     "source": {
