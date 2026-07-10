@@ -4,12 +4,12 @@ using OfficeIMO.Rtf.Syntax;
 namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
-    public static RtfReadResult Read(RtfSyntaxTree tree, RtfReadOptions options) {
+    public static RtfReadResult Read(RtfSyntaxTree tree, RtfReadOptions options, CancellationToken cancellationToken = default) {
         if (tree == null) throw new ArgumentNullException(nameof(tree));
         options ??= new RtfReadOptions();
 
         var diagnostics = new List<RtfDiagnostic>(tree.Diagnostics);
-        var binder = new Binder(options, diagnostics);
+        var binder = new Binder(options, diagnostics, cancellationToken);
         RtfDocument document = binder.Bind(tree.Root);
         return new RtfReadResult(document, tree, diagnostics.AsReadOnly());
     }
@@ -17,6 +17,7 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private readonly RtfReadOptions _options;
         private readonly List<RtfDiagnostic> _diagnostics;
+        private readonly RtfReadLimitGuard _limits;
         private RtfDocument _document = null!;
         private RtfParagraph _currentParagraph = null!;
         private RtfTable? _currentTable;
@@ -37,9 +38,10 @@ internal static partial class RtfSemanticReader {
         private Dictionary<int, RtfListOverride> _listOverridesById = null!;
         private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
 
-        public Binder(RtfReadOptions options, List<RtfDiagnostic> diagnostics) {
+        public Binder(RtfReadOptions options, List<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
             _options = options;
             _diagnostics = diagnostics;
+            _limits = new RtfReadLimitGuard(options, cancellationToken);
         }
 
         public RtfDocument Bind(RtfGroup root) {
@@ -61,7 +63,11 @@ internal static partial class RtfSemanticReader {
             _document.ReplaceRevisionAuthors(ReadRevisionAuthors(root, ansiCodePage, unicodeSkipCount));
             _document.RevisionRootSaveId = ReadRevisionRootSaveId(root);
             _document.ReplaceRevisionSaveIds(ReadRevisionSaveIds(root));
-            _document.ReplaceFileReferences(ReadFileReferences(root, ansiCodePage, unicodeSkipCount));
+            if (_options.ReadFileReferences) {
+                _document.ReplaceFileReferences(ReadFileReferences(root, ansiCodePage, unicodeSkipCount));
+            } else if (root.Children.OfType<RtfGroup>().Any(group => group.Destination == "filetbl")) {
+                _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF106", "File-table references were blocked by the configured read policy.", root.Position));
+            }
             _document.ReplaceXmlNamespaces(ReadXmlNamespaces(root, ansiCodePage, unicodeSkipCount));
             _listDefinitionsById = CreateListDefinitionLookup(_document.ListDefinitions);
             _listOverridesById = CreateListOverrideLookup(_document.ListOverrides);
@@ -92,6 +98,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private void WalkGroup(RtfGroup group, CharacterState state, int depth, bool allowDestinationSkip) {
+            _limits.CheckCancellation();
             if (depth > _options.MaxDepth) {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Error, "RTF100", "Maximum RTF group depth was exceeded.", group.Position));
                 return;
@@ -126,6 +133,11 @@ internal static partial class RtfSemanticReader {
             }
 
             if (destination == "object") {
+                if (!_options.ReadEmbeddedObjects) {
+                    _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF105", "Embedded object was blocked by the configured read policy.", group.Position));
+                    return;
+                }
+
                 RtfObject? rtfObject = ReadObject(group, state, depth);
                 if (rtfObject != null) {
                     _currentParagraph.AddObject(rtfObject);
@@ -162,8 +174,11 @@ internal static partial class RtfSemanticReader {
                 }
             }
 
-            if (allowDestinationSkip && (RtfDestinationRegistry.ShouldSkipSemanticBinding(destination) || RtfDestinationRegistry.IsIgnorableDestinationGroup(group))) {
-                if (_options.WarnOnUnsupportedDestinations && RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination)) {
+            bool isIgnorableDestination = RtfDestinationRegistry.IsIgnorableDestinationGroup(group);
+            if (allowDestinationSkip && (RtfDestinationRegistry.ShouldSkipSemanticBinding(destination) || isIgnorableDestination)) {
+                if (_options.WarnOnUnsupportedDestinations &&
+                    (RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination) ||
+                     (isIgnorableDestination && !RtfDestinationRegistry.IsKnown(destination)))) {
                     _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF101", $"Destination '{destination}' is preserved in syntax but not bound semantically yet.", group.Position));
                 }
 
@@ -172,6 +187,7 @@ internal static partial class RtfSemanticReader {
 
             var childState = state.Clone();
             foreach (RtfNode node in group.Children) {
+                _limits.CheckCancellation();
                 switch (node) {
                     case RtfGroup childGroup:
                         if (childGroup.Destination == "pn") {
@@ -465,14 +481,17 @@ internal static partial class RtfSemanticReader {
         }
 
         private RtfImage? ReadPicture(RtfGroup group) {
+            _limits.BeginImage(group.Position);
             RtfImageFormat format = RtfImageFormat.Unknown;
             int? sourceWidth = null;
             int? sourceHeight = null;
             int? desiredWidth = null;
             int? desiredHeight = null;
             var data = new List<byte>();
+            long imageBytes = 0;
 
             foreach (RtfNode node in group.Children) {
+                _limits.CheckCancellation();
                 if (node is RtfControlWord control) {
                     switch (control.Name) {
                         case "pngblip":
@@ -504,9 +523,10 @@ internal static partial class RtfSemanticReader {
                             break;
                     }
                 } else if (node is RtfBinary binary) {
+                    _limits.AddImageBytes(ref imageBytes, binary.Data.Length, binary.Position);
                     data.AddRange(binary.Data);
                 } else if (node is RtfText text) {
-                    AppendHexBytes(text.Text, data);
+                    AppendHexBytes(text.Text, data, count => _limits.AddImageBytes(ref imageBytes, count, text.Position));
                 }
             }
 
@@ -526,12 +546,13 @@ internal static partial class RtfSemanticReader {
             };
         }
 
-        private static void AppendHexBytes(string text, List<byte> data) {
+        private static void AppendHexBytes(string text, List<byte> data, Action<int>? beforeAppend = null) {
             int? highNibble = null;
             foreach (char ch in text) {
                 int value = HexValue(ch);
                 if (value < 0) continue;
                 if (highNibble.HasValue) {
+                    beforeAppend?.Invoke(1);
                     data.Add((byte)((highNibble.Value << 4) | value));
                     highNibble = null;
                 } else {

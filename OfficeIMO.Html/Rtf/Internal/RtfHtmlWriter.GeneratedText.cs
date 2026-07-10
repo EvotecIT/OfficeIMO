@@ -1,7 +1,11 @@
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendGeneratedText(StringBuilder builder, RtfGeneratedText generatedText) {
+    private static void AppendGeneratedText(StringBuilder builder, RtfGeneratedText generatedText, bool includeRoundTripMetadata) {
+        if (!includeRoundTripMetadata) {
+            return;
+        }
+
         builder.Append("<span data-officeimo-rtf-generated-text=\"");
         builder.Append(EncodeAttribute(FormatGeneratedTextKind(generatedText.Kind)));
         builder.Append("\"></span>");

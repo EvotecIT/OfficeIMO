@@ -34,7 +34,7 @@ public class RtfHtmlFieldTests {
         field.AddText("1").SetBold();
         paragraph.AddText(" done");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p>Page <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE \\* MERGEFORMAT\"><strong>1</strong></span> done</p>", html);
 
@@ -50,7 +50,7 @@ public class RtfHtmlFieldTests {
         RtfField field = document.AddParagraph().AddField(@"HYPERLINK ""https://example.test/path"" \o ""tip""");
         field.AddText("Link").SetBold();
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><a href=\"https://example.test/path\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/path&quot; \\o &quot;tip&quot;\" data-officeimo-rtf-field-hyperlink=\"https://example.test/path\" data-officeimo-rtf-field-hyperlink-screen-tip=\"tip\" title=\"tip\"><strong>Link</strong></a></p>", html);
         RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[0]);
@@ -74,7 +74,7 @@ public class RtfHtmlFieldTests {
         RtfField field = paragraph.AddField(@"HYPERLINK \l ""Target"" \o ""Jump tip""");
         field.AddText("Jump");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("href=\"#Target\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-field-hyperlink-sub-address=\"Target\"", html, StringComparison.Ordinal);
@@ -147,7 +147,7 @@ public class RtfHtmlFieldTests {
         RtfField field = document.AddParagraph().AddField("MERGEFIELD Patient<Name>");
         field.AddText("Ada");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"MERGEFIELD Patient&lt;Name&gt;\">Ada</span></p>", html);
         RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(html.ToRtfDocument().Paragraphs).Inlines[0]);
@@ -166,7 +166,7 @@ public class RtfHtmlFieldTests {
         paragraph.AddText(" Time ");
         paragraph.AddCurrentTime();
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p>Page <span data-officeimo-rtf-generated-text=\"page-number\"></span> Section <span data-officeimo-rtf-generated-text=\"section-number\"></span> Date <span data-officeimo-rtf-generated-text=\"current-date\"></span> Time <span data-officeimo-rtf-generated-text=\"current-time\"></span></p>", html);
         RtfParagraph roundTrip = Assert.Single(html.ToRtfDocument().Paragraphs);
@@ -238,7 +238,7 @@ public class RtfHtmlFieldTests {
             data.AddDropDownItem("Second");
         });
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p>Choice: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMDROPDOWN\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=2;ffenabled=1;ffdefres=0;ffres=1\" data-officeimo-rtf-form-name=\"Choice\" data-officeimo-rtf-form-dropdown-items=\"Rmlyc3Q=;U2Vjb25k\">Second</span></p>", html);
 

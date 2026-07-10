@@ -99,34 +99,47 @@ public sealed partial class RtfDocument {
 
     /// <summary>Reads RTF from a string.</summary>
     public static RtfReadResult Read(string rtf, RtfReadOptions? options = null) {
+        return Read(rtf, options, CancellationToken.None);
+    }
+
+    /// <summary>Reads RTF from a string with cooperative cancellation during CPU-bound parsing.</summary>
+    public static RtfReadResult Read(string rtf, RtfReadOptions? options, CancellationToken cancellationToken) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfReadOptions readOptions = options ?? new RtfReadOptions();
-        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions.MaxDepth);
-        return RtfSemanticReader.Read(tree, readOptions);
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions, cancellationToken);
+        return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
     }
 
     /// <summary>Loads RTF from a file.</summary>
     public static RtfReadResult Load(string path, RtfReadOptions? options = null, Encoding? encoding = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        string rtf = encoding == null ? RtfBytePreservingEncoding.ReadAllText(path) : File.ReadAllText(path, encoding);
-        return Read(rtf, options);
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Load(stream, readOptions, encoding);
     }
 
     /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
     public static RtfReadResult Load(byte[] bytes, RtfReadOptions? options = null) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        return Read(RtfBytePreservingEncoding.GetString(bytes), options);
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        new RtfReadLimitGuard(readOptions, CancellationToken.None).CheckInputBytes(bytes.LongLength);
+        return Read(RtfBytePreservingEncoding.GetString(bytes), readOptions);
     }
 
     /// <summary>Loads RTF from a stream.</summary>
     public static RtfReadResult Load(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (encoding == null) {
-            return Read(RtfBytePreservingEncoding.ReadToEnd(stream), options);
-        }
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.MaxInputBytes, CancellationToken.None);
+        string rtf = DecodeInput(bytes, encoding);
+        return Read(rtf, readOptions);
+    }
 
-        using var reader = new StreamReader(stream, encoding ?? Encoding.UTF8, detectEncodingFromByteOrderMarks: encoding == null, bufferSize: 4096, leaveOpen: true);
-        return Read(reader.ReadToEnd(), options);
+    private static string DecodeInput(byte[] bytes, Encoding? encoding) {
+        if (encoding == null) return RtfBytePreservingEncoding.GetString(bytes);
+        using var memory = new MemoryStream(bytes, writable: false);
+        using var reader = new StreamReader(memory, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: false);
+        return reader.ReadToEnd();
     }
 
     /// <summary>Adds a paragraph to the document.</summary>

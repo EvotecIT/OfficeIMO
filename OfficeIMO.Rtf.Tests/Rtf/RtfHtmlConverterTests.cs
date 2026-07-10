@@ -15,6 +15,8 @@ public partial class RtfHtmlConverterTests {
         paragraph.AddText(" link").SetItalic().SetHyperlink(new Uri("https://example.test/patient?id=1&tab=note"));
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             FragmentOnly = false
         });
 
@@ -31,6 +33,8 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Medication").ListKind = RtfListKind.Bullet;
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             NewLine = "\n"
         });
 
@@ -121,7 +125,7 @@ public partial class RtfHtmlConverterTests {
         run.ForegroundColorIndex = foreground;
         run.CharacterBackgroundColorIndex = background;
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"color:#0C2238;background-color:#FFF2CC;\">Flag</span></p>", html);
     }
@@ -153,6 +157,8 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Plain");
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             NewLine = "\n"
         });
 
@@ -197,6 +203,8 @@ public partial class RtfHtmlConverterTests {
             .SetLineSpacing(360, multiple: true);
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             NewLine = "\n"
         });
 
@@ -247,7 +255,7 @@ public partial class RtfHtmlConverterTests {
         run.FontId = fontId;
         run.FontSize = 13.5d;
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"font-family:&quot;Times New Roman&quot;;font-size:13.5pt;\">Clinical</span></p>", html);
     }
@@ -280,6 +288,8 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Plan").SetOutlineLevel(2).SetAlignment(RtfTextAlignment.Right);
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             NewLine = "\n"
         });
 
@@ -317,7 +327,7 @@ public partial class RtfHtmlConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Indented").SetIndentation(leftTwips: 720, rightTwips: 360, firstLineTwips: -240);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p style=\"margin-left:36pt;margin-right:18pt;text-indent:-12pt;\">Indented</p>", html);
     }
@@ -349,6 +359,8 @@ public partial class RtfHtmlConverterTests {
         after.AddPageBreak();
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             NewLine = "\n"
         });
 
@@ -381,7 +393,7 @@ public partial class RtfHtmlConverterTests {
 
         RtfDocument document = html.ToRtfDocument();
         string rtf = document.ToRtf();
-        string roundTripHtml = RtfDocument.Read(rtf).Document.ToHtml();
+        string roundTripHtml = RtfDocument.Read(rtf).Document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("Assessment:", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("<strong>stable</strong>", roundTripHtml, StringComparison.Ordinal);

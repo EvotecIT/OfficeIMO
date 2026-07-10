@@ -10,17 +10,25 @@ public static class RtfSyntaxParser {
     /// Parses RTF text into a syntax tree.
     /// </summary>
     public static RtfSyntaxTree Parse(string rtf) {
-        return Parse(rtf, RtfReadOptions.DefaultMaxDepth);
+        return Parse(rtf, RtfReadOptions.CreateOfficeIMOProfile(), CancellationToken.None);
     }
 
     /// <summary>
     /// Parses RTF text into a syntax tree while limiting nested group depth.
     /// </summary>
     public static RtfSyntaxTree Parse(string rtf, int maxDepth) {
+        return Parse(rtf, new RtfReadOptions { MaxDepth = maxDepth }, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Parses RTF text using the configured resource limits and cancellation token.
+    /// </summary>
+    public static RtfSyntaxTree Parse(string rtf, RtfReadOptions? options, CancellationToken cancellationToken = default) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfTokenizeResult tokenized = RtfTokenizer.Tokenize(rtf);
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfTokenizeResult tokenized = RtfTokenizer.Tokenize(rtf, readOptions, cancellationToken);
         var diagnostics = new List<RtfDiagnostic>(tokenized.Diagnostics);
-        var parser = new Parser(tokenized.Tokens, diagnostics, maxDepth);
+        var parser = new Parser(tokenized.Tokens, diagnostics, readOptions.MaxDepth, cancellationToken);
         return parser.Parse();
     }
 
@@ -28,12 +36,15 @@ public static class RtfSyntaxParser {
         private readonly IReadOnlyList<RtfToken> _tokens;
         private readonly List<RtfDiagnostic> _diagnostics;
         private readonly int _maxDepth;
+        private readonly CancellationToken _cancellationToken;
         private int _index;
+        private int _operationCount;
 
-        public Parser(IReadOnlyList<RtfToken> tokens, List<RtfDiagnostic> diagnostics, int maxDepth) {
+        public Parser(IReadOnlyList<RtfToken> tokens, List<RtfDiagnostic> diagnostics, int maxDepth, CancellationToken cancellationToken) {
             _tokens = tokens;
             _diagnostics = diagnostics;
             _maxDepth = maxDepth;
+            _cancellationToken = cancellationToken;
         }
 
         public RtfSyntaxTree Parse() {
@@ -62,6 +73,7 @@ public static class RtfSyntaxParser {
         }
 
         private RtfGroup ParseGroup(int depth) {
+            CheckCancellation();
             int position = Current.Position;
             Expect(RtfTokenKind.GroupStart);
             if (depth > _maxDepth) {
@@ -85,6 +97,7 @@ public static class RtfSyntaxParser {
         }
 
         private RtfNode ParseNode(int depth) {
+            CheckCancellation();
             RtfToken token = Current;
             switch (token.Kind) {
                 case RtfTokenKind.GroupStart:
@@ -114,6 +127,7 @@ public static class RtfSyntaxParser {
         private void SkipCurrentGroup(int position) {
             int nestedGroups = 1;
             while (Current.Kind != RtfTokenKind.EndOfFile && nestedGroups > 0) {
+                CheckCancellation();
                 if (Current.Kind == RtfTokenKind.GroupStart) {
                     nestedGroups++;
                 } else if (Current.Kind == RtfTokenKind.GroupEnd) {
@@ -137,6 +151,12 @@ public static class RtfSyntaxParser {
             }
 
             _index++;
+        }
+
+        private void CheckCancellation() {
+            if ((_operationCount++ & 0x3FF) == 0) {
+                _cancellationToken.ThrowIfCancellationRequested();
+            }
         }
     }
 }

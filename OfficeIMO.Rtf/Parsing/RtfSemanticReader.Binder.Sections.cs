@@ -350,6 +350,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private void AddDocumentBlock(IRtfBlock block) {
+            _limits.AddSemanticBlock(-1);
             _document.AddParsedBlock(block);
             EnsureCurrentSection().AddParsedBlock(block);
         }

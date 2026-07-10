@@ -38,7 +38,7 @@ public class RtfHtmlCharacterFormatTests {
         document.AddParagraph().AddText("Flag")
             .SetCharacterBorder(RtfParagraphBorderStyle.Double, width: 40, colorIndex: dark);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"border:2pt double #0C2238;\">Flag</span></p>", html);
 
@@ -81,7 +81,7 @@ public class RtfHtmlCharacterFormatTests {
             .SetUnderline(RtfUnderlineStyle.ThickDashDotDot)
             .SetUnderlineColor(dark);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"text-decoration-line:underline;text-decoration-style:dashed;--officeimo-rtf-underline-style:thick-dash-dot-dot;text-decoration-color:#0C2238;\">Flag</span></p>", html);
 
@@ -118,7 +118,7 @@ public class RtfHtmlCharacterFormatTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("Double").SetDoubleStrike();
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"text-decoration-line:line-through;text-decoration-style:double;--officeimo-rtf-strike-style:double;\">Double</span></p>", html);
 
@@ -155,7 +155,7 @@ public class RtfHtmlCharacterFormatTests {
         paragraph.AddText("Caps").SetCapsStyle(RtfCapsStyle.Caps);
         paragraph.AddText(" Small").SetCapsStyle(RtfCapsStyle.SmallCaps);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"text-transform:uppercase;--officeimo-rtf-caps-style:caps;\">Caps</span><span style=\"font-variant-caps:small-caps;--officeimo-rtf-caps-style:small-caps;\"> Small</span></p>", html);
 
@@ -208,7 +208,7 @@ public class RtfHtmlCharacterFormatTests {
             .SetCharacterOffsetHalfPoints(6);
         paragraph.AddText(" Lowered").SetCharacterOffsetHalfPoints(-4);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"letter-spacing:2pt;font-stretch:80%;--officeimo-rtf-character-scale:80;vertical-align:3pt;--officeimo-rtf-character-offset:6;\">Raised</span><span style=\"vertical-align:-2pt;--officeimo-rtf-character-offset:-4;\"> Lowered</span></p>", html);
 
@@ -260,7 +260,7 @@ public class RtfHtmlCharacterFormatTests {
         paragraph.AddText(" Emboss").SetEmboss();
         paragraph.AddText(" Imprint").SetImprint();
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"visibility:hidden;--officeimo-rtf-hidden:true;\">Hidden</span><span style=\"--officeimo-rtf-outline:true;\"> Outline</span><span style=\"text-shadow:1pt 1pt 0 currentColor;--officeimo-rtf-shadow:true;\"> Shadow</span><span style=\"--officeimo-rtf-emboss:true;\"> Emboss</span><span style=\"--officeimo-rtf-imprint:true;\"> Imprint</span></p>", html);
 
@@ -313,7 +313,7 @@ public class RtfHtmlCharacterFormatTests {
             .SetDirection(RtfTextDirection.LeftToRight)
             .SetLanguage(1045);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">RTL</span><span lang=\"pl-PL\" dir=\"ltr\" style=\"--officeimo-rtf-lang:1045;direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\"> Polish</span></p>", html);
 

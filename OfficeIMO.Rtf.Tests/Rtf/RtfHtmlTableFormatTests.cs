@@ -39,7 +39,7 @@ public class RtfHtmlTableFormatTests {
             .Cells[0]
             .AddParagraph("LTR");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr dir=\"rtl\" style=\"direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\"><td><p>RTL</p></td></tr><tr dir=\"ltr\" style=\"direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\"><td><p>LTR</p></td></tr></tbody></table>", html);
 
@@ -81,7 +81,7 @@ public class RtfHtmlTableFormatTests {
             .SetTextFlow(RtfTableCellTextFlow.LeftToRightTopToBottom)
             .AddParagraph("Normal");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr><td style=\"writing-mode:vertical-rl;text-orientation:upright;--officeimo-rtf-text-flow:tb-rl-v;\"><p>Vertical</p></td><td style=\"writing-mode:horizontal-tb;--officeimo-rtf-text-flow:ltr-tb;\"><p>Normal</p></td></tr></tbody></table>", html);
 
@@ -123,7 +123,7 @@ public class RtfHtmlTableFormatTests {
             .SetFitText()
             .AddParagraph("Flags");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr><td style=\"white-space:nowrap;--officeimo-rtf-hide-cell-mark:true;--officeimo-rtf-cell-nowrap:true;--officeimo-rtf-fit-text:true;\"><p>Flags</p></td></tr></tbody></table>", html);
 
@@ -182,7 +182,7 @@ public class RtfHtmlTableFormatTests {
             .SetShading(cellBackground, cellForeground, patternPercent: 3750, pattern: RtfShadingPattern.DarkForwardDiagonal)
             .AddParagraph("Cell");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr style=\"background-color:#EEF6FF;--officeimo-rtf-shading-foreground:#00AA55;--officeimo-rtf-shading-pattern-value:7;--officeimo-rtf-shading-percent:6250;--officeimo-rtf-shading-pattern:diagonal-cross;\"><td style=\"background-color:#FFF2CC;--officeimo-rtf-shading-foreground:#4472C4;--officeimo-rtf-shading-percent:3750;--officeimo-rtf-shading-pattern:dark-forward-diagonal;\"><p>Cell</p></td></tr></tbody></table>", html);
 

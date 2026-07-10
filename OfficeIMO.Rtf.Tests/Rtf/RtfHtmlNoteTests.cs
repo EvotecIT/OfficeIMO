@@ -17,7 +17,7 @@ public class RtfHtmlNoteTests {
         noteParagraph.AddText("text").SetItalic();
         reference.SetNote(note);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-note=\"footnote\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-note-content=\"", html, StringComparison.Ordinal);

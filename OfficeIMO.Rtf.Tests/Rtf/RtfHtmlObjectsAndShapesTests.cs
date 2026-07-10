@@ -19,7 +19,7 @@ public class RtfHtmlObjectsAndShapesTests {
         rtfObject.Result.AddText("Display").SetBold();
         paragraph.AddText(" after");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-object=\"embedded\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-object-class=\"Package\"", html, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public class RtfHtmlObjectsAndShapesTests {
         RtfParagraph textBox = shape.AddTextBoxParagraph("Text ");
         textBox.AddText("box").SetItalic();
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-shape=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-shape-instructions=\"", html, StringComparison.Ordinal);

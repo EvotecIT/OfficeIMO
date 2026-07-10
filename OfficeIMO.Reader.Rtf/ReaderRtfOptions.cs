@@ -9,10 +9,15 @@ public sealed class ReaderRtfOptions {
     /// </summary>
     public static ReaderRtfOptions CreateOfficeIMOProfile() => new ReaderRtfOptions();
 
+    /// <summary>Creates an explicitly trusted compatibility profile without core resource ceilings.</summary>
+    public static ReaderRtfOptions CreateTrustedProfile() => new ReaderRtfOptions {
+        RtfReadOptions = OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()
+    };
+
     /// <summary>
     /// Options passed to the dependency-free RTF parser and semantic binder.
     /// </summary>
-    public RtfReadOptions? RtfReadOptions { get; set; }
+    public RtfReadOptions? RtfReadOptions { get; set; } = OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile();
 
     /// <summary>
     /// When true, emits one or more chunks per top-level RTF block. Default: true.
@@ -52,10 +57,27 @@ public sealed class ReaderRtfOptions {
     };
 
     internal static RtfReadOptions? CloneReadOptions(RtfReadOptions? options) {
-        if (options is null) return null;
+        if (options is null) return OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile();
 
         return new RtfReadOptions {
             MaxDepth = options.MaxDepth,
+            MaxInputBytes = options.MaxInputBytes,
+            MaxInputCharacters = options.MaxInputCharacters,
+            MaxTokenCount = options.MaxTokenCount,
+            MaxGroupCount = options.MaxGroupCount,
+            MaxTextCharacters = options.MaxTextCharacters,
+            MaxBinaryBytesPerPayload = options.MaxBinaryBytesPerPayload,
+            MaxTotalBinaryBytes = options.MaxTotalBinaryBytes,
+            MaxImageCount = options.MaxImageCount,
+            MaxImageBytesPerImage = options.MaxImageBytesPerImage,
+            MaxTotalImageBytes = options.MaxTotalImageBytes,
+            MaxObjectCount = options.MaxObjectCount,
+            MaxObjectBytesPerObject = options.MaxObjectBytesPerObject,
+            MaxTotalObjectBytes = options.MaxTotalObjectBytes,
+            MaxSemanticBlockCount = options.MaxSemanticBlockCount,
+            ReadEmbeddedObjects = options.ReadEmbeddedObjects,
+            ReadFileReferences = options.ReadFileReferences,
+            HyperlinkPolicy = options.HyperlinkPolicy,
             WarnOnUnsupportedDestinations = options.WarnOnUnsupportedDestinations,
             WarnOnUnsupportedCodePages = options.WarnOnUnsupportedCodePages
         };

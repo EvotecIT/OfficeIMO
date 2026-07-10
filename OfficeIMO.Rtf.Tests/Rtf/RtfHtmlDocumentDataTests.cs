@@ -18,6 +18,8 @@ public class RtfHtmlDocumentDataTests {
         document.AddParagraph("Body");
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             FragmentOnly = false,
             NewLine = "\n"
         });

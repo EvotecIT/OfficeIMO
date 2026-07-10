@@ -43,7 +43,7 @@ public class RtfHtmlListTests {
             .SetListText("7.");
         paragraph.ListDefinitionId = 100;
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<ol><li data-officeimo-rtf-list-id=\"42\" data-officeimo-rtf-list-definition-id=\"100\" data-officeimo-rtf-list-level=\"2\" data-officeimo-rtf-list-text=\"7.\">Step</li></ol>", html);
 

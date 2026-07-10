@@ -28,6 +28,12 @@ public sealed class RtfSyntaxTree {
     public static RtfSyntaxTree Parse(string rtf, int maxDepth) => RtfSyntaxParser.Parse(rtf, maxDepth);
 
     /// <summary>
+    /// Parses RTF content using configured resource limits and cancellation.
+    /// </summary>
+    public static RtfSyntaxTree Parse(string rtf, RtfReadOptions? options, CancellationToken cancellationToken = default) =>
+        RtfSyntaxParser.Parse(rtf, options, cancellationToken);
+
+    /// <summary>
     /// Serializes the original syntax tree without semantic normalization.
     /// </summary>
     public string ToRtf() => RtfSyntaxWriter.Write(this);

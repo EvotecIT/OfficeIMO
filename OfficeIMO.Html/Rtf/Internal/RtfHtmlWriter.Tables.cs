@@ -49,7 +49,9 @@ internal static partial class RtfHtmlWriter {
         builder.Append("<tr");
         RtfTableRow row = table.Rows[rowIndex];
         AppendRowDirectionAttributes(builder, row);
-        AppendTableRowMetadataAttributes(builder, row);
+        if (options.IncludeRoundTripMetadata) {
+            AppendTableRowMetadataAttributes(builder, row);
+        }
         AppendRowStyle(builder, row, document);
         builder.Append('>');
         string cellTag = isHeader ? "th" : "td";
@@ -64,7 +66,9 @@ internal static partial class RtfHtmlWriter {
             builder.Append('<');
             builder.Append(cellTag);
             AppendCellSpanAttributes(builder, columnSpan, rowSpan);
-            AppendTableCellMetadataAttributes(builder, row, cellIndex, columnSpan);
+            if (options.IncludeRoundTripMetadata) {
+                AppendTableCellMetadataAttributes(builder, row, cellIndex, columnSpan);
+            }
             AppendCellStyle(builder, cell, document);
             builder.Append('>');
             for (int i = 0; i < cell.Paragraphs.Count; i++) {

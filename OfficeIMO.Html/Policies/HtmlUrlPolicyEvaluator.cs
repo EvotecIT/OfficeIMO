@@ -86,6 +86,12 @@ public static class HtmlUrlPolicyEvaluator {
                 : HtmlUrlEvaluation.Allowed(candidate, allowBaseUriResolution: true);
         }
 
+        if (LooksLikeUncPath(candidate)) {
+            return effectivePolicy.DisallowFileUrls
+                ? HtmlUrlEvaluation.Rejected
+                : HtmlUrlEvaluation.Allowed(candidate, allowBaseUriResolution: false);
+        }
+
         if (Uri.TryCreate(candidate, UriKind.Absolute, out var absoluteUri)) {
             return IsAllowedResolvedUri(absoluteUri, effectivePolicy)
                 ? HtmlUrlEvaluation.Allowed(candidate, allowBaseUriResolution: false)
@@ -137,6 +143,12 @@ public static class HtmlUrlPolicyEvaluator {
         return value.Length >= 2
                && char.IsLetter(value[0])
                && value[1] == ':';
+    }
+
+    private static bool LooksLikeUncPath(string value) {
+        return value.Length >= 2
+               && value[0] == '\\'
+               && value[1] == '\\';
     }
 
     private readonly struct HtmlUrlEvaluation {
