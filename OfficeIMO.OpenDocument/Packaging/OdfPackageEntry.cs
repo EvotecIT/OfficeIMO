@@ -22,8 +22,8 @@ internal sealed class OdfPackageEntry {
 
     internal byte[] GetOriginalBytes() => _data;
 
-    internal XDocument GetXml(long maxCharacters) {
-        return _xml ??= OdfXmlCodec.Load(_data, Name, maxCharacters);
+    internal XDocument GetXml(long maxCharacters, int maxDepth) {
+        return _xml ??= OdfXmlCodec.Load(_data, Name, maxCharacters, maxDepth);
     }
 
     internal byte[] GetBytesForSave() {

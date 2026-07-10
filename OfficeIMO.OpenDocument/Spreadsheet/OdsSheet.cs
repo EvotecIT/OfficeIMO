@@ -138,6 +138,21 @@ public sealed class OdsSheet {
         return OdsCellValue.Empty;
     }
 
+    /// <summary>Reads a formula without splitting or expanding repeat runs.</summary>
+    public string? GetFormula(long row, long column) {
+        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
+        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        XElement? rowElement = FindPrototypeRow(row);
+        if (rowElement == null) return null;
+        long start = 0;
+        foreach (XElement cell in CellElements(rowElement)) {
+            long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
+            if (column < checked(start + count)) return (string?)cell.Attribute(OdfNamespaces.Table + "formula");
+            start = checked(start + count);
+        }
+        return null;
+    }
+
     /// <summary>Merges a rectangular cell range and marks non-anchor positions as covered cells.</summary>
     public OdsCell Merge(long row, long column, long rowSpan, long columnSpan) {
         if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));

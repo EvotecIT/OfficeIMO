@@ -5,6 +5,7 @@ public sealed partial class OdtDocument {
     public IReadOnlyList<OdtParagraph> Paragraphs => TextBody
         .Descendants()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+        .Where(element => !element.Ancestors(OdfNamespaces.Text + "tracked-changes").Any())
         .Select(element => new OdtParagraph(this, element))
         .ToList();
 
@@ -93,6 +94,7 @@ public sealed partial class OdtDocument {
     internal IEnumerable<XElement> BodyBlocks() {
         foreach (XElement element in TextBody.Descendants()) {
             if (element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h" || element.Name == OdfNamespaces.Table + "table") {
+                if (element.Ancestors(OdfNamespaces.Text + "tracked-changes").Any()) continue;
                 yield return element;
             }
         }

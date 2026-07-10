@@ -16,4 +16,6 @@ internal static class OdfNamespaces {
     internal static readonly XNamespace Manifest = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
     internal static readonly XNamespace Config = "urn:oasis:names:tc:opendocument:xmlns:config:1.0";
     internal static readonly XNamespace Of = "urn:oasis:names:tc:opendocument:xmlns:of:1.2";
+    internal static readonly XNamespace Anim = "urn:oasis:names:tc:opendocument:xmlns:animation:1.0";
+    internal static readonly XNamespace Smil = "urn:oasis:names:tc:opendocument:xmlns:smil-compatible:1.0";
 }

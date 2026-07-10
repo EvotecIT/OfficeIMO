@@ -47,3 +47,7 @@ for package in "$artifact_dir"/*.odt "$artifact_dir"/*.ods "$artifact_dir"/*.odp
   done
   xmllint --noout --relaxng "$manifest_schema" "$extract_dir/META-INF/manifest.xml"
 done
+
+for flat in "$artifact_dir"/*.fodt "$artifact_dir"/*.fods "$artifact_dir"/*.fodp; do
+  xmllint --noout --relaxng "$schema_dir/OpenDocument-v1.4-schema.rng" "$flat"
+done

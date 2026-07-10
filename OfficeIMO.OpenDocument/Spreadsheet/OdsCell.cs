@@ -16,7 +16,15 @@ public sealed class OdsCell {
     /// <summary>Raw OpenFormula expression, including any namespace prefix.</summary>
     public string? Formula {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "formula");
-        set { EnsureEditable(); _element.SetAttributeValue(OdfNamespaces.Table + "formula", value); Dirty(); }
+        set {
+            EnsureEditable();
+            string? current = (string?)_element.Attribute(OdfNamespaces.Table + "formula");
+            if (string.Equals(current, value, StringComparison.Ordinal)) return;
+            _element.SetAttributeValue(OdfNamespaces.Table + "formula", value);
+            ClearValueAttributes();
+            foreach (XElement paragraph in _element.Elements(OdfNamespaces.Text + "p").ToList()) paragraph.Remove();
+            Dirty();
+        }
     }
     /// <summary>Referenced cell style name.</summary>
     public string? StyleName {

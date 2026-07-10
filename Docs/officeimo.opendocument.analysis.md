@@ -94,9 +94,9 @@ The spreadsheet model must keep repeated rows, columns, and cells as runs. Acces
 
 ### Formulas are a separate language
 
-ODF formulas use OpenFormula expressions and namespace-qualified formula values. The first release should preserve formulas and cached results, expose typed formula text, and invalidate stale cached values when a formula changes. It should not claim to calculate formulas.
+ODF formulas use OpenFormula expressions and namespace-qualified formula values. The storage layer preserves formulas and cached results, exposes typed formula text, and invalidates stale cached values when a formula changes.
 
-A future evaluator belongs in its own parser/evaluation layer inside the OpenDocument owner. It should not be approximated by translating formulas through Excel.
+The evaluator is a separate, bounded parser/evaluation layer inside the OpenDocument owner. It covers a documented local OpenFormula subset without translating formulas through Excel, fetching external data, or executing active content.
 
 ## Recommended Project Layout
 
@@ -384,7 +384,7 @@ Read ODF 1.2, 1.3, and 1.4 in both conforming and extended forms. Older ODF 1.0/
 
 Do not create vendor-extension markup in the default profile. Preserve existing vendor markup unless a caller requests strict normalization.
 
-Flat XML variants (`.fodt`, `.fods`, `.fodp`) use the same schema model but are outside the requested package formats. The XML layer should not make them impossible, but support can wait.
+Flat XML variants (`.fodt`, `.fods`, `.fodp`) use the same schema model. They are supported through explicit flat-XML open/save APIs, including embedded raster image binary data, while package-only and exotic embedded-object features remain a documented lossy boundary.
 
 ## Signatures, Encryption, and Active Content
 
@@ -465,16 +465,18 @@ Keep the implementation in reviewable vertical slices.
 
 ### Milestone 4: conversion adapters
 
-- [ ] Add `OfficeIMO.Word.OpenDocument` for explicit ODT/Word conversion.
-- [ ] Add `OfficeIMO.Excel.OpenDocument` for explicit ODS/Excel conversion.
-- [ ] Add `OfficeIMO.PowerPoint.OpenDocument` for explicit ODP/PowerPoint conversion.
-- [ ] Publish feature-mapping reports rather than promise silent full-fidelity conversion.
+- [x] Add `OfficeIMO.Word.OpenDocument` for explicit ODT/Word conversion.
+- [x] Add `OfficeIMO.Excel.OpenDocument` for explicit ODS/Excel conversion.
+- [x] Add `OfficeIMO.PowerPoint.OpenDocument` for explicit ODP/PowerPoint conversion.
+- [x] Publish feature-mapping reports rather than promise silent full-fidelity conversion.
 
 ### Milestone 5: advanced capabilities
 
-- [ ] Add formula parsing or evaluation only after the storage and preservation contracts are stable.
-- [ ] Add tracked-change editing, advanced charts, animations, flat XML, encryption, and signatures as separate capability lines.
-- [ ] Split the package only if measured package size, build time, or real consumer demand justifies the extra dependency graph.
+- [x] Add bounded formula parsing and evaluation after the storage and preservation contracts are stable.
+- [x] Add tracked-change editing, advanced-chart preservation, basic animations, flat XML, encryption detection, and signature preservation as separate capability lines.
+- [x] Measure package size and build time before deciding whether to split the dependency-free package.
+
+The M5 measurement on Apple M4/macOS with .NET SDK 10.0.102 produced a 302,725-byte `OfficeIMO.OpenDocument` package with empty NuGet dependency groups. A clean Release build of its three non-Windows targets took 1.18 seconds. This does not justify splitting the native package; the format-specific source folders remain the simpler boundary. BenchmarkDotNet coverage lives in `OfficeIMO.OpenDocument.Benchmarks` for ODT open/enumeration, extreme sparse ODS writing, and bounded range-formula evaluation.
 
 ## Repository Integration Points
 

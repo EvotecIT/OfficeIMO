@@ -7,6 +7,7 @@ internal static class OdfFeatureInspector {
         OdfNamespaces.Number.NamespaceName, OdfNamespaces.Fo.NamespaceName, OdfNamespaces.Svg.NamespaceName,
         OdfNamespaces.XLink.NamespaceName, OdfNamespaces.Meta.NamespaceName, OdfNamespaces.Dc.NamespaceName,
         OdfNamespaces.Manifest.NamespaceName, OdfNamespaces.Config.NamespaceName, OdfNamespaces.Of.NamespaceName,
+        OdfNamespaces.Anim.NamespaceName, OdfNamespaces.Smil.NamespaceName,
         XNamespace.Xml.NamespaceName, XNamespace.Xmlns.NamespaceName, string.Empty
     };
 
@@ -28,6 +29,8 @@ internal static class OdfFeatureInspector {
             int transitions = document.Descendants(OdfNamespaces.Style + "drawing-page-properties")
                 .Count(element => element.Attribute(OdfNamespaces.Presentation + "transition-type") != null || element.Attribute(OdfNamespaces.Presentation + "transition-style") != null);
             if (transitions > 0) findings.Add(new OdfFeatureFinding("presentation-transitions", OdfFeatureSupport.Editable, entry.Name, transitions));
+            int animations = document.Descendants(OdfNamespaces.Anim + "animate").Count();
+            if (animations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Editable, entry.Name, animations));
 
             var foreign = document.Root.DescendantsAndSelf()
                 .Select(element => element.Name.NamespaceName)

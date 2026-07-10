@@ -23,6 +23,9 @@ public sealed class OdfOpenOptions {
     /// <summary>Maximum characters allowed in one parsed XML part.</summary>
     public long MaxXmlCharacters { get; set; } = 128L * 1024L * 1024L;
 
+    /// <summary>Maximum element nesting depth allowed in one parsed XML part.</summary>
+    public int MaxXmlDepth { get; set; } = 256;
+
     /// <summary>Preserve package entries and XML extensions that do not have typed support.</summary>
     public bool PreserveUnknownContent { get; set; } = true;
 
@@ -35,6 +38,7 @@ public sealed class OdfOpenOptions {
             MaxCompressionRatio = MaxCompressionRatio <= 0d ? 1d : MaxCompressionRatio,
             MaxDepth = Math.Max(1, MaxDepth),
             MaxXmlCharacters = Math.Max(1L, MaxXmlCharacters),
+            MaxXmlDepth = Math.Max(1, MaxXmlDepth),
             PreserveUnknownContent = PreserveUnknownContent
         };
     }

@@ -42,15 +42,15 @@ public static class ExcelOpenDocumentConversionExtensions {
             foreach (ExcelCellSnapshot cell in worksheet.Cells) {
                 if (cell.Row < 1 || cell.Column < 1 || cell.Row > effective.MaximumRows || cell.Column > effective.MaximumColumns) continue;
                 OdsCell converted = sheet.Cell(cell.Row - 1L, cell.Column - 1L);
+                if (!string.IsNullOrWhiteSpace(cell.Formula)) {
+                    converted.Formula = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(cell.Formula!);
+                    formulas++;
+                }
                 bool exactValue = SetOdsValue(converted, cell.Value);
                 if (!exactValue) unsupportedStyles++;
                 if (cell.Hyperlink != null && !string.IsNullOrWhiteSpace(cell.Hyperlink.Target)) {
                     converted.SetHyperlink(ValueText(cell.Value), cell.Hyperlink.Target);
                     hyperlinks++;
-                }
-                if (!string.IsNullOrWhiteSpace(cell.Formula)) {
-                    converted.Formula = SpreadsheetAddressConverter.ExcelFormulaToOpenFormula(cell.Formula!);
-                    formulas++;
                 }
                 if (effective.IncludeBasicStyles && cell.Style != null) {
                     ApplyExcelStyle(target, converted, cell.Style, dataStyles, ref unsupportedStyles);

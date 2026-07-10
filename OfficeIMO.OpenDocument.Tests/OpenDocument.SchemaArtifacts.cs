@@ -5,6 +5,9 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public class OpenDocumentSchemaArtifactTests {
+    private static readonly byte[] TinyPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
     [Fact]
     [Trait("Category", "OpenDocumentSchemaArtifact")]
     public void EmitsRepresentativeOdf14Artifacts() {
@@ -19,7 +22,10 @@ public class OpenDocumentSchemaArtifactTests {
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
                 text.PageLayout.Header.AddParagraph("OfficeIMO");
+                text.AddTrackedParagraphInsertion("Tracked schema proof", "OfficeIMO", new DateTimeOffset(2026, 7, 10, 0, 0, 0, TimeSpan.Zero));
+                text.AddParagraph("Embedded image").AddImage(TinyPng, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
                 text.Save(Path.Combine(output, "schema-proof-1.4.odt"));
+                text.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fodt"));
                 text.Save(Path.Combine(output, "schema-proof-1.3.odt"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
                 Assert.True(text.Validate().IsValid);
             }
@@ -31,18 +37,22 @@ public class OpenDocumentSchemaArtifactTests {
                 formula.SetDecimal(1m);
                 formula.NumberFormatName = spreadsheet.AddNumberStyle("Amount", 2).Name;
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.4.ods"));
+                spreadsheet.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fods"));
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.3.ods"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
                 Assert.True(spreadsheet.Validate().IsValid);
             }
             using (OdpPresentation presentation = OdpPresentation.Create()) {
                 OdpSlide slide = presentation.AddSlide("Schema proof");
                 slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 2), "Native ODP");
-                slide.AddRectangle(OdfRect.FromCentimeters(1, 4, 4, 2)).FillColor = OdfColor.Parse("#D1E9FF");
+                OdpRectangle rectangle = slide.AddRectangle(OdfRect.FromCentimeters(1, 4, 4, 2));
+                rectangle.FillColor = OdfColor.Parse("#D1E9FF");
+                slide.AddFadeInAnimation(rectangle, TimeSpan.FromSeconds(1));
                 slide.AddTable(OdfRect.FromCentimeters(7, 4, 8, 3), 2, 2, "Proof").Cell(0, 0).Text = "Value";
                 slide.GetOrCreateSpeakerNotes().AddParagraph("Speaker notes");
                 slide.TransitionType = "automatic";
                 slide.TransitionStyle = "fade-from-center";
                 presentation.Save(Path.Combine(output, "schema-proof-1.4.odp"));
+                presentation.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fodp"));
                 presentation.Save(Path.Combine(output, "schema-proof-1.3.odp"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
                 Assert.True(presentation.Validate().IsValid);
             }

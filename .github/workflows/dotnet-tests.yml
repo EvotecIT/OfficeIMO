@@ -131,6 +131,7 @@ jobs:
           # Keep the Windows job focused on the unique .NET Framework coverage so it stays inside the timeout budget.
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -285,6 +286,7 @@ jobs:
             dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
             dotnet restore OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj
             dotnet restore OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
+            dotnet restore OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
           fi
 
       - name: Build test projects
@@ -319,6 +321,7 @@ jobs:
             dotnet build OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
 
       - name: Run tests
@@ -526,6 +529,7 @@ jobs:
               run_googleworkspace_tests
               run_markup_tests
               run_opendocument_tests
+              dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_powerpoint_tests
               run_visio_tests
               run_reader_tests

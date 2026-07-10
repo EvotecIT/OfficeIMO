@@ -117,7 +117,7 @@ internal sealed class OdfPackage {
 
         OdfPackageEntry manifestEntry = loaded.FirstOrDefault(entry => entry.Name == "META-INF/manifest.xml")
             ?? throw new InvalidDataException("OpenDocument package is missing 'META-INF/manifest.xml'.");
-        XDocument manifest = manifestEntry.GetXml(effective.MaxXmlCharacters);
+        XDocument manifest = manifestEntry.GetXml(effective.MaxXmlCharacters, effective.MaxXmlDepth);
         XElement manifestRoot = manifest.Root ?? throw new InvalidDataException("OpenDocument manifest has no root element.");
         if (manifestRoot.Name != OdfNamespaces.Manifest + "manifest") {
             throw new InvalidDataException("OpenDocument manifest root must be 'manifest:manifest'.");
@@ -161,7 +161,7 @@ internal sealed class OdfPackage {
         return entry;
     }
 
-    internal XDocument GetXml(string name) => GetRequiredEntry(name).GetXml(_openOptions.MaxXmlCharacters);
+    internal XDocument GetXml(string name) => GetRequiredEntry(name).GetXml(_openOptions.MaxXmlCharacters, _openOptions.MaxXmlDepth);
 
     internal XDocument EnsureXml(string name, XDocument template, string mediaType) {
         if (!ContainsEntry(name)) {
@@ -253,7 +253,7 @@ internal sealed class OdfPackage {
 
     private void AddInitialXml(string name, XDocument document, string mediaType) {
         AddInitialEntry(name, OdfXmlCodec.Save(document), mediaType);
-        GetRequiredEntry(name).GetXml(_openOptions.MaxXmlCharacters);
+        GetRequiredEntry(name).GetXml(_openOptions.MaxXmlCharacters, _openOptions.MaxXmlDepth);
     }
 
     private void AddLoadedEntry(OdfPackageEntry entry) {
@@ -273,7 +273,7 @@ internal sealed class OdfPackage {
 
     private void RebuildManifest(OdfVersion outputVersion) {
         OdfPackageEntry manifestEntry = GetRequiredEntry("META-INF/manifest.xml");
-        XDocument manifest = manifestEntry.GetXml(_openOptions.MaxXmlCharacters);
+        XDocument manifest = manifestEntry.GetXml(_openOptions.MaxXmlCharacters, _openOptions.MaxXmlDepth);
         XElement root = manifest.Root ?? throw new InvalidDataException("OpenDocument manifest has no root element.");
         root.SetAttributeValue(OdfNamespaces.Manifest + "version", outputVersion.ToToken());
 

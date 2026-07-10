@@ -8,6 +8,22 @@ public abstract class OdpShape {
         get => (string?)Element.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty;
         set { Element.SetAttributeValue(OdfNamespaces.Draw + "name", value); Dirty(); }
     }
+    /// <summary>XML identifier used by animation and cross-reference targets.</summary>
+    public string? XmlId {
+        get => (string?)Element.Attribute(XNamespace.Xml + "id");
+        set {
+            if (value != null) {
+                XmlConvert.VerifyNCName(value);
+                bool duplicate = Presentation.Slides
+                    .SelectMany(slide => slide.Element.DescendantsAndSelf())
+                    .Any(element => !ReferenceEquals(element, Element) &&
+                        string.Equals((string?)element.Attribute(XNamespace.Xml + "id"), value, StringComparison.Ordinal));
+                if (duplicate) throw new ArgumentException("Shape XML identifiers must be unique within the presentation.", nameof(value));
+            }
+            Element.SetAttributeValue(XNamespace.Xml + "id", value);
+            Dirty();
+        }
+    }
     /// <summary>Whether the shape is hidden from the normal presentation view.</summary>
     public bool Hidden {
         get => (string?)Element.Attribute(OdfNamespaces.Presentation + "visibility") == "hidden";
@@ -71,6 +87,16 @@ public abstract class OdpShape {
     }
     internal void Dirty() => Presentation.MarkPartDirty("content.xml");
     internal OdfStyle EnsureGraphicStyle() => Presentation.Styles.EnsureAutomaticStyle(Element, OdfNamespaces.Draw + "style-name", OdfStyleFamily.Graphic, "ofGr");
+    internal string EnsureXmlId() {
+        if (!string.IsNullOrWhiteSpace(XmlId)) return XmlId!;
+        var ids = new HashSet<string>(Presentation.Slides
+            .SelectMany(slide => slide.Element.DescendantsAndSelf())
+            .Select(element => (string?)element.Attribute(XNamespace.Xml + "id"))
+            .Where(value => !string.IsNullOrWhiteSpace(value))!, StringComparer.Ordinal);
+        int index = 1; string id;
+        do { id = "shape" + index++.ToString(CultureInfo.InvariantCulture); } while (ids.Contains(id));
+        XmlId = id; return id;
+    }
     private OdfStyle? GetGraphicStyle() {
         string? name = (string?)Element.Attribute(OdfNamespaces.Draw + "style-name");
         return name == null ? null : Presentation.Styles.Find(OdfStyleFamily.Graphic, name);

@@ -1,10 +1,27 @@
 namespace OfficeIMO.OpenDocument;
 
 internal static class OdfXmlCodec {
-    internal static XDocument Load(byte[] bytes, string partPath, long maxCharacters) {
+    internal static XDocument Load(byte[] bytes, string partPath, long maxCharacters, int maxDepth) {
         try {
             using var stream = new MemoryStream(bytes, writable: false);
-            var settings = new XmlReaderSettings {
+            XmlReaderSettings settings = CreateReaderSettings(maxCharacters);
+            using (XmlReader depthReader = XmlReader.Create(stream, settings)) {
+                while (depthReader.Read()) {
+                    if (depthReader.Depth > maxDepth) throw new InvalidDataException($"OpenDocument XML part '{partPath}' exceeds MaxXmlDepth ({maxDepth}).");
+                }
+            }
+            stream.Position = 0;
+            settings = CreateReaderSettings(maxCharacters);
+            using XmlReader reader = XmlReader.Create(stream, settings);
+            return XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
+        } catch (InvalidDataException) {
+            throw;
+        } catch (Exception ex) when (ex is XmlException || ex is InvalidOperationException) {
+            throw new InvalidDataException($"OpenDocument XML part '{partPath}' is invalid.", ex);
+        }
+    }
+
+    private static XmlReaderSettings CreateReaderSettings(long maxCharacters) => new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
                 MaxCharactersInDocument = maxCharacters,
@@ -13,12 +30,6 @@ internal static class OdfXmlCodec {
                 IgnoreWhitespace = false,
                 CloseInput = false
             };
-            using XmlReader reader = XmlReader.Create(stream, settings);
-            return XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
-        } catch (Exception ex) when (ex is XmlException || ex is InvalidOperationException) {
-            throw new InvalidDataException($"OpenDocument XML part '{partPath}' is invalid.", ex);
-        }
-    }
 
     internal static byte[] Save(XDocument document) {
         using var stream = new MemoryStream();
@@ -49,6 +60,8 @@ internal static class OdfXmlCodec {
         root.SetAttributeValue(XNamespace.Xmlns + "dc", OdfNamespaces.Dc.NamespaceName);
         root.SetAttributeValue(XNamespace.Xmlns + "config", OdfNamespaces.Config.NamespaceName);
         root.SetAttributeValue(XNamespace.Xmlns + "of", OdfNamespaces.Of.NamespaceName);
+        root.SetAttributeValue(XNamespace.Xmlns + "anim", OdfNamespaces.Anim.NamespaceName);
+        root.SetAttributeValue(XNamespace.Xmlns + "smil", OdfNamespaces.Smil.NamespaceName);
         if (includePresentation) {
             root.SetAttributeValue(XNamespace.Xmlns + "presentation", OdfNamespaces.Presentation.NamespaceName);
         }
