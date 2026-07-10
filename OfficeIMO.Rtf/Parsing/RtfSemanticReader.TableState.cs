@@ -157,6 +157,7 @@ internal static partial class RtfSemanticReader {
             _currentParagraphIsInTable = outerInTable;
             _currentParagraph = outerParagraph;
             if (existingNested == null) {
+                CountSemanticBlock();
                 if (parentBlocks != null) {
                     parentBlocks.Add(nested);
                 } else {
@@ -230,6 +231,7 @@ internal static partial class RtfSemanticReader {
                 _currentRow.AddCell();
             }
 
+            CountSemanticBlock();
             _currentRow.Cells[_currentCellIndex].AddParsedParagraph(paragraph);
         }
 

@@ -462,6 +462,7 @@ internal static partial class RtfSemanticReader {
             state.PendingListTextAfterReset = null;
             if (_currentNote != null) {
                 if (_currentParagraph.Inlines.Count > 0) {
+                    CountSemanticBlock();
                     _currentNote.AddParsedParagraph(_currentParagraph);
                 }
 
@@ -472,6 +473,7 @@ internal static partial class RtfSemanticReader {
 
             if (_currentHeaderFooter != null) {
                 if (_currentParagraph.Inlines.Count > 0) {
+                    CountSemanticBlock();
                     _currentHeaderFooter.AddParsedParagraph(_currentParagraph);
                 }
 
@@ -482,6 +484,7 @@ internal static partial class RtfSemanticReader {
 
             if (_currentShape != null) {
                 if (_currentParagraph.Inlines.Count > 0) {
+                    CountSemanticBlock();
                     _currentShape.AddParsedTextBoxParagraph(_currentParagraph);
                 }
 
@@ -492,6 +495,7 @@ internal static partial class RtfSemanticReader {
 
             if (_nestedTableContexts.Count > 0) {
                 if (_currentParagraph.Inlines.Count > 0) {
+                    CountSemanticBlock();
                     _nestedTableContexts[_nestedTableContexts.Count - 1].CurrentCellBlocks.Add(_currentParagraph);
                 }
 

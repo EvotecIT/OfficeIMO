@@ -90,6 +90,7 @@ public static partial class WordRtfConverterExtensions {
             RtfListOverride item = destination.AddListOverride(id.Value, abstractId.Value);
             foreach (LevelOverride wordOverride in instance.Elements<LevelOverride>()) {
                 RtfListLevelOverride levelOverride = item.AddLevelOverride();
+                levelOverride.LevelIndex = wordOverride.LevelIndex?.Value;
                 levelOverride.StartAt = wordOverride.StartOverrideNumberingValue?.Val?.Value;
                 levelOverride.OverrideStartAt = levelOverride.StartAt.HasValue;
             }
@@ -188,7 +189,7 @@ public static partial class WordRtfConverterExtensions {
             instance.Append(new AbstractNumId { Val = item.ListId });
             for (int levelIndex = 0; levelIndex < item.LevelOverrides.Count; levelIndex++) {
                 RtfListLevelOverride sourceOverride = item.LevelOverrides[levelIndex];
-                var levelOverride = new LevelOverride { LevelIndex = levelIndex };
+                var levelOverride = new LevelOverride { LevelIndex = sourceOverride.LevelIndex ?? levelIndex };
                 if (sourceOverride.OverrideStartAt == true && sourceOverride.StartAt.HasValue) {
                     levelOverride.Append(new StartOverrideNumberingValue { Val = sourceOverride.StartAt.Value });
                 }

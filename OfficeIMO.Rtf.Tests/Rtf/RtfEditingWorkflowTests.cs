@@ -109,6 +109,25 @@ public class RtfEditingWorkflowTests {
     }
 
     [Fact]
+    public void Semantic_Document_Append_Reports_Omitted_Section_Layout() {
+        RtfDocument destination = RtfDocument.Create();
+        destination.AddParagraph("Destination");
+        RtfDocument source = RtfDocument.Create();
+        RtfSection section = source.AddSection();
+        section.ColumnCount = 2;
+        section.PageSetup.Landscape = true;
+        section.AddParagraph("Source");
+
+        RtfDocumentMergeResult result = destination.AppendDocument(source);
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "RtfMergeSectionLayoutOmitted" &&
+            diagnostic.Action == RtfConversionAction.Omitted &&
+            diagnostic.Count == 1);
+        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+    }
+
+    [Fact]
     public void Semantic_Document_Append_Remaps_Attached_Notes_Exactly_Once() {
         RtfDocument destination = RtfDocument.Create();
         destination.AddColor(255, 0, 0);

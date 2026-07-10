@@ -350,10 +350,12 @@ internal static partial class RtfSemanticReader {
         }
 
         private void AddDocumentBlock(IRtfBlock block) {
-            _limits.AddSemanticBlock(-1);
+            CountSemanticBlock();
             _document.AddParsedBlock(block);
             EnsureCurrentSection().AddParsedBlock(block);
         }
+
+        private void CountSemanticBlock() => _limits.AddSemanticBlock(-1);
 
         private void AddPicture(RtfImage image) {
             if (_currentParagraph.Inlines.Count > 0 ||

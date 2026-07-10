@@ -79,8 +79,11 @@ public partial class WordRtfConverterTests {
         level.StartAt = 3;
         level.Text = "%1.";
         level.LeftIndentTwips = 720;
+        definition.AddLevel(RtfListKind.Decimal);
+        definition.AddLevel(RtfListKind.Decimal);
         RtfListOverride listOverride = rtf.AddListOverride(20, 10);
         RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
+        levelOverride.LevelIndex = 2;
         levelOverride.StartAt = 7;
         levelOverride.OverrideStartAt = true;
         RtfListLevelOverride inactiveOverride = rtf.AddListOverride(21, 10).AddLevelOverride();
@@ -112,6 +115,7 @@ public partial class WordRtfConverterTests {
         Assert.Equal(3, Assert.Single(roundTrip.ListDefinitions, item => item.Id == 10).Levels[0].StartAt);
         RtfListLevelOverride roundTripOverride = Assert.Single(Assert.Single(roundTrip.ListOverrides, item => item.Id == 20).LevelOverrides);
         Assert.Equal(7, roundTripOverride.StartAt);
+        Assert.Equal(2, roundTripOverride.LevelIndex);
         Assert.True(roundTripOverride.OverrideStartAt);
         RtfListLevelOverride inactiveRoundTripOverride = Assert.Single(Assert.Single(roundTrip.ListOverrides, item => item.Id == 21).LevelOverrides);
         Assert.Null(inactiveRoundTripOverride.StartAt);
@@ -119,5 +123,22 @@ public partial class WordRtfConverterTests {
         Assert.Contains(toWord.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordStylesMapped");
         Assert.Contains(toWord.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordListDefinitionsMapped");
         toWord.Report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void Rtf_ToWord_Result_Reports_Object_And_Shape_Loss_In_Headers_And_Footers() {
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddParagraph("Body");
+        rtf.AddHeader().AddParagraph("Header").AddObject(RtfObjectKind.Embedded, new byte[] { 1 });
+        rtf.AddFooter().AddParagraph("Footer").AddShape();
+
+        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        using (result.Value) {
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "RtfWordObjectsOmitted" && diagnostic.Count == 1);
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "RtfWordShapesOmitted" && diagnostic.Count == 1);
+            Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        }
     }
 }

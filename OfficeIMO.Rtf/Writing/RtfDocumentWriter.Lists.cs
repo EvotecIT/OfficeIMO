@@ -165,6 +165,7 @@ internal static partial class RtfDocumentWriter {
         };
         foreach (RtfListLevelOverride levelOverride in source.LevelOverrides) {
             listOverride.AddParsedLevelOverride(new RtfListLevelOverride {
+                LevelIndex = levelOverride.LevelIndex,
                 OverrideFormat = levelOverride.OverrideFormat,
                 OverrideStartAt = levelOverride.OverrideStartAt,
                 StartAt = levelOverride.StartAt

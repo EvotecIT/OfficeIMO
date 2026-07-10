@@ -4,6 +4,9 @@ namespace OfficeIMO.Rtf;
 /// Per-level override metadata inside an RTF list override table entry.
 /// </summary>
 public sealed class RtfListLevelOverride {
+    /// <summary>Zero-based list level targeted by this override when the source format identifies it explicitly.</summary>
+    public int? LevelIndex { get; set; }
+
     /// <summary>Whether this override replaces formatting for the referenced list level.</summary>
     public bool? OverrideFormat { get; set; }
 

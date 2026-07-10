@@ -55,6 +55,11 @@ public static partial class WordRtfConverterExtensions {
         foreach (IRtfBlock block in blocks) {
             CountUnsupportedRtfBlock(block, ref objectCount, ref shapeCount);
         }
+        foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
+            foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
+                CountUnsupportedRtfBlock(paragraph, ref objectCount, ref shapeCount);
+            }
+        }
 
         AddUnsupportedRtfDiagnostics(report, objectCount, shapeCount);
     }

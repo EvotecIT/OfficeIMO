@@ -136,6 +136,29 @@ public class RtfReadLimitTests {
     }
 
     [Fact]
+    public void Semantic_Block_Limit_Counts_Paragraphs_Inside_Tables() {
+        const string rtf = @"{\rtf1\trowd\cellx1000\intbl Cell\cell\row}";
+        var options = new RtfReadOptions { MaxSemanticBlockCount = 1 };
+
+        RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.Read(rtf, options));
+
+        Assert.Equal("RtfSemanticBlockLimitExceeded", exception.Code);
+        Assert.Equal(nameof(RtfReadOptions.MaxSemanticBlockCount), exception.LimitSource);
+    }
+
+    [Theory]
+    [InlineData(@"{\rtf1{\header Header\par}Body\par}")]
+    [InlineData(@"{\rtf1 Body{\footnote Note\par}\par}")]
+    [InlineData(@"{\rtf1{\shp{\*\shpinst{\shptxt Shape\par}}}}")]
+    public void Semantic_Block_Limit_Counts_Paragraphs_In_Nested_Content(string rtf) {
+        var options = new RtfReadOptions { MaxSemanticBlockCount = 1 };
+
+        RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.Read(rtf, options));
+
+        Assert.Equal("RtfSemanticBlockLimitExceeded", exception.Code);
+    }
+
+    [Fact]
     public void Untrusted_Profile_Blocks_Objects_And_File_References_With_Diagnostics() {
         const string rtf = @"{\rtf1{\filetbl{\file\fid0 C:\\private.txt;}}{\object\objemb{\*\objdata 0102}}Visible}";
 

@@ -45,6 +45,12 @@ public sealed partial class RtfDocument {
                 "Source headers and footers were not appended because they belong to section-level document layout.",
                 RtfConversionAction.Omitted, feature: "HeaderFooter", count: imported.HeaderFooters.Count);
         }
+        int omittedSectionLayouts = imported.Sections.Count(section => section.HasAnyLayoutValue);
+        if (omittedSectionLayouts > 0) {
+            report.Add(RtfConversionSeverity.Warning, "RtfMergeSectionLayoutOmitted",
+                "Source section layout, page setup, and column settings were not appended because document append flattens content into the destination layout.",
+                RtfConversionAction.Omitted, feature: "SectionLayout", count: omittedSectionLayouts);
+        }
 
         return new RtfDocumentMergeResult(this, appended, report);
     }

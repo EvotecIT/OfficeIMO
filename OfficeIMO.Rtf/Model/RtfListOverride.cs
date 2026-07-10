@@ -26,7 +26,7 @@ public sealed class RtfListOverride {
 
     /// <summary>Adds a per-level override entry.</summary>
     public RtfListLevelOverride AddLevelOverride() {
-        var levelOverride = new RtfListLevelOverride();
+        var levelOverride = new RtfListLevelOverride { LevelIndex = _levelOverrides.Count };
         _levelOverrides.Add(levelOverride);
         return levelOverride;
     }
