@@ -53,7 +53,7 @@ public class TabularDataTableBuilderTests {
     public void FromItems_UsesHostProjectionCallback() {
         var projectionCalls = 0;
         var table = TabularDataTableBuilder.FromItems(new object?[] { new HostRow(7) }, new TabularDataOptions {
-            ProjectObject = item => {
+            ProjectObject = (item, _) => {
                 projectionCalls++;
                 return new Dictionary<string, object?> {
                     ["Value"] = item is HostRow row ? row.Number : -1
@@ -74,7 +74,7 @@ public class TabularDataTableBuilderTests {
         var projectionCalls = 0;
         var options = new TabularDataOptions {
             CopyExistingDataTable = false,
-            ProjectObject = item => {
+            ProjectObject = (item, _) => {
                 projectionCalls++;
                 return new Dictionary<string, object?> { ["Projected"] = item };
             }
@@ -88,6 +88,33 @@ public class TabularDataTableBuilderTests {
         Assert.Empty(empty.Rows);
         Assert.Empty(empty.Columns);
         Assert.Equal(0, projectionCalls);
+    }
+
+    [Fact]
+    public void FromItems_FirstRowProjectionReceivesEstablishedColumns() {
+        IReadOnlyList<string>? secondRowColumns = null;
+        var table = TabularDataTableBuilder.FromItems(new object?[] {
+            new HostRow(1),
+            new HostRow(2)
+        }, new TabularDataOptions {
+            ColumnDiscoveryMode = TabularColumnDiscoveryMode.FirstRow,
+            ProjectObject = (item, columns) => {
+                var row = (HostRow)item!;
+                if (row.Number == 2) {
+                    secondRowColumns = columns;
+                    if (columns == null || !columns.Contains("Value")) {
+                        throw new InvalidOperationException("Established columns were not provided.");
+                    }
+                }
+
+                return new Dictionary<string, object?> { ["Value"] = row.Number };
+            }
+        });
+
+        Assert.NotNull(secondRowColumns);
+        Assert.Equal(new[] { "Value" }, secondRowColumns);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(2, table.Rows[1]["Value"]);
     }
 
     [Fact]

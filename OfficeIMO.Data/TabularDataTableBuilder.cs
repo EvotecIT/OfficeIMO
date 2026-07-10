@@ -21,11 +21,12 @@ public static class TabularDataTableBuilder {
         var items = MaterializeItems(input, options);
 
         if (items.Count == 1 && options.ExpandSingleEnumerableInput && ShouldExpandSingleEnumerableInput(items[0])) {
-            items = ((IEnumerable)items[0]!)
-                .Cast<object?>()
-                .Select(item => Unwrap(item, options))
-                .Where(item => options.PreserveNullRows || item != null)
-                .ToList();
+            var expandedItems = new List<object?>();
+            foreach (var item in (IEnumerable)items[0]!) {
+                AddMaterializedItem(expandedItems, item, options);
+            }
+
+            items = expandedItems;
         }
 
         if (items.Count == 0) {
@@ -155,9 +156,8 @@ public static class TabularDataTableBuilder {
             return;
         }
 
-        var projected = options.ProjectObject?.Invoke(item);
-        if (projected != null) {
-            items.Add(new ProjectedRow(projected));
+        if (options.ProjectObject != null && (options.PreserveNullRows || unwrapped != null)) {
+            items.Add(new ProjectableItem(item, unwrapped));
             return;
         }
 
@@ -252,9 +252,10 @@ public static class TabularDataTableBuilder {
         var rows = new List<IReadOnlyDictionary<string, object?>>(items.Count);
         var columns = new List<string>();
         var exactColumns = new HashSet<string>(StringComparer.Ordinal);
+        string[]? fixedProjectionColumns = null;
 
         foreach (var item in items) {
-            var row = GetProperties(item, options);
+            var row = GetProperties(item, options, fixedProjectionColumns);
             rows.Add(row);
 
             if (options.ColumnDiscoveryMode == TabularColumnDiscoveryMode.AllRows || rows.Count == 1) {
@@ -271,6 +272,10 @@ public static class TabularDataTableBuilder {
                         columns.Add(key);
                         exactColumns.Add(key);
                     }
+                }
+
+                if (options.ColumnDiscoveryMode == TabularColumnDiscoveryMode.FirstRow) {
+                    fixedProjectionColumns = columns.ToArray();
                 }
             }
         }
@@ -310,12 +315,17 @@ public static class TabularDataTableBuilder {
         return table;
     }
 
-    private static IReadOnlyDictionary<string, object?> GetProperties(object? item, TabularDataOptions options) {
-        if (item is ProjectedRow projectedRow) {
-            return NormalizeDictionary(projectedRow.Values, options);
+    private static IReadOnlyDictionary<string, object?> GetProperties(
+        object? item,
+        TabularDataOptions options,
+        IReadOnlyList<string>? projectionColumns) {
+        var projectionItem = item;
+        if (item is ProjectableItem projectableItem) {
+            projectionItem = projectableItem.Source;
+            item = projectableItem.Unwrapped;
         }
 
-        var projected = options.ProjectObject?.Invoke(item);
+        var projected = options.ProjectObject?.Invoke(projectionItem, projectionColumns);
         if (projected != null) {
             return NormalizeDictionary(projected, options);
         }
@@ -341,10 +351,15 @@ public static class TabularDataTableBuilder {
         return ProjectPublicProperties(item!, options);
     }
 
-    private sealed class ProjectedRow {
-        internal ProjectedRow(IReadOnlyDictionary<string, object?> values) => Values = values;
+    private sealed class ProjectableItem {
+        internal ProjectableItem(object? source, object? unwrapped) {
+            Source = source;
+            Unwrapped = unwrapped;
+        }
 
-        internal IReadOnlyDictionary<string, object?> Values { get; }
+        internal object? Source { get; }
+
+        internal object? Unwrapped { get; }
     }
 
     private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IReadOnlyDictionary<string, object?> source, TabularDataOptions options)

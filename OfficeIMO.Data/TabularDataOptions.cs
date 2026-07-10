@@ -28,8 +28,8 @@ public sealed class TabularDataOptions {
     /// <summary>Unwraps host-specific wrapper objects before tabular conversion.</summary>
     public Func<object?, object?>? UnwrapValue { get; set; }
 
-    /// <summary>Projects host-specific objects into a column/value dictionary.</summary>
-    public Func<object?, IReadOnlyDictionary<string, object?>?>? ProjectObject { get; set; }
+    /// <summary>Projects host-specific objects into a column/value dictionary, using established columns when available.</summary>
+    public Func<object?, IReadOnlyList<string>?, IReadOnlyDictionary<string, object?>?>? ProjectObject { get; set; }
 
     /// <summary>Converts cell values before they are stored in the DataTable.</summary>
     public Func<object?, object?>? NormalizeValue { get; set; }
