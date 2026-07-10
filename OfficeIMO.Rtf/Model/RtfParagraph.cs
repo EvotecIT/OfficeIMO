@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Paragraph in an RTF document.
 /// </summary>
-public sealed class RtfParagraph : IRtfBlock {
+public sealed partial class RtfParagraph : IRtfBlock {
     private readonly List<RtfRun> _runs = new List<RtfRun>();
     private readonly List<IRtfInline> _inlines = new List<IRtfInline>();
     private readonly List<RtfTabStop> _tabStops = new List<RtfTabStop>();
