@@ -870,17 +870,6 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_ReportsPendingAdvancedLayoutInsteadOfSilentlyClaimingSupport() {
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
-            "<div style='display:grid'><span style='position:absolute'>One</span><span>Two</span></div>",
-            new HtmlRenderOptions { ViewportWidth = 240D, Margins = HtmlRenderMargins.All(8D) });
-
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
-        Assert.Equal(HtmlDiagnosticSeverity.Warning, diagnostic.Severity);
-        Assert.Contains("normal flow", diagnostic.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));

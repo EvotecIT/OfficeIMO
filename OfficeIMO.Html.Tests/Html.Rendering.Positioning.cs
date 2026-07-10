@@ -154,6 +154,39 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlAbsolutePosition_FlowsThroughPngSvgAndSearchablePdf() {
+        const string html = "<div style='position:relative;width:100px;height:50px;margin:0'>"
+            + "<div id='absolute-paint' style='position:absolute;left:10px;top:10px;width:80px;height:40px;margin:0;background:#ff0000'>AbsolutePdfMarker</div></div>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 100D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 15));
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
+        Assert.Contains("<rect x=\"10\" y=\"10\" width=\"80\" height=\"40\"", svg, StringComparison.Ordinal);
+        string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("AbsolutePdfMarker", searchablePdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
     public void HtmlPositioning_DiagnosesUnsupportedModesInsetsAndStacking() {
         const string html = "<div style='position:absolute'>Absolute</div>"
             + "<div style='position:fixed'>Fixed</div>"
@@ -165,16 +198,150 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Equal(3, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
         Assert.Equal(2, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported));
+        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
         Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
         Assert.All(
             new[] {
                 HtmlRenderDiagnosticCodes.PositionInsetUnsupported,
                 HtmlRenderDiagnosticCodes.PositioningModeUnsupported,
+                HtmlRenderDiagnosticCodes.PositionStickyStatic,
                 HtmlRenderDiagnosticCodes.PositionZIndexPending
             },
             code => Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_UsesNearestPositionedAncestorAndDoesNotConsumeFlowSpace() {
+        const string html = "<section id='host' style='position:relative;width:200px;height:100px;margin:0;background:#eeeeee'>"
+            + "<div><div id='absolute' style='position:absolute;left:10%;top:10px;width:20px;height:20px;margin:0;background:#ff0000'>Absolute</div></div>"
+            + "<div id='flow' style='width:30px;height:20px;margin:0;background:#0000ff'>Flow</div></section>"
+            + "<div id='after' style='width:30px;height:10px;margin:0;background:#00ff00'>After</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape absolute = FindPositionedShape(rendered, "div#absolute");
+        HtmlRenderShape flow = FindPositionedShape(rendered, "div#flow");
+        HtmlRenderShape after = FindPositionedShape(rendered, "div#after");
+        Assert.Equal(20D, absolute.X, 3);
+        Assert.Equal(10D, absolute.Y, 3);
+        Assert.Equal(20D, absolute.Width, 3);
+        Assert.Equal(20D, absolute.Height, 3);
+        Assert.InRange(flow.Y, 0D, 0.02D);
+        Assert.Equal(100D, after.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_StretchesBetweenOpposingInsets() {
+        const string html = "<div style='position:relative;width:200px;height:100px;margin:0'>"
+            + "<div id='stretched' style='position:absolute;left:10px;right:20px;top:10px;bottom:20px;margin:0;background:#ff0000'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape stretched = FindPositionedShape(rendered, "div#stretched");
+        Assert.Equal(10D, stretched.X, 3);
+        Assert.Equal(10D, stretched.Y, 3);
+        Assert.Equal(170D, stretched.Width, 3);
+        Assert.Equal(70D, stretched.Height, 3);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_ComposesWithFlexAndGridContainers() {
+        const string html = "<div style='display:flex;width:200px;height:50px;margin:0'>"
+            + "<div id='flex-flow' style='width:20px;height:20px;background:#0000ff'></div>"
+            + "<div id='flex-absolute' style='position:absolute;left:100px;top:10px;width:20px;height:20px;background:#ff0000'></div></div>"
+            + "<div style='display:grid;grid-template-columns:1fr;width:200px;height:50px;margin:0'>"
+            + "<div id='grid-flow' style='height:20px;background:#00ff00'></div>"
+            + "<div id='grid-absolute' style='position:absolute;left:100px;top:10px;width:20px;height:20px;background:#ffff00'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape flexAbsolute = FindPositionedShape(rendered, "div#flex-absolute");
+        HtmlRenderShape gridAbsolute = FindPositionedShape(rendered, "div#grid-absolute");
+        Assert.Equal(100D, flexAbsolute.X, 3);
+        Assert.Equal(10D, flexAbsolute.Y, 3);
+        Assert.Equal(100D, gridAbsolute.X, 3);
+        Assert.Equal(60D, gridAbsolute.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFixedPosition_RepeatsAtViewportCoordinatesOnEveryPage() {
+        const string html = "<div id='fixed' style='position:fixed;left:5px;top:5px;width:20px;height:20px;margin:0;background:#ff0000'>Fixed</div>"
+            + "<div style='height:60px;margin:0'>One</div><div style='height:60px;margin:0'>Two</div>"
+            + "<div style='height:60px;margin:0'>Three</div><div style='height:60px;margin:0'>Four</div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 4);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            HtmlRenderShape fixedShape = Assert.Single(page.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#fixed" && shape.Shape.FillColor.HasValue);
+            Assert.Equal(5D, fixedShape.X, 3);
+            Assert.Equal(5D, fixedShape.Y, 3);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlStickyPosition_UsesStableDocumentSnapshotAndRemainsInFlow() {
+        const string html = "<div id='sticky' style='position:sticky;top:0;width:20px;height:20px;margin:0;background:#ff0000'>Sticky</div>"
+            + "<div id='after-sticky' style='width:20px;height:20px;margin:0;background:#0000ff'>After</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(0D, FindPositionedShape(rendered, "div#sticky").Y, 3);
+        Assert.Equal(20D, FindPositionedShape(rendered, "div#after-sticky").Y, 3);
+        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_DiagnosesInlineContainingBlockFallbackWithoutConsumingTextFlow() {
+        const string baselineHtml = "<p style='margin:0'><span>Before</span><span>After</span></p>";
+        const string positionedHtml = "<p style='margin:0'><span style='position:relative'>Before"
+            + "<span style='position:absolute;left:5px;top:5px'>Overlay</span></span><span>After</span></p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
+        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+
+        HtmlRenderText baselineAfter = FindText(baseline, "After");
+        HtmlRenderText positionedAfter = FindText(positioned, "After");
+        HtmlRenderText overlay = FindText(positioned, "Overlay");
+        Assert.Equal(baselineAfter.X, positionedAfter.X, 3);
+        Assert.Equal(baselineAfter.Y, positionedAfter.Y, 3);
+        Assert.Equal(5D, overlay.X, 3);
+        Assert.Equal(5D, overlay.Y, 3);
+        Assert.Single(positioned.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
+            && diagnostic.Detail != null
+            && diagnostic.Detail.Contains("containing-block=span", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -202,6 +369,9 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderText FindText(HtmlRenderDocument document, string marker) =>
         document.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Single(text => text.Text == marker);
+
+    private static HtmlRenderShape FindPositionedShape(HtmlRenderDocument document, string source) =>
+        Assert.Single(document.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);
 
     private static (int PageNumber, HtmlRenderText Text) FindTextWithPage(HtmlRenderDocument document, string marker) {
         foreach (HtmlRenderPage page in document.Pages) {

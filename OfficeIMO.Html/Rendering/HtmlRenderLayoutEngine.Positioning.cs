@@ -34,6 +34,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         offsetX = 0D;
         offsetY = 0D;
         if (style.Position == "static") return;
+        if (style.Position == "sticky") {
+            if (_reportedStickySources.Add(source)) {
+                _diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.PositionStickyStatic,
+                    "CSS sticky positioning was captured at its stable static document position.",
+                    HtmlDiagnosticSeverity.Info,
+                    source,
+                    "position=sticky");
+                if (style.ZIndex != "auto") {
+                    _diagnostics.Add(
+                        ComponentName,
+                        HtmlRenderDiagnosticCodes.PositionZIndexPending,
+                        "CSS z-index is not yet active; the sticky element retained source paint order.",
+                        HtmlDiagnosticSeverity.Warning,
+                        source,
+                        "z-index=" + style.ZIndex);
+                }
+            }
+            return;
+        }
         if (style.Position != "relative") {
             _diagnostics.Add(
                 ComponentName,

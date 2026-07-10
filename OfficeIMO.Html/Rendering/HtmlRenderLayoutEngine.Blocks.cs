@@ -19,6 +19,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (childStyle.Display == "none") {
                     continue;
                 }
+                if (ShouldExtractOutOfFlow(childStyle)) {
+                    FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    RegisterOutOfFlowElement(container, element, childStyle, parentStyle, depth + 1);
+                    continue;
+                }
 
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
                     FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
@@ -112,6 +117,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderVisual visual in contentVisuals) {
             visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
         }
+        if (style.Position != "static" || _localPositionedElements.ContainsKey(element)) {
+            AppendLocalPositionedVisuals(
+                element,
+                Math.Max(1D, boxWidth - style.BorderWidth * 2D),
+                Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
+                style.MarginLeft + style.BorderWidth,
+                style.MarginTop + style.BorderWidth,
+                visuals);
+        }
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = style.MarginTop + style.BorderWidth + style.PaddingTop;
@@ -173,6 +187,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement child in element.Children) {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
+            if (style.Display != "none" && ShouldExtractOutOfFlow(style)) return true;
             if (style.Display != "none" && HtmlRenderStyleResolver.IsBlockElement(child, style)) return true;
         }
 

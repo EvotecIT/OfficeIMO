@@ -59,6 +59,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.Display == "none") return;
+        if (style.Position == "absolute" || style.Position == "fixed") {
+            RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, inheritedStyle, depth);
+            return;
+        }
         string? link = inheritedLink;
         if (tag == "a") {
             link = ResolveSafeLink(element.GetAttribute("href"), element);

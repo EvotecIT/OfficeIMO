@@ -50,10 +50,12 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GeneratedCounterUnsupported = "HtmlRenderGeneratedCounterUnsupported";
     /// <summary>An inline image used its alternative-text fallback.</summary>
     public const string InlineImageFallback = "HtmlRenderInlineImageFallback";
-    /// <summary>A relative-position inset could not be resolved by the current length model.</summary>
+    /// <summary>A positioned inset could not be resolved by the current length model.</summary>
     public const string PositionInsetUnsupported = "HtmlRenderPositionInsetUnsupported";
     /// <summary>A positioned layout mode used the documented normal-flow fallback.</summary>
     public const string PositioningModeUnsupported = "HtmlRenderPositioningModeUnsupported";
+    /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
+    public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
     /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
     public const string PositionZIndexPending = "HtmlRenderPositionZIndexPending";
     /// <summary>A complex page selector could not be applied per page.</summary>
@@ -125,6 +127,7 @@ public static class HtmlRenderDiagnosticCodes {
         InlineImageFallback,
         PositionInsetUnsupported,
         PositioningModeUnsupported,
+        PositionStickyStatic,
         PositionZIndexPending,
         PageMarginContentUnsupported,
         PageMarginPositionUnsupported,

@@ -31,7 +31,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
 
-        if (style.Position != "static" && style.Position != "relative") return false;
+        if (style.Position == "absolute" || style.Position == "fixed") {
+            RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, parentStyle, depth);
+            return true;
+        }
+        if (style.Position != "static" && style.Position != "relative" && style.Position != "sticky") return false;
         items.Add(new FlexItem(element, BlockifyFlexItemStyle(style), sourceIndex++));
         return true;
     }

@@ -72,6 +72,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
         }
+        AppendLocalPositionedVisuals(
+            element,
+            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
+            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
+            style.MarginLeft + style.BorderWidth,
+            style.MarginTop + style.BorderWidth,
+            visuals);
 
         IEnumerable<double>? breakOffsets = lines.Count != 1 || lines[0].Items.Count < 2
             ? null

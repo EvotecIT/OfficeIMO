@@ -81,6 +81,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double itemY = contentY + rows.Positions[item.Row] + item.OffsetY;
             foreach (HtmlRenderVisual visual in item.Block!.Visuals) visuals.Add(visual.Translate(itemX, itemY, visuals.Count));
         }
+        AppendLocalPositionedVisuals(
+            element,
+            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
+            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
+            style.MarginLeft + style.BorderWidth,
+            style.MarginTop + style.BorderWidth,
+            visuals);
 
         IEnumerable<double> breakOffsets = Enumerable.Range(1, Math.Max(0, rowCount - 1))
             .Where(boundary => !items.Any(item => item.Row < boundary && item.Row + item.RowSpan > boundary))
