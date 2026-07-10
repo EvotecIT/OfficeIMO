@@ -186,44 +186,48 @@ internal static partial class PdfWriter {
 
     private static void DrawHeaderFooterShapeShadowAt(StringBuilder sb, LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY) {
         var shadow = shape.Shadow;
-        if (shadow == null || shadow.Opacity <= 0D) {
-            return;
-        }
-
-        PdfColor shadowColor = PdfColor.FromOfficeColor(shadow.Color);
+        if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) return;
+        double coreOpacity = shadow.Opacity * shadow.Color.A / 255D;
+        PdfColor shadowColor = PdfColor.FromRgb(shadow.Color.R, shadow.Color.G, shadow.Color.B);
         double shadowX = xShape + shadow.OffsetX;
         double shadowBottomY = bottomY - shadow.OffsetY;
-        string? shadowState = EnsureHeaderFooterGraphicsState(page, shadow.Opacity, shadow.Opacity);
-
-        var content = new ContentStreamBuilder(sb)
-            .SaveState();
-        if (shadowState != null) {
-            content.GraphicsState(shadowState);
+        ResolveShadowGeometry(shape, out bool hasFill, out bool hasStroke);
+        if (shadow.BlurRadius > 0D) {
+            const int layers = 4;
+            for (int index = layers; index >= 1; index--) {
+                double factor = index / (double)layers;
+                double opacity = coreOpacity * (0.04D + (layers - index + 1) * 0.05D);
+                DrawHeaderFooterShapeShadowLayer(
+                    sb,
+                    page,
+                    shape,
+                    shadowColor,
+                    shadowX,
+                    shadowBottomY,
+                    Math.Max(1D, Math.Max(0D, shape.StrokeWidth) + shadow.BlurRadius * 2D * factor),
+                    opacity,
+                    hasFill,
+                    hasStroke: true);
+            }
         }
+        DrawHeaderFooterShapeShadowLayer(sb, page, shape, shadowColor, shadowX, shadowBottomY, Math.Max(0D, shape.StrokeWidth), coreOpacity, hasFill, hasStroke);
+    }
 
-        if (shape.Transform.HasValue) {
-            DrawTransformedShape(
-                sb,
-                shape,
-                shape.Kind == OfficeShapeKind.Line ? null : shadowColor,
-                shape.Kind == OfficeShapeKind.Line ? shadowColor : null,
-                null,
-                shadowX,
-                shadowBottomY);
-        } else if (shape.Kind == OfficeShapeKind.Line) {
-            DrawLine(sb, shadowColor, shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, shadowX, shadowBottomY, shape.Height);
-        } else if (shape.Kind == OfficeShapeKind.RoundedRectangle) {
-            DrawRoundedRectangle(sb, shadowColor, null, 0, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shadowX, shadowBottomY, shape.Width, shape.Height, shape.CornerRadius);
-        } else if (shape.Kind == OfficeShapeKind.Rectangle) {
-            DrawRectangle(sb, shadowColor, null, 0, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shadowX, shadowBottomY, shape.Width, shape.Height);
-        } else if (shape.Kind == OfficeShapeKind.Ellipse) {
-            DrawEllipse(sb, shadowColor, null, 0, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shadowX, shadowBottomY, shape.Width, shape.Height);
-        } else if (shape.Kind == OfficeShapeKind.Polygon) {
-            DrawPolygon(sb, shadowColor, null, 0, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, shadowX, shadowBottomY, shape.Height);
-        } else if (shape.Kind == OfficeShapeKind.Path) {
-            DrawPath(sb, shadowColor, null, 0, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, shadowX, shadowBottomY, shape.Height);
-        }
-
+    private static void DrawHeaderFooterShapeShadowLayer(
+        StringBuilder sb,
+        LayoutResult.Page page,
+        OfficeShape shape,
+        PdfColor color,
+        double x,
+        double bottomY,
+        double strokeWidth,
+        double opacity,
+        bool hasFill,
+        bool hasStroke) {
+        var content = new ContentStreamBuilder(sb).SaveState();
+        string? graphicsState = EnsureHeaderFooterGraphicsState(page, opacity, opacity);
+        if (graphicsState != null) content.GraphicsState(graphicsState);
+        DrawShapeShadowLayer(sb, shape, color, x, bottomY, strokeWidth, hasFill, hasStroke);
         content.RestoreState();
     }
 

@@ -360,6 +360,10 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
+        string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
+        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, style.Color, out style.BoxShadow)) {
+            style.UnsupportedBoxShadow = boxShadow;
+        }
     }
 
     private static void ApplyOpacity(string value, HtmlRenderBoxStyle style) {

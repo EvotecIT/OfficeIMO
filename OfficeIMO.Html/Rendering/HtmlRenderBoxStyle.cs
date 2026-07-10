@@ -101,6 +101,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TransformOrigin = "50% 50%";
     internal bool OpacityWasSpecified;
     internal string UnsupportedOpacity = string.Empty;
+    internal OfficeShadow? BoxShadow;
+    internal string UnsupportedBoxShadow = string.Empty;
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;

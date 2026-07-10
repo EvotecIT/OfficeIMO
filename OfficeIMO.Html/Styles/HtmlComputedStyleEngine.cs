@@ -36,6 +36,7 @@ public static partial class HtmlComputedStyleEngine {
         "align-items",
         "align-self",
         "bottom",
+        "box-shadow",
         "border",
         "border-bottom",
         "border-bottom-color",

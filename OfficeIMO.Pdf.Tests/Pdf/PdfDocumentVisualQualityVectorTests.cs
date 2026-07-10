@@ -419,6 +419,32 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersBlurLayersAndCombinesShadowColorAlpha() {
+        var shape = OfficeShape.RoundedRectangle(90, 24, 6);
+        shape.FillColor = OfficeColor.White;
+        shape.StrokeWidth = 0D;
+        shape.Shadow = new OfficeShadow(OfficeColor.FromRgba(255, 0, 0, 128), 0.5D, 3D, 4D, 4D);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.True(content.Split(new[] { "/Type /ExtGState" }, StringSplitOptions.None).Length - 1 >= 5);
+        Assert.Contains("/ca 0.251 /CA 0.251", content, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
+        Assert.Contains("8 w", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void VectorRectangle_RendersConfiguredDashStyle() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,

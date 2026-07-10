@@ -95,6 +95,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element,
         string source) {
         double cornerRadius = ResolveBoxCornerRadius(style, width, height, element, source);
+        AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, element, source);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, element, source, source);
         if (style.BorderWidth <= 0D) return;
         OfficeShape border = CreateBoxShape(width, height, cornerRadius);

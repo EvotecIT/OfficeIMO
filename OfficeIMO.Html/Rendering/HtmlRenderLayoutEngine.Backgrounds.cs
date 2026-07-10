@@ -15,6 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         double cornerRadius = ResolveBoxCornerRadius(style, width, height, source, sourceDescription);
+        AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, source, sourceDescription, sourceDescription);
 
         if (style.BorderWidth > 0D) {
@@ -38,6 +39,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         double cornerRadius = ResolveBoxCornerRadius(style, width, height, source, diagnosticSourceDescription);
+        AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, borderWidth, cornerRadius, source, diagnosticSourceDescription, visualSourceDescription);
     }
 
@@ -312,6 +314,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
         cornerRadius > 0.0001D
             ? OfficeShape.RoundedRectangle(width, height, Math.Min(cornerRadius, Math.Min(width, height) / 2D))
             : OfficeShape.Rectangle(width, height);
+
+    private void AddBoxShadow(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        double cornerRadius,
+        IElement source,
+        string sourceDescription) {
+        if (style.UnsupportedBoxShadow.Length > 0) {
+            if (_reportedBoxShadowFallbacks.Add(sourceDescription)) {
+                _diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported,
+                    "A CSS box shadow was omitted.",
+                    HtmlDiagnosticSeverity.Warning,
+                    HtmlRenderStyleResolver.DescribeSource(source),
+                    "box-shadow=" + style.UnsupportedBoxShadow);
+            }
+            return;
+        }
+        if (style.BoxShadow == null || style.BoxShadow.Opacity <= 0D) return;
+        OfficeShape carrier = CreateBoxShape(width, height, cornerRadius);
+        carrier.FillColor = null;
+        carrier.StrokeColor = null;
+        carrier.StrokeWidth = 0D;
+        carrier.Shadow = style.BoxShadow.Clone();
+        visuals.Add(new HtmlRenderShape(carrier, x, y, visuals.Count, source: sourceDescription + ":box-shadow"));
+    }
 
     private static void AddVisibleBackgroundImage(
         ICollection<HtmlRenderVisual> visuals,
