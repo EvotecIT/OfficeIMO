@@ -21,6 +21,10 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Draw + "object", "embedded-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
+            AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
+            int formulas = document.Descendants(OdfNamespaces.Table + "table-cell")
+                .Count(element => element.Attribute(OdfNamespaces.Table + "formula") != null);
+            if (formulas > 0) findings.Add(new OdfFeatureFinding("spreadsheet-formulas", OdfFeatureSupport.Editable, entry.Name, formulas));
 
             var foreign = document.Root.DescendantsAndSelf()
                 .Select(element => element.Name.NamespaceName)

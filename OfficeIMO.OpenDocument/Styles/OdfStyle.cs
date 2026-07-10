@@ -30,6 +30,11 @@ public sealed class OdfStyle {
     }
     /// <summary>True for an automatic style.</summary>
     public bool IsAutomatic { get; }
+    /// <summary>Referenced number, currency, percentage, date, or time data style.</summary>
+    public string? DataStyleName {
+        get => (string?)_element.Attribute(OdfNamespaces.Style + "data-style-name");
+        set => SetAttribute(_element, OdfNamespaces.Style + "data-style-name", value);
+    }
     /// <summary>True when bold text is explicitly enabled by this style.</summary>
     public bool? Bold {
         get => ReadToggle(TextProperties, OdfNamespaces.Fo + "font-weight", "bold", "normal");

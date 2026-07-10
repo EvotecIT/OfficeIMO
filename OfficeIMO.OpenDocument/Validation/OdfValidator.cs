@@ -29,6 +29,7 @@ internal static class OdfValidator {
 
         ValidateManifest(package, diagnostics);
         ValidateVersionConsistency(package, diagnostics);
+        if (package.Kind == OdfDocumentKind.Spreadsheet) ValidateSpreadsheet(package, diagnostics);
         return new OdfValidationResult(diagnostics);
     }
 
@@ -80,6 +81,34 @@ internal static class OdfValidator {
             if (!string.Equals(actual, expected, StringComparison.Ordinal)) {
                 diagnostics.Add(new OdfDiagnostic("ODF105", OdfDiagnosticSeverity.Warning,
                     $"Part version '{actual ?? "<missing>"}' does not match package version '{expected}'.", partPath));
+            }
+        }
+    }
+
+    private static void ValidateSpreadsheet(OdfPackage package, List<OdfDiagnostic> diagnostics) {
+        XDocument content = package.GetXml("content.xml");
+        foreach (XElement element in content.Descendants()) {
+            foreach (XName repeatName in new[] {
+                OdfNamespaces.Table + "number-rows-repeated", OdfNamespaces.Table + "number-columns-repeated"
+            }) {
+                XAttribute? attribute = element.Attribute(repeatName);
+                if (attribute != null && (!long.TryParse(attribute.Value, NumberStyles.None, CultureInfo.InvariantCulture, out long count) || count < 1)) {
+                    diagnostics.Add(new OdfDiagnostic("ODS100", OdfDiagnosticSeverity.Error,
+                        $"Invalid spreadsheet repeat count '{attribute.Value}'.", "content.xml"));
+                }
+            }
+            if (element.Name != OdfNamespaces.Table + "table-cell") continue;
+            string? valueType = (string?)element.Attribute(OdfNamespaces.Office + "value-type");
+            XName? required = null;
+            switch (valueType) {
+                case "float": case "percentage": case "currency": required = OdfNamespaces.Office + "value"; break;
+                case "boolean": required = OdfNamespaces.Office + "boolean-value"; break;
+                case "date": required = OdfNamespaces.Office + "date-value"; break;
+                case "time": required = OdfNamespaces.Office + "time-value"; break;
+            }
+            if (required != null && element.Attribute(required) == null) {
+                diagnostics.Add(new OdfDiagnostic("ODS101", OdfDiagnosticSeverity.Error,
+                    $"Spreadsheet cell type '{valueType}' is missing '{required.LocalName}'.", "content.xml"));
             }
         }
     }

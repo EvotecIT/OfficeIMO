@@ -6,6 +6,30 @@ namespace OfficeIMO.Reader.Tests;
 
 public class ReaderOpenDocumentModularTests {
     [Fact]
+    public void RegisteredAdapterEmitsBoundedOdsSheetTableChunk() {
+        using OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Metrics");
+        sheet.Cell(0, 0).SetString("Name");
+        sheet.Cell(0, 1).SetString("Value");
+        sheet.Cell(1, 0).SetString("Revenue");
+        sheet.Cell(1, 1).SetDecimal(42.5m);
+
+        DocumentReaderOpenDocumentRegistrationExtensions.RegisterOpenDocumentHandler(replaceExisting: true);
+        try {
+            ReaderChunk chunk = Assert.Single(DocumentReader.Read(document.ToBytes(), "metrics.ods"));
+
+            Assert.Equal("Metrics", chunk.Location.Sheet);
+            Assert.Equal("A1:B2", chunk.Location.A1Range);
+            ReaderTable table = Assert.Single(chunk.Tables!);
+            Assert.Equal(new[] { "Name", "Value" }, table.Columns);
+            Assert.Equal("Revenue", table.Rows[0][0]);
+            Assert.Equal("42.5", table.Rows[0][1]);
+        } finally {
+            DocumentReaderOpenDocumentRegistrationExtensions.UnregisterOpenDocumentHandler();
+        }
+    }
+
+    [Fact]
     public void RegisteredAdapterEmitsOdtHeadingParagraphAndTableChunks() {
         using OdtDocument document = OdtDocument.Create();
         document.AddHeading("Policy", 1);
