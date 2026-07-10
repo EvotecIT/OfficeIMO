@@ -52,6 +52,8 @@ The provider parses Tesseract TSV into line and word spans with pixel bounding b
 
 `GetVersionAsync()` and `GetLanguagesAsync()` provide explicit installation discovery. Missing executables, trained data, unsupported input formats, and nonzero process exits surface as engine failures; `ApplyOcrAsync` converts them to structured diagnostics when `ContinueOnError` is enabled.
 
+Per-request payload and output files use owner-only Unix directories and permissions. Temporary files are deleted by default; enable `KeepTemporaryFiles` only for controlled diagnostics.
+
 ## Targets and licenses
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).

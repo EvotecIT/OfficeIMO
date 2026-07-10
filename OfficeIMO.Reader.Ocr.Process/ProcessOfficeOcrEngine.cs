@@ -24,13 +24,12 @@ public sealed class ProcessOfficeOcrEngine : IOfficeOcrEngine {
         if (request.Payload.LongLength > _options.MaxInputBytes) throw new IOException("OCR request payload exceeds MaxInputBytes (" + _options.MaxInputBytes + ").");
         cancellationToken.ThrowIfCancellationRequested();
         string temporaryRoot = Path.GetFullPath(_options.TemporaryDirectory ?? Path.GetTempPath());
-        string requestDirectory = Path.Combine(temporaryRoot, "officeimo-ocr-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(requestDirectory);
+        string requestDirectory = OfficeOcrTemporaryStorage.CreateRequestDirectory(temporaryRoot, "officeimo-ocr-");
         try {
             string inputPath = Path.Combine(requestDirectory, "input" + OfficeOcrProcessFileNames.GetSafeAssetExtension(request.Asset));
             string requestPath = Path.Combine(requestDirectory, "request.json");
             string outputPath = Path.Combine(requestDirectory, "result.json");
-            File.WriteAllBytes(inputPath, request.Payload);
+            OfficeOcrTemporaryStorage.WriteAllBytes(inputPath, request.Payload);
             var processRequest = new ProcessOfficeOcrRequest {
                 CandidateId = request.Candidate.Id,
                 CandidateKind = request.Candidate.Kind,
@@ -44,7 +43,9 @@ public sealed class ProcessOfficeOcrEngine : IOfficeOcrEngine {
                 Region = request.Candidate.Region,
                 ProviderOptions = request.ProviderOptions
             };
-            File.WriteAllText(requestPath, ProcessOfficeOcrProtocol.SerializeRequest(processRequest, indented: true), new UTF8Encoding(false));
+            OfficeOcrTemporaryStorage.WriteAllBytes(
+                requestPath,
+                new UTF8Encoding(false).GetBytes(ProcessOfficeOcrProtocol.SerializeRequest(processRequest, indented: true)));
             IReadOnlyList<string> arguments = _options.Arguments.Select(argument => ExpandArgument(argument, processRequest, requestPath)).ToArray();
             OfficeOcrProcessResult processResult = await OfficeOcrProcessRunner.RunAsync(new OfficeOcrProcessCommand {
                 FileName = _options.FileName,
@@ -59,6 +60,7 @@ public sealed class ProcessOfficeOcrEngine : IOfficeOcrEngine {
                 throw new InvalidOperationException("OCR process exited with code " + processResult.ExitCode + ": " + processResult.StandardError);
             }
             if (!File.Exists(outputPath)) throw new FileNotFoundException("OCR process did not create its response file.", outputPath);
+            OfficeOcrTemporaryStorage.EnsurePrivateFile(outputPath);
             long outputLength = new FileInfo(outputPath).Length;
             if (outputLength > _options.MaxOutputBytes) throw new IOException("OCR process response exceeds MaxOutputBytes (" + _options.MaxOutputBytes + ").");
             OfficeOcrEngineResult result = ProcessOfficeOcrProtocol.DeserializeResult(File.ReadAllText(outputPath, Encoding.UTF8));

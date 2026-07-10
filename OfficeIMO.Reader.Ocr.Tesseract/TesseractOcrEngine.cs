@@ -35,13 +35,12 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
         if (!string.IsNullOrWhiteSpace(request.Asset.MediaType) && !request.Asset.MediaType!.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) throw new NotSupportedException("Tesseract provider accepts image assets only.");
         cancellationToken.ThrowIfCancellationRequested();
         string temporaryRoot = Path.GetFullPath(_options.TemporaryDirectory ?? Path.GetTempPath());
-        string requestDirectory = Path.Combine(temporaryRoot, "officeimo-tesseract-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(requestDirectory);
+        string requestDirectory = OfficeOcrTemporaryStorage.CreateRequestDirectory(temporaryRoot, "officeimo-tesseract-");
         try {
             string inputPath = Path.Combine(requestDirectory, "input" + OfficeOcrProcessFileNames.GetSafeAssetExtension(request.Asset));
             string outputBase = Path.Combine(requestDirectory, "result");
             string outputPath = outputBase + ".tsv";
-            File.WriteAllBytes(inputPath, request.Payload);
+            OfficeOcrTemporaryStorage.WriteAllBytes(inputPath, request.Payload);
             string? language = string.IsNullOrWhiteSpace(request.Language) ? _options.Language : request.Language!.Trim();
             OfficeOcrProcessResult processResult = await OfficeOcrProcessRunner.RunAsync(new OfficeOcrProcessCommand {
                 FileName = _options.ExecutablePath,
@@ -54,6 +53,7 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
                 throw new InvalidOperationException("Tesseract exited with code " + processResult.ExitCode + ": " + processResult.StandardError);
             }
             if (!File.Exists(outputPath)) throw new FileNotFoundException("Tesseract did not create the expected TSV output.", outputPath);
+            OfficeOcrTemporaryStorage.EnsurePrivateFile(outputPath);
             long outputLength = new FileInfo(outputPath).Length;
             if (outputLength > _options.MaxOutputBytes) throw new IOException("Tesseract TSV output exceeds MaxOutputBytes (" + _options.MaxOutputBytes + ").");
             OfficeOcrEngineResult result = TesseractTsvParser.Parse(File.ReadAllText(outputPath, Encoding.UTF8), language);

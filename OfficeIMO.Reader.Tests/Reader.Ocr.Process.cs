@@ -10,6 +10,37 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderOcrProcessTests {
     [Fact]
+    public void OfficeOcrTemporaryStorage_CreatesOwnerOnlyUnixDirectoryAndFile() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-private-ocr-test-" + Guid.NewGuid().ToString("N"));
+        try {
+            string requestDirectory = OfficeOcrTemporaryStorage.CreateRequestDirectory(root, "request-");
+            string payloadPath = Path.Combine(requestDirectory, "payload.bin");
+            string outputPath = Path.Combine(requestDirectory, "result.json");
+            OfficeOcrTemporaryStorage.WriteAllBytes(payloadPath, new byte[] { 1, 2, 3 });
+            File.WriteAllText(outputPath, "{}");
+            OfficeOcrTemporaryStorage.EnsurePrivateFile(outputPath);
+
+            const UnixFileMode allPermissions = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute
+                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+            Assert.Equal(
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                File.GetUnixFileMode(requestDirectory) & allPermissions);
+            Assert.Equal(
+                UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                File.GetUnixFileMode(payloadPath) & allPermissions);
+            Assert.Equal(
+                UnixFileMode.UserRead | UnixFileMode.UserWrite,
+                File.GetUnixFileMode(outputPath) & allPermissions);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+#endif
+    }
+
+    [Fact]
     public void ProcessOfficeOcrProtocol_RejectsIncompatibleResponseVersion() {
         const string json = "{\"schemaId\":\"officeimo.reader.ocr.process-response\",\"schemaVersion\":2,\"result\":{\"text\":\"late\"}}";
 
