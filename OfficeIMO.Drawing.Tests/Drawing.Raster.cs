@@ -238,6 +238,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_FillsOffCenterEllipticalRadialGradient() {
+            OfficeRasterImage image = new OfficeRasterImage(100, 100, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            var gradient = new OfficeRadialGradient(
+                0.25D,
+                0.5D,
+                0D,
+                0D,
+                0.25D,
+                0.5D,
+                0.5D,
+                0.25D,
+                new[] {
+                    new OfficeGradientStop(0D, OfficeColor.Red),
+                    new OfficeGradientStop(1D, OfficeColor.Blue)
+                });
+
+            canvas.FillRadialGradientRectangle(0D, 0D, image.Width, image.Height, gradient);
+
+            OfficeColor center = image.GetPixel(24, 49);
+            OfficeColor horizontalEdge = image.GetPixel(74, 49);
+            OfficeColor verticalEdge = image.GetPixel(24, 74);
+            Assert.True(center.R > center.B, $"Expected the authored center to be red-ish, got {center}.");
+            Assert.True(horizontalEdge.B > horizontalEdge.R, $"Expected the horizontal ellipse edge to be blue-ish, got {horizontalEdge}.");
+            Assert.True(verticalEdge.B > verticalEdge.R, $"Expected the vertical ellipse edge to be blue-ish, got {verticalEdge}.");
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_IgnoresRectanglesFullyOutsideCanvas() {
             OfficeRasterImage image = new OfficeRasterImage(6, 6, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

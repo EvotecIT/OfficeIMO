@@ -1127,14 +1127,21 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) {
-        double vx = x - gradient.StartX;
-        double vy = y - gradient.StartY;
-        double dx = gradient.EndX - gradient.StartX;
-        double dy = gradient.EndY - gradient.StartY;
-        double dr = gradient.EndRadius - gradient.StartRadius;
+        double endRadiusX = Math.Max(gradient.EndRadiusX, 0.0000001D);
+        double endRadiusY = Math.Max(gradient.EndRadiusY, 0.0000001D);
+        double normalizedX = (x - gradient.EndX) / endRadiusX;
+        double normalizedY = (y - gradient.EndY) / endRadiusY;
+        double startX = (gradient.StartX - gradient.EndX) / endRadiusX;
+        double startY = (gradient.StartY - gradient.EndY) / endRadiusY;
+        double startRadius = gradient.StartRadiusX / endRadiusX;
+        double vx = normalizedX - startX;
+        double vy = normalizedY - startY;
+        double dx = -startX;
+        double dy = -startY;
+        double dr = 1D - startRadius;
         double a = (dx * dx) + (dy * dy) - (dr * dr);
-        double b = -2D * ((vx * dx) + (vy * dy) + (gradient.StartRadius * dr));
-        double c = (vx * vx) + (vy * vy) - (gradient.StartRadius * gradient.StartRadius);
+        double b = -2D * ((vx * dx) + (vy * dy) + (startRadius * dr));
+        double c = (vx * vx) + (vy * vy) - (startRadius * startRadius);
         if (Math.Abs(a) < 0.0000001D) {
             if (Math.Abs(b) < 0.0000001D) {
                 return 0D;

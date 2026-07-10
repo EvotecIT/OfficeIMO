@@ -342,6 +342,57 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersEllipticalRadialGradientWithASeparatePaintTransform() {
+        var shape = OfficeShape.Rectangle(90D, 40D);
+        shape.FillRadialGradient = new OfficeRadialGradient(
+            0.25D,
+            0.5D,
+            0D,
+            0D,
+            0.25D,
+            0.5D,
+            0.75D,
+            0.5D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Blue)
+            });
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0 0 0 0 0 1]", content);
+        Assert.Contains("q\n30 90 90 40 re W n\n67.5 0 0 20 52.5 110 cm\n/SH1 sh\nQ", content);
+        OfficeRadialGradient projectedGradient = Assert.Single(
+            PdfPageImageRenderer.RenderPage(bytes).Shapes,
+            item => item.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        Assert.Equal(0.75D, projectedGradient.EndRadiusX, 3);
+        Assert.Equal(0.5D, projectedGradient.EndRadiusY, 3);
+
+        shape.Transform = OfficeTransform.Translate(5D, 3D);
+        string transformedContent = Encoding.ASCII.GetString(PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes());
+        Assert.Contains("67.5 0 0 20 22.5 20 cm", transformedContent);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedLinearGradientInsideTransformGraphicsState() {
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);

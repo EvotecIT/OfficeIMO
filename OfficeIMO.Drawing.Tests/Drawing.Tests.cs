@@ -3577,6 +3577,48 @@ public partial class DrawingTests {
         Assert.Equal(48, image.Height);
     }
 
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsEllipticalRadialGradientTransform() {
+        OfficeShape shape = OfficeShape.Rectangle(100D, 60D);
+        shape.FillRadialGradient = new OfficeRadialGradient(
+            0.25D,
+            0.5D,
+            0D,
+            0D,
+            0.25D,
+            0.5D,
+            0.75D,
+            0.5D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Blue)
+            });
+        OfficeDrawing drawing = new OfficeDrawing(100D, 60D).AddShape(shape, 0D, 0D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<radialGradient", svg, StringComparison.Ordinal);
+        Assert.Contains("gradientTransform=\"matrix(0.75 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("cx=\"0%\" cy=\"0%\" r=\"100%\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeRadialGradient_RejectsChangingEllipseAspectRatio() {
+        Assert.Throws<ArgumentException>(() => new OfficeRadialGradient(
+            0.5D,
+            0.5D,
+            0.1D,
+            0.1D,
+            0.5D,
+            0.5D,
+            0.5D,
+            0.25D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Blue)
+            }));
+    }
+
     [Theory]
     [InlineData("width=\"200\" viewBox=\"0 0 100 50\"", 200, 100)]
     [InlineData("height=\"75\" viewBox=\"-10 -20 100 50\"", 150, 75)]

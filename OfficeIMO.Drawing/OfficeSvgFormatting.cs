@@ -286,24 +286,44 @@ public static partial class OfficeSvgFormatting {
             throw new ArgumentNullException(nameof(gradient));
         }
 
+        bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
+        double endX = elliptical ? 0D : gradient.EndX;
+        double endY = elliptical ? 0D : gradient.EndY;
+        double endRadius = elliptical ? 1D : gradient.EndRadius;
+        double startX = elliptical ? (gradient.StartX - gradient.EndX) / gradient.EndRadiusX : gradient.StartX;
+        double startY = elliptical ? (gradient.StartY - gradient.EndY) / gradient.EndRadiusY : gradient.StartY;
+        double startRadius = elliptical ? gradient.StartRadiusX / gradient.EndRadiusX : gradient.StartRadius;
+
         builder.Append("<defs><radialGradient id=\"")
             .Append(Escape(id))
             .Append("\" cx=\"")
-            .Append(FormatNumber(gradient.EndX * 100D))
+            .Append(FormatNumber(endX * 100D))
             .Append("%\" cy=\"")
-            .Append(FormatNumber(gradient.EndY * 100D))
+            .Append(FormatNumber(endY * 100D))
             .Append("%\" r=\"")
-            .Append(FormatNumber(gradient.EndRadius * 100D))
+            .Append(FormatNumber(endRadius * 100D))
             .Append("%\" fx=\"")
-            .Append(FormatNumber(gradient.StartX * 100D))
+            .Append(FormatNumber(startX * 100D))
             .Append("%\" fy=\"")
-            .Append(FormatNumber(gradient.StartY * 100D))
+            .Append(FormatNumber(startY * 100D))
             .Append('%')
             .Append('"');
 
-        if (gradient.StartRadius > 0D) {
+        if (elliptical) {
+            builder.Append(" gradientTransform=\"matrix(")
+                .Append(FormatNumber(gradient.EndRadiusX))
+                .Append(" 0 0 ")
+                .Append(FormatNumber(gradient.EndRadiusY))
+                .Append(' ')
+                .Append(FormatNumber(gradient.EndX))
+                .Append(' ')
+                .Append(FormatNumber(gradient.EndY))
+                .Append(")\"");
+        }
+
+        if (startRadius > 0D) {
             builder.Append(" fr=\"")
-                .Append(FormatNumber(gradient.StartRadius * 100D))
+                .Append(FormatNumber(startRadius * 100D))
                 .Append("%\"");
         }
 

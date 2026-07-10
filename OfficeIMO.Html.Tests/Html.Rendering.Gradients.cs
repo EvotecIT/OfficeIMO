@@ -76,7 +76,41 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRadialGradient_DiagnosesShapesTheSharedModelCannotRepresentYet() {
+    public void HtmlRadialGradient_OffCenterEllipseFlowsThroughPngSvgAndSearchablePdf() {
+        const string html = "<div style='width:160px;height:60px;background:radial-gradient(ellipse farthest-side at 25% 50%,red,blue)'></div><p>EllipseMarker</p>";
+        var imageOptions = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        OfficeRadialGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(imageOptions);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = imageOptions;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfSource = Encoding.ASCII.GetString(pdf);
+
+        Assert.Equal(0.25D, gradient.EndX, 3);
+        Assert.Equal(0.5D, gradient.EndY, 3);
+        Assert.Equal(0.75D, gradient.EndRadiusX, 3);
+        Assert.Equal(0.5D, gradient.EndRadiusY, 3);
+        Assert.True(raster.GetPixel(48, 38).R > raster.GetPixel(48, 38).B);
+        Assert.True(raster.GetPixel(167, 38).B > raster.GetPixel(167, 38).R);
+        Assert.Contains("gradientTransform=\"matrix(0.75 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("/ShadingType 3", pdfSource, StringComparison.Ordinal);
+        Assert.Contains("/Coords [0 0 0 0 0 1]", pdfSource, StringComparison.Ordinal);
+        Assert.Contains("EllipseMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlRadialGradient_DiagnosesCircularFormsPendingPaintAreaResolution() {
         const string html = "<div style='width:40px;height:20px;background:radial-gradient(circle at left,red,blue)'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
@@ -103,6 +137,33 @@ public sealed partial class HtmlRenderingTests {
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
         Assert.Equal(radius, gradient.EndRadius, 3);
+    }
+
+    [Theory]
+    [InlineData("ellipse farthest-side at 25% 50%", 0.25D, 0.5D, 0.75D, 0.5D)]
+    [InlineData("farthest-corner ellipse at right top", 1D, 0D, 1.4142135623730951D, 1.4142135623730951D)]
+    [InlineData("ellipse 20% 35% at 30% 70%", 0.3D, 0.7D, 0.2D, 0.35D)]
+    [InlineData("ellipse farthest-side at -25% 150%", -0.25D, 1.5D, 1.25D, 1.5D)]
+    public void HtmlRadialGradient_MapsEllipsePositionAndIndependentRadii(
+        string descriptor,
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY) {
+        string html = "<div style='width:40px;height:20px;background:radial-gradient(" + descriptor + ",red,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeRadialGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+        Assert.Equal(centerX, gradient.EndX, 3);
+        Assert.Equal(centerY, gradient.EndY, 3);
+        Assert.Equal(radiusX, gradient.EndRadiusX, 3);
+        Assert.Equal(radiusY, gradient.EndRadiusY, 3);
     }
 
     [Theory]

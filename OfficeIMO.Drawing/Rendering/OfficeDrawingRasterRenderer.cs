@@ -1137,10 +1137,12 @@ public static partial class OfficeDrawingRasterRenderer {
         return new OfficeRadialGradient(
             gradient.StartX,
             gradient.StartY,
-            gradient.StartRadius,
+            gradient.StartRadiusX,
+            gradient.StartRadiusY,
             gradient.EndX,
             gradient.EndY,
-            gradient.EndRadius,
+            gradient.EndRadiusX,
+            gradient.EndRadiusY,
             stops);
     }
 

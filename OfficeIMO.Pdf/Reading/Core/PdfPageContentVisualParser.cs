@@ -622,22 +622,32 @@ internal static class PdfPageContentVisualParser {
             double endX = Clamp01(rawEndX);
             double endY = Clamp01(rawEndY);
             if (shading.IsRadial) {
-                double radiusScale = Math.Max(paintWidth, paintHeight);
-                double startRadius = radiusScale <= 0D ? 0D : TransformRadius(transform, shading.R0) / radiusScale;
-                double endRadius = radiusScale <= 0D ? 0D : TransformRadius(transform, shading.R1) / radiusScale;
-                if (NearlyEqual(rawStartX, rawEndX) && NearlyEqual(rawStartY, rawEndY) && NearlyEqual(startRadius, endRadius)) {
-                    endRadius = startRadius + 0.5D;
+                double startRadiusX = TransformRadiusX(transform, shading.R0) / paintWidth;
+                double startRadiusY = TransformRadiusY(transform, shading.R0) / paintHeight;
+                double endRadiusX = TransformRadiusX(transform, shading.R1) / paintWidth;
+                double endRadiusY = TransformRadiusY(transform, shading.R1) / paintHeight;
+                if (NearlyEqual(rawStartX, rawEndX)
+                    && NearlyEqual(rawStartY, rawEndY)
+                    && NearlyEqual(startRadiusX, endRadiusX)
+                    && NearlyEqual(startRadiusY, endRadiusY)) {
+                    endRadiusX = startRadiusX + 0.5D;
+                    endRadiusY = startRadiusY + 0.5D;
                 }
 
-                radialGradient = new OfficeRadialGradient(
-                    rawStartX,
-                    rawStartY,
-                    startRadius,
-                    rawEndX,
-                    rawEndY,
-                    endRadius,
+                IReadOnlyList<OfficeGradientStop> stops = new[] {
                     new OfficeGradientStop(0D, shading.StartColor),
-                    new OfficeGradientStop(1D, shading.EndColor));
+                    new OfficeGradientStop(1D, shading.EndColor)
+                };
+                radialGradient = endRadiusX > 0D && endRadiusY > 0D
+                    ? new OfficeRadialGradient(rawStartX, rawStartY, startRadiusX, startRadiusY, rawEndX, rawEndY, endRadiusX, endRadiusY, stops)
+                    : new OfficeRadialGradient(
+                        rawStartX,
+                        rawStartY,
+                        Math.Max(startRadiusX, startRadiusY),
+                        rawEndX,
+                        rawEndY,
+                        Math.Max(endRadiusX, endRadiusY),
+                        stops);
                 return;
             }
 
@@ -742,14 +752,14 @@ internal static class PdfPageContentVisualParser {
         private static byte InterpolateByte(byte start, byte end, double ratio) =>
             (byte)Math.Round(start + ((end - start) * ratio));
 
-        private static double TransformRadius(Matrix2D transform, double radius) {
-            if (radius <= 0D) {
-                return 0D;
-            }
+        private static double TransformRadiusX(Matrix2D transform, double radius) =>
+            TransformRadius(radius, Math.Sqrt((transform.A * transform.A) + (transform.B * transform.B)));
 
-            double xScale = Math.Sqrt((transform.A * transform.A) + (transform.B * transform.B));
-            double yScale = Math.Sqrt((transform.C * transform.C) + (transform.D * transform.D));
-            double scale = Math.Max(xScale, yScale);
+        private static double TransformRadiusY(Matrix2D transform, double radius) =>
+            TransformRadius(radius, Math.Sqrt((transform.C * transform.C) + (transform.D * transform.D)));
+
+        private static double TransformRadius(double radius, double scale) {
+            if (radius <= 0D) return 0D;
             return !double.IsNaN(scale) && !double.IsInfinity(scale) && scale > 0D ? radius * scale : radius;
         }
 
