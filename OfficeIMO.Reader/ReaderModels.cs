@@ -73,7 +73,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// Rich Text Format document.
     /// </summary>
-    Rtf
+    Rtf,
+    /// <summary>
+    /// OpenDocument Text, Spreadsheet, or Presentation package.
+    /// </summary>
+    OpenDocument
 }
 
 /// <summary>

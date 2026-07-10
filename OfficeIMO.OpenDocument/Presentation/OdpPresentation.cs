@@ -2,7 +2,7 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>Native OpenDocument Presentation document.</summary>
 public sealed partial class OdpPresentation : OdfDocument {
-    private OdpPresentation(OdfPackage package, string? sourcePath) : base(package, sourcePath) {
+    internal OdpPresentation(OdfPackage package, string? sourcePath) : base(package, sourcePath) {
         if (package.Kind != OdfDocumentKind.Presentation) throw new InvalidDataException("Package is not an OpenDocument Presentation document.");
     }
 

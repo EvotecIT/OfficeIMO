@@ -258,6 +258,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.OpenDocument", "O
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.OpenDocument.Tests", "OfficeIMO.OpenDocument.Tests\OfficeIMO.OpenDocument.Tests.csproj", "{21C1395B-EAE9-45F1-803C-9F6D1873D410}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.OpenDocument", "OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj", "{4F39EE49-E192-4477-95D6-35B15DAD9D2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1120,6 +1122,18 @@ Global
 		{21C1395B-EAE9-45F1-803C-9F6D1873D410}.Release|x64.Build.0 = Release|Any CPU
 		{21C1395B-EAE9-45F1-803C-9F6D1873D410}.Release|x86.ActiveCfg = Release|Any CPU
 		{21C1395B-EAE9-45F1-803C-9F6D1873D410}.Release|x86.Build.0 = Release|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Debug|x64.Build.0 = Debug|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Debug|x86.Build.0 = Debug|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Release|x64.ActiveCfg = Release|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Release|x64.Build.0 = Release|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Release|x86.ActiveCfg = Release|Any CPU
+		{4F39EE49-E192-4477-95D6-35B15DAD9D2C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

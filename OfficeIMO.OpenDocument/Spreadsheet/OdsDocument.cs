@@ -2,7 +2,7 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>Native OpenDocument Spreadsheet document.</summary>
 public sealed partial class OdsDocument : OdfDocument {
-    private OdsDocument(OdfPackage package, string? sourcePath) : base(package, sourcePath) {
+    internal OdsDocument(OdfPackage package, string? sourcePath) : base(package, sourcePath) {
         if (package.Kind != OdfDocumentKind.Spreadsheet) throw new InvalidDataException("Package is not an OpenDocument Spreadsheet document.");
     }
 

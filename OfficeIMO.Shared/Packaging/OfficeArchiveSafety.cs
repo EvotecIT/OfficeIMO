@@ -7,6 +7,8 @@ namespace OfficeIMO.Shared.Packaging;
 /// Centralizes archive-entry safety rules shared by ZIP-backed OfficeIMO format owners.
 /// </summary>
 internal static class OfficeArchiveSafety {
+    private static readonly char[] PathSeparators = { '/' };
+
     /// <summary>Normalizes an archive entry name to forward-slash notation.</summary>
     internal static string NormalizeEntryName(string? fullName) {
         string value = fullName ?? string.Empty;
@@ -24,10 +26,10 @@ internal static class OfficeArchiveSafety {
     internal static bool IsUnsafePath(string fullName) {
         if (fullName.Length == 0) return true;
         if (fullName[0] == '/' || fullName[0] == '\\') return true;
-        if (fullName.IndexOf('\0') >= 0) return true;
+        if (ContainsNull(fullName)) return true;
         if (fullName.Length >= 2 && char.IsLetter(fullName[0]) && fullName[1] == ':') return true;
 
-        string[] segments = fullName.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        string[] segments = fullName.Split(PathSeparators, StringSplitOptions.RemoveEmptyEntries);
         foreach (string segment in segments) {
             if (segment == "." || segment == "..") return true;
         }
@@ -72,5 +74,12 @@ internal static class OfficeArchiveSafety {
 
         if (compressedLength <= 0) return false;
         return (double)uncompressedLength / compressedLength > maxRatio;
+    }
+
+    private static bool ContainsNull(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (value[i] == '\0') return true;
+        }
+        return false;
     }
 }

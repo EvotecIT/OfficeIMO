@@ -2,7 +2,7 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>Native OpenDocument Text document.</summary>
 public sealed partial class OdtDocument : OdfDocument {
-    private OdtDocument(OdfPackage package, string? sourcePath) : base(package, sourcePath) {
+    internal OdtDocument(OdfPackage package, string? sourcePath) : base(package, sourcePath) {
         if (package.Kind != OdfDocumentKind.Text) throw new InvalidDataException("Package is not an OpenDocument Text document.");
     }
 
@@ -19,4 +19,7 @@ public sealed partial class OdtDocument : OdfDocument {
     public static OdtDocument Open(Stream stream, OdfOpenOptions? options = null) => new OdtDocument(OdfPackage.Open(stream, options), null);
 
     internal XElement TextBody => GetBody(OdfNamespaces.Office + "text");
+
+    /// <summary>Page layout, margins, header, and footer through the first master page.</summary>
+    public OdtPageLayout PageLayout => OdtPageLayout.GetOrCreate(this);
 }

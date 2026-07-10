@@ -172,6 +172,11 @@ internal sealed class OdfPackage {
 
     internal void MarkXmlDirty(string name) => GetRequiredEntry(name).MarkDirty();
 
+    internal void AddDiagnostic(OdfDiagnostic diagnostic) {
+        if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+        _diagnostics.Add(diagnostic);
+    }
+
     internal void AddOrReplaceEntry(string name, byte[] data, string mediaType) {
         ValidateNewEntryName(name);
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? existing)) {

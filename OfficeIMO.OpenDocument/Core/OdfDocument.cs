@@ -9,9 +9,21 @@ public abstract class OdfDocument : IDisposable {
         Package = package ?? throw new ArgumentNullException(nameof(package));
         _sourcePath = sourcePath;
         Metadata = new OdfDocumentMetadata(this);
+        Styles = new OdfStyleRepository(this);
     }
 
     internal OdfPackage Package { get; }
+
+    /// <summary>Opens an ODT, ODS, or ODP package and returns its native document type.</summary>
+    public static OdfDocument OpenAny(string path, OdfOpenOptions? options = null) {
+        OdfPackage package = OdfPackage.Open(path, options, out string fullPath);
+        return CreateForPackage(package, fullPath);
+    }
+
+    /// <summary>Opens an ODT, ODS, or ODP stream and returns its native document type.</summary>
+    public static OdfDocument OpenAny(Stream stream, OdfOpenOptions? options = null) {
+        return CreateForPackage(OdfPackage.Open(stream, options), null);
+    }
 
     /// <summary>Document kind.</summary>
     public OdfDocumentKind Kind => Package.Kind;
@@ -19,6 +31,8 @@ public abstract class OdfDocument : IDisposable {
     public OdfVersion Version => Package.Version;
     /// <summary>Document metadata.</summary>
     public OdfDocumentMetadata Metadata { get; }
+    /// <summary>Named and automatic styles stored in the document.</summary>
+    public OdfStyleRepository Styles { get; }
     /// <summary>Non-fatal diagnostics produced while opening the package.</summary>
     public IReadOnlyList<OdfDiagnostic> Diagnostics => Package.Diagnostics;
     /// <summary>Most recent save-entry report.</summary>
@@ -128,6 +142,11 @@ public abstract class OdfDocument : IDisposable {
         Package.MarkXmlDirty(partPath);
     }
 
+    internal void AddDiagnostic(OdfDiagnostic diagnostic) {
+        ThrowIfDisposed();
+        Package.AddDiagnostic(diagnostic);
+    }
+
     internal XElement GetBody(XName expectedBodyName) {
         XDocument content = GetXml("content.xml");
         XElement root = content.Root ?? throw new InvalidDataException("OpenDocument content has no root element.");
@@ -139,6 +158,15 @@ public abstract class OdfDocument : IDisposable {
         byte[] bytes = Package.Write(options);
         LastSaveReport = Package.CreateSaveReport();
         return bytes;
+    }
+
+    private static OdfDocument CreateForPackage(OdfPackage package, string? sourcePath) {
+        switch (package.Kind) {
+            case OdfDocumentKind.Text: return new OdtDocument(package, sourcePath);
+            case OdfDocumentKind.Spreadsheet: return new OdsDocument(package, sourcePath);
+            case OdfDocumentKind.Presentation: return new OdpPresentation(package, sourcePath);
+            default: throw new InvalidDataException("Unsupported OpenDocument package kind.");
+        }
     }
 
     private void ThrowIfDisposed() {
