@@ -61,6 +61,46 @@ public sealed partial class CsvDocument
         return new CsvSchema(schemaColumns);
     }
 
+#if NET8_0_OR_GREATER
+    private CsvSchema InferSchema(
+        CsvParser.CsvTextDataReaderRowSource rows,
+        int sampleSize,
+        string? nullValue)
+    {
+        var columns = new InferredColumn[_header.Count];
+        for (var i = 0; i < _header.Count; i++)
+        {
+            columns[i] = new InferredColumn(_header[i]);
+        }
+
+        var sampledRowCount = 0;
+        while (sampledRowCount < sampleSize && rows.Read())
+        {
+            for (var i = 0; i < columns.Length; i++)
+            {
+                if (nullValue is not null && rows.IsNull(i, nullValue))
+                {
+                    columns[i].ObserveMissing();
+                }
+                else
+                {
+                    columns[i].Observe(rows.GetSpan(i), _culture, _dateTimeFormats);
+                }
+            }
+
+            sampledRowCount++;
+        }
+
+        var schemaColumns = new List<CsvSchemaColumn>(columns.Length);
+        foreach (var column in columns)
+        {
+            schemaColumns.Add(column.ToSchemaColumn(sampledRowCount));
+        }
+
+        return new CsvSchema(schemaColumns);
+    }
+#endif
+
     /// <summary>
     /// Infers and attaches a schema to the document so subsequent validation uses the sampled structure.
     /// </summary>
@@ -108,6 +148,66 @@ public sealed partial class CsvDocument
             ObserveTyped(value);
         }
 
+        public void ObserveMissing()
+        {
+            _hasMissingValue = true;
+        }
+
+#if NET8_0_OR_GREATER
+        public void Observe(ReadOnlySpan<char> value, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
+        {
+            if (value.Length == 0)
+            {
+                ObserveMissing();
+                return;
+            }
+
+            _hasObservedValue = true;
+            var matchedNumeric = false;
+            if (_canInt32)
+            {
+                _canInt32 = int.TryParse(value, NumberStyles.Any, culture, out _);
+                matchedNumeric = _canInt32;
+            }
+
+            if (_canInt64)
+            {
+                if (!matchedNumeric)
+                {
+                    _canInt64 = long.TryParse(value, NumberStyles.Any, culture, out _);
+                    matchedNumeric = _canInt64;
+                }
+            }
+
+            if (_canDecimal)
+            {
+                if (!matchedNumeric)
+                {
+                    _canDecimal = decimal.TryParse(value, NumberStyles.Any, culture, out _);
+                    matchedNumeric = _canDecimal;
+                }
+            }
+
+            if (_canDouble)
+            {
+                if (!matchedNumeric)
+                {
+                    _canDouble = double.TryParse(value, NumberStyles.Any, culture, out _);
+                }
+            }
+
+            if (_canBoolean)
+            {
+                _canBoolean = bool.TryParse(value, out _);
+            }
+
+            if (_canDateTime)
+            {
+                _canDateTime = TryParseDateTime(value, culture, dateTimeFormats);
+            }
+        }
+#endif
+
         public CsvSchemaColumn ToSchemaColumn(int sampledRows)
         {
             return new CsvSchemaColumn(Name)
@@ -119,24 +219,37 @@ public sealed partial class CsvDocument
 
         private void ObserveString(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
         {
+            var matchedNumeric = false;
             if (_canInt32)
             {
                 _canInt32 = int.TryParse(text, NumberStyles.Any, culture, out _);
+                matchedNumeric = _canInt32;
             }
 
             if (_canInt64)
             {
-                _canInt64 = long.TryParse(text, NumberStyles.Any, culture, out _);
+                if (!matchedNumeric)
+                {
+                    _canInt64 = long.TryParse(text, NumberStyles.Any, culture, out _);
+                    matchedNumeric = _canInt64;
+                }
             }
 
             if (_canDecimal)
             {
-                _canDecimal = decimal.TryParse(text, NumberStyles.Any, culture, out _);
+                if (!matchedNumeric)
+                {
+                    _canDecimal = decimal.TryParse(text, NumberStyles.Any, culture, out _);
+                    matchedNumeric = _canDecimal;
+                }
             }
 
             if (_canDouble)
             {
-                _canDouble = double.TryParse(text, NumberStyles.Any, culture, out _);
+                if (!matchedNumeric)
+                {
+                    _canDouble = double.TryParse(text, NumberStyles.Any, culture, out _);
+                }
             }
 
             if (_canBoolean)
@@ -218,5 +331,18 @@ public sealed partial class CsvDocument
 
             return DateTime.TryParse(text, culture, DateTimeStyles.None, out _);
         }
+
+#if NET8_0_OR_GREATER
+        private static bool TryParseDateTime(ReadOnlySpan<char> text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
+        {
+            if (dateTimeFormats is { Count: > 0 } &&
+                DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out _))
+            {
+                return true;
+            }
+
+            return DateTime.TryParse(text, culture, DateTimeStyles.None, out _);
+        }
+#endif
     }
 }

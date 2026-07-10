@@ -3,11 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Custom handler registration model for extending <see cref="DocumentReader"/> without hard dependencies.
+/// Custom handler registration model for extending <see cref="DocumentReader"/> or configuring
+/// an isolated <see cref="OfficeDocumentReaderBuilder"/> without hard dependencies.
 /// </summary>
 public sealed class ReaderHandlerRegistration {
     /// <summary>
@@ -58,6 +60,16 @@ public sealed class ReaderHandlerRegistration {
     /// dispatches directly to this delegate instead of rebuilding a generic result from chunks.
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; set; }
+
+    /// <summary>
+    /// Optional native asynchronous path-based rich document reader delegate.
+    /// </summary>
+    public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; set; }
+
+    /// <summary>
+    /// Optional native asynchronous stream-based rich document reader delegate. The delegate must not close the caller-owned stream.
+    /// </summary>
+    public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; set; }
 
     /// <summary>
     /// Optional advertised default max input bytes for this handler.
@@ -131,6 +143,16 @@ public sealed class ReaderHandlerCapability {
     public bool SupportsDocumentStream { get; set; }
 
     /// <summary>
+    /// True when the handler supplies a native asynchronous path reader.
+    /// </summary>
+    public bool SupportsAsyncPath { get; set; }
+
+    /// <summary>
+    /// True when the handler supplies a native asynchronous stream reader.
+    /// </summary>
+    public bool SupportsAsyncStream { get; set; }
+
+    /// <summary>
     /// Capability schema identifier for host integration contracts.
     /// </summary>
     public string SchemaId { get; set; } = ReaderCapabilitySchema.Id;
@@ -169,7 +191,7 @@ public static class ReaderCapabilitySchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;
 }
 
 /// <summary>

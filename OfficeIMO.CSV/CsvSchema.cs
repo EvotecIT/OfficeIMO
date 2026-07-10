@@ -111,7 +111,11 @@ public sealed class CsvSchemaBuilder
         return new CsvColumnBuilder(column, this);
     }
 
-    internal CsvSchema Build()
+    /// <summary>
+    /// Builds an immutable CSV schema from the configured columns.
+    /// </summary>
+    /// <returns>The configured CSV schema.</returns>
+    public CsvSchema Build()
     {
         var immutableColumns = _columns.Select(CloneColumn).ToList();
         return new CsvSchema(immutableColumns);

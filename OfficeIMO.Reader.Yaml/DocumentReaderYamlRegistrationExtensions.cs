@@ -19,9 +19,43 @@ public static class DocumentReaderYamlRegistrationExtensions {
     /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterYamlHandler(YamlReadOptions? yamlOptions = null, bool replaceExisting = true, bool preserveExistingCustomExtensions = false) {
-        var registered = Clone(yamlOptions);
+        ReaderHandlerRegistration registration = CreateRegistration(yamlOptions);
 
-        var registration = new ReaderHandlerRegistration {
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
+    }
+
+    /// <summary>
+    /// Adds YAML ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddYamlHandler(
+        this OfficeDocumentReaderBuilder builder,
+        YamlReadOptions? yamlOptions = null,
+        bool replaceExisting = true,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration(yamlOptions);
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Unregisters YAML ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterYamlHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(YamlReadOptions? yamlOptions) {
+        YamlReadOptions? registered = Clone(yamlOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "YAML Reader Adapter",
             Description = "Modular YAML parser with path/type/value chunk output.",
@@ -39,19 +73,6 @@ public static class DocumentReaderYamlRegistrationExtensions {
                 yamlOptions: Clone(registered),
                 cancellationToken: ct)
         };
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters YAML ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterYamlHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 
     private static YamlReadOptions? Clone(YamlReadOptions? options) {

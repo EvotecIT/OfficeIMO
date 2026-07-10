@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Rtf.Writing;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -36,7 +37,8 @@ public static partial class WordRtfConverterExtensions {
                 count: document.Styles.Count);
         }
 
-        int listStructureCount = document.ListDefinitions.Count + document.ListOverrides.Count;
+        RtfDocumentWriter.EffectiveListTables effectiveLists = RtfDocumentWriter.BuildEffectiveListTables(document);
+        int listStructureCount = effectiveLists.Definitions.Count + effectiveLists.Overrides.Count;
         if (listStructureCount > 0) {
             report.Add(
                 RtfConversionSeverity.Information,

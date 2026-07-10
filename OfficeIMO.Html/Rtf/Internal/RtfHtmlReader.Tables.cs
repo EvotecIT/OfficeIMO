@@ -5,12 +5,46 @@ namespace OfficeIMO.Html;
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private void StartTable() {
-            _table = _document.AddTable(0, 1);
-            AddSectionBlock(_table);
+            RtfTableCell? parentCell = _cell;
+            _tableStates.Push(new TableReadState(
+                _table,
+                _row,
+                _cell,
+                _paragraph,
+                _cellTextAlignment,
+                _tableColumnIndex,
+                _rowSpans));
+
+            _table = parentCell == null ? _document.AddTable(0, 1) : parentCell.AddTable(0, 1);
+            if (parentCell == null) {
+                AddSectionBlock(_table);
+            }
+
             _row = null;
             _cell = null;
             _rowSpans.Clear();
             _paragraph = null;
+        }
+
+        private void EndTable() {
+            _paragraph = null;
+            _cell = null;
+            _row = null;
+            _table = null;
+            _rowSpans.Clear();
+
+            if (_tableStates.Count == 0) {
+                return;
+            }
+
+            TableReadState state = _tableStates.Pop();
+            _table = state.Table;
+            _row = state.Row;
+            _cell = state.Cell;
+            _paragraph = state.Paragraph;
+            _cellTextAlignment = state.CellTextAlignment;
+            _tableColumnIndex = state.TableColumnIndex;
+            _rowSpans.AddRange(state.RowSpans);
         }
 
         private void StartRow() {
@@ -401,6 +435,37 @@ internal static partial class RtfHtmlReader {
             internal int ColumnSpan { get; set; } = 1;
 
             internal int Offset { get; set; }
+        }
+
+        private sealed class TableReadState {
+            internal TableReadState(
+                RtfTable? table,
+                RtfTableRow? row,
+                RtfTableCell? cell,
+                RtfParagraph? paragraph,
+                RtfTextAlignment? cellTextAlignment,
+                int tableColumnIndex,
+                IEnumerable<RowSpanState> rowSpans) {
+                Table = table;
+                Row = row;
+                Cell = cell;
+                Paragraph = paragraph;
+                CellTextAlignment = cellTextAlignment;
+                TableColumnIndex = tableColumnIndex;
+                RowSpans = rowSpans.Select(state => new RowSpanState {
+                    RemainingRows = state.RemainingRows,
+                    ColumnSpan = state.ColumnSpan,
+                    Offset = state.Offset
+                }).ToList();
+            }
+
+            internal RtfTable? Table { get; }
+            internal RtfTableRow? Row { get; }
+            internal RtfTableCell? Cell { get; }
+            internal RtfParagraph? Paragraph { get; }
+            internal RtfTextAlignment? CellTextAlignment { get; }
+            internal int TableColumnIndex { get; }
+            internal IReadOnlyList<RowSpanState> RowSpans { get; }
         }
     }
 }

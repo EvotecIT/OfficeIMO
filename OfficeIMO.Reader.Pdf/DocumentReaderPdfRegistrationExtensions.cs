@@ -14,9 +14,30 @@ public static class DocumentReaderPdfRegistrationExtensions {
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterPdfHandler(ReaderPdfOptions? pdfOptions = null, bool replaceExisting = true) {
-        var registeredOptions = ReaderPdfOptionsCloner.CloneNullable(pdfOptions);
+        DocumentReader.RegisterHandler(CreateRegistration(pdfOptions), replaceExisting);
+    }
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+    /// <summary>
+    /// Adds PDF ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddPdfHandler(
+        this OfficeDocumentReaderBuilder builder,
+        ReaderPdfOptions? pdfOptions = null,
+        bool replaceExisting = true) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        return builder.AddHandler(CreateRegistration(pdfOptions), replaceExisting);
+    }
+
+    /// <summary>
+    /// Unregisters PDF ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterPdfHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(ReaderPdfOptions? pdfOptions) {
+        ReaderPdfOptions? registeredOptions = ReaderPdfOptionsCloner.CloneNullable(pdfOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "PDF Reader Adapter",
             Description = "Modular PDF adapter using OfficeIMO.Pdf logical read model.",
@@ -44,13 +65,6 @@ public static class DocumentReaderPdfRegistrationExtensions {
                 readerOptions: readerOptions,
                 pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
-        }, replaceExisting);
-    }
-
-    /// <summary>
-    /// Unregisters PDF ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterPdfHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
+        };
     }
 }

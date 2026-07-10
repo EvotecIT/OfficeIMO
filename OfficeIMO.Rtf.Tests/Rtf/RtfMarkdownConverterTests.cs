@@ -727,6 +727,30 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownPreserves_Rich_MultiParagraph_Note_Content() {
+        RtfDocument document = RtfDocument.Create();
+        var note = new RtfNote(RtfNoteKind.Footnote);
+        RtfParagraph first = note.AddParagraph("Rich ");
+        first.AddText("bold").SetBold();
+        first.AddText(" and ");
+        first.AddText("link").SetHyperlink(new Uri("https://example.test/note"));
+        RtfParagraph second = note.AddParagraph("Second ");
+        second.AddText("paragraph").SetItalic();
+        document.AddParagraph("Body").AddNoteReference(note, "1");
+        var options = new RtfToMarkdownOptions();
+
+        string markdown = document.ToMarkdown(options).Replace("\r\n", "\n");
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        FootnoteDefinitionBlock definition = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(parsed.Blocks, block => block is FootnoteDefinitionBlock));
+
+        Assert.Contains("[^fn1]: Rich **bold** and [link](https://example.test/note)", markdown, StringComparison.Ordinal);
+        Assert.Contains("Second *paragraph*", markdown, StringComparison.Ordinal);
+        Assert.Equal(2, definition.ParagraphBlocks.Count);
+        Assert.DoesNotContain(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Action == RtfConversionAction.Omitted || diagnostic.Action == RtfConversionAction.Flattened);
+        options.ConversionReport.RequireNoLoss();
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownOmitsNotesAttachedToHiddenRuns() {
         RtfDocument document = RtfDocument.Create();
         RtfRun hiddenReference = document.AddParagraph().AddFootnote("1", "Hidden footnote body");

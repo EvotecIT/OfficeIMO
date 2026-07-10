@@ -314,10 +314,10 @@ public sealed partial class CsvDocument
     {
         options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return LoadInternal(() => new StringReader(text), options, encoding);
+        return LoadInternal(() => new StringReader(text), options, encoding, text);
     }
 
-    private static CsvDocument LoadInternal(Func<TextReader> readerFactory, CsvLoadOptions options, Encoding encoding)
+    private static CsvDocument LoadInternal(Func<TextReader> readerFactory, CsvLoadOptions options, Encoding encoding, string? sourceText = null)
     {
         options = ResolveLoadOptions(readerFactory, options);
         var initialRecordsToSkip = GetInitialRecordsToSkip(options);
@@ -344,7 +344,7 @@ public sealed partial class CsvDocument
             }
             else
             {
-                document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip, document._header.Count);
+                document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip, document._header.Count, sourceText);
             }
 
             return document;
@@ -371,7 +371,7 @@ public sealed partial class CsvDocument
             }
             else
             {
-                document._streamingSource = new CsvStreamingSource(readerFactory, options, consumedRecordCount, document._header.Count);
+                document._streamingSource = new CsvStreamingSource(readerFactory, options, consumedRecordCount, document._header.Count, sourceText);
             }
 
             return document;
@@ -401,7 +401,7 @@ public sealed partial class CsvDocument
         }
         else
         {
-            document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip, document._header.Count);
+            document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip, document._header.Count, sourceText);
         }
 
         return document;

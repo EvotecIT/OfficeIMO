@@ -223,10 +223,12 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Zip;
 
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .AddZipHandler()
+    .Build();
 
-var chunks = DocumentReader.ReadFolder("KnowledgeBase",
+var chunks = reader.ReadFolder("KnowledgeBase",
     new ReaderFolderOptions {
         Recurse = true,
         MaxFiles = 500,

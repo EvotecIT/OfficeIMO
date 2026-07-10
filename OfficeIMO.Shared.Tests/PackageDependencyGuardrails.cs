@@ -459,6 +459,15 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void ExcelCore_DoesNotReferenceCsvPackages() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Excel/OfficeIMO.Excel.csproj");
+        string[] references = GetProjectReferences(projectPath);
+
+        Assert.DoesNotContain(references, reference => reference.EndsWith("OfficeIMO.CSV/OfficeIMO.CSV.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, reference => reference.EndsWith("OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void LegacyDocRuntime_StaysFirstPartyAndDependencyFree() {
         string[] forbiddenPackageIds = [
             "NPOI",

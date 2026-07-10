@@ -58,7 +58,14 @@ namespace OfficeIMO.Excel {
 
                 bool hasBufferedRows = sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows);
                 bool hasCellValueRows = sheet.Table.TryGetCellValueRows(out DirectCellValueRows cellValueRows);
-                if (hasInlineOverlayCells) {
+                bool hasObjectRows = sheet.Table.TryGetObjectRows(out IDirectObjectRows objectRows);
+                if (hasObjectRows && !hasInlineOverlayCells && !sheet.OmitBlankCells) {
+                    WriteObjectRows(writer, objectRows, rowIndex, sheet.IncludeCellReferences, cellReferencePrefixes, styleAttributes, valueStyleColumns, sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
+                    rowIndex += rowCount;
+                } else if (!sheet.IncludeCellReferences && !hasInlineOverlayCells && !sheet.OmitBlankCells) {
+                    WriteCompactDirectValueRows(writer, sheet, rowCount, columnCount, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct);
+                    rowIndex += rowCount;
+                } else if (hasInlineOverlayCells) {
                     WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings, ct, overlayCellsByRow);
                     rowIndex += rowCount;
                 } else if (hasBufferedRows
@@ -344,6 +351,21 @@ namespace OfficeIMO.Excel {
                 ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
+                if (columnCount == 8 && IsIntStringStringDateTimeDoubleIntBooleanStringPlan(cellValueKinds)) {
+                    WriteIntStringStringDateTimeDoubleIntBooleanStringCellValueRows(
+                        writer,
+                        cellValueRows,
+                        rowCount,
+                        startRowIndex,
+                        cellReferencePrefixes,
+                        styleAttributes,
+                        dateTimeOffsetWriteStrategy,
+                        dateSystem,
+                        sharedStrings,
+                        ct);
+                    return;
+                }
+
                 bool canCancel = ct.CanBeCanceled;
                 int rowIndex = startRowIndex;
                 if (styleAttributes == null) {
@@ -415,6 +437,21 @@ namespace OfficeIMO.Excel {
                 ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
+                if (columnCount == 8 && IsIntStringStringDateTimeDoubleIntBooleanStringPlan(cellValueKinds)) {
+                    WriteIntStringStringDateTimeDoubleIntBooleanStringBufferedRows(
+                        writer,
+                        bufferedRows,
+                        rowCount,
+                        startRowIndex,
+                        cellReferencePrefixes,
+                        styleAttributes,
+                        dateTimeOffsetWriteStrategy,
+                        dateSystem,
+                        sharedStrings,
+                        ct);
+                    return;
+                }
+
                 bool canCancel = ct.CanBeCanceled;
                 int rowIndex = startRowIndex;
                 if (styleAttributes == null) {
@@ -743,7 +780,9 @@ namespace OfficeIMO.Excel {
                     Type dataType = table.GetColumnType(i);
                     DirectCellValueKind cellValueKind = GetCellValueKind(dataType);
                     bool useValueStyle = dataType == typeof(object);
-                    if (useValueStyle && TryInferObjectColumnCellValueKind(table, i, out DirectCellValueKind inferredKind)) {
+                    if (useValueStyle
+                        && table.AllowObjectColumnKindInference
+                        && TryInferObjectColumnCellValueKind(table, i, out DirectCellValueKind inferredKind)) {
                         cellValueKind = inferredKind;
                         useValueStyle = false;
                     }

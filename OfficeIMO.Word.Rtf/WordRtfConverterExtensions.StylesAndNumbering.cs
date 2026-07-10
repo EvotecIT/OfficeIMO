@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Rtf.Writing;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -160,10 +161,11 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyRtfNumbering(RtfDocument source, MainDocumentPart main) {
-        if (source.ListDefinitions.Count == 0 && source.ListOverrides.Count == 0) return;
+        RtfDocumentWriter.EffectiveListTables effectiveLists = RtfDocumentWriter.BuildEffectiveListTables(source);
+        if (effectiveLists.Definitions.Count == 0 && effectiveLists.Overrides.Count == 0) return;
         NumberingDefinitionsPart part = main.NumberingDefinitionsPart ?? main.AddNewPart<NumberingDefinitionsPart>();
         var numbering = new Numbering();
-        foreach (RtfListDefinition definition in source.ListDefinitions) {
+        foreach (RtfListDefinition definition in effectiveLists.Definitions) {
             var abstractNum = new AbstractNum { AbstractNumberId = definition.Id };
             IReadOnlyList<RtfListLevel> levels = definition.Levels.Count == 0
                 ? new[] { new RtfListLevel(0, RtfListKind.Decimal) }
@@ -189,7 +191,7 @@ public static partial class WordRtfConverterExtensions {
             numbering.Append(abstractNum);
         }
 
-        foreach (RtfListOverride item in source.ListOverrides) {
+        foreach (RtfListOverride item in effectiveLists.Overrides) {
             var instance = new NumberingInstance { NumberID = item.Id };
             instance.Append(new AbstractNumId { Val = item.ListId });
             for (int levelIndex = 0; levelIndex < item.LevelOverrides.Count; levelIndex++) {

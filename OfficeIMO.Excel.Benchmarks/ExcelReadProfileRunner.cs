@@ -39,6 +39,8 @@ internal static class ExcelReadProfileRunner {
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         byte[] workbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
         string dataRange = ExcelBenchmarkScenarioFactory.BuildDataRange(rowCount);
+        using var loadedDataReaderDocument = ExcelDocumentReader.Open(workbookBytes);
+        var loadedDataReaderSheet = loadedDataReaderDocument.GetSheet("Data");
         using var loadedHeaderDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false), readOnly: true);
         var loadedHeaderSheet = loadedHeaderDocument.GetSheet("Data");
         using var loadedHeaderOpsStream = new MemoryStream();
@@ -92,6 +94,10 @@ internal static class ExcelReadProfileRunner {
             new ReadProfileCase("ReadRangeStream.Parallel", "Streaming row chunks with forced parallel conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Parallel)),
             new ReadProfileCase("ReadRangeStream.CustomConverterFallback", "Streaming row chunks through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadRangeStreamCustomConverterFallback(workbookBytes, dataRange)),
             new ReadProfileCase("ReadRangeStream.CustomConverterCultureFallback", "Streaming row chunks through a custom converter fallback with non-invariant culture.", () => OfficeImoReadRangeStreamCustomConverterCultureFallback(workbookBytes, dataRange))
+        ], warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadRangeAsDataReader.Typed", "Open workbook, resolve the sheet, and scan a typed IDataReader over the requested range.", () => OfficeImoReadDataReaderTyped(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRangeAsDataReader.Typed.LoadedSheet", "Scan a typed IDataReader over an already opened sheet to isolate range streaming and value decoding.", () => OfficeImoReadDataReaderTypedLoaded(loadedDataReaderSheet, dataRange))
         ], warmupIterations, measuredIterations));
         scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
             new ReadProfileCase("ReadRows.Dense", "Dense row enumeration over the same workbook payload.", () => OfficeImoReadRowsDense(workbookBytes, dataRange)),
@@ -291,6 +297,34 @@ internal static class ExcelReadProfileRunner {
     private static int OfficeImoReadRangeStream(byte[] workbookBytes, string dataRange, ExecutionMode? mode) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         return CountRangeStreamRows(reader.GetSheet("Data"), dataRange, mode);
+    }
+
+    private static int OfficeImoReadDataReaderTyped(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return CountDataReaderTyped(reader.GetSheet("Data"), dataRange);
+    }
+
+    private static int OfficeImoReadDataReaderTypedLoaded(ExcelSheetReader sheet, string dataRange) {
+        return CountDataReaderTyped(sheet, dataRange);
+    }
+
+    private static int CountDataReaderTyped(ExcelSheetReader sheet, string dataRange) {
+        using var dataReader = sheet.ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
+        int rows = 0;
+        int metric = 0;
+        while (dataReader.Read()) {
+            rows++;
+            metric = AddProfileMetric(metric, dataReader.GetInt32(0));
+            metric = AddProfileMetric(metric, dataReader.GetString(1).Length);
+            metric = AddProfileMetric(metric, dataReader.GetString(2).Length);
+            metric = AddProfileMetric(metric, dataReader.GetDateTime(3).DayOfYear);
+            metric = AddProfileMetric(metric, (int)Math.Round(dataReader.GetDouble(4), MidpointRounding.AwayFromZero));
+            metric = AddProfileMetric(metric, dataReader.GetInt32(5));
+            metric = AddProfileMetric(metric, dataReader.GetBoolean(6) ? 1 : 0);
+            metric = AddProfileMetric(metric, dataReader.GetString(7).Length);
+        }
+
+        return AddProfileMetric(metric, rows);
     }
 
     private static int OfficeImoReadRangeStreamCustomConverterFallback(byte[] workbookBytes, string dataRange) {
@@ -632,6 +666,12 @@ internal static class ExcelReadProfileRunner {
 
         if (value != null) {
             throw new InvalidOperationException($"Sparse read returned an unexpected value at row {rowIndex}.");
+        }
+    }
+
+    private static int AddProfileMetric(int metric, int value) {
+        unchecked {
+            return (metric * 397) ^ value;
         }
     }
 

@@ -1,17 +1,18 @@
 # OfficeIMO.Reader
 
-`OfficeIMO.Reader` is an optional, read-only facade that normalizes extraction across:
+`OfficeIMO.Reader` is a read-only facade that normalizes extraction across:
 - Word (`.docx`, `.docm`, `.doc`) -> Markdown chunks
 - Excel (`.xlsx`, `.xlsm`, `.xls`) -> row/table chunks (+ optional Markdown previews)
 - PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
 - Markdown (`.md`, `.markdown`) -> heading-aware chunks
 - PDF (`.pdf`) -> page-aware text chunks
+- CSV/TSV, EPUB, HTML, JSON, RTF, structured text, Visio, XML, YAML, and ZIP through modular adapter packages
 
-It is designed to be deterministic and dependency-free (beyond OfficeIMO itself), so consumers (like IntelligenceX) can ingest content reliably.
+It is designed for deterministic ingestion. Format-specific parsing stays in the owning OfficeIMO package, the facade remains thin, and optional adapters do not force unrelated dependencies into the core package.
 
 ## Install / Reference
 
-Reference the `OfficeIMO.Reader` NuGet package (once published) or add a project reference.
+Reference the `OfficeIMO.Reader` NuGet package or add a project reference. Install only the modular adapter packages required by the host.
 
 ## Basic Use (File Path)
 
@@ -159,10 +160,32 @@ Each chunk is returned as `ReaderChunk`:
   - `HeadingPath`, `Sheet`, `A1Range`, `Slide`, `Page`
 - `Warnings`: truncation/unsupported content warnings (best-effort).
 
+## Stable Rich Result Transport
+
+Use `ReadDocument(...)` when a host needs pages, blocks, tables, assets, links, forms, OCR candidates, visuals, or structured diagnostics in addition to chunks:
+
+```csharp
+OfficeDocumentReadResult document = DocumentReader.ReadDocument(@"C:\Docs\Policy.docx");
+string json = OfficeDocumentReadResultJson.Serialize(document);
+OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+```
+
+Schema version 5 is the first stable transport version. `OfficeDocumentReadResultSchema.GetJsonSchema()` returns the embedded JSON Schema, and the NuGet package includes the same artifact under `schemas/`. Versions 1 through 4 were experimental and are not accepted by the stable deserializer. Reader packages also validate their public .NET APIs against the current published NuGet versions during `dotnet pack`.
+
+## Performance Evidence
+
+`OfficeIMO.Reader.Benchmarks` measures rich extraction for every supported format family, bounded detection, JSON transport, and Markdown parser/chunker isolation using a deterministic generated corpus. Run the complete short suite with:
+
+```powershell
+dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csproj -c Release -f net8.0
+```
+
+Keep raw BenchmarkDotNet artifacts local. When a result is used as a release baseline, record the hardware, runtime, corpus, and concise comparison in `Docs/benchmarks`.
+
 ## Notes / Limitations
 
 - Legacy binary Word and Excel files (`.doc`, `.xls`) route through the OfficeIMO.Word and OfficeIMO.Excel legacy import engines. Unsupported or preserve-only legacy content is reported as reader warnings/diagnostics. Legacy binary PowerPoint (`.ppt`) is not supported.
 - Folder ingestion is best-effort: unreadable/corrupt/oversized files emit warning chunks and processing continues.
 - `ReadFolderDocuments(...)` yields per-source payloads (`ReaderSourceDocument`) for straightforward source/chunk table upserts.
 - `ReadFolderDetailed(...)` provides aggregate counts and per-file status with optional progress callbacks.
-- This reader does not do OCR.
+- The core reader identifies OCR candidates but does not include an OCR engine. OCR providers belong in optional packages.

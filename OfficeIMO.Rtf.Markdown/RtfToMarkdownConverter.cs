@@ -48,7 +48,7 @@ internal static class RtfToMarkdownConverter {
             }
 
             ReportOmittedHeaderFooters(document, blocks, options);
-            AppendNoteDefinitions(document, blocks, options);
+            AppendNoteDefinitions(document, blocks, options, ref imageIndex);
             return MarkdownDoc.Create().AddRange(blocks);
         } finally {
             options.NoteRegistry = null;
@@ -824,7 +824,7 @@ internal static class RtfToMarkdownConverter {
         return true;
     }
 
-    private static void AppendNoteDefinitions(RtfDocument document, ICollection<IMarkdownBlock> blocks, RtfToMarkdownOptions options) {
+    private static void AppendNoteDefinitions(RtfDocument document, ICollection<IMarkdownBlock> blocks, RtfToMarkdownOptions options, ref int imageIndex) {
         RtfMarkdownNoteRegistry? registry = options.NoteRegistry;
         if (registry == null) return;
         foreach (RtfNote note in document.Notes) {
@@ -832,7 +832,12 @@ internal static class RtfToMarkdownConverter {
         }
 
         foreach (KeyValuePair<string, RtfNote> entry in registry.Ordered) {
-            blocks.Add(new FootnoteDefinitionBlock(entry.Key, entry.Value.ToPlainText()));
+            var noteBlocks = new List<IMarkdownBlock>(entry.Value.Paragraphs.Count);
+            foreach (RtfParagraph paragraph in entry.Value.Paragraphs) {
+                noteBlocks.Add(ConvertParagraph(document, paragraph, options, ref imageIndex));
+            }
+
+            blocks.Add(new FootnoteDefinitionBlock(entry.Key, entry.Value.ToPlainText(), noteBlocks));
         }
 
         if (registry.Ordered.Count > 0) {

@@ -1,6 +1,6 @@
 # OfficeIMO Document Intelligence Roadmap
 
-Date: 2026-06-10
+Date: 2026-07-10
 
 ## Purpose
 
@@ -32,7 +32,9 @@ Keep this roadmap aligned with the current owner documents and proof manifests:
 
 `OfficeIMO.Reader` is already a stable ingestion facade. It reads Word, Excel, PowerPoint, Markdown, PDF, HTML, ZIP, EPUB, CSV, JSON, XML, YAML, and plain text-like formats into `ReaderChunk` instances with stable IDs, location metadata, hashes, table metadata, folder traversal, warning chunks, progress callbacks, detailed source summaries, handler registration, capability manifests, and host bootstrap helpers.
 
-`OfficeIMO.Reader.Pdf` now registers PDF ingestion through the same reader facade. The next step is not another reader switch statement; it is a shared result model that can expose chunks, Markdown, JSON, HTML, assets, diagnostics, source maps, and format-specific logical blocks from the same extraction run.
+`OfficeIMO.Reader.Pdf` registers PDF ingestion through the same reader facade. The shared `OfficeDocumentReadResult` model now carries chunks, assets, diagnostics, source maps, and normalized format-specific content from one extraction run. Further format fidelity belongs in the owning format packages and their narrow Reader adapters, not in another central reader switch statement.
+
+Reader hosts can now use `OfficeDocumentReaderBuilder` to compose modular adapters and custom handlers, then freeze that configuration into an immutable `OfficeDocumentReader`. Each instance owns its routing snapshot, so concurrent services can use different handlers for the same extension without process-global interference. The static registration API remains a compatibility surface for existing applications.
 
 ### Markdown
 
@@ -158,6 +160,9 @@ This branch starts the shared model and adapter path:
 - `OfficeIMO.Reader.Pdf` maps logical PDF readback into the shared envelope and JSON output.
 - `OfficeIMO.Reader.Visio` is an optional adapter over `OfficeIMO.Visio`, with page chunks, Shape Data tables, blocks, links, and optional SVG/PNG preview asset metadata.
 - Reader handlers can register native path and stream `OfficeDocumentReadResult` delegates. The generic `DocumentReader.ReadDocument(...)` entry point preserves PDF and Visio rich results, while legacy chunk reads project the same result's chunks when a handler is rich-result-only.
+- `OfficeDocumentReaderBuilder` and `OfficeDocumentReader` provide instance-scoped handler routing, capability manifests, file/stream/byte reads, and folder ingestion. Every modular Reader adapter exposes a matching `Add...Handler()` builder extension, while the static registry remains backward compatible.
+- Reader registrations can expose native asynchronous rich-result delegates. `ReadAsync(...)` and `ReadDocumentAsync(...)` await those delegates directly, non-seekable inputs use an asynchronous bounded snapshot, and synchronous format engines use a bounded worker fallback. `ReadDocumentsAsync(...)` adds deterministic multi-file execution with explicit concurrency and document-count limits.
+- Reader detection now reports extension kind, content kind, confidence, media type, bounded evidence, and mismatch state. Reads preserve known-extension behavior by default, can prefer content for mislabeled inputs, and can route unknown extensions to a unique registered handler by detected kind. Generic and native rich results expose detection, parsing, limit, truncation, unsupported-content, read, and OCR findings through structured diagnostics instead of warning strings alone.
 - Document-level metadata entries now carry stable catalog, outline, destination, open-action, viewer-preference, and form-summary facts without making the shared Reader model depend on PDF-specific types.
 - PDF source preflight capability flags now flow into metadata, and read/rewrite blockers flow into shared diagnostics as stable `pdf-read-blocker` and `pdf-rewrite-blocker` entries for file and stream readback.
 - OCR readiness is represented as `OcrCandidates` plus `ocr-needed` diagnostics for image-only PDF pages and embedded Office image assets, without adding an OCR engine or service dependency to the core.
@@ -181,7 +186,7 @@ Use `OfficeIMO.Markdown` as the final Markdown writer where possible. PDF logica
 
 ### JSON
 
-Add a stable JSON shape for pages, blocks, tables, images, links, forms, diagnostics, assets, visuals, and source references. JSON should be deterministic and versioned with a schema id/version.
+Schema version 5 is the first stable JSON envelope for pages, blocks, tables, links, forms, diagnostics, assets, visuals, OCR candidates, chunks, metadata, and source references. The schema is embedded in `OfficeIMO.Reader`, packed as a versioned artifact, and guarded by strict deserialization and transport round-trip tests. Future breaking transport changes require a new schema version and explicit compatibility policy.
 
 ### HTML
 
@@ -355,14 +360,15 @@ Goal: prove document intelligence with tests users can trust.
 - Word/HTML support matrix fixtures.
 - Folder-ingestion summary tests.
 - Cross-target builds for `net472`, `netstandard2.0`, `net8.0`, and `net10.0` where applicable.
+- Reader-wide BenchmarkDotNet coverage for extraction, detection, transport, and parser/chunker isolation, with environment-qualified baseline notes for release decisions.
 
 ## Near-Term Implementation Slices
 
 1. Keep this roadmap current and link it only from the active owner docs.
-2. Harden the experimental `OfficeDocumentReadResult` model after PDF and Visio feedback.
+2. Evolve the stable `OfficeDocumentReadResult` model additively; use a new schema version for breaking transport changes.
 3. Deepen PDF logical-document read-result coverage for richer image/form metadata, compliance diagnostics, destinations, outlines, and catalog evidence.
 4. Align read-result Markdown through existing PDF logical Markdown and `OfficeIMO.Markdown`.
-5. Keep deterministic JSON stable and add schema snapshot coverage.
+5. Keep deterministic schema version 5 JSON stable and expand nested schema detail as shared models mature.
 6. Extend asset manifests to richer PDF form/widget assets, HTML/EPUB referenced media, and Office drawing anchors.
 7. Expand table-only extraction examples and adapter coverage beyond the initial Reader/PDF/Visio facades.
 8. Extend scan/OCR-needed diagnostics beyond image-only PDF pages into richer image-region and Office-document heuristics, still without an OCR implementation.

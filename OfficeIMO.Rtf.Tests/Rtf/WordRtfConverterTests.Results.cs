@@ -128,6 +128,24 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_ToWord_Synthesizes_Numbering_For_Public_SetList_Paragraphs() {
+        RtfDocument rtf = RtfDocument.Create();
+        RtfParagraph paragraph = rtf.AddParagraph("Generated list item").SetList(listId: 7, level: 1, kind: RtfListKind.Bullet);
+
+        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        using WordDocument word = result.Value;
+
+        Numbering numbering = word._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+        NumberingInstance instance = Assert.Single(numbering.Elements<NumberingInstance>());
+        Assert.Equal(7, (int?)instance.NumberID);
+        AbstractNum definition = Assert.Single(numbering.Elements<AbstractNum>());
+        Assert.Contains(definition.Elements<Level>(), level => (int?)level.LevelIndex == 1 && level.NumberingFormat?.Val?.Value == NumberFormatValues.Bullet);
+        Assert.Equal(7, Assert.Single(word.Paragraphs)._listNumberId);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordListDefinitionsMapped" && diagnostic.Count == 2);
+        result.RequireNoLoss();
+    }
+
+    [Fact]
     public void Rtf_ToWord_Result_Reports_Object_And_Shape_Loss_In_Headers_And_Footers() {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddParagraph("Body");

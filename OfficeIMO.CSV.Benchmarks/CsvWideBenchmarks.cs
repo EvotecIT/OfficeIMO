@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Globalization;
+using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using nietras.SeparatedValues;
@@ -33,6 +34,8 @@ public class CsvWideBenchmarks
     private object?[][] _rows = [];
     private string?[][] _textRows = [];
     private string _csvText = string.Empty;
+    private string _csvPath = string.Empty;
+    private CsvSchema _wideSchema = new CsvSchemaBuilder().Build();
 
     [Params(1000, 10000, 25000)]
     public int RowCount { get; set; }
@@ -51,6 +54,29 @@ public class CsvWideBenchmarks
         }
 
         _csvText = writer.ToString();
+        _csvPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Benchmarks.{Guid.NewGuid():N}.csv");
+        File.WriteAllText(_csvPath, _csvText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+        var schema = new CsvSchemaBuilder();
+        schema.Column(Headers[0]).AsInt32();
+        schema.Column(Headers[1]).AsString();
+        schema.Column(Headers[2]).AsDateTime();
+        schema.Column(Headers[3]).AsBoolean();
+        for (var i = 4; i < Headers.Length; i++)
+        {
+            schema.Column(Headers[i]).AsType(typeof(decimal));
+        }
+
+        _wideSchema = schema.Build();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup()
+    {
+        if (_csvPath.Length > 0 && File.Exists(_csvPath))
+        {
+            File.Delete(_csvPath);
+        }
     }
 
     [Benchmark(Baseline = true)]
@@ -301,10 +327,45 @@ public class CsvWideBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_ReadDataReaderGetStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader();
+        var fieldCount = 0;
+        while (csv.Read())
+        {
+            for (var i = 0; i < csv.FieldCount; i++)
+            {
+                fieldCount += 1 + csv.GetString(i).Length;
+            }
+        }
+
+        return fieldCount;
+    }
+
+    [Benchmark]
     public int OfficeIMO_ReadDataReaderInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var csv = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        return DataTableBenchmarkUtilities.Measure(csv);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataReaderExplicitSchema()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader(new CsvDataReaderOptions { Schema = _wideSchema });
+        return DataTableBenchmarkUtilities.Measure(csv);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadFileDataReaderExplicitSchema()
+    {
+        using var csv = CsvDocument.CreateDataReader(
+            _csvPath,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+            new CsvDataReaderOptions { Schema = _wideSchema });
         return DataTableBenchmarkUtilities.Measure(csv);
     }
 

@@ -30,9 +30,43 @@ public static class DocumentReaderCsvRegistrationExtensions {
     /// </param>
     /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     public static void RegisterCsvHandler(CsvReadOptions? csvOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        var registered = Clone(csvOptions);
+        ReaderHandlerRegistration registration = CreateRegistration(csvOptions);
 
-        var registration = new ReaderHandlerRegistration {
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
+    }
+
+    /// <summary>
+    /// Adds CSV/TSV ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddCsvHandler(
+        this OfficeDocumentReaderBuilder builder,
+        CsvReadOptions? csvOptions = null,
+        bool replaceExisting = true,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration(csvOptions);
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Unregisters CSV/TSV ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterCsvHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(CsvReadOptions? csvOptions) {
+        CsvReadOptions? registered = Clone(csvOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "CSV Reader Adapter",
             Description = "Modular CSV/TSV parser with table-aware chunk output.",
@@ -50,19 +84,6 @@ public static class DocumentReaderCsvRegistrationExtensions {
                 csvOptions: Clone(registered),
                 cancellationToken: ct)
         };
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters CSV/TSV ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterCsvHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 
     private static CsvReadOptions? Clone(CsvReadOptions? options) {

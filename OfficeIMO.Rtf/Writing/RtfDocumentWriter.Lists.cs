@@ -100,7 +100,7 @@ internal static partial class RtfDocumentWriter {
         builder.Append(EscapeText(text, unicodeSkipCount));
     }
 
-    private static EffectiveListTables BuildEffectiveListTables(RtfDocument document) {
+    internal static EffectiveListTables BuildEffectiveListTables(RtfDocument document) {
         var definitions = document.ListDefinitions.ToDictionary(definition => definition.Id, CloneListDefinition);
         var overrides = document.ListOverrides.ToDictionary(listOverride => listOverride.Id, CloneListOverride);
 
@@ -215,18 +215,8 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static IEnumerable<RtfParagraph> EnumerateParagraphs(RtfDocument document) {
-        foreach (IRtfBlock block in document.Blocks) {
-            if (block is RtfParagraph paragraph) {
-                yield return paragraph;
-            } else if (block is RtfTable table) {
-                foreach (RtfTableRow row in table.Rows) {
-                    foreach (RtfTableCell cell in row.Cells) {
-                        foreach (RtfParagraph cellParagraph in cell.Paragraphs) {
-                            yield return cellParagraph;
-                        }
-                    }
-                }
-            }
+        foreach (RtfParagraph paragraph in EnumerateParagraphs(document.Blocks)) {
+            yield return paragraph;
         }
 
         foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
@@ -236,7 +226,23 @@ internal static partial class RtfDocumentWriter {
         }
     }
 
-    private sealed class EffectiveListTables {
+    private static IEnumerable<RtfParagraph> EnumerateParagraphs(IEnumerable<IRtfBlock> blocks) {
+        foreach (IRtfBlock block in blocks) {
+            if (block is RtfParagraph paragraph) {
+                yield return paragraph;
+            } else if (block is RtfTable table) {
+                foreach (RtfTableRow row in table.Rows) {
+                    foreach (RtfTableCell cell in row.Cells) {
+                        foreach (RtfParagraph cellParagraph in EnumerateParagraphs(cell.Blocks)) {
+                            yield return cellParagraph;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    internal sealed class EffectiveListTables {
         public EffectiveListTables(IReadOnlyList<RtfListDefinition> definitions, IReadOnlyList<RtfListOverride> overrides) {
             Definitions = definitions;
             Overrides = overrides;
