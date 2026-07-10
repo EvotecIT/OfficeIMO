@@ -33,8 +33,12 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Data rows cannot be null.", nameof(items));
             }
 
+            if (IsScalarValue(first)) {
+                throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
+            }
+
             var columnNames = ObjectDataHelpers.GetColumnNames(first);
-            if (columnNames.Count == 0) {
+            if (columnNames.Count == 0 || !columnNames.Any(name => !string.IsNullOrWhiteSpace(name))) {
                 throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
             }
 
@@ -63,6 +67,13 @@ namespace OfficeIMO.Excel {
             }
 
             return table;
+        }
+
+        private static bool IsScalarValue(object item) {
+            Type type = item.GetType();
+            return type.IsPrimitive ||
+                   type.IsEnum ||
+                   item is string or decimal or DateTime or DateTimeOffset or TimeSpan or Guid;
         }
 
         private sealed class ObjectRowProjector {

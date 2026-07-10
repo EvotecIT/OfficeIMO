@@ -82,49 +82,19 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<T> rows,
             bool includeHeaders,
             int startRow) {
-            IReadOnlyList<Dictionary<string, object?>> dictionaryRows;
-            if (rows is IReadOnlyList<Dictionary<string, object?>> typedDictionaryRows) {
-                dictionaryRows = typedDictionaryRows;
-            } else {
-                var copiedRows = new Dictionary<string, object?>[rows.Count];
-                for (int r = 0; r < copiedRows.Length; r++) {
-                    if (rows[r] is not Dictionary<string, object?> dictionary) {
-                        return false;
-                    }
-
-                    copiedRows[r] = dictionary;
-                }
-
-                dictionaryRows = copiedRows;
-            }
-
             var headers = new List<string>();
             var headerIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
+            var directRows = new object?[rows.Count][];
             var state = new FlatDictionaryProjectionState();
 
-            for (int r = 0; r < dictionaryRows.Count; r++) {
-                Dictionary<string, object?> dictionary = dictionaryRows[r];
-                foreach (var entry in dictionary) {
-                    if (!IsFlatDictionaryObjectExportValue(entry.Value)) {
-                        return false;
-                    }
-
-                    string columnName = entry.Key ?? string.Empty;
-                    if (string.IsNullOrWhiteSpace(columnName)) {
-                        state.HasBlankDisplayHeader = true;
-                    }
-
-                    if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
-                        columnIndex = headers.Count;
-                        headers.Add(columnName);
-                        headerIndexes.Add(columnName, columnIndex);
-                        state.EnsureColumnTypeCapacity(headers.Count);
-                    }
-
-                    UpdateObjectExportColumnType(state.InferredColumnTypes, columnIndex, entry.Value);
+            for (int r = 0; r < rows.Count; r++) {
+                if (rows[r] is not Dictionary<string, object?> dictionary
+                    || !TryProjectExactDictionaryRow(dictionary, r, headers, headerIndexes, directRows, state)) {
+                    return false;
                 }
             }
 
+            NormalizeFlatDictionaryRowWidths(directRows, headers.Count);
             state.NormalizeColumnTypeWidth(headers.Count);
 
             if (headers.Count == 0
@@ -135,14 +105,49 @@ namespace OfficeIMO.Excel {
             }
 
             string range = BuildObjectExportRange(startRow, headers.Count, rows.Count, includeHeaders);
-            return _excelDocument.RegisterDeferredDirectExactDictionaryRowsSaveCandidate(
-                this,
+            return TryInsertRowsAsDeferredDirectSave(
                 Name,
                 headers,
                 CompleteObjectExportColumnTypes(state.InferredColumnTypes),
-                dictionaryRows,
+                directRows,
+                startRow,
                 includeHeaders,
                 range);
+        }
+
+        private static bool TryProjectExactDictionaryRow(
+            Dictionary<string, object?> dictionary,
+            int rowIndex,
+            List<string> headers,
+            Dictionary<string, int> headerIndexes,
+            object?[][] directRows,
+            FlatDictionaryProjectionState state) {
+            var rowValues = new object?[Math.Max(dictionary.Count, headers.Count)];
+            foreach (var entry in dictionary) {
+                object? value = entry.Value;
+                if (!IsFlatDictionaryObjectExportValue(value)) {
+                    return false;
+                }
+
+                string columnName = entry.Key ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(columnName)) {
+                    state.HasBlankDisplayHeader = true;
+                }
+
+                if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                    columnIndex = headers.Count;
+                    headers.Add(columnName);
+                    headerIndexes.Add(columnName, columnIndex);
+                    state.EnsureColumnTypeCapacity(headers.Count);
+                    EnsureFlatDictionaryRowCapacity(ref rowValues, headers.Count);
+                }
+
+                rowValues[columnIndex] = value;
+                UpdateObjectExportColumnType(state.InferredColumnTypes, columnIndex, value);
+            }
+
+            directRows[rowIndex] = rowValues;
+            return true;
         }
 
         private bool TryInsertReadOnlyDictionaryRowsAsDeferredDirectSave<T>(

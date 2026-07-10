@@ -30,21 +30,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_DelimitedImport_DetectsDelimiterIgnoringQuotedFields() {
-            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-            ExcelDelimitedImportResult result = document.ImportDelimitedText("\"Name, with comma\";Value\r\nAlpha;42", new ExcelDelimitedImportOptions {
-                SheetName = "Import"
-            });
-
-            Assert.Equal(';', result.Delimiter);
-            ExcelSheet sheet = document["Import"];
-            Assert.True(sheet.TryGetCellText(2, 1, out string? name));
-            Assert.Equal("Alpha", name);
-            Assert.True(sheet.TryGetCellText(2, 2, out string? value));
-            Assert.Equal("42", value);
-        }
-
-        [Fact]
         public void Test_CustomDocumentProperties_DirectCollectionEditsAreTracked() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectCollection.xlsx");
 

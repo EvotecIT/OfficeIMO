@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Root document container and fluent API entrypoint for composing Markdown.
 /// Supports a fluent-chaining style and an explicit object model via <see cref="Add(IMarkdownBlock)"/>.
 /// </summary>
-public class MarkdownDoc : MarkdownObject {
+public partial class MarkdownDoc : MarkdownObject {
     /// <summary>Resolved heading metadata within a document.</summary>
     public sealed class HeadingInfo {
         /// <summary>The heading block.</summary>
@@ -54,7 +54,7 @@ public class MarkdownDoc : MarkdownObject {
             _lastBlock = block;
         }
         _parseResult = null;
-        MarkdownObjectTreeBinder.BindDocument(this);
+        RequestObjectTreeBinding();
         return this;
     }
 

@@ -249,9 +249,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Typed matrix populated from the used range.</returns>
         public static object?[,] ReadUsedRange(string path, string sheetName, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
-            var sh = rdr.GetSheet(sheetName);
-            var a1 = sh.GetUsedRangeA1();
-            return sh.ReadRange(a1);
+            return rdr.GetSheet(sheetName).ReadUsedRange();
         }
 
         /// <summary>

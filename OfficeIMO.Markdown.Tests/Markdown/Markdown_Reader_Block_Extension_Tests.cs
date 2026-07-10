@@ -121,6 +121,36 @@ Paragraph line
     }
 
     [Fact]
+    public void Block_Parser_Context_Exposes_A_Bound_Document_During_Parsing() {
+        const string markdown = "# Existing\n\n::claim";
+        bool observedBoundDocument = false;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "document-aware-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext context, out MarkdownBlockParseResult result) => {
+                result = default;
+                if (!string.Equals(context.CurrentLine, "::claim", StringComparison.Ordinal)) {
+                    return false;
+                }
+
+                MarkdownDoc document = context.Document;
+                var existingHeading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+                observedBoundDocument = ReferenceEquals(existingHeading.Parent, document) && existingHeading.IndexInParent == 0;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("claimed")),
+                    consumedLineCount: 1);
+                return true;
+            })));
+
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown, options);
+
+        Assert.True(observedBoundDocument);
+        Assert.Equal(2, parsed.Blocks.Count);
+        MarkdownInvariantAssert.SemanticTreeIsWellFormed(parsed);
+    }
+
+    [Fact]
     public void Context_SyntaxBuilder_Can_Associate_Inline_Container_Syntax_With_Custom_Owner() {
         var markdown = """
 :::panel Ops Notes

@@ -86,7 +86,8 @@ namespace OfficeIMO.Excel {
                         sheet.ShowFirstColumn,
                         sheet.ShowLastColumn,
                         sheet.ShowRowStripes,
-                        sheet.ShowColumnStripes);
+                        sheet.ShowColumnStripes,
+                        sheet.IncludeCellReferences);
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem);
@@ -120,7 +121,8 @@ namespace OfficeIMO.Excel {
                         sheet.ShowFirstColumn,
                         sheet.ShowLastColumn,
                         sheet.ShowRowStripes,
-                        sheet.ShowColumnStripes);
+                        sheet.ShowColumnStripes,
+                        sheet.IncludeCellReferences);
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem);
@@ -206,7 +208,8 @@ namespace OfficeIMO.Excel {
                         sheet.ShowFirstColumn,
                         sheet.ShowLastColumn,
                         sheet.ShowRowStripes,
-                        sheet.ShowColumnStripes);
+                        sheet.ShowColumnStripes,
+                        sheet.IncludeCellReferences);
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem);
@@ -260,7 +263,8 @@ namespace OfficeIMO.Excel {
                         sheet.ShowFirstColumn,
                         sheet.ShowLastColumn,
                         sheet.ShowRowStripes,
-                        sheet.ShowColumnStripes);
+                        sheet.ShowColumnStripes,
+                        sheet.IncludeCellReferences);
                     results[i] = new ExcelDataSetImportResult(sheet.SheetName, tableName, sheet.Range, table.RowCount, table.ColumnCount);
                 }
 
@@ -350,7 +354,8 @@ namespace OfficeIMO.Excel {
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct,
                 bool useCellValueNumberFormats = false,
-                ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
+                ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred,
+                bool includeCellReferences = true) {
                 int rowCount = tableModel.RowCount + (includeHeaders ? 1 : 0);
                 ValidateWorksheetBounds(tableModel, rowCount, requestedName);
                 bool hasTable = createTable && range.Length > 0;
@@ -360,7 +365,7 @@ namespace OfficeIMO.Excel {
                 double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
                     ? tableModel.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct)
                     : null;
-                var sheet = new DirectDataSetSheetModel(1, sheetName, resolvedTableName, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, omitBlankCells: false, columnWidths: columnWidths, useCellValueNumberFormats: useCellValueNumberFormats);
+                var sheet = new DirectDataSetSheetModel(1, sheetName, resolvedTableName, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, omitBlankCells: false, columnWidths: columnWidths, useCellValueNumberFormats: useCellValueNumberFormats, includeCellReferences: includeCellReferences);
                 var result = new ExcelDataSetImportResult(sheetName, resolvedTableName, range, tableModel.RowCount, tableModel.ColumnCount);
                 return new DirectDataSetWorkbookModel([sheet], [result], dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy, dateSystem);
             }
@@ -436,7 +441,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static string SanitizeSheetName(string name) {
+            internal static string SanitizeSheetName(string name) {
                 string baseName = (name ?? string.Empty).Trim();
                 baseName = baseName.Trim('\'', ' ');
                 var builder = new StringBuilder(baseName.Length);
@@ -487,7 +492,8 @@ namespace OfficeIMO.Excel {
                 bool showFirstColumn = false,
                 bool showLastColumn = false,
                 bool showRowStripes = true,
-                bool showColumnStripes = false) {
+                bool showColumnStripes = false,
+                bool includeCellReferences = true) {
                 Index = index;
                 SheetName = sheetName;
                 TableName = tableName;
@@ -507,6 +513,7 @@ namespace OfficeIMO.Excel {
                 ShowLastColumn = showLastColumn;
                 ShowRowStripes = showRowStripes;
                 ShowColumnStripes = showColumnStripes;
+                IncludeCellReferences = includeCellReferences;
             }
 
             internal DirectDataSetSheetModel WithMetadata(DirectWorksheetMetadata? metadata) {
@@ -533,7 +540,8 @@ namespace OfficeIMO.Excel {
                     ShowFirstColumn,
                     ShowLastColumn,
                     ShowRowStripes,
-                    ShowColumnStripes);
+                    ShowColumnStripes,
+                    IncludeCellReferences);
             }
 
             internal DirectDataSetSheetModel WithTableStyle(
@@ -561,7 +569,8 @@ namespace OfficeIMO.Excel {
                     showFirstColumn ?? ShowFirstColumn,
                     showLastColumn ?? ShowLastColumn,
                     showRowStripes ?? ShowRowStripes,
-                    showColumnStripes ?? ShowColumnStripes);
+                    showColumnStripes ?? ShowColumnStripes,
+                    IncludeCellReferences);
             }
 
             internal DirectDataSetSheetModel WithColumnNumberFormat(int columnIndex, string numberFormat) {
@@ -599,7 +608,8 @@ namespace OfficeIMO.Excel {
                     ShowFirstColumn,
                     ShowLastColumn,
                     ShowRowStripes,
-                    ShowColumnStripes);
+                    ShowColumnStripes,
+                    IncludeCellReferences);
             }
 
             internal int Index { get; }
@@ -639,6 +649,8 @@ namespace OfficeIMO.Excel {
             internal bool ShowRowStripes { get; }
 
             internal bool ShowColumnStripes { get; }
+
+            internal bool IncludeCellReferences { get; }
         }
 
         private sealed class DirectWorksheetMetadata {

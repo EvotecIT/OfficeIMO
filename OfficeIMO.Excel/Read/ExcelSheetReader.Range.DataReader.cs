@@ -41,6 +41,14 @@ namespace OfficeIMO.Excel {
             }
 
             int cols = c2 - c1 + 1;
+            int rows = r2 - r1 + 1;
+            if (schemaSampleRows == 0
+                && rows > BufferedRangeStreamRowLimit
+                && mode != OfficeIMO.Excel.ExecutionMode.Parallel
+                && CanUseRangeStreamXmlReader()) {
+                return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct);
+            }
+
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct);
             return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, ct);
         }
@@ -90,6 +98,38 @@ namespace OfficeIMO.Excel {
             foreach (var chunk in ReadRangeStream(a1Range, chunkRows, OfficeIMO.Excel.ExecutionMode.Sequential, ct)) {
                 yield return chunk;
             }
+        }
+
+        private static int ConvertDataReaderInt32(object value) {
+            if (value is int intValue) {
+                return intValue;
+            }
+
+            if (value is double doubleValue && doubleValue >= int.MinValue && doubleValue <= int.MaxValue) {
+                return ConvertDataReaderInt32(doubleValue);
+            }
+
+            return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+        }
+
+        private static int ConvertDataReaderInt32(double value) {
+            if (value >= int.MinValue && value <= int.MaxValue) {
+                int candidate = (int)value;
+                if (candidate == value) {
+                    return candidate;
+                }
+            }
+
+            return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+        }
+
+        private static Dictionary<string, int> CreateOrdinalMap(string[] columnNames) {
+            var ordinals = new Dictionary<string, int>(columnNames.Length, StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < columnNames.Length; i++) {
+                ordinals[columnNames[i]] = i;
+            }
+
+            return ordinals;
         }
 
         private IEnumerable<RangeChunk> ReadSortedDomRangeStream(
@@ -192,8 +232,9 @@ namespace OfficeIMO.Excel {
             private readonly CancellationToken _ct;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
-            private readonly Dictionary<string, int> _ordinals;
             private readonly List<object?[]> _prefetchedRows;
+            private readonly object?[] _blankRow;
+            private Dictionary<string, int>? _ordinals;
             private RangeChunk? _currentChunk;
             private object?[]? _currentRow;
             private int _nextRow;
@@ -215,6 +256,7 @@ namespace OfficeIMO.Excel {
                 _lastRow = lastRow;
                 _fieldCount = fieldCount;
                 _ct = ct;
+                _blankRow = new object?[fieldCount];
 
                 object?[]? headerValues = null;
                 if (headersInFirstRow) {
@@ -233,11 +275,6 @@ namespace OfficeIMO.Excel {
                 _columnTypes = options.InferDataTableColumnTypes
                     ? InferColumnTypes(_prefetchedRows, fieldCount)
                     : CreateObjectColumnTypes(fieldCount);
-
-                _ordinals = new Dictionary<string, int>(fieldCount, StringComparer.OrdinalIgnoreCase);
-                for (int i = 0; i < _columnNames.Length; i++) {
-                    _ordinals[_columnNames[i]] = i;
-                }
             }
 
             /// <inheritdoc />
@@ -262,7 +299,10 @@ namespace OfficeIMO.Excel {
             public override int RecordsAffected => -1;
 
             /// <inheritdoc />
-            public override bool GetBoolean(int ordinal) => (bool)GetNonDbNullValue(ordinal);
+            public override bool GetBoolean(int ordinal) {
+                object value = GetNonDbNullValue(ordinal);
+                return value is bool boolean ? boolean : Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            }
 
             /// <inheritdoc />
             public override byte GetByte(int ordinal) => Convert.ToByte(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
@@ -299,13 +339,19 @@ namespace OfficeIMO.Excel {
             public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
 
             /// <inheritdoc />
-            public override DateTime GetDateTime(int ordinal) => (DateTime)GetNonDbNullValue(ordinal);
+            public override DateTime GetDateTime(int ordinal) {
+                object value = GetNonDbNullValue(ordinal);
+                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, CultureInfo.InvariantCulture);
+            }
 
             /// <inheritdoc />
             public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
 
             /// <inheritdoc />
-            public override double GetDouble(int ordinal) => (double)GetNonDbNullValue(ordinal);
+            public override double GetDouble(int ordinal) {
+                object value = GetNonDbNullValue(ordinal);
+                return value is double number ? number : Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            }
 
             /// <inheritdoc />
             public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
@@ -320,7 +366,10 @@ namespace OfficeIMO.Excel {
             public override short GetInt16(int ordinal) => Convert.ToInt16(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
 
             /// <inheritdoc />
-            public override int GetInt32(int ordinal) => Convert.ToInt32(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
+            public override int GetInt32(int ordinal) {
+                object value = GetNonDbNullValue(ordinal);
+                return ConvertDataReaderInt32(value);
+            }
 
             /// <inheritdoc />
             public override long GetInt64(int ordinal) => Convert.ToInt64(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture);
@@ -330,6 +379,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override int GetOrdinal(string name) {
+                _ordinals ??= CreateOrdinalMap(_columnNames);
                 if (_ordinals.TryGetValue(name, out int ordinal)) {
                     return ordinal;
                 }
@@ -338,25 +388,22 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override string GetString(int ordinal) => Convert.ToString(GetNonDbNullValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty;
+            public override string GetString(int ordinal) {
+                object value = GetNonDbNullValue(ordinal);
+                return value is string text ? text : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            }
 
             /// <inheritdoc />
             public override object GetValue(int ordinal) {
                 EnsureOpenRow();
                 object? value = _currentRow![ordinal];
-                return value == null || value == DBNull.Value ? DBNull.Value : value;
+                return ToDataReaderValue(value);
             }
 
             /// <inheritdoc />
             public override int GetValues(object[] values) {
                 EnsureOpenRow();
-                int count = Math.Min(values.Length, _fieldCount);
-                for (int i = 0; i < count; i++) {
-                    object? value = _currentRow![i];
-                    values[i] = value == null || value == DBNull.Value ? DBNull.Value : value;
-                }
-
-                return count;
+                return CopyDataReaderValues(_currentRow!, _fieldCount, values);
             }
 
             /// <inheritdoc />
@@ -470,7 +517,7 @@ namespace OfficeIMO.Excel {
                 _ct.ThrowIfCancellationRequested();
                 EnsureCurrentChunk();
                 if (_currentChunk == null || _nextRow < _currentChunk.StartRow) {
-                    row = CreateBlankRow(_fieldCount);
+                    row = _blankRow;
                     _nextRow++;
                     return true;
                 }
@@ -482,7 +529,7 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                row = CreateBlankRow(_fieldCount);
+                row = _blankRow;
                 _nextRow++;
                 return true;
             }
@@ -509,8 +556,9 @@ namespace OfficeIMO.Excel {
             }
 
             private object GetNonDbNullValue(int ordinal) {
-                object value = GetValue(ordinal);
-                if (value == DBNull.Value) {
+                EnsureOpenRow();
+                object? value = _currentRow![ordinal];
+                if (value == null || value == DBNull.Value) {
                     throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
                 }
 
@@ -562,8 +610,6 @@ namespace OfficeIMO.Excel {
                 return types;
             }
 
-            private static object?[] CreateBlankRow(int fieldCount) => new object?[fieldCount];
-
             private static object?[] NormalizeRow(object?[] source, int fieldCount) {
                 if (source.Length == fieldCount) {
                     return source;
@@ -573,6 +619,39 @@ namespace OfficeIMO.Excel {
                 Array.Copy(source, values, Math.Min(source.Length, values.Length));
                 return values;
             }
+        }
+
+        private static object ToDataReaderValue(object? value)
+            => value == null || ReferenceEquals(value, DBNull.Value) ? DBNull.Value : value;
+
+        private static int CopyDataReaderValues(object?[] row, int fieldCount, object[] values) {
+            int count = Math.Min(values.Length, fieldCount);
+            if (count == fieldCount) {
+                if (fieldCount == 8) {
+                    values[0] = ToDataReaderValue(row[0]);
+                    values[1] = ToDataReaderValue(row[1]);
+                    values[2] = ToDataReaderValue(row[2]);
+                    values[3] = ToDataReaderValue(row[3]);
+                    values[4] = ToDataReaderValue(row[4]);
+                    values[5] = ToDataReaderValue(row[5]);
+                    values[6] = ToDataReaderValue(row[6]);
+                    values[7] = ToDataReaderValue(row[7]);
+                    return count;
+                }
+
+                if (fieldCount == 3) {
+                    values[0] = ToDataReaderValue(row[0]);
+                    values[1] = ToDataReaderValue(row[1]);
+                    values[2] = ToDataReaderValue(row[2]);
+                    return count;
+                }
+            }
+
+            for (int i = 0; i < count; i++) {
+                values[i] = ToDataReaderValue(row[i]);
+            }
+
+            return count;
         }
     }
 }
