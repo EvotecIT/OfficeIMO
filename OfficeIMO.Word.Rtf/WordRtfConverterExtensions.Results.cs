@@ -130,6 +130,7 @@ public static partial class WordRtfConverterExtensions {
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
         var unsupported = EnumerateWordElements(document.Elements)
+            .Concat(EnumerateHeaderFooterElements(document))
             .Where(IsUnsupportedWordElement)
             .GroupBy(element => element.GetType().Name, StringComparer.Ordinal)
             .OrderBy(group => group.Key, StringComparer.Ordinal);
@@ -147,6 +148,14 @@ public static partial class WordRtfConverterExtensions {
     private static IEnumerable<WordElement> EnumerateWordElements(IEnumerable<WordElement> elements) {
         foreach (WordElement element in elements) {
             yield return element;
+            if (element is WordParagraph paragraph) {
+                if (paragraph.IsShape) yield return paragraph.Shape!;
+                if (paragraph.IsChart) yield return paragraph.Chart!;
+                if (paragraph.IsSmartArt) yield return paragraph.SmartArt!;
+                if (paragraph.IsTextBox) yield return paragraph.TextBox!;
+                if (paragraph.IsEquation) yield return paragraph.Equation!;
+                if (paragraph.IsStructuredDocumentTag) yield return paragraph.StructuredDocumentTag!;
+            }
             if (!(element is WordTable table)) continue;
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
@@ -154,6 +163,20 @@ public static partial class WordRtfConverterExtensions {
                         yield return child;
                     }
                 }
+            }
+        }
+    }
+
+    private static IEnumerable<WordElement> EnumerateHeaderFooterElements(WordDocument document) {
+        var visited = new HashSet<WordHeaderFooter>();
+        foreach (WordSection section in document.Sections) {
+            WordHeaderFooter?[] stories = {
+                section.Header.Default, section.Header.First, section.Header.Even,
+                section.Footer.Default, section.Footer.First, section.Footer.Even
+            };
+            foreach (WordHeaderFooter? story in stories) {
+                if (story == null || !visited.Add(story)) continue;
+                foreach (WordElement element in EnumerateWordElements(story.Elements)) yield return element;
             }
         }
     }

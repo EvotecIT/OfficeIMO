@@ -186,4 +186,34 @@ public partial class WordRtfConverterTests {
             diagnostic.Count == 1);
         Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
     }
+
+    [Fact]
+    public void Word_ToRtf_Result_Reports_Unsupported_Content_Inside_Paragraphs() {
+        using WordDocument word = WordDocument.Create();
+        word.AddParagraph().AddStructuredDocumentTag("Controlled");
+
+        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfElementOmitted" &&
+            diagnostic.Feature == nameof(WordStructuredDocumentTag));
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Word_ToRtf_Result_Reports_Unsupported_Header_And_Footer_Elements() {
+        using WordDocument word = WordDocument.Create();
+        word.HeaderDefaultOrCreate._header!.Append(new SdtBlock(
+            new SdtContentBlock(new Paragraph(new Run(new Text("Header control"))))));
+        word.FooterDefaultOrCreate._footer!.Append(new SdtBlock(
+            new SdtContentBlock(new Paragraph(new Run(new Text("Footer control"))))));
+
+        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfElementOmitted" &&
+            diagnostic.Feature == nameof(WordStructuredDocumentTag) &&
+            diagnostic.Count == 2);
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+    }
 }

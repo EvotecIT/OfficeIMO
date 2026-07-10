@@ -5,17 +5,11 @@ public sealed partial class RtfDocument {
     /// <summary>Creates an independent semantic clone through the deterministic RTF representation.</summary>
     public RtfDocument Clone() {
         HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(this);
-        int[] detachedNoteIndices = _notes
-            .Select((note, index) => new { note, index })
-            .Where(item => !referencedNotes.Contains(item.note))
-            .Select(item => item.index)
-            .ToArray();
+        int detachedNoteCount = _notes.Count(note => !referencedNotes.Contains(note));
         RtfDocument clone = Read(ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
-        if (detachedNoteIndices.Length == 0) return clone;
+        if (detachedNoteCount == 0) return clone;
 
-        var detachedClones = new HashSet<RtfNote>(detachedNoteIndices
-            .Where(index => index < clone.Notes.Count)
-            .Select(index => clone.Notes[index]));
+        var detachedClones = new HashSet<RtfNote>(clone.Notes.Take(detachedNoteCount));
         var paragraphs = new List<RtfParagraph>();
         CollectParagraphsInOrder(clone.Blocks, paragraphs);
         foreach (RtfParagraph paragraph in paragraphs) paragraph.RemoveGeneratedNoteReferences(detachedClones);
@@ -178,13 +172,26 @@ public sealed partial class RtfDocument {
     private static void CollectParagraphs(IEnumerable<IRtfBlock> blocks, ISet<RtfParagraph> paragraphs) {
         foreach (IRtfBlock block in blocks) {
             if (block is RtfParagraph paragraph) {
-                paragraphs.Add(paragraph);
+                CollectParagraph(paragraph, paragraphs);
             } else if (block is RtfTable table) {
                 foreach (RtfTableRow row in table.Rows) foreach (RtfTableCell cell in row.Cells) CollectParagraphs(cell.Blocks, paragraphs);
             } else if (block is RtfObject rtfObject) {
-                paragraphs.Add(rtfObject.Result);
+                CollectParagraph(rtfObject.Result, paragraphs);
             } else if (block is RtfShape shape) {
-                foreach (RtfParagraph shapeParagraph in shape.TextBoxParagraphs) paragraphs.Add(shapeParagraph);
+                foreach (RtfParagraph shapeParagraph in shape.TextBoxParagraphs) CollectParagraph(shapeParagraph, paragraphs);
+            }
+        }
+    }
+
+    private static void CollectParagraph(RtfParagraph paragraph, ISet<RtfParagraph> paragraphs) {
+        if (!paragraphs.Add(paragraph)) return;
+        foreach (IRtfInline inline in paragraph.Inlines) {
+            if (inline is RtfField field) {
+                CollectParagraph(field.Result, paragraphs);
+            } else if (inline is RtfObject rtfObject) {
+                CollectParagraph(rtfObject.Result, paragraphs);
+            } else if (inline is RtfShape shape) {
+                foreach (RtfParagraph shapeParagraph in shape.TextBoxParagraphs) CollectParagraph(shapeParagraph, paragraphs);
             }
         }
     }
@@ -192,13 +199,26 @@ public sealed partial class RtfDocument {
     private static void CollectParagraphsInOrder(IEnumerable<IRtfBlock> blocks, ICollection<RtfParagraph> paragraphs) {
         foreach (IRtfBlock block in blocks) {
             if (block is RtfParagraph paragraph) {
-                paragraphs.Add(paragraph);
+                CollectParagraphInOrder(paragraph, paragraphs);
             } else if (block is RtfTable table) {
                 foreach (RtfTableRow row in table.Rows) foreach (RtfTableCell cell in row.Cells) CollectParagraphsInOrder(cell.Blocks, paragraphs);
             } else if (block is RtfObject rtfObject) {
-                paragraphs.Add(rtfObject.Result);
+                CollectParagraphInOrder(rtfObject.Result, paragraphs);
             } else if (block is RtfShape shape) {
-                foreach (RtfParagraph shapeParagraph in shape.TextBoxParagraphs) paragraphs.Add(shapeParagraph);
+                foreach (RtfParagraph shapeParagraph in shape.TextBoxParagraphs) CollectParagraphInOrder(shapeParagraph, paragraphs);
+            }
+        }
+    }
+
+    private static void CollectParagraphInOrder(RtfParagraph paragraph, ICollection<RtfParagraph> paragraphs) {
+        paragraphs.Add(paragraph);
+        foreach (IRtfInline inline in paragraph.Inlines) {
+            if (inline is RtfField field) {
+                CollectParagraphInOrder(field.Result, paragraphs);
+            } else if (inline is RtfObject rtfObject) {
+                CollectParagraphInOrder(rtfObject.Result, paragraphs);
+            } else if (inline is RtfShape shape) {
+                foreach (RtfParagraph shapeParagraph in shape.TextBoxParagraphs) CollectParagraphInOrder(shapeParagraph, paragraphs);
             }
         }
     }

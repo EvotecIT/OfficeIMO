@@ -76,7 +76,12 @@ internal static partial class RtfHtmlWriter {
         builder.Append(tag);
         builder.Append(" class=\"rtf-shape-text\">");
         for (int index = 0; index < shape.TextBoxParagraphs.Count; index++) {
-            AppendParagraph(builder, shape.TextBoxParagraphs[index], options, document);
+            if (blockTag) {
+                AppendParagraph(builder, shape.TextBoxParagraphs[index], options, document);
+            } else {
+                if (index > 0) builder.Append("<br>");
+                AppendInlines(builder, shape.TextBoxParagraphs[index].Inlines, options, document);
+            }
         }
         builder.Append("</");
         builder.Append(tag);

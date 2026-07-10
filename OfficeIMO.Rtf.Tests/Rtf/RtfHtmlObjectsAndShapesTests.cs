@@ -91,6 +91,21 @@ public class RtfHtmlObjectsAndShapesTests {
     }
 
     [Fact]
+    public void RtfDocument_ToHtml_Renders_Inline_Shape_Text_Without_Block_Paragraphs() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Before ");
+        RtfShape shape = paragraph.AddShape();
+        shape.AddTextBoxParagraph("One");
+        shape.AddTextBoxParagraph("Two");
+        paragraph.AddText(" after");
+
+        string html = document.ToHtml();
+
+        Assert.Contains("<span class=\"rtf-shape-text\">One<br>Two</span>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<span class=\"rtf-shape-text\"><p", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Applies_Active_Url_Policy_To_Encoded_Object_And_Shape_Content() {
         string encodedObjectResult = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p><a href=\"file:///C:/secret-object\">Object link</a></p>"));
         string encodedShapeText = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p><a href=\"file:///C:/secret-shape\">Shape link</a></p>"));

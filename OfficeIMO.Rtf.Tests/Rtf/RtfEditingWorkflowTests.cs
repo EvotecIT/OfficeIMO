@@ -57,6 +57,40 @@ public class RtfEditingWorkflowTests {
     }
 
     [Fact]
+    public void Semantic_Clone_Preserves_Mixed_Referenced_And_Detached_Note_Placement() {
+        RtfDocument source = RtfDocument.Create();
+        RtfNote referenced = source.AddNote(RtfNoteKind.Footnote);
+        referenced.AddParagraph("Referenced note");
+        source.AddParagraph("Body").AddNoteReference(referenced, "1");
+        RtfNote detached = source.AddNote(RtfNoteKind.Endnote);
+        detached.AddParagraph("Detached note");
+
+        RtfDocument clone = source.Clone();
+
+        Assert.Equal(2, clone.Notes.Count);
+        RtfGeneratedText reference = Assert.Single(clone.Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfGeneratedText>());
+        Assert.Equal("Referenced note", reference.Note?.ToPlainText());
+        RtfNote detachedClone = Assert.Single(clone.Notes, note => note.ToPlainText() == "Detached note");
+        Assert.DoesNotContain(clone.Paragraphs.SelectMany(paragraph => paragraph.Inlines), inline =>
+            inline is RtfGeneratedText generated && generated.Note == detachedClone);
+    }
+
+    [Fact]
+    public void Semantic_ReplaceText_Replaces_Visible_Text_In_Inline_Results_And_Shapes() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph("Body ");
+        paragraph.AddField("PAGE").AddText("Target");
+        paragraph.AddObject(RtfObjectKind.Embedded).Result.AddText("Target");
+        paragraph.AddShape().AddTextBoxParagraph("Target");
+
+        int replacements = document.ReplaceText("Target", "Updated");
+
+        Assert.Equal(3, replacements);
+        Assert.DoesNotContain("Target", paragraph.ToPlainText(), StringComparison.Ordinal);
+        Assert.Equal(3, paragraph.ToPlainText().Split(new[] { "Updated" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void Semantic_Document_Append_Remaps_Resources_And_Reports_Flattened_Bindings() {
         RtfDocument destination = RtfDocument.Create();
         destination.AddColor(255, 0, 0);
