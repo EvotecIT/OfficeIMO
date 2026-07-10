@@ -30,6 +30,12 @@ public sealed class RtfPdfSaveOptions {
     /// <summary>When true, supported top-level and inline PNG/JPEG images are emitted to the PDF.</summary>
     public bool IncludeImages { get; set; } = true;
 
+    /// <summary>
+    /// Optional converter for image formats that the managed drawing layer cannot rasterize, such as WMF and EMF.
+    /// The callback must return structurally valid PNG or JPEG bytes, or null when it cannot convert the image.
+    /// </summary>
+    public Func<RtfImage, byte[]?>? ImageConverter { get; set; }
+
     /// <summary>Default image width in PDF points when the RTF image does not carry a desired width.</summary>
     public double DefaultImageWidth { get; set; } = 144;
 
@@ -62,6 +68,7 @@ public sealed class RtfPdfSaveOptions {
             PdfOptions = PdfOptions?.Clone(),
             IncludeHiddenText = IncludeHiddenText,
             IncludeImages = IncludeImages,
+            ImageConverter = ImageConverter,
             DefaultImageWidth = DefaultImageWidth,
             DefaultImageHeight = DefaultImageHeight,
             IncludeMetadata = IncludeMetadata,

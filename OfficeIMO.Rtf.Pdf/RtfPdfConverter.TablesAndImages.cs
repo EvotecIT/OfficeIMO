@@ -1,4 +1,5 @@
 using PdfCore = OfficeIMO.Pdf;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Rtf.Pdf;
 
@@ -72,11 +73,11 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void RenderImage(RtfImage image, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
-        if (!TryReportRenderableImage(image, options, "Image")) {
+        if (!TryGetRenderableImage(image, options, "Image", out byte[] imageBytes)) {
             return;
         }
 
-        pdf.Image(image.Data, GetImageWidth(image, options), GetImageHeight(image, options), image.Description);
+        pdf.Image(imageBytes, GetImageWidth(image, options), GetImageHeight(image, options), image.Description);
     }
 
     private static List<PdfCore.TextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfPdfSaveOptions options, PdfRenderState state) {
@@ -122,8 +123,8 @@ internal static partial class RtfPdfConverter {
         List<PdfCore.PdfTableCellImage> images = new List<PdfCore.PdfTableCellImage>();
         foreach (RtfParagraph paragraph in cell.Paragraphs) {
             foreach (IRtfInline inline in paragraph.Inlines) {
-                if (inline is RtfImage image && TryReportRenderableImage(image, options, "TableCell/Image")) {
-                    images.Add(new PdfCore.PdfTableCellImage(image.Data, GetImageWidth(image, options), GetImageHeight(image, options)));
+                if (inline is RtfImage image && TryGetRenderableImage(image, options, "TableCell/Image", out byte[] imageBytes)) {
+                    images.Add(new PdfCore.PdfTableCellImage(imageBytes, GetImageWidth(image, options), GetImageHeight(image, options)));
                 }
             }
         }
@@ -131,9 +132,8 @@ internal static partial class RtfPdfConverter {
         return images;
     }
 
-    private static bool IsPdfSupportedImage(RtfImage image) => image.Format == RtfImageFormat.Png || image.Format == RtfImageFormat.Jpeg;
-
-    private static bool TryReportRenderableImage(RtfImage image, RtfPdfSaveOptions options, string source) {
+    private static bool TryGetRenderableImage(RtfImage image, RtfPdfSaveOptions options, string source, out byte[] imageBytes) {
+        imageBytes = Array.Empty<byte>();
         if (!options.IncludeImages) {
             AddConversionWarning(
                 options,
@@ -158,19 +158,60 @@ internal static partial class RtfPdfConverter {
             return false;
         }
 
-        if (!IsPdfSupportedImage(image)) {
+        if (image.Format == RtfImageFormat.Png || image.Format == RtfImageFormat.Jpeg) {
+            imageBytes = image.Data;
+            return true;
+        }
+
+        if (image.Format == RtfImageFormat.Dib && OfficeImagePngConverter.TryConvertDibToPng(image.Data, out imageBytes)) {
+            ReportImageSubstitution(options, source, image.Format, "PNG", "The RTF DIB image was converted to PNG through OfficeIMO.Drawing.");
+            return true;
+        }
+
+        if (options.ImageConverter != null) {
+            byte[]? converted = options.ImageConverter(image);
+            string? reason = null;
+            if (converted != null && OfficeImagePdfCompatibility.TryValidate(converted, out _, out reason)) {
+                imageBytes = converted;
+                ReportImageSubstitution(options, source, image.Format, "PNG/JPEG", "The RTF image was converted by the configured image converter.");
+                return true;
+            }
+
             AddConversionWarning(
                 options,
-                "UnsupportedImage",
+                "ImageConversionFailed",
                 source,
-                "Only PNG and JPEG RTF images can be embedded directly in PDF output.",
+                reason ?? "The configured image converter did not return PNG or JPEG bytes.",
                 new Dictionary<string, string> {
                     ["Format"] = image.Format.ToString()
                 });
             return false;
         }
 
-        return true;
+        AddConversionWarning(
+            options,
+            "UnsupportedImage",
+            source,
+            "Only PNG and JPEG RTF images can be embedded directly in PDF output.",
+            new Dictionary<string, string> {
+                ["Format"] = image.Format.ToString()
+            });
+        return false;
+    }
+
+    private static void ReportImageSubstitution(RtfPdfSaveOptions options, string source, RtfImageFormat sourceFormat, string targetFormat, string message) {
+        var details = new Dictionary<string, string> {
+            ["SourceFormat"] = sourceFormat.ToString(),
+            ["TargetFormat"] = targetFormat
+        };
+        options.RtfConversionReport.Add(
+            RtfConversionSeverity.Information,
+            "ImageConverted",
+            message,
+            RtfConversionAction.Substituted,
+            sourcePath: source,
+            feature: "Image",
+            detail: string.Join(";", details.Select(pair => pair.Key + "=" + pair.Value)));
     }
 
     private static double GetImageWidth(RtfImage image, RtfPdfSaveOptions options) {
