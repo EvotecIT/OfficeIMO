@@ -23,7 +23,7 @@ public sealed class ReaderRtfOptions {
     };
 
     /// <summary>
-    /// Options passed to the dependency-free RTF parser and semantic binder.
+    /// Options passed to the shared RTF parser and semantic binder.
     /// </summary>
     public RtfReadOptions? RtfReadOptions { get; set; } = OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile();
 

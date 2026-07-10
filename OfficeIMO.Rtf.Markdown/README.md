@@ -1,16 +1,26 @@
 # OfficeIMO.Rtf.Markdown
 
-First-party semantic conversion between OfficeIMO RTF documents and Markdown documents.
+`OfficeIMO.Rtf.Markdown` provides semantic conversion between `RtfDocument` and `MarkdownDoc`.
 
 ```csharp
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 
-var rtf = new RtfDocument();
-rtf.AddParagraph("Hello **from RTF**");
+RtfDocument rtf = RtfDocument.Load("input.rtf").Document;
+var options = new RtfToMarkdownOptions {
+    ImagePathFactory = (_, index) => $"media/image-{index + 1}.png",
+    ImageExporter = (image, _, path) => {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, image.Data);
+    }
+};
 
-string markdown = rtf.ToMarkdown();
-RtfDocument roundTripped = markdown.ToRtfDocumentFromMarkdown();
+string markdown = rtf.ToMarkdown(options);
+options.ConversionReport.RequireNoLoss();
 ```
 
-This package deliberately converts document meaning rather than raw RTF control words. Use `OfficeIMO.Rtf` for syntax-level parsing, writing, diagnostics, and lossless RTF editing.
+Footnotes and endnotes become Markdown footnote references and definitions. Tables, lists, rich inline formatting, links, and supported images have semantic mappings. Nested tables are flattened inside Markdown table cells; annotations and headers/footers are diagnostic omissions.
+
+Convert the other direction with `markdown.ToRtfDocumentFromMarkdown()` or `MarkdownDoc.ToRtfDocument()`.
+
+This bridge converts document meaning, not raw control words. Use `OfficeIMO.Rtf` lossless APIs when the original RTF syntax must remain exact.

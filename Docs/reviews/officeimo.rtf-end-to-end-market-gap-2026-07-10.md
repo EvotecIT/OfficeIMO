@@ -4,6 +4,8 @@ Branch: `codex/rtf-end-to-end-market-gap-20260710`
 
 Base: `origin/master` at `28384ffa8` (`bump`)
 
+> Remediation status: the P0-P2 findings in this audit have been implemented on the audit branch. This document preserves the original baseline and market reasoning; it is no longer the current feature matrix. Use the [living support matrix](../officeimo.rtf-support-matrix.md) and its [machine-readable capability manifest](../officeimo.rtf-capabilities.json) for current contracts, evidence, and remaining boundaries. External producer proof is still explicitly incomplete for Google Docs, macOS TextEdit/RTFD, EHR/CRM generators, and commercial libraries.
+
 ## Verdict
 
 OfficeIMO has a serious first-party RTF engine. It is already broader than the usual open-source RTF converter: it can parse and preserve source syntax, bind a rich semantic document model, write deterministic RTF, apply targeted lossless edits, and convert through first-party Word, HTML, Markdown, PDF, and Reader adapters.
