@@ -8,6 +8,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         EnsureDepth(depth, container);
         var blocks = new List<HtmlRenderFlowBlock>();
         AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
+        double flowHeight = blocks.Sum(block => block.Height);
         var inlineNodes = new List<INode>();
         foreach (INode node in container.ChildNodes) {
             if (node is IElement element) {
@@ -20,14 +21,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (ShouldExtractOutOfFlow(childStyle)) {
-                    FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
-                    RegisterOutOfFlowElement(container, element, childStyle, parentStyle, depth + 1);
+                    flowHeight += FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    PositionedStaticAnchor? staticAnchor = HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
+                        ? new PositionedStaticAnchor(container, 0D, flowHeight)
+                        : null;
+                    RegisterOutOfFlowElement(container, element, childStyle, parentStyle, depth + 1, staticAnchor);
                     continue;
                 }
 
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
-                    FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
-                    blocks.Add(LayoutElement(element, width, childStyle, parentStyle, depth + 1));
+                    flowHeight += FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    RecordNormalFlowPlacement(element, container, 0D, flowHeight, childStyle);
+                    HtmlRenderFlowBlock childBlock = LayoutElement(element, width, childStyle, parentStyle, depth + 1);
+                    blocks.Add(childBlock);
+                    flowHeight += childBlock.Height;
                     continue;
                 }
             }
@@ -42,6 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, element);
+        _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
         if (tag == "img") return ApplyElementPositioning(LayoutImage(element, containingWidth, style), style, containingWidth, containingHeight, element);
@@ -172,12 +180,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return ApplyElementPositioning(block, style, containingWidth, containingHeight, element);
     }
 
-    private void FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
-        if (nodes.Count == 0) return;
+    private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
+        if (nodes.Count == 0) return 0D;
         HtmlInlineLayout inline = LayoutInlineNodes(nodes, width, style, depth + 1, null, null);
         nodes.Clear();
-        if (inline.Height <= 0D || inline.Visuals.Count == 0) return;
-        blocks.Add(new HtmlRenderFlowBlock(
+        if (inline.Height <= 0D || inline.Visuals.Count == 0) return 0D;
+        var block = new HtmlRenderFlowBlock(
             width,
             inline.Height,
             inline.Visuals,
@@ -189,7 +197,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inline.BreakOffsets,
             style.Orphans,
             style.Widows,
-            pageName: style.PageName));
+            pageName: style.PageName);
+        blocks.Add(block);
+        return block.Height;
     }
 
     private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle) {

@@ -75,6 +75,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (FlexLine line in lines) {
             foreach (FlexItem item in line.Items) {
+                if (item.Element != null) {
+                    RecordNormalFlowPlacement(item.Element, element, line.CrossOffset + item.CrossOffset, item.MainOffset, item.Style);
+                }
                 foreach (HtmlRenderVisual visual in item.Block!.Visuals) {
                     visuals.Add(visual.Translate(contentX + line.CrossOffset + item.CrossOffset, contentY + item.MainOffset, visuals.Count));
                 }

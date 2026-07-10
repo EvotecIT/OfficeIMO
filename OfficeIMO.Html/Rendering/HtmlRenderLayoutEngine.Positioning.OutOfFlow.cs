@@ -15,28 +15,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element,
         HtmlRenderBoxStyle style,
         HtmlRenderBoxStyle parentStyle,
-        int depth) {
+        int depth,
+        PositionedStaticAnchor? staticAnchor = null) {
+        IElement root = _document.Body ?? _document.DocumentElement ?? container;
         if (style.Position == "fixed") {
             if (!_registeredFixedElements.Add(element)) return;
             _fixedPositionedElements.Add(new PositionedElementRequest(
                 element,
+                container,
+                root,
                 style.Clone(),
                 parentStyle.Clone(),
                 depth,
                 ResolveOutOfFlowZIndex(element, style),
-                _positionedSourceOrder++));
+                _positionedSourceOrder++,
+                staticAnchor));
             return;
         }
         if (style.Position != "absolute" || !_registeredAbsoluteElements.Add(element)) return;
 
+        IElement containingBlock = ResolveAbsoluteContainingBlock(element, container, parentStyle);
         var request = new PositionedElementRequest(
             element,
+            container,
+            containingBlock,
             style.Clone(),
             parentStyle.Clone(),
             depth,
             ResolveOutOfFlowZIndex(element, style),
-            _positionedSourceOrder++);
-        IElement containingBlock = ResolveAbsoluteContainingBlock(element, container, parentStyle);
+            _positionedSourceOrder++,
+            staticAnchor);
         if (IsRootLayoutContainer(containingBlock)) {
             _rootPositionedElements.Add(request);
             return;
@@ -116,9 +124,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlRenderVisual> visuals) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
         foreach (PositionedElementRequest request in OrderPositionedRequests(requests, band)) {
-            PositionedLayer layer = request.Resolve(this, containingWidth, containingHeight);
+            bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
+            double requestWidth = hasRect ? rect!.Width : containingWidth;
+            double requestHeight = hasRect ? rect!.Height : containingHeight;
+            double requestOriginX = hasRect ? rect!.X : 0D;
+            double requestOriginY = hasRect ? rect!.Y : 0D;
+            PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
             foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-                visuals.Add(visual.Translate(originX + layer.X, originY + layer.Y, visuals.Count));
+                visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count));
             }
         }
     }
@@ -182,20 +195,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .OrderBy(request => request.ZIndex)
             .ThenBy(request => request.SourceOrder);
 
-    private PositionedLayer LayoutPositionedElement(
-        IElement element,
-        HtmlRenderBoxStyle sourceStyle,
-        HtmlRenderBoxStyle parentStyle,
-        double containingWidth,
-        double containingHeight,
-        int depth) {
-        HtmlRenderBoxStyle style = sourceStyle.Clone();
-        string source = HtmlRenderStyleResolver.DescribeSource(element);
+    private PositionedLayer LayoutPositionedElement(PositionedElementRequest request, double containingWidth, double containingHeight) {
+        HtmlRenderBoxStyle style = request.Style.Clone();
+        string source = HtmlRenderStyleResolver.DescribeSource(request.Element);
         double? left = ResolveOutOfFlowInset(style.Left, containingWidth, style, source, "left");
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
         double? top = ResolveOutOfFlowInset(style.Top, containingHeight, style, source, "top");
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
-        double outerWidth = ResolvePositionedOuterWidth(element, style, containingWidth, left, right);
+        double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right);
         if (!style.ExplicitWidth.HasValue) SetPositionedExplicitWidth(style, outerWidth);
         if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue) {
             double targetOuterHeight = Math.Max(0.01D, containingHeight - top.Value - bottom.Value);
@@ -204,9 +211,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         style.Position = "static";
         style.ZIndex = "auto";
-        HtmlRenderFlowBlock block = LayoutElement(element, Math.Max(1D, outerWidth), style, parentStyle, depth);
-        double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : 0D);
-        double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : 0D);
+        HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, request.ParentStyle, request.Depth);
+        PositionedPoint staticPosition = ResolvePositionedStaticPoint(
+            request,
+            block,
+            containingWidth,
+            containingHeight,
+            left.HasValue || right.HasValue,
+            top.HasValue || bottom.HasValue);
+        double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
+        double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
         return new PositionedLayer(block, x, y);
     }
 
@@ -240,23 +254,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private PositionedLayer? _cached;
         private double _width;
         private double _height;
-        internal PositionedElementRequest(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth, int zIndex, int sourceOrder) {
+        internal PositionedElementRequest(
+            IElement element,
+            IElement directParent,
+            IElement containingBlock,
+            HtmlRenderBoxStyle style,
+            HtmlRenderBoxStyle parentStyle,
+            int depth,
+            int zIndex,
+            int sourceOrder,
+            PositionedStaticAnchor? staticAnchor) {
             Element = element;
+            DirectParent = directParent;
+            ContainingBlock = containingBlock;
             Style = style;
             ParentStyle = parentStyle;
             Depth = depth;
             ZIndex = zIndex;
             SourceOrder = sourceOrder;
+            StaticAnchor = staticAnchor;
         }
-        private IElement Element { get; }
-        private HtmlRenderBoxStyle Style { get; }
-        private HtmlRenderBoxStyle ParentStyle { get; }
-        private int Depth { get; }
+        internal IElement Element { get; }
+        internal IElement DirectParent { get; }
+        internal IElement ContainingBlock { get; }
+        internal HtmlRenderBoxStyle Style { get; }
+        internal HtmlRenderBoxStyle ParentStyle { get; }
+        internal int Depth { get; }
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
+        internal PositionedStaticAnchor? StaticAnchor { get; }
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
             if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D) {
-                _cached = engine.LayoutPositionedElement(Element, Style, ParentStyle, width, height, Depth);
+                _cached = engine.LayoutPositionedElement(this, width, height);
                 _width = width;
                 _height = height;
             }

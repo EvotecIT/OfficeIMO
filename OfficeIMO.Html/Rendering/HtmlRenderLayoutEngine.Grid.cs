@@ -61,6 +61,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = ResolveBoxHeight(naturalContentHeight, style);
         double contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
         GridAxisLayout rows = ResolveGridAxisLayout(rowTracks, rowSizes, contentHeight, rowGap, style.AlignContent, source, "align-content");
+        RecordGridPositionedContainingRects(
+            element,
+            style,
+            contentWidth,
+            contentHeight,
+            columns,
+            rows,
+            areas,
+            columnLineNames,
+            rowLineNames);
 
         foreach (GridItem item in items) {
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
@@ -87,6 +97,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (GridItem item in items) {
             double itemX = contentX + columns.Positions[item.Column] + item.OffsetX;
             double itemY = contentY + rows.Positions[item.Row] + item.OffsetY;
+            if (item.Item.Element != null) {
+                RecordNormalFlowPlacement(
+                    item.Item.Element,
+                    element,
+                    columns.Positions[item.Column] + item.OffsetX,
+                    rows.Positions[item.Row] + item.OffsetY,
+                    item.Item.Style);
+            }
             foreach (HtmlRenderVisual visual in item.Block!.Visuals) visuals.Add(visual.Translate(itemX, itemY, visuals.Count));
         }
         AppendLocalPositionedVisuals(

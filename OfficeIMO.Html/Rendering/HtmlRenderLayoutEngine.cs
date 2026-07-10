@@ -25,9 +25,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
     private readonly Dictionary<IElement, List<PositionedElementRequest>> _localPositionedElements = new Dictionary<IElement, List<PositionedElementRequest>>();
+    private readonly Dictionary<IElement, NormalFlowPlacement> _normalFlowPlacements = new Dictionary<IElement, NormalFlowPlacement>();
+    private readonly Dictionary<IElement, PositionedContainingRect> _positionedContainingRects = new Dictionary<IElement, PositionedContainingRect>();
+    private readonly Dictionary<IElement, HtmlRenderBoxStyle> _layoutStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionContainingBlockFallbacks = new HashSet<IElement>();
+    private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
@@ -48,6 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double surfaceWidth = _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth;
         double contentWidth = surfaceWidth - _options.Margins.Left - _options.Margins.Right;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
+        _layoutStyles[root] = rootStyle.Clone();
         _surfaceRootElement = root;
         _surfaceRootStyle = rootStyle;
         IElement? documentRoot = _document.DocumentElement;

@@ -54,6 +54,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PositionInsetUnsupported = "HtmlRenderPositionInsetUnsupported";
     /// <summary>A positioned layout mode used the documented normal-flow fallback.</summary>
     public const string PositioningModeUnsupported = "HtmlRenderPositioningModeUnsupported";
+    /// <summary>An automatic positioned inset could not use its hypothetical normal-flow anchor.</summary>
+    public const string PositionStaticAnchorFallback = "HtmlRenderPositionStaticAnchorFallback";
     /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
     public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
     /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
@@ -127,6 +129,7 @@ public static class HtmlRenderDiagnosticCodes {
         InlineImageFallback,
         PositionInsetUnsupported,
         PositioningModeUnsupported,
+        PositionStaticAnchorFallback,
         PositionStickyStatic,
         PositionZIndexPending,
         PageMarginContentUnsupported,

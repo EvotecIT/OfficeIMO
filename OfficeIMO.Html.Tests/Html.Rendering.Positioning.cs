@@ -423,6 +423,147 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlAbsolutePosition_UsesBlockStaticPositionWhenInsetsAreAuto() {
+        const string html = "<div id='before-auto' style='height:30px;margin:0;background:#0000ff'></div>"
+            + "<div id='auto-positioned' style='position:absolute;width:20px;height:20px;margin:0;background:#ff0000'></div>"
+            + "<div id='after-auto' style='height:20px;margin:0;background:#00ff00'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape positioned = FindPositionedShape(rendered, "div#auto-positioned");
+        Assert.Equal(0D, positioned.X, 3);
+        Assert.Equal(30D, positioned.Y, 3);
+        Assert.Equal(30D, FindPositionedShape(rendered, "div#after-auto").Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_AccumulatesNestedBlockStaticPositionToContainingPaddingBox() {
+        const string html = "<div style='position:relative;width:100px;height:100px;padding:10px;margin:0'>"
+            + "<div style='margin:7px 0 0 5px;border:2px solid #000;padding:3px'>"
+            + "<div style='height:20px;margin:0'></div>"
+            + "<div id='nested-auto' style='position:absolute;width:10px;height:10px;margin:0;background:#ff0000'></div></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape positioned = FindPositionedShape(rendered, "div#nested-auto");
+        Assert.Equal(20D, positioned.X, 3);
+        Assert.Equal(42D, positioned.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_DiagnosesUnavailableInlineStaticAnchor() {
+        const string html = "<p style='margin:0'>Before<span id='inline-auto' style='position:absolute;background:#ff0000'>Auto</span>After</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.NotNull(FindText(rendered, "Auto"));
+        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_UsesFlexAndGridStaticAlignmentWhenInsetsAreAuto() {
+        const string html = "<div style='display:flex;width:200px;height:100px;justify-content:center;align-items:flex-end;margin:0'>"
+            + "<div id='flex-auto' style='position:absolute;width:20px;height:20px;background:#ff0000'></div></div>"
+            + "<div style='display:grid;width:200px;height:100px;justify-items:end;align-items:center;margin:0'>"
+            + "<div id='grid-auto' style='position:absolute;width:20px;height:20px;background:#0000ff'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape flex = FindPositionedShape(rendered, "div#flex-auto");
+        HtmlRenderShape grid = FindPositionedShape(rendered, "div#grid-auto");
+        Assert.Equal(90D, flex.X, 3);
+        Assert.Equal(80D, flex.Y, 3);
+        Assert.Equal(180D, grid.X, 3);
+        Assert.Equal(140D, grid.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlFixedPosition_UsesInitialStaticAnchorOnEveryPage() {
+        const string html = "<div style='height:30px;margin:0'>Before</div>"
+            + "<div id='fixed-auto' style='position:fixed;width:20px;height:20px;margin:0;background:#ff0000'></div>"
+            + "<div style='height:70px;margin:0'>PageOne</div><div style='height:70px;margin:0'>PageTwo</div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(10D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.True(rendered.Pages.Count >= 2);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            HtmlRenderShape fixedShape = Assert.Single(page.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#fixed-auto" && shape.Shape.FillColor.HasValue);
+            Assert.Equal(10D, fixedShape.X, 3);
+            Assert.Equal(40D, fixedShape.Y, 3);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_AccumulatesStaticPositionThroughFlexAndGridItems() {
+        const string html = "<div style='position:relative;width:200px;height:50px;margin:0'>"
+            + "<div style='display:flex;width:200px;height:50px'>"
+            + "<div style='flex:0 0 100px;box-sizing:border-box'></div>"
+            + "<div style='flex:0 0 100px;box-sizing:border-box;padding:5px'><div style='height:10px'></div>"
+            + "<div id='flex-nested-auto' style='position:absolute;width:10px;height:10px;background:#ff0000'></div></div></div></div>"
+            + "<div style='position:relative;width:200px;height:50px;margin:0'>"
+            + "<div style='display:grid;grid-template-columns:100px 100px;width:200px;height:50px'>"
+            + "<div style='grid-column:2;padding:5px'><div style='height:10px'></div>"
+            + "<div id='grid-nested-auto' style='position:absolute;width:10px;height:10px;background:#0000ff'></div></div></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape flex = FindPositionedShape(rendered, "div#flex-nested-auto");
+        HtmlRenderShape grid = FindPositionedShape(rendered, "div#grid-nested-auto");
+        Assert.Equal(105D, flex.X, 3);
+        Assert.Equal(15D, flex.Y, 3);
+        Assert.Equal(105D, grid.X, 3);
+        Assert.Equal(65D, grid.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_UsesDeclaredGridAreaAsContainingBlock() {
+        const string html = "<div style='display:grid;grid-template-columns:100px 100px;grid-template-rows:50px 50px;width:200px;height:100px;margin:0'>"
+            + "<div id='grid-area-auto' style='position:absolute;grid-column:2;grid-row:2;justify-self:end;align-self:center;width:20px;height:20px;background:#ff0000'></div>"
+            + "<div id='grid-area-inset' style='position:absolute;grid-column:2;grid-row:2;left:10%;top:10%;width:20px;height:20px;background:#0000ff'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape automatic = FindPositionedShape(rendered, "div#grid-area-auto");
+        HtmlRenderShape inset = FindPositionedShape(rendered, "div#grid-area-inset");
+        Assert.Equal(180D, automatic.X, 3);
+        Assert.Equal(65D, automatic.Y, 3);
+        Assert.Equal(110D, inset.X, 3);
+        Assert.Equal(55D, inset.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
     public void HtmlRelativePosition_ResolvesTrailingInsetsAndExplicitVerticalPercentages() {
         const string baselineHtml = "<div style='height:100px;margin:0'><span>Marker</span></div>";
         const string positionedHtml = "<div style='height:100px;margin:0'><span style='position:relative;right:5px;bottom:10%'>Marker</span></div>";
