@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
@@ -174,7 +175,9 @@ internal sealed class ReaderHandlerDescriptor {
         Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
         Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream,
         Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentPath,
-        Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream) {
+        Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream,
+        Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentPathAsync,
+        Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentStreamAsync) {
         Id = id;
         DisplayName = displayName;
         Description = description;
@@ -187,6 +190,8 @@ internal sealed class ReaderHandlerDescriptor {
         ReadStream = readStream;
         ReadDocumentPath = readDocumentPath;
         ReadDocumentStream = readDocumentStream;
+        ReadDocumentPathAsync = readDocumentPathAsync;
+        ReadDocumentStreamAsync = readDocumentStreamAsync;
     }
 
     public string Id { get; }
@@ -201,6 +206,8 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
     public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; }
+    public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; }
+    public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
 
     public static ReaderHandlerDescriptor Create(ReaderHandlerRegistration registration) {
         if (registration == null) throw new ArgumentNullException(nameof(registration));
@@ -210,9 +217,11 @@ internal sealed class ReaderHandlerDescriptor {
         if (registration.ReadPath == null &&
             registration.ReadStream == null &&
             registration.ReadDocumentPath == null &&
-            registration.ReadDocumentStream == null) {
+            registration.ReadDocumentStream == null &&
+            registration.ReadDocumentPathAsync == null &&
+            registration.ReadDocumentStreamAsync == null) {
             throw new ArgumentException(
-                "Handler must define a chunk reader or rich document reader for paths and/or streams.",
+                "Handler must define a synchronous or asynchronous reader for paths and/or streams.",
                 nameof(registration));
         }
 
@@ -237,7 +246,9 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadPath,
             registration.ReadStream,
             registration.ReadDocumentPath,
-            registration.ReadDocumentStream);
+            registration.ReadDocumentStream,
+            registration.ReadDocumentPathAsync,
+            registration.ReadDocumentStreamAsync);
     }
 
     public ReaderHandlerDescriptor WithExtensions(IReadOnlyList<string> extensions) {
@@ -253,7 +264,9 @@ internal sealed class ReaderHandlerDescriptor {
             ReadPath,
             ReadStream,
             ReadDocumentPath,
-            ReadDocumentStream);
+            ReadDocumentStream,
+            ReadDocumentPathAsync,
+            ReadDocumentStreamAsync);
     }
 
     public ReaderHandlerCapability ToCapability() {
@@ -264,10 +277,12 @@ internal sealed class ReaderHandlerDescriptor {
             Kind = Kind,
             Extensions = Extensions.ToArray(),
             IsBuiltIn = false,
-            SupportsPath = ReadPath != null || ReadDocumentPath != null,
-            SupportsStream = ReadStream != null || ReadDocumentStream != null,
-            SupportsDocumentPath = ReadDocumentPath != null,
-            SupportsDocumentStream = ReadDocumentStream != null,
+            SupportsPath = ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null,
+            SupportsStream = ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null,
+            SupportsDocumentPath = ReadDocumentPath != null || ReadDocumentPathAsync != null,
+            SupportsDocumentStream = ReadDocumentStream != null || ReadDocumentStreamAsync != null,
+            SupportsAsyncPath = ReadDocumentPathAsync != null,
+            SupportsAsyncStream = ReadDocumentStreamAsync != null,
             SchemaId = ReaderCapabilitySchema.Id,
             SchemaVersion = ReaderCapabilitySchema.Version,
             DefaultMaxInputBytes = DefaultMaxInputBytes,

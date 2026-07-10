@@ -79,6 +79,8 @@ public sealed partial class ReaderRegistryTests {
             (c.Text?.Contains("$.handlers[0].id", StringComparison.Ordinal) ?? false));
         Assert.Contains("\"supportsDocumentPath\":", jsonA, StringComparison.Ordinal);
         Assert.Contains("\"supportsDocumentStream\":", jsonA, StringComparison.Ordinal);
+        Assert.Contains("\"supportsAsyncPath\":", jsonA, StringComparison.Ordinal);
+        Assert.Contains("\"supportsAsyncStream\":", jsonA, StringComparison.Ordinal);
     }
 
     [Fact]
