@@ -20,6 +20,7 @@
     "OfficeIMO.MarkdownRenderer": "0.2.X",
     "OfficeIMO.MarkdownRenderer.IntelligenceX": "0.1.X",
     "OfficeIMO.MarkdownRenderer.Wpf": "0.1.X",
+    "OfficeIMO.OpenDocument": "0.1.X",
     "OfficeIMO.Pdf": "0.1.X",
     "OfficeIMO.PowerPoint": "1.0.X",
     "OfficeIMO.PowerPoint.Html": "1.0.X",
@@ -87,4 +88,3 @@
   "GitHubTagTemplate": "{Repo}-v{UtcTimestamp}",
   "GitHubReleaseName": "{Repo} {UtcDateTime}"
 }
-

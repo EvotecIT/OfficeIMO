@@ -13,6 +13,7 @@ paths:
   - OfficeIMO.MarkdownRenderer.IntelligenceX
   - OfficeIMO.MarkdownRenderer.SamplePlugin
   - OfficeIMO.MarkdownRenderer.Wpf
+  - OfficeIMO.OpenDocument
   - OfficeIMO.Pdf
   - OfficeIMO.PowerPoint
   - OfficeIMO.Reader
