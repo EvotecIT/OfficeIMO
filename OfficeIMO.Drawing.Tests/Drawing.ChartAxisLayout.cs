@@ -210,4 +210,35 @@ public class DrawingChartAxisLayoutTests {
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "200");
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "2");
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_UsesAssignedAxisRangeForScatterSeries() {
+        OfficeColor primaryColor = OfficeColor.ParseHex("#2563EB");
+        OfficeColor secondaryColor = OfficeColor.ParseHex("#DC2626");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scatter axes",
+            "Scatter Axes",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "2" },
+                new[] {
+                    new OfficeChartSeries("Primary", new[] { 0D, 100D }, new[] { 1D, 2D },
+                        primaryColor, null, showMarkers: true, renderKind: OfficeChartKind.Scatter),
+                    new OfficeChartSeries("Secondary", new[] { 0D, 1D }, new[] { 1D, 2D },
+                        secondaryColor, null, showMarkers: true, renderKind: OfficeChartKind.Scatter,
+                        axisGroup: OfficeChartAxisGroup.Secondary)
+                }),
+            widthPoints: 360D,
+            heightPoints: 220D,
+            layout: new OfficeChartLayout(showLegend: false)));
+
+        OfficeDrawingShape[] secondaryMarkers = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+                            shape.Shape.FillColor == secondaryColor)
+            .ToArray();
+        Assert.Equal(2, secondaryMarkers.Length);
+        double verticalSpan = secondaryMarkers.Max(shape => shape.Y) - secondaryMarkers.Min(shape => shape.Y);
+        Assert.True(verticalSpan > 40D,
+            "Secondary scatter values should use their own 0-1 range instead of the primary 0-100 range.");
+    }
 }

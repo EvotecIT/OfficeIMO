@@ -80,13 +80,32 @@ public static partial class OfficeChartDrawingRenderer {
                 plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         }
         if (!HasMixedScatterSeriesOnCategoryAxes(snapshot)) {
-            AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+            AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
+                primaryValueAxisRange, OfficeChartAxisGroup.Primary);
+            if (hasSecondaryAxis) {
+                AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
+                    secondaryValueAxisRange, OfficeChartAxisGroup.Secondary);
+            }
         }
     }
 
     private static void AddAxisGroupSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot,
         ValueRange range, OfficeChartAxisGroup axisGroup, double plotLeft, double plotTop,
         double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+        if (!HasMixedCartesianSeriesKinds(snapshot)) {
+            if (IsAreaChart(snapshot.ChartKind)) {
+                AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
+                    range, axisGroup);
+            } else if (IsBarOrColumnChart(snapshot.ChartKind)) {
+                AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
+                    range, axisGroup);
+            } else if (IsLineChart(snapshot.ChartKind)) {
+                AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
+                    range, axisGroup);
+            }
+            return;
+        }
+
         AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,
             range, axisGroup);
         AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout,

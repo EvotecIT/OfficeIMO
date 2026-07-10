@@ -99,5 +99,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ExcelChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
             Assert.Equal(ExcelChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
         }
+
+        [Fact]
+        public void Test_ExcelCharts_SharedScatterUsesExplicitXValuesWithDisplayLabels() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.ScatterLabels.xlsx");
+            var sharedData = new OfficeChartData(new[] { "Discovery", "Delivery" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })
+            });
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                sheet.AddChart(OfficeChartKind.Scatter, sharedData,
+                    row: 1, column: 5, title: "Explicit X values");
+                document.Save();
+            }
+
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
+            ExcelChart chart = Assert.Single(reopenedSheet.Charts);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(new[] { 1.25D, 2.75D }, Assert.Single(snapshot.Data.Series).XValues);
+        }
     }
 }

@@ -71,7 +71,8 @@ public sealed partial class OfficeMarkupPowerPointExporter {
 
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
         var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(options.OutputPath);
+        using var packageDestination = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(packageDestination, autoSave: false);
         presentation.SlideSize.SetSizeInches(metrics.Width, metrics.Height);
         var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);
         string? activeSection = null;
@@ -93,7 +94,8 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         if (options.FailOnPreflightFindings) {
             report.ThrowIfFindings(preflightOptions.FailureSeverity);
         }
-        presentation.Save();
+        presentation.Save(packageDestination);
+        File.WriteAllBytes(options.OutputPath, packageDestination.ToArray());
         return report;
     }
 }

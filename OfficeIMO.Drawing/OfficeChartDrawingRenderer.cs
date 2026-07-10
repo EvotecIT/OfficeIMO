@@ -1527,7 +1527,9 @@ public static partial class OfficeChartDrawingRenderer {
             ? snapshot.Data.Series.Where(series => !IsScatterChart(GetEffectiveSeriesKind(snapshot, series))).ToList()
             : snapshot.Data.Series;
 
-    private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
+        double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        ValueRange? valueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
@@ -1535,15 +1537,21 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         IReadOnlyList<double> sharedXValues = GetScatterXValues(categories);
-        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> scatterSeries = GetRenderableScatterSeries(snapshot);
+        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> allScatterSeries =
+            GetRenderableScatterSeries(snapshot);
+        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> scatterSeries = axisGroup.HasValue
+            ? allScatterSeries.Where(item => item.Series.AxisGroup == axisGroup.Value).ToList()
+            : allScatterSeries;
         if (scatterSeries.Count == 0) {
             return;
         }
 
+        List<OfficeChartSeries> allRangeSeries = allScatterSeries.Select(item => item.Series).ToList();
         List<OfficeChartSeries> rangeSeries = scatterSeries.Select(item => item.Series).ToList();
-        (ValueRange pairedXRange, ValueRange pairedYRange) = GetScatterPointRanges(rangeSeries, sharedXValues);
+        ValueRange pairedXRange = GetScatterPointRanges(allRangeSeries, sharedXValues).XRange;
+        ValueRange pairedYRange = GetScatterPointRanges(rangeSeries, sharedXValues).YRange;
         ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
-        ValueRange yRange = ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
+        ValueRange yRange = valueAxisRange ?? ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
         for (int s = 0; s < scatterSeries.Count; s++) {
             OfficeChartSeries currentSeries = scatterSeries[s].Series;
             int sourceSeriesIndex = scatterSeries[s].SourceIndex;

@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointShape shape = shapes[shapeIndex];
                     shapeInfos.Add(new PowerPointAccessibilityShapeInfo(shape.ReadingOrder, shape.Id, shape.Name,
                         shape.Title, shape.Description, shape.Decorative, shape.Language, shape.ShapeContentType));
-                    InspectShapeAccessibility(slide, slideIndex, shape, resolved, findings);
+                    InspectShapeAccessibility(slide, slideIndex, shape, shapes, resolved, findings);
                 }
 
                 slideInfos.Add(new PowerPointAccessibilitySlideInfo(slideIndex, slideTitle, shapeInfos));
@@ -65,6 +65,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void InspectShapeAccessibility(PowerPointSlide slide, int slideIndex, PowerPointShape shape,
+            IReadOnlyList<PowerPointShape> shapes,
             PowerPointAccessibilityOptions options, IList<PowerPointAccessibilityFinding> findings) {
             if (shape.Decorative) return;
             bool informativeVisual = IsInformativeVisual(shape);
@@ -91,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
                 InspectLinks(textBox, slideIndex, shape, options, findings);
             }
             if (options.CheckContrast && shape is PowerPointTextBox contrastTextBox) {
-                InspectContrast(slide, contrastTextBox, slideIndex, options, findings);
+                InspectContrast(slide, contrastTextBox, shapes, slideIndex, options, findings);
             }
             if (options.CheckColorOnlyMeaning && shape is PowerPointChart chart) {
                 InspectChartMeaning(chart, slideIndex, options, findings);
@@ -120,9 +121,10 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void InspectContrast(PowerPointSlide slide, PowerPointTextBox textBox, int slideIndex,
+        private static void InspectContrast(PowerPointSlide slide, PowerPointTextBox textBox,
+            IReadOnlyList<PowerPointShape> shapes, int slideIndex,
             PowerPointAccessibilityOptions options, IList<PowerPointAccessibilityFinding> findings) {
-            OfficeColor? background = ResolveBackgroundColor(slide, textBox);
+            OfficeColor? background = ResolveBackgroundColor(slide, textBox, shapes);
             if (!background.HasValue) return;
             bool inspectedRun = false;
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
@@ -200,21 +202,31 @@ namespace OfficeIMO.PowerPoint {
                     ? PowerPointAccessibilitySeverity.Error : PowerPointAccessibilitySeverity.Warning,
                 code, message, slideIndex, shape.Id, shape.Name);
 
-        private static OfficeColor? ResolveBackgroundColor(PowerPointSlide slide, PowerPointTextBox textBox) {
+        private static OfficeColor? ResolveBackgroundColor(PowerPointSlide slide, PowerPointTextBox textBox,
+            IReadOnlyList<PowerPointShape> shapes) {
             if (!string.IsNullOrWhiteSpace(textBox.FillColor) && (textBox.FillTransparency ?? 0) < 50) {
                 return ParseColor(textBox.FillColor);
             }
-            PowerPointShape? containingShape = slide.Shapes
+            int textBoxIndex = IndexOfReference(shapes, textBox);
+            IEnumerable<PowerPointShape> earlierShapes = textBoxIndex >= 0
+                ? shapes.Take(textBoxIndex)
+                : shapes.Where(shape => shape.DrawingOrder < textBox.DrawingOrder);
+            PowerPointShape? containingShape = earlierShapes
                 .Where(shape => !ReferenceEquals(shape, textBox) && !shape.Hidden &&
-                                shape.DrawingOrder < textBox.DrawingOrder &&
                                 !string.IsNullOrWhiteSpace(shape.FillColor) &&
                                 (shape.FillTransparency ?? 0) < 50 && Contains(shape, textBox))
-                .OrderByDescending(shape => shape.DrawingOrder)
-                .FirstOrDefault();
+                .LastOrDefault();
             if (containingShape != null) return ParseColor(containingShape.FillColor);
             PowerPointSlideBackground background = slide.GetBackground();
             return background.Kind == PowerPointSlideBackgroundKind.SolidColor
                 ? ParseColor(background.Color) : null;
+        }
+
+        private static int IndexOfReference(IReadOnlyList<PowerPointShape> shapes, PowerPointShape target) {
+            for (int i = 0; i < shapes.Count; i++) {
+                if (ReferenceEquals(shapes[i], target)) return i;
+            }
+            return -1;
         }
 
         private static bool Contains(PowerPointShape outer, PowerPointShape inner) =>

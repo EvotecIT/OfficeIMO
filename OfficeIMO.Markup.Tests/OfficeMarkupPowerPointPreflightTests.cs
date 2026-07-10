@@ -52,4 +52,48 @@ title: Report Demo
             if (File.Exists(reportPath)) File.Delete(reportPath);
         }
     }
+
+    [Fact]
+    public void ExportWithReport_DoesNotReplaceOutputWhenPreflightRejectsDeck() {
+        const string markup = """
+---
+profile: presentation
+title: Rejected export
+---
+
+# Delivery status
+
+@slide {
+  layout: title-and-content
+}
+
+A deliberately long paragraph that cannot fit inside the very short slide used by this regression test.
+""";
+        string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+        byte[] existingOutput = { 0x45, 0x58, 0x49, 0x53, 0x54, 0x49, 0x4E, 0x47 };
+        try {
+            File.WriteAllBytes(presentationPath, existingOutput);
+            OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
+
+            Assert.Throws<PowerPointDeckPreflightException>(() =>
+                new OfficeMarkupPowerPointExporter().ExportWithReport(parsed.Document,
+                    new OfficeMarkupPowerPointExportOptions {
+                        OutputPath = presentationPath,
+                        RenderMermaidDiagrams = false,
+                        SlideHeightInches = 1D,
+                        FailOnPreflightFindings = true,
+                        PreflightOptions = new PowerPointDeckPreflightOptions {
+                            DetectShapeCollisions = false,
+                            DetectMissingVisualAssets = false,
+                            IncludeVisualSnapshotDiagnostics = false,
+                            MinimumReadableFontSizePoints = 100D,
+                            FailureSeverity = PowerPointDeckPreflightSeverity.Warning
+                        }
+                    }));
+
+            Assert.Equal(existingOutput, File.ReadAllBytes(presentationPath));
+        } finally {
+            if (File.Exists(presentationPath)) File.Delete(presentationPath);
+        }
+    }
 }

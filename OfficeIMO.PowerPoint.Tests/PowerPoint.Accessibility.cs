@@ -167,5 +167,54 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(reportPath)) File.Delete(reportPath);
             }
         }
+
+        [Fact]
+        public void AccessibilityContrastUsesInheritedLayoutShapeBackground() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointSlide slide = presentation.Slides[0];
+            SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+            DocumentFormat.OpenXml.Presentation.ShapeTree tree =
+                layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+            tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                    new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties {
+                        Id = 900U, Name = "Inherited dark panel"
+                    },
+                    new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                    new DocumentFormat.OpenXml.Presentation.ApplicationNonVisualDrawingProperties()),
+                new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                    new DocumentFormat.OpenXml.Drawing.Transform2D(
+                        new DocumentFormat.OpenXml.Drawing.Offset {
+                            X = PowerPointUnits.FromPoints(10), Y = PowerPointUnits.FromPoints(10)
+                        },
+                        new DocumentFormat.OpenXml.Drawing.Extents {
+                            Cx = PowerPointUnits.FromPoints(220), Cy = PowerPointUnits.FromPoints(70)
+                        }),
+                    new DocumentFormat.OpenXml.Drawing.PresetGeometry(
+                        new DocumentFormat.OpenXml.Drawing.AdjustValueList()) {
+                            Preset = DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Rectangle
+                        },
+                    new DocumentFormat.OpenXml.Drawing.SolidFill(
+                        new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "111827" }))));
+            layoutPart.SlideLayout.Save();
+
+            PowerPointTextBox text = slide.AddTextBoxPoints("Readable inherited contrast", 20, 20, 180, 30);
+            text.Color = "FFFFFF";
+            text.FontSize = 12;
+
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility(
+                new PowerPointAccessibilityOptions {
+                    RequireSlideTitles = false,
+                    RequireLanguage = false,
+                    RequireAlternativeText = false,
+                    RequireTableHeaders = false,
+                    CheckMeaningfulLinks = false,
+                    CheckColorOnlyMeaning = false
+                });
+
+            Assert.DoesNotContain(report.Findings, finding =>
+                finding.Code == "Accessibility.LowContrast" && finding.ShapeId == text.Id);
+        }
     }
 }

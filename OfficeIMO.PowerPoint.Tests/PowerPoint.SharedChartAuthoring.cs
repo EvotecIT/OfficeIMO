@@ -146,6 +146,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ScatterDataSummaryIncludesEveryExplicitPoint() {
+            var data = new OfficeChartData(new[] { "First" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D })
+            });
+
+            string summary = PowerPointChart.CreateDataSummary(OfficeChartKind.Scatter, data);
+
+            Assert.Contains("Series\tX\tY", summary, StringComparison.Ordinal);
+            Assert.Contains("Actual\t1\t10", summary, StringComparison.Ordinal);
+            Assert.Contains("Actual\t2\t20", summary, StringComparison.Ordinal);
+            Assert.Contains("Actual\t3\t30", summary, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SharedChartContract_RejectsUnsupportedMixedAxesBeforeMutatingSlide() {
             var data = new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeChartSeries("Bars", new[] { 1D, 2D }, null, null, null, showMarkers: false,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 
@@ -12,6 +13,11 @@ namespace OfficeIMO.PowerPoint {
             if (data == null) throw new ArgumentNullException(nameof(data));
             var builder = new StringBuilder();
             builder.Append("Chart kind: ").Append(chartKind).AppendLine();
+            if (chartKind == OfficeChartKind.Scatter &&
+                data.Series.Any(series => series.XValues != null)) {
+                AppendScatterDataSummary(builder, data);
+                return builder.ToString();
+            }
             builder.Append("Category");
             foreach (OfficeChartSeries series in data.Series) {
                 builder.Append('\t').Append(CleanSummaryValue(series.Name));
@@ -28,6 +34,25 @@ namespace OfficeIMO.PowerPoint {
                 if (categoryIndex + 1 < data.Categories.Count) builder.AppendLine();
             }
             return builder.ToString();
+        }
+
+        private static void AppendScatterDataSummary(StringBuilder builder, OfficeChartData data) {
+            builder.AppendLine("Series\tX\tY");
+            bool firstPoint = true;
+            foreach (OfficeChartSeries series in data.Series) {
+                for (int pointIndex = 0; pointIndex < series.Values.Count; pointIndex++) {
+                    if (!firstPoint) builder.AppendLine();
+                    firstPoint = false;
+                    builder.Append(CleanSummaryValue(series.Name)).Append('\t');
+                    if (series.XValues != null && pointIndex < series.XValues.Count) {
+                        builder.Append(series.XValues[pointIndex].ToString("G", CultureInfo.InvariantCulture));
+                    } else if (pointIndex < data.Categories.Count) {
+                        builder.Append(CleanSummaryValue(data.Categories[pointIndex]));
+                    }
+                    builder.Append('\t')
+                        .Append(series.Values[pointIndex].ToString("G", CultureInfo.InvariantCulture));
+                }
+            }
         }
 
         /// <summary>Creates a deterministic plain-text data summary from the current native chart.</summary>
