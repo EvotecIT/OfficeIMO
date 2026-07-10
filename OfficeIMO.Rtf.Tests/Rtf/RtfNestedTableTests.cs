@@ -70,6 +70,23 @@ public class RtfNestedTableTests {
     }
 
     [Fact]
+    public void Semantic_Writer_RoundTrips_Adjacent_Nested_Tables_As_Distinct_Blocks() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable outer = document.AddTable(1, 1);
+        RtfTableCell outerCell = outer.Rows[0].Cells[0];
+        outerCell.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("First nested table");
+        outerCell.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Second nested table");
+
+        RtfDocument roundTrip = RtfDocument.Read(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfTable readOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
+        RtfTable[] nestedTables = Assert.Single(Assert.Single(readOuter.Rows).Cells).Blocks.OfType<RtfTable>().ToArray();
+
+        Assert.Equal(2, nestedTables.Length);
+        Assert.Equal("First nested table", nestedTables[0].Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+        Assert.Equal("Second nested table", nestedTables[1].Rows[0].Cells[0].Paragraphs[0].ToPlainText());
+    }
+
+    [Fact]
     public void Semantic_Writer_RoundTrips_Three_Table_Levels() {
         RtfDocument document = RtfDocument.Create();
         RtfTable outer = document.AddTable(1, 1);

@@ -668,7 +668,6 @@ internal static class RtfToMarkdownConverter {
     private static void AppendRun(InlineSequence sequence, RtfRun run, RtfToMarkdownOptions options) {
         if (run.Hidden && !options.IncludeHiddenText) {
             options.Report("RTFMD005", RtfMarkdownDiagnosticSeverity.Info, "Hidden RTF text omitted from Markdown output.");
-            AppendNoteReference(sequence, run.Note, options);
             return;
         }
 

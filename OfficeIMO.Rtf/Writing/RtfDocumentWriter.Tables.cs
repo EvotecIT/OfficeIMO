@@ -378,6 +378,7 @@ internal static partial class RtfDocumentWriter {
                 ResetRunState(builder, state);
                 builder.Append(@"\par");
             } else if (block is RtfTable nested) {
+                if (wroteNestedTable) WriteNestedTableBoundary(builder, 2);
                 WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, 2);
                 wroteNestedTable = true;
             }
@@ -389,6 +390,7 @@ internal static partial class RtfDocumentWriter {
     private static void WriteNestedTable(StringBuilder builder, RtfTable table, int? defaultLanguageId, int unicodeSkipCount, int level) {
         foreach (RtfTableRow row in table.Rows) {
             foreach (RtfTableCell cell in row.Cells) {
+                bool wroteNestedTable = false;
                 for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
                     IRtfBlock block = cell.Blocks[blockIndex];
                     if (block is RtfParagraph paragraph) {
@@ -402,7 +404,10 @@ internal static partial class RtfDocumentWriter {
                         ResetRunState(builder, state);
                         if (blockIndex < cell.Blocks.Count - 1) builder.Append(@"\par");
                     } else if (block is RtfTable nested) {
-                        WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, Math.Min(15, level + 1));
+                        int nestedLevel = Math.Min(15, level + 1);
+                        if (wroteNestedTable) WriteNestedTableBoundary(builder, nestedLevel);
+                        WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, nestedLevel);
+                        wroteNestedTable = true;
                     }
                 }
 
@@ -423,5 +428,11 @@ internal static partial class RtfDocumentWriter {
 
             builder.Append(@"\nestrow}{\nonesttables\par}");
         }
+    }
+
+    private static void WriteNestedTableBoundary(StringBuilder builder, int level) {
+        builder.Append(@"{\*\officeimonestedtableboundary");
+        builder.Append(level.ToString(CultureInfo.InvariantCulture));
+        builder.Append('}');
     }
 }

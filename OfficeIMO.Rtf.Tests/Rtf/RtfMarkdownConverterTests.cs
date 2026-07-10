@@ -727,6 +727,18 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void RtfDocumentToMarkdownOmitsNotesAttachedToHiddenRuns() {
+        RtfDocument document = RtfDocument.Create();
+        RtfRun hiddenReference = document.AddParagraph().AddFootnote("1", "Hidden footnote body");
+        hiddenReference.Hidden = true;
+
+        string markdown = document.ToMarkdown(new RtfToMarkdownOptions { IncludeHiddenText = false });
+
+        Assert.DoesNotContain("fn1", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden footnote body", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocumentToMarkdownReportsGeneratedTextWithoutFallback() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddPageNumber();

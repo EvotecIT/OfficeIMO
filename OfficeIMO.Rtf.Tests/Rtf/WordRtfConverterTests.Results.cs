@@ -83,6 +83,9 @@ public partial class WordRtfConverterTests {
         RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
         levelOverride.StartAt = 7;
         levelOverride.OverrideStartAt = true;
+        RtfListLevelOverride inactiveOverride = rtf.AddListOverride(21, 10).AddLevelOverride();
+        inactiveOverride.StartAt = 9;
+        inactiveOverride.OverrideStartAt = false;
         RtfParagraph paragraph = rtf.AddParagraph().SetStyle(7).SetList(20, 0, RtfListKind.Decimal);
         paragraph.ListDefinitionId = 10;
         paragraph.AddText("Styled list item").SetStyle(8);
@@ -110,6 +113,9 @@ public partial class WordRtfConverterTests {
         RtfListLevelOverride roundTripOverride = Assert.Single(Assert.Single(roundTrip.ListOverrides, item => item.Id == 20).LevelOverrides);
         Assert.Equal(7, roundTripOverride.StartAt);
         Assert.True(roundTripOverride.OverrideStartAt);
+        RtfListLevelOverride inactiveRoundTripOverride = Assert.Single(Assert.Single(roundTrip.ListOverrides, item => item.Id == 21).LevelOverrides);
+        Assert.Null(inactiveRoundTripOverride.StartAt);
+        Assert.False(inactiveRoundTripOverride.OverrideStartAt);
         Assert.Contains(toWord.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordStylesMapped");
         Assert.Contains(toWord.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordListDefinitionsMapped");
         toWord.Report.RequireNoLoss();

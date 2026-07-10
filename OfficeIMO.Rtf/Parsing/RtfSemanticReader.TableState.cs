@@ -97,6 +97,7 @@ internal static partial class RtfSemanticReader {
             NestedTableContext context = _nestedTableContexts[_nestedTableContexts.Count - 1];
             _nestedTableContexts.RemoveAt(_nestedTableContexts.Count - 1);
             context.RemoveTrailingEmptyCell();
+            bool startsNewNestedTable = _nestedTableBoundaryLevels.Remove(context.Level);
 
             RtfTable? outerTable = _currentTable;
             RtfTableRow? outerRow = _currentRow;
@@ -114,12 +115,12 @@ internal static partial class RtfSemanticReader {
             RtfTable? existingNested;
             if (_nestedTableContexts.Count > 0) {
                 parentBlocks = _nestedTableContexts[_nestedTableContexts.Count - 1].CurrentCellBlocks;
-                existingNested = FindTrailingNestedTable(parentBlocks);
+                existingNested = startsNewNestedTable ? null : FindTrailingNestedTable(parentBlocks);
             } else {
                 if (_currentRow == null) BeginTableRow();
                 while (_currentRow!.Cells.Count <= _currentCellIndex) _currentRow.AddCell();
                 outerCell = _currentRow.Cells[_currentCellIndex];
-                existingNested = FindTrailingNestedTable(outerCell.Blocks);
+                existingNested = startsNewNestedTable ? null : FindTrailingNestedTable(outerCell.Blocks);
             }
 
             var nested = existingNested ?? new RtfTable();
@@ -161,6 +162,15 @@ internal static partial class RtfSemanticReader {
                 } else {
                     outerCell!.AddParsedTable(nested);
                 }
+            }
+        }
+
+        private void ReadNestedTableBoundary(RtfGroup group) {
+            RtfControlWord? control = group.Children
+                .OfType<RtfControlWord>()
+                .FirstOrDefault(item => item.Name == "officeimonestedtableboundary");
+            if (control?.Parameter is int level && level >= 2) {
+                _nestedTableBoundaryLevels.Add(Math.Min(15, level));
             }
         }
 

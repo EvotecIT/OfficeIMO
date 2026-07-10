@@ -189,7 +189,9 @@ public static partial class WordRtfConverterExtensions {
             for (int levelIndex = 0; levelIndex < item.LevelOverrides.Count; levelIndex++) {
                 RtfListLevelOverride sourceOverride = item.LevelOverrides[levelIndex];
                 var levelOverride = new LevelOverride { LevelIndex = levelIndex };
-                if (sourceOverride.StartAt.HasValue) levelOverride.Append(new StartOverrideNumberingValue { Val = sourceOverride.StartAt.Value });
+                if (sourceOverride.OverrideStartAt == true && sourceOverride.StartAt.HasValue) {
+                    levelOverride.Append(new StartOverrideNumberingValue { Val = sourceOverride.StartAt.Value });
+                }
                 instance.Append(levelOverride);
             }
 

@@ -49,7 +49,7 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfDocument resultDocument = html!.ToRtfDocument();
+            RtfDocument resultDocument = html!.ToRtfDocument(_options.Clone());
             RtfParagraph? paragraph = resultDocument.Paragraphs.FirstOrDefault();
             if (paragraph != null) {
                 CopyParagraphInlines(paragraph, rtfObject.Result, resultDocument);
@@ -62,7 +62,7 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfDocument textDocument = html!.ToRtfDocument();
+            RtfDocument textDocument = html!.ToRtfDocument(_options.Clone());
             foreach (RtfParagraph paragraph in textDocument.Paragraphs) {
                 RtfParagraph textParagraph = shape.AddTextBoxParagraph();
                 CopyParagraphInlines(paragraph, textParagraph, textDocument);

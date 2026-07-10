@@ -3,6 +3,10 @@ namespace OfficeIMO.Html;
 internal static partial class RtfHtmlWriter {
     private static void AppendGeneratedText(StringBuilder builder, RtfGeneratedText generatedText, bool includeRoundTripMetadata) {
         if (!includeRoundTripMetadata) {
+            if (generatedText.FallbackText is string fallbackText && fallbackText.Length > 0) {
+                builder.Append(Encode(fallbackText));
+            }
+
             return;
         }
 

@@ -89,4 +89,35 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Equal("Text box", roundTripText.ToPlainText());
         Assert.Contains(roundTripText.Runs, run => run.Text == "box" && run.Italic);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Applies_Active_Url_Policy_To_Encoded_Object_And_Shape_Content() {
+        string encodedObjectResult = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p><a href=\"file:///C:/secret-object\">Object link</a></p>"));
+        string encodedShapeText = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p><a href=\"file:///C:/secret-shape\">Shape link</a></p>"));
+        string html = "<div data-officeimo-rtf-object=\"embedded\" data-officeimo-rtf-object-result=\"" + encodedObjectResult + "\"></div>" +
+            "<div data-officeimo-rtf-shape=\"true\" data-officeimo-rtf-shape-text=\"" + encodedShapeText + "\"></div>";
+        var options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
+
+        RtfDocument document = html.ToRtfDocument(options);
+
+        RtfObject rtfObject = Assert.IsType<RtfObject>(document.Blocks[0]);
+        Assert.All(rtfObject.Result.Runs, run => Assert.Null(run.Hyperlink));
+        RtfShape shape = Assert.IsType<RtfShape>(document.Blocks[1]);
+        Assert.All(Assert.Single(shape.TextBoxParagraphs).Runs, run => Assert.Null(run.Hyperlink));
+        Assert.Equal("Object link", rtfObject.Result.ToPlainText());
+        Assert.Equal("Shape link", Assert.Single(shape.TextBoxParagraphs).ToPlainText());
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Applies_Active_Node_Limit_To_Encoded_Object_Content() {
+        string nestedHtml = "<p>" + string.Concat(Enumerable.Repeat("<span>x</span>", 16)) + "</p>";
+        string encodedObjectResult = Convert.ToBase64String(Encoding.UTF8.GetBytes(nestedHtml));
+        string html = "<div data-officeimo-rtf-object=\"embedded\" data-officeimo-rtf-object-result=\"" + encodedObjectResult + "\"></div>";
+        var options = new HtmlToRtfOptions { MaxHtmlNodes = 10 };
+
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() => html.ToRtfDocument(options));
+
+        Assert.Equal("MaxHtmlNodes", exception.LimitSource);
+    }
 }

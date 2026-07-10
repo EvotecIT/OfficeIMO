@@ -39,6 +39,7 @@ internal static partial class RtfSemanticReader {
         private Dictionary<int, RtfListOverride> _listOverridesById = null!;
         private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
         private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
+        private readonly HashSet<int> _nestedTableBoundaryLevels = new HashSet<int>();
 
         public Binder(RtfReadOptions options, List<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
             _options = options;
@@ -176,6 +177,11 @@ internal static partial class RtfSemanticReader {
 
             if (destination == "nesttableprops") {
                 ReadNestedTableProperties(group, state);
+                return;
+            }
+
+            if (destination == "officeimonestedtableboundary") {
+                ReadNestedTableBoundary(group);
                 return;
             }
 

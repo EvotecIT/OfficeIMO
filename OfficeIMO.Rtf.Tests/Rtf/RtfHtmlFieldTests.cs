@@ -182,6 +182,17 @@ public class RtfHtmlFieldTests {
     }
 
     [Fact]
+    public void Html_WebSafe_Profile_Emits_Generated_Text_Fallback() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Page ").AddPageNumber("7 < 8");
+
+        string html = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
+
+        Assert.Equal("<p>Page 7 &lt; 8</p>", html);
+        Assert.DoesNotContain("data-officeimo-rtf-generated-text", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_DoesNot_Preserve_Field_Span_As_Unknown_Text() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE\">1</span></p>";
 
