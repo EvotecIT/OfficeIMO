@@ -283,6 +283,7 @@ public sealed class ReaderProcessorPipelineTests {
             Tables = new[] { table },
             Links = new[] { link },
             Assets = new[] { kept, removed },
+            Metadata = new[] { new OfficeDocumentMetadataEntry { Id = "reader-asset-count", Value = "2", ValueType = "count" } },
             OcrCandidates = new[] {
                 new OfficeDocumentOcrCandidate { Id = "keep-ocr", AssetId = "keep", Reason = "Keep OCR", Location = new ReaderLocation { BlockAnchor = "keep" } },
                 new OfficeDocumentOcrCandidate { Id = "drop-ocr", AssetId = "drop", Reason = "Drop OCR", Location = new ReaderLocation { BlockAnchor = "drop" } }
@@ -310,10 +311,68 @@ public sealed class ReaderProcessorPipelineTests {
         Assert.Equal("uri", link.Kind);
         Assert.Equal("https://example.test", link.Uri);
         Assert.Equal("keep", Assert.Single(result.Assets).Id);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "reader-asset-count").Value);
         Assert.Equal("keep-ocr", Assert.Single(result.OcrCandidates).Id);
         OfficeDocumentDiagnostic ocrDiagnostic = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
         Assert.Equal("Keep OCR", ocrDiagnostic.Message);
         Assert.Equal("keep", ocrDiagnostic.Location!.BlockAnchor);
+    }
+
+    [Fact]
+    public void TableNormalization_UpdatesAggregateAndChunkTableInstances() {
+        var aggregate = new ReaderTable {
+            Columns = new[] { " Key " },
+            Rows = new[] { (IReadOnlyList<string>)new[] { " Value ", " Extra " } }
+        };
+        var chunkTable = new ReaderTable {
+            Columns = new[] { " Key " },
+            Rows = new[] { (IReadOnlyList<string>)new[] { " Value ", " Extra " } }
+        };
+        var document = new OfficeDocumentReadResult {
+            Tables = new[] { aggregate },
+            Chunks = new[] { new ReaderChunk { Tables = new[] { chunkTable } } }
+        };
+
+        new OfficeDocumentProcessorPipelineBuilder()
+            .Add(new OfficeDocumentTableNormalizationProcessor())
+            .Build()
+            .Process(document);
+
+        Assert.Equal(new[] { "Key", "Column2" }, aggregate.Columns);
+        Assert.Equal(new[] { "Key", "Column2" }, chunkTable.Columns);
+        Assert.Equal(new[] { "Value", "Extra" }, Assert.Single(chunkTable.Rows));
+    }
+
+    [Fact]
+    public void StructuredExtraction_UsesPageLocationFallbackAndDeduplicatesPageTableClone() {
+        var aggregate = new ReaderTable {
+            Title = "Settings",
+            Location = new ReaderLocation { Path = "settings.pdf", Page = 7, TableIndex = 0 },
+            Columns = new[] { "Key", "Value" },
+            Rows = new[] { (IReadOnlyList<string>)new[] { "Mode", "Safe" } }
+        };
+        var pageTable = new ReaderTable {
+            Title = aggregate.Title,
+            Columns = aggregate.Columns,
+            Rows = aggregate.Rows
+        };
+        var document = new OfficeDocumentReadResult {
+            Tables = new[] { aggregate },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 7,
+                    Location = new ReaderLocation { Path = "settings.pdf" },
+                    Tables = new[] { pageTable }
+                }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult extracted = OfficeDocumentStructuredExtractor.Extract(document);
+
+        Assert.Single(extracted.Records, record => record.Category == "key-value");
+        ReaderTable selected = Assert.Single(extracted.Tables);
+        Assert.Equal(7, selected.Location!.Page);
+        Assert.Equal("settings.pdf", selected.Location.Path);
     }
 
     [Fact]

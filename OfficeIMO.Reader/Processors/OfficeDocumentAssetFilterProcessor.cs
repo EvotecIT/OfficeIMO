@@ -28,6 +28,7 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
             context.CancellationToken.ThrowIfCancellationRequested();
             page.Assets = FilterAssets(page.Assets, removedIds, keptIds, context.CancellationToken);
         }
+        document.Metadata = RefreshAssetCountMetadata(document.Metadata, document.Assets.Count);
 
         removedIds.ExceptWith(keptIds);
         if (removedIds.Count == 0) return document;
@@ -40,6 +41,26 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
         }
         document.Diagnostics = FilterOcrDiagnostics(document, removedIds, removedCandidates);
         return document;
+    }
+
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> RefreshAssetCountMetadata(
+        IReadOnlyList<OfficeDocumentMetadataEntry>? metadata,
+        int assetCount) {
+        if (metadata == null || metadata.Count == 0) return Array.Empty<OfficeDocumentMetadataEntry>();
+        var refreshed = new List<OfficeDocumentMetadataEntry>(metadata.Count);
+        bool emittedCount = false;
+        foreach (OfficeDocumentMetadataEntry entry in metadata) {
+            if (entry == null) continue;
+            if (!string.Equals(entry.Id, "reader-asset-count", StringComparison.Ordinal)) {
+                refreshed.Add(entry);
+                continue;
+            }
+            if (emittedCount || assetCount == 0) continue;
+            entry.Value = assetCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            refreshed.Add(entry);
+            emittedCount = true;
+        }
+        return refreshed.Count == 0 ? Array.Empty<OfficeDocumentMetadataEntry>() : refreshed.ToArray();
     }
 
     private IReadOnlyList<OfficeDocumentAsset> FilterAssets(

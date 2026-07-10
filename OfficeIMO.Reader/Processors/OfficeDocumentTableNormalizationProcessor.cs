@@ -37,7 +37,7 @@ public sealed class OfficeDocumentTableNormalizationProcessor : OfficeDocumentPr
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        foreach (ReaderTable table in OfficeDocumentModelTraversal.Tables(document)) {
+        foreach (ReaderTable table in OfficeDocumentModelTraversal.TableInstances(document)) {
             context.CancellationToken.ThrowIfCancellationRequested();
             Normalize(table);
         }

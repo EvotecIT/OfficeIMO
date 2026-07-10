@@ -34,12 +34,14 @@ internal static class OfficeDocumentModelTraversal {
         }
         foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
             if (page?.Tables == null) continue;
-            foreach (ReaderTable table in page.Tables) {
+            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
+                ReaderTable table = page.Tables[tableIndex];
                 if (table == null || !seen.Add(table)) continue;
-                string identity = BuildTableIdentity(table, null, null);
+                ReaderTable scopedTable = WithPageLocationFallback(table, page, tableIndex);
+                string identity = BuildTableIdentity(scopedTable, null, null);
                 if (aggregateIdentityCounts.ContainsKey(identity)) continue;
                 IncrementIdentity(aggregateIdentityCounts, identity);
-                yield return table;
+                yield return scopedTable;
             }
         }
         var chunkIdentityCounts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -55,6 +57,23 @@ internal static class OfficeDocumentModelTraversal {
                 int occurrence = IncrementIdentity(chunkIdentityCounts, identity);
                 if (aggregateIdentityCounts.TryGetValue(identity, out int aggregateCount) && occurrence <= aggregateCount) continue;
                 yield return table;
+            }
+        }
+    }
+
+    internal static IEnumerable<ReaderTable> TableInstances(OfficeDocumentReadResult document) {
+        var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
+        foreach (ReaderTable table in document.Tables ?? Array.Empty<ReaderTable>()) {
+            if (table != null && seen.Add(table)) yield return table;
+        }
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
+            foreach (ReaderTable table in page?.Tables ?? Array.Empty<ReaderTable>()) {
+                if (table != null && seen.Add(table)) yield return table;
+            }
+        }
+        foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>()) {
+            foreach (ReaderTable table in chunk?.Tables ?? Array.Empty<ReaderTable>()) {
+                if (table != null && seen.Add(table)) yield return table;
             }
         }
     }
@@ -239,6 +258,73 @@ internal static class OfficeDocumentModelTraversal {
         foreach (IReadOnlyList<string> row in table.Rows ?? Array.Empty<IReadOnlyList<string>>()) AppendIdentity(builder, row);
         AppendIdentity(builder, table.TotalRowCount.ToString(CultureInfo.InvariantCulture));
         return builder.ToString();
+    }
+
+    private static ReaderTable WithPageLocationFallback(ReaderTable table, OfficeDocumentPage page, int tableIndex) {
+        ReaderLocation fallback = BuildPageLocation(page);
+        if (table.Location != null && !NeedsLocationFallback(table.Location)) return table;
+        return new ReaderTable {
+            Title = table.Title,
+            Kind = table.Kind,
+            CallId = table.CallId,
+            Summary = table.Summary,
+            PayloadHash = table.PayloadHash,
+            Location = MergeLocation(table.Location, fallback, tableIndex),
+            Columns = table.Columns,
+            ColumnProfiles = table.ColumnProfiles,
+            Diagnostics = table.Diagnostics,
+            Rows = table.Rows,
+            TotalRowCount = table.TotalRowCount,
+            Truncated = table.Truncated
+        };
+    }
+
+    private static ReaderLocation BuildPageLocation(OfficeDocumentPage page) {
+        ReaderLocation source = page.Location ?? new ReaderLocation();
+        return new ReaderLocation {
+            Path = source.Path,
+            BlockIndex = source.BlockIndex,
+            SourceBlockIndex = source.SourceBlockIndex,
+            StartLine = source.StartLine,
+            EndLine = source.EndLine,
+            NormalizedStartLine = source.NormalizedStartLine,
+            NormalizedEndLine = source.NormalizedEndLine,
+            HeadingPath = source.HeadingPath,
+            HeadingSlug = source.HeadingSlug,
+            SourceBlockKind = source.SourceBlockKind,
+            BlockAnchor = source.BlockAnchor,
+            Sheet = source.Sheet,
+            A1Range = source.A1Range,
+            Slide = source.Slide,
+            Page = source.Page ?? page.Number,
+            TableIndex = source.TableIndex
+        };
+    }
+
+    private static bool NeedsLocationFallback(ReaderLocation location) {
+        return string.IsNullOrWhiteSpace(location.Path)
+            || (!location.Page.HasValue && !location.Slide.HasValue && string.IsNullOrWhiteSpace(location.Sheet));
+    }
+
+    private static ReaderLocation MergeLocation(ReaderLocation? location, ReaderLocation fallback, int fallbackTableIndex) {
+        return new ReaderLocation {
+            Path = Prefer(location?.Path, fallback.Path),
+            BlockIndex = location?.BlockIndex ?? fallback.BlockIndex,
+            SourceBlockIndex = location?.SourceBlockIndex ?? fallback.SourceBlockIndex,
+            StartLine = location?.StartLine ?? fallback.StartLine,
+            EndLine = location?.EndLine ?? fallback.EndLine,
+            NormalizedStartLine = location?.NormalizedStartLine ?? fallback.NormalizedStartLine,
+            NormalizedEndLine = location?.NormalizedEndLine ?? fallback.NormalizedEndLine,
+            HeadingPath = Prefer(location?.HeadingPath, fallback.HeadingPath),
+            HeadingSlug = Prefer(location?.HeadingSlug, fallback.HeadingSlug),
+            SourceBlockKind = Prefer(location?.SourceBlockKind, fallback.SourceBlockKind),
+            BlockAnchor = Prefer(location?.BlockAnchor, fallback.BlockAnchor),
+            Sheet = Prefer(location?.Sheet, fallback.Sheet),
+            A1Range = Prefer(location?.A1Range, fallback.A1Range),
+            Slide = location?.Slide ?? fallback.Slide,
+            Page = location?.Page ?? fallback.Page,
+            TableIndex = location?.TableIndex ?? fallback.TableIndex ?? fallbackTableIndex
+        };
     }
 
     private static string BuildVisualIdentity(ReaderVisual visual, ReaderLocation? fallback) {
