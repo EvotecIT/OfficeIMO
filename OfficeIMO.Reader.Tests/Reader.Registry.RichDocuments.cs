@@ -60,4 +60,35 @@ public sealed partial class ReaderRegistryTests {
             if (File.Exists(file)) File.Delete(file);
         }
     }
+
+    [Fact]
+    public void DocumentReader_RichStreamHandler_EnforcesNonSeekableInputLimitBeforeDispatch() {
+        const string handlerId = "officeimo.tests.custom.rich.limit";
+        const string extension = ".richlimitix";
+        bool handlerInvoked = false;
+
+        try {
+            DocumentReader.UnregisterHandler(handlerId);
+            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+                Id = handlerId,
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { extension },
+                ReadDocumentStream = (stream, sourceName, options, cancellationToken) => {
+                    handlerInvoked = true;
+                    return new OfficeDocumentReadResult { Kind = ReaderInputKind.Text };
+                }
+            });
+            using var stream = new NonSeekableReadStream(new byte[128]);
+
+            IOException exception = Assert.Throws<IOException>(() => DocumentReader.ReadDocument(
+                stream,
+                "sample" + extension,
+                new ReaderOptions { MaxInputBytes = 16 }));
+
+            Assert.Contains("Input exceeds MaxInputBytes", exception.Message, StringComparison.Ordinal);
+            Assert.False(handlerInvoked);
+        } finally {
+            DocumentReader.UnregisterHandler(handlerId);
+        }
+    }
 }

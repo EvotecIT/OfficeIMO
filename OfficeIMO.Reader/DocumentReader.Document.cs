@@ -60,9 +60,20 @@ public static partial class DocumentReader {
         }
 
         if (hasCustomStreamHandler && customStreamHandler.ReadDocumentStream != null) {
-            return ValidateDocumentResult(
-                customStreamHandler.ReadDocumentStream(stream, logicalSourceName, opt, cancellationToken),
-                customStreamHandler.Id);
+            Stream handlerStream = ReaderInputLimits.EnsureSeekableReadStream(
+                stream,
+                opt.MaxInputBytes,
+                cancellationToken,
+                out bool ownsHandlerStream);
+            try {
+                return ValidateDocumentResult(
+                    customStreamHandler.ReadDocumentStream(handlerStream, logicalSourceName, opt, cancellationToken),
+                    customStreamHandler.Id);
+            } finally {
+                if (ownsHandlerStream) {
+                    handlerStream.Dispose();
+                }
+            }
         }
 
         using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
