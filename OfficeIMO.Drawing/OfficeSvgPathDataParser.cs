@@ -26,8 +26,6 @@ internal static class OfficeSvgPathDataParser {
             if (result.Count >= MaximumCommands) return false;
             if (reader.TryReadCommand(out char explicitCommand)) command = explicitCommand;
             else if (command == '\0' || command is 'Z' or 'z') return false;
-            if (command is 'A' or 'a') return false;
-
             bool relative = char.IsLower(command);
             char upper = char.ToUpperInvariant(command);
             if (upper == 'Z') {
@@ -118,6 +116,19 @@ internal static class OfficeSvgPathDataParser {
                         current = quadraticEnd;
                         hasDraw = true;
                         break;
+                    case 'A':
+                        if (!hasCurrent
+                            || !reader.TryReadNumber(out double radiusX)
+                            || !reader.TryReadNumber(out double radiusY)
+                            || !reader.TryReadNumber(out double rotationDegrees)
+                            || !reader.TryReadFlag(out bool largeArc)
+                            || !reader.TryReadFlag(out bool sweep)
+                            || !reader.TryReadPoint(out OfficePoint arcEnd)) return false;
+                        arcEnd = Resolve(arcEnd, current, relative);
+                        if (!AppendArc(result, current, arcEnd, radiusX, radiusY, rotationDegrees, largeArc, sweep)) return false;
+                        current = arcEnd;
+                        hasDraw = true;
+                        break;
                     default:
                         return false;
                 }
@@ -140,6 +151,91 @@ internal static class OfficeSvgPathDataParser {
 
     private static OfficePoint Reflect(OfficePoint control, OfficePoint around) =>
         new OfficePoint((around.X * 2D) - control.X, (around.Y * 2D) - control.Y);
+
+    private static bool AppendArc(
+        ICollection<OfficePathCommand> commands,
+        OfficePoint start,
+        OfficePoint end,
+        double radiusX,
+        double radiusY,
+        double rotationDegrees,
+        bool largeArc,
+        bool sweep) {
+        radiusX = Math.Abs(radiusX);
+        radiusY = Math.Abs(radiusY);
+        if (radiusX <= 0D || radiusY <= 0D) {
+            commands.Add(OfficePathCommand.LineTo(end));
+            return true;
+        }
+        if (DistanceSquared(start, end) <= 0.000000000001D) return true;
+
+        double phi = rotationDegrees * Math.PI / 180D;
+        double cosPhi = Math.Cos(phi);
+        double sinPhi = Math.Sin(phi);
+        double halfDx = (start.X - end.X) / 2D;
+        double halfDy = (start.Y - end.Y) / 2D;
+        double x1 = (cosPhi * halfDx) + (sinPhi * halfDy);
+        double y1 = (-sinPhi * halfDx) + (cosPhi * halfDy);
+        double radiiScale = (x1 * x1) / (radiusX * radiusX) + (y1 * y1) / (radiusY * radiusY);
+        if (radiiScale > 1D) {
+            double scale = Math.Sqrt(radiiScale);
+            radiusX *= scale;
+            radiusY *= scale;
+        }
+
+        double radiusX2 = radiusX * radiusX;
+        double radiusY2 = radiusY * radiusY;
+        double x12 = x1 * x1;
+        double y12 = y1 * y1;
+        double denominator = (radiusX2 * y12) + (radiusY2 * x12);
+        if (denominator <= double.Epsilon) {
+            commands.Add(OfficePathCommand.LineTo(end));
+            return true;
+        }
+        double numerator = Math.Max(0D, (radiusX2 * radiusY2) - (radiusX2 * y12) - (radiusY2 * x12));
+        double coefficient = (largeArc == sweep ? -1D : 1D) * Math.Sqrt(numerator / denominator);
+        double centerPrimeX = coefficient * radiusX * y1 / radiusY;
+        double centerPrimeY = coefficient * -radiusY * x1 / radiusX;
+        double centerX = (cosPhi * centerPrimeX) - (sinPhi * centerPrimeY) + ((start.X + end.X) / 2D);
+        double centerY = (sinPhi * centerPrimeX) + (cosPhi * centerPrimeY) + ((start.Y + end.Y) / 2D);
+
+        var startVector = new OfficePoint((x1 - centerPrimeX) / radiusX, (y1 - centerPrimeY) / radiusY);
+        var endVector = new OfficePoint((-x1 - centerPrimeX) / radiusX, (-y1 - centerPrimeY) / radiusY);
+        double startAngle = VectorAngle(new OfficePoint(1D, 0D), startVector);
+        double sweepAngle = VectorAngle(startVector, endVector);
+        if (!sweep && sweepAngle > 0D) sweepAngle -= Math.PI * 2D;
+        if (sweep && sweepAngle < 0D) sweepAngle += Math.PI * 2D;
+
+        OfficePoint unrotatedStart = new OfficePoint(radiusX * Math.Cos(startAngle), radiusY * Math.Sin(startAngle));
+        IReadOnlyList<OfficePathCommand> arcCommands = OfficeGeometry.CreateEllipticalArcCubicBezierCommands(unrotatedStart, radiusX, radiusY, startAngle, sweepAngle);
+        for (int index = 0; index < arcCommands.Count; index++) {
+            OfficePathCommand command = arcCommands[index];
+            commands.Add(OfficePathCommand.CubicBezierTo(
+                RotateTranslate(command.ControlPoint1, cosPhi, sinPhi, centerX, centerY),
+                RotateTranslate(command.ControlPoint2, cosPhi, sinPhi, centerX, centerY),
+                index == arcCommands.Count - 1
+                    ? end
+                    : RotateTranslate(command.Point, cosPhi, sinPhi, centerX, centerY)));
+        }
+        return true;
+    }
+
+    private static OfficePoint RotateTranslate(OfficePoint point, double cosine, double sine, double centerX, double centerY) =>
+        new OfficePoint(
+            centerX + (cosine * point.X) - (sine * point.Y),
+            centerY + (sine * point.X) + (cosine * point.Y));
+
+    private static double VectorAngle(OfficePoint left, OfficePoint right) {
+        double cross = (left.X * right.Y) - (left.Y * right.X);
+        double dot = (left.X * right.X) + (left.Y * right.Y);
+        return Math.Atan2(cross, dot);
+    }
+
+    private static double DistanceSquared(OfficePoint left, OfficePoint right) {
+        double x = left.X - right.X;
+        double y = left.Y - right.Y;
+        return (x * x) + (y * y);
+    }
 
     private sealed class PathReader {
         private readonly string _value;
@@ -172,6 +268,13 @@ internal static class OfficeSvgPathDataParser {
             point = default;
             if (!TryReadNumber(out double x) || !TryReadNumber(out double y)) return false;
             point = new OfficePoint(x, y);
+            return true;
+        }
+
+        internal bool TryReadFlag(out bool flag) {
+            flag = false;
+            if (!TryReadNumber(out double value) || (value != 0D && value != 1D)) return false;
+            flag = value == 1D;
             return true;
         }
 

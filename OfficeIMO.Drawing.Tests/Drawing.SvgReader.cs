@@ -33,7 +33,7 @@ public class DrawingSvgReaderTests {
     [Fact]
     public void SvgReaderRetainsSupportedPrimitivesAndCountsUnsupportedContent() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
-            + "<rect width='20' height='20' fill='#00ff00'/><path d='M1 10 A9 9 0 0 1 19 10'/></svg>";
+            + "<rect width='20' height='20' fill='#00ff00'/><text x='1' y='10'>Pending</text></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
@@ -55,6 +55,22 @@ public class DrawingSvgReaderTests {
         Assert.Contains(drawing.Shapes[1].Shape.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
         Assert.Contains(drawing.Shapes[1].Shape.PathCommands, command => command.Kind == OfficePathCommandKind.QuadraticBezierTo);
         Assert.Equal(OfficeColor.Red, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(10, 10));
+    }
+
+    [Fact]
+    public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
+            + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeShape path = Assert.Single(drawing!.Shapes).Shape;
+        Assert.Equal(OfficeShapeKind.Path, path.Kind);
+        Assert.True(path.PathCommands.Count(command => command.Kind == OfficePathCommandKind.CubicBezierTo) >= 4);
+        Assert.Equal(OfficeColor.Blue, path.StrokeColor);
+        Assert.Contains("<path", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
     }
 
     [Fact]
