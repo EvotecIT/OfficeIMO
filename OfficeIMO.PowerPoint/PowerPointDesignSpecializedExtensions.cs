@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
                 AddLogoMosaic(slide, resolvedTheme, logoList, resolvedOptions, width, height);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointLayoutBox.FromCentimeters(2.0, height - 2.55, width - 4.0, 1.05));
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
                     visualFirst: variant == PowerPointCapabilityLayoutVariant.VisualText);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         internal static void AddLogoWall(PowerPointSlide slide, PowerPointDesignTheme theme,

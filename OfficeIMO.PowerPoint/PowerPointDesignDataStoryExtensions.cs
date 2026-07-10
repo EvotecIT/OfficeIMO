@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 AddChartHero(slide, resolvedTheme, content, width, height);
             }
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>Adds an editable side-by-side or decision-matrix comparison.</summary>
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint {
                 AddComparisonMatrix(slide, resolvedTheme, values, width, height);
             else
                 AddComparisonColumns(slide, resolvedTheme, values, width, height, resolved);
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>Adds a native appendix table with full-width or notes-rail composition.</summary>
@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
                 AddAppendixNotesRail(slide, resolvedTheme, data, width, height);
             else
                 AddAppendixFullWidth(slide, resolvedTheme, data, width, height);
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         internal static PowerPointChartStoryLayoutVariant ResolveChartStoryVariant(

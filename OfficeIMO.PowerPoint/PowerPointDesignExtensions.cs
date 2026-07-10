@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
                 AddSectionGeometricCover(slide, resolvedTheme, resolvedOptions, title, subtitle, width, height);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace OfficeIMO.PowerPoint {
                 AddCaseStudyBand(slide, resolvedTheme, resolvedOptions, metricList, width, height);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, clientTitle);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
             AddCardGrid(slide, resolvedTheme, cardList, resolvedOptions,
                 ResolveCardGridVariant(resolvedOptions, cardList), width, height);
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -191,7 +191,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             AddProcessTimeline(slide, resolvedTheme, stepList, resolvedOptions, width, height);
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
     }

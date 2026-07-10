@@ -1,0 +1,152 @@
+using System;
+using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.PowerPoint;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public class PowerPointAccessibilityTests {
+        [Fact]
+        public void ShapeAccessibilityMetadataAndReadingOrderRoundTrip() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.Slides[0];
+                    PowerPointAutoShape accent = slide.AddRectanglePoints(10, 10, 40, 20, "Decorative accent");
+                    accent.Title = "Decorative accent";
+                    accent.Decorative = true;
+                    PowerPointTextBox text = slide.AddTextBoxPoints("Accessible documentation", 20, 40, 220, 30);
+                    text.Title = "Slide title";
+                    text.Description = "Documentation link";
+                    text.SetLanguage("en-GB");
+                    PowerPointTextRun run = text.Paragraphs.Single().Runs.Single();
+                    run.SetHyperlink("https://example.test/docs", "Open the documentation");
+
+                    Assert.Equal(1, text.ReadingOrder);
+                    text.MoveToReadingOrder(0);
+                    Assert.Equal(0, text.ReadingOrder);
+                    Assert.Equal(1, accent.ReadingOrder);
+                    Assert.Equal("en-GB", text.Language);
+                    Assert.Equal("Open the documentation", run.HyperlinkTooltip);
+                    Assert.True(run.HasMeaningfulHyperlinkLabel);
+                    Assert.Empty(presentation.ValidateDocument());
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(filePath)) {
+                    PowerPointTextBox text = presentation.Slides[0].TextBoxes.Single();
+                    PowerPointAutoShape accent = presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>().Single();
+                    Assert.Equal("Slide title", text.Title);
+                    Assert.Equal("Documentation link", text.Description);
+                    Assert.Equal("en-GB", text.Language);
+                    Assert.True(accent.Decorative);
+                    Assert.Equal(0, text.ReadingOrder);
+                    Assert.Equal("Open the documentation",
+                        text.Paragraphs.Single().Runs.Single().HyperlinkTooltip);
+                }
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void StrictAccessibilityProfileReturnsStructuredPolicyFindings() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointSlide slide = presentation.Slides[0];
+            slide.BackgroundColor = "FFFFFF";
+            PowerPointTextBox link = slide.AddTextBoxPoints("click here", 20, 20, 180, 28);
+            link.Color = "D0D0D0";
+            link.FontSize = 12;
+            link.FillColor = "FFFFFF";
+            link.Paragraphs.Single().Runs.Single().SetHyperlink("https://example.test");
+            PowerPointTable table = slide.AddTablePoints(2, 2, 20, 70, 180, 60);
+            table.GetCell(0, 0).Text = "Metric";
+            table.GetCell(0, 1).Text = "Value";
+            table.GetCell(1, 0).Text = "Users";
+            table.GetCell(1, 1).Text = "42";
+            table.HeaderRow = false;
+            var chartData = new PowerPointChartData(new[] { "Q1", "Q2" }, new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 15D }),
+                new PowerPointChartSeries("Target", new[] { 12D, 18D })
+            });
+            slide.AddChartPoints(chartData, 220, 70, 240, 150);
+
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility(
+                PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict));
+
+            Assert.False(report.IsSuccessful);
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingDocumentTitle");
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingShapeTitle");
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingAlternativeText");
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingLanguage");
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.MissingTableHeader");
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.LowContrast" &&
+                finding.MeasuredValue < finding.RequiredValue);
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.UnclearLinkLabel");
+            Assert.Contains(report.Findings, finding => finding.Code == "Accessibility.ChartColorOnlyMeaning");
+            Assert.Throws<PowerPointAccessibilityException>(() => report.EnsureCompliant());
+            Assert.Contains("\"profile\":\"Strict\"", report.ToJson(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void DesignerSlidesPassDefaultAccessibilityProfileWithoutCallerCleanup() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            presentation.AddDesignerSectionSlide("Delivery and evidence", "Accessible by default");
+            presentation.AddDesignerProcessSlide("A controlled workflow", "Every step remains editable", new[] {
+                new PowerPointProcessStep("Inspect", "Read the source"),
+                new PowerPointProcessStep("Generate", "Create native content"),
+                new PowerPointProcessStep("Validate", "Enforce the contract")
+            });
+            var tableData = new PowerPointTableData(new[] { "Metric", "Value" }, new[] {
+                new[] { "Quality", "Pass" },
+                new[] { "Coverage", "Complete" }
+            });
+            presentation.AddDesignerAppendixTableSlide("Evidence appendix", null, tableData);
+
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+
+            Assert.True(report.IsSuccessful, string.Join(Environment.NewLine,
+                report.Findings.Where(finding => finding.Severity == PowerPointAccessibilitySeverity.Error)
+                    .Select(finding => finding.Code + " [slide " + finding.SlideIndex + ", " +
+                        finding.ShapeName + ", " + report.Slides[finding.SlideIndex ?? 0].Shapes
+                            .FirstOrDefault(shape => shape.ShapeId == finding.ShapeId)?.Title + "]: " +
+                        finding.Message)));
+            Assert.All(report.Slides, slide => Assert.False(string.IsNullOrWhiteSpace(slide.Title)));
+            Assert.All(report.Slides.SelectMany(slide => slide.Shapes)
+                .Where(shape => shape.ContentType == PowerPointShapeContentType.TextBox),
+                shape => Assert.False(string.IsNullOrWhiteSpace(shape.Language)));
+        }
+
+        [Fact]
+        public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+            try {
+                string[] generatedCodes;
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddDesignerSectionSlide("Portable evidence", "Generated and imported inspection agree");
+                    PowerPointAccessibilityReport generated = presentation.InspectAccessibility();
+                    generatedCodes = generated.Findings.Select(finding => finding.Code).ToArray();
+                    generated.SaveJson(reportPath);
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(filePath)) {
+                    PowerPointAccessibilityReport imported = presentation.InspectAccessibility();
+                    Assert.Equal(generatedCodes, imported.Findings.Select(finding => finding.Code));
+                    Assert.True(imported.IsSuccessful);
+                }
+                Assert.Contains("\"schemaVersion\":1", File.ReadAllText(reportPath), StringComparison.Ordinal);
+                using PresentationDocument document = PresentationDocument.Open(filePath, false);
+                Assert.Empty(new OpenXmlValidator().Validate(document));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+                if (File.Exists(reportPath)) File.Delete(reportPath);
+            }
+        }
+    }
+}

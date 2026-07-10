@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 AddScreenshotHero(slide, resolvedTheme, image, width, height);
             }
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>Adds an editable architecture story using native shapes and connectors.</summary>
@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 AddArchitectureLayers(slide, resolvedTheme, content, width, height);
             }
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         internal static PowerPointScreenshotStoryLayoutVariant ResolveScreenshotVariant(

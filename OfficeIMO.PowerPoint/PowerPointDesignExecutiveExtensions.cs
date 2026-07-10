@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 AddExecutiveMetricLead(slide, resolvedTheme, content, width, height, resolved);
             }
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>Adds a closing slide with statement or explicit action-panel composition.</summary>
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint {
                 AddChrome(slide, resolvedTheme, width, height, dark: true, resolved);
                 AddClosingStatement(slide, resolvedTheme, title, content, width, height);
             }
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         private static void PrepareLightStorySlide(PowerPointSlide slide, PowerPointDesignTheme theme,
