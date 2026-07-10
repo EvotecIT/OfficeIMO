@@ -84,12 +84,42 @@ public sealed class OdfStyleRepository {
     internal OdfStyle EnsureAutomaticStyle(XElement owner, XName styleAttribute, OdfStyleFamily family, string prefix, string partPath = "content.xml") {
         string? existingName = (string?)owner.Attribute(styleAttribute);
         OdfStyle? existing = existingName == null ? null : Find(family, existingName);
-        if (existing != null && existing.IsAutomatic && existing.PartPath == partPath) return existing;
+        if (existing != null && existing.IsAutomatic && existing.PartPath == partPath &&
+            IsUniquelyReferenced(owner, styleAttribute, existingName!, partPath)) return existing;
 
-        OdfStyle created = CreateAutomaticIn(partPath, family, prefix, existingName);
+        OdfStyle created = existing != null && existing.IsAutomatic
+            ? CloneAutomaticIn(partPath, family, prefix, existing)
+            : CreateAutomaticIn(partPath, family, prefix, existingName);
         owner.SetAttributeValue(styleAttribute, created.Name);
         _document.MarkPartDirty(partPath);
         return created;
+    }
+
+    private OdfStyle CloneAutomaticIn(string partPath, OdfStyleFamily family, string prefix, OdfStyle source) {
+        OdfStyle clone = CreateAutomaticIn(partPath, family, prefix, null);
+        foreach (XAttribute attribute in source.Element.Attributes()) {
+            if (attribute.Name == OdfNamespaces.Style + "name" || attribute.Name == OdfNamespaces.Style + "family") continue;
+            clone.Element.SetAttributeValue(attribute.Name, attribute.Value);
+        }
+        clone.Element.Add(source.Element.Nodes().Select(node => CloneNode(node)));
+        return clone;
+    }
+
+    private bool IsUniquelyReferenced(XElement owner, XName styleAttribute, string styleName, string partPath) {
+        XDocument document = _document.GetXml(partPath);
+        if (!ReferenceEquals(owner.Document, document)) return false;
+        int references = document.Descendants()
+            .Count(element => string.Equals((string?)element.Attribute(styleAttribute), styleName, StringComparison.Ordinal));
+        return references == 1;
+    }
+
+    private static XNode CloneNode(XNode node) {
+        if (node is XElement element) return new XElement(element);
+        if (node is XCData cdata) return new XCData(cdata.Value);
+        if (node is XText text) return new XText(text.Value);
+        if (node is XComment comment) return new XComment(comment.Value);
+        if (node is XProcessingInstruction instruction) return new XProcessingInstruction(instruction.Target, instruction.Data);
+        throw new InvalidDataException($"Unsupported style XML node type '{node.NodeType}'.");
     }
 
     internal static string FamilyToken(OdfStyleFamily family) {

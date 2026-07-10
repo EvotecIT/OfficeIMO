@@ -1,3 +1,4 @@
+using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
 
 namespace OfficeIMO.Reader.OpenDocument;
@@ -15,9 +16,12 @@ public static partial class DocumentReaderOpenDocumentExtensions {
             OdsUsedRange? used = sheet.UsedRange;
             if (!used.HasValue) continue;
             OdsUsedRange range = used.Value;
+            if (!string.IsNullOrWhiteSpace(options.ExcelA1Range)) {
+                (int firstRow, int firstColumn, int lastRow, int lastColumn) = A1.ParseRange(options.ExcelA1Range!);
+                range = new OdsUsedRange(firstRow - 1L, firstColumn - 1L, lastRow - 1L, lastColumn - 1L);
+            }
             int maxRows = options.MaxTableRows > 0 ? options.MaxTableRows : 200;
             const int maxColumns = 256;
-            long sourceRows = range.RowCount;
             long sourceColumns = range.ColumnCount;
             int columnCount = (int)Math.Min(sourceColumns, maxColumns);
             long headerRow = range.FirstRow;

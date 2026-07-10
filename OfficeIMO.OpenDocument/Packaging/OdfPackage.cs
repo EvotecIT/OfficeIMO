@@ -78,6 +78,7 @@ internal sealed class OdfPackage {
         var exactNames = new HashSet<string>(StringComparer.Ordinal);
         var foldedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long totalUncompressed = 0;
+        long totalRead = 0;
 
         using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true)) {
             if (archive.Entries.Count > effective.MaxEntries) {
@@ -110,7 +111,10 @@ internal sealed class OdfPackage {
                     throw new InvalidDataException($"OpenDocument package exceeds MaxTotalUncompressedBytes ({effective.MaxTotalUncompressedBytes}).");
                 }
 
-                byte[] data = isDirectory ? Array.Empty<byte>() : ReadEntryBytes(archiveEntry, length);
+                long remainingTotal = effective.MaxTotalUncompressedBytes - totalRead;
+                long readLimit = Math.Min(effective.MaxEntryUncompressedBytes, remainingTotal);
+                byte[] data = isDirectory ? Array.Empty<byte>() : ReadEntryBytes(archiveEntry, length, readLimit);
+                totalRead = checked(totalRead + data.LongLength);
                 DateTimeOffset timestamp;
                 try { timestamp = archiveEntry.LastWriteTime; } catch { timestamp = DeterministicTimestamp; }
                 loaded.Add(new OdfPackageEntry(normalized, data, null, timestamp, isNew: false));
@@ -376,11 +380,21 @@ internal sealed class OdfPackage {
         return output.ToArray();
     }
 
-    private static byte[] ReadEntryBytes(ZipArchiveEntry entry, long length) {
+    private static byte[] ReadEntryBytes(ZipArchiveEntry entry, long length, long maxBytes) {
         if (length > int.MaxValue) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' is too large for the in-memory package store.");
         using Stream source = entry.Open();
-        using var output = new MemoryStream(length > 0 ? (int)length : 0);
-        source.CopyTo(output);
+        int initialCapacity = length > 0 && maxBytes > 0 ? (int)Math.Min(length, maxBytes) : 0;
+        using var output = new MemoryStream(initialCapacity);
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
+            total = checked(total + read);
+            if (total > maxBytes) {
+                throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' exceeds its configured uncompressed read budget ({maxBytes}).");
+            }
+            output.Write(buffer, 0, read);
+        }
         if (output.Length != length) throw new InvalidDataException($"OpenDocument entry '{entry.FullName}' length changed while reading.");
         return output.ToArray();
     }

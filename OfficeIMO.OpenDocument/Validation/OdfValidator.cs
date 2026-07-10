@@ -73,7 +73,8 @@ internal static partial class OdfValidator {
                 $"Manifest lists package path '{duplicate.Key}' {duplicate.Count()} times.", "META-INF/manifest.xml"));
         }
         foreach (OdfPackageEntry entry in package.Entries) {
-            if (entry.Name == "mimetype" || entry.Name.StartsWith("META-INF/", StringComparison.Ordinal)) continue;
+            if (entry.Name == "mimetype" || entry.Name.EndsWith("/", StringComparison.Ordinal) ||
+                entry.Name.StartsWith("META-INF/", StringComparison.Ordinal)) continue;
             if (!listed.ContainsKey(entry.Name)) {
                 diagnostics.Add(new OdfDiagnostic("ODF103", OdfDiagnosticSeverity.Error,
                     $"Manifest does not list package entry '{entry.Name}'.", "META-INF/manifest.xml"));

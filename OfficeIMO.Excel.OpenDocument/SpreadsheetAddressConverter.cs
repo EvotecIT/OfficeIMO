@@ -12,12 +12,43 @@ internal static class SpreadsheetAddressConverter {
         if (string.IsNullOrWhiteSpace(formula)) return string.Empty;
         string body = formula.Trim();
         if (body.StartsWith("=", StringComparison.Ordinal)) body = body.Substring(1);
-        body = ExcelReference.Replace(body, match => {
-            string start = match.Groups["start"].Value;
-            string end = match.Groups["end"].Value;
-            return end.Length == 0 ? "[." + start + "]" : "[." + start + ":." + end + "]";
-        });
+        body = ReplaceReferencesOutsideStrings(body);
         return "of:=" + body;
+    }
+
+    private static string ReplaceReferencesOutsideStrings(string body) {
+        var output = new StringBuilder(body.Length);
+        int segmentStart = 0;
+        bool quoted = false;
+        for (int index = 0; index < body.Length; index++) {
+            if (body[index] != '"') continue;
+            if (quoted && index + 1 < body.Length && body[index + 1] == '"') { index++; continue; }
+
+            if (!quoted) {
+                AppendConvertedReferences(output, body, segmentStart, index - segmentStart);
+                segmentStart = index;
+                quoted = true;
+            } else {
+                output.Append(body, segmentStart, index - segmentStart + 1);
+                segmentStart = index + 1;
+                quoted = false;
+            }
+        }
+        if (segmentStart < body.Length) {
+            if (quoted) output.Append(body, segmentStart, body.Length - segmentStart);
+            else AppendConvertedReferences(output, body, segmentStart, body.Length - segmentStart);
+        }
+        return output.ToString();
+    }
+
+    private static void AppendConvertedReferences(StringBuilder output, string body, int start, int length) {
+        if (length <= 0) return;
+        string converted = ExcelReference.Replace(body.Substring(start, length), match => {
+            string referenceStart = match.Groups["start"].Value;
+            string referenceEnd = match.Groups["end"].Value;
+            return referenceEnd.Length == 0 ? "[." + referenceStart + "]" : "[." + referenceStart + ":." + referenceEnd + "]";
+        });
+        output.Append(converted);
     }
 
     internal static string OpenFormulaToExcel(string formula) {
@@ -28,9 +59,20 @@ internal static class SpreadsheetAddressConverter {
         else if (body.StartsWith("=", StringComparison.Ordinal)) body = body.Substring(1);
 
         var output = new StringBuilder(body.Length);
+        bool quoted = false;
         for (int index = 0; index < body.Length; index++) {
-            if (body[index] != '[') {
-                output.Append(body[index]);
+            char character = body[index];
+            if (character == '"') {
+                output.Append(character);
+                if (quoted && index + 1 < body.Length && body[index + 1] == '"') {
+                    output.Append(body[++index]);
+                } else {
+                    quoted = !quoted;
+                }
+                continue;
+            }
+            if (quoted || character != '[') {
+                output.Append(character);
                 continue;
             }
             int close = body.IndexOf(']', index + 1);

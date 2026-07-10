@@ -1,10 +1,60 @@
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Reader.OpenDocument;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using System.Xml.Linq;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
 
 public class ReaderOpenDocumentModularTests {
+    [Fact]
+    public void RegisteredAdapterClampsImportedHeadingLevels() {
+        using OdtDocument document = OdtDocument.Create();
+        document.AddHeading("Imported heading", 1);
+        byte[] package = RewriteHeadingLevel(document.ToBytes(), "11");
+
+        DocumentReaderOpenDocumentRegistrationExtensions.RegisterOpenDocumentHandler(replaceExisting: true);
+        try {
+            ReaderChunk chunk = Assert.Single(DocumentReader.Read(package, "heading.odt"));
+
+            Assert.Equal("Imported heading", chunk.Text);
+            Assert.Equal("###### Imported heading", chunk.Markdown);
+            Assert.Equal("Imported heading", chunk.Location.HeadingPath);
+        } finally {
+            DocumentReaderOpenDocumentRegistrationExtensions.UnregisterOpenDocumentHandler();
+        }
+    }
+
+    [Fact]
+    public void RegisteredAdapterHonorsRequestedOdsRange() {
+        using OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetString("B");
+        sheet.Cell(0, 2).SetString("C");
+        sheet.Cell(1, 0).SetString("Outside");
+        sheet.Cell(1, 1).SetString("Two");
+        sheet.Cell(1, 2).SetString("Three");
+        sheet.Cell(2, 1).SetString("Outside row");
+
+        DocumentReaderOpenDocumentRegistrationExtensions.RegisterOpenDocumentHandler(replaceExisting: true);
+        try {
+            ReaderChunk chunk = Assert.Single(DocumentReader.Read(document.ToBytes(), "range.ods", new ReaderOptions {
+                ExcelA1Range = "B1:C2"
+            }));
+
+            Assert.Equal("B1:C2", chunk.Location.A1Range);
+            ReaderTable table = Assert.Single(chunk.Tables!);
+            Assert.Equal(new[] { "B", "C" }, table.Columns);
+            Assert.Equal(new[] { "Two", "Three" }, Assert.Single(table.Rows));
+            Assert.DoesNotContain("Outside", chunk.Text, StringComparison.Ordinal);
+        } finally {
+            DocumentReaderOpenDocumentRegistrationExtensions.UnregisterOpenDocumentHandler();
+        }
+    }
+
     [Fact]
     public void RegisteredAdapterEmitsSlideAlignedOdpChunkWithNotesAndTable() {
         using OdpPresentation document = OdpPresentation.Create();
@@ -81,5 +131,31 @@ public class ReaderOpenDocumentModularTests {
         } finally {
             DocumentReaderOpenDocumentRegistrationExtensions.UnregisterOpenDocumentHandler();
         }
+    }
+
+    private static byte[] RewriteHeadingLevel(byte[] package, string level) {
+        using var output = new MemoryStream();
+        using (var sourceStream = new MemoryStream(package, writable: false))
+        using (var source = new ZipArchive(sourceStream, ZipArchiveMode.Read))
+        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry sourceEntry in source.Entries) {
+                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
+                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
+                using Stream targetStream = targetEntry.Open();
+                if (sourceEntry.FullName == "content.xml") {
+                    XDocument content;
+                    using (Stream sourceXml = sourceEntry.Open()) content = XDocument.Load(sourceXml);
+                    XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+                    content.Descendants(text + "h").Single().SetAttributeValue(text + "outline-level", level);
+                    using var writer = new StreamWriter(targetStream, new UTF8Encoding(false), 1024, leaveOpen: true);
+                    content.Save(writer);
+                    writer.Flush();
+                } else {
+                    using Stream sourceData = sourceEntry.Open();
+                    sourceData.CopyTo(targetStream);
+                }
+            }
+        }
+        return output.ToArray();
     }
 }

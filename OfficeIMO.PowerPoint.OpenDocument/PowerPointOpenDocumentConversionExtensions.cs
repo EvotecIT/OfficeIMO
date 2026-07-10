@@ -67,7 +67,9 @@ public static class PowerPointOpenDocumentConversionExtensions {
                                 OdfLength.Points(picture.CropLeftRatio * picture.WidthPoints));
                         }
                         pictures++;
-                    } catch (InvalidOperationException) { unsupportedPictures++; }
+                    } catch (Exception exception) when (exception is InvalidOperationException || exception is NotSupportedException) {
+                        unsupportedPictures++;
+                    }
                 } else if (shape is PowerPointTable table) {
                     OdpTable converted = targetSlide.AddTable(ToOdfRect(table), Math.Max(1, table.Rows), Math.Max(1, table.Columns), table.Name);
                     CopyShapeAppearance(table, converted, effective);

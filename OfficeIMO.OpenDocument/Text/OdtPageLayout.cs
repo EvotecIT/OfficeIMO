@@ -124,7 +124,7 @@ public sealed class OdtHeaderFooter {
     /// <summary>Paragraphs in this header or footer.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-        .Select(element => new OdtParagraph(_document, element)).ToList();
+        .Select(element => new OdtParagraph(_document, element, "styles.xml")).ToList();
 
     /// <summary>Adds a paragraph.</summary>
     public OdtParagraph AddParagraph(string? text = null) {

@@ -17,16 +17,16 @@ public static partial class DocumentReaderOpenDocumentExtensions {
 
             OdtParagraph paragraph = block.Paragraph!;
             string text = paragraph.Text.Trim();
+            int headingLevel = Math.Max(1, Math.Min(10, paragraph.HeadingLevel ?? 1));
             if (paragraph.IsHeading) {
-                int level = paragraph.HeadingLevel ?? 1;
-                headings[level - 1] = text;
-                for (int index = level; index < headings.Length; index++) headings[index] = null;
+                headings[headingLevel - 1] = text;
+                for (int index = headingLevel; index < headings.Length; index++) headings[index] = null;
             }
             string? headingPath = string.Join(" > ", headings.Where(value => !string.IsNullOrWhiteSpace(value))!);
             int part = 0;
             foreach (string piece in SplitText(text, options.MaxChars)) {
                 string markdown = paragraph.IsHeading
-                    ? new string('#', Math.Min(6, paragraph.HeadingLevel ?? 1)) + " " + piece
+                    ? new string('#', Math.Min(6, headingLevel)) + " " + piece
                     : piece;
                 yield return new ReaderChunk {
                     Id = BuildId(sourceName, paragraph.IsHeading ? "heading" : "paragraph", blockIndex, part++),

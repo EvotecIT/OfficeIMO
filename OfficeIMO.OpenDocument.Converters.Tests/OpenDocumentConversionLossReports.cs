@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.Word.OpenDocument;
 using Xunit;
@@ -10,6 +12,41 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class OpenDocumentConversionLossReportTests {
+    [Fact]
+    public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        ExcelSheet sheet = source.AddWorkSheet("Data");
+        sheet.CellAt(1, 1).SetValue("B2");
+        sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
+        using OdsDocument target = conversion.Document;
+
+        Assert.Equal("of:=IF([.A1]=\"B2\",1,0)", target.GetSheet("Data")!.Cell(0, 1).Formula);
+
+        target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\",1,0)";
+        OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocument();
+        using ExcelDocument roundTrip = reverse.Document;
+        ExcelCellSnapshot reverseFormula = roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells
+            .Single(cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Equal("IF(A1=\"[.B2]\",1,0)", reverseFormula.Formula);
+    }
+
+    [Fact]
+    public void UnsupportedPowerPointImageFormatsAreReportedWithoutAbortingConversion() {
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), autoSave: false);
+        PowerPointSlide slide = source.AddSlide();
+        using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
+        slide.AddPicture(tiff, ImagePartType.Tiff);
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocument();
+        using OdpPresentation target = conversion.Document;
+
+        Assert.Empty(Assert.Single(target.Slides).Shapes.OfType<OdpImage>());
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
     [Fact]
     public void OdtTrackedChangesAreReportedWhenConvertingToWord() {
         using OdtDocument source = OdtDocument.Create();
