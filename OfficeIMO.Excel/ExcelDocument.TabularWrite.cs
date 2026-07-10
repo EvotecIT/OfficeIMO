@@ -58,10 +58,7 @@ namespace OfficeIMO.Excel {
             if (headers.Count == 0) throw new ArgumentException("At least one column header is required.", nameof(headers));
             if (writeRow == null) throw new ArgumentNullException(nameof(writeRow));
 
-            options ??= new ExcelTabularWriteOptions { UseSharedStrings = false };
-            if (options.UseSharedStrings) {
-                throw new ArgumentException("Row-writer exports require inline strings.", nameof(options));
-            }
+            options = CreateRowWriteOptions(options);
             if (options.AutoFit) {
                 throw new ArgumentException("Row-writer exports cannot calculate column widths before writing rows.", nameof(options));
             }
@@ -80,6 +77,26 @@ namespace OfficeIMO.Excel {
             var rows = items as IReadOnlyList<T> ?? items.ToList();
             var tableModel = DirectDataSetTableModel.FromCallbackRows(headers, rows, writeRow);
             return WriteTabularModel(stream, tableModel, options, ct);
+        }
+
+        private static ExcelTabularWriteOptions CreateRowWriteOptions(ExcelTabularWriteOptions? options) {
+            if (options == null) {
+                return new ExcelTabularWriteOptions { UseSharedStrings = false };
+            }
+
+            return new ExcelTabularWriteOptions {
+                SheetName = options.SheetName,
+                IncludeHeaders = options.IncludeHeaders,
+                CreateTable = options.CreateTable,
+                TableName = options.TableName,
+                TableStyle = options.TableStyle,
+                IncludeAutoFilter = options.IncludeAutoFilter,
+                AutoFit = options.AutoFit,
+                UseCellValueNumberFormats = options.UseCellValueNumberFormats,
+                IncludeCellReferences = options.IncludeCellReferences,
+                UseSharedStrings = false,
+                DateSystem = options.DateSystem
+            };
         }
 
         /// <summary>

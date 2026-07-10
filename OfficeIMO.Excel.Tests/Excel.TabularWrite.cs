@@ -163,6 +163,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WriteRows_DefaultOptionsObjectUsesInlineStringsAndPreservesSettings() {
+            using var output = new MemoryStream();
+            var options = new ExcelTabularWriteOptions {
+                SheetName = "Configured Rows",
+                CreateTable = true,
+                TableName = "ConfiguredRows"
+            };
+
+            ExcelDataSetImportResult result = ExcelDocument.WriteRows(
+                output,
+                new[] { new TabularWriteRow(1, "Alpha", new DateTime(2026, 7, 10), true) },
+                ["Id", "Name", "Created", "Active"],
+                static (writer, row) => writer
+                    .Write(row.Id)
+                    .Write(row.Name)
+                    .Write(row.Created)
+                    .Write(row.Active),
+                options);
+
+            Assert.True(options.UseSharedStrings);
+            Assert.Equal("Configured Rows", result.SheetName);
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            Assert.Null(spreadsheet.WorkbookPart!.SharedStringTablePart);
+            var table = spreadsheet.WorkbookPart.WorksheetParts.Single().TableDefinitionParts.Single().Table;
+            Assert.Equal("ConfiguredRows", table!.Name?.Value);
+        }
+
+        [Fact]
         public void WriteRows_RejectsRowsWithTheWrongCellCount() {
             using var output = new MemoryStream();
 
