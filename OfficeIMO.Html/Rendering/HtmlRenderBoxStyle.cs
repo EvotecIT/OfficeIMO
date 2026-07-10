@@ -68,6 +68,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal double PaddingLeft;
     internal double BorderWidth;
     internal OfficeColor BorderColor = OfficeColor.Black;
+    internal string BorderRadius = "0";
+    internal string BorderTopLeftRadius = string.Empty;
+    internal string BorderTopRightRadius = string.Empty;
+    internal string BorderBottomRightRadius = string.Empty;
+    internal string BorderBottomLeftRadius = string.Empty;
     internal OfficeColor? BackgroundColor;
     internal int BackgroundImageLayerCount;
     internal bool HasDeclaredBackgroundImage;

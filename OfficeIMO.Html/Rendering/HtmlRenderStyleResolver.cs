@@ -315,6 +315,11 @@ internal sealed class HtmlRenderStyleResolver {
 
         string borderColor = computed.GetValue("border-color");
         if (HtmlRenderCssValues.TryColor(borderColor.Length > 0 ? borderColor : border, out OfficeColor parsedBorderColor)) style.BorderColor = parsedBorderColor;
+        style.BorderRadius = NormalizeCssValue(computed.GetValue("border-radius"), "0");
+        style.BorderTopLeftRadius = computed.GetValue("border-top-left-radius").Trim();
+        style.BorderTopRightRadius = computed.GetValue("border-top-right-radius").Trim();
+        style.BorderBottomRightRadius = computed.GetValue("border-bottom-right-radius").Trim();
+        style.BorderBottomLeftRadius = computed.GetValue("border-bottom-left-radius").Trim();
     }
 
     private static void ApplyAutoMargins(HtmlComputedStyle computed, string shorthand, HtmlRenderBoxStyle style) {

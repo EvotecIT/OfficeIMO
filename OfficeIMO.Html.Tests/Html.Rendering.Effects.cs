@@ -77,6 +77,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlOpacity_AppliesOnceToGradientPaint() {
+        const string html = "<div style='width:20px;height:20px;margin:0;background:linear-gradient(#ff0000,#ff0000);opacity:.5'></div>";
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+
+        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(10, 10);
+
+        Assert.Equal((byte)255, pixel.R);
+        Assert.InRange(pixel.A, (byte)127, (byte)128);
+    }
+
+    [Fact]
     public void HtmlEffects_FlowThroughPngSvgAndSearchablePdfWithLinks() {
         const string link = "https://example.com/effect";
         const string html = "<div style='width:90px;height:20px;margin:0;background:#ff0000;font-size:10px;line-height:10px;transform-origin:0 0;transform:translate(20px,5px);opacity:.75'><a href='https://example.com/effect'>EffectPdfMarker</a></div>";

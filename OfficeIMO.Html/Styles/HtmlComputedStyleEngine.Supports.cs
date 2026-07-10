@@ -156,6 +156,15 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
         }
+        if (string.Equals(propertyName, "border-radius", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBorderRadiusParser.IsSupportedShorthandSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "border-top-left-radius", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "border-top-right-radius", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "border-bottom-right-radius", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "border-bottom-left-radius", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssBorderRadiusParser.IsSupportedCornerSyntax(normalized);
+        }
         return IsSupportedDeclarationValue(propertyName, value);
     }
 

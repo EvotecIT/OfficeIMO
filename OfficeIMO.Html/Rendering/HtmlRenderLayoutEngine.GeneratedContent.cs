@@ -94,9 +94,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement element,
         string source) {
-        AddBoxBackground(visuals, style, x, y, width, height, style.BorderWidth, element, source, source);
+        double cornerRadius = ResolveBoxCornerRadius(style, width, height, element, source);
+        AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, element, source, source);
         if (style.BorderWidth <= 0D) return;
-        OfficeShape border = OfficeShape.Rectangle(width, height);
+        OfficeShape border = CreateBoxShape(width, height, cornerRadius);
         border.FillColor = null;
         border.StrokeColor = style.BorderColor;
         border.StrokeWidth = style.BorderWidth;

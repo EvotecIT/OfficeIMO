@@ -72,6 +72,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
     public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";
+    /// <summary>A CSS border radius could not be represented by the current uniform rounded-box geometry.</summary>
+    public const string BorderRadiusValueUnsupported = "HtmlRenderBorderRadiusValueUnsupported";
     /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
     public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
     /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
@@ -151,6 +153,7 @@ public static class HtmlRenderDiagnosticCodes {
         TransformValueUnsupported,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
+        BorderRadiusValueUnsupported,
         PositionInsetUnsupported,
         PositioningModeUnsupported,
         PositionStaticAnchorFallback,
