@@ -72,6 +72,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (!pseudoElement) ApplyDefaultMargins(tag, fontSize, style);
         ApplyBoxValues(computed, containingWidth, fontSize, style);
         ApplyDimensions(element, computed, containingWidth, fontSize, style, !pseudoElement);
+        ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(computed, style);
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);

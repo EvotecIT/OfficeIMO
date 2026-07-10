@@ -5,27 +5,19 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style) {
-        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
         string? source = element.GetAttribute("src");
         TryResolveImageSource(source, sourceDescription, out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo);
-
-        double intrinsicWidth = imageInfo != null && imageInfo.Width > 0 ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiX : 300D;
-        double intrinsicHeight = imageInfo != null && imageInfo.Height > 0 ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiY : 150D;
-        double imageWidth = style.ExplicitWidth ?? intrinsicWidth;
-        double imageHeight = style.ExplicitHeight ?? (style.ExplicitWidth.HasValue && intrinsicWidth > 0D ? imageWidth * intrinsicHeight / intrinsicWidth : intrinsicHeight);
-        if (!style.ExplicitWidth.HasValue && style.ExplicitHeight.HasValue && intrinsicHeight > 0D) imageWidth = imageHeight * intrinsicWidth / intrinsicHeight;
-        double maximumContentWidth = Math.Max(1D, availableWidth - style.HorizontalInsets);
-        if (imageWidth > maximumContentWidth) {
-            double scale = maximumContentWidth / imageWidth;
-            imageWidth = maximumContentWidth;
-            imageHeight *= scale;
-        }
-
-        imageWidth = Math.Max(1D, imageWidth);
-        imageHeight = Math.Max(1D, imageHeight);
-        double boxWidth = Math.Min(availableWidth, imageWidth + style.HorizontalInsets);
-        double boxHeight = imageHeight + style.VerticalInsets;
+        bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
+        double intrinsicWidth = hasIntrinsicSize
+            ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
+            : 300D;
+        double intrinsicHeight = hasIntrinsicSize
+            ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
+            : 150D;
+        ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
+        double boxWidth = contentSize.Width + style.HorizontalInsets;
+        double boxHeight = contentSize.Height + style.VerticalInsets;
         var visuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double imageX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
@@ -34,49 +26,48 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? ResolveSafeLink(element.ParentElement.GetAttribute("href"), element.ParentElement)
             : null;
         string? alternativeText = element.GetAttribute("alt");
-        if (bytes != null && bytes.Length > 0) {
-            visuals.Add(new HtmlRenderImage(bytes, contentType, imageX, imageY, imageWidth, imageHeight, visuals.Count, alternativeText, link, sourceDescription));
+        ReplacedObjectPlacement placement = ResolveReplacedObjectPlacement(
+            style,
+            contentSize.Width,
+            contentSize.Height,
+            intrinsicWidth,
+            intrinsicHeight);
+        if (bytes != null && bytes.Length > 0 && placement.IsVisible) {
+            visuals.Add(new HtmlRenderImage(
+                bytes,
+                contentType,
+                imageX + placement.X,
+                imageY + placement.Y,
+                placement.Width,
+                placement.Height,
+                visuals.Count,
+                alternativeText,
+                link,
+                sourceDescription,
+                placement.SourceCrop));
             if (!OfficeRasterImageDecoder.TryDecode(bytes, out _) && !string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                 _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.RasterDecoderUnavailable, "The image can be retained for SVG/PDF but the dependency-free PNG backend cannot decode this image format yet.", HtmlDiagnosticSeverity.Warning, sourceDescription, contentType);
             }
-        } else {
-            OfficeShape placeholder = OfficeShape.Rectangle(imageWidth, imageHeight);
+        } else if (placement.IsVisible) {
+            OfficeShape placeholder = OfficeShape.Rectangle(placement.Width, placement.Height);
             placeholder.FillColor = OfficeColor.FromRgb(245, 245, 245);
             placeholder.StrokeColor = OfficeColor.FromRgb(160, 160, 160);
             placeholder.StrokeWidth = 1D;
-            visuals.Add(new HtmlRenderShape(placeholder, imageX, imageY, visuals.Count, link, sourceDescription));
+            visuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, visuals.Count, link, sourceDescription));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
-                double textHeight = Math.Min(imageHeight, style.LineHeight);
-                visuals.Add(new HtmlRenderText(alternativeText!, imageX + 4D, imageY + 4D, Math.Max(1D, imageWidth - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, visuals.Count, link, sourceDescription, "figure-alternative-text"));
+                double textHeight = Math.Min(placement.Height, style.LineHeight);
+                visuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, visuals.Count, link, sourceDescription, "figure-alternative-text"));
             }
         }
+        ReportReplacedElementFallbacks(style, element, boxWidth, boxHeight);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
     }
 
-    private double ResolveFloatingImageOuterWidth(IElement element, double containingWidth, HtmlRenderBoxStyle style) {
-        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-        TryResolveImageSource(
-            element.GetAttribute("src"),
-            HtmlRenderStyleResolver.DescribeSource(element),
-            out _,
-            out _,
-            out OfficeImageInfo? imageInfo,
-            reportDiagnostics: false);
-        double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
-            ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiX
-            : 300D;
-        double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
-            ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiY
-            : 150D;
-        double imageWidth = style.ExplicitWidth ?? intrinsicWidth;
-        if (!style.ExplicitWidth.HasValue && style.ExplicitHeight.HasValue && intrinsicHeight > 0D) {
-            imageWidth = style.ExplicitHeight.Value * intrinsicWidth / intrinsicHeight;
-        }
-        imageWidth = Math.Min(imageWidth, Math.Max(1D, availableWidth - style.HorizontalInsets));
-        return Math.Max(1D, style.MarginLeft + imageWidth + style.HorizontalInsets + style.MarginRight);
+    private double ResolveFloatingImageOuterWidth(IElement element, HtmlRenderBoxStyle style) {
+        return Math.Max(1D, style.MarginLeft + ResolveReplacedImageBoxWidth(element, style) + style.MarginRight);
     }
 
     private bool TryResolveImageSource(

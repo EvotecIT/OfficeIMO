@@ -43,6 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedBoxShadowFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedBorderPaintFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedOutlinePaintFallbacks = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {

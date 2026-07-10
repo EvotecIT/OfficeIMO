@@ -13,7 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link,
         ICollection<HtmlInlineRun> runs) {
         double measuredOuterWidth = string.Equals(element.TagName, "img", StringComparison.OrdinalIgnoreCase)
-            ? ResolveFloatingImageOuterWidth(element, containingWidth, style)
+            ? ResolveFloatingImageOuterWidth(element, style)
             : ResolvePositionedOuterWidth(element, style, containingWidth, null, null);
         double outerWidth = Math.Min(Math.Max(1D, containingWidth), measuredOuterWidth);
         HtmlRenderBoxStyle floatStyle = style.Clone();

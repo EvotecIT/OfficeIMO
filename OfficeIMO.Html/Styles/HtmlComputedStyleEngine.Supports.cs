@@ -150,6 +150,15 @@ public static partial class HtmlComputedStyleEngine {
                 && !double.IsNaN(opacity)
                 && !double.IsInfinity(opacity);
         }
+        if (string.Equals(propertyName, "object-fit", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedObjectFitSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "object-position", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedObjectPositionSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "aspect-ratio", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedAspectRatioSyntax(normalized);
+        }
         if (string.Equals(propertyName, "transform", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedTransformSyntax(normalized);
         }

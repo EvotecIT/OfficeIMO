@@ -159,12 +159,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth) {
         HtmlRenderBoxStyle style = item.Style;
+        string tag = item.TagName;
+        if (tag == "img" && item.Element != null) return ResolveReplacedImageBoxWidth(item.Element, style);
         if (style.ExplicitWidth.HasValue) {
             return style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
         }
 
-        string tag = item.TagName;
-        if (tag == "img") return Math.Min(availableWidth, 300D + style.HorizontalInsets);
         if (tag == "table") return availableWidth;
         string content = CollapseFlexText(item.TextContent);
         double measured = content.Length == 0 ? 0D : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);

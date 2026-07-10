@@ -118,17 +118,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double ResolveColumnFlexCrossBasis(FlexItem item, double contentWidth) {
         HtmlRenderBoxStyle style = item.Style;
-        if (style.ExplicitWidth.HasValue) return ResolveColumnFlexOuterWidth(style, contentWidth);
         string tag = item.TagName;
+        if (tag == "img" && item.Element != null) {
+            double imageOuter = ResolveReplacedImageBoxWidth(item.Element, style) + style.MarginLeft + style.MarginRight;
+            return Math.Max(1D, Math.Min(contentWidth, imageOuter));
+        }
+        if (style.ExplicitWidth.HasValue) return ResolveColumnFlexOuterWidth(style, contentWidth);
         if (tag == "table") return contentWidth;
         double boxBasis;
-        if (tag == "img") {
-            boxBasis = 300D + style.HorizontalInsets;
-        } else {
-            string content = CollapseFlexText(item.TextContent);
-            double measured = content.Length == 0 ? 1D : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
-            boxBasis = measured + style.HorizontalInsets;
-        }
+        string content = CollapseFlexText(item.TextContent);
+        double measured = content.Length == 0 ? 1D : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+        boxBasis = measured + style.HorizontalInsets;
 
         if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));

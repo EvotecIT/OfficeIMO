@@ -92,6 +92,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? MaxWidth;
     internal double? MinHeight;
     internal double? MaxHeight;
+    internal string ObjectFit = "fill";
+    internal string ObjectPosition = "50% 50%";
+    internal double? AspectRatio;
+    internal bool AspectRatioPrefersIntrinsic = true;
+    internal string UnsupportedReplacedElementLayout = string.Empty;
     internal bool BorderBox;
     internal bool PreserveWhitespace;
     internal string TextTransform = "none";
