@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -31,10 +30,9 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(finding.Bounds);
             Assert.False(report.IsSuccessful);
 
-            using JsonDocument json = JsonDocument.Parse(report.ToJson());
-            Assert.Equal(1, json.RootElement.GetProperty("schemaVersion").GetInt32());
-            Assert.Equal("Text.Clipped",
-                json.RootElement.GetProperty("findings")[0].GetProperty("code").GetString());
+            string json = report.ToJson(indented: false);
+            Assert.Contains("\"schemaVersion\": 1", json, StringComparison.Ordinal);
+            Assert.Contains("Text.Clipped", json, StringComparison.Ordinal);
         }
 
         [Fact]

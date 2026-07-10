@@ -83,8 +83,8 @@ namespace OfficeIMO.PowerPoint {
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
-            slide.AddPicture(image, bounds);
-            AddImageAnnotations(slide, theme, image, bounds, compact: true);
+            PowerPointPicture picture = slide.AddPicture(image, bounds);
+            AddImageAnnotations(slide, theme, image, picture, compact: true);
             AddStoryCaption(slide, theme, image.Caption, image.Provenance, 1.55, height - 1.65, width - 3.1);
         }
 
@@ -94,8 +94,8 @@ namespace OfficeIMO.PowerPoint {
             double imageWidth = body.WidthCm * 0.69;
             PowerPointLayoutBox imageBounds = PowerPointLayoutBox.FromCentimeters(body.LeftCm, body.TopCm,
                 imageWidth, body.HeightCm);
-            slide.AddPicture(image, imageBounds);
-            AddImageAnnotations(slide, theme, image, imageBounds, compact: false);
+            PowerPointPicture picture = slide.AddPicture(image, imageBounds);
+            AddImageAnnotations(slide, theme, image, picture, compact: false);
 
             double railLeft = imageBounds.RightCm + 0.7;
             double railWidth = body.RightCm - railLeft;
@@ -115,12 +115,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddImageAnnotations(PowerPointSlide slide, PowerPointDesignTheme theme,
-            PowerPointImageAsset image, PowerPointLayoutBox bounds, bool compact) {
+            PowerPointImageAsset image, PowerPointPicture picture, bool compact) {
             for (int index = 0; index < image.Annotations.Count; index++) {
                 PowerPointImageAnnotation annotation = image.Annotations[index];
+                if (!TryProjectImageAnnotation(picture, annotation, out double x, out double y)) continue;
                 string accent = annotation.Color ?? GetAccent(theme, index);
-                double x = bounds.LeftCm + annotation.X * bounds.WidthCm;
-                double y = bounds.TopCm + annotation.Y * bounds.HeightCm;
                 double markerSize = compact ? 0.48 : 0.4;
                 PowerPointAutoShape marker = slide.AddEllipseCm(x - markerSize / 2D, y - markerSize / 2D,
                     markerSize, markerSize, "Screenshot Annotation " + (index + 1));
@@ -128,12 +127,12 @@ namespace OfficeIMO.PowerPoint {
                 marker.OutlineColor = theme.AccentContrastColor;
                 marker.OutlineWidthPoints = 1.2;
                 if (!compact) continue;
-                double labelWidth = Math.Min(5.0, bounds.WidthCm * 0.26);
-                double labelLeft = x + labelWidth + 0.4 <= bounds.RightCm
+                double labelWidth = Math.Min(5.0, picture.WidthCm * 0.26);
+                double labelLeft = x + labelWidth + 0.4 <= picture.RightCm
                     ? x + 0.38
                     : x - labelWidth - 0.38;
-                double labelTop = Math.Max(bounds.TopCm + 0.15,
-                    Math.Min(bounds.BottomCm - 0.95, y - 0.4));
+                double labelTop = Math.Max(picture.TopCm + 0.15,
+                    Math.Min(picture.BottomCm - 0.95, y - 0.4));
                 PowerPointAutoShape label = slide.AddRectangleCm(labelLeft, labelTop, labelWidth, 0.82,
                     "Screenshot Annotation Label " + (index + 1));
                 label.FillColor = theme.AccentDarkColor;
@@ -141,6 +140,25 @@ namespace OfficeIMO.PowerPoint {
                 AddText(slide, annotation.Label, labelLeft + 0.2, labelTop + 0.15,
                     labelWidth - 0.4, 0.48, 9, theme.AccentContrastColor, theme.BodyFontName, bold: true);
             }
+        }
+
+        private static bool TryProjectImageAnnotation(PowerPointPicture picture,
+            PowerPointImageAnnotation annotation, out double x, out double y) {
+            double left = picture.CropLeftRatio;
+            double top = picture.CropTopRatio;
+            double right = 1D - picture.CropRightRatio;
+            double bottom = 1D - picture.CropBottomRatio;
+            if (annotation.X < left || annotation.X > right ||
+                annotation.Y < top || annotation.Y > bottom ||
+                right <= left || bottom <= top) {
+                x = 0D;
+                y = 0D;
+                return false;
+            }
+
+            x = picture.LeftCm + (annotation.X - left) / (right - left) * picture.WidthCm;
+            y = picture.TopCm + (annotation.Y - top) / (bottom - top) * picture.HeightCm;
+            return true;
         }
 
         private static void AddArchitectureLayers(PowerPointSlide slide, PowerPointDesignTheme theme,

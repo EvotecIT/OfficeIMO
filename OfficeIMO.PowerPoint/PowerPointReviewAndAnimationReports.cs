@@ -306,7 +306,10 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointReviewComment CreateModernComment(PowerPointCommentKind kind, int slideNumber,
             string id, string? parentId, string? authorId, IDictionary<string, string> authors,
             OpenXmlElement element, string? status, DateTime? created) {
-            string text = string.Concat(element.Descendants<A.Text>().Select(item => item.Text));
+            string text = string.Concat(element.Descendants<A.Text>()
+                .Where(item => item.Ancestors<P188.CommentReply>()
+                    .All(reply => ReferenceEquals(reply, element)))
+                .Select(item => item.Text));
             uint? shapeId = element.Descendants().SelectMany(item => item.GetAttributes())
                 .Where(attribute => attribute.LocalName == "spid" || attribute.LocalName == "shapeId")
                 .Select(attribute => ParseUInt(attribute.Value)).FirstOrDefault(value => value.HasValue);

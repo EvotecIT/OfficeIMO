@@ -5,6 +5,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -156,6 +157,53 @@ namespace OfficeIMO.Tests {
             PowerPointDeckPlanDiagnostic diagnostic = Assert.Single(plan.ValidateSlides());
             Assert.Equal("ScreenshotStory.MissingImage", diagnostic.Code);
             Assert.Equal(PowerPointDeckPlanDiagnosticSeverity.Error, diagnostic.Severity);
+        }
+
+        [Theory]
+        [InlineData(PowerPointImagePlacement.Fit, 0.2D, 0.2D)]
+        [InlineData(PowerPointImagePlacement.Fill, 0.2D, 0.2D)]
+        public void ScreenshotAnnotationsFollowFinalPictureGeometryAndCrop(
+            PowerPointImagePlacement placement, double annotationX, double annotationY) {
+            string imagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+            File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
+            try {
+                using var stream = new MemoryStream();
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+                var image = new PowerPointImageAsset(imagePath, "Geometry test image") {
+                    Placement = placement
+                }.Annotate(new PowerPointImageAnnotation(annotationX, annotationY, "Anchor"));
+
+                PowerPointSlide slide = presentation.AddDesignerScreenshotStorySlide(
+                    "Image geometry", null, image, options: new PowerPointScreenshotStorySlideOptions {
+                        Variant = PowerPointScreenshotStoryLayoutVariant.HeroAnnotated
+                    });
+
+                PowerPointPicture picture = Assert.Single(slide.Pictures);
+                PowerPointAutoShape marker = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
+                    shape => shape.Name == "Screenshot Annotation 1");
+                double expectedX = picture.LeftCm +
+                    (annotationX - picture.CropLeftRatio) /
+                    (1D - picture.CropLeftRatio - picture.CropRightRatio) * picture.WidthCm;
+                double expectedY = picture.TopCm +
+                    (annotationY - picture.CropTopRatio) /
+                    (1D - picture.CropTopRatio - picture.CropBottomRatio) * picture.HeightCm;
+
+                Assert.InRange(Math.Abs(marker.CenterXCm - expectedX), 0D, 0.01D);
+                Assert.InRange(Math.Abs(marker.CenterYCm - expectedY), 0D, 0.01D);
+            } finally {
+                if (File.Exists(imagePath)) File.Delete(imagePath);
+            }
+        }
+
+        [Fact]
+        public void ArchitectureRejectsNodeIdsThatOnlyDifferByCase() {
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                new PowerPointArchitectureContent(new[] {
+                    new PowerPointArchitectureNode("API", "Public API"),
+                    new PowerPointArchitectureNode("api", "Internal API")
+                }));
+
+            Assert.Equal("nodes", exception.ParamName);
         }
 
         private static PowerPointExecutiveSummaryContent CreateExecutiveContent() => new(

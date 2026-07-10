@@ -1252,7 +1252,7 @@ namespace OfficeIMO.Tests {
                     }
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(filePath)) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     PowerPointFeatureFinding customXml = Assert.Single(report.FindFeatures("Custom XML parts"));
@@ -1300,7 +1300,7 @@ namespace OfficeIMO.Tests {
                     appPart.Properties.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(filePath)) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding signatures = Assert.Single(report.FindFeatures("Digital signatures"));
 

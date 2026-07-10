@@ -122,6 +122,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AccessibilitySkipsHiddenSlidesUnlessExplicitlyIncluded() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointSlide hidden = presentation.Slides[0];
+            hidden.Hidden = true;
+            hidden.AddRectanglePoints(20, 20, 120, 80, "Undescribed visual");
+
+            PowerPointAccessibilityReport defaultReport = presentation.InspectAccessibility();
+            PowerPointAccessibilityReport includedReport = presentation.InspectAccessibility(
+                new PowerPointAccessibilityOptions { IncludeHiddenSlides = true });
+
+            Assert.Empty(defaultReport.Slides);
+            Assert.DoesNotContain(defaultReport.Findings, finding => finding.SlideIndex == 0);
+            Assert.Single(includedReport.Slides);
+            Assert.Contains(includedReport.Findings,
+                finding => finding.SlideIndex == 0 && finding.Code == "Accessibility.MissingSlideTitle");
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");

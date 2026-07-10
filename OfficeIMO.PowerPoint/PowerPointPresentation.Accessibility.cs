@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint {
 
             for (int slideIndex = 0; slideIndex < _slides.Count; slideIndex++) {
                 PowerPointSlide slide = _slides[slideIndex];
+                if (slide.Hidden && !resolved.IncludeHiddenSlides) continue;
                 List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide).Where(shape => !shape.Hidden).ToList();
                 string? slideTitle = FindSlideTitle(shapes, SlideSize.HeightPoints);
                 if (resolved.RequireSlideTitles && string.IsNullOrWhiteSpace(slideTitle)) {

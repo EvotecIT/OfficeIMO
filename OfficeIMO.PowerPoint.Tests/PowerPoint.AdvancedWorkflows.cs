@@ -7,9 +7,11 @@ using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Tests.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P188 = DocumentFormat.OpenXml.Office2021.PowerPoint.Comment;
+using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
 namespace OfficeIMO.Tests {
@@ -39,6 +41,7 @@ namespace OfficeIMO.Tests {
 
             string modernAuthorId = "{11111111-1111-1111-1111-111111111111}";
             string modernCommentId = "{22222222-2222-2222-2222-222222222222}";
+            string modernReplyId = "{33333333-3333-3333-3333-333333333333}";
             PowerPointAuthorsPart modernAuthors = presentationPart.AddNewPart<PowerPointAuthorsPart>();
             FeedXml(modernAuthors, $"""
                 <p188:authorLst xmlns:p188="http://schemas.microsoft.com/office/powerpoint/2018/8/main">
@@ -50,6 +53,11 @@ namespace OfficeIMO.Tests {
                 <p188:cmLst xmlns:p188="http://schemas.microsoft.com/office/powerpoint/2018/8/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
                   <p188:cm id="{modernCommentId}" authorId="{modernAuthorId}" status="active" created="2026-07-10T08:05:00Z">
                     <p188:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Modern review</a:t></a:r></a:p></p188:txBody>
+                    <p188:replyLst>
+                      <p188:reply id="{modernReplyId}" authorId="{modernAuthorId}" status="active" created="2026-07-10T08:06:00Z">
+                        <p188:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Reply review</a:t></a:r></a:p></p188:txBody>
+                      </p188:reply>
+                    </p188:replyLst>
                   </p188:cm>
                 </p188:cmLst>
                 """);
@@ -74,13 +82,17 @@ namespace OfficeIMO.Tests {
             PowerPointAnimationReport animation = presentation.InspectAnimations();
 
             Assert.Equal(1, review.ClassicCount);
-            Assert.Equal(1, review.ModernCount);
+            Assert.Equal(2, review.ModernCount);
             Assert.Contains(review.Comments, comment => comment.AuthorName == "Classic Reviewer" &&
                 comment.Text == "Classic review");
             Assert.True(review.Comments.Any(comment => comment.AuthorName == "Modern Reviewer" &&
                 comment.Text == "Modern review" && string.Equals(comment.Status, "Active",
                     StringComparison.OrdinalIgnoreCase)), review.ToJson());
-            Assert.Contains("\"commentCount\":2", review.ToJson(), StringComparison.Ordinal);
+            PowerPointReviewComment reply = Assert.Single(review.Comments,
+                comment => comment.Kind == PowerPointCommentKind.ModernReply);
+            Assert.Equal(modernCommentId, reply.ParentId);
+            Assert.Equal("Reply review", reply.Text);
+            Assert.Contains("\"commentCount\":3", review.ToJson(), StringComparison.Ordinal);
             PowerPointAnimationNode animated = Assert.Single(animation.Nodes,
                 node => node.Kind == PowerPointAnimationKind.Animate);
             Assert.Equal(target.Id, animated.ShapeId);
@@ -156,6 +168,36 @@ namespace OfficeIMO.Tests {
             });
         }
 
+        [Theory]
+        [InlineData(PowerPointPdfPageLayout.NotesPages)]
+        [InlineData(PowerPointPdfPageLayout.Handouts)]
+        public void NotesAndHandoutThumbnailsHonorPdfContentFilters(PowerPointPdfPageLayout layout) {
+            using var controlStream = new MemoryStream();
+            using var pictureStream = new MemoryStream();
+            using PowerPointPresentation control = PowerPointPresentation.Create(controlStream, autoSave: false);
+            using PowerPointPresentation withPicture = PowerPointPresentation.Create(pictureStream, autoSave: false);
+            control.Slides[0].AddTitle("Filtered thumbnail");
+            withPicture.Slides[0].AddTitle("Filtered thumbnail");
+            withPicture.Slides[0].AddPicture(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
+                OfficeIMO.PowerPoint.ImagePartType.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
+                PowerPointUnits.FromPoints(180), PowerPointUnits.FromPoints(120));
+
+            var controlOptions = new PowerPointPdfSaveOptions { PageLayout = layout };
+            var pictureOptions = new PowerPointPdfSaveOptions { PageLayout = layout };
+            controlOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
+            pictureOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
+
+            byte[] controlThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
+                control.SaveAsPdf(controlOptions));
+            byte[] pictureThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
+                withPicture.SaveAsPdf(pictureOptions));
+            VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
+                controlThumbnail, pictureThumbnail, channelTolerance: 0, allowedDifferentPixels: 0);
+
+            Assert.True(comparison.Passed,
+                $"Filtered {layout} thumbnail changed at {comparison.DifferentPixels} pixels.");
+        }
+
         [Fact]
         public void SignedPresentationSaveIsBlockedUntilMutationPolicyIsExplicit() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
@@ -164,11 +206,7 @@ namespace OfficeIMO.Tests {
                     presentation.Slides[0].AddTitle("Signed workflow");
                     presentation.Save();
                 }
-                using (PresentationDocument document = PresentationDocument.Open(path, true)) {
-                    DigitalSignatureOriginPart origin = document.AddDigitalSignatureOriginPart();
-                    XmlSignaturePart signature = origin.AddNewPart<XmlSignaturePart>();
-                    FeedXml(signature, "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo/><SignatureValue>AA==</SignatureValue></Signature>");
-                }
+                AddSyntheticSignature(path);
 
                 using (PowerPointPresentation presentation = PowerPointPresentation.Open(path)) {
                     PowerPointSignatureReport inspection = presentation.InspectSignatures();
@@ -187,6 +225,33 @@ namespace OfficeIMO.Tests {
 
                 using PresentationDocument reopened = PresentationDocument.Open(path, false);
                 Assert.Null(reopened.DigitalSignatureOriginPart);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void SignedPresentationDisposeCannotBypassMutationPolicy() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                    presentation.Slides[0].AddTitle("Signed workflow");
+                    presentation.Save();
+                }
+                AddSyntheticSignature(path);
+
+                PowerPointPresentation edited = PowerPointPresentation.Open(path);
+                edited.Slides[0].AddTextBox("Must not persist");
+                PowerPointSignedPresentationMutationException blocked =
+                    Assert.Throws<PowerPointSignedPresentationMutationException>(() => edited.Dispose());
+
+                Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
+                using (PresentationDocument signed = PresentationDocument.Open(path, false)) {
+                    Assert.NotNull(signed.DigitalSignatureOriginPart);
+                }
+                using PowerPointPresentation reopened = PowerPointPresentation.OpenRead(path);
+                Assert.DoesNotContain(reopened.Slides[0].TextBoxes,
+                    textBox => textBox.Text == "Must not persist");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
@@ -217,6 +282,14 @@ namespace OfficeIMO.Tests {
         private static void FeedXml(OpenXmlPart part, string xml) {
             using var data = new MemoryStream(Encoding.UTF8.GetBytes(xml));
             part.FeedData(data);
+        }
+
+        private static void AddSyntheticSignature(string path) {
+            using PresentationDocument document = PresentationDocument.Open(path, true);
+            DigitalSignatureOriginPart origin = document.AddDigitalSignatureOriginPart();
+            XmlSignaturePart signature = origin.AddNewPart<XmlSignaturePart>();
+            FeedXml(signature,
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo/><SignatureValue>AA==</SignatureValue></Signature>");
         }
     }
 }

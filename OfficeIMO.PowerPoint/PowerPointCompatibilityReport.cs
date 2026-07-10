@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Status of one presentation compatibility lane.</summary>
@@ -166,18 +167,26 @@ namespace OfficeIMO.PowerPoint {
             try {
                 using Process? process = Process.Start(startInfo);
                 if (process == null) throw new InvalidOperationException("LibreOffice process could not be started.");
+                Task<string> standardOutput = process.StandardOutput.ReadToEndAsync();
+                Task<string> standardError = process.StandardError.ReadToEndAsync();
                 int timeoutMilliseconds = (int)Math.Min(int.MaxValue,
                     Math.Max(1000D, options.LibreOfficeTimeout.TotalMilliseconds));
                 if (!process.WaitForExit(timeoutMilliseconds)) {
-                    try { process.Kill(); } catch { }
+                    try {
+                        process.Kill();
+                        if (process.WaitForExit(5000)) {
+                            _ = ReadProcessOutput(standardOutput, standardError);
+                        }
+                    } catch { }
                     return new PowerPointCompatibilityLaneResult("LibreOffice", PowerPointCompatibilityStatus.Failed,
                         "LibreOffice conversion exceeded " + options.LibreOfficeTimeout.TotalSeconds
                             .ToString("0.#", CultureInfo.InvariantCulture) + " seconds.");
                 }
+                process.WaitForExit();
                 string expectedPdf = Path.Combine(outputDirectory,
                     Path.GetFileNameWithoutExtension(presentationPath) + ".pdf");
                 bool passed = process.ExitCode == 0 && File.Exists(expectedPdf) && new FileInfo(expectedPdf).Length > 0;
-                string details = (process.StandardOutput.ReadToEnd() + " " + process.StandardError.ReadToEnd()).Trim();
+                string details = ReadProcessOutput(standardOutput, standardError);
                 return new PowerPointCompatibilityLaneResult("LibreOffice", passed
                     ? PowerPointCompatibilityStatus.Passed : PowerPointCompatibilityStatus.Failed,
                     passed ? "LibreOffice imported the deck and produced a non-empty PDF."
@@ -186,6 +195,15 @@ namespace OfficeIMO.PowerPoint {
             } catch (Exception ex) {
                 return new PowerPointCompatibilityLaneResult("LibreOffice", PowerPointCompatibilityStatus.Failed,
                     "LibreOffice compatibility validation failed: " + ex.Message);
+            }
+        }
+
+        private static string ReadProcessOutput(Task<string> standardOutput, Task<string> standardError) {
+            try {
+                return (standardOutput.GetAwaiter().GetResult() + " " +
+                        standardError.GetAwaiter().GetResult()).Trim();
+            } catch {
+                return string.Empty;
             }
         }
 

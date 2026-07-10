@@ -23,6 +23,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Whether every visible slide must expose a recognizable title.</summary>
         public bool RequireSlideTitles { get; set; } = true;
 
+        /// <summary>Whether hidden slides should be included in accessibility inspection. Defaults to false.</summary>
+        public bool IncludeHiddenSlides { get; set; }
+
         /// <summary>Whether informative visual shapes must have concise titles in addition to descriptions.</summary>
         public bool RequireShapeTitles { get; set; }
 
@@ -89,6 +92,7 @@ namespace OfficeIMO.PowerPoint {
                 Profile = Profile,
                 RequireDocumentTitle = RequireDocumentTitle,
                 RequireSlideTitles = RequireSlideTitles,
+                IncludeHiddenSlides = IncludeHiddenSlides,
                 RequireShapeTitles = RequireShapeTitles,
                 RequireAlternativeText = RequireAlternativeText,
                 RequireLanguage = RequireLanguage,

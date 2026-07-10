@@ -17,6 +17,21 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool IncludeSlideContent { get; set; } = true;
 
+        /// <summary>Gets or sets whether pictures and media should be rendered.</summary>
+        public bool IncludePictures { get; set; } = true;
+
+        /// <summary>Gets or sets whether auto-shapes, connectors, and diagrams should be rendered.</summary>
+        public bool IncludeAutoShapes { get; set; } = true;
+
+        /// <summary>Gets or sets whether text boxes should be rendered.</summary>
+        public bool IncludeTextBoxes { get; set; } = true;
+
+        /// <summary>Gets or sets whether tables should be rendered.</summary>
+        public bool IncludeTables { get; set; } = true;
+
+        /// <summary>Gets or sets whether charts should be rendered.</summary>
+        public bool IncludeCharts { get; set; } = true;
+
         /// <summary>
         /// Gets or sets a value indicating whether hidden slide shapes should be included.
         /// </summary>
@@ -27,6 +42,11 @@ namespace OfficeIMO.PowerPoint {
             BackgroundColor = BackgroundColor,
             IncludeSlideBackground = IncludeSlideBackground,
             IncludeSlideContent = IncludeSlideContent,
+            IncludePictures = IncludePictures,
+            IncludeAutoShapes = IncludeAutoShapes,
+            IncludeTextBoxes = IncludeTextBoxes,
+            IncludeTables = IncludeTables,
+            IncludeCharts = IncludeCharts,
             IncludeHiddenShapes = IncludeHiddenShapes
         };
     }
@@ -50,6 +70,11 @@ namespace OfficeIMO.PowerPoint {
             BackgroundColor = BackgroundColor,
             IncludeSlideBackground = IncludeSlideBackground,
             IncludeSlideContent = IncludeSlideContent,
+            IncludePictures = IncludePictures,
+            IncludeAutoShapes = IncludeAutoShapes,
+            IncludeTextBoxes = IncludeTextBoxes,
+            IncludeTables = IncludeTables,
+            IncludeCharts = IncludeCharts,
             IncludeHiddenShapes = IncludeHiddenShapes,
             IncludeHiddenSlides = IncludeHiddenSlides,
             SlideNumbers = SlideNumbers?.ToArray()

@@ -21,22 +21,28 @@ namespace OfficeIMO.PowerPoint {
             }
 
             Exception? pendingException = null;
+            PresentationDocument? document = _document;
             try {
-                if (_document != null) {
-                    if (_copyPackageToSourceOnDispose) {
+                if (document != null) {
+                    if (_copyPackageToSourceOnDispose || _saveOnDispose) {
                         Save();
                     }
-                    _document.Dispose();
                 }
             } catch (Exception ex) {
                 pendingException = ex;
             } finally {
+                try {
+                    document?.Dispose();
+                } catch (Exception ex) {
+                    if (pendingException == null) pendingException = ex;
+                }
                 _document = null;
                 try {
                     PersistPackageToSourceIfNeeded(persistChanges: pendingException == null);
                 } catch (Exception ex) when (pendingException == null) {
                     pendingException = ex;
                 }
+                _saveOnDispose = false;
                 _disposed = true;
             }
 
@@ -50,8 +56,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Path where the presentation file will be created.</param>
         public static PowerPointPresentation Create(string filePath) {
-            PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
+            PresentationDocument document = PresentationDocument.Create(filePath,
+                PresentationDocumentType.Presentation, autoSave: false);
             PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
+            presentation._saveOnDispose = true;
             presentation.PresentationRoot.Save();
             presentation._document?.Save();
             return presentation;
@@ -86,8 +94,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Path of the presentation file to open.</param>
         public static PowerPointPresentation Open(string filePath) {
-            PresentationDocument document = PresentationDocument.Open(filePath, true);
-            return new PowerPointPresentation(document, filePath, isNewPresentation: false);
+            PresentationDocument document = PresentationDocument.Open(filePath, true,
+                new OpenSettings { AutoSave = false });
+            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
+            presentation._saveOnDispose = true;
+            return presentation;
         }
 
         /// <summary>

@@ -245,7 +245,15 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSnapshotThumbnail(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointSlide slide,
         int slideNumber, double x, double y, double width, double height, PowerPointPdfSaveOptions options) {
-        PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+        PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+            new PptCore.PowerPointImageExportOptions {
+                IncludeSlideBackground = options.IncludeSlideBackgrounds,
+                IncludePictures = options.IncludePictures,
+                IncludeAutoShapes = options.IncludeAutoShapes,
+                IncludeTextBoxes = options.IncludeTextBoxes,
+                IncludeTables = options.IncludeTables,
+                IncludeCharts = options.IncludeCharts
+            });
         canvas.Drawing(snapshot.Drawing, x, y, width, height);
         foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
             AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message);

@@ -317,6 +317,9 @@ namespace OfficeIMO.PowerPoint {
             if (Nodes.Count == 0) throw new ArgumentException("Architecture requires at least one node.", nameof(nodes));
             Edges = new ReadOnlyCollection<PowerPointArchitectureEdge>((edges ?? Array.Empty<PowerPointArchitectureEdge>()).ToList());
             var ids = new HashSet<string>(Nodes.Select(node => node.Id), StringComparer.OrdinalIgnoreCase);
+            if (ids.Count != Nodes.Count) {
+                throw new ArgumentException("Architecture node ids must be unique, ignoring case.", nameof(nodes));
+            }
             foreach (PowerPointArchitectureEdge edge in Edges) {
                 if (!ids.Contains(edge.FromId) || !ids.Contains(edge.ToId))
                     throw new ArgumentException("Architecture edge references an unknown node.", nameof(edges));

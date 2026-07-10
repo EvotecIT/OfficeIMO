@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint {
         private Stream? _packageStream;
         private Stream? _sourceStream;
         private bool _copyPackageToSourceOnDispose;
+        private bool _saveOnDispose;
         private bool _leaveSourceStreamOpen = true;
         private PowerPointSlideSize? _slideSize;
         private bool _initialSlideUntouched = false;
