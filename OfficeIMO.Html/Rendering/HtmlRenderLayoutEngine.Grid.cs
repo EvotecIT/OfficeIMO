@@ -94,6 +94,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        var itemPaintLayers = new List<FlowPaintLayer>();
         foreach (GridItem item in items) {
             double itemX = contentX + columns.Positions[item.Column] + item.OffsetX;
             double itemY = contentY + rows.Positions[item.Row] + item.OffsetY;
@@ -105,8 +106,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     rows.Positions[item.Row] + item.OffsetY,
                     item.Item.Style);
             }
-            foreach (HtmlRenderVisual visual in item.Block!.Visuals) visuals.Add(visual.Translate(itemX, itemY, visuals.Count));
+            itemPaintLayers.Add(new FlowPaintLayer(item.Block!, itemX, itemY, itemPaintLayers.Count));
         }
+        AppendFlowPaintLayers(visuals, itemPaintLayers);
         AppendLocalPositionedVisuals(
             element,
             Math.Max(1D, boxWidth - style.BorderWidth * 2D),

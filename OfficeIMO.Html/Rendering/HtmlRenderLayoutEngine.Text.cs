@@ -59,6 +59,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.Display == "none") return;
+        if ((style.Position == "relative" || style.Position == "sticky")
+            && style.ZIndex != "auto"
+            && _reportedInlineZIndexFallbacks.Add(element)) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.PositionZIndexPending,
+                "An inline positioned z-index retained inline paint order because fragmented inline stacking contexts are not active.",
+                HtmlDiagnosticSeverity.Warning,
+                HtmlRenderStyleResolver.DescribeSource(element),
+                "z-index=" + style.ZIndex);
+        }
         if (style.Position == "absolute" || style.Position == "fixed") {
             RegisterOutOfFlowElement(element.ParentElement ?? element, element, style, inheritedStyle, depth);
             return;

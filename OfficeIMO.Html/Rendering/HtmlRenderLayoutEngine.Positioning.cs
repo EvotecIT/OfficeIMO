@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -9,7 +10,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         double? containingHeight,
         IElement element) {
-        return ApplyPositioning(block, style, containingWidth, containingHeight, HtmlRenderStyleResolver.DescribeSource(element));
+        string source = HtmlRenderStyleResolver.DescribeSource(element);
+        HtmlRenderFlowBlock positioned = ApplyPositioning(block, style, containingWidth, containingHeight, source);
+        return style.Position == "relative" || style.Position == "sticky"
+            ? positioned.WithStacking(ResolvePositionedZIndex(element, style), GetPositionedSourceOrder(element))
+            : positioned;
     }
 
     private HtmlRenderFlowBlock ApplyPositioning(
@@ -43,15 +48,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Info,
                     source,
                     "position=sticky");
-                if (style.ZIndex != "auto") {
-                    _diagnostics.Add(
-                        ComponentName,
-                        HtmlRenderDiagnosticCodes.PositionZIndexPending,
-                        "CSS z-index is not yet active; the sticky element retained source paint order.",
-                        HtmlDiagnosticSeverity.Warning,
-                        source,
-                        "z-index=" + style.ZIndex);
-                }
             }
             return;
         }
@@ -68,15 +64,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         offsetX = ResolvePositionAxis(style.Left, style.Right, containingWidth, style, source, "left", "right");
         offsetY = ResolvePositionAxis(style.Top, style.Bottom, containingHeight, style, source, "top", "bottom");
-        if (style.ZIndex != "auto") {
-            _diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.PositionZIndexPending,
-                "CSS z-index is not yet active; the relatively positioned element retained source paint order.",
-                HtmlDiagnosticSeverity.Warning,
-                source,
-                "z-index=" + style.ZIndex);
-        }
+    }
+
+    private int ResolvePositionedZIndex(IElement element, HtmlRenderBoxStyle style) {
+        if (string.Equals(style.ZIndex, "auto", StringComparison.OrdinalIgnoreCase)) return 0;
+        if (int.TryParse(style.ZIndex, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zIndex)) return zIndex;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.PositionZIndexPending,
+            "A positioned z-index was not an integer and used the auto stacking level.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            "z-index=" + style.ZIndex);
+        return 0;
+    }
+
+    private int GetPositionedSourceOrder(IElement element) {
+        if (_positionedSourceOrdersByElement.TryGetValue(element, out int sourceOrder)) return sourceOrder;
+        sourceOrder = _positionedSourceOrder++;
+        _positionedSourceOrdersByElement[element] = sourceOrder;
+        return sourceOrder;
     }
 
     private double ResolvePositionAxis(

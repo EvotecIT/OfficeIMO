@@ -19,7 +19,9 @@ internal sealed class HtmlRenderFlowBlock {
         IEnumerable<HtmlRenderVisual>? continuationVisuals = null,
         double continuationHeight = 0D,
         double continuationStartsAfter = 0D,
-        string? pageName = null) {
+        string? pageName = null,
+        int? stackingZIndex = null,
+        int stackingSourceOrder = 0) {
         Width = width;
         Height = height;
         Visuals = new List<HtmlRenderVisual>(visuals);
@@ -60,6 +62,8 @@ internal sealed class HtmlRenderFlowBlock {
         ContinuationGroups = repeatedGroups.AsReadOnly();
         TrailingGroups = new List<HtmlRenderTrailingGroup>(trailingGroups ?? Array.Empty<HtmlRenderTrailingGroup>()).AsReadOnly();
         PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
+        StackingZIndex = stackingZIndex;
+        StackingSourceOrder = stackingSourceOrder;
     }
 
     internal double Width { get; }
@@ -74,6 +78,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
     internal string? PageName { get; }
+    internal int? StackingZIndex { get; }
+    internal int StackingSourceOrder { get; }
 
     internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
@@ -88,7 +94,26 @@ internal sealed class HtmlRenderFlowBlock {
             lineBreakGroups: LineBreakGroups,
             continuationGroups: ContinuationGroups.Select(group => group.TranslatePaint(offsetX, offsetY)),
             trailingGroups: TrailingGroups.Select(group => group.TranslatePaint(offsetX, offsetY)),
-            pageName: PageName);
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder);
+
+    internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
+        new HtmlRenderFlowBlock(
+            Width,
+            Height,
+            Visuals,
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets,
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups,
+            trailingGroups: TrailingGroups,
+            pageName: PageName,
+            stackingZIndex: zIndex,
+            stackingSourceOrder: sourceOrder);
 }
 
 internal sealed class HtmlRenderContinuationGroup {

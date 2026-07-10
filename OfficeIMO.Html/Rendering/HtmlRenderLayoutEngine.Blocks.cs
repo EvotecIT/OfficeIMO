@@ -66,6 +66,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         var contentVisuals = new List<HtmlRenderVisual>();
+        var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
         var lineBreakOffsets = new List<double>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
@@ -79,9 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (children.Count > 0) {
             foreach (HtmlRenderFlowBlock child in children) {
                 double childStart = contentHeight;
-                foreach (HtmlRenderVisual visual in child.Visuals) {
-                    contentVisuals.Add(visual.Translate(0D, childStart, contentVisuals.Count));
-                }
+                childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
 
                 contentHeight += child.Height;
                 foreach (double offset in child.BreakOffsets) {
@@ -102,6 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 contentBreakOffsets.Add(contentHeight);
             }
+            AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
             string? prefix = tag == "li" ? ResolveListPrefix(element) : null;
             HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element);

@@ -1,5 +1,4 @@
 using AngleSharp.Dom;
-using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -27,8 +26,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.Clone(),
                 parentStyle.Clone(),
                 depth,
-                ResolveOutOfFlowZIndex(element, style),
-                _positionedSourceOrder++,
+                ResolvePositionedZIndex(element, style),
+                GetPositionedSourceOrder(element),
                 staticAnchor));
             return;
         }
@@ -42,8 +41,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Clone(),
             parentStyle.Clone(),
             depth,
-            ResolveOutOfFlowZIndex(element, style),
-            _positionedSourceOrder++,
+            ResolvePositionedZIndex(element, style),
+            GetPositionedSourceOrder(element),
             staticAnchor);
         if (IsRootLayoutContainer(containingBlock)) {
             _rootPositionedElements.Add(request);
@@ -99,19 +98,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "containing-block=" + HtmlRenderStyleResolver.DescribeSource(containingBlock));
         }
         return root;
-    }
-
-    private int ResolveOutOfFlowZIndex(IElement element, HtmlRenderBoxStyle style) {
-        if (string.Equals(style.ZIndex, "auto", StringComparison.OrdinalIgnoreCase)) return 0;
-        if (int.TryParse(style.ZIndex, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zIndex)) return zIndex;
-        _diagnostics.Add(
-            ComponentName,
-            HtmlRenderDiagnosticCodes.PositionZIndexPending,
-            "A positioned z-index was not an integer and used the auto stacking level.",
-            HtmlDiagnosticSeverity.Warning,
-            HtmlRenderStyleResolver.DescribeSource(element),
-            "z-index=" + style.ZIndex);
-        return 0;
     }
 
     private void AppendLocalPositionedVisuals(
@@ -184,7 +170,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PositionedPaintBand band) {
         PositionedLayer layer = placement.Request.Resolve(this, placement.Width, placement.Height);
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-            int paintOrder = band == PositionedPaintBand.Negative ? _underlayPaintOrder++ : _paintOrder++;
+            int fallback = band == PositionedPaintBand.Negative ? -1000000000 : _paintOrder++;
+            int paintOrder = ResolveRootStackingPaintOrder(placement.Request.SourceOrder, fallback);
             visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder));
         }
     }

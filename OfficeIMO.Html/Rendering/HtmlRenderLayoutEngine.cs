@@ -20,7 +20,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderBoxStyle? _surfaceRootStyle;
     private int _paintOrder;
     private int _positionedSourceOrder;
-    private int _underlayPaintOrder = -1000000000;
     private long _backgroundImageTileCount;
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
@@ -28,10 +27,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, NormalFlowPlacement> _normalFlowPlacements = new Dictionary<IElement, NormalFlowPlacement>();
     private readonly Dictionary<IElement, PositionedContainingRect> _positionedContainingRects = new Dictionary<IElement, PositionedContainingRect>();
     private readonly Dictionary<IElement, HtmlRenderBoxStyle> _layoutStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
+    private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
+    private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionContainingBlockFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
+    private readonly HashSet<IElement> _reportedInlineZIndexFallbacks = new HashSet<IElement>();
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
@@ -73,9 +75,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderDocument RenderContinuous(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
         double width = _options.ViewportWidth;
         double y = _options.Margins.Top;
-        var content = new List<HtmlRenderVisual>();
+        var placements = new List<FlowPaintLayer>(blocks.Count);
         foreach (HtmlRenderFlowBlock block in blocks) {
-            AddTranslatedVisuals(content, block.Visuals, _options.Margins.Left, y);
+            placements.Add(new FlowPaintLayer(block, _options.Margins.Left, y, placements.Count));
             y += block.Height;
         }
 
@@ -88,8 +90,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = Math.Max(1D, width - _options.Margins.Left - _options.Margins.Right);
         double contentHeight = Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom);
         PrepareGlobalPositionedRequests(includeRoot: true, width, height, contentWidth, contentHeight);
+        BuildRootStackingPaintOrders(blocks);
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
-        visuals.AddRange(content);
+        foreach (FlowPaintLayer placement in placements) {
+            AddTranslatedVisuals(visuals, placement.Block.Visuals, placement.X, placement.Y, placement.Block);
+        }
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts);
@@ -100,6 +105,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double pageHeight = _options.PageHeight;
         double contentHeight = pageHeight - _options.Margins.Top - _options.Margins.Bottom;
         ValidateSurface(pageWidth, pageHeight);
+        PrepareGlobalPositionedRequests(
+            includeRoot: true,
+            pageWidth,
+            pageHeight,
+            Math.Max(1D, pageWidth - _options.Margins.Left - _options.Margins.Right),
+            Math.Max(1D, contentHeight));
+        BuildRootStackingPaintOrders(blocks);
 
         var pages = new List<HtmlRenderPage>();
         var visuals = CreatePageVisuals(pageWidth, pageHeight);
@@ -107,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? currentPageName = null;
         for (int index = 0; index < blocks.Count; index++) {
             HtmlRenderFlowBlock block = blocks[index];
-            bool hasPageContent = HasPageFlowContent(visuals);
+            bool hasPageContent = y > _options.Margins.Top + 0.0001D;
             if (hasPageContent && !string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
                 CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                 visuals = CreatePageVisuals(pageWidth, pageHeight);
@@ -118,7 +130,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!hasPageContent) currentPageName = block.PageName;
             if (block.BreakBefore != HtmlPageBreakTarget.None) {
                 ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, pageWidth, pageHeight, currentPageName);
-                hasPageContent = HasPageFlowContent(visuals);
+                hasPageContent = y > _options.Margins.Top + 0.0001D;
                 currentPageName = block.PageName;
             }
 
@@ -130,7 +142,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (block.Height <= pageHeight - _options.Margins.Bottom - y) {
-                AddTranslatedVisuals(visuals, block.Visuals, _options.Margins.Left, y);
+                AddTranslatedVisuals(visuals, block.Visuals, _options.Margins.Left, y, block);
                 y += block.Height;
             } else {
                 double blockOffset = 0D;
@@ -147,7 +159,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
                         : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
-                        if (HasPageFlowContent(visuals)) {
+                        if (y > _options.Margins.Top + 0.0001D) {
                             CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                             visuals = CreatePageVisuals(pageWidth, pageHeight);
                             y = _options.Margins.Top;
@@ -221,16 +233,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
 
                     if (repeatContinuation) {
-                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, _options.Margins.Left, y);
+                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, _options.Margins.Left, y, block);
                         y += continuationHeight;
                     }
 
                     IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd);
-                    AddTranslatedVisuals(visuals, fragment, _options.Margins.Left, y);
+                    AddTranslatedVisuals(visuals, fragment, _options.Margins.Left, y, block);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
                     if (repeatTrailing) {
-                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, _options.Margins.Left, y);
+                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, _options.Margins.Left, y, block);
                         y += trailingHeight;
                         if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) blockOffset = trailingGroup.SourceEndsAt;
                     }
@@ -280,7 +292,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ApplyBreakBefore(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height, string? pageName) {
-        if (HasPageFlowContent(visuals)) {
+        if (y > _options.Margins.Top + 0.0001D) {
             CommitPage(pages, visuals, width, height, pageName);
             visuals = CreatePageVisuals(width, height);
             y = _options.Margins.Top;
@@ -307,8 +319,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlRenderShape(background, 0D, 0D, int.MinValue, source: "render-surface");
     }
 
-    private static bool HasPageFlowContent(IEnumerable<HtmlRenderVisual> visuals) => visuals.Any(visual => visual.PaintOrder >= 0);
-
     private static bool HasDeclaredCanvasBackground(HtmlRenderBoxStyle style) =>
         style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
         || style.HasDeclaredBackgroundImage;
@@ -327,9 +337,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts));
     }
 
-    private void AddTranslatedVisuals(ICollection<HtmlRenderVisual> target, IEnumerable<HtmlRenderVisual> source, double offsetX, double offsetY) {
+    private void AddTranslatedVisuals(
+        ICollection<HtmlRenderVisual> target,
+        IEnumerable<HtmlRenderVisual> source,
+        double offsetX,
+        double offsetY,
+        HtmlRenderFlowBlock? stackingBlock = null) {
         foreach (HtmlRenderVisual visual in source) {
-            target.Add(visual.Translate(offsetX, offsetY, _paintOrder++));
+            int paintOrder = stackingBlock?.StackingZIndex.HasValue == true
+                ? ResolveRootStackingPaintOrder(stackingBlock.StackingSourceOrder, _paintOrder++)
+                : _paintOrder++;
+            target.Add(visual.Translate(offsetX, offsetY, paintOrder));
         }
     }
 

@@ -201,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
         Assert.Equal(2, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported));
         Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
         Assert.All(
             new[] {
                 HtmlRenderDiagnosticCodes.PositionInsetUnsupported,
@@ -304,7 +304,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlStickyPosition_UsesStableDocumentSnapshotAndRemainsInFlow() {
-        const string html = "<div id='sticky' style='position:sticky;top:0;width:20px;height:20px;margin:0;background:#ff0000'>Sticky</div>"
+        const string html = "<div id='sticky' style='position:sticky;z-index:2;top:0;width:20px;height:20px;margin:0;background:#ff0000'>Sticky</div>"
             + "<div id='after-sticky' style='width:20px;height:20px;margin:0;background:#0000ff'>After</div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
@@ -316,6 +316,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, FindPositionedShape(rendered, "div#after-sticky").Y, 3);
         Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
     }
 
     [Fact]
@@ -564,6 +565,105 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRelativePosition_StacksWithRootAbsoluteAndNormalFlowByNumericZIndex() {
+        const string html = "<div id='root-normal' style='width:40px;height:40px;margin:0;background:#00ff00'></div>"
+            + "<div id='root-relative-negative' style='position:relative;z-index:-1;top:-40px;width:40px;height:40px;margin:0;background:#ff0000'></div>"
+            + "<div id='root-absolute-one' style='position:absolute;z-index:1;left:0;top:0;width:40px;height:40px;background:#0000ff'></div>"
+            + "<div id='root-relative-two' style='position:relative;z-index:2;top:-80px;width:40px;height:40px;margin:0;background:#ffff00'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source != null && shape.Source.StartsWith("div#root-", StringComparison.Ordinal))
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "div#root-relative-negative", "div#root-normal", "div#root-absolute-one", "div#root-relative-two" }, paintSources);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
+    public void HtmlRelativePosition_StacksInsideBlockFlexAndGridContainers() {
+        const string html = "<div id='block-host' style='width:40px;height:80px;margin:0'>"
+            + "<div id='block-normal' style='width:40px;height:40px;margin:0;background:#00ff00'></div>"
+            + "<div id='block-negative' style='position:relative;z-index:-1;top:-40px;width:40px;height:40px;margin:0;background:#ff0000'></div></div>"
+            + "<div id='flex-host' style='display:flex;width:40px;height:40px;margin:0'>"
+            + "<div id='flex-normal-z' style='flex:0 0 40px;height:40px;background:#00ff00'></div>"
+            + "<div id='flex-negative-z' style='position:relative;z-index:-1;left:-40px;flex:0 0 40px;height:40px;background:#ff0000'></div></div>"
+            + "<div id='grid-host' style='display:grid;grid-template-columns:40px;width:40px;height:40px;margin:0'>"
+            + "<div id='grid-normal-z' style='grid-area:1/1;width:40px;height:40px;background:#00ff00'></div>"
+            + "<div id='grid-negative-z' style='position:relative;z-index:-1;grid-area:1/1;width:40px;height:40px;background:#ff0000'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] blockOrder = PaintSources(rendered, "div#block-");
+        string[] flexOrder = PaintSources(rendered, "div#flex-");
+        string[] gridOrder = PaintSources(rendered, "div#grid-");
+        Assert.Equal(new[] { "div#block-negative", "div#block-normal" }, blockOrder);
+        Assert.Equal(new[] { "div#flex-negative-z", "div#flex-normal-z" }, flexOrder);
+        Assert.Equal(new[] { "div#grid-negative-z", "div#grid-normal-z" }, gridOrder);
+    }
+
+    [Fact]
+    public void HtmlRelativePosition_KeepsNestedContextBelowItsParentStackingLevel() {
+        const string html = "<div style='width:40px;height:80px;margin:0'>"
+            + "<div id='relative-sibling-five' style='position:relative;z-index:5;width:40px;height:40px;background:#0000ff'></div>"
+            + "<div id='relative-parent-ten' style='position:relative;z-index:10;top:-40px;width:40px;height:40px;background:#ff0000'>"
+            + "<div id='relative-nested-negative' style='position:relative;z-index:-100;width:40px;height:40px;background:#00ff00'></div></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "div#relative-sibling-five" || shape.Source == "div#relative-parent-ten" || shape.Source == "div#relative-nested-negative")
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "div#relative-sibling-five", "div#relative-parent-ten", "div#relative-nested-negative" }, paintSources);
+    }
+
+    [Fact]
+    public void HtmlRelativePosition_DiagnosesInlineZIndexUntilInlineContextsAreAtomic() {
+        const string html = "<p style='margin:0'><span style='position:relative;z-index:2'>InlineZ</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.NotNull(FindText(rendered, "InlineZ"));
+        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
+    public void HtmlRelativePosition_NegativeRootStackingStillCountsAsPagedFlow() {
+        const string html = "<div id='negative-page-one' style='position:relative;z-index:-1;height:60px;margin:0;background:#ff0000'></div>"
+            + "<div id='normal-page-two' style='height:60px;margin:0;background:#0000ff'></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#negative-page-one");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#normal-page-two");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#normal-page-two");
+    }
+
+    [Fact]
     public void HtmlRelativePosition_ResolvesTrailingInsetsAndExplicitVerticalPercentages() {
         const string baselineHtml = "<div style='height:100px;margin:0'><span>Marker</span></div>";
         const string positionedHtml = "<div style='height:100px;margin:0'><span style='position:relative;right:5px;bottom:10%'>Marker</span></div>";
@@ -591,6 +691,12 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderShape FindPositionedShape(HtmlRenderDocument document, string source) =>
         Assert.Single(document.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);
+
+    private static string[] PaintSources(HtmlRenderDocument document, string sourcePrefix) =>
+        document.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source != null && shape.Source.StartsWith(sourcePrefix, StringComparison.Ordinal))
+            .Select(shape => shape.Source!)
+            .ToArray();
 
     private static (int PageNumber, HtmlRenderText Text) FindTextWithPage(HtmlRenderDocument document, string marker) {
         foreach (HtmlRenderPage page in document.Pages) {
