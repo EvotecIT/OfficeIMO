@@ -43,9 +43,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
                 }
 
-                if (cellStyle.BorderWidth <= 0D) {
+                if (cellStyle.BorderWidth <= 0D && !cellStyle.BorderDeclared) {
                     cellStyle.BorderWidth = style.BorderWidth > 0D ? style.BorderWidth : 1D;
                     cellStyle.BorderColor = style.BorderWidth > 0D ? style.BorderColor : OfficeColor.FromRgb(160, 160, 160);
+                    cellStyle.BorderStyle = style.BorderWidth > 0D ? style.BorderStyle : "solid";
                 }
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
@@ -95,6 +96,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
                     visuals.Add(visual.Translate(textX, textY, visuals.Count));
                 }
+                AddBoxOutlinePaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
             }
 
             if (collectingLeadingHeaders && row.IsHeader) {
@@ -119,6 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader && !candidate.IsFooter);
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
         }
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
 
         double outerHeight = style.MarginTop + tableHeight + style.MarginBottom;
         breakOffsets.Add(outerHeight);

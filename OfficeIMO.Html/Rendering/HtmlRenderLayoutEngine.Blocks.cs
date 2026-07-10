@@ -179,6 +179,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderWidth,
             Math.Max(0.01D, boxWidth - style.BorderWidth * 2D),
             Math.Max(0.01D, boxHeight - style.BorderWidth * 2D));
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = style.MarginTop + style.BorderWidth + style.PaddingTop;

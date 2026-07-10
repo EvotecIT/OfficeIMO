@@ -50,6 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 visuals.Add(new HtmlRenderText(alternativeText!, imageX + 4D, imageY + 4D, Math.Max(1D, imageWidth - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, visuals.Count, link, sourceDescription, "figure-alternative-text"));
             }
         }
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);

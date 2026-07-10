@@ -68,6 +68,9 @@ internal sealed class HtmlRenderBoxStyle {
     internal double PaddingLeft;
     internal double BorderWidth;
     internal OfficeColor BorderColor = OfficeColor.Black;
+    internal string BorderStyle = "none";
+    internal bool BorderDeclared;
+    internal string UnsupportedBorderPaint = string.Empty;
     internal string BorderRadius = "0";
     internal string BorderTopLeftRadius = string.Empty;
     internal string BorderTopRightRadius = string.Empty;
@@ -103,6 +106,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedOpacity = string.Empty;
     internal OfficeShadow? BoxShadow;
     internal string UnsupportedBoxShadow = string.Empty;
+    internal double OutlineWidth;
+    internal double OutlineOffset;
+    internal OfficeColor OutlineColor = OfficeColor.Black;
+    internal string OutlineStyle = "none";
+    internal string UnsupportedOutlinePaint = string.Empty;
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;

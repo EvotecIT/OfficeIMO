@@ -65,6 +65,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderVisual visual in inline.Visuals) {
             visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
         }
+        if (paintsBlockBox) AddGeneratedBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element, source);
 
         IEnumerable<double> breakOffsets = inline.BreakOffsets
             .Select(offset => contentY + offset)
@@ -97,12 +98,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double cornerRadius = ResolveBoxCornerRadius(style, width, height, element, source);
         AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, element, source);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, element, source, source);
-        if (style.BorderWidth <= 0D) return;
-        OfficeShape border = CreateBoxShape(width, height, cornerRadius);
-        border.FillColor = null;
-        border.StrokeColor = style.BorderColor;
-        border.StrokeWidth = style.BorderWidth;
-        visuals.Add(new HtmlRenderShape(border, x, y, visuals.Count, source: source));
+        AddBorderPaint(visuals, style, x, y, width, height, cornerRadius, element, source);
+    }
+
+    private void AddGeneratedBoxOutlinePaint(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        IElement element,
+        string source) {
+        double cornerRadius = ResolveBoxCornerRadius(style, width, height, element, source);
+        AddOutlinePaint(visuals, style, x, y, width, height, cornerRadius, element, source);
     }
 
     private static string DescribePseudoSource(IElement element, HtmlPseudoElementKind kind) =>

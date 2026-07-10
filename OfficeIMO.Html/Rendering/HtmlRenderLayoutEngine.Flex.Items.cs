@@ -84,6 +84,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in inline.Visuals) visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
+        if (item.PaintAnonymousBox) AddGeneratedBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, item.SourceElement, item.Source);
         IEnumerable<double> breakOffsets = inline.BreakOffsets.Select(offset => contentY + offset).Concat(new[] { outerHeight });
         var block = new HtmlRenderFlowBlock(
             containingWidth,

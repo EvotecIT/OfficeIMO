@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
-internal sealed class HtmlRenderStyleResolver {
+internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
 
@@ -304,22 +304,7 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyLength(computed.GetValue("padding-bottom"), reference, fontSize, ref style.PaddingBottom);
         ApplyLength(computed.GetValue("padding-left"), reference, fontSize, ref style.PaddingLeft);
 
-        string border = computed.GetValue("border");
-        string borderWidth = computed.GetValue("border-width");
-        foreach (string token in HtmlRenderCssValues.SplitWhitespace(borderWidth.Length > 0 ? borderWidth : border)) {
-            if (HtmlRenderCssValues.TryLength(token, reference, fontSize, _options.DefaultFontSize, out double width) && width >= 0D) {
-                style.BorderWidth = width;
-                break;
-            }
-        }
-
-        string borderColor = computed.GetValue("border-color");
-        if (HtmlRenderCssValues.TryColor(borderColor.Length > 0 ? borderColor : border, out OfficeColor parsedBorderColor)) style.BorderColor = parsedBorderColor;
-        style.BorderRadius = NormalizeCssValue(computed.GetValue("border-radius"), "0");
-        style.BorderTopLeftRadius = computed.GetValue("border-top-left-radius").Trim();
-        style.BorderTopRightRadius = computed.GetValue("border-top-right-radius").Trim();
-        style.BorderBottomRightRadius = computed.GetValue("border-bottom-right-radius").Trim();
-        style.BorderBottomLeftRadius = computed.GetValue("border-bottom-left-radius").Trim();
+        ApplyBorderAndOutlinePaint(computed, reference, fontSize, style);
     }
 
     private static void ApplyAutoMargins(HtmlComputedStyle computed, string shorthand, HtmlRenderBoxStyle style) {

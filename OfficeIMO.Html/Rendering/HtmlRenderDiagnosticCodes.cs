@@ -76,6 +76,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BorderRadiusValueUnsupported = "HtmlRenderBorderRadiusValueUnsupported";
     /// <summary>A CSS box shadow could not be represented by the current outer-shadow model.</summary>
     public const string BoxShadowValueUnsupported = "HtmlRenderBoxShadowValueUnsupported";
+    /// <summary>A CSS border paint declaration could not be represented by the uniform border model.</summary>
+    public const string BorderPaintValueUnsupported = "HtmlRenderBorderPaintValueUnsupported";
+    /// <summary>A CSS outline paint declaration could not be represented by the current outline model.</summary>
+    public const string OutlinePaintValueUnsupported = "HtmlRenderOutlinePaintValueUnsupported";
     /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
     public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
     /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
@@ -157,6 +161,8 @@ public static class HtmlRenderDiagnosticCodes {
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,
         BoxShadowValueUnsupported,
+        BorderPaintValueUnsupported,
+        OutlinePaintValueUnsupported,
         PositionInsetUnsupported,
         PositioningModeUnsupported,
         PositionStaticAnchorFallback,

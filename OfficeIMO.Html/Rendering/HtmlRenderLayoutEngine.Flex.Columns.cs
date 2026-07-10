@@ -95,6 +95,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderWidth,
             PositionedPaintBand.NonNegative,
             visuals);
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IEnumerable<double>? breakOffsets = lines.Count != 1 || lines[0].Items.Count < 2
             ? null

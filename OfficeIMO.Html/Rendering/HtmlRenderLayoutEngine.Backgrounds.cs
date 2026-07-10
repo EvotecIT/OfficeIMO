@@ -18,13 +18,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxShadow(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderWidth, cornerRadius, source, sourceDescription, sourceDescription);
 
-        if (style.BorderWidth > 0D) {
-            OfficeShape border = CreateBoxShape(width, height, cornerRadius);
-            border.FillColor = null;
-            border.StrokeColor = style.BorderColor;
-            border.StrokeWidth = style.BorderWidth;
-            visuals.Add(new HtmlRenderShape(border, x, y, visuals.Count, source: sourceDescription));
-        }
+        AddBorderPaint(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
+    }
+
+    private void AddBoxOutlinePaint(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        IElement source) {
+        string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
+        double cornerRadius = ResolveBoxCornerRadius(style, width, height, source, sourceDescription);
+        AddOutlinePaint(visuals, style, x, y, width, height, cornerRadius, source, sourceDescription);
     }
 
     private void AddBoxBackground(

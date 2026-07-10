@@ -117,6 +117,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderWidth,
             PositionedPaintBand.NonNegative,
             visuals);
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IEnumerable<double> breakOffsets = Enumerable.Range(1, Math.Max(0, rowCount - 1))
             .Where(boundary => !items.Any(item => item.Row < boundary && item.Row + item.RowSpan > boundary))

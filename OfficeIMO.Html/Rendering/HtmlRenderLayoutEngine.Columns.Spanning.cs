@@ -82,6 +82,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderWidth,
             PositionedPaintBand.NonNegative,
             visuals);
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IEnumerable<double> breakOffsets = contentBreakOffsets
             .Where(offset => offset > 0.0001D && offset < contentHeight - 0.0001D)

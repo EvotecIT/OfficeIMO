@@ -80,6 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderWidth,
             PositionedPaintBand.NonNegative,
             visuals);
+        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         IReadOnlyList<double> breakOffsets = ResolveMultiColumnBreakOffsets(plan, contentY, outerHeight);
 
