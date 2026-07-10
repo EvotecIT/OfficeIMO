@@ -205,6 +205,52 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_CollapsedBordersHonorCellRowAndTrackOriginPrecedence() {
+        const string html = "<table id='origins' style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse;border:2px solid purple'>"
+            + "<colgroup style='border:2px solid orange'><col style='border-right:2px solid blue'></colgroup><colgroup><col></colgroup>"
+            + "<tbody style='border:2px solid green'>"
+            + "<tr style='border:2px solid blue'><td style='border:none;border-bottom:2px solid red'>A</td><td style='border:none'>B</td></tr>"
+            + "<tr style='border:none'><td style='border:none'>C</td><td style='border:none'>D</td></tr>"
+            + "</tbody></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 110D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderShape> shapes = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>().ToList();
+
+        Assert.Equal(OfficeColor.Blue, Assert.Single(shapes, shape => shape.Source == "table#origins:collapsed-border-h-0-0").Shape.StrokeColor);
+        Assert.Equal(OfficeColor.Red, Assert.Single(shapes, shape => shape.Source == "table#origins:collapsed-border-h-1-0").Shape.StrokeColor);
+        Assert.Equal(OfficeColor.Blue, Assert.Single(shapes, shape => shape.Source == "table#origins:collapsed-border-v-1-0").Shape.StrokeColor);
+        Assert.Equal(OfficeColor.Green, Assert.Single(shapes, shape => shape.Source == "table#origins:collapsed-border-h-2-1").Shape.StrokeColor);
+    }
+
+    [Fact]
+    public void HtmlTables_CollapsedTableBorderPaintsOnlyResolvedOuterSegments() {
+        const string html = "<table id='outer' style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse;border:3px solid purple'>"
+            + "<tr style='border:none;border-top:1px solid blue'><td style='border:none'>A</td><td style='border:none'>B</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 110D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderShape> shapes = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().ToList();
+        IReadOnlyList<HtmlRenderShape> collapsed = shapes
+            .Where(shape => shape.Source != null && shape.Source.StartsWith("table#outer:collapsed-border-", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal(6, collapsed.Count);
+        Assert.All(collapsed, shape => {
+            Assert.Equal(OfficeColor.Purple, shape.Shape.StrokeColor);
+            Assert.Equal(3D, shape.Shape.StrokeWidth, 3);
+        });
+        Assert.DoesNotContain(shapes, shape => shape.Source == "table#outer" && shape.Shape.StrokeColor == OfficeColor.Purple);
+        Assert.DoesNotContain(collapsed, shape => shape.Source == "table#outer:collapsed-border-v-1-0");
+    }
+
+    [Fact]
     public void HtmlTables_InvalidCaptionSideUsesCatalogedTopFallbackAndSupportsTruth() {
         const string html = "<table id='table' style='caption-side:left;table-layout:balanced;border-collapse:merge;border-spacing:-2px;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
 

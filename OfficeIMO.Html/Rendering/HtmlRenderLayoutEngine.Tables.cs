@@ -39,9 +39,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style);
         double[] columnOffsets = CreateColumnOffsets(columnWidths);
         var rowLayouts = new List<TableRowLayout>();
+        var rowGroupStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
         var occupiedColumns = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             IElement row = rows[rowIndex];
+            IElement rowGroup = GetRowGroup(row, table);
+            HtmlRenderBoxStyle rowParentStyle = style;
+            IElement? rowGroupElement = null;
+            HtmlRenderBoxStyle? rowGroupStyle = null;
+            if (!ReferenceEquals(rowGroup, table)) {
+                rowGroupElement = rowGroup;
+                if (!rowGroupStyles.TryGetValue(rowGroup, out rowGroupStyle)) {
+                    rowGroupStyle = _styleResolver.Resolve(rowGroup, contentWidth, style);
+                    rowGroupStyles[rowGroup] = rowGroupStyle;
+                    _layoutStyles[rowGroup] = rowGroupStyle.Clone();
+                }
+                rowParentStyle = rowGroupStyle;
+            }
+            HtmlRenderBoxStyle rowStyle = _styleResolver.Resolve(row, contentWidth, rowParentStyle);
+            _layoutStyles[row] = rowStyle.Clone();
             var cells = row.Children.Where(IsTableCell).ToList();
             var cellLayouts = new List<TableCellLayout>();
             int column = 0;
@@ -60,9 +76,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
-                    cellStyle.Borders = style.HasBorderLayout
-                        ? style.Borders
-                        : HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(160, 160, 160));
+                    cellStyle.Borders = style.BorderCollapse == "collapse" && style.HasBorderLayout
+                        ? HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color)
+                        : style.HasBorderLayout
+                            ? style.Borders
+                            : HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(160, 160, 160));
                 }
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
@@ -78,7 +96,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (column >= columnCount) break;
             }
 
-            rowLayouts.Add(new TableRowLayout(cellLayouts, Math.Max(1D, rowHeight), IsHeaderRow(row, table), IsFooterRow(row, table)));
+            rowLayouts.Add(new TableRowLayout(
+                rowStyle,
+                rowGroupElement,
+                rowGroupStyle,
+                cellLayouts,
+                Math.Max(1D, rowHeight),
+                IsHeaderRow(row, table),
+                IsFooterRow(row, table)));
             DecrementOccupancy(occupiedColumns);
         }
 
@@ -96,7 +121,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool collectingLeadingHeaders = true;
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts);
         if (caption != null && caption.Side == "top") AppendTableCaption(visuals, caption, style.MarginLeft, style.MarginTop);
-        AddBoxPaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
+        HtmlRenderBoxStyle tablePaintStyle = style.BorderCollapse == "collapse" ? CreateCollapsedCellPaintStyle(style) : style;
+        AddBoxPaint(visuals, tablePaintStyle, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
         double rowY = tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing;
         double headerStart = rowY;
@@ -140,7 +166,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
         }
         if (style.BorderCollapse == "collapse") {
-            AddCollapsedTableBorders(visuals, table, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
+            AddCollapsedTableBorders(visuals, table, style, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
         }
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         if (caption != null && caption.Side == "bottom") AppendTableCaption(visuals, caption, style.MarginLeft, tableY + tableHeight);
@@ -371,13 +397,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class TableRowLayout {
-        internal TableRowLayout(IReadOnlyList<TableCellLayout> cells, double height, bool isHeader, bool isFooter) {
+        internal TableRowLayout(
+            HtmlRenderBoxStyle style,
+            IElement? groupElement,
+            HtmlRenderBoxStyle? groupStyle,
+            IReadOnlyList<TableCellLayout> cells,
+            double height,
+            bool isHeader,
+            bool isFooter) {
+            Style = style;
+            GroupElement = groupElement;
+            GroupStyle = groupStyle;
             Cells = cells;
             Height = height;
             IsHeader = isHeader;
             IsFooter = isFooter;
         }
 
+        internal HtmlRenderBoxStyle Style { get; }
+        internal IElement? GroupElement { get; }
+        internal HtmlRenderBoxStyle? GroupStyle { get; }
         internal IReadOnlyList<TableCellLayout> Cells { get; }
         internal double Height { get; set; }
         internal bool IsHeader { get; }
