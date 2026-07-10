@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlImages_SvgPrimitivesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
-        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/></svg>";
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><rect width='2' height='2' fill='lime' transform='translate(18 8) scale(2)'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
         var options = new HtmlImageExportOptions {
@@ -60,11 +60,13 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = html.SaveAsPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.Equal(3, vector.Drawing.Shapes.Count);
+        Assert.Equal(4, vector.Drawing.Shapes.Count);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(60, 20));
+        Assert.Equal(OfficeColor.Lime, raster.GetPixel(40, 20));
         Assert.Contains("<path", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("<ellipse", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("SvgPdf", pdfText, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));

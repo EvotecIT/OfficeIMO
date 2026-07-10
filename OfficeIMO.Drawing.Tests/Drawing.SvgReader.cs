@@ -74,6 +74,25 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderComposesOrderedNestedTransformsInViewBoxCoordinates() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 100 50'>"
+            + "<g transform='translate(10 0)'><g transform='scale(2)'><rect x='10' y='20' width='10' height='10' fill='red'/></g></g>"
+            + "<rect x='40' y='20' width='10' height='10' fill='blue' transform='translate(10 0) scale(2)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(2, drawing!.Shapes.Count);
+        Assert.All(drawing.Shapes, item => Assert.True(item.Shape.Transform.HasValue));
+        Assert.Equal(new OfficePoint(20D, 20D), drawing.Shapes[0].Shape.Transform!.Value.TransformPoint(new OfficePoint(0D, 0D)));
+        Assert.Equal(new OfficePoint(50D, 20D), drawing.Shapes[1].Shape.Transform!.Value.TransformPoint(new OfficePoint(0D, 0D)));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 25));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(85, 25));
+        Assert.Contains("transform=\"matrix(", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderRejectsDocumentsWithDoctypeOrExternalEntities() {
         const string svg = "<!DOCTYPE svg [<!ENTITY xxe SYSTEM 'file:///secret.txt'>]><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>&xxe;</text></svg>";
 

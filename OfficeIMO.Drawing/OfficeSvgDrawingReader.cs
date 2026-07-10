@@ -46,8 +46,9 @@ public static class OfficeSvgDrawingReader {
 
             var result = new OfficeDrawing(width, height);
             int visited = 0;
-            var context = SvgPaintContext.Default;
-            AddChildren(root, result, context, viewX, viewY, ref visited, ref unsupportedFeatureCount);
+            var context = ResolvePaintContext(root, SvgPaintContext.Default, ref unsupportedFeatureCount);
+            OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
+            AddChildren(root, result, context, rootTransform, viewX, viewY, ref visited, ref unsupportedFeatureCount);
             if (visited > MaximumElements) return false;
             drawing = result;
             return true;
@@ -84,6 +85,7 @@ public static class OfficeSvgDrawingReader {
         XElement parent,
         OfficeDrawing drawing,
         SvgPaintContext inherited,
+        OfficeTransform inheritedTransform,
         double viewX,
         double viewY,
         ref int visited,
@@ -100,9 +102,9 @@ public static class OfficeSvgDrawingReader {
 
             SvgPaintContext style = ResolvePaintContext(element, inherited, ref unsupported);
             if (!style.Visible) continue;
-            if (element.Attribute("transform") != null) unsupported++;
+            OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
             if (name is "g" or "svg" or "a" or "switch") {
-                AddChildren(element, drawing, style, viewX, viewY, ref visited, ref unsupported);
+                AddChildren(element, drawing, style, transform, viewX, viewY, ref visited, ref unsupported);
                 continue;
             }
 
@@ -121,12 +123,41 @@ public static class OfficeSvgDrawingReader {
                 continue;
             }
 
+            ApplyTransform(shape, transform);
+
             try {
                 drawing.AddShape(shape.Shape, shape.X, shape.Y);
             } catch (ArgumentOutOfRangeException) {
                 unsupported++;
             }
         }
+    }
+
+    private static OfficeTransform ResolveTransform(
+        XElement element,
+        OfficeTransform inherited,
+        double viewX,
+        double viewY,
+        ref int unsupported) {
+        string? value = element.Attribute("transform")?.Value;
+        if (string.IsNullOrWhiteSpace(value)) return inherited;
+        if (!OfficeSvgTransformParser.TryParse(value, out OfficeTransform parsed)) {
+            unsupported++;
+            return inherited;
+        }
+        OfficeTransform normalized = OfficeTransform.Translate(viewX, viewY)
+            .Then(parsed)
+            .Then(OfficeTransform.Translate(-viewX, -viewY));
+        return normalized.Then(inherited);
+    }
+
+    private static void ApplyTransform(OfficeDrawingShape drawingShape, OfficeTransform transform) {
+        if (transform == OfficeTransform.Identity) return;
+        OfficeTransform local = OfficeTransform.Translate(drawingShape.X, drawingShape.Y)
+            .Then(transform)
+            .Then(OfficeTransform.Translate(-drawingShape.X, -drawingShape.Y));
+        OfficeShape shape = drawingShape.Shape;
+        shape.Transform = shape.Transform.HasValue ? shape.Transform.Value.Then(local) : local;
     }
 
     private static OfficeDrawingShape? CreateRectangle(XElement element, SvgPaintContext style, double viewX, double viewY, ref int unsupported) {
