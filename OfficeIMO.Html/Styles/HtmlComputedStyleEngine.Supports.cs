@@ -70,6 +70,15 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "clear", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "both", "inline-start", "inline-end");
         }
+        if (string.Equals(propertyName, "overflow", StringComparison.OrdinalIgnoreCase)) {
+            string[] values = normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
+            return values.Length >= 1 && values.Length <= 2
+                && values.All(item => IsKnownKeyword(item, "visible", "hidden", "clip", "auto", "scroll"));
+        }
+        if (string.Equals(propertyName, "overflow-x", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(propertyName, "overflow-y", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "visible", "hidden", "clip", "auto", "scroll");
+        }
         return IsSupportedDeclarationValue(propertyName, value);
     }
 

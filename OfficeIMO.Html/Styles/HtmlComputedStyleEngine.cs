@@ -120,6 +120,8 @@ public static partial class HtmlComputedStyleEngine {
         "orphans",
         "outline-color",
         "overflow",
+        "overflow-x",
+        "overflow-y",
         "overflow-wrap",
         "page",
         "page-break-after",

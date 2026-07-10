@@ -54,16 +54,50 @@ internal static class HtmlPdfRenderedConverter {
 
     private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
         foreach (HtmlRenderVisual visual in page.Visuals.OrderBy(item => item.PaintOrder)) {
-            if (visual is HtmlRenderShape shape) {
-                AddShape(canvas, shape);
-            } else if (visual is HtmlRenderText text) {
-                AddText(canvas, text, webFonts);
-            } else if (visual is HtmlRenderImage image) {
-                AddImage(canvas, image);
-            } else if (visual is HtmlRenderImagePattern imagePattern) {
-                AddImagePattern(canvas, imagePattern);
-            }
+            AddVisual(canvas, visual, webFonts, page.Width, page.Height);
         }
+    }
+
+    private static void AddVisual(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderVisual visual,
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        double surfaceWidth,
+        double surfaceHeight) {
+        if (visual is HtmlRenderShape shape) {
+            AddShape(canvas, shape);
+        } else if (visual is HtmlRenderText text) {
+            AddText(canvas, text, webFonts);
+        } else if (visual is HtmlRenderImage image) {
+            AddImage(canvas, image);
+        } else if (visual is HtmlRenderImagePattern imagePattern) {
+            AddImagePattern(canvas, imagePattern);
+        } else if (visual is HtmlRenderClipGroup group) {
+            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight);
+        }
+    }
+
+    private static void AddClipGroup(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderClipGroup group,
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        double surfaceWidth,
+        double surfaceHeight) {
+        double left = group.ClipHorizontal ? Math.Max(0D, group.ClipX) : 0D;
+        double top = group.ClipVertical ? Math.Max(0D, group.ClipY) : 0D;
+        double right = group.ClipHorizontal ? Math.Min(surfaceWidth, group.ClipX + group.ClipWidth) : surfaceWidth;
+        double bottom = group.ClipVertical ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : surfaceHeight;
+        if (right <= left + 0.0001D || bottom <= top + 0.0001D) return;
+        canvas.Clip(
+            left * PointsPerCssPixel,
+            top * PointsPerCssPixel,
+            (right - left) * PointsPerCssPixel,
+            (bottom - top) * PointsPerCssPixel,
+            clipped => {
+                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight);
+                }
+            });
     }
 
     private static void AddShape(PdfCore.PdfPageCanvas canvas, HtmlRenderShape visual) {
@@ -175,7 +209,7 @@ internal static class HtmlPdfRenderedConverter {
 
         var orderedFamilies = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (HtmlRenderText text in rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()) {
+        foreach (HtmlRenderText text in rendered.Pages.SelectMany(page => EnumerateVisuals(page.Visuals)).OfType<HtmlRenderText>()) {
             foreach (string family in EnumerateFamilies(text.Font.FamilyName)) {
                 if (byFamily.ContainsKey(family) && seen.Add(family)) {
                     orderedFamilies.Add(family);
@@ -207,6 +241,14 @@ internal static class HtmlPdfRenderedConverter {
         }
 
         return mappings;
+    }
+
+    private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            yield return visual;
+            if (visual is not HtmlRenderClipGroup group) continue;
+            foreach (HtmlRenderVisual child in EnumerateVisuals(group.Visuals)) yield return child;
+        }
     }
 
     private static void RegisterFamily(

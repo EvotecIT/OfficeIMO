@@ -14,5 +14,8 @@ public enum HtmlRenderVisualKind {
     Image,
 
     /// <summary>Clipped repeating image pattern.</summary>
-    ImagePattern
+    ImagePattern,
+
+    /// <summary>Ordered child visuals clipped as one paint group.</summary>
+    ClipGroup
 }

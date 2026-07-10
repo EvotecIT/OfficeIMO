@@ -116,6 +116,23 @@ internal sealed class HtmlRenderFlowBlock {
             pageName: PageName,
             stackingZIndex: zIndex,
             stackingSourceOrder: sourceOrder);
+
+    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
+        new HtmlRenderFlowBlock(
+            Width,
+            Height,
+            visuals,
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets,
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups,
+            trailingGroups: TrailingGroups,
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder);
 }
 
 internal sealed class HtmlRenderContinuationGroup {

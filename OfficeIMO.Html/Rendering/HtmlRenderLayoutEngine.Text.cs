@@ -62,6 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
         ReportUnsupportedFloatValues(element, style);
+        ReportUnsupportedOverflowValues(element, style);
         string? link = inheritedLink;
         if (tag == "a") {
             link = ResolveSafeLink(element.GetAttribute("href"), element);

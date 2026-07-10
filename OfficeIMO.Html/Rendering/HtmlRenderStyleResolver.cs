@@ -73,12 +73,50 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyBoxValues(computed, containingWidth, fontSize, style);
         ApplyDimensions(element, computed, containingWidth, fontSize, style, !pseudoElement);
         ApplyPaint(computed, style);
+        ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(computed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
         ApplyBreaks(computed, style);
         return style;
+    }
+
+    private static void ApplyOverflow(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        string shorthand = computed.GetValue("overflow");
+        IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(shorthand);
+        if (values.Count == 1) {
+            style.OverflowX = NormalizeOverflow(values[0], out style.UnsupportedOverflowX);
+            style.OverflowY = NormalizeOverflow(values[0], out style.UnsupportedOverflowY);
+        } else if (values.Count == 2) {
+            style.OverflowX = NormalizeOverflow(values[0], out style.UnsupportedOverflowX);
+            style.OverflowY = NormalizeOverflow(values[1], out style.UnsupportedOverflowY);
+        } else if (values.Count > 2) {
+            style.UnsupportedOverflowX = shorthand.Trim();
+            style.UnsupportedOverflowY = shorthand.Trim();
+        }
+
+        string overflowX = computed.GetValue("overflow-x");
+        if (!string.IsNullOrWhiteSpace(overflowX)) {
+            style.OverflowX = NormalizeOverflow(overflowX, out style.UnsupportedOverflowX);
+        }
+        string overflowY = computed.GetValue("overflow-y");
+        if (!string.IsNullOrWhiteSpace(overflowY)) {
+            style.OverflowY = NormalizeOverflow(overflowY, out style.UnsupportedOverflowY);
+        }
+
+        if (style.OverflowX == "visible" && style.OverflowY != "visible" && style.OverflowY != "clip") style.OverflowX = "auto";
+        if (style.OverflowY == "visible" && style.OverflowX != "visible" && style.OverflowX != "clip") style.OverflowY = "auto";
+        if (style.OverflowX == "clip" && style.OverflowY != "visible" && style.OverflowY != "clip") style.OverflowX = "hidden";
+        if (style.OverflowY == "clip" && style.OverflowX != "visible" && style.OverflowX != "clip") style.OverflowY = "hidden";
+    }
+
+    private static string NormalizeOverflow(string value, out string unsupported) {
+        unsupported = string.Empty;
+        string normalized = string.IsNullOrWhiteSpace(value) ? "visible" : value.Trim().ToLowerInvariant();
+        if (normalized == "visible" || normalized == "hidden" || normalized == "clip" || normalized == "auto" || normalized == "scroll") return normalized;
+        unsupported = normalized;
+        return "visible";
     }
 
     private static void ApplyFloat(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {

@@ -223,15 +223,25 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Adds another drawing as a clipped nested group at a local destination offset.</summary>
     public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath) {
-        return AddClippedDrawingCore(drawing, x, y, clipPath, null);
+        return AddClippedDrawingCore(drawing, x, y, clipPath, 0D, 0D, null);
     }
 
     /// <summary>Adds another drawing as a clipped nested group at a local destination offset with a shared frame transform.</summary>
     public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, OfficeImageFrameTransform frameTransform) {
-        return AddClippedDrawingCore(drawing, x, y, clipPath, frameTransform);
+        return AddClippedDrawingCore(drawing, x, y, clipPath, 0D, 0D, frameTransform);
     }
 
-    private OfficeDrawing AddClippedDrawingCore(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, OfficeImageFrameTransform? frameTransform) {
+    /// <summary>Adds another drawing as a clipped group with an independent content offset.</summary>
+    public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY) {
+        return AddClippedDrawingCore(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, null);
+    }
+
+    /// <summary>Adds another drawing as a clipped group with independent content offset and frame transform.</summary>
+    public OfficeDrawing AddClippedDrawing(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform frameTransform) {
+        return AddClippedDrawingCore(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform);
+    }
+
+    private OfficeDrawing AddClippedDrawingCore(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
@@ -247,7 +257,7 @@ public sealed partial class OfficeDrawing {
         }
 
         Fonts.AddRange(drawing.Fonts);
-        _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, frameTransform));
+        _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform));
         return this;
     }
 
@@ -271,7 +281,7 @@ public sealed partial class OfficeDrawing {
         }
 
         if (!allowOverflow && frameTransform.HasValue && frameTransform.Value.HasTransform && ContainsImagePattern(drawing)) {
-            AddNestedGroupElement(drawing, x, y, OfficeClipPath.Rectangle(drawing.Width, drawing.Height), frameTransform, allowOverflow);
+            AddNestedGroupElement(drawing, x, y, OfficeClipPath.Rectangle(drawing.Width, drawing.Height), 0D, 0D, frameTransform, allowOverflow);
             return this;
         }
 
@@ -430,8 +440,8 @@ public sealed partial class OfficeDrawing {
             double wrapperWidth = group.X + group.ClipPath.Width;
             double wrapperHeight = group.Y + group.ClipPath.Height;
             var wrapper = new OfficeDrawing(wrapperWidth, wrapperHeight);
-            wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, groupTransform.Value);
-            AddNestedGroupElement(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), frameTransform.Value, allowOverflow);
+            wrapper.AddClippedDrawing(group.InnerDrawing, group.X, group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value);
+            AddNestedGroupElement(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), 0D, 0D, frameTransform.Value, allowOverflow);
             return;
         }
 
@@ -440,19 +450,19 @@ public sealed partial class OfficeDrawing {
         }
 
         if (groupTransform.HasValue) {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, groupTransform.Value, allowOverflow);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow);
         } else {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, null, allowOverflow);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow);
         }
     }
 
-    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
+    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
         if (allowOverflow) {
-            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, frameTransform));
+            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform));
         } else if (frameTransform.HasValue) {
-            AddClippedDrawing(drawing, x, y, clipPath, frameTransform.Value);
+            AddClippedDrawing(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform.Value);
         } else {
-            AddClippedDrawing(drawing, x, y, clipPath);
+            AddClippedDrawing(drawing, x, y, clipPath, contentOffsetX, contentOffsetY);
         }
     }
 

@@ -1041,6 +1041,32 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingClippedGroup_AppliesIndependentContentOffset() {
+        var child = new OfficeDrawing(100, 20);
+        OfficeShape blue = OfficeShape.Rectangle(20, 20);
+        blue.FillColor = OfficeColor.Blue;
+        child.AddShape(blue, 0, 0);
+        OfficeShape red = OfficeShape.Rectangle(40, 20);
+        red.FillColor = OfficeColor.Red;
+        child.AddShape(red, 20, 0);
+
+        var drawing = new OfficeDrawing(100, 50);
+        drawing.AddClippedDrawing(child, 20, 10, OfficeClipPath.Rectangle(40, 20), -20D, 0D);
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(-20D, group.ContentOffsetX);
+        Assert.Equal(0D, group.ContentOffsetY);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("transform=\"translate(-20 0)\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, image.GetPixel(15, 15));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(25, 15));
+        Assert.Equal(OfficeColor.White, image.GetPixel(65, 15));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            drawing.AddClippedDrawing(child, 20, 10, OfficeClipPath.Rectangle(40, 20), -21D, 0D));
+    }
+
+    [Fact]
     public void OfficeDrawingComposesTransformedClippedNestedDrawingThroughSharedSvgAndRaster() {
         var child = new OfficeDrawing(100, 40);
         var shape = OfficeShape.Rectangle(100, 40);

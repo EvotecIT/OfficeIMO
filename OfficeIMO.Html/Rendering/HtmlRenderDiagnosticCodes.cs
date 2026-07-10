@@ -58,6 +58,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PositioningModeUnsupported = "HtmlRenderPositioningModeUnsupported";
     /// <summary>An automatic positioned inset could not use its hypothetical normal-flow anchor.</summary>
     public const string PositionStaticAnchorFallback = "HtmlRenderPositionStaticAnchorFallback";
+    /// <summary>A scrollable overflow box was captured at its initial static scroll position.</summary>
+    public const string OverflowScrollSnapshot = "HtmlRenderOverflowScrollSnapshot";
+    /// <summary>An overflow property value used a documented visible fallback.</summary>
+    public const string OverflowValueUnsupported = "HtmlRenderOverflowValueUnsupported";
     /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
     public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
     /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
@@ -130,6 +134,8 @@ public static class HtmlRenderDiagnosticCodes {
         GridTrackLimitExceeded,
         GridValueUnsupported,
         InlineImageFallback,
+        OverflowScrollSnapshot,
+        OverflowValueUnsupported,
         PositionInsetUnsupported,
         PositioningModeUnsupported,
         PositionStaticAnchorFallback,

@@ -57,10 +57,12 @@ public static partial class OfficeDrawingRasterRenderer {
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
                 Math.Max(1D, canvas.Height / scale));
+            double contentX = drawingGroup.X + drawingGroup.ContentOffsetX;
+            double contentY = drawingGroup.Y + drawingGroup.ContentOffsetY;
             if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
-                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, drawingGroup.FrameTransform.Value);
+                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, drawingGroup.FrameTransform.Value);
             } else {
-                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, null);
+                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, null);
             }
 
             RenderElements(canvas, translated.Elements, scale);

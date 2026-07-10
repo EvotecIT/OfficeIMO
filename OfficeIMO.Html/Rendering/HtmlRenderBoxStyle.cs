@@ -76,6 +76,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool PreserveWhitespace;
     internal string TextTransform = "none";
     internal string Direction = "ltr";
+    internal string OverflowX = "visible";
+    internal string OverflowY = "visible";
+    internal string UnsupportedOverflowX = string.Empty;
+    internal string UnsupportedOverflowY = string.Empty;
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;

@@ -37,6 +37,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedFloatValueFallbacks = new HashSet<IElement>();
+    private readonly HashSet<IElement> _reportedOverflowValueFallbacks = new HashSet<IElement>();
+    private readonly HashSet<IElement> _reportedOverflowScrollSnapshots = new HashSet<IElement>();
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
@@ -408,8 +410,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end) {
+        return SliceVisuals(block.Visuals, start, end);
+    }
+
+    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end) {
         var fragment = new List<HtmlRenderVisual>();
-        foreach (HtmlRenderVisual visual in block.Visuals) {
+        foreach (HtmlRenderVisual visual in sourceVisuals) {
             double visualTop = visual.LayoutY;
             double visualBottom = visual.LayoutY + visual.Height;
             double intersectionTop = Math.Max(start, visualTop);
@@ -419,6 +425,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool fullyContained = visualTop >= start - 0.0001D && visualBottom <= end + 0.0001D;
             if (fullyContained) {
                 fragment.Add(visual.Translate(0D, -start, fragment.Count));
+                continue;
+            }
+
+            if (visual is HtmlRenderClipGroup clipGroup) {
+                IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end);
+                if (children.Count > 0) {
+                    fragment.Add(new HtmlRenderClipGroup(
+                        clipGroup.ClipX,
+                        clipGroup.ClipY - start,
+                        clipGroup.ClipWidth,
+                        clipGroup.ClipHeight,
+                        clipGroup.ClipHorizontal,
+                        clipGroup.ClipVertical,
+                        children,
+                        fragment.Count,
+                        clipGroup.Source,
+                        Math.Max(start, clipGroup.LayoutY) - start));
+                }
                 continue;
             }
 

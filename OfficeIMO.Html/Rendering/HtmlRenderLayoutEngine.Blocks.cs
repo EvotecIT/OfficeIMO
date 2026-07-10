@@ -59,17 +59,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, element);
         ReportUnsupportedFloatValues(element, style);
+        ReportUnsupportedOverflowValues(element, style);
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        if (tag == "img") return ApplyElementPositioning(LayoutImage(element, containingWidth, style), style, containingWidth, containingHeight, element);
-        if (tag == "table") return ApplyElementPositioning(LayoutTable(element, containingWidth, style, depth), style, containingWidth, containingHeight, element);
-        if (tag == "hr") return ApplyElementPositioning(LayoutHorizontalRule(element, containingWidth, style), style, containingWidth, containingHeight, element);
+        if (tag == "img") return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element);
+        if (tag == "table") return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth), style, element, containingWidth), style, containingWidth, containingHeight, element);
+        if (tag == "hr") return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element);
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
-            return ApplyElementPositioning(flexBlock, style, containingWidth, containingHeight, element);
+            return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
         }
         if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
-            return ApplyElementPositioning(gridBlock, style, containingWidth, containingHeight, element);
+            return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
         }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
@@ -130,6 +131,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
+        var overflowContent = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         AppendLocalPositionedVisuals(
             element,
@@ -138,11 +140,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginLeft + style.BorderWidth,
             style.MarginTop + style.BorderWidth,
             PositionedPaintBand.Negative,
-            visuals);
+            overflowContent);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
-            visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
+            overflowContent.Add(visual.Translate(contentX, contentY, overflowContent.Count));
         }
         if (style.Position != "static" || _localPositionedElements.ContainsKey(element)) {
             AppendLocalPositionedVisuals(
@@ -152,8 +154,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.MarginLeft + style.BorderWidth,
                 style.MarginTop + style.BorderWidth,
                 PositionedPaintBand.NonNegative,
-                visuals);
+                overflowContent);
         }
+        AppendOverflowContent(
+            visuals,
+            overflowContent,
+            style,
+            element,
+            style.MarginLeft + style.BorderWidth,
+            style.MarginTop + style.BorderWidth,
+            Math.Max(0.01D, boxWidth - style.BorderWidth * 2D),
+            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D));
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = style.MarginTop + style.BorderWidth + style.PaddingTop;
