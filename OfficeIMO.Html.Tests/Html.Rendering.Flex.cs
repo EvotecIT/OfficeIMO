@@ -249,6 +249,147 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexColumn_AppliesMainDistributionAndCrossAlignment() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;width:100px;height:300px;gap:10px;justify-content:space-between;align-items:center">
+              <div id="column-a" style="width:20px;height:50px;background:#ff0000"></div>
+              <div id="column-b" style="width:40px;height:70px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 120D);
+        HtmlRenderShape a = FindFlexShape(rendered, "div#column-a");
+        HtmlRenderShape b = FindFlexShape(rendered, "div#column-b");
+
+        Assert.Equal(40D, a.X, 3);
+        Assert.Equal(0D, a.Y, 3);
+        Assert.Equal(20D, a.Width, 3);
+        Assert.Equal(50D, a.Height, 3);
+        Assert.Equal(30D, b.X, 3);
+        Assert.Equal(230D, b.Y, 3);
+        Assert.Equal(40D, b.Width, 3);
+        Assert.Equal(70D, b.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_DistributesGrowShrinkAndVerticalConstraints() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;width:80px;height:300px">
+              <div id="column-grow-one" style="flex:1 1 0%;max-height:80px;background:#ff0000"></div>
+              <div id="column-grow-two" style="flex:1 1 0%;background:#0000ff"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;width:80px;height:300px">
+              <div id="column-shrink-one" style="flex:0 1 200px;min-height:180px;background:#00ff00"></div>
+              <div id="column-shrink-two" style="flex:0 1 200px;background:#ffff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 100D);
+
+        Assert.Equal(80D, FindFlexShape(rendered, "div#column-grow-one").Height, 3);
+        Assert.Equal(220D, FindFlexShape(rendered, "div#column-grow-two").Height, 3);
+        Assert.Equal(180D, FindFlexShape(rendered, "div#column-shrink-one").Height, 3);
+        Assert.Equal(120D, FindFlexShape(rendered, "div#column-shrink-two").Height, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_ResolvesPercentageBasisOnlyAgainstDefiniteHeight() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;width:80px;height:200px">
+              <div id="definite-quarter" style="flex:0 0 25%;background:#ff0000"></div>
+              <div id="definite-rest" style="flex:0 0 75%;background:#0000ff"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;width:80px">
+              <div id="indefinite-a" style="flex:0 0 50%;height:30px;background:#00ff00"></div>
+              <div id="indefinite-b" style="flex:0 0 50%;height:40px;background:#ffff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 100D);
+
+        Assert.Equal(50D, FindFlexShape(rendered, "div#definite-quarter").Height, 3);
+        Assert.Equal(150D, FindFlexShape(rendered, "div#definite-rest").Height, 3);
+        Assert.Equal(30D, FindFlexShape(rendered, "div#indefinite-a").Height, 3);
+        Assert.Equal(40D, FindFlexShape(rendered, "div#indefinite-b").Height, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexColumnReverse_CombinesOrderWithReversedMainPlacement() {
+        const string html = """
+            <div style="display:flex;flex-direction:column-reverse;width:80px;height:200px">
+              <div id="column-reverse-a" style="order:2;height:50px;background:#ff0000"></div>
+              <div id="column-reverse-b" style="order:1;height:50px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 100D);
+        HtmlRenderShape firstInPaintOrder = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .First(shape => shape.Source == "div#column-reverse-a" || shape.Source == "div#column-reverse-b");
+
+        Assert.Equal("div#column-reverse-b", firstInPaintOrder.Source);
+        Assert.Equal(100D, FindFlexShape(rendered, "div#column-reverse-a").Y, 3);
+        Assert.Equal(150D, FindFlexShape(rendered, "div#column-reverse-b").Y, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_PaginatesOnlyBetweenCompleteItems() {
+        const string html = """
+            <div style="height:20px;margin:0">Before</div>
+            <div style="display:flex;flex-direction:column;width:100px">
+              <div id="column-page-one" style="height:40px;background:#ff0000">One</div>
+              <div id="column-page-two" style="height:40px;background:#0000ff">Two</div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#column-page-one");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#column-page-two");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#column-page-two");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFlexColumn_FlowsThroughPngSvgAndSearchablePdf() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;width:20px;height:50px;gap:10px">
+              <div style="width:20px;height:20px;background:#ff0000"></div>
+              <div style="width:20px;height:20px;background:#0000ff"></div>
+            </div>
+            <p style="margin:0">ColumnFlexPdfMarker</p>
+            """;
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(10, 40));
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
+        Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect x=\"8\" y=\"38\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("ColumnFlexPdfMarker", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
     public void HtmlFlexRow_DiagnosesUnsupportedValuesWithoutDiscardingItems() {
         const string html = """
             <div id="flex" style="display:flex;width:200px;gap:calc(4px + 2px);justify-content:safe center">
@@ -294,9 +435,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFlexFallbacks_RemainExplicitForColumnsDirectTextAutoMarginsAndInlineFlex() {
+    public void HtmlFlexFallbacks_RemainExplicitForColumnWrapDirectTextAutoMarginsAndInlineFlex() {
         const string html = """
-            <div class="column" style="display:flex;flex-direction:column"><span>Column</span></div>
+            <div class="column-wrap" style="display:flex;flex-direction:column;flex-wrap:wrap"><span>Column wrap</span></div>
             <div class="text" style="display:flex">Direct text</div>
             <div class="margin" style="display:flex"><span style="margin-left:auto">Auto</span></div>
             <span class="inline" style="display:inline-flex"><span>Inline</span></span>
@@ -308,7 +449,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.Equal(4, diagnostics.Count);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.column");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.column-wrap");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.text");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.margin");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "span.inline");
