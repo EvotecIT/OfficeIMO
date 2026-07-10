@@ -1,82 +1,68 @@
-# OfficeIMO Reader Modularization Roadmap (Internal Preview)
+# OfficeIMO Reader Package Ownership
 
-This plan introduces reusable format packages first, then composes them into Reader adapters.
-The goal is clean IntelligenceX integration without forcing one large dependency set on all users.
+This document records the current Reader package boundaries and the remaining modular follow-up work.
 
-## Principles
+## Current package shape
 
-- Keep `OfficeIMO.Reader` as the stable ingestion facade.
-- Move format-specific behavior into reusable packages.
-- Keep heavy features optional and isolated.
-- Preserve deterministic contracts (`ReaderChunk`, progress, warnings, source metadata).
+| Owner | Responsibility |
+| --- | --- |
+| `OfficeIMO.Reader` | Shared chunks and rich result, static compatibility facade, isolated reader instances, bounded sync/async execution, detection, diagnostics, processors, structured extraction, hierarchical chunking, and OCR execution contracts. |
+| Format packages | Parse and inspect their own formats. Reader must not duplicate Word, Excel, PowerPoint, Markdown, PDF, RTF, HTML, EPUB, Visio, CSV, ZIP, or other format logic. |
+| `OfficeIMO.Reader.*` adapters | Register path/stream handlers and project owning format models into the shared Reader contracts. |
+| `OfficeIMO.Reader.Ocr.Process` | Optional versioned external-process OCR bridge. |
+| `OfficeIMO.Reader.Ocr.Tesseract` | Optional Tesseract CLI provider with line and word geometry. |
 
-## Package Structure (Scaffolded)
+The modular adapters are working packages in the publishing pipeline, not placeholders:
 
-- `OfficeIMO.Zip`
-- `OfficeIMO.Epub`
-- `OfficeIMO.Reader.Zip`
+- `OfficeIMO.Reader.Csv`
 - `OfficeIMO.Reader.Epub`
-- `OfficeIMO.Reader.Text`
 - `OfficeIMO.Reader.Html`
+- `OfficeIMO.Reader.Json`
+- `OfficeIMO.Reader.Pdf`
+- `OfficeIMO.Reader.Rtf`
+- `OfficeIMO.Reader.Text`
+- `OfficeIMO.Reader.Visio`
+- `OfficeIMO.Reader.Xml`
 - `OfficeIMO.Reader.Yaml`
+- `OfficeIMO.Reader.Zip`
 - `OfficeIMO.Reader.Ocr.Process`
 - `OfficeIMO.Reader.Ocr.Tesseract`
 
-These packages are wired into the publishing pipeline; the OCR packages include working providers rather than placeholders.
+## Completed modularization contracts
 
-## Delivery Order (Low -> High Effort)
+- The static `DocumentReader` registration surface remains available for compatibility.
+- `OfficeDocumentReaderBuilder` freezes handlers, options, concurrency, and processors into an isolated `OfficeDocumentReader`.
+- Adapters expose matching builder extensions such as `AddPdfHandler()` and retain compatible static registration helpers.
+- Registrations can provide chunk delegates, native rich-result delegates, and native asynchronous path/stream delegates.
+- Path, stream, byte, and non-seekable input paths share the same bounded input behavior.
+- Capability manifests distinguish chunk, rich-result, and native async support.
+- The stable rich transport is `OfficeDocumentReadResult` schema version 5.
+- Ordered processors, bounded structured extraction, token-aware hierarchical chunking, and optional OCR build on the shared result instead of adding format-specific host pipelines.
+- OCR providers remain opt-in and do not change the core package dependency graph.
 
-1. ZIP path (low)
-- Harden archive traversal. (implemented in scaffold branch)
-- Add entry-level warning handling. (implemented in scaffold branch)
-- Support nested Office/text extraction from ZIP entries. (implemented in scaffold branch)
-- Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
-- Support non-seekable streams in adapter pipeline. (implemented in scaffold branch)
+## Ownership rules for new adapters
 
-2. EPUB path (low-medium)
-- Basic chapter extraction from XHTML/HTML entries.
-- Normalize into Reader chunks.
-- Add OPF/spine/nav-aware ordering in next pass. (implemented in scaffold branch)
-- Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
-- Support non-seekable streams in adapter pipeline. (implemented in scaffold branch)
+1. Put reusable parsing and inspection behavior in the owning format package.
+2. Keep the Reader adapter to registration, option translation, source mapping, and shared-model projection.
+3. Use `ReaderInputLimits` for file, byte, and stream bounds.
+4. Preserve caller-owned stream lifetime and position where the contract promises it.
+5. Emit stable structured diagnostics for limits, unsupported content, and recoverable failures.
+6. Add instance-builder registration alongside any static compatibility registration.
+7. Keep optional native, platform, cloud, or process dependencies outside `OfficeIMO.Reader`.
 
-3. Structured text path (medium)
-- CSV semantic chunks with tables.
-- JSON/XML/YAML structural chunkers. (implemented in scaffold branch)
-- Stable markdown previews and table metadata.
-- Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
-- Reuse `OfficeIMO.CSV` stream API for CSV path/stream parity. (implemented in scaffold branch)
+## Release gates
 
-4. HTML path (medium)
-- HTML -> Word -> Markdown bridge.
-- Chunking and source/citation metadata.
-- Performance and fidelity tuning for large inputs.
-- Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
-- Add configurable HTML/Markdown conversion options for adapter registration. (implemented in scaffold branch)
+Before publishing a new or changed adapter:
 
-5. Reader core modularization (medium-high)
-- Replace hardcoded switch routing with handler registry. (implemented in scaffold branch)
-- Add capability discovery for host apps. (implemented in scaffold branch)
-- Keep existing `DocumentReader.Read*` API behavior stable.
+- cover path, stream, byte, async, cancellation, limits, malformed input, and deterministic output where those surfaces apply;
+- validate source IDs, chunk IDs/hashes, locations, and rich-result relationships;
+- build every supported target framework and pack the affected public packages;
+- verify that optional dependencies are intentional and do not leak into the core package;
+- update the adapter README, the core Reader README, and the website Reader page when the public workflow changes.
 
-6. Optional heavy paths (high)
-- OCR/image text extraction through bounded process and Tesseract providers. (implemented)
-- Audio transcription.
-- URL/Youtube ingestion.
-- Keep each as separate opt-in package.
+## Follow-up candidates
 
-## IntelligenceX Integration Expectations
-
-- Current `OfficeImoReadTool` contract remains stable.
-- New formats become available incrementally via adapters.
-- Missing optional dependencies should emit warnings, not hard failures.
-- Capability listing can be surfaced to chat/tooling once handler registry lands.
-
-## Release Gating
-
-Before publishing any new package:
-
-- Add dedicated tests (success, error, limits, deterministic output).
-- Validate chunk IDs/source metadata stability.
-- Verify no regressions for existing Reader consumers.
-- Confirm package-level dependency footprint is intentional.
+- Continue increasing format fidelity in the owning packages and project that evidence through the adapters.
+- Add optional providers only when their dependency and runtime boundaries are clear.
+- Keep audio, video, URL, and transcription ingestion in separate packages if downstream products require them.
+- Keep email and attachment ingestion in the existing Mailozaurr owner; it is outside the current OfficeIMO Reader stack.
