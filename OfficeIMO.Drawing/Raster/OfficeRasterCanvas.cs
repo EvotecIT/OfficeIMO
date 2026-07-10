@@ -13,6 +13,7 @@ public sealed partial class OfficeRasterCanvas {
     private readonly OfficeRasterImage? _image;
     private readonly OfficeRasterRenderTarget? _target;
     private readonly OfficeTrueTypeFont? _font;
+    private readonly OfficeFontFaceCollection? _fonts;
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -20,17 +21,19 @@ public sealed partial class OfficeRasterCanvas {
     /// <summary>
     /// Creates a canvas over the supplied image.
     /// </summary>
-    public OfficeRasterCanvas(OfficeRasterImage image, OfficeTrueTypeFont? font = null) {
+    public OfficeRasterCanvas(OfficeRasterImage image, OfficeTrueTypeFont? font = null, OfficeFontFaceCollection? fonts = null) {
         _image = image ?? throw new ArgumentNullException(nameof(image));
         _font = font ?? DefaultFont;
+        _fonts = fonts?.Clone();
     }
 
     /// <summary>
     /// Creates a canvas over the supplied supersampled render target.
     /// </summary>
-    public OfficeRasterCanvas(OfficeRasterRenderTarget target, OfficeTrueTypeFont? font = null) {
+    public OfficeRasterCanvas(OfficeRasterRenderTarget target, OfficeTrueTypeFont? font = null, OfficeFontFaceCollection? fonts = null) {
         _target = target ?? throw new ArgumentNullException(nameof(target));
         _font = font ?? DefaultFont;
+        _fonts = fonts?.Clone();
     }
 
     /// <summary>Canvas width in pixels.</summary>

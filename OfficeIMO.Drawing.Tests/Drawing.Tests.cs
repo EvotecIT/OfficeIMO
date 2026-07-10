@@ -3220,6 +3220,39 @@ public partial class DrawingTests {
         Assert.True(font.Measure("OfficeIMO", 18) > 0);
     }
 
+    [Fact]
+    public void OfficeFontFaceCollectionScopesValidationMeasurementAndSvgEmbedding() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAdd("Broken", new byte[] { 1, 2, 3 }));
+        Assert.True(fonts.TryAdd("Scoped Demo", fontData));
+        Assert.Single(fonts.Faces);
+        Assert.NotSame(fontData, fonts.Faces[0].Data);
+
+        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(16, 16), fonts: fonts);
+        Assert.Equal(500D, canvas.MeasureText("A", 1000D, "\"Scoped Demo\", sans-serif"));
+
+        var drawing = new OfficeDrawing(120D, 30D);
+        drawing.Fonts.AddRange(fonts);
+        drawing.AddText("Scoped", 0D, 0D, 120D, 30D, new OfficeFontInfo("Scoped Demo", 12D));
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("@font-face{font-family:\"Scoped Demo\"", svg, StringComparison.Ordinal);
+        Assert.Contains(Convert.ToBase64String(fontData), svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingCarriesScopedFontsAcrossNestedDrawings() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        var nested = new OfficeDrawing(20D, 20D).AddFont("Nested Demo", fontData, OfficeFontStyle.Bold);
+        var drawing = new OfficeDrawing(40D, 40D).AddDrawing(nested, 0D, 0D);
+
+        OfficeFontFace face = Assert.Single(drawing.Fonts.Faces);
+        Assert.Equal("Nested Demo", face.FamilyName);
+        Assert.Equal(OfficeFontStyle.Bold, face.Style);
+    }
+
     private static byte[] CreateTruncatedFormat12Cmap() {
         var data = new byte[28];
         WriteUInt16(data, 2, 1);

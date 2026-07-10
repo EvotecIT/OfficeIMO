@@ -22,7 +22,7 @@ public static class OfficeDrawingRasterRenderer {
         int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
         OfficeRasterImage image = new OfficeRasterImage(width, height, background);
-        OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+        OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: drawing.Fonts);
         RenderElements(canvas, drawing.Elements, scale);
 
         return image;

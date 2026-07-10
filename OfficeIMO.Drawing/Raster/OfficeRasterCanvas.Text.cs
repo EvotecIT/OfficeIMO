@@ -16,18 +16,23 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Measures text width with the requested font family when it can be resolved without platform font APIs.</summary>
     public double MeasureText(string? text, double fontSize, string? fontFamily) {
+        return MeasureText(text, fontSize, fontFamily, OfficeFontStyle.Regular);
+    }
+
+    /// <summary>Measures text width with a requested family and bold/italic scoped face when available.</summary>
+    public double MeasureText(string? text, double fontSize, string? fontFamily, OfficeFontStyle style) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
         double size = Math.Max(1D, fontSize);
-        var key = new TextMeasurementKey(text!, size, fontFamily);
+        var key = new TextMeasurementKey(text!, size, fontFamily, style);
         Dictionary<TextMeasurementKey, double> cache = _textMeasurementCache ??= new Dictionary<TextMeasurementKey, double>();
         if (cache.TryGetValue(key, out double cached)) {
             return cached;
         }
 
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, style);
         double measured = font != null
             ? font.Measure(text!, size)
             : MeasureFallbackText(text!, size);
@@ -57,7 +62,7 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double size = Math.Max(6D, Math.Min(fontSize, height - 2D));
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, style);
         if (font != null) {
             double measured = font.Measure(value, size);
             double availableWidth = Math.Max(1D, width - 6D);
@@ -149,8 +154,10 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double fontHeight = Math.Max(1D, height);
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily);
-        double width = MeasureText(value, fontHeight, fontFamily);
+        OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle);
+        double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         if (font != null) {
@@ -220,8 +227,10 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double fontHeight = Math.Max(1D, height);
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily);
-        double width = MeasureText(value, fontHeight, fontFamily);
+        OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle);
+        double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         if (font != null) {
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
@@ -368,7 +377,12 @@ public sealed partial class OfficeRasterCanvas {
         return MeasureStrokeText(text, fontSize);
     }
 
-    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily) {
+    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) {
+        OfficeTrueTypeFont? scoped = _fonts?.Resolve(fontFamily, style);
+        if (scoped != null) {
+            return scoped;
+        }
+
         if (string.IsNullOrWhiteSpace(fontFamily)) {
             return _font;
         }
@@ -377,20 +391,23 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private readonly struct TextMeasurementKey : IEquatable<TextMeasurementKey> {
-        internal TextMeasurementKey(string text, double fontSize, string? fontFamily) {
+        internal TextMeasurementKey(string text, double fontSize, string? fontFamily, OfficeFontStyle style) {
             Text = text;
             FontSize = fontSize;
             FontFamily = fontFamily ?? string.Empty;
+            Style = OfficeFontFace.NormalizeStyle(style);
         }
 
         private string Text { get; }
         private double FontSize { get; }
         private string FontFamily { get; }
+        private OfficeFontStyle Style { get; }
 
         public bool Equals(TextMeasurementKey other) =>
             FontSize.Equals(other.FontSize) &&
             string.Equals(Text, other.Text, StringComparison.Ordinal) &&
-            string.Equals(FontFamily, other.FontFamily, StringComparison.Ordinal);
+            string.Equals(FontFamily, other.FontFamily, StringComparison.Ordinal) &&
+            Style == other.Style;
 
         public override bool Equals(object? obj) =>
             obj is TextMeasurementKey other && Equals(other);
@@ -400,6 +417,7 @@ public sealed partial class OfficeRasterCanvas {
                 int hash = (Text != null ? StringComparer.Ordinal.GetHashCode(Text) : 0);
                 hash = (hash * 397) ^ FontSize.GetHashCode();
                 hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(FontFamily);
+                hash = (hash * 397) ^ Style.GetHashCode();
                 return hash;
             }
         }

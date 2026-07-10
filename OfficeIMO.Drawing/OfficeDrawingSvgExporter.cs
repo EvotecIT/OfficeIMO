@@ -46,6 +46,8 @@ public static class OfficeDrawingSvgExporter {
             .Append(Format(drawing.Height))
             .Append("\" role=\"img\">");
 
+        AppendEmbeddedFonts(sb, drawing.Fonts);
+
         int gradientId = 0;
         int clipPathId = 0;
         AppendElements(sb, drawing.Elements, ref gradientId, ref clipPathId);
@@ -68,6 +70,42 @@ public static class OfficeDrawingSvgExporter {
     /// <param name="scale">Scale applied to the exported SVG width and height.</param>
     /// <returns>UTF-8 encoded SVG bytes.</returns>
     public static byte[] ToSvgBytes(OfficeDrawing drawing, double scale) => Encoding.UTF8.GetBytes(ToSvg(drawing, scale));
+
+    private static void AppendEmbeddedFonts(StringBuilder sb, OfficeFontFaceCollection fonts) {
+        if (fonts.Faces.Count == 0) {
+            return;
+        }
+
+        sb.Append("<defs><style type=\"text/css\">");
+        foreach (OfficeFontFace face in fonts.Faces) {
+            sb.Append("@font-face{font-family:\"")
+                .Append(EscapeCssString(face.FamilyName))
+                .Append("\";src:url(data:font/ttf;base64,")
+                .Append(Convert.ToBase64String(face.DataSnapshot))
+                .Append(") format(\"truetype\");font-weight:")
+                .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
+                .Append(";font-style:")
+                .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal")
+                .Append(";}");
+        }
+
+        sb.Append("</style></defs>");
+    }
+
+    private static string EscapeCssString(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (character == '\\' || character == '"' || character == '<' || character == '>' || character == '&' || char.IsControl(character)) {
+                escaped.Append('\\')
+                    .Append(((int)character).ToString("X", CultureInfo.InvariantCulture))
+                    .Append(' ');
+            } else {
+                escaped.Append(character);
+            }
+        }
+
+        return escaped.ToString();
+    }
 
     private static void AppendElements(StringBuilder sb, IReadOnlyList<OfficeDrawingElement> elements, ref int gradientId, ref int clipPathId) {
         for (int i = 0; i < elements.Count; i++) {

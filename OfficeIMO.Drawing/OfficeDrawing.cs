@@ -240,6 +240,7 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(clipPath), "Nested drawing clip must fit inside the drawing bounds.");
         }
 
+        Fonts.AddRange(drawing.Fonts);
         _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, frameTransform));
         return this;
     }
@@ -263,6 +264,7 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing content must fit inside the drawing bounds.");
         }
 
+        Fonts.AddRange(drawing.Fonts);
         for (int i = 0; i < drawing.Elements.Count; i++) {
             OfficeDrawingElement element = drawing.Elements[i];
             if (element is OfficeDrawingShape shape) {
