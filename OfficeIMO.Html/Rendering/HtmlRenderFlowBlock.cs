@@ -1,3 +1,5 @@
+using AngleSharp.Dom;
+
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderFlowBlock {
@@ -199,16 +201,33 @@ internal sealed class HtmlRenderLineBreakGroup {
 }
 
 internal sealed class HtmlInlineRun {
-    internal HtmlInlineRun(string text, HtmlRenderBoxStyle style, string? linkUri, string source, double paintOffsetX = 0D, double paintOffsetY = 0D) {
+    internal HtmlInlineRun(
+        string text,
+        HtmlRenderBoxStyle style,
+        string? linkUri,
+        string source,
+        double paintOffsetX = 0D,
+        double paintOffsetY = 0D,
+        IElement? ownerElement = null,
+        IElement? positionedMarkerElement = null) {
         Text = text;
         Style = style;
         LinkUri = linkUri;
         Source = source;
         PaintOffsetX = paintOffsetX;
         PaintOffsetY = paintOffsetY;
+        OwnerElement = ownerElement;
+        PositionedMarkerElement = positionedMarkerElement;
     }
 
-    internal HtmlInlineRun(HtmlRenderFlowBlock atomicBlock, HtmlRenderBoxStyle style, string? linkUri, string source, double paintOffsetX = 0D, double paintOffsetY = 0D) {
+    internal HtmlInlineRun(
+        HtmlRenderFlowBlock atomicBlock,
+        HtmlRenderBoxStyle style,
+        string? linkUri,
+        string source,
+        double paintOffsetX = 0D,
+        double paintOffsetY = 0D,
+        IElement? ownerElement = null) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
         Style = style;
@@ -216,6 +235,7 @@ internal sealed class HtmlInlineRun {
         Source = source;
         PaintOffsetX = paintOffsetX;
         PaintOffsetY = paintOffsetY;
+        OwnerElement = ownerElement;
     }
 
     internal string Text { get; }
@@ -225,6 +245,8 @@ internal sealed class HtmlInlineRun {
     internal string Source { get; }
     internal double PaintOffsetX { get; }
     internal double PaintOffsetY { get; }
+    internal IElement? OwnerElement { get; }
+    internal IElement? PositionedMarkerElement { get; }
 }
 
 internal sealed class HtmlInlineLayout {

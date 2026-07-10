@@ -30,7 +30,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             link,
             HtmlRenderStyleResolver.DescribeSource(element),
             inheritedPaintOffsetX,
-            inheritedPaintOffsetY));
+            inheritedPaintOffsetY,
+            element));
     }
 
     private double ResolveInlineGridWidth(IElement element, double availableWidth, HtmlRenderBoxStyle style, int depth) {

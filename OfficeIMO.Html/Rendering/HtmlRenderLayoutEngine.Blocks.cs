@@ -21,6 +21,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (ShouldExtractOutOfFlow(childStyle)) {
+                    if (UsesInlineStaticPosition(element, childStyle)) {
+                        inlineNodes.Add(node);
+                        continue;
+                    }
                     flowHeight += FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     PositionedStaticAnchor? staticAnchor = HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
                         ? new PositionedStaticAnchor(container, 0D, flowHeight)
@@ -73,11 +77,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
         double contentHeight = 0D;
-        IReadOnlyList<HtmlRenderFlowBlock> children = HasBlockChildren(element, contentWidth, style)
+        bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style);
+        IReadOnlyList<HtmlRenderFlowBlock> children = usesBlockFormatting
             ? BuildChildBlocks(element, contentWidth, style, depth)
             : Array.Empty<HtmlRenderFlowBlock>();
 
-        if (children.Count > 0) {
+        if (usesBlockFormatting) {
             foreach (HtmlRenderFlowBlock child in children) {
                 double childStart = contentHeight;
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
@@ -206,11 +211,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement child in element.Children) {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
-            if (style.Display != "none" && ShouldExtractOutOfFlow(style)) return true;
+            if (style.Display != "none" && ShouldExtractOutOfFlow(style) && !UsesInlineStaticPosition(child, style)) return true;
             if (style.Display != "none" && HtmlRenderStyleResolver.IsBlockElement(child, style)) return true;
         }
 
         return false;
+    }
+
+    private static bool UsesInlineStaticPosition(IElement element, HtmlRenderBoxStyle style) {
+        if (style.Display == "inline-flex" || style.Display == "inline-grid" || style.Display == "inline-block") return true;
+        if (style.Display != "inline") return false;
+        return style.DisplayWasSpecified || !HtmlRenderStyleResolver.IsDefaultBlockElement(element);
     }
 
     private HtmlRenderFlowBlock LayoutHorizontalRule(IElement element, double containingWidth, HtmlRenderBoxStyle style) {

@@ -60,19 +60,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement root = _document.Body ?? _document.DocumentElement ?? directParent;
         if (ReferenceEquals(directParent, root)) return root;
         if (_registeredAbsoluteElements.Contains(directParent) || _registeredFixedElements.Contains(directParent)) return directParent;
-        if (EstablishesSupportedAbsoluteContainingBlock(directParent, directParentStyle)) return directParent;
-        if (directParentStyle.Position != "static") return ReportInlineContainingBlockFallback(element, directParent, root);
+        if (EstablishesSupportedAbsoluteContainingBlock(directParentStyle)) return directParent;
 
         double referenceWidth = Math.Max(1D, (_options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth) - _options.Margins.Left - _options.Margins.Right);
         bool flattenedFlexOrGridChild = directParentStyle.Display == "contents";
         for (IElement? ancestor = directParent.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
             if (ReferenceEquals(ancestor, root)) return root;
             HtmlRenderBoxStyle ancestorStyle = _styleResolver.Resolve(ancestor, referenceWidth);
-            if (ancestorStyle.Position != "static") {
-                return EstablishesSupportedAbsoluteContainingBlock(ancestor, ancestorStyle)
-                    ? ancestor
-                    : ReportInlineContainingBlockFallback(element, ancestor, root);
-            }
+            if (ancestorStyle.Position != "static") return ancestor;
             if (flattenedFlexOrGridChild && (ancestorStyle.Display == "flex" || ancestorStyle.Display == "grid" || ancestorStyle.Display == "inline-flex" || ancestorStyle.Display == "inline-grid")) {
                 return ancestor;
             }
@@ -82,22 +77,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return root;
     }
 
-    private static bool EstablishesSupportedAbsoluteContainingBlock(IElement element, HtmlRenderBoxStyle style) {
+    private static bool EstablishesSupportedAbsoluteContainingBlock(HtmlRenderBoxStyle style) {
         if (style.Display == "flex" || style.Display == "grid" || style.Display == "inline-flex" || style.Display == "inline-grid") return true;
-        return style.Position != "static" && HtmlRenderStyleResolver.IsBlockElement(element, style);
-    }
-
-    private IElement ReportInlineContainingBlockFallback(IElement element, IElement containingBlock, IElement root) {
-        if (_reportedPositionContainingBlockFallbacks.Add(element)) {
-            _diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.PositioningModeUnsupported,
-                "An inline positioned containing block is not active; the absolute element used the initial containing block.",
-                HtmlDiagnosticSeverity.Warning,
-                HtmlRenderStyleResolver.DescribeSource(element),
-                "containing-block=" + HtmlRenderStyleResolver.DescribeSource(containingBlock));
-        }
-        return root;
+        return style.Position != "static";
     }
 
     private void AppendLocalPositionedVisuals(
@@ -213,16 +195,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
         if (style.ExplicitWidth.HasValue) {
-            double available = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-            return Math.Min(containingWidth, style.MarginLeft + ResolveBoxWidth(available, style) + style.MarginRight);
+            double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
+            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            return Math.Max(1D, style.MarginLeft + boxWidth + style.MarginRight);
         }
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
-        double contentWidth = tag == "img"
-            ? 300D
-            : Math.Max(1D, MeasureText(ApplyTextTransform(CollapseFlexText(element.TextContent), style.TextTransform), style.Font));
-        return Math.Max(1D, Math.Min(containingWidth, contentWidth + style.HorizontalInsets + style.MarginLeft + style.MarginRight));
+        if (tag == "img") return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
+        string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style.TextTransform);
+        double preferredContentWidth = Math.Max(1D, MeasureText(content, style.Font));
+        double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(token => MeasureText(token, style.Font))
+            .DefaultIfEmpty(1D)
+            .Max();
+        double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
+        double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
+        double resolvedBoxWidth = contentWidth + style.HorizontalInsets;
+        if (style.MinWidth.HasValue) resolvedBoxWidth = Math.Max(resolvedBoxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MaxWidth.HasValue) resolvedBoxWidth = Math.Min(resolvedBoxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        return Math.Max(1D, resolvedBoxWidth + style.MarginLeft + style.MarginRight);
     }
 
     private static void SetPositionedExplicitWidth(HtmlRenderBoxStyle style, double targetOuterWidth) {

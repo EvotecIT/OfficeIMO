@@ -57,6 +57,7 @@ internal sealed class HtmlRenderStyleResolver {
 
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(tag, computed.GetValue("display")),
+            DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
             Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), parent?.Alignment ?? OfficeTextAlignment.Left),
@@ -168,6 +169,8 @@ internal sealed class HtmlRenderStyleResolver {
             || tag == "nav" || tag == "ol" || tag == "p" || tag == "pre" || tag == "section" || tag == "summary" || tag == "table"
             || tag == "ul" || tag == "img";
     }
+
+    internal static bool IsDefaultBlockElement(IElement element) => IsDefaultBlockTag(element.TagName);
 
     private static OfficeColor ResolveColor(string value, OfficeColor fallback) => HtmlRenderCssValues.TryColor(value, out OfficeColor color) ? color : fallback;
 

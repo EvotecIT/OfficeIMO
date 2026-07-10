@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderBoxStyle {
     internal string Display = "block";
+    internal bool DisplayWasSpecified;
     internal string Position = "static";
     internal string Top = "auto";
     internal string Right = "auto";

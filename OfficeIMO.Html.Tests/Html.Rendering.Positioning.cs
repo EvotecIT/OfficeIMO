@@ -320,7 +320,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlAbsolutePosition_DiagnosesInlineContainingBlockFallbackWithoutConsumingTextFlow() {
+    public void HtmlAbsolutePosition_UsesInlineContainingBlockWithoutConsumingTextFlow() {
         const string baselineHtml = "<p style='margin:0'><span>Before</span><span>After</span></p>";
         const string positionedHtml = "<p style='margin:0'><span style='position:relative'>Before"
             + "<span style='position:absolute;left:5px;top:5px'>Overlay</span></span><span>After</span></p>";
@@ -339,10 +339,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(baselineAfter.Y, positionedAfter.Y, 3);
         Assert.Equal(5D, overlay.X, 3);
         Assert.Equal(5D, overlay.Y, 3);
-        Assert.Single(positioned.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
-            && diagnostic.Detail != null
-            && diagnostic.Detail.Contains("containing-block=span", StringComparison.Ordinal));
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -460,7 +459,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlAbsolutePosition_DiagnosesUnavailableInlineStaticAnchor() {
+    public void HtmlAbsolutePosition_UsesInlineStaticAnchor() {
         const string html = "<p style='margin:0'>Before<span id='inline-auto' style='position:absolute;background:#ff0000'>Auto</span>After</p>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
@@ -468,8 +467,31 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.NotNull(FindText(rendered, "Auto"));
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        HtmlRenderText automatic = FindText(rendered, "Auto");
+        HtmlRenderText after = FindText(rendered, "After");
+        Assert.Equal(after.X, automatic.X, 3);
+        Assert.Equal(after.Y, automatic.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_ResolvesInsetsAgainstWrappedInlineContainingBounds() {
+        const string html = "<p style='width:70px;margin:0'><span style='position:relative'>Alpha Beta Gamma"
+            + "<span id='inline-below' style='position:absolute;left:0;top:100%;width:10px;height:10px;background:#ff0000'></span></span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape positioned = FindPositionedShape(rendered, "span#inline-below");
+        IReadOnlyList<HtmlRenderText> sourceText = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+        Assert.NotEmpty(sourceText);
+        Assert.Equal(sourceText.Min(text => text.X), positioned.X, 3);
+        Assert.Equal(sourceText.Max(text => text.Y + text.Height), positioned.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -632,16 +654,87 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRelativePosition_DiagnosesInlineZIndexUntilInlineContextsAreAtomic() {
-        const string html = "<p style='margin:0'><span style='position:relative;z-index:2'>InlineZ</span></p>";
+    public void HtmlRelativePosition_StacksInlineAtomicContextsByZIndex() {
+        const string html = "<p style='margin:0;line-height:40px'>"
+            + "<span style='display:inline-flex;width:40px;height:40px'><span id='inline-normal-box' style='width:40px;height:40px;background:#00ff00'></span></span>"
+            + "<span style='display:inline-flex;position:relative;z-index:-1;left:-40px;width:40px;height:40px'><span id='inline-negative-box' style='width:40px;height:40px;background:#ff0000'></span></span>"
+            + "</p>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.NotNull(FindText(rendered, "InlineZ"));
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "span#inline-normal-box" || shape.Source == "span#inline-negative-box")
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "span#inline-negative-box", "span#inline-normal-box" }, paintSources);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(0x00, 0xFF, 0x00), raster.GetPixel(20, 20));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
+    public void HtmlPositioning_KeepsInlineAbsoluteLayerInsideParentInlineContext() {
+        const string html = "<p style='margin:0;line-height:40px'>"
+            + "<span style='display:inline-flex;position:relative;z-index:5;width:40px;height:40px'><span id='inline-sibling-five' style='width:40px;height:40px;background:#0000ff'></span></span>"
+            + "<span style='position:relative;z-index:10;left:-40px'>"
+            + "<span style='display:inline-flex;width:40px;height:40px'><span id='inline-parent-ten' style='width:40px;height:40px;background:#ff0000'></span></span>"
+            + "<span id='inline-nested-negative' style='position:absolute;z-index:-100;left:0;top:0;width:40px;height:40px;background:#00ff00'></span></span>"
+            + "</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "span#inline-sibling-five" || shape.Source == "span#inline-parent-ten" || shape.Source == "span#inline-nested-negative")
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "span#inline-sibling-five", "span#inline-nested-negative", "span#inline-parent-ten" }, paintSources);
+        Assert.All(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().Where(shape => paintSources.Contains(shape.Source)),
+            shape => Assert.True(shape.X >= 0D, shape.Source + ":" + shape.X.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(20, 20));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
+    public void HtmlFixedPosition_UsesInlineStaticMarkerAndRepeatsWithoutConsumingLineWidth() {
+        const string baselineHtml = "<p style='margin:0'>BeforeAfter</p><div style='height:70px'></div><div style='height:70px'></div>";
+        const string positionedHtml = "<p style='margin:0'>Before<span id='fixed-inline-auto' style='position:fixed;width:10px;height:10px;background:#ff0000'></span>After</p>"
+            + "<div style='height:70px'></div><div style='height:70px'></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(200D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
+        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderText baselineText = Assert.Single(baseline.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "BeforeAfter");
+        IReadOnlyList<HtmlRenderText> positionedText = positioned.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Text == "Before" || text.Text == "After")
+            .ToList();
+        Assert.Equal(2, positionedText.Count);
+        Assert.Equal(baselineText.Y, positionedText[0].Y, 3);
+        Assert.Equal(baselineText.Y, positionedText[1].Y, 3);
+        Assert.True(positioned.Pages.Count >= 2);
+        double expectedX = positionedText.Single(text => text.Text == "After").X;
+        foreach (HtmlRenderPage page in positioned.Pages) {
+            HtmlRenderShape fixedShape = Assert.Single(page.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "span#fixed-inline-auto" && shape.Shape.FillColor.HasValue);
+            Assert.Equal(expectedX, fixedShape.X, 3);
+            Assert.Equal(baselineText.Y, fixedShape.Y, 3);
+        }
+        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]

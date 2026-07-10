@@ -16,6 +16,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool horizontalInsetResolved,
         bool verticalInsetResolved) {
         if (horizontalInsetResolved && verticalInsetResolved) return PositionedPoint.Zero;
+        if (_inlineStaticPositions.TryGetValue(request.Element, out InlineStaticPosition? inlinePosition)) {
+            if (_inlineContainingRects.TryGetValue(request.ContainingBlock, out InlineContainingRect? inlineRect)
+                && ReferenceEquals(inlineRect.FormattingContainer, inlinePosition.FormattingContainer)) {
+                return new PositionedPoint(inlinePosition.X - inlineRect.X, inlinePosition.Y - inlineRect.Y);
+            }
+            if (TryResolveContentOrigin(inlinePosition.FormattingContainer, request.ContainingBlock, out PositionedPoint inlineContainerOrigin)) {
+                double inlineX = inlineContainerOrigin.X + inlinePosition.X;
+                double inlineY = inlineContainerOrigin.Y + inlinePosition.Y;
+                if (request.Style.Position == "fixed") {
+                    inlineX += _options.Margins.Left;
+                    inlineY += _options.Margins.Top;
+                }
+                return new PositionedPoint(inlineX, inlineY);
+            }
+        }
         if (request.StaticAnchor != null
             && TryResolveContentOrigin(request.StaticAnchor.Parent, request.ContainingBlock, out PositionedPoint parentContentOrigin)) {
             double x = parentContentOrigin.X + request.StaticAnchor.X;

@@ -29,7 +29,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             link,
             source,
             inheritedPaintOffsetX + offsetX,
-            inheritedPaintOffsetY + offsetY));
+            inheritedPaintOffsetY + offsetY,
+            element));
     }
 
     private void AddGeneratedContentBlock(
@@ -52,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? link = string.Equals(element.TagName, "a", StringComparison.OrdinalIgnoreCase)
             ? ResolveSafeLink(element.GetAttribute("href"), element)
             : null;
-        var run = new HtmlInlineRun(ApplyTextTransform(content, style.TextTransform), style, link, source);
+        var run = new HtmlInlineRun(ApplyTextTransform(content, style.TextTransform), style, link, source, ownerElement: element);
         HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
