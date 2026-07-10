@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlImages_SvgPrimitivesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
-        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><rect width='2' height='2' fill='lime' transform='translate(18 8) scale(2)'/></svg>";
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><rect width='2' height='2' fill='lime' transform='translate(18 8) scale(2)'/><text x='20' y='18' font-size='4' text-anchor='middle' fill='black'>SvgLabelX</text></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
         var options = new HtmlImageExportOptions {
@@ -61,14 +61,17 @@ public sealed partial class HtmlRenderingTests {
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(4, vector.Drawing.Shapes.Count);
+        Assert.Single(vector.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "SvgLabelX");
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(60, 20));
         Assert.Equal(OfficeColor.Lime, raster.GetPixel(40, 20));
         Assert.Contains("<path", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("<ellipse", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("transform=\"matrix(", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("SvgLabelX", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("SvgPdf", pdfText, StringComparison.Ordinal);
+        Assert.Contains("SvgLabelX", pdfText, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }

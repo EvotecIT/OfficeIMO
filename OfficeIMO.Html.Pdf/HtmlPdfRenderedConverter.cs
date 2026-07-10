@@ -71,7 +71,7 @@ internal static class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderImage image) {
             AddImage(canvas, image);
         } else if (visual is HtmlRenderDrawing drawing) {
-            AddDrawing(canvas, drawing);
+            AddDrawing(canvas, drawing, webFonts);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
             AddImagePattern(canvas, imagePattern);
         } else if (visual is HtmlRenderClipGroup group) {
@@ -205,15 +205,60 @@ internal static class HtmlPdfRenderedConverter {
             alternativeText: visual.AlternativeText);
     }
 
-    private static void AddDrawing(PdfCore.PdfPageCanvas canvas, HtmlRenderDrawing visual) {
-        canvas.Drawing(
-            visual.Drawing,
-            visual.X * PointsPerCssPixel,
-            visual.Y * PointsPerCssPixel,
-            visual.Width * PointsPerCssPixel,
-            visual.Height * PointsPerCssPixel,
-            linkUri: visual.LinkUri,
-            linkContents: visual.LinkUri == null ? null : visual.Source);
+    private static void AddDrawing(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderDrawing visual,
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
+        OfficeDrawing source = visual.Drawing;
+        var shapeBatch = new OfficeDrawing(source.Width, source.Height);
+        void FlushShapes() {
+            if (shapeBatch.Elements.Count == 0) return;
+            canvas.Drawing(
+                shapeBatch,
+                visual.X * PointsPerCssPixel,
+                visual.Y * PointsPerCssPixel,
+                visual.Width * PointsPerCssPixel,
+                visual.Height * PointsPerCssPixel,
+                linkUri: visual.LinkUri,
+                linkContents: visual.LinkUri == null ? null : visual.Source);
+            shapeBatch = new OfficeDrawing(source.Width, source.Height);
+        }
+
+        foreach (OfficeDrawingElement element in source.Elements) {
+            if (element is OfficeDrawingShape shape) {
+                shapeBatch.AddShape(shape.Shape, shape.X, shape.Y);
+                continue;
+            }
+            if (element is not OfficeDrawingText text || text.Text.Length == 0) continue;
+            FlushShapes();
+            double scaleX = visual.Width / source.Width;
+            double scaleY = visual.Height / source.Height;
+            double fontSize = text.Font.Size * scaleY * PointsPerCssPixel;
+            double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scaleY * PointsPerCssPixel;
+            PdfCore.PdfColor? color = text.Color.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(text.Color.Value) : null;
+            var run = new PdfCore.TextRun(
+                text.Text,
+                bold: text.Font.IsBold,
+                underline: text.Font.IsUnderline,
+                color: color,
+                italic: text.Font.IsItalic,
+                strike: text.Font.IsStrikethrough,
+                fontSize: fontSize,
+                font: MapFont(text.Font.FamilyName, webFonts),
+                linkUri: visual.LinkUri,
+                linkContents: visual.LinkUri == null ? null : text.Text);
+            canvas.Text(
+                new[] { run },
+                (visual.X + text.X * scaleX) * PointsPerCssPixel,
+                (visual.Y + text.Y * scaleY) * PointsPerCssPixel,
+                text.Width * scaleX * PointsPerCssPixel,
+                text.Height * scaleY * PointsPerCssPixel,
+                color,
+                MapAlignment(text.Alignment),
+                fontSize,
+                lineHeight);
+        }
+        FlushShapes();
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual) {

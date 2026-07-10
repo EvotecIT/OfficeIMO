@@ -107,6 +107,10 @@ public static class OfficeSvgDrawingReader {
                 AddChildren(element, drawing, style, transform, viewX, viewY, ref visited, ref unsupported);
                 continue;
             }
+            if (name == "text") {
+                AddText(element, drawing, style, transform, viewX, viewY, ref unsupported);
+                continue;
+            }
 
             OfficeDrawingShape? shape = name switch {
                 "rect" => CreateRectangle(element, style, viewX, viewY, ref unsupported),
@@ -130,6 +134,48 @@ public static class OfficeSvgDrawingReader {
             } catch (ArgumentOutOfRangeException) {
                 unsupported++;
             }
+        }
+    }
+
+    private static void AddText(
+        XElement element,
+        OfficeDrawing drawing,
+        SvgPaintContext style,
+        OfficeTransform transform,
+        double viewX,
+        double viewY,
+        ref int unsupported) {
+        if (element.HasElements) unsupported++;
+        if (transform != OfficeTransform.Identity) unsupported++;
+        if (element.Attribute("textLength") != null || element.Attribute("lengthAdjust") != null) unsupported++;
+        string raw = string.Concat(element.Nodes().OfType<XText>().Select(node => node.Value));
+        bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
+        string text = preserve ? raw : string.Join(" ", raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (text.Length == 0 || !style.Fill.HasValue) return;
+
+        double x = ReadFirstLength(element, "x") + ReadFirstLength(element, "dx") - viewX;
+        double baseline = ReadFirstLength(element, "y") + ReadFirstLength(element, "dy") - viewY;
+        double fontSize = Math.Max(0.1D, style.FontSize);
+        double width = Math.Max(0.1D, text.Length * fontSize * 0.62D);
+        if (style.TextAnchor == "middle") x -= width / 2D;
+        else if (style.TextAnchor == "end") x -= width;
+        double y = baseline - fontSize;
+        double height = fontSize * 1.25D;
+        if (x < 0D || y < 0D || x >= drawing.Width || y >= drawing.Height) {
+            unsupported++;
+            return;
+        }
+        width = Math.Min(width, drawing.Width - x);
+        height = Math.Min(height, drawing.Height - y);
+        if (width <= 0D || height <= 0D) return;
+        var font = new OfficeFontInfo(style.FontFamily, fontSize, style.FontStyle);
+        OfficeColor baseColor = style.Fill.Value;
+        double opacity = Math.Max(0D, Math.Min(1D, style.FillOpacity * style.Opacity));
+        OfficeColor color = OfficeColor.FromRgba(baseColor.R, baseColor.G, baseColor.B, (byte)Math.Round(baseColor.A * opacity));
+        try {
+            drawing.AddText(text, x, y, width, height, font, color, OfficeTextAlignment.Left, height);
+        } catch (ArgumentOutOfRangeException) {
+            unsupported++;
         }
     }
 
@@ -312,6 +358,11 @@ public static class OfficeSvgDrawingReader {
         ApplyProperty("stroke-linecap", element.Attribute("stroke-linecap")?.Value, ref result, ref unsupported);
         ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, ref result, ref unsupported);
         ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, ref result, ref unsupported);
+        ApplyProperty("font-family", element.Attribute("font-family")?.Value, ref result, ref unsupported);
+        ApplyProperty("font-size", element.Attribute("font-size")?.Value, ref result, ref unsupported);
+        ApplyProperty("font-style", element.Attribute("font-style")?.Value, ref result, ref unsupported);
+        ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, ref result, ref unsupported);
+        ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, ref result, ref unsupported);
         string? declarations = element.Attribute("style")?.Value;
@@ -375,6 +426,34 @@ public static class OfficeSvgDrawingReader {
                 else if (normalized.Equals("evenodd", StringComparison.OrdinalIgnoreCase)) style.FillRule = OfficeFillRule.EvenOdd;
                 else unsupported++;
                 break;
+            case "font-family":
+                string family = normalized.Split(',')[0].Trim().Trim('\'', '"');
+                if (family.Length == 0) unsupported++;
+                else style.FontFamily = family;
+                break;
+            case "font-size":
+                if (!TrySvgLength(normalized, out double fontSize) || fontSize <= 0D) unsupported++;
+                else style.FontSize = fontSize;
+                break;
+            case "font-style":
+                if (normalized.Equals("normal", StringComparison.OrdinalIgnoreCase)) style.FontStyle &= ~OfficeFontStyle.Italic;
+                else if (normalized.Equals("italic", StringComparison.OrdinalIgnoreCase) || normalized.Equals("oblique", StringComparison.OrdinalIgnoreCase)) style.FontStyle |= OfficeFontStyle.Italic;
+                else unsupported++;
+                break;
+            case "font-weight":
+                if (normalized.Equals("normal", StringComparison.OrdinalIgnoreCase) || normalized == "400") style.FontStyle &= ~OfficeFontStyle.Bold;
+                else if (normalized.Equals("bold", StringComparison.OrdinalIgnoreCase) || normalized.Equals("bolder", StringComparison.OrdinalIgnoreCase)) style.FontStyle |= OfficeFontStyle.Bold;
+                else if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 1 && weight <= 1000) {
+                    if (weight >= 600) style.FontStyle |= OfficeFontStyle.Bold;
+                    else style.FontStyle &= ~OfficeFontStyle.Bold;
+                }
+                else unsupported++;
+                break;
+            case "text-anchor":
+                string anchor = normalized.ToLowerInvariant();
+                if (anchor is "start" or "middle" or "end") style.TextAnchor = anchor;
+                else unsupported++;
+                break;
             case "display":
                 if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
                 break;
@@ -416,6 +495,13 @@ public static class OfficeSvgDrawingReader {
 
     private static double ReadLength(XElement element, string name) => TryLength(element, name, out double value) ? value : 0D;
     private static bool TryLength(XElement element, string name, out double value) => TrySvgLength(element.Attribute(name)?.Value, out value);
+
+    private static double ReadFirstLength(XElement element, string name) {
+        string? value = element.Attribute(name)?.Value;
+        if (string.IsNullOrWhiteSpace(value)) return 0D;
+        int separator = value!.IndexOfAny(new[] { ' ', '\t', '\r', '\n', ',' });
+        return TrySvgLength(separator < 0 ? value : value.Substring(0, separator), out double parsed) ? parsed : 0D;
+    }
 
     private static bool TrySvgLength(string? value, out double result) {
         result = 0D;
@@ -459,6 +545,10 @@ public static class OfficeSvgDrawingReader {
         internal OfficeStrokeLineCap LineCap;
         internal OfficeStrokeLineJoin LineJoin;
         internal OfficeFillRule FillRule;
+        internal string FontFamily;
+        internal double FontSize;
+        internal OfficeFontStyle FontStyle;
+        internal string TextAnchor;
         internal bool Visible;
 
         internal static SvgPaintContext Default => new SvgPaintContext {
@@ -472,6 +562,10 @@ public static class OfficeSvgDrawingReader {
             LineCap = OfficeStrokeLineCap.Butt,
             LineJoin = OfficeStrokeLineJoin.Miter,
             FillRule = OfficeFillRule.NonZero,
+            FontFamily = "Arial",
+            FontSize = 16D,
+            FontStyle = OfficeFontStyle.Regular,
+            TextAnchor = "start",
             Visible = true
         };
     }

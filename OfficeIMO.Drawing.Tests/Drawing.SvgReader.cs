@@ -93,6 +93,25 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderMapsSimpleAnchoredTextToSharedSearchableText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' fill='navy' font-family='Arial'>"
+            + "<text x='20' y='12' font-size='4' font-weight='700' font-style='italic' text-anchor='middle'>Label</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Label", text.Text);
+        Assert.Equal("Arial", text.Font.FamilyName);
+        Assert.True(text.Font.IsBold);
+        Assert.True(text.Font.IsItalic);
+        Assert.Equal(OfficeColor.Navy, text.Color);
+        Assert.True(text.X < 20D);
+        Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
     public void SvgReaderRejectsDocumentsWithDoctypeOrExternalEntities() {
         const string svg = "<!DOCTYPE svg [<!ENTITY xxe SYSTEM 'file:///secret.txt'>]><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>&xxe;</text></svg>";
 
