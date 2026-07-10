@@ -19,8 +19,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var blocks = new List<HtmlRenderFlowBlock>();
         if (includeGeneratedBefore) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
         double flowHeight = blocks.Sum(block => block.Height);
-        bool previousMarginCanCollapse = false;
-        double previousMarginBottom = 0D;
+        var adjoiningMargins = new List<double>();
+        double allocatedAdjoiningMargins = 0D;
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             if (node is IElement element) {
@@ -39,7 +39,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
-                    if (inlineHeight > 0D) previousMarginCanCollapse = false;
+                    if (inlineHeight > 0D) {
+                        adjoiningMargins.Clear();
+                        allocatedAdjoiningMargins = 0D;
+                    }
                     PositionedStaticAnchor? staticAnchor = HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
                         ? new PositionedStaticAnchor(container, 0D, flowHeight)
                         : null;
@@ -55,17 +58,52 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
-                    if (inlineHeight > 0D) previousMarginCanCollapse = false;
-                    double marginAdjustment = previousMarginCanCollapse
-                        ? previousMarginBottom + childStyle.MarginTop - CollapseVerticalMargins(previousMarginBottom, childStyle.MarginTop)
-                        : 0D;
+                    if (inlineHeight > 0D) {
+                        adjoiningMargins.Clear();
+                        allocatedAdjoiningMargins = 0D;
+                    }
                     HtmlRenderFlowBlock childBlock = LayoutElement(element, width, childStyle, parentStyle, depth + 1);
+                    double marginAdjustment = 0D;
+                    if (childBlock.HasCollapsibleMargins && adjoiningMargins.Count > 0) {
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginTop);
+                        allocatedAdjoiningMargins += childBlock.CollapsibleMarginTop;
+                        if (!childBlock.CollapsesThrough) {
+                            marginAdjustment = allocatedAdjoiningMargins - CollapseVerticalMargins(adjoiningMargins);
+                        }
+                    }
                     childBlock = childBlock.AdjustLeadingFlowSpace(marginAdjustment);
-                    RecordNormalFlowPlacement(element, container, 0D, flowHeight - marginAdjustment, childStyle);
+                    HtmlRenderBoxStyle placementStyle = childStyle.Clone();
+                    if (childBlock.HasCollapsibleMargins) {
+                        placementStyle.MarginTop = childBlock.CollapsibleMarginTop;
+                        placementStyle.MarginBottom = childBlock.CollapsibleMarginBottom;
+                    }
+                    RecordNormalFlowPlacement(element, container, 0D, flowHeight - marginAdjustment, placementStyle);
                     blocks.Add(childBlock);
                     flowHeight += childBlock.Height;
-                    previousMarginCanCollapse = true;
-                    previousMarginBottom = childStyle.MarginBottom;
+                    if (!childBlock.HasCollapsibleMargins) {
+                        adjoiningMargins.Clear();
+                        allocatedAdjoiningMargins = 0D;
+                    } else if (childBlock.CollapsesThrough) {
+                        if (adjoiningMargins.Count == 0) {
+                            adjoiningMargins.Add(childBlock.CollapsibleMarginTop);
+                            allocatedAdjoiningMargins = childBlock.CollapsibleMarginTop;
+                        }
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginBottom);
+                        allocatedAdjoiningMargins += childBlock.CollapsibleMarginBottom;
+                        double collapsed = CollapseVerticalMargins(adjoiningMargins);
+                        double trailingAdjustment = allocatedAdjoiningMargins - collapsed;
+                        if (Math.Abs(trailingAdjustment) > 0.0001D) {
+                            HtmlRenderFlowBlock adjusted = childBlock.AdjustTrailingFlowSpace(trailingAdjustment);
+                            blocks[blocks.Count - 1] = adjusted;
+                            flowHeight += adjusted.Height - childBlock.Height;
+                            childBlock = adjusted;
+                        }
+                        allocatedAdjoiningMargins = collapsed;
+                    } else {
+                        adjoiningMargins.Clear();
+                        adjoiningMargins.Add(childBlock.CollapsibleMarginBottom);
+                        allocatedAdjoiningMargins = childBlock.CollapsibleMarginBottom;
+                    }
                     continue;
                 }
             }
@@ -74,7 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
-        if (trailingInlineHeight > 0D) previousMarginCanCollapse = false;
+        if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
     }
@@ -82,6 +120,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static double CollapseVerticalMargins(double first, double second) {
         double positive = Math.Max(0D, Math.Max(first, second));
         double negative = Math.Min(0D, Math.Min(first, second));
+        return positive + negative;
+    }
+
+    private static double CollapseVerticalMargins(IEnumerable<double> margins) {
+        double positive = 0D;
+        double negative = 0D;
+        foreach (double margin in margins) {
+            positive = Math.Max(positive, margin);
+            negative = Math.Min(negative, margin);
+        }
         return positive + negative;
     }
 
@@ -93,17 +141,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        if (tag == "img") return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element);
-        if (tag == "table") return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth), style, element, containingWidth), style, containingWidth, containingHeight, element);
-        if (tag == "hr") return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element);
+        if (tag == "img") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
+        if (tag == "table") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
+        if (tag == "hr") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
-            return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
+            return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
         if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
-            return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
+            return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
         if (TryLayoutMultiColumnContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock columnsBlock)) {
-            return ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element);
+            return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
@@ -118,9 +166,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style);
-        IReadOnlyList<HtmlRenderFlowBlock> children = usesBlockFormatting
-            ? BuildChildBlocks(element, contentWidth, style, depth)
-            : Array.Empty<HtmlRenderFlowBlock>();
+        List<HtmlRenderFlowBlock> children = usesBlockFormatting
+            ? BuildChildBlocks(element, contentWidth, style, depth).ToList()
+            : new List<HtmlRenderFlowBlock>();
+
+        if (children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
+            HtmlRenderFlowBlock first = children[0];
+            double childMargin = first.CollapsibleMarginTop;
+            style = style.Clone();
+            style.MarginTop = CollapseVerticalMargins(style.MarginTop, childMargin);
+            children[0] = first
+                .AdjustLeadingFlowSpace(childMargin)
+                .WithCollapsibleMargins(0D, first.CollapsibleMarginBottom, first.OwnerElement!);
+            if (first.OwnerElement != null) RemoveNormalFlowTopMargin(first.OwnerElement);
+        }
+        if (children.Count > 0 && CanCollapseParentMargin(style, top: false) && children[children.Count - 1].HasCollapsibleMargins) {
+            int lastIndex = children.Count - 1;
+            HtmlRenderFlowBlock last = children[lastIndex];
+            double childMargin = last.CollapsibleMarginBottom;
+            style = style.Clone();
+            style.MarginBottom = CollapseVerticalMargins(style.MarginBottom, childMargin);
+            children[lastIndex] = last
+                .AdjustTrailingFlowSpace(childMargin)
+                .WithCollapsibleMargins(last.CollapsibleMarginTop, 0D, last.OwnerElement!);
+        }
+        _layoutStyles[element] = style.Clone();
 
         if (usesBlockFormatting) {
             foreach (HtmlRenderFlowBlock child in children) {
@@ -160,7 +230,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight = tag == "div" || tag == "section" || tag == "article" ? 0D : style.LineHeight;
         }
 
-        double boxHeight = ResolveBoxHeight(contentHeight, style);
+        bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
+        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, style);
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
@@ -233,8 +304,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedContinuationGroups,
             adjustedTrailingGroups,
             pageName: pageName);
-        return ApplyElementPositioning(block, style, containingWidth, containingHeight, element);
+        bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
+        return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
     }
+
+    private static HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) =>
+        block.WithCollapsibleMargins(style.MarginTop, style.MarginBottom, element, collapsesThrough);
+
+    private static bool CanCollapseParentMargin(HtmlRenderBoxStyle style, bool top) {
+        if (style.Display != "block" && style.Display != "list-item") return false;
+        if (style.OverflowX != "visible" || style.OverflowY != "visible") return false;
+        if (top) return style.BorderTopWidth <= 0D && style.PaddingTop <= 0D;
+        return style.BorderBottomWidth <= 0D
+            && style.PaddingBottom <= 0D
+            && !style.ExplicitHeight.HasValue
+            && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
+    }
+
+    private static bool CanCollapseThroughEmptyBlock(
+        HtmlRenderBoxStyle style,
+        bool usesBlockFormatting,
+        IReadOnlyList<HtmlRenderFlowBlock> children,
+        IReadOnlyList<HtmlRenderVisual> contentVisuals,
+        double contentHeight) {
+        if (style.Display != "block" || style.OverflowX != "visible" || style.OverflowY != "visible") return false;
+        if (style.BorderTopWidth > 0D || style.BorderBottomWidth > 0D || style.PaddingTop > 0D || style.PaddingBottom > 0D) return false;
+        if (style.ExplicitHeight.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
+        if (usesBlockFormatting) return children.Count == 0 || children.All(child => child.CollapsesThrough);
+        return contentVisuals.Count == 0 && contentHeight <= 0.0001D;
+    }
+
+    private static bool CanUseZeroHeightForMarginCollapse(HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, double contentHeight) =>
+        contentHeight <= 0.0001D
+        && style.Display == "block"
+        && parentStyle.Display != "flex"
+        && parentStyle.Display != "inline-flex"
+        && parentStyle.Display != "grid"
+        && parentStyle.Display != "inline-grid"
+        && style.BorderTopWidth <= 0D
+        && style.BorderBottomWidth <= 0D
+        && style.PaddingTop <= 0D
+        && style.PaddingBottom <= 0D
+        && !style.ExplicitHeight.HasValue
+        && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
 
     private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
         if (nodes.Count == 0) return 0D;

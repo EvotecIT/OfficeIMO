@@ -23,7 +23,12 @@ internal sealed class HtmlRenderFlowBlock {
         double continuationStartsAfter = 0D,
         string? pageName = null,
         int? stackingZIndex = null,
-        int stackingSourceOrder = 0) {
+        int stackingSourceOrder = 0,
+        bool hasCollapsibleMargins = false,
+        double collapsibleMarginTop = 0D,
+        double collapsibleMarginBottom = 0D,
+        IElement? ownerElement = null,
+        bool collapsesThrough = false) {
         Width = width;
         Height = height;
         Visuals = new List<HtmlRenderVisual>(visuals);
@@ -66,6 +71,11 @@ internal sealed class HtmlRenderFlowBlock {
         PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
         StackingZIndex = stackingZIndex;
         StackingSourceOrder = stackingSourceOrder;
+        HasCollapsibleMargins = hasCollapsibleMargins;
+        CollapsibleMarginTop = collapsibleMarginTop;
+        CollapsibleMarginBottom = collapsibleMarginBottom;
+        OwnerElement = ownerElement;
+        CollapsesThrough = collapsesThrough;
     }
 
     internal double Width { get; }
@@ -82,6 +92,11 @@ internal sealed class HtmlRenderFlowBlock {
     internal string? PageName { get; }
     internal int? StackingZIndex { get; }
     internal int StackingSourceOrder { get; }
+    internal bool HasCollapsibleMargins { get; }
+    internal double CollapsibleMarginTop { get; }
+    internal double CollapsibleMarginBottom { get; }
+    internal IElement? OwnerElement { get; }
+    internal bool CollapsesThrough { get; }
 
     internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
@@ -98,7 +113,12 @@ internal sealed class HtmlRenderFlowBlock {
             trailingGroups: TrailingGroups.Select(group => group.TranslatePaint(offsetX, offsetY)),
             pageName: PageName,
             stackingZIndex: StackingZIndex,
-            stackingSourceOrder: StackingSourceOrder);
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
         new HtmlRenderFlowBlock(
@@ -115,7 +135,12 @@ internal sealed class HtmlRenderFlowBlock {
             trailingGroups: TrailingGroups,
             pageName: PageName,
             stackingZIndex: zIndex,
-            stackingSourceOrder: sourceOrder);
+            stackingSourceOrder: sourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough);
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(
@@ -132,7 +157,12 @@ internal sealed class HtmlRenderFlowBlock {
             trailingGroups: TrailingGroups,
             pageName: PageName,
             stackingZIndex: StackingZIndex,
-            stackingSourceOrder: StackingSourceOrder);
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough);
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -151,7 +181,59 @@ internal sealed class HtmlRenderFlowBlock {
             trailingGroups: TrailingGroups.Select(group => group.Translate(0D, -adjustment)),
             pageName: PageName,
             stackingZIndex: StackingZIndex,
-            stackingSourceOrder: StackingSourceOrder);
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough);
+    }
+
+    internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement, bool collapsesThrough = false) =>
+        new HtmlRenderFlowBlock(
+            Width,
+            Height,
+            Visuals,
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets,
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups,
+            trailingGroups: TrailingGroups,
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: true,
+            collapsibleMarginTop: top,
+            collapsibleMarginBottom: bottom,
+            ownerElement: ownerElement,
+            collapsesThrough: collapsesThrough);
+
+    internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
+        if (Math.Abs(adjustment) <= 0.0001D) return this;
+        double adjustedHeight = Math.Max(0.01D, Height - adjustment);
+        return new HtmlRenderFlowBlock(
+            Width,
+            adjustedHeight,
+            Visuals,
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets.Where(offset => offset <= adjustedHeight + 0.0001D),
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups,
+            trailingGroups: TrailingGroups,
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough);
     }
 }
 

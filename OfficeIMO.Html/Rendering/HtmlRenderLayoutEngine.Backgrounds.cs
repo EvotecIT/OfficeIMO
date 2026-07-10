@@ -13,6 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         IElement source) {
+        if (width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddBoxShadow(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -29,6 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         IElement source) {
+        if (width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOutlinePaint(visuals, style, x, y, width, height, radii, source, sourceDescription);

@@ -8,6 +8,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
     }
 
+    private void RemoveNormalFlowTopMargin(IElement element) {
+        if (!_normalFlowPlacements.TryGetValue(element, out NormalFlowPlacement? placement)) return;
+        HtmlRenderBoxStyle style = placement.Style.Clone();
+        style.MarginTop = 0D;
+        _normalFlowPlacements[element] = new NormalFlowPlacement(placement.Parent, placement.X, placement.Y, style);
+        _layoutStyles[element] = style.Clone();
+    }
+
     private PositionedPoint ResolvePositionedStaticPoint(
         PositionedElementRequest request,
         HtmlRenderFlowBlock block,
