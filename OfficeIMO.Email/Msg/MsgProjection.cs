@@ -47,6 +47,11 @@ internal static class MsgProjection {
             document.Properties[key] = property.Value;
         }
 
+        ApplyTyped(document);
+    }
+
+    internal static void ApplyTyped(EmailDocument document) {
+        IList<MapiProperty> properties = document.MapiProperties;
         switch (document.OutlookItemKind) {
             case OutlookItemKind.Appointment: document.Appointment = CreateAppointment(properties); break;
             case OutlookItemKind.Contact: document.Contact = CreateContact(properties); break;

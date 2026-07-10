@@ -51,7 +51,7 @@ internal static class MsgWriter {
         }
     }
 
-    private static MsgPropertyBuilder CreateMessageProperties(EmailDocument document,
+    internal static MsgPropertyBuilder CreateMessageProperties(EmailDocument document,
         IList<EmailDiagnostic> diagnostics, string location) {
         var properties = new MsgPropertyBuilder(document.MapiProperties);
         string messageClass = document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind);
@@ -94,7 +94,7 @@ internal static class MsgWriter {
         return properties;
     }
 
-    private static MsgPropertyBuilder CreateRecipientProperties(EmailRecipient recipient) {
+    internal static MsgPropertyBuilder CreateRecipientProperties(EmailRecipient recipient) {
         var properties = new MsgPropertyBuilder(recipient.MapiProperties);
         int type = recipient.Kind == EmailRecipientKind.To ? 1 : recipient.Kind == EmailRecipientKind.Cc ? 2 :
             recipient.Kind == EmailRecipientKind.Bcc ? 3 : 0;
@@ -106,7 +106,7 @@ internal static class MsgWriter {
         return properties;
     }
 
-    private static MsgPropertyBuilder CreateAttachmentProperties(EmailAttachment attachment, int index, int method,
+    internal static MsgPropertyBuilder CreateAttachmentProperties(EmailAttachment attachment, int index, int method,
         IList<EmailDiagnostic> diagnostics, string location) {
         var properties = new MsgPropertyBuilder(attachment.MapiProperties);
         properties.Set(0x3705, MapiPropertyType.Integer32, method);

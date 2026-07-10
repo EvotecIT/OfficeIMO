@@ -19,7 +19,8 @@ public sealed class EmailReaderOptions {
         bool preserveRawSource = false,
         int maxCompoundDirectoryEntries = 65536,
         int maxMapiPropertyCount = 100000,
-        long maxDecodedPropertyBytes = 512L * 1024L * 1024L) {
+        long maxDecodedPropertyBytes = 512L * 1024L * 1024L,
+        int maxTnefAttributeCount = 100000) {
         if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
         if (maxHeaderBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderBytes));
         if (maxHeaderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderCount));
@@ -31,6 +32,7 @@ public sealed class EmailReaderOptions {
         if (maxCompoundDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxCompoundDirectoryEntries));
         if (maxMapiPropertyCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxMapiPropertyCount));
         if (maxDecodedPropertyBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytes));
+        if (maxTnefAttributeCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxTnefAttributeCount));
 
         MaxInputBytes = maxInputBytes;
         MaxHeaderBytes = maxHeaderBytes;
@@ -45,6 +47,7 @@ public sealed class EmailReaderOptions {
         MaxCompoundDirectoryEntries = maxCompoundDirectoryEntries;
         MaxMapiPropertyCount = maxMapiPropertyCount;
         MaxDecodedPropertyBytes = maxDecodedPropertyBytes;
+        MaxTnefAttributeCount = maxTnefAttributeCount;
     }
 
     /// <summary>Maximum artifact size accepted by the reader.</summary>
@@ -73,4 +76,6 @@ public sealed class EmailReaderOptions {
     public int MaxMapiPropertyCount { get; }
     /// <summary>Maximum aggregate bytes represented by decoded MSG property streams.</summary>
     public long MaxDecodedPropertyBytes { get; }
+    /// <summary>Maximum number of TNEF attributes.</summary>
+    public int MaxTnefAttributeCount { get; }
 }

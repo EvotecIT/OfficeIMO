@@ -6,6 +6,7 @@ public sealed class EmailDocument {
     private readonly List<EmailRecipient> _recipients = new List<EmailRecipient>();
     private readonly List<EmailAttachment> _attachments = new List<EmailAttachment>();
     private readonly List<MapiProperty> _mapiProperties = new List<MapiProperty>();
+    private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
     private readonly Dictionary<string, object?> _properties = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Source format used to create the document.</summary>
@@ -49,6 +50,9 @@ public sealed class EmailDocument {
 
     /// <summary>Root MAPI properties, including properties not projected onto common fields.</summary>
     public IList<MapiProperty> MapiProperties => _mapiProperties;
+
+    /// <summary>Ordered raw TNEF attributes when the source format is TNEF.</summary>
+    public IList<TnefAttribute> TnefAttributes => _tnefAttributes;
 
     /// <summary>Typed appointment projection when <see cref="OutlookItemKind"/> is Appointment.</summary>
     public OutlookAppointment? Appointment { get; set; }

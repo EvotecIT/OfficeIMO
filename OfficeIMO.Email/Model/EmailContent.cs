@@ -22,6 +22,7 @@ public sealed class EmailBody {
 public sealed class EmailAttachment {
     private readonly List<MapiProperty> _mapiProperties = new List<MapiProperty>();
     private readonly Dictionary<string, byte[]> _structuredStorageStreams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+    private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
     /// <summary>Attachment filename.</summary>
     public string? FileName { get; set; }
 
@@ -54,4 +55,7 @@ public sealed class EmailAttachment {
 
     /// <summary>Relative CFB streams retained for an OLE or custom-storage attachment.</summary>
     public IDictionary<string, byte[]> StructuredStorageStreams => _structuredStorageStreams;
+
+    /// <summary>Ordered raw attachment-level TNEF attributes.</summary>
+    public IList<TnefAttribute> TnefAttributes => _tnefAttributes;
 }

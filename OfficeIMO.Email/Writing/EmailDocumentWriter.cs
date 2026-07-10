@@ -49,7 +49,7 @@ public sealed class EmailDocumentWriter {
 
     private byte[] WriteToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg) {
+        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");
         }
 
@@ -63,7 +63,9 @@ public sealed class EmailDocumentWriter {
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
         byte[] data = format == EmailFileFormat.Eml
             ? MimeWriter.Write(document, _options, diagnostics)
-            : MsgWriter.Write(document, _options, diagnostics);
+            : format == EmailFileFormat.OutlookMsg
+                ? MsgWriter.Write(document, _options, diagnostics)
+                : TnefWriter.Write(document, _options, diagnostics);
         EnsureOutputLimit(data.LongLength);
         result = new EmailWriteResult(data.LongLength, diagnostics.AsReadOnly(), false);
         return data;

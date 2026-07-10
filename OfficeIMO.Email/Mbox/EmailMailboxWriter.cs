@@ -1,0 +1,118 @@
+namespace OfficeIMO.Email;
+
+/// <summary>Writes deterministic mboxo or mboxrd mailbox aggregates.</summary>
+public sealed class EmailMailboxWriter {
+    private readonly EmailMailboxWriterOptions _options;
+
+    /// <summary>Creates a writer with the default mboxrd policy.</summary>
+    public EmailMailboxWriter() : this(EmailMailboxWriterOptions.Default) { }
+
+    /// <summary>Creates a writer with an immutable policy.</summary>
+    public EmailMailboxWriter(EmailMailboxWriterOptions options) {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+    }
+
+    /// <summary>Writer policy used by this instance.</summary>
+    public EmailMailboxWriterOptions Options => _options;
+
+    /// <summary>Writes a mailbox to a file.</summary>
+    public EmailWriteResult Write(EmailMailbox mailbox, string filePath) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result);
+        File.WriteAllBytes(filePath, bytes);
+        return result;
+    }
+
+    /// <summary>Writes a mailbox to a stream without closing it.</summary>
+    public EmailWriteResult Write(EmailMailbox mailbox, Stream stream) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result);
+        stream.Write(bytes, 0, bytes.Length);
+        return result;
+    }
+
+    /// <summary>Writes a mailbox to memory.</summary>
+    public byte[] WriteToBytes(EmailMailbox mailbox) => WriteToBytes(mailbox, out _);
+
+    /// <summary>Asynchronously writes a mailbox without closing the stream.</summary>
+    public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, Stream stream,
+        CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result);
+        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    private byte[] WriteToBytes(EmailMailbox mailbox, out EmailWriteResult result) {
+        if (mailbox == null) throw new ArgumentNullException(nameof(mailbox));
+        var diagnostics = new List<EmailDiagnostic>();
+        var messageWriter = new EmailDocumentWriter(_options.MessageOptions);
+        using (MemoryStream output = new MemoryStream()) {
+            for (int index = 0; index < mailbox.Messages.Count; index++) {
+                EmailMailboxEntry entry = mailbox.Messages[index];
+                string sender = entry.EnvelopeSender ?? entry.Document.From?.Address ?? "MAILER-DAEMON";
+                DateTimeOffset date = entry.EnvelopeDate ?? entry.Document.Date ??
+                    new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                string fromLine = string.Concat("From ", SanitizeSender(sender), " ",
+                    date.UtcDateTime.ToString("ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture), "\n");
+                byte[] fromBytes = Encoding.ASCII.GetBytes(fromLine);
+                output.Write(fromBytes, 0, fromBytes.Length);
+                byte[] eml = messageWriter.WriteToBytes(entry.Document, EmailFileFormat.Eml);
+                byte[] normalized = NormalizeLineEndings(eml);
+                byte[] escaped = Escape(normalized, _options.Variant);
+                output.Write(escaped, 0, escaped.Length);
+                if (escaped.Length == 0 || escaped[escaped.Length - 1] != '\n') output.WriteByte((byte)'\n');
+                if (output.Length > _options.MessageOptions.MaxOutputBytes) {
+                    throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), output.Length,
+                        _options.MessageOptions.MaxOutputBytes);
+                }
+            }
+            byte[] bytes = output.ToArray();
+            result = new EmailWriteResult(bytes.LongLength, diagnostics.AsReadOnly(), false);
+            return bytes;
+        }
+    }
+
+    private static byte[] Escape(byte[] message, MboxVariant variant) {
+        using (MemoryStream output = new MemoryStream(message.Length)) {
+            int lineStart = 0;
+            while (lineStart < message.Length) {
+                int lineEnd = lineStart;
+                while (lineEnd < message.Length && message[lineEnd] != '\n') lineEnd++;
+                int position = lineStart;
+                if (variant == MboxVariant.Mboxrd) while (position < lineEnd && message[position] == '>') position++;
+                if (StartsWith(message, position, "From ")) output.WriteByte((byte)'>');
+                output.Write(message, lineStart, lineEnd - lineStart);
+                if (lineEnd < message.Length) output.WriteByte((byte)'\n');
+                lineStart = lineEnd + 1;
+            }
+            return output.ToArray();
+        }
+    }
+
+    private static byte[] NormalizeLineEndings(byte[] input) {
+        using (MemoryStream output = new MemoryStream(input.Length)) {
+            for (int index = 0; index < input.Length; index++) {
+                if (input[index] == '\r') {
+                    if (index + 1 < input.Length && input[index + 1] == '\n') index++;
+                    output.WriteByte((byte)'\n');
+                } else {
+                    output.WriteByte(input[index]);
+                }
+            }
+            return output.ToArray();
+        }
+    }
+
+    private static bool StartsWith(byte[] data, int offset, string value) {
+        if (offset < 0 || offset + value.Length > data.Length) return false;
+        for (int index = 0; index < value.Length; index++) if (data[offset + index] != value[index]) return false;
+        return true;
+    }
+
+    private static string SanitizeSender(string sender) {
+        return sender.Replace("\r", string.Empty).Replace("\n", string.Empty).Replace(" ", string.Empty);
+    }
+}

@@ -18,6 +18,8 @@ internal sealed class MsgParserState {
 
     internal long TotalAttachmentBytes { get; private set; }
 
+    internal int TnefAttributeCount { get; private set; }
+
     internal void CountProperty(int bytes) {
         PropertyCount++;
         if (PropertyCount > Options.MaxMapiPropertyCount) {
@@ -47,6 +49,14 @@ internal sealed class MsgParserState {
         if (TotalAttachmentBytes > Options.MaxTotalAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTotalAttachmentBytes),
                 TotalAttachmentBytes, Options.MaxTotalAttachmentBytes);
+        }
+    }
+
+    internal void CountTnefAttribute() {
+        TnefAttributeCount++;
+        if (TnefAttributeCount > Options.MaxTnefAttributeCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTnefAttributeCount),
+                TnefAttributeCount, Options.MaxTnefAttributeCount);
         }
     }
 }

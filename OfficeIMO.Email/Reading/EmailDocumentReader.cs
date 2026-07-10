@@ -75,10 +75,18 @@ public sealed class EmailDocumentReader {
             case EmailFileFormat.OutlookMsg:
                 document = MsgReader.Read(data, _options, diagnostics);
                 break;
+            case EmailFileFormat.Tnef:
+                document = TnefReader.Read(data, _options, diagnostics);
+                break;
             case EmailFileFormat.Unknown:
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
                     "The artifact has no recognized email signature or RFC message header.", EmailDiagnosticSeverity.Error));
                 document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
+                break;
+            case EmailFileFormat.Mbox:
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_REQUIRES_MAILBOX_READER",
+                    "Use EmailMailboxReader to read all messages from an mbox aggregate.", EmailDiagnosticSeverity.Error));
+                document = new EmailDocument { Format = EmailFileFormat.Mbox, OutlookItemKind = OutlookItemKind.Unknown };
                 break;
             default:
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_NOT_IMPLEMENTED",
