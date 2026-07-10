@@ -1,0 +1,279 @@
+using AngleSharp.Dom;
+
+namespace OfficeIMO.Html;
+
+internal sealed partial class HtmlRenderLayoutEngine {
+    private bool TryLayoutFlexContainer(
+        IElement element,
+        double containingWidth,
+        HtmlRenderBoxStyle style,
+        int depth,
+        out HtmlRenderFlowBlock block) {
+        block = null!;
+        if (style.FlexWrap != "nowrap"
+            || style.FlexDirection != "row" && style.FlexDirection != "row-reverse"
+            || _generatedContent.TryGet(element, HtmlPseudoElementKind.Before, out _)
+            || _generatedContent.TryGet(element, HtmlPseudoElementKind.After, out _)) {
+            return false;
+        }
+
+        var items = new List<FlexItem>();
+        int sourceIndex = 0;
+        foreach (INode node in element.ChildNodes) {
+            if (node is IText text) {
+                if (!string.IsNullOrWhiteSpace(text.Data)) return false;
+                continue;
+            }
+
+            if (!(node is IElement child) || ShouldSkipElement(child)) continue;
+            HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, containingWidth, style);
+            if (childStyle.Display == "none") continue;
+            if (childStyle.Display == "contents"
+                || childStyle.HasAutoMargin
+                || childStyle.Position != "static" && childStyle.Position != "relative") {
+                return false;
+            }
+
+            items.Add(new FlexItem(child, childStyle, sourceIndex++));
+        }
+
+        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
+        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
+        if (style.UnsupportedColumnGap.Length > 0) {
+            ReportUnsupportedFlexValue(element, "column-gap=" + style.UnsupportedColumnGap);
+        }
+        List<FlexItem> orderedItems = items.OrderBy(item => item.Style.Order).ThenBy(item => item.SourceIndex).ToList();
+        double gap = orderedItems.Count > 1 ? style.ColumnGap : 0D;
+        double availableForItems = Math.Max(1D, contentWidth - gap * Math.Max(0, orderedItems.Count - 1));
+        foreach (FlexItem item in orderedItems) item.Basis = ResolveFlexBasis(item, availableForItems);
+        ResolveFlexMainSizes(orderedItems, availableForItems);
+
+        foreach (FlexItem item in orderedItems) {
+            item.Block = LayoutElement(item.Element, Math.Max(1D, item.MainSize), item.Style, style, depth + 1);
+        }
+
+        double naturalCrossSize = orderedItems.Count == 0 ? 0D : orderedItems.Max(item => item.Block!.Height);
+        double crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
+        StretchFlexItems(orderedItems, style, crossSize, depth);
+        ResolveFlexMainOffsets(orderedItems, style, contentWidth, gap, HtmlRenderStyleResolver.DescribeSource(element));
+        foreach (FlexItem item in orderedItems) {
+            item.CrossOffset = ResolveFlexCrossOffset(item, style, crossSize);
+        }
+
+        double boxHeight = ResolveBoxHeight(crossSize, style);
+        double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
+        var visuals = new List<HtmlRenderVisual>();
+        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
+        double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
+        foreach (FlexItem item in orderedItems) {
+            foreach (HtmlRenderVisual visual in item.Block!.Visuals) {
+                visuals.Add(visual.Translate(contentX + item.MainOffset, contentY + item.CrossOffset, visuals.Count));
+            }
+        }
+
+        block = new HtmlRenderFlowBlock(
+            containingWidth,
+            outerHeight,
+            visuals,
+            style.BreakBefore,
+            style.BreakAfter,
+            style.AvoidBreakInside,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            pageName: style.PageName);
+        return true;
+    }
+
+    private double ResolveFlexBasis(FlexItem item, double availableWidth) {
+        HtmlRenderBoxStyle style = item.Style;
+        double boxBasis;
+        if (style.FlexBasis != "auto") {
+            if (HtmlRenderCssValues.TryLength(style.FlexBasis, availableWidth, style.Font.Size, _options.DefaultFontSize, out double parsed)) {
+                boxBasis = Math.Max(0D, parsed) + (style.BorderBox ? 0D : style.HorizontalInsets);
+            } else {
+                ReportUnsupportedFlexValue(item.Element, "flex-basis=" + style.FlexBasis);
+                boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+            }
+        } else {
+            boxBasis = ResolveFlexAutoBoxBasis(item, availableWidth);
+        }
+
+        return Math.Max(0D, boxBasis + style.MarginLeft + style.MarginRight);
+    }
+
+    private double ResolveFlexAutoBoxBasis(FlexItem item, double availableWidth) {
+        HtmlRenderBoxStyle style = item.Style;
+        if (style.ExplicitWidth.HasValue) {
+            return style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
+        }
+
+        string tag = item.Element.TagName.ToLowerInvariant();
+        if (tag == "img") return Math.Min(availableWidth, 300D + style.HorizontalInsets);
+        if (tag == "table") return availableWidth;
+        string content = CollapseFlexText(item.Element.TextContent);
+        double measured = content.Length == 0 ? 0D : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+        return Math.Min(availableWidth, measured + style.HorizontalInsets);
+    }
+
+    private static string CollapseFlexText(string value) {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        return string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private static void ResolveFlexMainSizes(IReadOnlyList<FlexItem> items, double availableForItems) {
+        if (items.Count == 0) return;
+        double basisTotal = items.Sum(item => item.Basis);
+        double free = availableForItems - basisTotal;
+        bool growing = free > 0.0001D;
+        bool shrinking = free < -0.0001D;
+        var unfrozen = new HashSet<FlexItem>(items);
+        foreach (FlexItem item in items) {
+            item.MainSize = ClampFlexMainSize(item, item.Basis);
+            double factor = growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis;
+            if (!growing && !shrinking || factor <= 0D || Math.Abs(item.MainSize - item.Basis) > 0.0001D) {
+                unfrozen.Remove(item);
+            }
+        }
+
+        while (unfrozen.Count > 0) {
+            double frozenTotal = items.Where(item => !unfrozen.Contains(item)).Sum(item => item.MainSize);
+            double unfrozenBasisTotal = unfrozen.Sum(item => item.Basis);
+            double remaining = availableForItems - frozenTotal - unfrozenBasisTotal;
+            double factorTotal = unfrozen.Sum(item => growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis);
+            if (factorTotal <= 0D) break;
+
+            var newlyFrozen = new List<FlexItem>();
+            foreach (FlexItem item in unfrozen) {
+                double factor = growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis;
+                double proposed = item.Basis + remaining * factor / factorTotal;
+                double clamped = ClampFlexMainSize(item, proposed);
+                item.MainSize = clamped;
+                if (Math.Abs(clamped - proposed) > 0.0001D) newlyFrozen.Add(item);
+            }
+
+            if (newlyFrozen.Count == 0) break;
+            foreach (FlexItem item in newlyFrozen) unfrozen.Remove(item);
+        }
+    }
+
+    private static double ClampFlexMainSize(FlexItem item, double value) {
+        HtmlRenderBoxStyle style = item.Style;
+        double nonContent = (style.BorderBox ? 0D : style.HorizontalInsets) + style.MarginLeft + style.MarginRight;
+        double minimum = style.MinWidth.HasValue ? style.MinWidth.Value + nonContent : 0D;
+        double maximum = style.MaxWidth.HasValue ? style.MaxWidth.Value + nonContent : double.PositiveInfinity;
+        return Math.Max(minimum, Math.Min(maximum, Math.Max(0D, value)));
+    }
+
+    private static double ResolveFlexCrossSize(HtmlRenderBoxStyle style, double naturalCrossSize) {
+        if (!style.ExplicitHeight.HasValue) return naturalCrossSize;
+        return style.BorderBox
+            ? Math.Max(0D, style.ExplicitHeight.Value - style.VerticalInsets)
+            : style.ExplicitHeight.Value;
+    }
+
+    private void StretchFlexItems(IReadOnlyList<FlexItem> items, HtmlRenderBoxStyle containerStyle, double crossSize, int depth) {
+        foreach (FlexItem item in items) {
+            string alignment = ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems);
+            if (alignment != "stretch" || item.Style.ExplicitHeight.HasValue) continue;
+            double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
+            var stretchedStyle = item.Style.Clone();
+            stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
+                ? targetBoxHeight
+                : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
+            item.Style = stretchedStyle;
+            item.Block = LayoutElement(item.Element, Math.Max(1D, item.MainSize), stretchedStyle, containerStyle, depth + 1);
+        }
+    }
+
+    private void ResolveFlexMainOffsets(IReadOnlyList<FlexItem> items, HtmlRenderBoxStyle style, double contentWidth, double gap, string source) {
+        if (items.Count == 0) return;
+        double used = items.Sum(item => item.MainSize) + gap * Math.Max(0, items.Count - 1);
+        double remaining = Math.Max(0D, contentWidth - used);
+        bool reverse = style.FlexDirection == "row-reverse";
+        ResolveJustification(style.JustifyContent, items.Count, remaining, gap, reverse, source, out double start, out double between);
+        double cursor = start;
+        foreach (FlexItem item in items) {
+            item.MainOffset = reverse ? contentWidth - cursor - item.MainSize : cursor;
+            cursor += item.MainSize + between;
+        }
+    }
+
+    private void ResolveJustification(string value, int itemCount, double remaining, double gap, bool reverse, string source, out double start, out double between) {
+        string normalized = value == "normal" ? "flex-start" : value;
+        start = 0D;
+        between = gap;
+        switch (normalized) {
+            case "flex-start":
+                return;
+            case "flex-end":
+                start = remaining;
+                return;
+            case "start":
+            case "left":
+                start = reverse ? remaining : 0D;
+                return;
+            case "end":
+            case "right":
+                start = reverse ? 0D : remaining;
+                return;
+            case "center":
+                start = remaining / 2D;
+                return;
+            case "space-between":
+                if (itemCount > 1) between += remaining / (itemCount - 1D);
+                return;
+            case "space-around":
+                if (itemCount > 0) {
+                    double spacing = remaining / itemCount;
+                    start = spacing / 2D;
+                    between += spacing;
+                }
+                return;
+            case "space-evenly":
+                double even = remaining / (itemCount + 1D);
+                start = even;
+                between += even;
+                return;
+            default:
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.FlexValueUnsupported, "An unsupported justify-content value used flex-start.", HtmlDiagnosticSeverity.Warning, source, "justify-content=" + value);
+                return;
+        }
+    }
+
+    private double ResolveFlexCrossOffset(FlexItem item, HtmlRenderBoxStyle containerStyle, double crossSize) {
+        string alignment = ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems);
+        double remaining = Math.Max(0D, crossSize - item.Block!.Height);
+        if (alignment == "flex-end" || alignment == "end") return remaining;
+        if (alignment == "center") return remaining / 2D;
+        if (alignment == "stretch" || alignment == "flex-start" || alignment == "start") return 0D;
+        ReportUnsupportedFlexValue(item.Element, "align-self=" + alignment);
+        return 0D;
+    }
+
+    private static string ResolveFlexAlignment(string alignSelf, string alignItems) {
+        string resolved = alignSelf == "auto" ? alignItems : alignSelf;
+        return resolved == "normal" ? "stretch" : resolved;
+    }
+
+    private void ReportUnsupportedFlexValue(IElement element, string detail) {
+        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.FlexValueUnsupported, "A flex property value used a deterministic fallback.", HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element), detail);
+    }
+
+    private sealed class FlexItem {
+        internal FlexItem(IElement element, HtmlRenderBoxStyle style, int sourceIndex) {
+            Element = element;
+            Style = style;
+            SourceIndex = sourceIndex;
+        }
+
+        internal IElement Element { get; }
+        internal HtmlRenderBoxStyle Style { get; set; }
+        internal int SourceIndex { get; }
+        internal double Basis { get; set; }
+        internal double MainSize { get; set; }
+        internal double MainOffset { get; set; }
+        internal double CrossOffset { get; set; }
+        internal HtmlRenderFlowBlock? Block { get; set; }
+    }
+}

@@ -10,6 +10,20 @@ internal sealed class HtmlRenderBoxStyle {
     internal string Bottom = "auto";
     internal string Left = "auto";
     internal string ZIndex = "auto";
+    internal string FlexDirection = "row";
+    internal string FlexWrap = "nowrap";
+    internal string JustifyContent = "normal";
+    internal string AlignItems = "normal";
+    internal string AlignContent = "normal";
+    internal string AlignSelf = "auto";
+    internal double FlexGrow;
+    internal double FlexShrink = 1D;
+    internal string FlexBasis = "auto";
+    internal int Order;
+    internal double RowGap;
+    internal double ColumnGap;
+    internal string UnsupportedColumnGap = string.Empty;
+    internal bool HasAutoMargin;
     internal double MarginTop;
     internal double MarginRight;
     internal double MarginBottom;
@@ -50,4 +64,6 @@ internal sealed class HtmlRenderBoxStyle {
 
     internal double HorizontalInsets => BorderWidth * 2D + PaddingLeft + PaddingRight;
     internal double VerticalInsets => BorderWidth * 2D + PaddingTop + PaddingBottom;
+
+    internal HtmlRenderBoxStyle Clone() => (HtmlRenderBoxStyle)MemberwiseClone();
 }

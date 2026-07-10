@@ -34,6 +34,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>Flex layout used the documented normal-flow fallback.</summary>
     public const string FlexLayoutPending = "HtmlRenderFlexLayoutPending";
+    /// <summary>A flex property value used a documented deterministic fallback.</summary>
+    public const string FlexValueUnsupported = "HtmlRenderFlexValueUnsupported";
     /// <summary>Content without a safe page break was force-fragmented.</summary>
     public const string ForcedFragment = "HtmlRenderForcedFragment";
     /// <summary>Grid layout used the documented normal-flow fallback.</summary>
@@ -109,6 +111,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceUnavailable,
         FontFormatUnsupported,
         FlexLayoutPending,
+        FlexValueUnsupported,
         ForcedFragment,
         GeneratedContentUnsupported,
         GeneratedCounterUnsupported,

@@ -72,6 +72,7 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyDimensions(element, computed, containingWidth, fontSize, style, !pseudoElement);
         ApplyPaint(computed, style);
         ApplyPositioning(computed, style);
+        ApplyFlex(computed, containingWidth, fontSize, style);
         ApplyBreaks(computed, style);
         return style;
     }
@@ -214,6 +215,11 @@ internal sealed class HtmlRenderStyleResolver {
 
     private void ApplyBoxValues(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
         string margin = computed.GetValue("margin");
+        style.HasAutoMargin = HtmlRenderCssValues.SplitWhitespace(margin).Any(value => string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(computed.GetValue("margin-top"), "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computed.GetValue("margin-right"), "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computed.GetValue("margin-bottom"), "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computed.GetValue("margin-left"), "auto", StringComparison.OrdinalIgnoreCase);
         if (margin.Length > 0) HtmlRenderCssValues.ApplyBoxShorthand(margin, reference, fontSize, _options.DefaultFontSize, ref style.MarginTop, ref style.MarginRight, ref style.MarginBottom, ref style.MarginLeft);
         ApplyLength(computed.GetValue("margin-top"), reference, fontSize, ref style.MarginTop);
         ApplyLength(computed.GetValue("margin-right"), reference, fontSize, ref style.MarginRight);
@@ -437,6 +443,87 @@ internal sealed class HtmlRenderStyleResolver {
         style.Left = NormalizeCssValue(computed.GetValue("left"), "auto");
         style.ZIndex = NormalizeCssValue(computed.GetValue("z-index"), "auto");
     }
+
+    private void ApplyFlex(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
+        style.FlexDirection = NormalizeCssValue(computed.GetValue("flex-direction"), "row");
+        style.FlexWrap = NormalizeCssValue(computed.GetValue("flex-wrap"), "nowrap");
+        ApplyFlexFlow(computed.GetValue("flex-flow"), style);
+        style.JustifyContent = NormalizeCssValue(computed.GetValue("justify-content"), "normal");
+        style.AlignItems = NormalizeCssValue(computed.GetValue("align-items"), "normal");
+        style.AlignContent = NormalizeCssValue(computed.GetValue("align-content"), "normal");
+        style.AlignSelf = NormalizeCssValue(computed.GetValue("align-self"), "auto");
+        ApplyFlexShorthand(computed.GetValue("flex"), style);
+        if (TryNonNegativeNumber(computed.GetValue("flex-grow"), out double grow)) style.FlexGrow = grow;
+        if (TryNonNegativeNumber(computed.GetValue("flex-shrink"), out double shrink)) style.FlexShrink = shrink;
+        string basis = computed.GetValue("flex-basis");
+        if (!string.IsNullOrWhiteSpace(basis)) style.FlexBasis = basis.Trim().ToLowerInvariant();
+        if (int.TryParse(computed.GetValue("order"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int order)) style.Order = order;
+        ApplyGap(computed, reference, fontSize, style);
+    }
+
+    private static void ApplyFlexFlow(string value, HtmlRenderBoxStyle style) {
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(value)) {
+            string normalized = token.Trim().ToLowerInvariant();
+            if (normalized == "row" || normalized == "row-reverse" || normalized == "column" || normalized == "column-reverse") style.FlexDirection = normalized;
+            else if (normalized == "nowrap" || normalized == "wrap" || normalized == "wrap-reverse") style.FlexWrap = normalized;
+        }
+    }
+
+    private static void ApplyFlexShorthand(string value, HtmlRenderBoxStyle style) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0) return;
+        if (normalized == "none") {
+            style.FlexGrow = 0D;
+            style.FlexShrink = 0D;
+            style.FlexBasis = "auto";
+            return;
+        }
+
+        if (normalized == "auto") {
+            style.FlexGrow = 1D;
+            style.FlexShrink = 1D;
+            style.FlexBasis = "auto";
+            return;
+        }
+
+        if (normalized == "initial") return;
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(normalized);
+        if (parts.Count == 0 || !TryNonNegativeNumber(parts[0], out double grow)) return;
+        style.FlexGrow = grow;
+        style.FlexBasis = "0%";
+        if (parts.Count == 1) return;
+        if (TryNonNegativeNumber(parts[1], out double shrink)) {
+            style.FlexShrink = shrink;
+            if (parts.Count > 2) style.FlexBasis = parts[2];
+        } else {
+            style.FlexBasis = parts[1];
+        }
+    }
+
+    private void ApplyGap(HtmlComputedStyle computed, double reference, double fontSize, HtmlRenderBoxStyle style) {
+        IReadOnlyList<string> gap = HtmlRenderCssValues.SplitWhitespace(computed.GetValue("gap"));
+        string row = gap.Count > 0 ? gap[0] : string.Empty;
+        string column = gap.Count > 1 ? gap[1] : row;
+        if (!string.IsNullOrWhiteSpace(computed.GetValue("row-gap"))) row = computed.GetValue("row-gap");
+        if (!string.IsNullOrWhiteSpace(computed.GetValue("column-gap"))) column = computed.GetValue("column-gap");
+        style.RowGap = ResolveGap(row, reference, fontSize, out _);
+        style.ColumnGap = ResolveGap(column, reference, fontSize, out bool columnUnsupported);
+        if (columnUnsupported) style.UnsupportedColumnGap = column.Trim();
+    }
+
+    private double ResolveGap(string value, double reference, double fontSize, out bool unsupported) {
+        unsupported = false;
+        if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return 0D;
+        if (HtmlRenderCssValues.TryLength(value, reference, fontSize, _options.DefaultFontSize, out double resolved) && resolved >= 0D) return resolved;
+        unsupported = true;
+        return 0D;
+    }
+
+    private static bool TryNonNegativeNumber(string value, out double result) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+        && !double.IsNaN(result)
+        && !double.IsInfinity(result)
+        && result >= 0D;
 
     private static string NormalizeCssValue(string value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim().ToLowerInvariant();

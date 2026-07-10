@@ -59,6 +59,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         if (style.Display == "none") return;
+        if (style.Display == "inline-flex") {
+            AddUnsupported(HtmlRenderDiagnosticCodes.FlexLayoutPending, "Inline flex layout is not active yet; content uses inline flow.", element);
+        } else if (style.Display == "inline-grid") {
+            AddUnsupported(HtmlRenderDiagnosticCodes.GridLayoutPending, "Inline grid layout is not active yet; content uses inline flow.", element);
+        }
         ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double elementPaintOffsetX, out double elementPaintOffsetY);
         double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
         double paintOffsetY = inheritedPaintOffsetY + elementPaintOffsetY;

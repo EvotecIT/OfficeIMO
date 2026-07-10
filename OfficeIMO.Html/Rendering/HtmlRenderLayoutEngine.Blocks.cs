@@ -42,6 +42,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag == "img") return ApplyElementPositioning(LayoutImage(element, containingWidth, style), style, containingWidth, containingHeight, element);
         if (tag == "table") return ApplyElementPositioning(LayoutTable(element, containingWidth, style, depth), style, containingWidth, containingHeight, element);
         if (tag == "hr") return ApplyElementPositioning(LayoutHorizontalRule(element, containingWidth, style), style, containingWidth, containingHeight, element);
+        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
+            return ApplyElementPositioning(flexBlock, style, containingWidth, containingHeight, element);
+        }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -204,7 +207,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportUnsupportedLayout(IElement element, HtmlRenderBoxStyle style) {
         string display = style.Display;
         if (display == "flex" || display == "inline-flex") {
-            AddUnsupported(HtmlRenderDiagnosticCodes.FlexLayoutPending, "Flex layout is not yet active in the direct HTML renderer; children use normal flow.", element);
+            AddUnsupported(HtmlRenderDiagnosticCodes.FlexLayoutPending, "This flex formatting case is not active yet; children use normal flow.", element);
         } else if (display == "grid" || display == "inline-grid") {
             AddUnsupported(HtmlRenderDiagnosticCodes.GridLayoutPending, "Grid layout is not yet active in the direct HTML renderer; children use normal flow.", element);
         }
