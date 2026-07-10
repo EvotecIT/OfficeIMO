@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLogoWallSlideOptions resolvedOptions = options ?? new PowerPointLogoWallSlideOptions();
             List<PowerPointLogoItem> logoList = NormalizeLogoItems(logos);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -64,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCoverageSlideOptions resolvedOptions = options ?? new PowerPointCoverageSlideOptions();
             List<PowerPointCoverageLocation> locationList = NormalizeLocations(locations);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCapabilitySlideOptions resolvedOptions = options ?? new PowerPointCapabilitySlideOptions();
             List<PowerPointCapabilitySection> sectionList = NormalizeCapabilitySections(sections);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;

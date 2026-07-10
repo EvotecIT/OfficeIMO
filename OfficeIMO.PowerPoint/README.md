@@ -241,6 +241,42 @@ deck.AddSectionSlide("Delivery plan", "Implementation overview");
 presentation.Save();
 ```
 
+### Corporate templates and brand import
+
+Inventory a real `.pptx` or `.potx` before generating slides. The inventory exposes masters, named layouts, semantic placeholders, theme tokens, likely logos, footer content, slide size, and layout safe areas. Missing or ambiguous semantic names fail with candidate diagnostics instead of selecting an arbitrary layout.
+
+```csharp
+PowerPointTemplateInventory inventory =
+    PowerPointPresentation.InspectTemplate("Corporate.potx");
+
+PowerPointTemplateLayoutInfo contentLayout =
+    inventory.ResolveLayout("Executive Summary");
+
+var layoutMap = new PowerPointTemplateLayoutMap()
+    .Map(PowerPointDeckPlanSlideKind.Section, inventory, "Title")
+    .Map(PowerPointDeckPlanSlideKind.Capability, contentLayout);
+
+using var presentation = PowerPointPresentation.CreateFromTemplate(
+    "Corporate.potx",
+    "Proposal.pptx",
+    new PowerPointTemplateCreationOptions {
+        SlideRetention = PowerPointTemplateSlideRetention.None
+    });
+
+var plan = new PowerPointDeckPlan()
+    .AddSection("Service proposal", "Generated into named corporate layouts.")
+    .AddCapability("Operating model", null, new[] {
+        new PowerPointCapabilitySection("Governance", "Clear ownership and decisions."),
+        new PowerPointCapabilitySection("Delivery", "Repeatable rollout evidence.")
+    });
+
+presentation.UseTemplateDesigner(inventory, layoutMap, "proposal-seed")
+    .AddSlidesWithContinuation(plan);
+presentation.Save();
+```
+
+Use `layout.ResolvePlaceholder("Customer Screenshot")` or `ResolvePlaceholder(PowerPointTemplatePlaceholderRole.Image)` when placing a native image, chart, table, or text box into authored placeholder bounds. `CreateDesignBrief(...)` maps the imported brand into designer tokens; `ApplyBrandTo(...)` applies the same colors and fonts to native theme parts in another presentation.
+
 ### Fluent authoring
 
 ```csharp

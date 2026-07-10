@@ -28,6 +28,7 @@ order: 30
 | `PowerPointLayoutBox` | Measurement helper for content regions, columns, and spacing |
 | `PowerPointDesignBrief` | Brand, purpose, palette, and design preferences used to generate alternatives |
 | `PowerPointDeckPlan` | Semantic sequence of designer slides that can be scored before rendering |
+| `PowerPointTemplateInventory` | Masters, layouts, placeholders, theme tokens, assets, footer content, and safe areas read from `.pptx` or `.potx` |
 
 ## Designer decks
 
@@ -129,6 +130,7 @@ For report-sized content, use `AddTableSlides(...)` or `PowerPointDeckPlan.WithC
 
 - [Slides](/docs/powerpoint/slides) -- Creating slides with text boxes, shapes, images, and charts.
 - [Designer Decks](/docs/powerpoint/designer/) -- Build visually structured decks with design briefs, recommendations, semantic plans, and screenshots.
+- [Templates and Brand Kits](/docs/powerpoint/templates/) -- Consume corporate `.pptx` and `.potx` files through named layouts, semantic placeholders, and imported theme tokens.
 - [Capability Matrix](/docs/powerpoint/capabilities/) -- Understand native authoring, preservation, preview, and reporting boundaries.
 - [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) -- Build decks from PowerShell with DSL aliases and cmdlets.
 - [OfficeIMO.PowerPoint product page](/products/powerpoint/) -- Package-level overview, install command, and positioning.

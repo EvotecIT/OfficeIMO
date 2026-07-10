@@ -9,12 +9,14 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointDeckComposer {
         private readonly PowerPointPresentation _presentation;
         private readonly PowerPointDeckDesign _design;
+        private readonly PowerPointTemplateLayoutMap? _templateLayoutMap;
         private int _slideIndex;
 
         internal PowerPointDeckComposer(PowerPointPresentation presentation, PowerPointDeckDesign design,
-            bool applyTheme) {
+            bool applyTheme, PowerPointTemplateLayoutMap? templateLayoutMap = null) {
             _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             _design = design ?? throw new ArgumentNullException(nameof(design));
+            _templateLayoutMap = templateLayoutMap;
 
             if (applyTheme) {
                 _design.ApplyTo(_presentation);
@@ -38,6 +40,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointDesignerSlideOptions>? configure = null) {
             PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Section);
             return _presentation.AddDesignerSectionSlide(title, subtitle, _design.Theme, options);
         }
 
@@ -49,6 +52,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCaseStudySlideOptions>? configure = null) {
             PowerPointCaseStudySlideOptions options = Configure(new PowerPointCaseStudySlideOptions(),
                 seed ?? clientTitle, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.CaseStudy);
             return _presentation.AddDesignerCaseStudySlide(clientTitle, sections, metrics, _design.Theme, options);
         }
 
@@ -59,6 +63,7 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointProcessSlideOptions>? configure = null) {
             PowerPointProcessSlideOptions options = Configure(new PowerPointProcessSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Process);
             return _presentation.AddDesignerProcessSlide(title, subtitle, steps, _design.Theme, options);
         }
 
@@ -69,6 +74,7 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointCardGridSlideOptions>? configure = null) {
             PowerPointCardGridSlideOptions options = Configure(new PowerPointCardGridSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.CardGrid);
             return _presentation.AddDesignerCardGridSlide(title, subtitle, cards, _design.Theme, options);
         }
 
@@ -79,6 +85,7 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointLogoWallSlideOptions>? configure = null) {
             PowerPointLogoWallSlideOptions options = Configure(new PowerPointLogoWallSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.LogoWall);
             return _presentation.AddDesignerLogoWallSlide(title, subtitle, logos, _design.Theme, options);
         }
 
@@ -90,6 +97,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCoverageSlideOptions>? configure = null) {
             PowerPointCoverageSlideOptions options = Configure(new PowerPointCoverageSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Coverage);
             return _presentation.AddDesignerCoverageSlide(title, subtitle, locations, _design.Theme, options);
         }
 
@@ -101,6 +109,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCapabilitySlideOptions>? configure = null) {
             PowerPointCapabilitySlideOptions options = Configure(new PowerPointCapabilitySlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Capability);
             return _presentation.AddDesignerCapabilitySlide(title, subtitle, sections, _design.Theme, options);
         }
 
@@ -111,6 +120,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
             PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
                 seed ?? "custom", configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Custom);
             return _presentation.ComposeDesignerSlide(compose, _design.Theme, options, dark);
         }
 
@@ -187,6 +197,13 @@ namespace OfficeIMO.PowerPoint {
             _design.Configure(options, resolvedSeed);
             configure?.Invoke(options);
             return options;
+        }
+
+        private void ApplyTemplateLayout(PowerPointDesignerSlideOptions options,
+            PowerPointDeckPlanSlideKind kind) {
+            if (options.TemplateLayout == null) {
+                options.TemplateLayout = _templateLayoutMap?.Resolve(kind);
+            }
         }
 
         private string ResolveSeed(string seed) {

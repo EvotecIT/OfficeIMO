@@ -17,7 +17,7 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 | Native tables | Yes | Yes | Yes | `AddTableSlides(...)` creates deterministic continuation pages and repeats headers. |
 | Column/bar, line, scatter, pie, doughnut charts | Yes | Yes | Yes | Chart data stays in native chart XML and the embedded workbook. |
 | Other chart XML already present in a deck | Limited edit surface | Yes | Snapshot/export support varies | Inspect and test the concrete family before promising mutation parity. |
-| Themes, masters, layouts, placeholders | Inspect and select; theme tokens can be changed | Yes | Inherited content is included where supported | Template consumption is safer than rebuilding corporate masters in code. |
+| Themes, masters, layouts, placeholders | Inspect, select, copy from `.pptx`/`.potx`, and map by semantic name | Yes | Inherited content is included where supported | Template inventory includes brand tokens, footer content, assets, and safe areas. |
 | Transitions | Yes | Yes | Static proof only | Preview exports show the slide state, not animated playback. |
 | SmartArt and advanced diagrams | Limited inspection/rendering | Yes | May be approximated or reported | Prefer native shapes for generated diagrams that must be predictably editable. |
 | Audio, video, embedded and linked content | Limited mutation | Yes | Reported or represented by a fallback | Do not treat a preview as playback proof. |
