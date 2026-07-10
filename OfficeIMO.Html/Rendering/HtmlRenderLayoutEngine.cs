@@ -90,22 +90,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
                     bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
                     double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
-                    double available = pageHeight - _options.Margins.Bottom - y - continuationHeight;
-                    if (available <= 0.0001D) {
-                        if (visuals.Count > 1) {
-                            CommitPage(pages, visuals, pageWidth, pageHeight);
-                            visuals = CreatePageVisuals(pageWidth, pageHeight);
-                            y = _options.Margins.Top;
-                            continue;
-                        }
-
-                        repeatContinuation = false;
-                        continuationHeight = 0D;
-                        available = contentHeight;
-                        _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, "A repeated table header was suppressed because it consumed the available page content area.", HtmlDiagnosticSeverity.Warning, block.Source);
-                    }
-
-                    double fragmentEnd = FindFragmentEnd(block, blockOffset, available);
+                    double rawAvailable = pageHeight - _options.Margins.Bottom - y;
+                    HtmlRenderTrailingGroup? trailingGroup = ResolveTrailingGroup(block, blockOffset, Math.Max(0D, rawAvailable - continuationHeight), out double fragmentLimit);
+                    bool repeatTrailing = trailingGroup != null && trailingGroup.Visuals.Count > 0 && trailingGroup.Height > 0D;
+                    double trailingHeight = repeatTrailing ? trailingGroup!.Height : 0D;
+                    double available = rawAvailable - continuationHeight - trailingHeight;
+                    double fragmentEnd = available > 0.0001D
+                        ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
+                        : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
                         if (visuals.Count > 1) {
                             CommitPage(pages, visuals, pageWidth, pageHeight);
@@ -114,20 +106,67 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             continue;
                         }
 
-                        if (repeatContinuation) {
-                            double fallbackAvailable = pageHeight - _options.Margins.Bottom - y;
-                            double fallbackEnd = FindFragmentEnd(block, blockOffset, fallbackAvailable);
-                            if (fallbackEnd > blockOffset + 0.0001D) {
+                        bool originalContinuation = repeatContinuation;
+                        bool originalTrailing = repeatTrailing;
+                        bool foundFallback = false;
+                        if (originalContinuation) {
+                            double candidateAvailable = rawAvailable - trailingHeight;
+                            double candidateEnd = candidateAvailable > 0.0001D
+                                ? FindFragmentEnd(block, blockOffset, candidateAvailable, fragmentLimit)
+                                : blockOffset;
+                            if (candidateEnd > blockOffset + 0.0001D) {
                                 repeatContinuation = false;
                                 continuationHeight = 0D;
-                                available = fallbackAvailable;
-                                fragmentEnd = fallbackEnd;
-                                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, "A repeated table header was suppressed because it left no safe body-row break on an empty page.", HtmlDiagnosticSeverity.Warning, block.Source);
+                                available = candidateAvailable;
+                                fragmentEnd = candidateEnd;
+                                foundFallback = true;
                             }
                         }
 
-                        if (fragmentEnd <= blockOffset + 0.0001D) {
-                            fragmentEnd = Math.Min(block.Height, blockOffset + available);
+                        if (!foundFallback && originalTrailing) {
+                            double candidateAvailable = rawAvailable - (originalContinuation ? continuationGroup!.Height : 0D);
+                            double candidateEnd = candidateAvailable > 0.0001D
+                                ? FindFragmentEnd(block, blockOffset, candidateAvailable, fragmentLimit)
+                                : blockOffset;
+                            if (candidateEnd > blockOffset + 0.0001D) {
+                                repeatContinuation = originalContinuation;
+                                continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
+                                repeatTrailing = false;
+                                trailingHeight = 0D;
+                                available = candidateAvailable;
+                                fragmentEnd = candidateEnd;
+                                foundFallback = true;
+                            }
+                        }
+
+                        if (!foundFallback && originalContinuation && originalTrailing) {
+                            double candidateEnd = FindFragmentEnd(block, blockOffset, rawAvailable, fragmentLimit);
+                            if (candidateEnd > blockOffset + 0.0001D) {
+                                repeatContinuation = false;
+                                continuationHeight = 0D;
+                                repeatTrailing = false;
+                                trailingHeight = 0D;
+                                available = rawAvailable;
+                                fragmentEnd = candidateEnd;
+                                foundFallback = true;
+                            }
+                        }
+
+                        if (foundFallback) {
+                            if (originalContinuation && !repeatContinuation) {
+                                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, "A repeated table header was suppressed because it left no safe body-row break on an empty page.", HtmlDiagnosticSeverity.Warning, block.Source);
+                            }
+
+                            if (originalTrailing && !repeatTrailing) {
+                                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed, "A repeated table footer was suppressed because it left no safe body-row break on an empty page.", HtmlDiagnosticSeverity.Warning, block.Source);
+                            }
+                        } else {
+                            repeatContinuation = false;
+                            continuationHeight = 0D;
+                            repeatTrailing = false;
+                            trailingHeight = 0D;
+                            available = Math.Max(0D, rawAvailable);
+                            fragmentEnd = Math.Min(fragmentLimit, blockOffset + available);
                             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ForcedFragment, "A layout block had no safe break opportunity within one page and was force-fragmented.", HtmlDiagnosticSeverity.Warning, block.Source);
                         }
                     }
@@ -141,6 +180,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     AddTranslatedVisuals(visuals, fragment, _options.Margins.Left, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
+                    if (repeatTrailing) {
+                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, _options.Margins.Left, y);
+                        y += trailingHeight;
+                        if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) blockOffset = trailingGroup.SourceEndsAt;
+                    }
+
                     if (blockOffset < block.Height - 0.0001D) {
                         CommitPage(pages, visuals, pageWidth, pageHeight);
                         visuals = CreatePageVisuals(pageWidth, pageHeight);
@@ -205,8 +250,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available) {
-        double limit = Math.Min(block.Height, start + available);
+    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null) {
+        double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
         double best = start;
         foreach (double offset in block.BreakOffsets) {
             if (offset > start + 0.0001D
@@ -217,6 +262,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return best;
+    }
+
+    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, out double fragmentLimit) {
+        HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));
+        if (active != null) {
+            fragmentLimit = active.ContentEndsAt;
+            return active;
+        }
+
+        HtmlRenderTrailingGroup? upcoming = block.TrailingGroups
+            .Where(group => group.StartsAt > start + 0.0001D && group.StartsAt < start + available - 0.0001D)
+            .OrderBy(group => group.StartsAt)
+            .FirstOrDefault();
+        if (upcoming == null) {
+            fragmentLimit = block.Height;
+            return null;
+        }
+
+        double candidateAvailable = Math.Max(0D, available - upcoming.Height);
+        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt);
+        if (candidateEnd > upcoming.StartsAt + 0.0001D) {
+            fragmentLimit = upcoming.ContentEndsAt;
+            return upcoming;
+        }
+
+        fragmentLimit = upcoming.StartsAt;
+        return null;
     }
 
     private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate) {

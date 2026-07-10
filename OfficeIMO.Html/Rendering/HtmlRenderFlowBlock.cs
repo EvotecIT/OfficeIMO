@@ -15,6 +15,7 @@ internal sealed class HtmlRenderFlowBlock {
         int widows = 2,
         IEnumerable<HtmlRenderLineBreakGroup>? lineBreakGroups = null,
         IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
+        IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null,
         IEnumerable<HtmlRenderVisual>? continuationVisuals = null,
         double continuationHeight = 0D,
         double continuationStartsAfter = 0D) {
@@ -56,6 +57,7 @@ internal sealed class HtmlRenderFlowBlock {
         }
 
         ContinuationGroups = repeatedGroups.AsReadOnly();
+        TrailingGroups = new List<HtmlRenderTrailingGroup>(trailingGroups ?? Array.Empty<HtmlRenderTrailingGroup>()).AsReadOnly();
     }
 
     internal double Width { get; }
@@ -68,6 +70,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal IReadOnlyList<double> BreakOffsets { get; }
     internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
+    internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
 }
 
 internal sealed class HtmlRenderContinuationGroup {
@@ -91,6 +94,35 @@ internal sealed class HtmlRenderContinuationGroup {
             EndsAt + offsetY,
             Height,
             Visuals.Select((visual, index) => visual.Translate(offsetX, 0D, index)));
+}
+
+internal sealed class HtmlRenderTrailingGroup {
+    internal HtmlRenderTrailingGroup(double startsAt, double contentEndsAt, double sourceEndsAt, double height, IEnumerable<HtmlRenderVisual> visuals) {
+        StartsAt = startsAt;
+        ContentEndsAt = contentEndsAt;
+        SourceEndsAt = sourceEndsAt;
+        Height = height;
+        Visuals = new List<HtmlRenderVisual>(visuals).AsReadOnly();
+    }
+
+    internal double StartsAt { get; }
+    internal double ContentEndsAt { get; }
+    internal double SourceEndsAt { get; }
+    internal double Height { get; }
+    internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
+
+    internal bool AppliesAt(double offset) => offset >= StartsAt - 0.0001D && offset < ContentEndsAt - 0.0001D;
+
+    internal HtmlRenderTrailingGroup Translate(double offsetX, double offsetY, double? sourceEndsAt = null) {
+        double translatedSourceEnd = SourceEndsAt + offsetY;
+        double resolvedSourceEnd = sourceEndsAt ?? translatedSourceEnd;
+        return new HtmlRenderTrailingGroup(
+            StartsAt + offsetY,
+            ContentEndsAt + offsetY,
+            resolvedSourceEnd,
+            Height + Math.Max(0D, resolvedSourceEnd - translatedSourceEnd),
+            Visuals.Select((visual, index) => visual.Translate(offsetX, 0D, index)));
+    }
 }
 
 internal sealed class HtmlRenderLineBreakGroup {

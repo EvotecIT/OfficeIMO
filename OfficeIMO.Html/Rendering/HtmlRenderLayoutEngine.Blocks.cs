@@ -48,6 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lineBreakOffsets = new List<double>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
+        var trailingGroups = new List<HtmlRenderTrailingGroup>();
         double contentHeight = 0D;
         IReadOnlyList<HtmlRenderFlowBlock> children = HasBlockChildren(element, contentWidth, style)
             ? BuildChildBlocks(element, contentWidth, style, depth)
@@ -71,6 +72,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 foreach (HtmlRenderContinuationGroup group in child.ContinuationGroups) {
                     continuationGroups.Add(group.Translate(0D, childStart));
+                }
+
+                foreach (HtmlRenderTrailingGroup group in child.TrailingGroups) {
+                    trailingGroups.Add(group.Translate(0D, childStart));
                 }
 
                 contentBreakOffsets.Add(contentHeight);
@@ -106,6 +111,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
         IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));
         IEnumerable<HtmlRenderContinuationGroup> adjustedContinuationGroups = continuationGroups.Select(group => group.Translate(contentX, contentYForBreaks));
+        IEnumerable<HtmlRenderTrailingGroup> adjustedTrailingGroups = trailingGroups.Select(group =>
+            group.Translate(
+                contentX,
+                contentYForBreaks,
+                group.SourceEndsAt >= contentHeight - 0.0001D ? outerHeight : (double?)null));
         return new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -119,7 +129,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Orphans,
             style.Widows,
             adjustedLineBreakGroups,
-            adjustedContinuationGroups);
+            adjustedContinuationGroups,
+            adjustedTrailingGroups);
     }
 
     private void FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {

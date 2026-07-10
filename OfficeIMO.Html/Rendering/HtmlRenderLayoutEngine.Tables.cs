@@ -50,15 +50,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (column >= columnCount) break;
             }
 
-            rowLayouts.Add(new TableRowLayout(cellLayouts, Math.Max(1D, rowHeight), IsHeaderRow(row, table)));
+            rowLayouts.Add(new TableRowLayout(cellLayouts, Math.Max(1D, rowHeight), IsHeaderRow(row, table), IsFooterRow(row, table)));
         }
+
+        rowLayouts = rowLayouts.Where(row => row.IsHeader)
+            .Concat(rowLayouts.Where(row => !row.IsHeader && !row.IsFooter))
+            .Concat(rowLayouts.Where(row => row.IsFooter))
+            .ToList();
 
         double rowsHeight = rowLayouts.Sum(row => row.Height);
         double tableHeight = style.VerticalInsets + rowsHeight;
         var visuals = new List<HtmlRenderVisual>();
         var breakOffsets = new List<double>();
         var continuationVisuals = new List<HtmlRenderVisual>();
+        var trailingVisuals = new List<HtmlRenderVisual>();
         double continuationHeight = 0D;
+        double trailingStart = 0D;
+        double trailingHeight = 0D;
         bool collectingLeadingHeaders = true;
         AddBoxShape(visuals, style, style.MarginLeft, style.MarginTop, tableWidth, tableHeight, table);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
@@ -67,6 +75,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
             TableRowLayout row = rowLayouts[rowIndex];
             int rowVisualStart = visuals.Count;
+            if (row.IsFooter && trailingVisuals.Count == 0) trailingStart = rowY;
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + cell.Column * columnWidth;
                 OfficeShape box = OfficeShape.Rectangle(cell.Width, row.Height);
@@ -91,13 +100,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 collectingLeadingHeaders = false;
             }
 
+            if (row.IsFooter) {
+                for (int visualIndex = rowVisualStart; visualIndex < visuals.Count; visualIndex++) {
+                    trailingVisuals.Add(visuals[visualIndex].Translate(0D, -trailingStart, trailingVisuals.Count));
+                }
+
+                trailingHeight += row.Height;
+            }
+
             rowY += row.Height;
-            bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader);
+            bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader && !candidate.IsFooter);
             if (!headerHasBodyAfter) breakOffsets.Add(rowY);
         }
 
         double outerHeight = style.MarginTop + tableHeight + style.MarginBottom;
         breakOffsets.Add(outerHeight);
+        IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
+            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, outerHeight, outerHeight - trailingStart, trailingVisuals) }
+            : Array.Empty<HtmlRenderTrailingGroup>();
         return new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -107,6 +127,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             true,
             source,
             breakOffsets,
+            trailingGroups: trailingGroups,
             continuationVisuals: continuationVisuals,
             continuationHeight: continuationHeight,
             continuationStartsAfter: headerStart + continuationHeight);
@@ -136,21 +157,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
+    private static bool IsFooterRow(IElement row, IElement table) {
+        IElement? current = row.ParentElement;
+        while (current != null && !ReferenceEquals(current, table)) {
+            if (string.Equals(current.TagName, "tfoot", StringComparison.OrdinalIgnoreCase)) return true;
+            current = current.ParentElement;
+        }
+
+        return false;
+    }
+
     private static int ReadSpan(string? value, int maximum) {
         if (!int.TryParse(value, out int span) || span <= 0) span = 1;
         return Math.Max(1, Math.Min(span, maximum));
     }
 
     private sealed class TableRowLayout {
-        internal TableRowLayout(IReadOnlyList<TableCellLayout> cells, double height, bool isHeader) {
+        internal TableRowLayout(IReadOnlyList<TableCellLayout> cells, double height, bool isHeader, bool isFooter) {
             Cells = cells;
             Height = height;
             IsHeader = isHeader;
+            IsFooter = isFooter;
         }
 
         internal IReadOnlyList<TableCellLayout> Cells { get; }
         internal double Height { get; }
         internal bool IsHeader { get; }
+        internal bool IsFooter { get; }
     }
 
     private sealed class TableCellLayout {

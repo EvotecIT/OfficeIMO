@@ -306,6 +306,47 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_RepeatsTableFooterRowsWithoutDuplicatingSourceRows() {
+        string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index => "<tr><td>Row" + index.ToString("D2") + "</td></tr>"));
+        string html = "<div style='padding:2px'><table><thead><tr><th>HeaderMarker</th></tr></thead><tfoot><tr><td>FooterMarker</td></tr></tfoot><tbody>" + rows + "</tbody></table></div>";
+        var renderOptions = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(3D, 2D),
+            Margins = HtmlRenderMargins.All(16D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, renderOptions);
+        string renderedText = string.Join(" ", rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text));
+
+        Assert.True(rendered.Pages.Count >= 3);
+        Assert.All(rendered.Pages, page => {
+            Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "HeaderMarker");
+            Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "FooterMarker");
+        });
+        foreach (int index in Enumerable.Range(0, 18)) {
+            string marker = "Row" + index.ToString("D2");
+            Assert.Equal(1, renderedText.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
+        }
+
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        IReadOnlyList<OfficeImageExportResult> images = html.ExportImages(OfficeImageExportFormat.Png, renderOptions);
+        Assert.Equal(rendered.Pages.Count, images.Count);
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = renderOptions;
+        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        int repeatedFooterCount = pdfText.Split(new[] { "FooterMarker" }, StringSplitOptions.None).Length - 1;
+        Assert.Equal(rendered.Pages.Count, repeatedFooterCount);
+
+        HtmlRenderDocument continuous = HtmlRenderEngine.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous });
+        string continuousText = string.Join(" ", continuous.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text));
+        Assert.Equal(1, continuousText.Split(new[] { "FooterMarker" }, StringSplitOptions.None).Length - 1);
+        Assert.True(continuousText.IndexOf("Row17", StringComparison.Ordinal) < continuousText.IndexOf("FooterMarker", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void HtmlRender_Paged_RendersFirstLeftRightMarginContentAcrossSvgAndPdf() {
         string words = string.Join(" ", Enumerable.Range(0, 120).Select(index => "word" + index.ToString("D3")));
         string html = """
