@@ -142,6 +142,45 @@ deck.AddSlides(plan);
 
 Rail process slides can keep the same semantic steps while switching connector treatment. Use `ContinuousRail` for a quiet line, `SegmentArrows` for compact directional flow, `StepDots` for a softer editorial rhythm, or `None` when the numbered nodes should stand alone.
 
+## Semantic story families
+
+The plan also includes presentation-specific story families for the parts of a deck that usually need hand-built layouts:
+
+| Family | Variants | Native output |
+|---|---|---|
+| Executive summary | `MetricLead`, `DecisionBrief` | Text, metric strips, and cards |
+| Chart story | `ChartHero`, `InsightRail` | Editable chart, caption, source, and alt text |
+| Comparison | `SideBySide`, `DecisionMatrix` | Cards or editable table |
+| Screenshot story | `HeroAnnotated`, `SplitNarrative` | Picture with focal crop, alt text, caption, provenance, and annotations |
+| Appendix table | `FullWidth`, `NotesRail` | Editable table with deterministic continuation |
+| Architecture | `Layered`, `HubSpoke` | Editable shapes, labels, and connectors |
+| Closing | `Statement`, `ActionPanel` | Statement or explicit next-action composition |
+
+`Auto` remains deterministic under the design seed and content shape. A caller can force a variant when a specific narrative treatment is required.
+
+```csharp
+var plan = new PowerPointDeckPlan()
+    .AddExecutiveSummary("Executive summary", null,
+        new PowerPointExecutiveSummaryContent(metrics, decisionPoints,
+            "One sentence that frames the decision."))
+    .AddChartStory("Adoption", "The chart remains editable", chartStory,
+        configure: options => options.Variant = PowerPointChartStoryLayoutVariant.InsightRail)
+    .AddComparison("Implementation choice", null, options)
+    .AddScreenshotStory("Product proof", null, semanticImage, narrative)
+    .AddArchitecture("Platform", null, architecture)
+    .AddAppendixTable("Evidence", null, evidenceTable)
+    .AddClosing("Next decision", new PowerPointClosingContent(
+        "Beautiful automation is trustworthy automation.", "Approve the pilot"));
+
+PowerPointDeckPlan expanded = plan.WithContinuations();
+PowerPointDeckRhythmReport rhythm = expanded.InspectRhythm(deck.Design);
+deck.AddSlides(expanded);
+```
+
+The rhythm report uses stable codes such as `Rhythm.RepeatedKind`, `Rhythm.RepeatedVariant`,
+`Rhythm.DenseStreak`, `Rhythm.LongSection`, and `Rhythm.MissingClosing`. It is an advisory composition check;
+`Preflight()` remains the artifact-level gate for clipping, bounds, collisions, and missing image relationships.
+
 When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:
 
 ```csharp
@@ -201,6 +240,7 @@ The runnable examples generate the same decks used for the screenshots above.
 ```powershell
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-design-brief
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-deck-plan
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-e2e
 ```
 
 Use `--powerpoint` to run the full PowerPoint example set and validate every generated deck.

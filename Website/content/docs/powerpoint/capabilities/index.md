@@ -15,6 +15,8 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 | Auto shapes, lines, connectors, groups | Yes | Yes | Yes, within reported renderer limits | Custom geometry and effects may be approximated in fixed-layout exports. |
 | Pictures and SVG assets | Yes | Yes | Yes | Crop and transforms are supported; broken image relationships are preflight errors. |
 | Native tables | Yes | Yes | Yes | `AddTableSlides(...)` creates deterministic continuation pages and repeats headers. |
+| Semantic story families | Yes | Yes | Yes | Executive, chart, comparison, screenshot, appendix, architecture, and closing stories each have two editable compositions. |
+| Deck rhythm inspection | Yes, before rendering | Not applicable | Not applicable | Reports repeated kinds/variants, dense streaks, long sections, weak openings, and missing closings with stable codes. |
 | Column/bar, line, scatter, pie, doughnut charts | Yes | Yes | Yes | Chart data stays in native chart XML and the embedded workbook. |
 | Other chart XML already present in a deck | Limited edit surface | Yes | Snapshot/export support varies | Inspect and test the concrete family before promising mutation parity. |
 | Themes, masters, layouts, placeholders | Inspect, select, copy from `.pptx`/`.potx`, and map by semantic name | Yes | Inherited content is included where supported | Template inventory includes brand tokens, footer content, assets, and safe areas. |

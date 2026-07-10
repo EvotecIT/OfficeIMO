@@ -29,6 +29,8 @@ namespace OfficeIMO.PowerPoint {
         public const int MaxCapabilitySections = 6;
         /// <summary>Capability sections above this count are considered dense.</summary>
         public const int DenseCapabilitySections = 4;
+        /// <summary>Maximum rows rendered by one appendix-table slide.</summary>
+        public const int MaxAppendixTableRows = 14;
     }
 
     /// <summary>
@@ -49,6 +51,20 @@ namespace OfficeIMO.PowerPoint {
         Coverage,
         /// <summary>Capability or content slide.</summary>
         Capability,
+        /// <summary>Executive-summary slide.</summary>
+        ExecutiveSummary,
+        /// <summary>Editable chart with narrative context.</summary>
+        ChartStory,
+        /// <summary>Side-by-side or matrix comparison.</summary>
+        Comparison,
+        /// <summary>Screenshot with semantic crop, metadata, and annotations.</summary>
+        ScreenshotStory,
+        /// <summary>Paginated editable appendix table.</summary>
+        AppendixTable,
+        /// <summary>Editable architecture diagram.</summary>
+        Architecture,
+        /// <summary>Closing statement or action slide.</summary>
+        Closing,
         /// <summary>Custom raw-composition slide.</summary>
         Custom
     }
@@ -66,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Semantic sequence of designer slides that can be applied to a deck composer.
     /// </summary>
-    public sealed class PowerPointDeckPlan {
+    public sealed partial class PowerPointDeckPlan {
         private readonly List<PowerPointDeckPlanSlide> _slides = new();
 
         /// <summary>

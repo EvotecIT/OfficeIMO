@@ -12,6 +12,7 @@ namespace OfficeIMO.PowerPoint {
         private int _logosPerSlide = PowerPointDeckPlanLimits.DenseLogoWallItems;
         private int _locationsPerSlide = PowerPointDeckPlanLimits.VisibleCoveragePins;
         private int _capabilitySectionsPerSlide = PowerPointDeckPlanLimits.DenseCapabilitySections;
+        private int _appendixRowsPerSlide = PowerPointDeckPlanLimits.MaxAppendixTableRows;
 
         /// <summary>Maximum narrative case-study sections per generated page.</summary>
         public int CaseStudySectionsPerSlide {
@@ -59,6 +60,13 @@ namespace OfficeIMO.PowerPoint {
             get => _capabilitySectionsPerSlide;
             set => _capabilitySectionsPerSlide = RequireRange(value, 1,
                 PowerPointDeckPlanLimits.MaxCapabilitySections, nameof(CapabilitySectionsPerSlide));
+        }
+
+        /// <summary>Maximum appendix-table data rows per generated page.</summary>
+        public int AppendixRowsPerSlide {
+            get => _appendixRowsPerSlide;
+            set => _appendixRowsPerSlide = RequireRange(value, 1,
+                PowerPointDeckPlanLimits.MaxAppendixTableRows, nameof(AppendixRowsPerSlide));
         }
 
         /// <summary>

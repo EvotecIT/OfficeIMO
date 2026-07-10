@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
@@ -26,40 +27,81 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .WithIdentity("Delivery Review", eyebrow: "OFFICEIMO", footerLeft: "DELIVERY",
                     footerRight: "Generated proof");
             PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 0);
+            string brandImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
+            var brandImage = new PowerPointImageAsset(brandImagePath,
+                "OfficeIMO brand mark used as a semantic visual asset") {
+                Caption = "Semantic images carry visible context and accessibility metadata",
+                Provenance = "OfficeIMO repository asset",
+                Placement = PowerPointImagePlacement.Fit
+            }.Annotate(new PowerPointImageAnnotation(0.5, 0.5, "Real asset",
+                "The picture remains native and editable in PowerPoint."));
+            var chartData = new PowerPointChartData(
+                new[] { "Q1", "Q2", "Q3", "Q4" },
+                new[] {
+                    new PowerPointChartSeries("Adoption", new[] { 28D, 43D, 61D, 72D }),
+                    new PowerPointChartSeries("Target", new[] { 35D, 50D, 65D, 80D })
+                });
+            var chartStory = new PowerPointChartStoryContent(OfficeChartKind.ColumnClustered, chartData,
+                new[] { "Adoption improved every quarter.", "The remaining gap to target is eight points." }) {
+                Caption = "Quarterly product adoption",
+                Provenance = "Illustrative customer-success dataset",
+                AlternativeText = "Clustered columns comparing quarterly adoption with target",
+                DataSummary = "Adoption rose from 28 to 72 while target rose from 35 to 80."
+            };
+            var appendixData = new PowerPointTableData(new[] { "Workstream", "Status", "Complete" },
+                Enumerable.Range(1, 17).Select(index => (IEnumerable<string>)new[] {
+                    "Workstream " + index,
+                    index % 3 == 0 ? "At risk" : "On track",
+                    (50 + index * 2) + "%"
+                })) {
+                Caption = "Delivery evidence",
+                Provenance = "Illustrative program dataset",
+                Notes = new[] { "Rows continue deterministically.", "Column headers repeat on every page." }
+            };
+            var architecture = new PowerPointArchitectureContent(new[] {
+                new PowerPointArchitectureNode("drawing", "Drawing core", "Shared semantics", "Core"),
+                new PowerPointArchitectureNode("ppt", "PowerPoint", "Native authoring", "Surfaces"),
+                new PowerPointArchitectureNode("markup", "Markup", "Thin adapter", "Surfaces"),
+                new PowerPointArchitectureNode("output", "Proof bundle", "PPTX, PNG, SVG, PDF", "Outputs")
+            }, new[] {
+                new PowerPointArchitectureEdge("drawing", "ppt", "drives"),
+                new PowerPointArchitectureEdge("drawing", "markup", "shares"),
+                new PowerPointArchitectureEdge("ppt", "output", "publishes")
+            });
             PowerPointDeckPlan plan = new PowerPointDeckPlan()
                 .AddSection("Executive delivery review", "Editable, measured, and ready for inspection")
+                .AddExecutiveSummary("Executive summary", "A decision-ready opening",
+                    new PowerPointExecutiveSummaryContent(
+                        new[] { new PowerPointMetric("13", "proof slides"), new PowerPointMetric("0", "hidden rows") },
+                        new[] {
+                            new PowerPointCardContent("Decision", new[] { "Use semantic story families" }),
+                            new PowerPointCardContent("Evidence", new[] { "Preflight every generated deck" })
+                        }, "OfficeIMO now connects narrative intent to editable PowerPoint primitives."))
+                .AddChartStory("Adoption story", "Native chart plus narrative and source context", chartStory)
+                .AddComparison("Implementation choice", "Two options, one explicit recommendation",
+                    new[] {
+                        new PowerPointComparisonItem("Shared semantic core", "One owner for reusable behavior",
+                            new[] { "Consistent", "Testable" }, new[] { "Requires deliberate contracts" }),
+                        new PowerPointComparisonItem("Local slide helpers", "Per-project composition logic",
+                            new[] { "Fast locally" }, new[] { "Drifts", "Duplicates behavior" })
+                    })
+                .AddArchitecture("End-to-end ownership", "Native shapes keep the system map editable", architecture)
+                .AddScreenshotStory("Semantic image proof", "Crop, focal point, caption, provenance, and alt text",
+                    brandImage, new[] { "Real image relationship", "Visible provenance", "Accessible description" })
                 .AddProcess("Delivery path", "Long content continues deterministically",
                     Enumerable.Range(1, 8).Select(index => new PowerPointProcessStep(
                         "Phase " + index, "Evidence and owner for delivery phase " + index + ".")))
                 .AddCardGrid("Decision signals", "A semantic story rendered as native shapes",
                     Enumerable.Range(1, 8).Select(index => new PowerPointCardContent(
-                        "Signal " + index, new[] { "Owner assigned", "Evidence available" })));
+                        "Signal " + index, new[] { "Owner assigned", "Evidence available" })))
+                .AddAppendixTable("Delivery detail", "Editable rows continue without truncation", appendixData)
+                .AddClosing("Next decision", new PowerPointClosingContent(
+                    "Beautiful automation is trustworthy automation.",
+                    "Inspect the proof bundle and approve the next release."));
 
-            deck.AddSlidesWithContinuation(plan);
-
-            DeliveryRow[] rows = Enumerable.Range(1, 17)
-                .Select(index => new DeliveryRow("Workstream " + index,
-                    index % 3 == 0 ? "At risk" : "On track", 50 + index * 2))
-                .ToArray();
-            var columns = new[] {
-                PowerPointTableColumn<DeliveryRow>.Create("Workstream", row => row.Name).WithWidthCm(9),
-                PowerPointTableColumn<DeliveryRow>.Create("Status", row => row.Status).WithWidthCm(5),
-                PowerPointTableColumn<DeliveryRow>.Create("Complete", row => row.Percent + "%")
-            };
-            presentation.AddTableSlides(rows, columns, new PowerPointTablePaginationOptions {
-                TableBounds = PowerPointLayoutBox.FromCentimeters(1.5, 3.0, 22.4, 9.5),
-                MinimumRowHeightPoints = 27,
-                ConfigureSlide = (slide, context) => {
-                    PowerPointTextBox title = slide.AddTitleCm(
-                        context.IsContinuation ? "Delivery detail (continued)" : "Delivery detail",
-                        1.5, 1.0, 22.4, 1.3);
-                    if (title.Paragraphs.Count > 0) {
-                        PowerPointTextStyle.Title.WithColor("0B3954").Apply(title.Paragraphs[0]);
-                    }
-                    slide.Notes.Text = "Table page " + (context.PageIndex + 1) + " of " + context.PageCount + ".";
-                },
-                ConfigureTable = (table, _) => table.BandedRows = true
-            });
+            PowerPointDeckPlan expandedPlan = plan.WithContinuations();
+            PowerPointDeckRhythmReport rhythm = expandedPlan.InspectRhythm(deck.Design);
+            deck.AddSlides(expandedPlan);
 
             var preflightOptions = new PowerPointDeckPreflightOptions {
                 MinimumReadableFontSizePoints = 8,
@@ -86,20 +128,9 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("    Deck: " + presentationPath);
             Console.WriteLine("    Slides: " + presentation.Slides.Count);
             Console.WriteLine("    Preflight: " + report.ErrorCount + " errors, " + report.WarningCount + " warnings");
+            Console.WriteLine("    Rhythm: " + rhythm.Score + "/100, " + rhythm.Findings.Count + " finding(s)");
             Console.WriteLine("    Proof: PNG, SVG, PDF, JSON, and Open XML validation");
             Helpers.Open(presentationPath, openPowerPoint);
-        }
-
-        private sealed class DeliveryRow {
-            internal DeliveryRow(string name, string status, int percent) {
-                Name = name;
-                Status = status;
-                Percent = percent;
-            }
-
-            internal string Name { get; }
-            internal string Status { get; }
-            internal int Percent { get; }
         }
     }
 }

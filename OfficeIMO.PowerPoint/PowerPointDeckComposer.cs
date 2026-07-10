@@ -113,6 +113,76 @@ namespace OfficeIMO.PowerPoint {
             return _presentation.AddDesignerCapabilitySlide(title, subtitle, sections, _design.Theme, options);
         }
 
+        /// <summary>Adds an executive-summary slide using the active deck design.</summary>
+        public PowerPointSlide AddExecutiveSummarySlide(string title, string? subtitle,
+            PowerPointExecutiveSummaryContent content, string? seed = null,
+            Action<PowerPointExecutiveSummarySlideOptions>? configure = null) {
+            PowerPointExecutiveSummarySlideOptions options = Configure(new PowerPointExecutiveSummarySlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.ExecutiveSummary);
+            return _presentation.AddDesignerExecutiveSummarySlide(title, subtitle, content, _design.Theme, options);
+        }
+
+        /// <summary>Adds an editable chart-story slide using the active deck design.</summary>
+        public PowerPointSlide AddChartStorySlide(string title, string? subtitle,
+            PowerPointChartStoryContent content, string? seed = null,
+            Action<PowerPointChartStorySlideOptions>? configure = null) {
+            PowerPointChartStorySlideOptions options = Configure(new PowerPointChartStorySlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.ChartStory);
+            return _presentation.AddDesignerChartStorySlide(title, subtitle, content, _design.Theme, options);
+        }
+
+        /// <summary>Adds a comparison slide using the active deck design.</summary>
+        public PowerPointSlide AddComparisonSlide(string title, string? subtitle,
+            IEnumerable<PowerPointComparisonItem> items, string? seed = null,
+            Action<PowerPointComparisonSlideOptions>? configure = null) {
+            PowerPointComparisonSlideOptions options = Configure(new PowerPointComparisonSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Comparison);
+            return _presentation.AddDesignerComparisonSlide(title, subtitle, items, _design.Theme, options);
+        }
+
+        /// <summary>Adds a semantic screenshot-story slide using the active deck design.</summary>
+        public PowerPointSlide AddScreenshotStorySlide(string title, string? subtitle,
+            PowerPointImageAsset image, IEnumerable<string>? narrative = null, string? seed = null,
+            Action<PowerPointScreenshotStorySlideOptions>? configure = null) {
+            PowerPointScreenshotStorySlideOptions options = Configure(new PowerPointScreenshotStorySlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.ScreenshotStory);
+            return _presentation.AddDesignerScreenshotStorySlide(title, subtitle, image, narrative,
+                _design.Theme, options);
+        }
+
+        /// <summary>Adds an editable appendix-table slide using the active deck design.</summary>
+        public PowerPointSlide AddAppendixTableSlide(string title, string? subtitle,
+            PowerPointTableData data, string? seed = null,
+            Action<PowerPointAppendixTableSlideOptions>? configure = null) {
+            PowerPointAppendixTableSlideOptions options = Configure(new PowerPointAppendixTableSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.AppendixTable);
+            return _presentation.AddDesignerAppendixTableSlide(title, subtitle, data, _design.Theme, options);
+        }
+
+        /// <summary>Adds an editable architecture slide using the active deck design.</summary>
+        public PowerPointSlide AddArchitectureSlide(string title, string? subtitle,
+            PowerPointArchitectureContent content, string? seed = null,
+            Action<PowerPointArchitectureSlideOptions>? configure = null) {
+            PowerPointArchitectureSlideOptions options = Configure(new PowerPointArchitectureSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Architecture);
+            return _presentation.AddDesignerArchitectureSlide(title, subtitle, content, _design.Theme, options);
+        }
+
+        /// <summary>Adds a closing slide using the active deck design.</summary>
+        public PowerPointSlide AddClosingSlide(string title, PowerPointClosingContent content,
+            string? seed = null, Action<PowerPointClosingSlideOptions>? configure = null) {
+            PowerPointClosingSlideOptions options = Configure(new PowerPointClosingSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Closing);
+            return _presentation.AddDesignerClosingSlide(title, content, _design.Theme, options);
+        }
+
         /// <summary>
         ///     Adds a custom designer slide with raw composition primitives and active deck chrome.
         /// </summary>

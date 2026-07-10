@@ -38,6 +38,8 @@ presentation.Save();
 - Keeps generated output as editable PowerPoint content instead of screenshots.
 - Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
 - Provides designer composition helpers for theme-aware business decks and repeatable layout alternatives.
+- Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
+- Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
 - Supports encrypted presentation save/open workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
@@ -239,6 +241,35 @@ var brief = PowerPointDesignBrief
 var deck = presentation.UseDesigner(brief, alternativeIndex: 0);
 deck.AddSectionSlide("Delivery plan", "Implementation overview");
 presentation.Save();
+```
+
+Use a semantic plan when the whole story should stay reusable. Story slides render as native charts, tables,
+pictures, shapes, and connectors rather than flattened artwork. Oversized appendix tables continue across slides,
+and the rhythm report can be evaluated before the deck is created.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var chartStory = new PowerPointChartStoryContent(
+    OfficeChartKind.ColumnClustered,
+    new PowerPointChartData(
+        new[] { "Q1", "Q2", "Q3", "Q4" },
+        new[] { new PowerPointChartSeries("Adoption", new[] { 28d, 43d, 61d, 72d }) }),
+    new[] { "Adoption improved every quarter." }) {
+    Provenance = "Customer success dataset",
+    AlternativeText = "Quarterly adoption columns",
+    DataSummary = "Adoption rose from 28 to 72 percent."
+};
+
+var plan = new PowerPointDeckPlan()
+    .AddSection("Quarterly review", "Decision-ready evidence")
+    .AddChartStory("Adoption", null, chartStory)
+    .AddClosing("Next action", new PowerPointClosingContent(
+        "Turn the evidence into action.", "Approve the pilot"));
+
+PowerPointDeckPlan expanded = plan.WithContinuations();
+PowerPointDeckRhythmReport rhythm = expanded.InspectRhythm(deck.Design);
+deck.AddSlides(expanded);
 ```
 
 ### Corporate templates and brand import

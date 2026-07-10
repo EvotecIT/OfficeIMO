@@ -25,6 +25,8 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 - **Slide sections & transitions** -- organize slides into sections and apply transition animations
 - **Themes & layouts** -- apply built-in or custom themes and choose from standard slide layouts
 - **Designer decks** -- generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable
+- **Semantic story families** -- compose executive summaries, chart narratives, comparisons, annotated screenshots, appendix tables, architecture views, and closings
+- **Deck rhythm checks** -- flag repetitive layouts, dense streaks, long sections, and missing closing actions before rendering
 - **Speaker notes** -- attach presenter notes to any slide
 - **Slide copying & importing** -- copy slides within a presentation or import from another `.pptx` file
 
