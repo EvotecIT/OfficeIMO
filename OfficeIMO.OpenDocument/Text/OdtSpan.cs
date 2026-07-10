@@ -38,7 +38,7 @@ public sealed class OdtSpan {
         _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofT", _partPath);
 
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.Text, StyleName);
+        OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Text, StyleName, _partPath);
         if (style == null) return null;
         foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
             T? value = selector(candidate);

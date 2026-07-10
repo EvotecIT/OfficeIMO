@@ -67,7 +67,7 @@ public class OpenDocumentOdtTests {
 
         Assert.Equal("Native ODT", reopened.Metadata.Title);
         Assert.Contains(reopened.Paragraphs, item => item.IsHeading && item.Text == "Quarterly report");
-        Assert.Contains(reopened.Paragraphs, item => item.Text.Contains("Revenue  increased\t12%\nYear over year.", System.StringComparison.Ordinal));
+        Assert.Contains(reopened.Paragraphs, item => item.Text.IndexOf("Revenue  increased\t12%\nYear over year.", System.StringComparison.Ordinal) >= 0);
         Assert.Equal(2, reopened.Lists.Single().Items.Count);
         Assert.Equal("125", reopened.Tables.Single().Cell(1, 1).Text);
         Assert.True(reopened.Tables.Single().Cell(1, 2).IsCovered);

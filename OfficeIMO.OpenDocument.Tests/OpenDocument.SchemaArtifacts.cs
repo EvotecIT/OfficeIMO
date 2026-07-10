@@ -79,12 +79,12 @@ public class OpenDocumentSchemaArtifactTests {
             OdfValidationResult validation = document.Validate();
             Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Diagnostics.Select(item => item.Id + ": " + item.Message)));
             if (document is OdtDocument text) {
-                Assert.Contains(text.ContentBlocks, block => block.Paragraph?.Text.Contains("Schema proof", StringComparison.Ordinal) == true);
+                Assert.Contains(text.ContentBlocks, block => block.Paragraph?.Text.IndexOf("Schema proof", StringComparison.Ordinal) >= 0);
             } else if (document is OdsDocument spreadsheet) {
                 Assert.Equal("Value", spreadsheet.GetSheet("Data")!.GetValue(0, 0).DisplayText);
             } else if (document is OdpPresentation presentation) {
                 Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>(),
-                    box => box.Paragraphs.Any(paragraph => paragraph.Text.Contains("Native ODP", StringComparison.Ordinal)));
+                    box => box.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Native ODP", StringComparison.Ordinal) >= 0));
             }
         }
     }

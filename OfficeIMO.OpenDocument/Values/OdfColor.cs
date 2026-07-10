@@ -24,6 +24,17 @@ public readonly struct OdfColor : IEquatable<OdfColor> {
         return new OdfColor(hex.ToUpperInvariant());
     }
 
+    /// <summary>Attempts to parse <c>#RRGGBB</c> or <c>RRGGBB</c> without throwing.</summary>
+    public static bool TryParse(string? value, out OdfColor color) {
+        color = default;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string hex = value!.Trim();
+        if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
+        if (hex.Length != 7 || !int.TryParse(hex.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)) return false;
+        color = new OdfColor(hex.ToUpperInvariant());
+        return true;
+    }
+
     /// <inheritdoc />
     public override string ToString() => _hex ?? "#000000";
     /// <inheritdoc />

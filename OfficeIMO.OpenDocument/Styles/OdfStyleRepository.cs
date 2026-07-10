@@ -27,6 +27,12 @@ public sealed class OdfStyleRepository {
         return Automatic.Concat(Named).FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
     }
 
+    /// <summary>Finds an automatic style within its owning package part before falling back to common styles.</summary>
+    internal OdfStyle? FindInPart(OdfStyleFamily family, string name, string partPath) {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        return FindAutomaticInPart(family, name, partPath) ?? FindNamed(family, name);
+    }
+
     /// <summary>Creates a common named style in <c>styles.xml</c>.</summary>
     public OdfStyle CreateNamed(string name, OdfStyleFamily family, string? parentStyleName = null) {
         ValidateStyleName(name);
@@ -76,14 +82,16 @@ public sealed class OdfStyleRepository {
                 break;
             }
             result.Add(current);
-            current = string.IsNullOrEmpty(current.ParentStyleName) ? null : Find(current.Family, current.ParentStyleName!);
+            current = string.IsNullOrEmpty(current.ParentStyleName) ? null : current.IsAutomatic
+                ? FindInPart(current.Family, current.ParentStyleName!, current.PartPath)
+                : FindNamed(current.Family, current.ParentStyleName!);
         }
         return result;
     }
 
     internal OdfStyle EnsureAutomaticStyle(XElement owner, XName styleAttribute, OdfStyleFamily family, string prefix, string partPath = "content.xml") {
         string? existingName = (string?)owner.Attribute(styleAttribute);
-        OdfStyle? existing = existingName == null ? null : Find(family, existingName);
+        OdfStyle? existing = existingName == null ? null : FindInPart(family, existingName, partPath);
         if (existing != null && existing.IsAutomatic && existing.PartPath == partPath &&
             IsUniquelyReferenced(owner, styleAttribute, existingName!, partPath)) return existing;
 
@@ -112,6 +120,13 @@ public sealed class OdfStyleRepository {
             .Count(element => string.Equals((string?)element.Attribute(styleAttribute), styleName, StringComparison.Ordinal));
         return references == 1;
     }
+
+    private OdfStyle? FindAutomaticInPart(OdfStyleFamily family, string name, string partPath) =>
+        EnumerateContainer(partPath, OdfNamespaces.Office + "automatic-styles", true)
+            .FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
+
+    private OdfStyle? FindNamed(OdfStyleFamily family, string name) => Named
+        .FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
 
     private static XNode CloneNode(XNode node) {
         if (node is XElement element) return new XElement(element);

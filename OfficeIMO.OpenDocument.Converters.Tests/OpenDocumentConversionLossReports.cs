@@ -6,6 +6,7 @@ using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
+using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
 using Xunit;
 
@@ -30,6 +31,42 @@ public sealed class OpenDocumentConversionLossReportTests {
         ExcelCellSnapshot reverseFormula = roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells
             .Single(cell => cell.Row == 1 && cell.Column == 3);
         Assert.Equal("IF(A1=\"[.B2]\",1,0)", reverseFormula.Formula);
+    }
+
+    [Fact]
+    public void ExcelFormulaConversionMapsSheetQualifiedReferences() {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        ExcelSheet data = source.AddWorkSheet("Data");
+        source.AddWorkSheet("Other").CellAt(1, 1).SetValue(1);
+        source.AddWorkSheet("Other Sheet").CellAt(2, 2).SetValue(2);
+        data.CellAt(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
+        using OdsDocument target = conversion.Document;
+
+        Assert.Equal("of:=SUM([$'Other'.A1],[$'Other Sheet'.B2:.C3])",
+            target.GetSheet("Data")!.Cell(0, 0).Formula);
+        OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocument();
+        using ExcelDocument roundTrip = reverse.Document;
+        ExcelCellSnapshot formula = roundTrip.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Data").Cells.Single();
+        Assert.Equal("SUM('Other'!A1,'Other Sheet'!B2:C3)", formula.Formula);
+    }
+
+    [Fact]
+    public void WordAutomaticColorsAndUnsupportedImagesDoNotAbortConversion() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Automatic color").ColorHex = "auto";
+        using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
+        source.AddParagraph().AddImage(tiff, "unsupported.tiff", 10, 10);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocument();
+        using OdtDocument target = conversion.Document;
+
+        Assert.Equal("Automatic color", target.Paragraphs.First().Text);
+        Assert.Null(target.Paragraphs.First().Spans.Single().Color);
+        Assert.Empty(target.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
 
     [Fact]

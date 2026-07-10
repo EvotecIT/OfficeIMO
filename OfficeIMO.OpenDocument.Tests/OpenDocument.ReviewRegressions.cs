@@ -7,6 +7,9 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentReviewRegressionTests {
+    private static readonly byte[] TinyPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
     [Fact]
     public void RejectsDecodedSpaceRunsBeyondTheTextSafetyLimit() {
         using OdtDocument document = OdtDocument.Create();
@@ -66,6 +69,48 @@ public sealed class OpenDocumentReviewRegressionTests {
         OdfValidationResult result = document.Validate();
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Id == "ODF103");
+    }
+
+    [Fact]
+    public void ImageBytesResolveRelativeAndEscapedPackageHrefs() {
+        using OdtDocument document = OdtDocument.Create();
+        OdtImage image = document.AddParagraph("Image").AddImage(TinyPng, "pixel.png",
+            OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        XElement imageElement = document.Package.GetXml("content.xml").Descendants(OdfNamespaces.Draw + "image").Single();
+        imageElement.SetAttributeValue(OdfNamespaces.XLink + "href", "./" + image.Path.Replace(".", "%2E"));
+        document.Package.MarkXmlDirty("content.xml");
+
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+
+        Assert.Equal(TinyPng, reopened.Paragraphs.Single().Images.Single().GetImageBytes());
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void HeaderStylesResolveWithinStylesPartWhenNamesCollide() {
+        using OdtDocument document = OdtDocument.Create();
+        OdtParagraph body = document.AddParagraph("Body");
+        OdtParagraph header = document.PageLayout.Header.AddParagraph("Header");
+        body.StyleName = "P1";
+        header.StyleName = "P1";
+        AddParagraphStyle(document.Package.GetXml("content.xml"), "P1", "normal");
+        AddParagraphStyle(document.Package.GetXml("styles.xml"), "P1", "bold");
+        document.Package.MarkXmlDirty("content.xml");
+        document.Package.MarkXmlDirty("styles.xml");
+
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+
+        Assert.False(reopened.Paragraphs.Single().Bold);
+        Assert.True(reopened.PageLayout.Header.Paragraphs.Single().Bold);
+    }
+
+    private static void AddParagraphStyle(XDocument document, string name, string weight) {
+        XElement automatic = document.Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
+        automatic.Add(new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "name", name),
+            new XAttribute(OdfNamespaces.Style + "family", "paragraph"),
+            new XElement(OdfNamespaces.Style + "text-properties",
+                new XAttribute(OdfNamespaces.Fo + "font-weight", weight))));
     }
 
 }

@@ -13,7 +13,7 @@ public sealed class OdpMasterPage {
     public OdfColor? BackgroundColor {
         get {
             string? styleName = (string?)_element.Attribute(OdfNamespaces.Draw + "style-name");
-            OdfStyle? style = styleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.DrawingPage, styleName);
+            OdfStyle? style = styleName == null ? null : _presentation.Styles.FindInPart(OdfStyleFamily.DrawingPage, styleName, "styles.xml");
             string? value = (string?)style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties")?.Attribute(OdfNamespaces.Draw + "fill-color");
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }

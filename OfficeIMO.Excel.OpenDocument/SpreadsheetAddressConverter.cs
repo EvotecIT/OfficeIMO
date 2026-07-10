@@ -7,6 +7,9 @@ internal static class SpreadsheetAddressConverter {
     private static readonly Regex ExcelReference = new Regex(
         @"(?<![A-Za-z0-9_.'!])(?<start>\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(?<end>\$?[A-Z]{1,3}\$?[1-9][0-9]*))?",
         RegexOptions.CultureInvariant);
+    private static readonly Regex QualifiedExcelReference = new Regex(
+        @"(?<![A-Za-z0-9_.])(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_.]*)!(?<start>\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(?<end>\$?[A-Z]{1,3}\$?[1-9][0-9]*))?",
+        RegexOptions.CultureInvariant);
 
     internal static string ExcelFormulaToOpenFormula(string formula) {
         if (string.IsNullOrWhiteSpace(formula)) return string.Empty;
@@ -43,7 +46,10 @@ internal static class SpreadsheetAddressConverter {
 
     private static void AppendConvertedReferences(StringBuilder output, string body, int start, int length) {
         if (length <= 0) return;
-        string converted = ExcelReference.Replace(body.Substring(start, length), match => {
+        string segment = body.Substring(start, length);
+        string converted = QualifiedExcelReference.Replace(segment, match =>
+            "[" + ExcelRangeToOpenAddress(match.Value) + "]");
+        converted = ExcelReference.Replace(converted, match => {
             string referenceStart = match.Groups["start"].Value;
             string referenceEnd = match.Groups["end"].Value;
             return referenceEnd.Length == 0 ? "[." + referenceStart + "]" : "[." + referenceStart + ":." + referenceEnd + "]";

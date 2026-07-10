@@ -15,7 +15,7 @@ public static class WordOpenDocumentConversionExtensions {
         OdtDocument target = OdtDocument.Create();
         var report = new OdfConversionReport("DOCX", "ODT");
 
-        int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, bookmarks = 0;
+        int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, unsupportedImages = 0, bookmarks = 0;
         int unsupportedFootnotes = 0;
         IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
         int paragraphFormatting = sourceParagraphs.Count(HasUnsupportedParagraphFormatting);
@@ -38,7 +38,7 @@ public static class WordOpenDocumentConversionExtensions {
                             lists++;
                         }
                         OdtParagraph listParagraph = currentList.AddItem().Paragraphs[0];
-                        CopyParagraph(paragraph, listParagraph, effective, ref hyperlinks, ref images, ref bookmarks, ref unsupportedFootnotes);
+                        CopyParagraph(paragraph, listParagraph, effective, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
                         paragraphs++;
                         continue;
                     }
@@ -47,7 +47,7 @@ public static class WordOpenDocumentConversionExtensions {
                     currentOrdered = null;
                     int headingLevel = GetHeadingLevel(paragraph);
                     OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
-                    CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref images, ref bookmarks, ref unsupportedFootnotes);
+                    CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
                     if (headingLevel > 0) headings++; else paragraphs++;
                 } else if (block is WordTableSnapshot table) {
                     currentList = null;
@@ -79,6 +79,8 @@ public static class WordOpenDocumentConversionExtensions {
         AddCount(report, "tables", tables);
         AddCount(report, "hyperlinks", hyperlinks);
         AddCount(report, "images", images);
+        if (unsupportedImages > 0) report.Add("images", OdfConversionMappingStatus.Unsupported, unsupportedImages,
+            "Word image parts using formats unsupported by OpenDocument were skipped.");
         AddCount(report, "bookmarks", bookmarks);
         if (snapshot.Sections.Count > 0) report.Add("page-layout", OdfConversionMappingStatus.Converted, 1);
         if (snapshot.Sections.Count > 1) report.Add("sections", OdfConversionMappingStatus.Approximated, snapshot.Sections.Count,
@@ -177,7 +179,8 @@ public static class WordOpenDocumentConversionExtensions {
     }
 
     private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int bookmarks, ref int unsupportedFootnotes) {
+        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedImages,
+        ref int bookmarks, ref int unsupportedFootnotes) {
         bool wrote = false;
         foreach (WordRunSnapshot run in source.Runs) {
             if (!string.IsNullOrEmpty(run.Text)) {
@@ -189,17 +192,21 @@ public static class WordOpenDocumentConversionExtensions {
                     span.Bold = run.Bold ? true : (bool?)null;
                     span.Italic = run.Italic ? true : (bool?)null;
                     if (run.FontSize.HasValue) span.FontSize = OdfLength.Points(run.FontSize.Value);
-                    if (!string.IsNullOrWhiteSpace(run.ColorHex)) span.Color = OdfColor.Parse("#" + run.ColorHex!.TrimStart('#'));
+                    if (OdfColor.TryParse(run.ColorHex, out OdfColor color)) span.Color = color;
                 }
                 wrote = true;
             }
             if (options.IncludeImages && run.InlineImage?.Bytes is { Length: > 0 } bytes) {
                 WordInlineImageSnapshot image = run.InlineImage;
-                target.AddImage(bytes, image.FileName ?? "image.png",
-                    OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
-                    image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
-                images++;
-                wrote = true;
+                try {
+                    target.AddImage(bytes, image.FileName ?? "image.png",
+                        OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
+                        image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
+                    images++;
+                    wrote = true;
+                } catch (NotSupportedException) {
+                    unsupportedImages++;
+                }
             }
             if (run.Footnote != null) unsupportedFootnotes++;
         }

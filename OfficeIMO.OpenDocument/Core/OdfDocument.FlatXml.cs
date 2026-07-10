@@ -86,7 +86,6 @@ public abstract partial class OdfDocument {
         XDocument content = OdfPackageTemplates.CreateContent(kind, version);
         ReplaceContainer(content.Root!, OdfNamespaces.Office + "scripts", root.Element(OdfNamespaces.Office + "scripts"));
         ReplaceContainer(content.Root!, OdfNamespaces.Office + "font-face-decls", root.Element(OdfNamespaces.Office + "font-face-decls"));
-        ReplaceContainer(content.Root!, OdfNamespaces.Office + "automatic-styles", root.Element(OdfNamespaces.Office + "automatic-styles"));
         XElement body = new XElement(root.Element(OdfNamespaces.Office + "body")
             ?? throw new InvalidDataException("Flat OpenDocument XML has no office:body."));
         ExtractFlatBinaryData(body, package, options);
@@ -95,6 +94,7 @@ public abstract partial class OdfDocument {
         XDocument styles = OdfPackageTemplates.CreateStyles(version);
         ReplaceContainer(styles.Root!, OdfNamespaces.Office + "styles", root.Element(OdfNamespaces.Office + "styles"));
         ReplaceContainer(styles.Root!, OdfNamespaces.Office + "master-styles", root.Element(OdfNamespaces.Office + "master-styles"));
+        SplitFlatAutomaticStyles(root, content.Root!, styles.Root!);
 
         XDocument meta = OdfPackageTemplates.CreateMetadata(version);
         ReplaceContainer(meta.Root!, OdfNamespaces.Office + "meta", root.Element(OdfNamespaces.Office + "meta"));
@@ -106,15 +106,19 @@ public abstract partial class OdfDocument {
         package.AddOrReplaceEntry("styles.xml", OdfXmlCodec.Save(styles), "text/xml");
         package.AddOrReplaceEntry("meta.xml", OdfXmlCodec.Save(meta), "text/xml");
         package.AddOrReplaceEntry("settings.xml", OdfXmlCodec.Save(settings), "text/xml");
-        package = OdfPackage.Open(package.Write(), options);
+        package = OdfPackage.Open(package.Write(new OdfSaveOptions {
+            CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
+        }), options);
         return CreateForPackage(package, null);
     }
 
     private void EmbedFlatBinaryData(XElement body) {
         foreach (XElement image in body.Descendants(OdfNamespaces.Draw + "image")) {
             string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
-            if (string.IsNullOrWhiteSpace(href) || href!.Contains("://") || !Package.ContainsEntry(href)) continue;
-            OdfPackageEntry entry = Package.GetRequiredEntry(href);
+            if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
+            string normalized = OdfPackagePath.NormalizeHref(href);
+            if (!Package.ContainsEntry(normalized)) continue;
+            OdfPackageEntry entry = Package.GetRequiredEntry(normalized);
             image.SetAttributeValue(OdfNamespaces.XLink + "href", null);
             image.SetAttributeValue(OdfNamespaces.XLink + "type", null);
             image.SetAttributeValue(OdfNamespaces.XLink + "show", null);
@@ -172,6 +176,50 @@ public abstract partial class OdfDocument {
         return result;
     }
 
+    private static void SplitFlatAutomaticStyles(XElement flatRoot, XElement contentRoot, XElement? stylesRoot) {
+        XElement? source = flatRoot.Element(OdfNamespaces.Office + "automatic-styles");
+        if (source == null) {
+            ReplaceContainer(contentRoot, OdfNamespaces.Office + "automatic-styles", null);
+            if (stylesRoot != null) ReplaceContainer(stylesRoot, OdfNamespaces.Office + "automatic-styles", null);
+            return;
+        }
+
+        XElement? masters = flatRoot.Element(OdfNamespaces.Office + "master-styles");
+        var styleNames = new HashSet<string>(StringComparer.Ordinal);
+        if (masters != null) {
+            foreach (XAttribute attribute in masters.DescendantsAndSelf().Attributes()) styleNames.Add(attribute.Value);
+        }
+
+        XElement[] automaticStyles = source.Elements().ToArray();
+        bool added;
+        do {
+            added = false;
+            foreach (XElement element in automaticStyles) {
+                string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
+                bool isStyleScoped = element.Name == OdfNamespaces.Style + "page-layout" ||
+                    element.Name == OdfNamespaces.Style + "presentation-page-layout" ||
+                    (name != null && styleNames.Contains(name));
+                if (!isStyleScoped) continue;
+                foreach (XAttribute attribute in element.DescendantsAndSelf().Attributes()) added |= styleNames.Add(attribute.Value);
+            }
+        } while (added);
+
+        var styleScoped = new List<XElement>();
+        var contentScoped = new List<XElement>();
+        foreach (XElement element in automaticStyles) {
+            string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
+            bool belongsToStyles = element.Name == OdfNamespaces.Style + "page-layout" ||
+                element.Name == OdfNamespaces.Style + "presentation-page-layout" ||
+                (name != null && styleNames.Contains(name));
+            (belongsToStyles ? styleScoped : contentScoped).Add(new XElement(element));
+        }
+
+        ReplaceContainer(contentRoot, OdfNamespaces.Office + "automatic-styles",
+            new XElement(OdfNamespaces.Office + "automatic-styles", contentScoped));
+        if (stylesRoot != null) ReplaceContainer(stylesRoot, OdfNamespaces.Office + "automatic-styles",
+            new XElement(OdfNamespaces.Office + "automatic-styles", styleScoped));
+    }
+
     private static void ReplaceContainer(XElement root, XName name, XElement? source) {
         XElement? current = root.Element(name);
         XElement replacement = source == null ? new XElement(name) : new XElement(source);
@@ -189,7 +237,9 @@ public abstract partial class OdfDocument {
         XDocument content = GetXml("content.xml");
         foreach (XElement image in content.Descendants(OdfNamespaces.Draw + "image")) {
             string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
-            if (!string.IsNullOrWhiteSpace(href) && !href!.Contains("://") && Package.ContainsEntry(href)) represented.Add(href);
+            if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
+            string normalized = OdfPackagePath.NormalizeHref(href);
+            if (Package.ContainsEntry(normalized)) represented.Add(normalized);
         }
 
         var lossy = Package.Entries.Where(entry => !represented.Contains(entry.Name)).Select(entry => entry.Name).ToList();

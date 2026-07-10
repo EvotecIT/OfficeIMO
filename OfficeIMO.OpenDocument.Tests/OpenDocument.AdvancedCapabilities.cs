@@ -111,6 +111,26 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
     }
 
     [Fact]
+    public void FlatXmlRestoresStylesScopedAutomaticStylesAndSourceVersion() {
+        using OdtDocument document = OdtDocument.Create();
+        document.PageLayout.MarginLeft = OdfLength.Centimeters(3.25);
+        OdtParagraph header = document.PageLayout.Header.AddParagraph("Styled header");
+        header.Bold = true;
+        XDocument flat = document.ToFlatXml();
+        flat.Root!.SetAttributeValue(OdfNamespaces.Office + "version", "1.3");
+        using var stream = new MemoryStream();
+        flat.Save(stream, SaveOptions.DisableFormatting);
+        stream.Position = 0;
+
+        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+
+        Assert.Equal(OdfVersion.V1_3, reopened.Version);
+        Assert.Equal(OdfLength.Centimeters(3.25), reopened.PageLayout.MarginLeft);
+        Assert.True(reopened.PageLayout.Header.Paragraphs.Single().Bold);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
     public void FlatXmlSaveReportsPackageOnlyContentAsLossy() {
         using OdtDocument document = OdtDocument.Create();
         document.AddParagraph("Flat projection");

@@ -132,7 +132,7 @@ public sealed class OpenDocumentHardeningTests {
         OdfStyle first = styled.Styles.CreateNamed("First", OdfStyleFamily.Paragraph, "Second");
         styled.Styles.CreateNamed("Second", OdfStyleFamily.Paragraph, "First");
         Assert.Equal(2, styled.Styles.Resolve(first).Count);
-        Assert.Contains(styled.Diagnostics, diagnostic => diagnostic.Id == "ODF203" && diagnostic.Message.Contains("cycle", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(styled.Diagnostics, diagnostic => diagnostic.Id == "ODF203" && diagnostic.Message.IndexOf("cycle", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     [Fact]

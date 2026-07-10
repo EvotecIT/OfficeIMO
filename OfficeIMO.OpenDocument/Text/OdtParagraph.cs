@@ -162,7 +162,7 @@ public sealed class OdtParagraph {
         _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofP", _partPath);
 
     private T? ResolveStyleValue<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.Paragraph, StyleName);
+        OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _partPath);
         if (style == null) return null;
         foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
             T? value = selector(candidate);
@@ -172,7 +172,7 @@ public sealed class OdtParagraph {
     }
 
     private string? ResolveStyleValue(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.Find(OdfStyleFamily.Paragraph, StyleName);
+        OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _partPath);
         if (style == null) return null;
         foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
             string? value = selector(candidate);
