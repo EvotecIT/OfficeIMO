@@ -116,6 +116,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentX,
                 contentYForBreaks,
                 group.SourceEndsAt >= contentHeight - 0.0001D ? outerHeight : (double?)null));
+        string? pageName = style.PageName;
+        if (pageName == null && children.Count > 0 && children.All(child => string.Equals(child.PageName, children[0].PageName, StringComparison.OrdinalIgnoreCase))) {
+            pageName = children[0].PageName;
+        }
+
         return new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -130,7 +135,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Widows,
             adjustedLineBreakGroups,
             adjustedContinuationGroups,
-            adjustedTrailingGroups);
+            adjustedTrailingGroups,
+            pageName: pageName);
     }
 
     private void FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
@@ -149,7 +155,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inline.BreakOffsets,
             inline.BreakOffsets,
             style.Orphans,
-            style.Widows));
+            style.Widows,
+            pageName: style.PageName));
     }
 
     private bool HasBlockChildren(IElement element, double width, HtmlRenderBoxStyle parentStyle) {
@@ -171,7 +178,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         shape.StrokeWidth = 0D;
         double height = style.MarginTop + lineWidth + style.MarginBottom;
         var visual = new HtmlRenderShape(shape, style.MarginLeft, style.MarginTop, 0, source: HtmlRenderStyleResolver.DescribeSource(element));
-        return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), new[] { visual }, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element));
+        return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), new[] { visual }, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), pageName: style.PageName);
     }
 
     private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {

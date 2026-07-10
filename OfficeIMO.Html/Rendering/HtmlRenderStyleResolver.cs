@@ -240,6 +240,14 @@ internal sealed class HtmlRenderStyleResolver {
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase) || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
+        style.PageName = ResolvePageName(computed.GetValue("page"));
+    }
+
+    private static string? ResolvePageName(string value) {
+        string normalized = value.Trim();
+        return normalized.Length == 0 || string.Equals(normalized, "auto", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : normalized;
     }
 
     private static int ReadPositiveInteger(string value, int fallback) =>

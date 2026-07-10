@@ -18,7 +18,8 @@ internal sealed class HtmlRenderFlowBlock {
         IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null,
         IEnumerable<HtmlRenderVisual>? continuationVisuals = null,
         double continuationHeight = 0D,
-        double continuationStartsAfter = 0D) {
+        double continuationStartsAfter = 0D,
+        string? pageName = null) {
         Width = width;
         Height = height;
         Visuals = new List<HtmlRenderVisual>(visuals);
@@ -58,6 +59,7 @@ internal sealed class HtmlRenderFlowBlock {
 
         ContinuationGroups = repeatedGroups.AsReadOnly();
         TrailingGroups = new List<HtmlRenderTrailingGroup>(trailingGroups ?? Array.Empty<HtmlRenderTrailingGroup>()).AsReadOnly();
+        PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
     }
 
     internal double Width { get; }
@@ -71,6 +73,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
+    internal string? PageName { get; }
 }
 
 internal sealed class HtmlRenderContinuationGroup {

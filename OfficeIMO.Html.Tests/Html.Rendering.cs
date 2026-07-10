@@ -416,8 +416,8 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_Paged_DiagnosesNamedPagesUnknownMarginPositionsAndGeneratedContent() {
-        string html = "<style>@page invoice { @top-left { content:\"Named\"; } } @page { @left-middle { content:\"Side\"; } @unknown-zone { content:\"Unknown\"; } @top-left { content:attr(title); } }</style><p>Body</p>";
+    public void HtmlRender_Paged_DiagnosesComplexPageSelectorsUnknownMarginPositionsAndGeneratedContent() {
+        string html = "<style>@page invoice:first:right { @top-left { content:\"Complex\"; } } @page { @left-middle { content:\"Side\"; } @unknown-zone { content:\"Unknown\"; } @top-left { content:attr(title); } }</style><p>Body</p>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(3D, 2D),
@@ -428,6 +428,46 @@ public sealed class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginPositionUnsupported);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported);
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Side");
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_AppliesNamedPageMastersAndNamedPseudoPages() {
+        string words = string.Join(" ", Enumerable.Range(0, 150).Select(index => "word" + index.ToString("D3")));
+        string html = """
+            <style>
+              @page { size:3in 2in; margin:0.3in; @top-left { content:"Generic"; } }
+              @page invoice { @top-left { content:"Invoice"; } }
+              @page invoice:left { @bottom-left { content:"IL"; } }
+              @page report { @top-left { content:"Report"; } }
+            </style>
+            <section style="page:invoice"><p style="margin:0">WORDS</p></section>
+            <section style="page:report"><p style="margin:0">ReportBody</p></section>
+            """.Replace("WORDS", words);
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<HtmlRenderPage> invoicePages = rendered.Pages.Where(page => page.PageName == "invoice").ToList();
+        HtmlRenderPage reportPage = Assert.Single(rendered.Pages, page => page.PageName == "report");
+
+        Assert.True(invoicePages.Count >= 2);
+        Assert.All(invoicePages, page => Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Invoice"));
+        Assert.Contains(invoicePages.Where(page => page.PageNumber % 2 == 0).SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "IL");
+        Assert.Contains(reportPage.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Report");
+        Assert.Contains(reportPage.Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("ReportBody", StringComparison.Ordinal));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        Assert.Contains("Invoice", pdfText, StringComparison.Ordinal);
+        Assert.Contains("IL", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Report", pdfText, StringComparison.Ordinal);
+        Assert.Contains("ReportBody", pdfText, StringComparison.Ordinal);
     }
 
     [Fact]

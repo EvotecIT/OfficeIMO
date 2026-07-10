@@ -7,13 +7,21 @@ internal sealed class HtmlCssPageRuleSet {
 
     internal void Add(HtmlCssPageRule rule) => _rules.Add(rule);
 
-    internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ResolveMarginBoxes(int pageNumber) {
+    internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ResolveMarginBoxes(int pageNumber, string? pageName) {
         var resolved = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate>();
-        foreach (HtmlCssPageRule rule in _rules.Where(rule => rule.Selector == HtmlCssPageSelector.Generic)) {
+        foreach (HtmlCssPageRule rule in _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic)) {
             Apply(rule, resolved);
         }
 
-        foreach (HtmlCssPageRule rule in _rules.Where(rule => rule.Selector != HtmlCssPageSelector.Generic && Matches(rule.Selector, pageNumber))) {
+        foreach (HtmlCssPageRule rule in _rules.Where(rule => rule.PageName == null && rule.Selector != HtmlCssPageSelector.Generic && Matches(rule.Selector, pageNumber))) {
+            Apply(rule, resolved);
+        }
+
+        foreach (HtmlCssPageRule rule in _rules.Where(rule => MatchesName(rule.PageName, pageName) && rule.Selector == HtmlCssPageSelector.Generic)) {
+            Apply(rule, resolved);
+        }
+
+        foreach (HtmlCssPageRule rule in _rules.Where(rule => MatchesName(rule.PageName, pageName) && rule.Selector != HtmlCssPageSelector.Generic && Matches(rule.Selector, pageNumber))) {
             Apply(rule, resolved);
         }
 
@@ -24,6 +32,9 @@ internal sealed class HtmlCssPageRuleSet {
         foreach (KeyValuePair<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> pair in rule.MarginBoxes) target[pair.Key] = pair.Value;
     }
 
+    private static bool MatchesName(string? ruleName, string? pageName) =>
+        ruleName != null && string.Equals(ruleName, pageName, StringComparison.OrdinalIgnoreCase);
+
     private static bool Matches(HtmlCssPageSelector selector, int pageNumber) {
         if (selector == HtmlCssPageSelector.First) return pageNumber == 1;
         if (selector == HtmlCssPageSelector.Left) return pageNumber % 2 == 0;
@@ -33,11 +44,13 @@ internal sealed class HtmlCssPageRuleSet {
 }
 
 internal sealed class HtmlCssPageRule {
-    internal HtmlCssPageRule(HtmlCssPageSelector selector, IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes) {
+    internal HtmlCssPageRule(string? pageName, HtmlCssPageSelector selector, IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes) {
+        PageName = pageName;
         Selector = selector;
         MarginBoxes = marginBoxes;
     }
 
+    internal string? PageName { get; }
     internal HtmlCssPageSelector Selector { get; }
     internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> MarginBoxes { get; }
 }

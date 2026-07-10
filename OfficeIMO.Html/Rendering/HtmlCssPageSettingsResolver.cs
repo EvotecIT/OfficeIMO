@@ -164,13 +164,13 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) {
-        if (!TryParsePageSelector(selectorText, out HtmlCssPageSelector selector)) {
-            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A named or compound page selector is not yet applied to individual pages.", HtmlDiagnosticSeverity.Warning, selectorText.Length == 0 ? "@page" : selectorText);
+        if (!TryParsePageSelector(selectorText, out string? pageName, out HtmlCssPageSelector selector)) {
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A complex page selector could not be applied to individual pages.", HtmlDiagnosticSeverity.Warning, selectorText.Length == 0 ? "@page" : selectorText);
             return;
         }
 
         string size = FindTopLevelDeclaration(body, "size");
-        if (selector == HtmlCssPageSelector.Generic) {
+        if (pageName == null && selector == HtmlCssPageSelector.Generic) {
             if (size.Length > 0 && !TryApplyPageSize(size, options)) {
                 diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, "@page", size);
             }
@@ -179,25 +179,46 @@ internal static class HtmlCssPageSettingsResolver {
         }
 
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes = ExtractMarginBoxes(body, selectorText, options, diagnostics);
-        if (marginBoxes.Count > 0) pageRules.Add(new HtmlCssPageRule(selector, marginBoxes));
+        if (marginBoxes.Count > 0) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes));
     }
 
-    private static bool TryParsePageSelector(string selectorText, out HtmlCssPageSelector selector) {
+    private static bool TryParsePageSelector(string selectorText, out string? pageName, out HtmlCssPageSelector selector) {
         string normalized = selectorText.Trim();
         if (normalized.Length == 0) {
+            pageName = null;
             selector = HtmlCssPageSelector.Generic;
             return true;
         }
 
-        if (string.Equals(normalized, ":first", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.First;
-        else if (string.Equals(normalized, ":left", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.Left;
-        else if (string.Equals(normalized, ":right", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.Right;
-        else {
+        int pseudoStart = normalized.IndexOf(':');
+        string name = pseudoStart < 0 ? normalized : normalized.Substring(0, pseudoStart).Trim();
+        string pseudo = pseudoStart < 0 ? string.Empty : normalized.Substring(pseudoStart).Trim();
+        if (name.Length > 0 && !IsPageIdentifier(name)) {
+            pageName = null;
             selector = HtmlCssPageSelector.Generic;
             return false;
         }
 
+        pageName = name.Length == 0 ? null : name;
+        if (pseudo.Length == 0) selector = HtmlCssPageSelector.Generic;
+        else if (string.Equals(pseudo, ":first", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.First;
+        else if (string.Equals(pseudo, ":left", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.Left;
+        else if (string.Equals(pseudo, ":right", StringComparison.OrdinalIgnoreCase)) selector = HtmlCssPageSelector.Right;
+        else {
+            selector = HtmlCssPageSelector.Generic;
+            return false;
+        }
         return true;
+    }
+
+    private static bool IsPageIdentifier(string value) {
+        if (value.Length == 0 || !(char.IsLetter(value[0]) || value[0] == '_' || value[0] == '-')) return false;
+        for (int index = 1; index < value.Length; index++) {
+            char current = value[index];
+            if (!(char.IsLetterOrDigit(current) || current == '_' || current == '-')) return false;
+        }
+
+        return !string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool HasPageMarginDeclaration(string body) =>

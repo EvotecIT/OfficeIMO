@@ -9,7 +9,7 @@ namespace OfficeIMO.Html;
 public sealed class HtmlRenderPage {
     private readonly ReadOnlyCollection<HtmlRenderVisual> _visuals;
 
-    internal HtmlRenderPage(int pageNumber, double width, double height, IEnumerable<HtmlRenderVisual> visuals) {
+    internal HtmlRenderPage(int pageNumber, double width, double height, IEnumerable<HtmlRenderVisual> visuals, string? pageName = null) {
         if (pageNumber <= 0) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -21,6 +21,7 @@ public sealed class HtmlRenderPage {
         PageNumber = pageNumber;
         Width = width;
         Height = height;
+        PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
         _visuals = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
             .ToList()
@@ -35,6 +36,9 @@ public sealed class HtmlRenderPage {
 
     /// <summary>Page height in CSS pixels.</summary>
     public double Height { get; }
+
+    /// <summary>CSS named-page identifier selected for this page, or <see langword="null"/> for the generic page master.</summary>
+    public string? PageName { get; }
 
     /// <summary>Ordered backend-neutral visuals on this page.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;

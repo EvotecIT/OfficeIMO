@@ -70,6 +70,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
-        return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription);
+        return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
     }
 }

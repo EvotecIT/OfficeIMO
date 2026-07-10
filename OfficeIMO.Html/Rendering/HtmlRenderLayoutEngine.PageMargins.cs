@@ -6,7 +6,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<HtmlRenderPage> ApplyPageMarginContent(IReadOnlyList<HtmlRenderPage> pages) {
         var rendered = new List<HtmlRenderPage>(pages.Count);
         foreach (HtmlRenderPage page in pages) {
-            IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes = _pageRules.ResolveMarginBoxes(page.PageNumber);
+            IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> boxes = _pageRules.ResolveMarginBoxes(page.PageNumber, page.PageName);
             if (boxes.Count == 0) {
                 rendered.Add(page);
                 continue;
@@ -31,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     semanticRole: "page-margin"));
             }
 
-            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals));
+            rendered.Add(new HtmlRenderPage(page.PageNumber, page.Width, page.Height, visuals, page.PageName));
         }
 
         return rendered.AsReadOnly();

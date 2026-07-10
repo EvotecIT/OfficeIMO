@@ -20,7 +20,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GridLayoutPending = "HtmlRenderGridLayoutPending";
     /// <summary>An inline image used its alternative-text fallback.</summary>
     public const string InlineImageFallback = "HtmlRenderInlineImageFallback";
-    /// <summary>A named or compound page selector could not yet be applied per page.</summary>
+    /// <summary>A complex page selector could not be applied per page.</summary>
     public const string PageSelectorPending = "HtmlRenderPageSelectorPending";
     /// <summary>A pseudo-page geometry declaration requires page-by-page content reflow.</summary>
     public const string PagePseudoGeometryPending = "HtmlRenderPagePseudoGeometryPending";

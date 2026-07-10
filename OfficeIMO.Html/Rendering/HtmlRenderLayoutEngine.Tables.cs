@@ -14,7 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (columnCount == 0) {
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.EmptyTable, "A table contained no renderable rows or cells.", HtmlDiagnosticSeverity.Info, source);
             double emptyHeight = style.MarginTop + Math.Max(1D, style.VerticalInsets) + style.MarginBottom;
-            return new HtmlRenderFlowBlock(containingWidth, emptyHeight, Array.Empty<HtmlRenderVisual>(), style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source);
+            return new HtmlRenderFlowBlock(containingWidth, emptyHeight, Array.Empty<HtmlRenderVisual>(), style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source, pageName: style.PageName);
         }
 
         double columnWidth = contentWidth / columnCount;
@@ -130,7 +130,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             trailingGroups: trailingGroups,
             continuationVisuals: continuationVisuals,
             continuationHeight: continuationHeight,
-            continuationStartsAfter: headerStart + continuationHeight);
+            continuationStartsAfter: headerStart + continuationHeight,
+            pageName: style.PageName);
     }
 
     private static bool BelongsToTable(IElement row, IElement table) {

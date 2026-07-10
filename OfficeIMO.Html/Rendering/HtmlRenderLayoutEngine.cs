@@ -67,18 +67,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var pages = new List<HtmlRenderPage>();
         var visuals = CreatePageVisuals(pageWidth, pageHeight);
         double y = _options.Margins.Top;
+        string? currentPageName = null;
         for (int index = 0; index < blocks.Count; index++) {
             HtmlRenderFlowBlock block = blocks[index];
             bool hasPageContent = visuals.Count > 1;
+            if (hasPageContent && !string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
+                CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
+                visuals = CreatePageVisuals(pageWidth, pageHeight);
+                y = _options.Margins.Top;
+                hasPageContent = false;
+            }
+
+            if (!hasPageContent) currentPageName = block.PageName;
             if (block.BreakBefore != HtmlPageBreakTarget.None) {
-                ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, pageWidth, pageHeight);
+                ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, pageWidth, pageHeight, currentPageName);
                 hasPageContent = visuals.Count > 1;
+                currentPageName = block.PageName;
             }
 
             if (block.Height <= contentHeight && hasPageContent && y + block.Height > pageHeight - _options.Margins.Bottom) {
-                CommitPage(pages, visuals, pageWidth, pageHeight);
+                CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                 visuals = CreatePageVisuals(pageWidth, pageHeight);
                 y = _options.Margins.Top;
+                currentPageName = block.PageName;
             }
 
             if (block.Height <= pageHeight - _options.Margins.Bottom - y) {
@@ -100,9 +111,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
                         if (visuals.Count > 1) {
-                            CommitPage(pages, visuals, pageWidth, pageHeight);
+                            CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                             visuals = CreatePageVisuals(pageWidth, pageHeight);
                             y = _options.Margins.Top;
+                            currentPageName = block.PageName;
                             continue;
                         }
 
@@ -187,44 +199,45 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
 
                     if (blockOffset < block.Height - 0.0001D) {
-                        CommitPage(pages, visuals, pageWidth, pageHeight);
+                        CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                         visuals = CreatePageVisuals(pageWidth, pageHeight);
                         y = _options.Margins.Top;
+                        currentPageName = block.PageName;
                     }
                 }
             }
 
             if (block.BreakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
-                CommitPage(pages, visuals, pageWidth, pageHeight);
+                CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                 visuals = CreatePageVisuals(pageWidth, pageHeight);
                 y = _options.Margins.Top;
-                EnsurePageSide(block.BreakAfter, pages, ref visuals, ref y, pageWidth, pageHeight);
+                EnsurePageSide(block.BreakAfter, pages, ref visuals, ref y, pageWidth, pageHeight, currentPageName);
             }
         }
 
-        CommitPage(pages, visuals, pageWidth, pageHeight);
+        CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
         return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics);
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) => new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
 
-    private void ApplyBreakBefore(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height) {
+    private void ApplyBreakBefore(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height, string? pageName) {
         if (visuals.Count > 1) {
-            CommitPage(pages, visuals, width, height);
+            CommitPage(pages, visuals, width, height, pageName);
             visuals = CreatePageVisuals(width, height);
             y = _options.Margins.Top;
         }
 
-        EnsurePageSide(target, pages, ref visuals, ref y, width, height);
+        EnsurePageSide(target, pages, ref visuals, ref y, width, height, pageName);
     }
 
-    private void EnsurePageSide(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height) {
+    private void EnsurePageSide(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height, string? pageName) {
         if (target != HtmlPageBreakTarget.Left && target != HtmlPageBreakTarget.Right) return;
         int nextPageNumber = pages.Count + 1;
         bool nextIsRight = nextPageNumber % 2 != 0;
         bool targetIsRight = target == HtmlPageBreakTarget.Right;
         if (nextIsRight == targetIsRight) return;
-        CommitPage(pages, visuals, width, height);
+        CommitPage(pages, visuals, width, height, pageName);
         visuals = CreatePageVisuals(width, height);
         y = _options.Margins.Top;
     }
@@ -236,12 +249,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlRenderShape(background, 0D, 0D, _paintOrder++, source: "render-surface");
     }
 
-    private void CommitPage(ICollection<HtmlRenderPage> pages, List<HtmlRenderVisual> visuals, double width, double height) {
+    private void CommitPage(ICollection<HtmlRenderPage> pages, List<HtmlRenderVisual> visuals, double width, double height, string? pageName) {
         if (pages.Count >= _options.MaxPageCount) {
             throw new InvalidOperationException("HTML rendering exceeded the configured maximum page count.");
         }
 
-        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals));
+        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName));
     }
 
     private void AddTranslatedVisuals(ICollection<HtmlRenderVisual> target, IEnumerable<HtmlRenderVisual> source, double offsetX, double offsetY) {
