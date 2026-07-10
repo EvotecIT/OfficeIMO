@@ -11,7 +11,8 @@ Mailozaurr can keep MailKit and MimeKit for transport, server access, and messag
 | Outlook appointments, contacts, tasks, journals, and notes | `OfficeIMO.Email` |
 | Read and write TNEF/`winmail.dat` | `OfficeIMO.Email` |
 | Read and write mbox archives | `OfficeIMO.Email` |
-| Compressed RTF body handling | `OfficeIMO.Email` bridge over `OfficeIMO.Rtf` |
+| `PidTagRtfCompressed` transport compression | `OfficeIMO.Email` |
+| RTF syntax, editing, and semantic text extraction | `OfficeIMO.Rtf` |
 | CFB storage needed by MSG | Internal shared OfficeIMO source; not a public general-purpose CFB API |
 | SMTP, IMAP, POP3, and network authentication | Mailozaurr over MailKit |
 | MIME security, PGP, S/MIME, DKIM, and ARC | Mailozaurr over MimeKit and its security policy |
@@ -46,13 +47,15 @@ EmailDocument document = read.Document;
 
 The Mailozaurr mapper then projects `EmailDocument` into its compatibility DTO:
 
-- `From`, `Recipients`, `Date`, `ReceivedDate`, `Subject`, `MessageId`, `Body.Text`, and `Body.Html` map directly.
+- `From`, `Recipients`, `Date`, `ReceivedDate`, `Subject`, `MessageId`, `Body.Text`, `Body.Html`, and the byte-preserving `Body.Rtf` map directly.
 - Filter `Recipients` by `EmailRecipientKind` to populate `To`, `Cc`, and `Bcc`.
 - Map attachment metadata regardless of `IncludeAttachmentContent`; expose `Content` only when requested.
 - Merge `EmailHeader` values into the existing case-insensitive header dictionary only when `IncludeHeaders` is true. OfficeIMO keeps duplicate headers in source order; the compatibility dictionary remains intentionally lossy.
 - Treat an `EmailDiagnosticSeverity.Error` diagnostic as a failed `MailFileReader` operation. Log or return warning diagnostics according to Mailozaurr policy.
 
 `SignatureIsValid`, `SignedBy`, and `SignedOn` must not be inferred by OfficeIMO. For EML workflows that request signature verification, Mailozaurr should run its existing MimeKit verification path against the original source. Leave those compatibility properties null when no verification was requested or completed.
+
+If Mailozaurr wants to derive compatibility plain text from an RTF-only item, run `Body.Rtf` through `OfficeIMO.Rtf`; do not retain RtfPipe for that fallback. Normal MSG read/write and preservation need only `OfficeIMO.Email`.
 
 ## Conversion adapter
 

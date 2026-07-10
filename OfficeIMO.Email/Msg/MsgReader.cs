@@ -35,7 +35,7 @@ internal static class MsgReader {
         foreach (MapiProperty property in MsgPropertyReader.Read(compound, prefix, kind, names, state)) {
             document.MapiProperties.Add(property);
         }
-        MsgProjection.Apply(document, state.Options, state.Diagnostics, string.IsNullOrEmpty(prefix) ? "msg" : prefix);
+        MsgProjection.Apply(document, state, string.IsNullOrEmpty(prefix) ? "msg" : prefix);
 
         foreach (string recipientPath in GetDirectChildStorages(compound, prefix, "__recip_version1.0_#")) {
             state.ThrowIfCancellationRequested();

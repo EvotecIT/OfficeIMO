@@ -1,5 +1,7 @@
 using OfficeIMO.Email;
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Rtf;
+using OfficeIMO.Rtf;
 using System;
 using System.IO;
 using System.Linq;
@@ -8,6 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderEmailTests {
     [Fact]
     public void EmailKindAndCapabilities_AreBuiltInWithoutChangingEarlierEnumValues() {
@@ -139,6 +142,31 @@ public sealed class ReaderEmailTests {
         Assert.Throws<IOException>(() => DocumentReader.Read(bytes, "bounded.eml", new ReaderOptions {
             MaxInputBytes = 32
         }).ToArray());
+    }
+
+    [Fact]
+    public void RtfOnlyMsg_UsesRegisteredSemanticRtfHandler() {
+        try {
+            DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
+            RtfDocument rtf = RtfDocument.Create();
+            rtf.AddParagraph("Semantic RTF email body");
+            var document = new EmailDocument {
+                Format = EmailFileFormat.OutlookMsg,
+                Subject = "RTF body"
+            };
+            document.Body.Rtf = rtf.ToRtf();
+            byte[] bytes = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.OutlookMsg);
+
+            ReaderChunk[] chunks = DocumentReader.Read(bytes, "rtf-body.msg").ToArray();
+
+            Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Rtf &&
+                chunk.Location.SourceBlockKind == "email-body-rtf" &&
+                chunk.Text.Contains("Semantic RTF email body", StringComparison.Ordinal));
+            Assert.DoesNotContain(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
+                warning => warning.StartsWith("EMAIL_RTF_BODY_PRESERVED", StringComparison.Ordinal));
+        } finally {
+            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
+        }
     }
 
     private static byte[] BuildEmlWithAttachment() {

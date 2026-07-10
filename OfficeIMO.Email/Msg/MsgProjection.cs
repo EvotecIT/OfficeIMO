@@ -8,8 +8,7 @@ internal static class MsgProjection {
     internal static readonly Guid PsetidLog = new Guid("0006200A-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidNote = new Guid("0006200E-0000-0000-C000-000000000046");
 
-    internal static void Apply(EmailDocument document, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
-        string location) {
+    internal static void Apply(EmailDocument document, MsgParserState state, string location) {
         IList<MapiProperty> properties = document.MapiProperties;
         document.MessageClass = GetString(properties, 0x001A) ?? "IPM.Note";
         document.OutlookItemKind = Classify(document.MessageClass);
@@ -18,7 +17,8 @@ internal static class MsgProjection {
         document.Date = GetDate(properties, 0x0039) ?? GetDate(properties, 0x3007);
         document.ReceivedDate = GetDate(properties, 0x0E06);
         document.Body.Text = GetString(properties, 0x1000);
-        document.Body.Html = GetHtml(properties, diagnostics, location);
+        document.Body.Html = GetHtml(properties, state.Diagnostics, location);
+        document.Body.Rtf = GetRtf(properties, state, location);
 
         string? fromName = GetString(properties, 0x0042);
         string? fromAddress = GetString(properties, 0x5D02) ?? GetString(properties, 0x0065);
@@ -31,7 +31,7 @@ internal static class MsgProjection {
         if (!string.IsNullOrWhiteSpace(transportHeaders)) {
             byte[] bytes = Encoding.UTF8.GetBytes(string.Concat(transportHeaders, "\r\n\r\n"));
             var parsedHeaders = new List<EmailHeader>();
-            MimeHeaderParser.Parse(bytes, 0, bytes.Length, options, parsedHeaders, diagnostics,
+            MimeHeaderParser.Parse(bytes, 0, bytes.Length, state.Options, parsedHeaders, state.Diagnostics,
                 string.Concat(location, "/transport-headers"));
             foreach (EmailHeader header in parsedHeaders) document.Headers.Add(header);
             document.From = document.From ?? MimeAddressParser.ParseOne(MimeHeaderParser.GetValue(parsedHeaders, "From"));
@@ -154,6 +154,17 @@ internal static class MsgProjection {
             return MimeTextCodec.DecodeText(bytes, charset, diagnostics, location).TrimEnd('\0');
         }
         return null;
+    }
+
+    private static string? GetRtf(IEnumerable<MapiProperty> properties, MsgParserState state, string location) {
+        MapiProperty? property = properties.FirstOrDefault(item => item.PropertyId == 0x1009);
+        if (!(property?.Value is byte[] compressed)) return null;
+        if (!MapiCompressedRtfCodec.TryDecompress(compressed, state.Options.MaxDecodedPropertyBytes,
+            state.Diagnostics, string.Concat(location, "/rtf"), state.CancellationToken, out byte[] rtfBytes)) return null;
+        state.CountDecodedBytes(rtfBytes.Length);
+        char[] characters = new char[rtfBytes.Length];
+        for (int index = 0; index < rtfBytes.Length; index++) characters[index] = (char)rtfBytes[index];
+        return new string(characters);
     }
 
     private static string? GetNamedString(IEnumerable<MapiProperty> properties, Guid set, uint localId) {

@@ -109,9 +109,11 @@ public static partial class DocumentReader {
             bodyKind = "HTML";
             bodyWarning = "EMAIL_HTML_BODY_PRESERVED: No plain-text alternative was available; the HTML body is preserved without lossy tag stripping.";
         } else if (string.IsNullOrEmpty(body) && !string.IsNullOrEmpty(document.Body.Rtf)) {
+            if (TryAddEmailRtfBodyChunks(document.Body.Rtf!, context, messageIndex, depth, heading, logicalPath,
+                out bodyWarning)) return;
             body = document.Body.Rtf;
             bodyKind = "RTF";
-            bodyWarning = "EMAIL_RTF_BODY_PRESERVED: The RTF body is preserved until the OfficeIMO.Rtf integration is available.";
+            bodyWarning = bodyWarning ?? "EMAIL_RTF_BODY_PRESERVED: Register OfficeIMO.Reader.Rtf to extract the preserved RTF body semantically.";
         }
         if (string.IsNullOrEmpty(body)) {
             return;
@@ -142,6 +144,60 @@ public static partial class DocumentReader {
             }
             context.Extraction.Chunks.Add(sourceChunk);
             bodyPartIndex++;
+        }
+    }
+
+    private static bool TryAddEmailRtfBodyChunks(
+        string rtf,
+        EmailChunkContext context,
+        int messageIndex,
+        int depth,
+        string heading,
+        string logicalPath,
+        out string? warning) {
+        warning = null;
+        const string sourceName = "email-body.rtf";
+        if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
+            (handler.ReadStream == null && handler.ReadDocumentStream == null)) return false;
+
+        byte[] bytes = new byte[rtf.Length];
+        for (int index = 0; index < rtf.Length; index++) {
+            if (rtf[index] > byte.MaxValue) {
+                warning = "EMAIL_RTF_BODY_ENCODING_INVALID: The preserved RTF contains a character that is not byte-preserving.";
+                return false;
+            }
+            bytes[index] = unchecked((byte)rtf[index]);
+        }
+
+        try {
+            ReaderOptions rtfOptions = CloneOptions(context.Options, computeHashes: false);
+            ReaderChunk[] rtfChunks = Read(bytes, sourceName, rtfOptions, context.CancellationToken).ToArray();
+            if (rtfChunks.Length == 0) return false;
+            for (int index = 0; index < rtfChunks.Length; index++) {
+                ReaderChunk chunk = rtfChunks[index];
+                int blockIndex = context.NextBlockIndex++;
+                chunk.Id = BuildStableId("email-body-rtf", Path.GetFileName(context.Extraction.SourceName), blockIndex, index);
+                chunk.Location.Path = logicalPath;
+                chunk.Location.BlockIndex = blockIndex;
+                chunk.Location.SourceBlockIndex = index;
+                chunk.Location.HeadingPath = string.Concat(heading, " > Body");
+                chunk.Location.SourceBlockKind = "email-body-rtf";
+                chunk.Location.BlockAnchor = BuildEmailAnchor("body", messageIndex, depth) + "-rtf-" +
+                    index.ToString(CultureInfo.InvariantCulture);
+                chunk.SourceId = null;
+                chunk.SourceHash = null;
+                chunk.ChunkHash = null;
+                chunk.SourceLastWriteUtc = null;
+                chunk.SourceLengthBytes = null;
+                context.Extraction.Chunks.Add(chunk);
+            }
+            return true;
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (Exception exception) {
+            warning = string.Concat("EMAIL_RTF_BODY_READER_FAILED: ", exception.GetType().Name,
+                " while extracting the preserved RTF body.");
+            return false;
         }
     }
 

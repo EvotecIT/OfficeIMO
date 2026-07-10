@@ -6,6 +6,7 @@ The package supports:
 
 - EML and MIME messages, including multipart bodies, encoded headers, inline resources, attachments, and embedded messages
 - Outlook MSG files with typed MAPI properties, named properties, recipients, embedded messages, and OLE/custom-storage attachments
+- MS-OXRTFCP compressed and uncompressed RTF bodies, including bounded expansion and checksum validation
 - Outlook messages, appointments, contacts, tasks, journals, and sticky notes
 - TNEF payloads such as `winmail.dat`
 - mboxo and mboxrd mailbox archives
@@ -76,6 +77,12 @@ if (item.OutlookItemKind == OutlookItemKind.Appointment && item.Appointment is n
 
 Equivalent projections are available through `Contact`, `Task`, `Journal`, and `Note`.
 
+## RTF bodies
+
+`EmailBody.Rtf` contains the byte-preserving RTF source decoded from `PidTagRtfCompressed`. The MSG and TNEF writers serialize an assigned RTF body with the MS-OXRTFCP compression format, and the reader accepts both the `LZFu` and `MELA` forms.
+
+RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate RTF through that package when the source contains characters that need RTF escapes. `OfficeIMO.Reader` will route an RTF-only email body through the registered `OfficeIMO.Reader.Rtf` handler; without that optional adapter, it preserves the RTF source and reports the fallback explicitly.
+
 ## Resource limits
 
 `EmailReaderOptions` is immutable and applies limits before retaining decoded content. It controls source size, header size and count, MIME part count and depth, per-attachment and aggregate attachment bytes, embedded-message depth, CFB directory entries, MAPI properties and decoded property bytes, and TNEF attributes.
@@ -102,5 +109,3 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 `OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the right owners for those operations.
 
 For an exact pass-through of a signed or encrypted artifact, read with `preserveRawSource: true` and write with `usePreservedRawSource: true`. A structured rewrite can change MIME canonicalization and must not be treated as signature-preserving.
-
-Compressed RTF bodies are deliberately routed through `OfficeIMO.Rtf`; until that integration lands, existing compressed-RTF MAPI properties are retained but a newly assigned `EmailBody.Rtf` value is not written into MSG.

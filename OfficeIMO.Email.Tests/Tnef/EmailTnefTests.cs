@@ -74,6 +74,20 @@ public sealed class EmailTnefTests {
     }
 
     [Fact]
+    public void RoundTripsCompressedRtfThroughTnefMapiProperties() {
+        const string rtf = "{\\rtf1\\ansi TNEF RTF body\\par}";
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "rtf" };
+        source.Body.Rtf = rtf;
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+
+        Assert.Equal(rtf, result.Document.Body.Rtf);
+        Assert.Contains(result.Document.MapiProperties, property => property.PropertyId == 0x1009);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void ReportsChecksumDamageAndEnforcesAttributeLimit() {
         EmailDocument source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "checksum" };
         byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);

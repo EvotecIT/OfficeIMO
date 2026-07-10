@@ -71,7 +71,7 @@ internal static class TnefReader {
             }
         }
 
-        MsgProjection.Apply(document, state.Options, state.Diagnostics, location);
+        MsgProjection.Apply(document, state, location);
         document.Format = EmailFileFormat.Tnef;
         document.Subject = subject ?? document.Subject;
         document.Body.Text = body ?? document.Body.Text;

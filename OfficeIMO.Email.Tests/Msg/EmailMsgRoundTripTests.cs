@@ -56,6 +56,7 @@ public sealed class EmailMsgRoundTripTests {
         Assert.Equal(source.Subject, result.Document.Subject);
         Assert.Equal(source.Body.Text, result.Document.Body.Text);
         Assert.Equal(source.Body.Html, result.Document.Body.Html);
+        Assert.Equal(3, result.Document.MapiProperties.Single(property => property.PropertyId == 0x1016).Value);
         Assert.Equal("from@example.com", result.Document.From!.Address);
         Assert.Equal("sender@example.com", result.Document.Sender!.Address);
         Assert.Equal(2, result.Document.Recipients.Count);

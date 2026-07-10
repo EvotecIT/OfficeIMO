@@ -162,6 +162,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 - `OfficeIMO.Reader` owns the shared extraction contract and built-in facade.
 - Source-specific parsing belongs in the source package or modular adapter.
+- Email RTF transport decoding belongs to `OfficeIMO.Email`; semantic extraction of an RTF-only email body is delegated to the registered `OfficeIMO.Reader.Rtf` adapter.
 - Adapters should use `ReaderInputLimits` so input size and stream behavior stays consistent.
 - AI or database storage belongs in the consuming application.
 

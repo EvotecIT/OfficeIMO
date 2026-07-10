@@ -8,7 +8,7 @@ public sealed class EmailBody {
     /// <summary>HTML alternative.</summary>
     public string? Html { get; set; }
 
-    /// <summary>Decompressed RTF alternative when present.</summary>
+    /// <summary>Decompressed, byte-preserving RTF source when present.</summary>
     public string? Rtf { get; set; }
 
     /// <summary>Declared charset for the selected plain-text body.</summary>
