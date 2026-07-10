@@ -7,7 +7,6 @@ using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
-using OfficeIMO.Reader.Text;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
@@ -49,7 +48,6 @@ public class ReaderDocumentBenchmarks {
         .AddJsonHandler()
         .AddPdfHandler()
         .AddRtfHandler()
-        .AddStructuredTextHandler()
         .AddVisioHandler()
         .AddXmlHandler()
         .AddYamlHandler()

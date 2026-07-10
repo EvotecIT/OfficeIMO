@@ -30,8 +30,24 @@
       "const": 5
     },
     "kind": {
-      "type": "string",
-      "minLength": 1
+      "enum": [
+        "Unknown",
+        "Word",
+        "Excel",
+        "PowerPoint",
+        "Markdown",
+        "Text",
+        "Pdf",
+        "Csv",
+        "Json",
+        "Xml",
+        "Html",
+        "Zip",
+        "Epub",
+        "Visio",
+        "Yaml",
+        "Rtf"
+      ]
     },
     "source": {
       "$ref": "#/$defs/source"
@@ -165,7 +181,8 @@
         },
         "code": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "\\S"
         },
         "message": {
           "type": "string"

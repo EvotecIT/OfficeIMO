@@ -28,6 +28,30 @@ public static class OfficeDocumentReadResultJson {
         "diagnostics"
     };
 
+    private static readonly HashSet<string> AllowedTopLevelProperties = new HashSet<string>(
+        new[] {
+            "schemaId",
+            "schemaVersion",
+            "kind",
+            "source",
+            "capabilitiesUsed",
+            "markdown",
+            "html",
+            "json",
+            "chunks",
+            "metadata",
+            "pages",
+            "blocks",
+            "tables",
+            "assets",
+            "links",
+            "forms",
+            "ocrCandidates",
+            "visuals",
+            "diagnostics"
+        },
+        StringComparer.Ordinal);
+
     /// <summary>
     /// Serializes a document read result into the stable OfficeIMO transport shape.
     /// </summary>
@@ -42,6 +66,7 @@ public static class OfficeDocumentReadResultJson {
             ? OfficeDocumentReadResultSchema.CurrentVersion
             : result.SchemaVersion;
         OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
+        EnsureDiagnosticCodes(result.Diagnostics);
 
         return JsonSerializer.Serialize(ProjectResult(result), CreateOptions(indented));
     }
@@ -74,12 +99,15 @@ public static class OfficeDocumentReadResultJson {
         int schemaVersion = TryReadSchemaVersion(root);
         OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
         EnsureRequiredTopLevelProperties(root);
+        EnsureKnownTopLevelProperties(root);
 
         OfficeDocumentReadResult? result = JsonSerializer.Deserialize<OfficeDocumentReadResult>(json, CreateReadOptions());
         if (result == null) {
             throw new JsonException("The document read result payload produced a null result.");
         }
-        return NormalizeDeserializedResult(result);
+        result = NormalizeDeserializedResult(result);
+        EnsureDiagnosticCodes(result.Diagnostics);
+        return result;
     }
 
     private static JsonSerializerOptions CreateOptions(bool indented) {
@@ -91,8 +119,7 @@ public static class OfficeDocumentReadResultJson {
 
     private static JsonSerializerOptions CreateReadOptions() {
         var options = new JsonSerializerOptions {
-            PropertyNameCaseInsensitive = true,
-            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+            PropertyNameCaseInsensitive = true
         };
         options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
         return options;
@@ -101,8 +128,30 @@ public static class OfficeDocumentReadResultJson {
     private static void EnsureRequiredTopLevelProperties(JsonElement root) {
         for (int index = 0; index < RequiredTopLevelProperties.Length; index++) {
             string propertyName = RequiredTopLevelProperties[index];
-            if (!root.TryGetProperty(propertyName, out _)) {
+            if (!root.TryGetProperty(propertyName, out JsonElement property)) {
                 throw new JsonException($"Required document read result property '{propertyName}' is missing.");
+            }
+            if (property.ValueKind == JsonValueKind.Null) {
+                throw new JsonException($"Required document read result property '{propertyName}' cannot be null.");
+            }
+        }
+    }
+
+    private static void EnsureKnownTopLevelProperties(JsonElement root) {
+        foreach (JsonProperty property in root.EnumerateObject()) {
+            if (!AllowedTopLevelProperties.Contains(property.Name)) {
+                throw new JsonException($"Unknown document read result property '{property.Name}'.");
+            }
+        }
+    }
+
+    private static void EnsureDiagnosticCodes(IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics) {
+        if (diagnostics == null) return;
+
+        for (int index = 0; index < diagnostics.Count; index++) {
+            OfficeDocumentDiagnostic? diagnostic = diagnostics[index];
+            if (diagnostic == null || string.IsNullOrWhiteSpace(diagnostic.Code)) {
+                throw new JsonException($"Document diagnostic at index {index} must have a non-empty code.");
             }
         }
     }

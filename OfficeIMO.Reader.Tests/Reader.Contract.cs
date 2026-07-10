@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -28,6 +29,12 @@ public sealed class ReaderContractTests {
             root.GetProperty("properties").GetProperty("schemaId").GetProperty("const").GetString());
         Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion,
             root.GetProperty("properties").GetProperty("schemaVersion").GetProperty("const").GetInt32());
+        Assert.Equal(
+            Enum.GetNames(typeof(ReaderInputKind)),
+            root.GetProperty("properties").GetProperty("kind").GetProperty("enum")
+                .EnumerateArray()
+                .Select(value => value.GetString())
+                .ToArray());
 
         string[] properties = root.GetProperty("properties")
             .EnumerateObject()
@@ -153,6 +160,50 @@ public sealed class ReaderContractTests {
             () => OfficeDocumentReadResultJson.Deserialize(withUnknownMember));
 
         Assert.Contains("futureField", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("source")]
+    [InlineData("capabilitiesUsed")]
+    [InlineData("chunks")]
+    [InlineData("diagnostics")]
+    public void OfficeDocumentReadResultJson_RejectsNullRequiredMembers(string propertyName) {
+        JsonObject envelope = JsonNode.Parse(
+            OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult()))!.AsObject();
+        envelope[propertyName] = null;
+
+        JsonException exception = Assert.Throws<JsonException>(
+            () => OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString()));
+
+        Assert.Contains(propertyName, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("cannot be null", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_AllowsNestedExtensionMembers() {
+        var result = new OfficeDocumentReadResult {
+            Chunks = new[] {
+                new ReaderChunk { Id = "chunk-1", Kind = ReaderInputKind.Text, Text = "Body" }
+            }
+        };
+        JsonObject envelope = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(result))!.AsObject();
+        JsonObject chunk = envelope["chunks"]![0]!.AsObject();
+        chunk["futureField"] = true;
+
+        OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(envelope.ToJsonString());
+
+        Assert.Equal("chunk-1", Assert.Single(restored.Chunks).Id);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_RejectsDiagnosticsWithoutStableCodes() {
+        var result = new OfficeDocumentReadResult {
+            Diagnostics = new[] { new OfficeDocumentDiagnostic { Message = "Missing code" } }
+        };
+
+        JsonException exception = Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Serialize(result));
+
+        Assert.Contains("non-empty code", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
