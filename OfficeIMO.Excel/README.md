@@ -249,7 +249,7 @@ if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
 
 Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, slicers, timelines, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
 
-### CSV and JSON exchange
+### DataTable and JSON exchange
 
 ```csharp
 using System.Data;
@@ -258,10 +258,8 @@ using var document = ExcelDocument.Load("data.xlsx");
 var sheet = document["Data"];
 
 DataTable table = sheet.ToDataTable("A1:C100");
-string csv = sheet.ToCsv("A1:C100");
 string json = sheet.ToJson("A1:C100");
 
-sheet.FromCsv("Name,Amount\nAlpha,10\nBeta,20", startRow: 5, startColumn: 1);
 sheet.FromJson("[{\"Name\":\"Gamma\",\"Amount\":30}]", startRow: 8, startColumn: 1);
 ```
 

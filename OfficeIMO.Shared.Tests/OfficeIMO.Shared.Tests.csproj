@@ -29,7 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Data\OfficeIMO.Data.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
