@@ -141,8 +141,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void AddBrokenToken(ICollection<InlineLine> lines, ref InlineLine line, HtmlInlineRun run, string token, double width) {
         var part = new StringBuilder();
         double partWidth = 0D;
-        foreach (char character in token) {
-            string value = character.ToString();
+        foreach (string value in OfficeTextElements.Enumerate(token)) {
             double charWidth = MeasureText(value, run.Style.Font);
             if (part.Length > 0 && partWidth + charWidth > width) {
                 if (line.Segments.Count > 0) {
@@ -158,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 partWidth = 0D;
             }
 
-            part.Append(character);
+            part.Append(value);
             partWidth += charWidth;
         }
 

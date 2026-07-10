@@ -3138,6 +3138,18 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTextMeasurerMeasuresUnicodeTextElementsWithoutDoubleCountingMarksOrSurrogates() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo("Arial", 12));
+        string composed = "e\u0301";
+        string smile = char.ConvertFromUtf32(0x1F600);
+
+        Assert.Equal(measurer.MeasureWidth("e", style), measurer.MeasureWidth(composed, style), 6);
+        Assert.Equal(measurer.MeasureWidth("漢", style), measurer.MeasureWidth(smile, style), 6);
+        Assert.Equal(new[] { "A", composed, smile, "B" }, OfficeTextElements.Split("A" + composed + smile + "B"));
+    }
+
+    [Fact]
     public void OfficeTextMeasurerNormalizesFallbackFontInfo() {
         var measurer = OfficeTextMeasurer.Create(new OfficeFontInfo(null, 0));
 
@@ -3170,6 +3182,15 @@ public partial class DrawingTests {
 
         Assert.NotNull(font);
         Assert.Equal(500D, font!.Measure("A", 1000D));
+    }
+
+    [Fact]
+    public void OfficeTrueTypeFontMapsNonBmpScalarsThroughFormat12Cmap() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(fontData);
+
+        Assert.NotNull(font);
+        Assert.Equal(500D, font!.Measure(char.ConvertFromUtf32(0x1F600), 1000D));
     }
 
     [Fact]
@@ -3208,6 +3229,21 @@ public partial class DrawingTests {
         WriteUInt16(data, 12, 12);
         WriteUInt32(data, 16, 16);
         WriteUInt32(data, 24, 2);
+        return data;
+    }
+
+    private static byte[] CreateFormat12Cmap(int scalar) {
+        var data = new byte[40];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, 28);
+        WriteUInt32(data, 24, 1);
+        WriteUInt32(data, 28, (uint)scalar);
+        WriteUInt32(data, 32, (uint)scalar);
+        WriteUInt32(data, 36, 1);
         return data;
     }
 

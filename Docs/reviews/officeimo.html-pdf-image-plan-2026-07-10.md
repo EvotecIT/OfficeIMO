@@ -46,7 +46,7 @@ OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
 - `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The current renderer deliberately starts with normal flow, styled text, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
 ## Implemented Checkpoint
 
@@ -60,6 +60,7 @@ The current renderer deliberately starts with normal flow, styled text, tables w
 - [x] CSS `page` assignment plus named `@page` masters and named `:first`/`:left`/`:right` margin-content overrides, with the selected name retained on each rendered page.
 - [x] Nested page fragmentation with widows/orphans, repeated table headers and footers, and parity-correct left/right/recto/verso breaks.
 - [x] Table occupancy-grid layout for `colspan`, row-group-bounded `rowspan` including `rowspan="0"`, distributed span height, and span-safe page breaks.
+- [x] Shared `OfficeIMO.Drawing` Unicode text-element measurement and HTML long-token fragmentation that preserve combining sequences and surrogate pairs, plus managed TrueType format-12 cmap lookup for non-BMP scalars.
 - [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
 - [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, pagination, resources, timeout, cancellation, and diagnostics.
 
@@ -219,7 +220,7 @@ Exit gate: every rendered node has deterministic computed values or a stable uns
 
 ### Phase 3 - Typography and inline layout
 
-- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable.
+- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Grapheme-safe deterministic measurement and non-BMP TrueType cmap lookup are implemented; font fallback planning and richer OpenType metrics remain.
 - [ ] Implement managed shaping, bidi resolution, ligatures, kerning, combining marks, and script-aware fallback.
 - [ ] Implement whitespace, line breaking, inline boxes, decorations, baseline alignment, and intrinsic text measurement.
 - [ ] Verify positioned glyphs round-trip to searchable/extractable PDF text.

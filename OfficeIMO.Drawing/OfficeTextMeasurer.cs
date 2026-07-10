@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace OfficeIMO.Drawing;
 
@@ -65,20 +66,14 @@ public sealed class OfficeTextMeasurer {
             return 0D;
         }
 
-        string valueText = text!;
         double width = 0D;
-        for (int i = 0; i < valueText.Length; i++) {
-            char value = valueText[i];
-            if (value == '\t') {
+        foreach (string element in OfficeTextElements.Enumerate(text)) {
+            if (element == "\t") {
                 width += style.SpaceWidthPixels * 4D;
                 continue;
             }
 
-            if (char.IsControl(value)) {
-                continue;
-            }
-
-            width += style.FontSizePixels * GetCharacterWidthFactor(value, style.FontInfo);
+            width += style.FontSizePixels * GetTextElementWidthFactor(element, style.FontInfo);
         }
 
         return width;
@@ -118,7 +113,7 @@ public sealed class OfficeTextMeasurer {
 
     internal static double GetCharacterWidthFactor(char value, OfficeFontInfo fontInfo) {
         double factor;
-        if (value == ' ') {
+        if (value == ' ' || value == '\u00a0') {
             factor = 0.34D;
         } else if (value >= '0' && value <= '9') {
             factor = DefaultDigitEmWidth;
@@ -144,6 +139,36 @@ public sealed class OfficeTextMeasurer {
         }
 
         return factor * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+    }
+
+    private static double GetTextElementWidthFactor(string element, OfficeFontInfo fontInfo) {
+        if (!TryGetBaseScalar(element, out int scalar)) return 0D;
+        double factor = scalar <= char.MaxValue
+            ? GetCharacterWidthFactor((char)scalar, fontInfo)
+            : (IsCjkOrWide(scalar) || IsEmojiLike(scalar) ? 1D : 0.62D) * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+        if (element.IndexOf('\u200d') >= 0 || element.IndexOf('\ufe0f') >= 0) {
+            factor = 1D * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+        }
+
+        return factor;
+    }
+
+    private static bool TryGetBaseScalar(string element, out int scalar) {
+        for (int index = 0; index < element.Length;) {
+            scalar = char.ConvertToUtf32(element, index);
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(element, index);
+            if (category != UnicodeCategory.Control
+                && category != UnicodeCategory.Format
+                && category != UnicodeCategory.NonSpacingMark
+                && category != UnicodeCategory.SpacingCombiningMark
+                && category != UnicodeCategory.EnclosingMark
+                && scalar != 0x00AD
+                && scalar != 0x200B) return true;
+            index += scalar > char.MaxValue ? 2 : 1;
+        }
+
+        scalar = 0;
+        return false;
     }
 
     internal static double GetFontFamilyWidthFactor(OfficeFontInfo fontInfo) {
@@ -204,11 +229,17 @@ public sealed class OfficeTextMeasurer {
     private static bool IsNarrowLowercase(char value) =>
         value == 'i' || value == 'j' || value == 'l' || value == 't' || value == 'f' || value == 'r';
 
-    private static bool IsCjkOrWide(char value) =>
+    private static bool IsCjkOrWide(int value) =>
         (value >= '\u1100' && value <= '\u11ff')
         || (value >= '\u2e80' && value <= '\u9fff')
         || (value >= '\uf900' && value <= '\ufaff')
-        || (value >= '\uff00' && value <= '\uffef');
+        || (value >= '\uff00' && value <= '\uffef')
+        || (value >= 0x20000 && value <= 0x3FFFD);
+
+    private static bool IsEmojiLike(int value) =>
+        (value >= 0x1F000 && value <= 0x1FAFF)
+        || (value >= 0x2600 && value <= 0x27BF)
+        || (value >= 0x1F1E6 && value <= 0x1F1FF);
 
     private static bool Contains(string value, string text) =>
         value.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;

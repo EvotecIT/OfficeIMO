@@ -156,6 +156,25 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Continuous_BreaksLongTokensAtUnicodeTextElementBoundaries() {
+        string composed = "e\u0301";
+        string smile = char.ConvertFromUtf32(0x1F600);
+        string value = "A" + composed + smile + "B";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render("<p style='margin:0;font-size:12px'>" + value + "</p>", options);
+        IReadOnlyList<string> segments = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Select(text => text.Text).ToList();
+
+        Assert.Equal(value, string.Concat(segments));
+        Assert.DoesNotContain(segments, segment => segment == "\u0301");
+        Assert.DoesNotContain(segments, segment => segment.Length == 1 && char.IsSurrogate(segment[0]));
+    }
+
+    [Fact]
     public void HtmlRender_Paged_UsesPrintMediaAndExplicitPageBreaks() {
         string html = """
             <style>
