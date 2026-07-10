@@ -186,7 +186,7 @@ Use `OfficeIMO.Markdown` as the final Markdown writer where possible. PDF logica
 
 ### JSON
 
-Add a stable JSON shape for pages, blocks, tables, images, links, forms, diagnostics, assets, visuals, and source references. JSON should be deterministic and versioned with a schema id/version.
+Schema version 5 is the first stable JSON envelope for pages, blocks, tables, links, forms, diagnostics, assets, visuals, OCR candidates, chunks, metadata, and source references. The schema is embedded in `OfficeIMO.Reader`, packed as a versioned artifact, and guarded by strict deserialization and transport round-trip tests. Future breaking transport changes require a new schema version and explicit compatibility policy.
 
 ### HTML
 
@@ -360,14 +360,15 @@ Goal: prove document intelligence with tests users can trust.
 - Word/HTML support matrix fixtures.
 - Folder-ingestion summary tests.
 - Cross-target builds for `net472`, `netstandard2.0`, `net8.0`, and `net10.0` where applicable.
+- Reader-wide BenchmarkDotNet coverage for extraction, detection, transport, and parser/chunker isolation, with environment-qualified baseline notes for release decisions.
 
 ## Near-Term Implementation Slices
 
 1. Keep this roadmap current and link it only from the active owner docs.
-2. Harden the experimental `OfficeDocumentReadResult` model after PDF and Visio feedback.
+2. Evolve the stable `OfficeDocumentReadResult` model additively; use a new schema version for breaking transport changes.
 3. Deepen PDF logical-document read-result coverage for richer image/form metadata, compliance diagnostics, destinations, outlines, and catalog evidence.
 4. Align read-result Markdown through existing PDF logical Markdown and `OfficeIMO.Markdown`.
-5. Keep deterministic JSON stable and add schema snapshot coverage.
+5. Keep deterministic schema version 5 JSON stable and expand nested schema detail as shared models mature.
 6. Extend asset manifests to richer PDF form/widget assets, HTML/EPUB referenced media, and Office drawing anchors.
 7. Expand table-only extraction examples and adapter coverage beyond the initial Reader/PDF/Visio facades.
 8. Extend scan/OCR-needed diagnostics beyond image-only PDF pages into richer image-region and Office-document heuristics, still without an OCR implementation.

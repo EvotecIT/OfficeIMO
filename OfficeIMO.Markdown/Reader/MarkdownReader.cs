@@ -153,6 +153,7 @@ public static partial class MarkdownReader {
 
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(sourceLines, options, state);
         var nestedDocument = MarkdownDoc.Create();
+        using var objectTreeBindingDeferral = nestedDocument.DeferObjectTreeBinding();
         for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
             nestedDocument.Add(blocks[blockIndex]);
         }
@@ -174,6 +175,7 @@ public static partial class MarkdownReader {
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
         bool applyDocumentTransforms = true) {
         var doc = MarkdownDoc.Create();
+        using var objectTreeBindingDeferral = doc.DeferObjectTreeBinding();
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         normalizedSourceText = string.Empty;
         if (string.IsNullOrEmpty(markdown)) return doc;

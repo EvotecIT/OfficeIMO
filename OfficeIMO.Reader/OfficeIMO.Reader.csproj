@@ -40,6 +40,13 @@
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
     </None>
+    <None Include="Schemas\officeimo.document.read-result.v5.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v5.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v5.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v5.schema.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -50,4 +57,3 @@
     <Using Include="System.Text" />
   </ItemGroup>
 </Project>
-

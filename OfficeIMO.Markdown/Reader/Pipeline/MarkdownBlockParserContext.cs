@@ -53,6 +53,7 @@ public readonly struct MarkdownBlockParseResult {
 /// </summary>
 public sealed class MarkdownBlockParserContext {
     private readonly string[] _lines;
+    private readonly MarkdownDoc _document;
 
     internal MarkdownBlockParserContext(
         string[] lines,
@@ -63,7 +64,7 @@ public sealed class MarkdownBlockParserContext {
         _lines = lines ?? Array.Empty<string>();
         LineIndex = lineIndex;
         Options = options ?? throw new ArgumentNullException(nameof(options));
-        Document = document ?? throw new ArgumentNullException(nameof(document));
+        _document = document ?? throw new ArgumentNullException(nameof(document));
         State = state ?? throw new ArgumentNullException(nameof(state));
     }
 
@@ -95,7 +96,12 @@ public sealed class MarkdownBlockParserContext {
     /// <summary>
     /// Markdown document being built.
     /// </summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDoc Document {
+        get {
+            _document.EnsureObjectTreeBound();
+            return _document;
+        }
+    }
 
     /// <summary>
     /// Mutable reader state shared across parsers.

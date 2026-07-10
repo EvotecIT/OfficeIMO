@@ -4,18 +4,18 @@ using System.Collections.Generic;
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Stable schema values for the experimental OfficeIMO document read result.
+/// Stable schema values for the OfficeIMO document read result transport contract.
 /// </summary>
-public static class OfficeDocumentReadResultSchema {
+public static partial class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Stable schema identifier for shared document readback results.
     /// </summary>
     public const string Id = "officeimo.document.read-result";
 
     /// <summary>
-    /// Current schema version.
+    /// Current schema version. Retained as the original compatibility name for <see cref="CurrentVersion"/>.
     /// </summary>
-    public const int Version = 5;
+    public const int Version = CurrentVersion;
 }
 
 /// <summary>

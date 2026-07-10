@@ -9,6 +9,25 @@ namespace OfficeIMO.Reader;
 /// JSON serialization helpers for the shared OfficeIMO document read result envelope.
 /// </summary>
 public static class OfficeDocumentReadResultJson {
+    private static readonly string[] RequiredTopLevelProperties = {
+        "schemaId",
+        "schemaVersion",
+        "kind",
+        "source",
+        "capabilitiesUsed",
+        "chunks",
+        "metadata",
+        "pages",
+        "blocks",
+        "tables",
+        "assets",
+        "links",
+        "forms",
+        "ocrCandidates",
+        "visuals",
+        "diagnostics"
+    };
+
     /// <summary>
     /// Serializes a document read result into the stable OfficeIMO transport shape.
     /// </summary>
@@ -16,6 +35,13 @@ public static class OfficeDocumentReadResultJson {
     /// <param name="indented">When true, writes indented JSON for diagnostics and fixtures.</param>
     public static string Serialize(OfficeDocumentReadResult result, bool indented = false) {
         if (result == null) throw new ArgumentNullException(nameof(result));
+        string schemaId = string.IsNullOrWhiteSpace(result.SchemaId)
+            ? OfficeDocumentReadResultSchema.Id
+            : result.SchemaId;
+        int schemaVersion = result.SchemaVersion == 0
+            ? OfficeDocumentReadResultSchema.CurrentVersion
+            : result.SchemaVersion;
+        OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
 
         return JsonSerializer.Serialize(ProjectResult(result), CreateOptions(indented));
     }
@@ -29,11 +55,92 @@ public static class OfficeDocumentReadResultJson {
         return Serialize(result, indented);
     }
 
+    /// <summary>
+    /// Deserializes a current, supported document read result transport payload.
+    /// </summary>
+    /// <param name="json">UTF-16 JSON text containing one complete result envelope.</param>
+    /// <exception cref="JsonException">The payload is not valid JSON or cannot be mapped to the transport model.</exception>
+    /// <exception cref="OfficeDocumentReadResultSchemaException">The schema identifier or version is not supported.</exception>
+    public static OfficeDocumentReadResult Deserialize(string json) {
+        if (json == null) throw new ArgumentNullException(nameof(json));
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object) {
+            throw new JsonException("The document read result payload must be a JSON object.");
+        }
+
+        string? schemaId = TryReadSchemaId(root);
+        int schemaVersion = TryReadSchemaVersion(root);
+        OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
+        EnsureRequiredTopLevelProperties(root);
+
+        OfficeDocumentReadResult? result = JsonSerializer.Deserialize<OfficeDocumentReadResult>(json, CreateReadOptions());
+        if (result == null) {
+            throw new JsonException("The document read result payload produced a null result.");
+        }
+        return NormalizeDeserializedResult(result);
+    }
+
     private static JsonSerializerOptions CreateOptions(bool indented) {
         return new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             WriteIndented = indented
         };
+    }
+
+    private static JsonSerializerOptions CreateReadOptions() {
+        var options = new JsonSerializerOptions {
+            PropertyNameCaseInsensitive = true,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
+        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
+        return options;
+    }
+
+    private static void EnsureRequiredTopLevelProperties(JsonElement root) {
+        for (int index = 0; index < RequiredTopLevelProperties.Length; index++) {
+            string propertyName = RequiredTopLevelProperties[index];
+            if (!root.TryGetProperty(propertyName, out _)) {
+                throw new JsonException($"Required document read result property '{propertyName}' is missing.");
+            }
+        }
+    }
+
+    private static string? TryReadSchemaId(JsonElement root) {
+        if (!root.TryGetProperty("schemaId", out JsonElement property) ||
+            property.ValueKind != JsonValueKind.String) {
+            return null;
+        }
+        return property.GetString();
+    }
+
+    private static int TryReadSchemaVersion(JsonElement root) {
+        if (!root.TryGetProperty("schemaVersion", out JsonElement property) ||
+            property.ValueKind != JsonValueKind.Number ||
+            !property.TryGetInt32(out int version)) {
+            return 0;
+        }
+        return version;
+    }
+
+    private static OfficeDocumentReadResult NormalizeDeserializedResult(OfficeDocumentReadResult result) {
+        result.SchemaId = OfficeDocumentReadResultSchema.Id;
+        result.SchemaVersion = OfficeDocumentReadResultSchema.CurrentVersion;
+        result.Source ??= new OfficeDocumentSource();
+        result.CapabilitiesUsed ??= Array.Empty<string>();
+        result.Chunks ??= Array.Empty<ReaderChunk>();
+        result.Metadata ??= Array.Empty<OfficeDocumentMetadataEntry>();
+        result.Pages ??= Array.Empty<OfficeDocumentPage>();
+        result.Blocks ??= Array.Empty<OfficeDocumentBlock>();
+        result.Tables ??= Array.Empty<ReaderTable>();
+        result.Assets ??= Array.Empty<OfficeDocumentAsset>();
+        result.Links ??= Array.Empty<OfficeDocumentLink>();
+        result.Forms ??= Array.Empty<OfficeDocumentFormField>();
+        result.OcrCandidates ??= Array.Empty<OfficeDocumentOcrCandidate>();
+        result.Visuals ??= Array.Empty<ReaderVisual>();
+        result.Diagnostics ??= Array.Empty<OfficeDocumentDiagnostic>();
+        return result;
     }
 
     private static object ProjectResult(OfficeDocumentReadResult result) {
