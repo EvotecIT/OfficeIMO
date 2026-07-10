@@ -62,4 +62,15 @@ public sealed class EmailReaderContractTests {
         Assert.Equal(3, attachment.Length);
         Assert.Null(attachment.Content);
     }
+
+    [Fact]
+    public void EnforcesMapiPropertyAndWriterOutputLimits() {
+        EmailDocument source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "bounded" };
+        byte[] msg = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+
+        Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
+            new EmailReaderOptions(maxMapiPropertyCount: 1)).Read(msg));
+        Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentWriter(
+            new EmailWriterOptions(maxOutputBytes: 10)).WriteToBytes(source, EmailFileFormat.OutlookMsg));
+    }
 }

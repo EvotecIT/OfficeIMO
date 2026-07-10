@@ -29,6 +29,7 @@ public sealed class EmailAddress {
 
 /// <summary>Associates an address with its recipient role.</summary>
 public sealed class EmailRecipient {
+    private readonly List<MapiProperty> _mapiProperties = new List<MapiProperty>();
     /// <summary>Creates a recipient.</summary>
     public EmailRecipient(EmailRecipientKind kind, EmailAddress address) {
         Kind = kind;
@@ -40,4 +41,7 @@ public sealed class EmailRecipient {
 
     /// <summary>Recipient address.</summary>
     public EmailAddress Address { get; set; }
+
+    /// <summary>Recipient-level MAPI properties.</summary>
+    public IList<MapiProperty> MapiProperties => _mapiProperties;
 }

@@ -72,6 +72,9 @@ public sealed class EmailDocumentReader {
             case EmailFileFormat.Eml:
                 document = MimeParser.Parse(data, _options, diagnostics);
                 break;
+            case EmailFileFormat.OutlookMsg:
+                document = MsgReader.Read(data, _options, diagnostics);
+                break;
             case EmailFileFormat.Unknown:
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
                     "The artifact has no recognized email signature or RFC message header.", EmailDiagnosticSeverity.Error));

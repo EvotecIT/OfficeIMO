@@ -49,17 +49,29 @@ public sealed class EmailDocumentWriter {
 
     private byte[] WriteToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (format != EmailFileFormat.Eml) throw new NotSupportedException("Only EML serialization is available in this delivery slice.");
+        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg) {
+            throw new NotSupportedException("The requested email artifact format cannot be serialized.");
+        }
 
         if (_options.UsePreservedRawSource && document.Format == format && document.RawSource != null) {
             byte[] preserved = (byte[])document.RawSource.Clone();
+            EnsureOutputLimit(preserved.LongLength);
             result = new EmailWriteResult(preserved.LongLength, Array.Empty<EmailDiagnostic>(), true);
             return preserved;
         }
 
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
-        byte[] data = MimeWriter.Write(document, _options, diagnostics);
+        byte[] data = format == EmailFileFormat.Eml
+            ? MimeWriter.Write(document, _options, diagnostics)
+            : MsgWriter.Write(document, _options, diagnostics);
+        EnsureOutputLimit(data.LongLength);
         result = new EmailWriteResult(data.LongLength, diagnostics.AsReadOnly(), false);
         return data;
+    }
+
+    private void EnsureOutputLimit(long length) {
+        if (length > _options.MaxOutputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), length, _options.MaxOutputBytes);
+        }
     }
 }

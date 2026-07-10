@@ -5,6 +5,7 @@ public sealed class EmailDocument {
     private readonly List<EmailHeader> _headers = new List<EmailHeader>();
     private readonly List<EmailRecipient> _recipients = new List<EmailRecipient>();
     private readonly List<EmailAttachment> _attachments = new List<EmailAttachment>();
+    private readonly List<MapiProperty> _mapiProperties = new List<MapiProperty>();
     private readonly Dictionary<string, object?> _properties = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Source format used to create the document.</summary>
@@ -45,6 +46,24 @@ public sealed class EmailDocument {
 
     /// <summary>Attachment and embedded-item collection.</summary>
     public IList<EmailAttachment> Attachments => _attachments;
+
+    /// <summary>Root MAPI properties, including properties not projected onto common fields.</summary>
+    public IList<MapiProperty> MapiProperties => _mapiProperties;
+
+    /// <summary>Typed appointment projection when <see cref="OutlookItemKind"/> is Appointment.</summary>
+    public OutlookAppointment? Appointment { get; set; }
+
+    /// <summary>Typed contact projection when <see cref="OutlookItemKind"/> is Contact.</summary>
+    public OutlookContact? Contact { get; set; }
+
+    /// <summary>Typed task projection when <see cref="OutlookItemKind"/> is Task.</summary>
+    public OutlookTask? Task { get; set; }
+
+    /// <summary>Typed journal projection when <see cref="OutlookItemKind"/> is Journal.</summary>
+    public OutlookJournal? Journal { get; set; }
+
+    /// <summary>Typed note projection when <see cref="OutlookItemKind"/> is Note.</summary>
+    public OutlookNote? Note { get; set; }
 
     /// <summary>Extensible source property bag for MAPI and format-specific metadata.</summary>
     public IDictionary<string, object?> Properties => _properties;
