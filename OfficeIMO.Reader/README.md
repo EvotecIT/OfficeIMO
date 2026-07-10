@@ -115,6 +115,22 @@ IReadOnlyList<OfficeDocumentReadResult> documents = await reader.ReadDocumentsAs
 
 `ReadDocumentsAsync(...)` starts no more than the configured degree of parallelism, rejects input beyond `MaxDocuments`, cancels sibling workers after a failure, and returns results in the same order as the input paths. Handlers can provide `ReadDocumentPathAsync` or `ReadDocumentStreamAsync` for native asynchronous work. Existing synchronous format engines remain compatible and are scheduled through the instance's bounded worker gate.
 
+## Stable document transport
+
+`OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Versions 1 through 4 were experimental and are deliberately rejected when reading transport payloads.
+
+```csharp
+OfficeDocumentReadResult document = reader.ReadDocument(@"C:\Docs\Policy.docx");
+string json = OfficeDocumentReadResultJson.Serialize(document, indented: true);
+
+OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+Console.WriteLine(restored.SchemaVersion); // 5
+
+string jsonSchema = OfficeDocumentReadResultSchema.GetJsonSchema();
+```
+
+The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Every pack of the core and modular Reader packages runs NuGet package validation against the currently published package version, so accidental public API breaks fail packaging.
+
 ## Content detection and structured diagnostics
 
 `Detect(...)` and `DetectAsync(...)` report extension and content evidence without reducing the answer to one opaque enum:
@@ -206,6 +222,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `SupportsAsyncPath` and `SupportsAsyncStream` identify handlers with native asynchronous delegates; false means the async facade uses the bounded synchronous fallback.
 - `DocumentReader.Detect(...)` / `DetectAsync(...)` and `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
 - `OfficeDocumentDiagnostic` carries stable categories, codes, sources, recoverability, and attributes so hosts do not need to parse warning text.
+- `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 
@@ -215,6 +232,16 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - Source-specific parsing belongs in the source package or modular adapter.
 - Adapters should use `ReaderInputLimits` so input size and stream behavior stays consistent.
 - AI or database storage belongs in the consuming application.
+
+## Performance evidence
+
+`OfficeIMO.Reader.Benchmarks` covers rich extraction across all built-in and modular formats, bounded content detection, schema serialization/deserialization, and parser-versus-Reader isolation. Run it from the repository root with:
+
+```powershell
+dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csproj -c Release -f net8.0
+```
+
+The benchmark corpus is generated deterministically before measurement. Benchmark artifacts are machine-specific and remain untracked; durable baseline notes record the runtime, hardware, corpus, and relevant comparisons.
 
 ## Related packages
 

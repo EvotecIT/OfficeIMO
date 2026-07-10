@@ -1,6 +1,14 @@
-# Excel benchmark artifacts
+# Benchmark artifacts
 
-This folder stores small, committed benchmark artifacts for `OfficeIMO.Excel`.
+This folder stores small, committed benchmark summaries and artifacts. Raw BenchmarkDotNet output, traces, and other machine-specific bulk evidence stay local.
+
+## Reader baselines
+
+- `officeimo.reader.foundation-2026-07-10.md`: first Reader-wide extraction, detection, transport, and parser/chunker baseline after the P0 foundation work.
+
+Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
+
+## Excel artifacts
 
 ## Artifact types
 
