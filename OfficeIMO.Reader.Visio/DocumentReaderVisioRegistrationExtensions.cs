@@ -21,9 +21,43 @@ public static class DocumentReaderVisioRegistrationExtensions {
     /// Registers Visio ingestion into <see cref="DocumentReader"/> for VSDX/VSDM/VSTX/VSTM files and streams.
     /// </summary>
     public static void RegisterVisioHandler(ReaderVisioOptions? visioOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        var registeredOptions = ReaderVisioOptionsCloner.CloneNullable(visioOptions);
+        ReaderHandlerRegistration registration = CreateRegistration(visioOptions);
 
-        var registration = new ReaderHandlerRegistration {
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
+    }
+
+    /// <summary>
+    /// Adds Visio ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddVisioHandler(
+        this OfficeDocumentReaderBuilder builder,
+        ReaderVisioOptions? visioOptions = null,
+        bool replaceExisting = false,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration(visioOptions);
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Unregisters Visio ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterVisioHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(ReaderVisioOptions? visioOptions) {
+        ReaderVisioOptions? registeredOptions = ReaderVisioOptionsCloner.CloneNullable(visioOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "Visio Reader Adapter",
             Description = "Modular Visio adapter using OfficeIMO.Visio inspection snapshots.",
@@ -52,18 +86,5 @@ public static class DocumentReaderVisioRegistrationExtensions {
                 visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
         };
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters Visio ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterVisioHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 }

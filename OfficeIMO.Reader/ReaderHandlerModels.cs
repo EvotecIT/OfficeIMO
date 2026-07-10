@@ -7,7 +7,8 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Custom handler registration model for extending <see cref="DocumentReader"/> without hard dependencies.
+/// Custom handler registration model for extending <see cref="DocumentReader"/> or configuring
+/// an isolated <see cref="OfficeDocumentReaderBuilder"/> without hard dependencies.
 /// </summary>
 public sealed class ReaderHandlerRegistration {
     /// <summary>

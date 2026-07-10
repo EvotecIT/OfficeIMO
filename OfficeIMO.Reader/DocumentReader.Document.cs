@@ -23,7 +23,7 @@ public static partial class DocumentReader {
 
         ReaderOptions opt = NormalizeOptions(options);
         ReaderInputKind kind = DetectKind(path);
-        bool hasCustomPathHandler = TryResolveCustomHandlerByPath(path, out CustomReaderHandler customPathHandler);
+        bool hasCustomPathHandler = TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor customPathHandler);
         if (hasCustomPathHandler && customPathHandler.ReadDocumentPath != null) {
             EnforceFileSize(path, opt.MaxInputBytes);
             return ValidateDocumentResult(
@@ -54,7 +54,7 @@ public static partial class DocumentReader {
         ReaderOptions opt = NormalizeOptions(options);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         ReaderInputKind kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName);
-        bool hasCustomStreamHandler = TryResolveCustomHandlerBySourceName(logicalSourceName, out CustomReaderHandler customStreamHandler);
+        bool hasCustomStreamHandler = TryResolveCustomHandlerBySourceName(logicalSourceName, out ReaderHandlerDescriptor customStreamHandler);
         if (stream.CanSeek) {
             ReaderInputLimits.EnforceSeekableStreamRemainingSize(stream, opt.MaxInputBytes);
         }
