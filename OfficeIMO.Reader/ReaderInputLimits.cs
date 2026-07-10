@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
@@ -101,6 +102,49 @@ public static class ReaderInputLimits {
 
         buffer.Position = 0;
         ownsStream = true;
+        return buffer;
+    }
+
+    /// <summary>
+    /// Asynchronously ensures a seekable stream for parsers that require rewind/index operations.
+    /// The original stream is returned when it is seekable. Otherwise a bounded memory snapshot is returned
+    /// and must be disposed by the caller.
+    /// </summary>
+    public static async Task<Stream> EnsureSeekableReadStreamAsync(
+        Stream stream,
+        long? maxInputBytes,
+        CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+        cancellationToken.ThrowIfCancellationRequested();
+        if (stream.CanSeek) {
+            EnforceSeekableStreamRemainingSize(stream, maxInputBytes);
+            return stream;
+        }
+
+        var buffer = new MemoryStream();
+        try {
+            var chunk = new byte[64 * 1024];
+            long totalBytes = 0;
+            while (true) {
+                int read = await stream.ReadAsync(chunk, 0, chunk.Length, cancellationToken).ConfigureAwait(false);
+                if (read <= 0) break;
+
+                totalBytes += read;
+                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
+                    throw new IOException(
+                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+                }
+
+                await buffer.WriteAsync(chunk, 0, read, cancellationToken).ConfigureAwait(false);
+            }
+        } catch {
+            buffer.Dispose();
+            throw;
+        }
+
+        buffer.Position = 0;
         return buffer;
     }
 }

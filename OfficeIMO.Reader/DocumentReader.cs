@@ -449,6 +449,11 @@ public static partial class DocumentReader {
         if (extLower.Length > 0 && TryResolveCustomHandlerByExtension(extLower, out var custom)) {
             return custom.Kind;
         }
+        return DetectBuiltInKind(path);
+    }
+
+    private static ReaderInputKind DetectBuiltInKind(string path) {
+        var extLower = NormalizeExtension(TryGetExtension(path));
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
             ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,

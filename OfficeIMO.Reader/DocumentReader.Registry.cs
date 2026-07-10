@@ -59,6 +59,8 @@ public static partial class DocumentReader {
             SupportsStream = capability.SupportsStream,
             SupportsDocumentPath = capability.SupportsDocumentPath,
             SupportsDocumentStream = capability.SupportsDocumentStream,
+            SupportsAsyncPath = capability.SupportsAsyncPath,
+            SupportsAsyncStream = capability.SupportsAsyncStream,
             SchemaId = capability.SchemaId,
             SchemaVersion = capability.SchemaVersion,
             DefaultMaxInputBytes = capability.DefaultMaxInputBytes,

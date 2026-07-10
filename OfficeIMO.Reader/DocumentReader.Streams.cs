@@ -49,22 +49,18 @@ public static partial class DocumentReader {
             var source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
 
             IEnumerable<ReaderChunk> raw;
-            if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler) &&
-                (customStreamHandler.ReadStream != null || customStreamHandler.ReadDocumentStream != null)) {
-                raw = customStreamHandler.ReadStream != null
-                    ? customStreamHandler.ReadStream(readStream, logicalSourceName, opt, cancellationToken)
-                    : GetDocumentResultChunks(customStreamHandler.ReadDocumentStream!(readStream, logicalSourceName, opt, cancellationToken), customStreamHandler.Id);
+            if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler)) {
+                if (customStreamHandler.ReadStream != null || customStreamHandler.ReadDocumentStream != null) {
+                    raw = customStreamHandler.ReadStream != null
+                        ? customStreamHandler.ReadStream(readStream, logicalSourceName, opt, cancellationToken)
+                        : GetDocumentResultChunks(customStreamHandler.ReadDocumentStream!(readStream, logicalSourceName, opt, cancellationToken), customStreamHandler.Id);
+                } else if (customStreamHandler.ReadDocumentStreamAsync != null) {
+                    throw CreateAsyncOnlyHandlerException(customStreamHandler.Id, "stream");
+                } else {
+                    raw = ReadBuiltInStream(readStream, logicalSourceName, opt, cancellationToken);
+                }
             } else {
-                var kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName!);
-                raw = kind switch {
-                    ReaderInputKind.Word => ReadWord(readStream, logicalSourceName, opt, cancellationToken),
-                    ReaderInputKind.Excel => ReadExcel(readStream, logicalSourceName, opt, cancellationToken),
-                    ReaderInputKind.PowerPoint => ReadPowerPoint(readStream, logicalSourceName, opt, cancellationToken),
-                    ReaderInputKind.Markdown => ReadMarkdown(readStream, logicalSourceName, opt, cancellationToken),
-                    ReaderInputKind.Pdf => ReadPdf(readStream, logicalSourceName, opt, cancellationToken),
-                    ReaderInputKind.Text => ReadText(readStream, logicalSourceName, opt, cancellationToken),
-                    _ => ReadUnknown(readStream, logicalSourceName, opt, cancellationToken)
-                };
+                raw = ReadBuiltInStream(readStream, logicalSourceName, opt, cancellationToken);
             }
 
             foreach (var chunk in raw) {
@@ -76,6 +72,23 @@ public static partial class DocumentReader {
                 readStream.Dispose();
             }
         }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadBuiltInStream(
+        Stream stream,
+        string? sourceName,
+        ReaderOptions opt,
+        CancellationToken cancellationToken) {
+        var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectBuiltInKind(sourceName!);
+        return kind switch {
+            ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
+            _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
+        };
     }
 
     /// <summary>

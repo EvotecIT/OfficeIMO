@@ -89,6 +89,32 @@ var chunks = reader.Read(@"C:\Docs\data.json").ToList();
 
 `Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads, is unaffected by later builder changes, and cannot see handlers registered on another reader. The static `DocumentReader.RegisterHandler(...)` and adapter `Register...Handler()` methods remain available for compatibility, but they update a process-wide registry.
 
+## Async and bounded batches
+
+Configure the instance-wide async limit once, then use the same reader for individual or batched work:
+
+```csharp
+using OfficeIMO.Reader;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .WithMaxConcurrentReads(4)
+    .Build();
+
+OfficeDocumentReadResult document = await reader.ReadDocumentAsync(
+    @"C:\Docs\Policy.docx",
+    cancellationToken: cancellationToken);
+
+IReadOnlyList<OfficeDocumentReadResult> documents = await reader.ReadDocumentsAsync(
+    Directory.EnumerateFiles(@"C:\Docs", "*.docx"),
+    batchOptions: new ReaderBatchOptions {
+        MaxDegreeOfParallelism = 3,
+        MaxDocuments = 500
+    },
+    cancellationToken: cancellationToken);
+```
+
+`ReadDocumentsAsync(...)` starts no more than the configured degree of parallelism, rejects input beyond `MaxDocuments`, cancels sibling workers after a failure, and returns results in the same order as the input paths. Handlers can provide `ReadDocumentPathAsync` or `ReadDocumentStreamAsync` for native asynchronous work. Existing synchronous format engines remain compatible and are scheduled through the instance's bounded worker gate.
+
 ## Host examples
 
 ### Capability discovery
@@ -112,22 +138,22 @@ using OfficeIMO.Reader;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHandler(new ReaderHandlerRegistration {
-    Id = "custom-audit",
-    DisplayName = "Custom audit reader",
-    Kind = ReaderInputKind.Text,
-    Extensions = new[] { ".auditx" },
-    ReadPath = (path, options, cancellationToken) => {
-        string text = File.ReadAllText(path);
-        return new[] {
-            new ReaderChunk {
-                Id = "audit:1",
-                Kind = ReaderInputKind.Text,
-                Text = text,
-                Location = new ReaderLocation { Path = path }
-            }
-        };
-    }
-})
+        Id = "custom-audit",
+        DisplayName = "Custom audit reader",
+        Kind = ReaderInputKind.Text,
+        Extensions = new[] { ".auditx" },
+        ReadPath = (path, options, cancellationToken) => {
+            string text = File.ReadAllText(path);
+            return new[] {
+                new ReaderChunk {
+                    Id = "audit:1",
+                    Kind = ReaderInputKind.Text,
+                    Text = text,
+                    Location = new ReaderLocation { Path = path }
+                }
+            };
+        }
+    })
     .Build();
 ```
 
@@ -136,13 +162,13 @@ Handlers that already expose a structured document model can register rich resul
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHandler(new ReaderHandlerRegistration {
-    Id = "custom-rich-reader",
-    DisplayName = "Custom rich reader",
-    Kind = ReaderInputKind.Text,
-    Extensions = new[] { ".rich" },
-    ReadDocumentPath = (path, options, cancellationToken) => ReadRichDocument(path),
-    ReadDocumentStream = (stream, sourceName, options, cancellationToken) => ReadRichDocument(stream, sourceName)
-})
+        Id = "custom-rich-reader",
+        DisplayName = "Custom rich reader",
+        Kind = ReaderInputKind.Text,
+        Extensions = new[] { ".rich" },
+        ReadDocumentPath = (path, options, cancellationToken) => ReadRichDocument(path),
+        ReadDocumentStream = (stream, sourceName, options, cancellationToken) => ReadRichDocument(stream, sourceName)
+    })
     .Build();
 ```
 
@@ -154,6 +180,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `ReaderFolderOptions` controls recursion, file limits, byte limits, reparse-point handling, and deterministic folder order.
 - `OfficeDocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose the frozen configuration of that reader instance.
 - Capability records distinguish basic path/stream support from native rich-result support through `SupportsDocumentPath` and `SupportsDocumentStream`.
+- `SupportsAsyncPath` and `SupportsAsyncStream` identify handlers with native asynchronous delegates; false means the async facade uses the bounded synchronous fallback.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 
