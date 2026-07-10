@@ -44,8 +44,6 @@ internal static partial class PdfWriter {
                 return null;
             }
 
-            var start = gradient.Stops[0].Color;
-            var end = gradient.Stops[gradient.Stops.Count - 1].Color;
             double originX = localCoordinates ? 0D : xShape;
             double originY = localCoordinates ? 0D : bottomY;
             double x0 = originX + gradient.StartX * shape.Width;
@@ -56,12 +54,7 @@ internal static partial class PdfWriter {
             EnsurePage();
             for (int i = 0; i < currentPage!.Shadings.Count; i++) {
                 var existing = currentPage.Shadings[i];
-                if (existing.StartColor.Equals(start) &&
-                    existing.EndColor.Equals(end) &&
-                    existing.X0.Equals(x0) &&
-                    existing.Y0.Equals(y0) &&
-                    existing.X1.Equals(x1) &&
-                    existing.Y1.Equals(y1)) {
+                if (existing.Matches(x0, y0, x1, y1, gradient.Stops)) {
                     return existing.Name;
                 }
             }
@@ -69,8 +62,7 @@ internal static partial class PdfWriter {
             string name = "SH" + (currentPage.Shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
             currentPage.Shadings.Add(new PageShading {
                 Name = name,
-                StartColor = start,
-                EndColor = end,
+                Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
                 X0 = x0,
                 Y0 = y0,
                 X1 = x1,

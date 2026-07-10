@@ -729,6 +729,19 @@ namespace OfficeIMO.Tests.Pdf {
                     OfficeColor.FromRgb(10, 20, 30),
                     OfficeColor.FromRgb(255, 128, 0)));
 
+            Assert.Contains(
+                "/FunctionType 3 /Domain [0 1] /Functions [<< /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 1 0] /N 1 >> << /FunctionType 2 /Domain [0 1] /C0 [0 1 0] /C1 [0 0 1] /N 1 >>] /Bounds [0.25] /Encode [0 1 0 1]",
+                PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                    0,
+                    0,
+                    1,
+                    1,
+                    new[] {
+                        new OfficeGradientStop(0D, OfficeColor.Red),
+                        new OfficeGradientStop(0.25D, OfficeColor.Lime),
+                        new OfficeGradientStop(1D, OfficeColor.Blue)
+                    }));
+
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(-0.1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>

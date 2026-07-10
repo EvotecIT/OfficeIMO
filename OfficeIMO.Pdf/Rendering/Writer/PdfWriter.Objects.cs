@@ -246,12 +246,23 @@ internal static partial class PdfWriter {
 
     private sealed class PageShading {
         public string Name { get; set; } = string.Empty;
-        public OfficeColor StartColor { get; set; }
-        public OfficeColor EndColor { get; set; }
+        public System.Collections.Generic.IReadOnlyList<OfficeGradientStop> Stops { get; set; } = System.Array.Empty<OfficeGradientStop>();
         public double X0 { get; set; }
         public double Y0 { get; set; }
         public double X1 { get; set; }
         public double Y1 { get; set; }
+
+        public bool Matches(double x0, double y0, double x1, double y1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) {
+            if (!X0.Equals(x0) || !Y0.Equals(y0) || !X1.Equals(x1) || !Y1.Equals(y1) || Stops.Count != stops.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < Stops.Count; index++) {
+                if (!Stops[index].Equals(stops[index])) return false;
+            }
+
+            return true;
+        }
     }
 
     private sealed class OutlineNode {

@@ -274,7 +274,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void VectorShape_RendersMultiStopGradientUsingFinalStopAsPdfEndpoint() {
+    public void VectorShape_RendersEveryMultiStopGradientSegmentAsAStitchingFunction() {
         var shape = OfficeShape.Rectangle(90, 24);
         shape.FillGradient = new OfficeLinearGradient(
             0,
@@ -300,8 +300,10 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("/C0 [1 0 0] /C1 [0 0 1]", content);
-        Assert.DoesNotContain("/C0 [1 0 0] /C1 [0 1 0]", content);
+        Assert.Contains("/FunctionType 3 /Domain [0 1]", content);
+        Assert.Contains("/C0 [1 0 0] /C1 [0 1 0]", content);
+        Assert.Contains("/C0 [0 1 0] /C1 [0 0 1]", content);
+        Assert.Contains("/Bounds [0.5] /Encode [0 1 0 1]", content);
     }
 
     [Fact]

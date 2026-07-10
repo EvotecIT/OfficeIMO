@@ -230,8 +230,7 @@ internal static partial class PdfWriter {
                         shading.Y0,
                         shading.X1,
                         shading.Y1,
-                        shading.StartColor,
-                        shading.EndColor));
+                        shading.Stops));
                     shadings.Add(("/" + shading.Name, shadingId));
                 }
             }
