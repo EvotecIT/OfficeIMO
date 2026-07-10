@@ -9,7 +9,7 @@ public static partial class ReaderHierarchicalChunker {
     private static void SplitSourceChunk(ReaderChunk source, int inputIndex, ChunkingState state) {
         ReaderHierarchicalChunkingOptions options = state.Options;
         IReaderTokenCounter counter = options.TokenCounter;
-        bool markdownSelected = options.PreferMarkdown && source.Markdown != null;
+        bool markdownSelected = options.PreferMarkdown && !string.IsNullOrWhiteSpace(source.Markdown);
         string content = markdownSelected ? source.Markdown! : source.Text ?? string.Empty;
         string? context = BuildContext(source.Location, state);
         string prefix = BuildContextPrefix(context, content, state);
@@ -65,6 +65,18 @@ public static partial class ReaderHierarchicalChunker {
             state.AddDiagnostic(
                 "hierarchical-context-omitted",
                 "Hierarchy context exceeded the chunk token budget and was retained only as segment metadata.");
+            return string.Empty;
+        }
+        if (content.Length > 0 &&
+            CountOutputTokens(
+                state.Options.TokenCounter,
+                prefix,
+                content,
+                0,
+                NextCharacterBoundary(content, 0)) > state.Options.MaxTokens) {
+            state.AddDiagnostic(
+                "hierarchical-context-omitted",
+                "Hierarchy context left no room for source content and was retained only as segment metadata.");
             return string.Empty;
         }
         if (content.Length == 0 && prefixTokens > state.Options.MaxTokens) {
@@ -324,7 +336,7 @@ public static partial class ReaderHierarchicalChunker {
 
     private static string BuildSegmentId(ReaderChunk source, int inputIndex, int segmentIndex, int start, int end) {
         string value = string.Join("|",
-            source.SourceId ?? string.Empty,
+            GetSourceIdentity(source) ?? string.Empty,
             source.Id ?? string.Empty,
             inputIndex.ToString(CultureInfo.InvariantCulture),
             segmentIndex.ToString(CultureInfo.InvariantCulture),

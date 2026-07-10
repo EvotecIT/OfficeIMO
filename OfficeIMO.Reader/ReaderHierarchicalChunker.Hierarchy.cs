@@ -9,9 +9,15 @@ public static partial class ReaderHierarchicalChunker {
     private static IReadOnlyList<ReaderChunkHierarchyNode> BuildHierarchy(
         ChunkingState state,
         OfficeDocumentSource source) {
-        string rootTitle = LimitHierarchyValue(BuildRootTitle(source), state);
+        string rawRootTitle = BuildRootTitle(source);
+        string rootTitle = LimitHierarchyValue(rawRootTitle, state);
+        string rootIdentity = !string.IsNullOrWhiteSpace(source.SourceId)
+            ? source.SourceId!
+            : !string.IsNullOrWhiteSpace(source.Path)
+                ? source.Path!
+                : rawRootTitle;
         var root = new MutableHierarchyNode(
-            "node:" + ComputeSha256Hex("document|" + (source.SourceId ?? source.Path ?? rootTitle)),
+            "node:" + ComputeSha256Hex("document|" + rootIdentity),
             parentNodeId: null,
             ReaderChunkHierarchyNodeKind.Document,
             rootTitle,
@@ -36,18 +42,19 @@ public static partial class ReaderHierarchicalChunker {
                     containerTitle,
                     nodes,
                     nodesById,
-                    reusable);
+                    reusable,
+                    state);
             }
 
-            string[] headings = SplitHeadingPath(location.HeadingPath, state);
+            HierarchyHeading[] headings = SplitHeadingPath(location.HeadingPath, state);
             int remainingDepth = Math.Max(0, state.Options.MaxHierarchyDepth - parent.Depth);
             if (headings.Length > remainingDepth) {
                 state.AddLimitDiagnostic("hierarchical-depth-limit", state.Options.MaxHierarchyDepth, "hierarchy depth");
-                headings = CollapseHeadingDepth(headings, remainingDepth);
+                headings = CollapseHeadingDepth(headings, remainingDepth, state);
             }
             for (int headingIndex = 0; headingIndex < headings.Length; headingIndex++) {
                 bool finalHeading = headingIndex == headings.Length - 1;
-                string key = "heading:" + headings[headingIndex];
+                string key = "heading:" + headings[headingIndex].Identity;
                 if (finalHeading && !string.IsNullOrWhiteSpace(location.HeadingSlug)) {
                     key += "|slug:" + location.HeadingSlug!.Trim();
                 }
@@ -55,22 +62,24 @@ public static partial class ReaderHierarchicalChunker {
                     parent,
                     ReaderChunkHierarchyNodeKind.Heading,
                     key,
-                    headings[headingIndex],
+                    headings[headingIndex].Title,
                     nodes,
                     nodesById,
-                    reusable);
+                    reusable,
+                    state);
             }
 
-            string leafTitle = !string.IsNullOrWhiteSpace(location.BlockAnchor)
+            string rawLeafTitle = !string.IsNullOrWhiteSpace(location.BlockAnchor)
                 ? location.BlockAnchor!
                 : "Chunk " + (index + 1).ToString(CultureInfo.InvariantCulture);
+            string leafTitle = LimitHierarchyValue(rawLeafTitle, state);
             var leaf = new MutableHierarchyNode(
                 "node:" + ComputeSha256Hex(parent.Id + "|chunk|" + chunk.Id),
                 parent.Id,
                 ReaderChunkHierarchyNodeKind.Chunk,
                 leafTitle,
                 parent.Depth + 1,
-                parent.Path + " > " + leafTitle) {
+                LimitHierarchyValue(parent.Path + " > " + leafTitle, state)) {
                 ChunkId = chunk.Id,
                 TokenCount = chunk.TokenEstimate ?? state.Segments[index].TokenCount
             };
@@ -92,7 +101,8 @@ public static partial class ReaderHierarchicalChunker {
         string title,
         ICollection<MutableHierarchyNode> nodes,
         IDictionary<string, MutableHierarchyNode> nodesById,
-        IDictionary<string, MutableHierarchyNode> reusable) {
+        IDictionary<string, MutableHierarchyNode> reusable,
+        ChunkingState state) {
         string lookup = parent.Id + "|" + kind.ToString() + "|" + key;
         if (reusable.TryGetValue(lookup, out MutableHierarchyNode? existing)) return existing;
 
@@ -102,7 +112,7 @@ public static partial class ReaderHierarchicalChunker {
             kind,
             title,
             parent.Depth + 1,
-            parent.Path + " > " + title);
+            LimitHierarchyValue(parent.Path + " > " + title, state));
         reusable.Add(lookup, created);
         nodes.Add(created);
         nodesById.Add(created.Id, created);
@@ -132,32 +142,33 @@ public static partial class ReaderHierarchicalChunker {
 
     private static string? BuildContainerKey(ReaderLocation location, ChunkingState state, out string? title) {
         if (!string.IsNullOrWhiteSpace(location.Sheet)) {
-            string sheet = LimitHierarchyValue(location.Sheet!.Trim(), state);
-            title = "Sheet: " + sheet;
+            string sheet = location.Sheet!.Trim();
+            title = LimitHierarchyValue("Sheet: " + sheet, state);
             return "sheet:" + sheet;
         }
         if (location.Slide.HasValue) {
-            title = "Slide " + location.Slide.Value.ToString(CultureInfo.InvariantCulture);
+            title = LimitHierarchyValue("Slide " + location.Slide.Value.ToString(CultureInfo.InvariantCulture), state);
             return "slide:" + location.Slide.Value.ToString(CultureInfo.InvariantCulture);
         }
         if (location.Page.HasValue) {
-            title = "Page " + location.Page.Value.ToString(CultureInfo.InvariantCulture);
+            title = LimitHierarchyValue("Page " + location.Page.Value.ToString(CultureInfo.InvariantCulture), state);
             return "page:" + location.Page.Value.ToString(CultureInfo.InvariantCulture);
         }
         title = null;
         return null;
     }
 
-    private static string[] SplitHeadingPath(string? headingPath, ChunkingState state) {
-        if (string.IsNullOrWhiteSpace(headingPath)) return Array.Empty<string>();
-        string normalized = LimitHierarchyValue(headingPath!.Trim(), state);
-        string[] candidates = normalized.Split(new[] { " > " }, StringSplitOptions.RemoveEmptyEntries);
-        var headings = new List<string>(candidates.Length);
+    private static HierarchyHeading[] SplitHeadingPath(string? headingPath, ChunkingState state) {
+        if (string.IsNullOrWhiteSpace(headingPath)) return Array.Empty<HierarchyHeading>();
+        string[] candidates = headingPath!.Trim().Split(new[] { " > " }, StringSplitOptions.RemoveEmptyEntries);
+        var headings = new List<HierarchyHeading>(candidates.Length);
         for (int index = 0; index < candidates.Length; index++) {
             string heading = candidates[index].Trim();
-            if (heading.Length > 0) headings.Add(heading);
+            if (heading.Length > 0) headings.Add(new HierarchyHeading(
+                heading,
+                LimitHierarchyValue(heading, state)));
         }
-        return headings.Count == 0 ? Array.Empty<string>() : headings.ToArray();
+        return headings.Count == 0 ? Array.Empty<HierarchyHeading>() : headings.ToArray();
     }
 
     private static string LimitHierarchyValue(string value, ChunkingState state) {
@@ -169,13 +180,35 @@ public static partial class ReaderHierarchicalChunker {
         return TruncateAtCharacterBoundary(value, state.Options.MaxContextCharacters);
     }
 
-    private static string[] CollapseHeadingDepth(string[] headings, int availableDepth) {
-        if (availableDepth <= 0) return Array.Empty<string>();
+    private static HierarchyHeading[] CollapseHeadingDepth(
+        HierarchyHeading[] headings,
+        int availableDepth,
+        ChunkingState state) {
+        if (availableDepth <= 0) return Array.Empty<HierarchyHeading>();
         if (headings.Length <= availableDepth) return headings;
-        var collapsed = new string[availableDepth];
+        var collapsed = new HierarchyHeading[availableDepth];
         for (int index = 0; index < availableDepth - 1; index++) collapsed[index] = headings[index];
-        collapsed[availableDepth - 1] = string.Join(" > ", headings, availableDepth - 1, headings.Length - availableDepth + 1);
+        int collapsedCount = headings.Length - availableDepth + 1;
+        var identities = new string[collapsedCount];
+        var titles = new string[collapsedCount];
+        for (int index = 0; index < collapsedCount; index++) {
+            identities[index] = headings[availableDepth - 1 + index].Identity;
+            titles[index] = headings[availableDepth - 1 + index].Title;
+        }
+        collapsed[availableDepth - 1] = new HierarchyHeading(
+            string.Join(" > ", identities),
+            LimitHierarchyValue(string.Join(" > ", titles), state));
         return collapsed;
+    }
+
+    private readonly struct HierarchyHeading {
+        internal HierarchyHeading(string identity, string title) {
+            Identity = identity;
+            Title = title;
+        }
+
+        internal string Identity { get; }
+        internal string Title { get; }
     }
 
     private sealed class MutableHierarchyNode {

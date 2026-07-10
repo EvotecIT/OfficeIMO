@@ -37,12 +37,15 @@ public static partial class ReaderHierarchicalChunker {
         CancellationToken cancellationToken) {
         var state = new ChunkingState(options, cancellationToken);
         int inputIndex = 0;
-        foreach (ReaderChunk? chunk in source) {
+        using IEnumerator<ReaderChunk> enumerator = source.GetEnumerator();
+        while (!state.OutputLimitReached) {
             cancellationToken.ThrowIfCancellationRequested();
             if (inputIndex >= options.MaxInputChunks) {
                 state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
                 break;
             }
+            if (!enumerator.MoveNext()) break;
+            ReaderChunk? chunk = enumerator.Current;
             if (chunk == null) {
                 state.AddDiagnostic("hierarchical-null-input-chunk", "A null input chunk was skipped.");
                 inputIndex++;
@@ -50,7 +53,6 @@ public static partial class ReaderHierarchicalChunker {
             }
             state.AddSourceChunk(chunk, inputIndex);
             inputIndex++;
-            if (state.OutputLimitReached) break;
         }
 
         OfficeDocumentSource effectiveSource = HasSourceIdentity(sourceInfo)
@@ -92,9 +94,11 @@ public static partial class ReaderHierarchicalChunker {
 
     private static IEnumerable<ReaderChunk> GetSourceChunks(OfficeDocumentReadResult document) {
         IReadOnlyList<ReaderChunk> chunks = document.Chunks ?? Array.Empty<ReaderChunk>();
-        if (chunks.Count > 0) return chunks;
+        if (chunks.Count > 0) {
+            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) yield return chunks[chunkIndex];
+            yield break;
+        }
 
-        var fallback = new List<ReaderChunk>();
         var headings = new List<KeyValuePair<int, string>>();
         int index = 0;
         foreach (OfficeDocumentBlock block in OfficeDocumentModelTraversal.Blocks(document)) {
@@ -107,7 +111,7 @@ public static partial class ReaderHierarchicalChunker {
             location.BlockAnchor ??= string.IsNullOrWhiteSpace(block.Id) ? "block-" + index.ToString(CultureInfo.InvariantCulture) : block.Id;
             location.HeadingPath ??= BuildFallbackHeadingPath(headings);
             if (isHeading) location.HeadingSlug ??= string.IsNullOrWhiteSpace(block.Id) ? null : block.Id;
-            fallback.Add(new ReaderChunk {
+            yield return new ReaderChunk {
                 Id = "block:" + ComputeSha256Hex((document.Source?.SourceId ?? string.Empty) + "|" + block.Id + "|" + index.ToString(CultureInfo.InvariantCulture)),
                 Kind = document.Kind,
                 Location = location,
@@ -116,11 +120,11 @@ public static partial class ReaderHierarchicalChunker {
                 SourceLastWriteUtc = document.Source?.LastWriteUtc,
                 SourceLengthBytes = document.Source?.LengthBytes,
                 Text = text
-            });
+            };
             index++;
         }
-        if (fallback.Count == 0 && !string.IsNullOrEmpty(document.Markdown)) {
-            fallback.Add(new ReaderChunk {
+        if (index == 0 && !string.IsNullOrEmpty(document.Markdown)) {
+            yield return new ReaderChunk {
                 Id = "document:" + ComputeSha256Hex((document.Source?.SourceId ?? document.Source?.Path ?? string.Empty) + "|markdown"),
                 Kind = document.Kind,
                 Location = new ReaderLocation { Path = document.Source?.Path },
@@ -130,9 +134,8 @@ public static partial class ReaderHierarchicalChunker {
                 SourceLengthBytes = document.Source?.LengthBytes,
                 Text = document.Markdown!,
                 Markdown = document.Markdown
-            });
+            };
         }
-        return fallback;
     }
 
     private static void UpdateFallbackHeadings(List<KeyValuePair<int, string>> headings, int level, string text) {
@@ -215,12 +218,7 @@ public static partial class ReaderHierarchicalChunker {
         internal string? SourceIdentity { get; set; }
 
         internal void AddSourceChunk(ReaderChunk source, int inputIndex) {
-            string? sourcePath = source.Location?.Path;
-            string? sourceIdentity = !string.IsNullOrWhiteSpace(source.SourceId)
-                ? "id:" + source.SourceId
-                : !string.IsNullOrWhiteSpace(sourcePath)
-                    ? "path:" + sourcePath
-                    : null;
+            string? sourceIdentity = GetSourceIdentity(source);
             if (SourceIdentity == null) SourceIdentity = sourceIdentity;
             else if (sourceIdentity != null && !string.Equals(SourceIdentity, sourceIdentity, StringComparison.Ordinal)) {
                 throw new InvalidOperationException("One chunk hierarchy cannot contain chunks from multiple source documents.");
@@ -255,5 +253,14 @@ public static partial class ReaderHierarchicalChunker {
                 IsRecoverable = true
             });
         }
+    }
+
+    private static string? GetSourceIdentity(ReaderChunk source) {
+        string? sourcePath = source.Location?.Path;
+        return !string.IsNullOrWhiteSpace(source.SourceId)
+            ? "id:" + source.SourceId
+            : !string.IsNullOrWhiteSpace(sourcePath)
+                ? "path:" + sourcePath
+                : null;
     }
 }

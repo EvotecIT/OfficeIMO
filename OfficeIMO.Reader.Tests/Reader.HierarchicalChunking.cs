@@ -1,4 +1,5 @@
 using OfficeIMO.Reader;
+using System.Collections;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -127,6 +128,135 @@ public sealed class ReaderHierarchicalChunkingTests {
         Assert.DoesNotContain("Page 3", omitted.Chunks[0].Text, StringComparison.Ordinal);
         Assert.Equal("Page 3 > Root > Child", omitted.Segments[0].Context);
         Assert.Contains(omitted.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-context-omitted");
+    }
+
+    [Fact]
+    public void Chunk_FallsBackToTextWhenPreferredMarkdownIsEmpty() {
+        ReaderChunk source = CreateChunk("source", "plain text body");
+        source.Markdown = string.Empty;
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            new[] { source },
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                IncludeContextInText = false,
+                PreferMarkdown = true,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal("plain text body", chunk.Text);
+        Assert.Null(chunk.Markdown);
+    }
+
+    [Fact]
+    public void Chunk_PreservesFullHeadingIdentityWhenDisplayTitlesAreTruncated() {
+        ReaderChunk first = CreateChunk("first", "one", headingPath: "ABCDE-first");
+        ReaderChunk second = CreateChunk("second", "two", headingPath: "ABCDE-second");
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            new[] { first, second },
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxContextCharacters = 5,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunkHierarchyNode[] headings = result.Nodes
+            .Where(node => node.Kind == ReaderChunkHierarchyNodeKind.Heading)
+            .ToArray();
+        Assert.Equal(2, headings.Length);
+        Assert.All(headings, heading => Assert.Equal("ABCDE", heading.Title));
+        Assert.Equal(2, headings.Select(heading => heading.Id).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void Chunk_StopsLazyFallbackTraversalAtInputBound() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "lazy-blocks" },
+            Blocks = new ThrowAfterFirstBlockList()
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                MaxInputChunks = 1,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        Assert.Single(result.Chunks);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+    }
+
+    [Fact]
+    public void Chunk_BoundsLeafTitlesAndPathsWithoutChangingLeafIdentity() {
+        ReaderChunk source = CreateChunk("stable-id", "body");
+        source.Location.Page = null;
+        source.Location.BlockAnchor = new string('a', 50);
+        var options = new ReaderHierarchicalChunkingOptions {
+            MaxTokens = 10,
+            OverlapTokens = 0,
+            MaxContextCharacters = 5,
+            IncludeContextInText = false,
+            TokenCounter = WordCounter
+        };
+
+        ReaderChunkHierarchyResult bounded = ReaderHierarchicalChunker.Chunk(new[] { source }, options);
+        ReaderChunkHierarchyNode boundedLeaf = Assert.Single(
+            bounded.Nodes,
+            node => node.Kind == ReaderChunkHierarchyNodeKind.Chunk);
+        options.MaxContextCharacters = 10;
+        ReaderChunkHierarchyNode widerLeaf = Assert.Single(
+            ReaderHierarchicalChunker.Chunk(new[] { source }, options).Nodes,
+            node => node.Kind == ReaderChunkHierarchyNodeKind.Chunk);
+
+        Assert.Equal(5, boundedLeaf.Title.Length);
+        Assert.InRange(boundedLeaf.Path.Length, 1, 5);
+        Assert.Equal(boundedLeaf.Id, widerLeaf.Id);
+    }
+
+    [Fact]
+    public void Chunk_OmitsContextWhenItLeavesNoRoomForFirstSourceToken() {
+        ReaderChunk source = CreateChunk("source", "a", headingPath: "Context");
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            new[] { source },
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 2,
+                OverlapTokens = 0,
+                IncludeContextInText = true,
+                TokenCounter = new NonAdditiveContextTokenCounter()
+            });
+
+        Assert.Equal("a", Assert.Single(result.Chunks).Text);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-context-omitted");
+    }
+
+    [Fact]
+    public void Chunk_UsesPathIdentityForSegmentIdsWhenSourceIdIsMissing() {
+        ReaderChunk first = CreateChunk("same", "body");
+        first.SourceId = null;
+        first.Location.Path = "first.txt";
+        ReaderChunk second = CreateChunk("same", "body");
+        second.SourceId = null;
+        second.Location.Path = "second.txt";
+        var options = new ReaderHierarchicalChunkingOptions {
+            MaxTokens = 10,
+            OverlapTokens = 0,
+            IncludeContextInText = false,
+            TokenCounter = WordCounter
+        };
+
+        string firstId = Assert.Single(ReaderHierarchicalChunker.Chunk(new[] { first }, options).Chunks).Id;
+        string secondId = Assert.Single(ReaderHierarchicalChunker.Chunk(new[] { second }, options).Chunks).Id;
+
+        Assert.NotEqual(firstId, secondId);
     }
 
     [Fact]
@@ -359,5 +489,36 @@ public sealed class ReaderHierarchicalChunkingTests {
     private sealed class NegativeTokenCounter : IReaderTokenCounter {
         public string Id => "tests.negative-v1";
         public int CountTokens(string text) => -1;
+    }
+
+    private sealed class NonAdditiveContextTokenCounter : IReaderTokenCounter {
+        public string Id => "tests.non-additive-context-v1";
+
+        public int CountTokens(string text) {
+            if (text.Length == 0) return 0;
+            if (text.EndsWith("\n\n", StringComparison.Ordinal)) return 1;
+            return text.Contains("\n\n", StringComparison.Ordinal) ? 3 : 1;
+        }
+    }
+
+    private sealed class ThrowAfterFirstBlockList : IReadOnlyList<OfficeDocumentBlock> {
+        private readonly OfficeDocumentBlock _first = new OfficeDocumentBlock {
+            Id = "first",
+            Kind = "paragraph",
+            Text = "first block"
+        };
+
+        public int Count => 2;
+
+        public OfficeDocumentBlock this[int index] => index == 0
+            ? _first
+            : throw new InvalidOperationException("The input bound should stop before reading another block.");
+
+        public IEnumerator<OfficeDocumentBlock> GetEnumerator() {
+            yield return _first;
+            throw new InvalidOperationException("The input bound should stop before reading another block.");
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
