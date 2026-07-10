@@ -5,9 +5,9 @@ public enum MboxVariant {
     /// <summary>Detect mboxo or mboxrd escaping while reading.</summary>
     Auto = 0,
     /// <summary>Escape only body lines that begin with "From ".</summary>
-    Mboxo,
+    Mboxo = 1,
     /// <summary>Escape every body line matching one or more angle brackets followed by "From ".</summary>
-    Mboxrd
+    Mboxrd = 2
 }
 
 /// <summary>One message and its mbox envelope metadata.</summary>

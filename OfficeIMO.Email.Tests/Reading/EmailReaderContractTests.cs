@@ -6,6 +6,18 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailReaderContractTests {
     [Fact]
+    public void PublicEnumValuesRemainStable() {
+        Assert.Equal(1, (int)EmailFileFormat.Eml);
+        Assert.Equal(2, (int)EmailFileFormat.OutlookMsg);
+        Assert.Equal(3, (int)EmailFileFormat.Tnef);
+        Assert.Equal(4, (int)EmailFileFormat.Mbox);
+        Assert.Equal(6, (int)OutlookItemKind.Note);
+        Assert.Equal(6, (int)EmailRecipientKind.Room);
+        Assert.Equal(2, (int)EmailDiagnosticSeverity.Error);
+        Assert.Equal(2, (int)MboxVariant.Mboxrd);
+    }
+
+    [Fact]
     public void DetectsTnefAndRequiresMsgDirectoryContractForCompoundFiles() {
         Assert.Equal(EmailFileFormat.Tnef, EmailDocumentReader.DetectFormat(new byte[] { 0x78, 0x9F, 0x3E, 0x22 }));
         Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(

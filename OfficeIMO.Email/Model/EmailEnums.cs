@@ -5,13 +5,13 @@ public enum EmailFileFormat {
     /// <summary>The input format could not be determined.</summary>
     Unknown = 0,
     /// <summary>RFC 5322 message with MIME content.</summary>
-    Eml,
+    Eml = 1,
     /// <summary>Outlook compound MSG item.</summary>
-    OutlookMsg,
+    OutlookMsg = 2,
     /// <summary>Transport Neutral Encapsulation Format payload.</summary>
-    Tnef,
+    Tnef = 3,
     /// <summary>Unix mailbox archive.</summary>
-    Mbox
+    Mbox = 4
 }
 
 /// <summary>Identifies the logical Outlook item represented by a document.</summary>
@@ -19,17 +19,17 @@ public enum OutlookItemKind {
     /// <summary>No typed Outlook item projection is available.</summary>
     Unknown = 0,
     /// <summary>E-mail message, normally IPM.Note.</summary>
-    Message,
+    Message = 1,
     /// <summary>Calendar appointment or meeting.</summary>
-    Appointment,
+    Appointment = 2,
     /// <summary>Contact card.</summary>
-    Contact,
+    Contact = 3,
     /// <summary>Task item.</summary>
-    Task,
+    Task = 4,
     /// <summary>Journal item.</summary>
-    Journal,
+    Journal = 5,
     /// <summary>Sticky note.</summary>
-    Note
+    Note = 6
 }
 
 /// <summary>Classifies an address on a message or Outlook item.</summary>
@@ -37,17 +37,17 @@ public enum EmailRecipientKind {
     /// <summary>Unknown or source-specific recipient kind.</summary>
     Unknown = 0,
     /// <summary>Primary recipient.</summary>
-    To,
+    To = 1,
     /// <summary>Carbon-copy recipient.</summary>
-    Cc,
+    Cc = 2,
     /// <summary>Blind-carbon-copy recipient.</summary>
-    Bcc,
+    Bcc = 3,
     /// <summary>Reply-to address.</summary>
-    ReplyTo,
+    ReplyTo = 4,
     /// <summary>Resource recipient.</summary>
-    Resource,
+    Resource = 5,
     /// <summary>Room recipient.</summary>
-    Room
+    Room = 6
 }
 
 /// <summary>Severity assigned to a structured email diagnostic.</summary>
@@ -55,7 +55,7 @@ public enum EmailDiagnosticSeverity {
     /// <summary>Informational observation.</summary>
     Information = 0,
     /// <summary>Recoverable compatibility or fidelity warning.</summary>
-    Warning,
+    Warning = 1,
     /// <summary>Content could not be interpreted completely.</summary>
-    Error
+    Error = 2
 }
