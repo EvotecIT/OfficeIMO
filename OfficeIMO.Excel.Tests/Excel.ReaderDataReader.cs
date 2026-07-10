@@ -5,6 +5,7 @@ using System;
 using System.Data;
 using System.Data.Common;
 using System.IO;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -305,6 +306,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_DecodesEntitiesBeforeTypedParsing() {
+            var expectedDate = new DateTime(2026, 7, 10);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Shared");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(1, 3, "Active");
+                sheet.CellValue(1, 4, "Created");
+                sheet.CellValue(2, 1, "Expected shared value");
+                sheet.CellValue(2, 2, 1.5d);
+                sheet.CellValue(2, 3, true);
+                sheet.CellValue(2, 4, expectedDate);
+                sheet.CellValue(4098, 1, "Last");
+            }
+
+            byte[] workbook = RewriteWorksheetCellValue(
+                memory.ToArray(),
+                "A2",
+                value => string.Concat(value.Select(character => $"&#{(int)character};")));
+            workbook = RewriteWorksheetCellValue(workbook, "B2", value => value.Replace(".", "&#46;"));
+            workbook = RewriteWorksheetCellValue(workbook, "C2", _ => "&#49;");
+            workbook = RewriteWorksheetCellValue(
+                workbook,
+                "D2",
+                value => string.Concat(value.Select(character => $"&#{(int)character};")));
+
+            using var reader = ExcelDocumentReader.Open(workbook);
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:D4098", schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal("Expected shared value", dataReader.GetString(0));
+            Assert.Equal(1.5d, dataReader.GetDouble(1));
+            Assert.True(dataReader.GetBoolean(2));
+            Assert.Equal(expectedDate, dataReader.GetDateTime(3));
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_FallsBackForInlineStrings() {
             using var memory = new MemoryStream();
 
@@ -540,6 +580,36 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private static byte[] RewriteWorksheetCellValue(byte[] workbook, string cellReference, Func<string, string> rewrite) {
+            using var memory = new MemoryStream();
+            memory.Write(workbook, 0, workbook.Length);
+            memory.Position = 0;
+
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, true)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                string xml;
+                using (var stream = worksheetPart.GetStream(FileMode.Open, FileAccess.Read))
+                using (var reader = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen: false)) {
+                    xml = reader.ReadToEnd();
+                }
+
+                int cellStart = xml.IndexOf($"r=\"{cellReference}\"", StringComparison.Ordinal);
+                int cellEnd = cellStart < 0 ? -1 : xml.IndexOf("</c>", cellStart, StringComparison.Ordinal);
+                int valueStart = cellStart < 0 ? -1 : xml.IndexOf("<v>", cellStart, StringComparison.Ordinal);
+                int valueEnd = valueStart < 0 ? -1 : xml.IndexOf("</v>", valueStart, StringComparison.Ordinal);
+                Assert.True(cellStart >= 0 && cellEnd >= 0 && valueStart >= 0 && valueEnd > valueStart && valueEnd < cellEnd);
+
+                valueStart += 3;
+                string value = xml.Substring(valueStart, valueEnd - valueStart);
+                string updated = xml.Substring(0, valueStart) + rewrite(value) + xml.Substring(valueEnd);
+                using var output = worksheetPart.GetStream(FileMode.Create, FileAccess.Write);
+                using var writer = new StreamWriter(output, new UTF8Encoding(false), 1024, leaveOpen: false);
+                writer.Write(updated);
+            }
+
+            return memory.ToArray();
         }
     }
 }

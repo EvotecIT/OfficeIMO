@@ -267,7 +267,9 @@ public static class TabularDataTableBuilder {
                     }
 
                     var matchesExistingColumn = columns.Any(column =>
-                        !exactRowKeys.Contains(column) && row.ContainsKey(column));
+                        !exactRowKeys.Contains(column)
+                        && string.Equals(column, key, StringComparison.OrdinalIgnoreCase)
+                        && row.ContainsKey(column));
                     if (!matchesExistingColumn) {
                         columns.Add(key);
                         exactColumns.Add(key);

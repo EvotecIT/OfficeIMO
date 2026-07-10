@@ -183,6 +183,23 @@ public class TabularDataTableBuilderTests {
         Assert.Equal("Lower", distinctCaseTable.Rows[0]["name"]);
     }
 
+    [Fact]
+    public void FromItems_AllRowsPreservesNewColumnsBesideCaseVariantMatches() {
+        var table = TabularDataTableBuilder.FromItems(new object?[] {
+            new Dictionary<string, object?>(StringComparer.Ordinal) { ["Name"] = "Alpha" },
+            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                ["name"] = "Beta",
+                ["Age"] = 42
+            }
+        }, new TabularDataOptions {
+            ColumnDiscoveryMode = TabularColumnDiscoveryMode.AllRows
+        });
+
+        Assert.Equal(new[] { "Name", "Age" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+        Assert.Equal("Beta", table.Rows[1]["Name"]);
+        Assert.Equal(42, table.Rows[1]["Age"]);
+    }
+
     private sealed class HostRow {
         public HostRow(int number) => Number = number;
 

@@ -161,12 +161,21 @@ namespace OfficeIMO.Excel {
                 ReadOnlySpan<byte> value = _buffer!.AsSpan(start, length);
                 switch ((Utf8CellKind)_cellKinds![cellIndex]) {
                     case Utf8CellKind.SharedString:
-                        objectValue = TryParseInt32(value, out int sharedStringIndex)
-                            ? _owner.GetSharedString(sharedStringIndex)
-                            : DecodeString(start, length);
+                        if (TryParseInt32(value, out int sharedStringIndex)) {
+                            objectValue = _owner.GetSharedString(sharedStringIndex);
+                        } else {
+                            string sharedStringText = DecodeString(start, length);
+                            objectValue = TryParseSharedStringIndex(sharedStringText, out sharedStringIndex)
+                                ? _owner.GetSharedString(sharedStringIndex)
+                                : sharedStringText;
+                        }
+
                         return;
                     case Utf8CellKind.Boolean:
-                        bool parsedBoolean = ParseBoolean(value);
+                        bool parsedBoolean = value.Length == 1
+                            ? value[0] == (byte)'1'
+                            : value.IndexOf((byte)'&') >= 0
+                                && string.Equals(DecodeString(start, length), "1", StringComparison.Ordinal);
                         if (targetKind == XmlDataReaderTargetKind.Boolean) {
                             primitiveKind = XmlDataReaderPrimitiveKind.Boolean;
                             booleanValue = parsedBoolean;
@@ -416,8 +425,69 @@ namespace OfficeIMO.Excel {
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
                 bool dateStyle = IsDateStyle(_styleIndexes![ordinal]);
+                if (TryParseDouble(trimmed, out double number)) {
+                    if (dateStyle) {
+                        DateTime date = _owner.FromExcelSerialDate(number);
+                        if (targetKind == XmlDataReaderTargetKind.DateTime) {
+                            primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
+                            dateTimeValue = date;
+                        } else {
+                            objectValue = date;
+                        }
 
-                if (TryParseDouble(trimmed, out double number) && dateStyle) {
+                        return;
+                    }
+
+                    if (!_options.NumericAsDecimal) {
+                        if (targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) {
+                            primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                            doubleValue = number;
+                        } else {
+                            objectValue = number;
+                        }
+
+                        return;
+                    }
+                }
+
+                if (_options.NumericAsDecimal
+                    && Utf8Parser.TryParse(trimmed, out decimal decimalNumber, out int decimalConsumed)
+                    && decimalConsumed == trimmed.Length) {
+                    objectValue = decimalNumber;
+                    return;
+                }
+
+                if (trimmed.IndexOf((byte)'&') >= 0) {
+                    ReadDecodedNumberValue(
+                        dateStyle,
+                        DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]),
+                        targetKind,
+                        out primitiveKind,
+                        out doubleValue,
+                        out dateTimeValue,
+                        out objectValue);
+                    return;
+                }
+
+                objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
+            }
+
+            private void ReadDecodedNumberValue(
+                bool dateStyle,
+                string value,
+                XmlDataReaderTargetKind targetKind,
+                out XmlDataReaderPrimitiveKind primitiveKind,
+                out double doubleValue,
+                out DateTime dateTimeValue,
+                out object? objectValue) {
+                primitiveKind = XmlDataReaderPrimitiveKind.None;
+                doubleValue = 0;
+                dateTimeValue = default;
+                objectValue = null;
+
+                bool parsedNumber = TryParseInvariantDoubleFast(value, out double number)
+                    || double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
+                if (parsedNumber && dateStyle) {
                     DateTime date = _owner.FromExcelSerialDate(number);
                     if (targetKind == XmlDataReaderTargetKind.DateTime) {
                         primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
@@ -429,8 +499,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (!_options.NumericAsDecimal
-                    && TryParseDouble(trimmed, out number)) {
+                if (!_options.NumericAsDecimal && parsedNumber) {
                     if (targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) {
                         primitiveKind = XmlDataReaderPrimitiveKind.Double;
                         doubleValue = number;
@@ -441,14 +510,12 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_options.NumericAsDecimal
-                    && Utf8Parser.TryParse(trimmed, out decimal decimalNumber, out int decimalConsumed)
-                    && decimalConsumed == trimmed.Length) {
+                if (_options.NumericAsDecimal && TryParseRawDecimal(value, _options.Culture, out decimal decimalNumber)) {
                     objectValue = decimalNumber;
                     return;
                 }
 
-                objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
+                objectValue = value;
             }
 
             private bool IsDateStyle(int styleIndex) {
