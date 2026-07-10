@@ -312,7 +312,7 @@ public static partial class DocumentReader {
     }
 
     private static string? BuildWordHeadingPath(IReadOnlyList<(int Level, string Text)> headings) {
-        return headings.Count == 0 ? null : string.Join(" > ", headings.Select(static heading => heading.Text));
+        return ReaderHeadingPath.Combine(headings.Select(static heading => heading.Text));
     }
 
     private static ReaderLocation CloneWordLocation(ReaderLocation source, string kind, string? anchor) {
