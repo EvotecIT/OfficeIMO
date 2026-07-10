@@ -10,7 +10,29 @@ public static class DocumentReaderOpenDocumentRegistrationExtensions {
     /// <summary>Registers native OpenDocument ingestion for <c>.odt</c>, <c>.ods</c>, and <c>.odp</c>.</summary>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterOpenDocumentHandler(bool replaceExisting = false) {
-        var registration = new ReaderHandlerRegistration {
+        DocumentReader.RegisterHandler(CreateRegistration(), replaceExisting);
+    }
+
+    /// <summary>Adds native OpenDocument ingestion to an isolated reader builder.</summary>
+    public static OfficeDocumentReaderBuilder AddOpenDocumentHandler(
+        this OfficeDocumentReaderBuilder builder,
+        bool replaceExisting = false,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration();
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>Unregisters the native OpenDocument handler.</summary>
+    public static bool UnregisterOpenDocumentHandler() => DocumentReader.UnregisterHandler(HandlerId);
+
+    private static ReaderHandlerRegistration CreateRegistration() {
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "OpenDocument Reader Adapter",
             Description = "Native dependency-free ODT, ODS, and ODP extraction.",
@@ -22,9 +44,5 @@ public static class DocumentReaderOpenDocumentRegistrationExtensions {
                 DocumentReaderOpenDocumentExtensions.ReadOpenDocument(stream, sourceName, options, cancellationToken),
             DeterministicOutput = true
         };
-        DocumentReader.RegisterHandler(registration, replaceExisting);
     }
-
-    /// <summary>Unregisters the native OpenDocument handler.</summary>
-    public static bool UnregisterOpenDocumentHandler() => DocumentReader.UnregisterHandler(HandlerId);
 }

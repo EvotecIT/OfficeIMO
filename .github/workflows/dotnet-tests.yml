@@ -143,6 +143,11 @@ jobs:
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --filter "FullyQualifiedName~ReaderAsciiDocModularTests|FullyQualifiedName~ReaderLatexModularTests" --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -298,6 +303,10 @@ jobs:
             dotnet restore OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj
             dotnet restore OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
             dotnet restore OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
+            dotnet restore OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj
+            dotnet restore OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj
+            dotnet restore OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj
+            dotnet restore OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj
           fi
 
       - name: Build test projects
@@ -333,6 +342,10 @@ jobs:
             dotnet build OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
 
       - name: Run tests
@@ -548,6 +561,10 @@ jobs:
               dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               ;;
             *)
               echo "Unknown partition: ${{ matrix.partition }}"

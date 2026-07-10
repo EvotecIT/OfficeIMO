@@ -77,7 +77,15 @@ public enum ReaderInputKind {
     /// <summary>
     /// OpenDocument Text, Spreadsheet, or Presentation package.
     /// </summary>
-    OpenDocument
+    OpenDocument,
+    /// <summary>
+    /// AsciiDoc technical document.
+    /// </summary>
+    AsciiDoc,
+    /// <summary>
+    /// Bounded-profile LaTeX technical document.
+    /// </summary>
+    Latex
 }
 
 /// <summary>

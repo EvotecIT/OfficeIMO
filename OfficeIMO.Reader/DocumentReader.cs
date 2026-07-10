@@ -25,7 +25,8 @@ namespace OfficeIMO.Reader;
 /// <remarks>
 /// This facade is intentionally dependency-free and deterministic.
 /// It normalizes extraction into <see cref="ReaderChunk"/> instances with stable IDs and location metadata.
-/// The API is thread-safe as it does not use shared mutable state.
+/// Read operations are thread-safe. The legacy static registration methods update a process-wide
+/// compatibility registry; use <see cref="OfficeDocumentReaderBuilder"/> for isolated immutable readers.
 /// </remarks>
 public static partial class DocumentReader {
     private static readonly string[] DefaultFolderExtensions = {
@@ -100,10 +101,8 @@ public static partial class DocumentReader {
         }
     };
 
-    private static readonly HashSet<string> BuiltInExtensions = BuildBuiltInExtensionSet();
-    private static readonly object HandlerRegistrySync = new object();
-    private static readonly Dictionary<string, CustomReaderHandler> CustomHandlersById = new Dictionary<string, CustomReaderHandler>(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, string> CustomHandlerIdByExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    internal static readonly HashSet<string> BuiltInExtensions = BuildBuiltInExtensionSet();
+    private static readonly ReaderHandlerRegistry HandlerRegistry = new ReaderHandlerRegistry(BuiltInExtensions);
 
     private static string? TryGetExtension(string path) {
         if (path == null) return null;
@@ -152,104 +151,14 @@ public static partial class DocumentReader {
     }
 
     private static IReadOnlyList<string> RegisterHandlerCore(ReaderHandlerRegistration registration, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        if (registration == null) throw new ArgumentNullException(nameof(registration));
-
-        var id = (registration.Id ?? string.Empty).Trim();
-        if (id.Length == 0) throw new ArgumentException("Handler Id cannot be empty.", nameof(registration));
-
-        if (registration.ReadPath == null && registration.ReadStream == null) {
-            throw new ArgumentException("Handler must define ReadPath and/or ReadStream.", nameof(registration));
-        }
-        if (registration.DefaultMaxInputBytes.HasValue && registration.DefaultMaxInputBytes.Value < 1) {
-            throw new ArgumentException("DefaultMaxInputBytes must be greater than 0 when specified.", nameof(registration));
-        }
-
-        var normalizedExtensions = NormalizeRegistrationExtensions(registration.Extensions);
-        if (normalizedExtensions.Count == 0) {
-            throw new ArgumentException("Handler must define at least one extension.", nameof(registration));
-        }
-
-        lock (HandlerRegistrySync) {
-            var effectiveExtensions = normalizedExtensions;
-            if (preserveExistingCustomExtensions) {
-                effectiveExtensions = new List<string>(normalizedExtensions.Count);
-                foreach (var ext in normalizedExtensions) {
-                    if (CustomHandlerIdByExtension.TryGetValue(ext, out var existing) &&
-                        !string.Equals(existing, id, StringComparison.OrdinalIgnoreCase)) {
-                        continue;
-                    }
-
-                    effectiveExtensions.Add(ext);
-                }
-
-                if (effectiveExtensions.Count == 0) {
-                    return Array.Empty<string>();
-                }
-            }
-
-            if (!replaceExisting) {
-                if (CustomHandlersById.ContainsKey(id)) {
-                    throw new InvalidOperationException($"Handler '{id}' is already registered.");
-                }
-
-                foreach (var ext in effectiveExtensions) {
-                    if (BuiltInExtensions.Contains(ext)) {
-                        throw new InvalidOperationException($"Extension '{ext}' is handled by a built-in reader. Use replaceExisting=true to override.");
-                    }
-                    if (CustomHandlerIdByExtension.ContainsKey(ext)) {
-                        throw new InvalidOperationException($"Extension '{ext}' is already handled by a custom reader.");
-                    }
-                }
-            } else {
-                var toRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                if (CustomHandlersById.ContainsKey(id)) {
-                    toRemove.Add(id);
-                }
-                foreach (var ext in normalizedExtensions) {
-                    if (preserveExistingCustomExtensions &&
-                        CustomHandlerIdByExtension.TryGetValue(ext, out var existingForPreservedExtension) &&
-                        !string.Equals(existingForPreservedExtension, id, StringComparison.OrdinalIgnoreCase)) {
-                        continue;
-                    }
-
-                    if (CustomHandlerIdByExtension.TryGetValue(ext, out var existing)) {
-                        toRemove.Add(existing);
-                    }
-                }
-                foreach (var existingId in toRemove) {
-                    RemoveCustomHandlerUnsafe(existingId);
-                }
-            }
-
-            var custom = new CustomReaderHandler(
-                id: id,
-                displayName: string.IsNullOrWhiteSpace(registration.DisplayName) ? id : registration.DisplayName!.Trim(),
-                description: registration.Description,
-                kind: registration.Kind,
-                extensions: effectiveExtensions.ToArray(),
-                defaultMaxInputBytes: registration.DefaultMaxInputBytes,
-                warningBehavior: registration.WarningBehavior,
-                deterministicOutput: registration.DeterministicOutput,
-                readPath: registration.ReadPath,
-                readStream: registration.ReadStream);
-
-            CustomHandlersById[id] = custom;
-            foreach (var ext in custom.Extensions) {
-                CustomHandlerIdByExtension[ext] = custom.Id;
-            }
-
-            return custom.Extensions.ToArray();
-        }
+        return HandlerRegistry.Register(registration, replaceExisting, preserveExistingCustomExtensions);
     }
 
     /// <summary>
     /// Unregisters a custom handler by identifier.
     /// </summary>
     public static bool UnregisterHandler(string handlerId) {
-        if (string.IsNullOrWhiteSpace(handlerId)) return false;
-        lock (HandlerRegistrySync) {
-            return RemoveCustomHandlerUnsafe(handlerId.Trim());
-        }
+        return HandlerRegistry.Unregister(handlerId);
     }
 
     /// <summary>
@@ -259,20 +168,19 @@ public static partial class DocumentReader {
         var list = new List<ReaderHandlerCapability>();
         var customCapabilities = new List<ReaderHandlerCapability>();
         Dictionary<string, ExtensionOverrideCoverage>? overriddenBuiltInExtensions = null;
+        ReaderHandlerRegistrySnapshot snapshot = GetActiveHandlerRegistry();
 
         if (includeCustom) {
-            lock (HandlerRegistrySync) {
-                foreach (var custom in CustomHandlersById.Values.OrderBy(static c => c.Id, StringComparer.Ordinal)) {
-                    ReaderHandlerCapability capability = custom.ToCapability();
-                    customCapabilities.Add(capability);
-                    if (includeBuiltIn) {
-                        for (int extensionIndex = 0; extensionIndex < capability.Extensions.Count; extensionIndex++) {
-                            string extension = capability.Extensions[extensionIndex];
-                            if (BuiltInExtensions.Contains(extension)) {
-                                overriddenBuiltInExtensions ??= new Dictionary<string, ExtensionOverrideCoverage>(StringComparer.OrdinalIgnoreCase);
-                                overriddenBuiltInExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage);
-                                overriddenBuiltInExtensions[extension] = coverage.Add(capability.SupportsPath, capability.SupportsStream);
-                            }
+            foreach (ReaderHandlerDescriptor custom in snapshot.Handlers) {
+                ReaderHandlerCapability capability = custom.ToCapability();
+                customCapabilities.Add(capability);
+                if (includeBuiltIn) {
+                    for (int extensionIndex = 0; extensionIndex < capability.Extensions.Count; extensionIndex++) {
+                        string extension = capability.Extensions[extensionIndex];
+                        if (BuiltInExtensions.Contains(extension)) {
+                            overriddenBuiltInExtensions ??= new Dictionary<string, ExtensionOverrideCoverage>(StringComparer.OrdinalIgnoreCase);
+                            overriddenBuiltInExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage);
+                            overriddenBuiltInExtensions[extension] = coverage.Add(capability.SupportsPath, capability.SupportsStream);
                         }
                     }
                 }
