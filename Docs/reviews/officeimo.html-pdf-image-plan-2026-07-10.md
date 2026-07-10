@@ -195,8 +195,8 @@ Exit gate: the public behavior and proof corpus exist before implementation deta
 
 ### Phase 1 - Prepare the existing HTML foundation
 
-- [ ] Split `HtmlResourcePipeline.cs` by responsibility: discovery, CSS URL extraction, resolution, policy, loading, decoding, and reporting.
-- [ ] Split/refactor `HtmlComputedStyleEngine.cs` so the existing cascade is extended rather than replaced by a second engine.
+- [x] Split `HtmlResourcePipeline.cs` into focused partials for element discovery, CSS discovery and syntax, custom-property resolution, selector matching, policy, and internal models.
+- [x] Split `HtmlComputedStyleEngine.cs` by rules, media, supports, cascade, selector matching, CSS syntax, and internal models so the existing engine remains the shared owner.
 - [x] Add cancellation and timeout propagation to direct-render resource loading and conversion orchestration.
 - [ ] Carry the same cancellation contract through any shared discovery/loading paths reused outside the direct renderer.
 - [x] Add the `OfficeIMO.Drawing` project reference to `OfficeIMO.Html`.
