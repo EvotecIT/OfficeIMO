@@ -160,6 +160,24 @@ internal sealed class ReaderHandlerRegistrySnapshot {
         handler = resolved;
         return true;
     }
+
+    public bool TryResolveByKind(ReaderInputKind kind, bool pathInput, out ReaderHandlerDescriptor handler) {
+        handler = null!;
+        ReaderHandlerDescriptor? match = null;
+        foreach (ReaderHandlerDescriptor candidate in _handlersById.Values.OrderBy(static item => item.Id, StringComparer.Ordinal)) {
+            if (candidate.Kind != kind) continue;
+            bool supportsInput = pathInput ? candidate.SupportsPathInput : candidate.SupportsStreamInput;
+            if (!supportsInput) continue;
+            if (match != null) {
+                return false;
+            }
+            match = candidate;
+        }
+
+        if (match == null) return false;
+        handler = match;
+        return true;
+    }
 }
 
 internal sealed class ReaderHandlerDescriptor {
@@ -208,6 +226,8 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; }
     public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
+    public bool SupportsPathInput => ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null;
+    public bool SupportsStreamInput => ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null;
 
     public static ReaderHandlerDescriptor Create(ReaderHandlerRegistration registration) {
         if (registration == null) throw new ArgumentNullException(nameof(registration));
@@ -277,8 +297,8 @@ internal sealed class ReaderHandlerDescriptor {
             Kind = Kind,
             Extensions = Extensions.ToArray(),
             IsBuiltIn = false,
-            SupportsPath = ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null,
-            SupportsStream = ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null,
+            SupportsPath = SupportsPathInput,
+            SupportsStream = SupportsStreamInput,
             SupportsDocumentPath = ReadDocumentPath != null || ReadDocumentPathAsync != null,
             SupportsDocumentStream = ReadDocumentStream != null || ReadDocumentStreamAsync != null,
             SupportsAsyncPath = ReadDocumentPathAsync != null,

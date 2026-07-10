@@ -945,7 +945,7 @@ public sealed class PdfConversionScenarioManifestTests {
             Chunks = new[] { chunk }
         }.ToJson());
         JsonElement jsonDiagnostics = chunkJson.RootElement.GetProperty("chunks")[0].GetProperty("diagnostics");
-        Assert.Equal(4, chunkJson.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeDocumentReadResultSchema.Version, chunkJson.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal(1, jsonDiagnostics.GetProperty("potentiallyUnsafeActionCount").GetInt32());
         Assert.Equal(1, jsonDiagnostics.GetProperty("javaScriptActionCount").GetInt32());
         JsonElement jsonActions = chunkJson.RootElement.GetProperty("chunks")[0].GetProperty("actions");
