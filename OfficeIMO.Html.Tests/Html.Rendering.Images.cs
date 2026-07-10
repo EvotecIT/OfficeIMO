@@ -133,25 +133,34 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImages_InvalidValuesAndRoundedClipUseCatalogedDiagnosticsAndSupportsTruth() {
+    public void HtmlImages_InvalidValuesAndRoundedClipUseSharedPathAndCatalogedDiagnostics() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='invalid-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;object-fit:stretch;object-position:sideways;aspect-ratio:0/1'>"
             + $"<img id='rounded-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;border-radius:4px'>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        var options = new HtmlImageExportOptions {
             ViewportWidth = 50D,
             ViewportHeight = 45D,
-            Margins = HtmlRenderMargins.All(0D)
-        });
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
         HtmlDiagnostic replaced = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported);
-        HtmlDiagnostic rounded = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
+        HtmlRenderPathClipGroup rounded = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderPathClipGroup>(), group => group.Source == "img#rounded-image:content-clip");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal("img#invalid-image", replaced.Source);
         Assert.Contains("object-fit=stretch", replaced.Detail, StringComparison.Ordinal);
         Assert.Contains("object-position=sideways", replaced.Detail, StringComparison.Ordinal);
         Assert.Contains("aspect-ratio=0/1", replaced.Detail, StringComparison.Ordinal);
-        Assert.Equal("img#rounded-image", rounded.Source);
-        Assert.Equal("replaced-image-rounded-clip", rounded.Detail);
+        Assert.Equal(OfficeClipPathKind.RoundedRectangle, rounded.ClipPath.Kind);
+        Assert.Equal(4D, rounded.ClipPath.CornerRadius, 3);
+        Assert.Single(rounded.Visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(0, 20));
+        Assert.True(raster.GetPixel(15, 30).A > 0);
+        Assert.Contains("rx=\"4\" ry=\"4\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
         Assert.Contains(HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(object-fit:cover)"));
@@ -161,5 +170,41 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(object-fit:stretch)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(object-position:left right)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(aspect-ratio:0/1)"));
+    }
+
+    [Fact]
+    public void HtmlImages_RoundedRepeatedBackgroundUsesSharedPathClipAcrossPngSvgAndPdf() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(4, 4));
+        string html = $"<div id='rounded-background' style='width:30px;height:20px;border-radius:6px;background-image:url(data:image/png;base64,{data});background-size:4px 4px;background-repeat:repeat'></div>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 35D,
+            ViewportHeight = 25D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderPathClipGroup group = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderPathClipGroup>(), item => item.Source == "div#rounded-background:background-image:clip");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(35D / HtmlRenderOptions.CssPixelsPerInch, 25D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(OfficeClipPathKind.RoundedRectangle, group.ClipPath.Kind);
+        Assert.Equal(6D, group.ClipPath.CornerRadius, 3);
+        Assert.Single(group.Visuals.OfType<HtmlRenderImagePattern>());
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(0, 0));
+        Assert.True(raster.GetPixel(15, 10).A > 0);
+        Assert.Contains("rx=\"6\" ry=\"6\"", svg, StringComparison.Ordinal);
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

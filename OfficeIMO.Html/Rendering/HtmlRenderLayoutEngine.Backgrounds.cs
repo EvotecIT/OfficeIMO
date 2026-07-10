@@ -174,16 +174,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || bytes == null) {
             return;
         }
-
-        if (cornerRadius > 0D && _reportedBorderRadiusFallbacks.Add(diagnosticSourceDescription + ":background-image-clip")) {
-            _diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported,
-                "A rounded CSS background image used rectangular clipping.",
-                HtmlDiagnosticSeverity.Warning,
-                diagnosticSourceDescription,
-                "background-image-rounded-clip");
-        }
+        var layerVisuals = new List<HtmlRenderVisual>();
 
         double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
             ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
@@ -235,12 +226,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 vertical.Step);
             long tileCount = pattern.EstimatedTileCount;
             if (tileCount > 0L && tileCount <= _options.MaxBackgroundImageTiles - _backgroundImageTileCount) {
-                visuals.Add(new HtmlRenderImagePattern(
+                layerVisuals.Add(new HtmlRenderImagePattern(
                     bytes,
                     contentType,
                     pattern,
                     _options.MaxBackgroundImageTiles,
-                    visuals.Count,
+                    layerVisuals.Count,
                     layerVisualSource));
                 _backgroundImageTileCount += tileCount;
             } else if (tileCount > 0L) {
@@ -251,11 +242,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Error,
                     diagnosticSourceDescription,
                     "tiles=" + tileCount.ToString(CultureInfo.InvariantCulture) + ";limit=" + _options.MaxBackgroundImageTiles.ToString(CultureInfo.InvariantCulture));
-                AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+                AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
             }
         } else {
-            AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+            AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
         }
+        AddRoundedClipVisuals(
+            visuals,
+            layerVisuals,
+            areaX,
+            areaY,
+            areaWidth,
+            areaHeight,
+            Math.Max(0D, cornerRadius - borderWidth),
+            layerVisualSource + ":clip");
 
         if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)
             && !string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {

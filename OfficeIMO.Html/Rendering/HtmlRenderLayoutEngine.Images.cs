@@ -19,6 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = contentSize.Width + style.HorizontalInsets;
         double boxHeight = contentSize.Height + style.VerticalInsets;
         var visuals = new List<HtmlRenderVisual>();
+        var objectVisuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double imageX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double imageY = style.MarginTop + style.BorderWidth + style.PaddingTop;
@@ -33,14 +34,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             intrinsicWidth,
             intrinsicHeight);
         if (bytes != null && bytes.Length > 0 && placement.IsVisible) {
-            visuals.Add(new HtmlRenderImage(
+            objectVisuals.Add(new HtmlRenderImage(
                 bytes,
                 contentType,
                 imageX + placement.X,
                 imageY + placement.Y,
                 placement.Width,
                 placement.Height,
-                visuals.Count,
+                objectVisuals.Count,
                 alternativeText,
                 link,
                 sourceDescription,
@@ -53,13 +54,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             placeholder.FillColor = OfficeColor.FromRgb(245, 245, 245);
             placeholder.StrokeColor = OfficeColor.FromRgb(160, 160, 160);
             placeholder.StrokeWidth = 1D;
-            visuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, visuals.Count, link, sourceDescription));
+            objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
                 double textHeight = Math.Min(placement.Height, style.LineHeight);
-                visuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, visuals.Count, link, sourceDescription, "figure-alternative-text"));
+                objectVisuals.Add(new HtmlRenderText(alternativeText!, imageX + placement.X + 4D, imageY + placement.Y + 4D, Math.Max(1D, placement.Width - 8D), Math.Max(1D, textHeight), style.Font, style.Color, OfficeTextAlignment.Left, style.LineHeight, objectVisuals.Count, link, sourceDescription, "figure-alternative-text"));
             }
         }
-        ReportReplacedElementFallbacks(style, element, boxWidth, boxHeight);
+        double outerRadius = ResolveBoxCornerRadius(style, boxWidth, boxHeight, element, sourceDescription);
+        double contentInset = style.BorderWidth + Math.Max(Math.Max(style.PaddingLeft, style.PaddingRight), Math.Max(style.PaddingTop, style.PaddingBottom));
+        AddRoundedClipVisuals(
+            visuals,
+            objectVisuals,
+            imageX,
+            imageY,
+            contentSize.Width,
+            contentSize.Height,
+            Math.Max(0D, outerRadius - contentInset),
+            sourceDescription + ":content-clip");
+        ReportReplacedElementFallbacks(style, element);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;

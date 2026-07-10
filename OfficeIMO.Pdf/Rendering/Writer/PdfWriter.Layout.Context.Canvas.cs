@@ -312,11 +312,8 @@ internal static partial class PdfWriter {
             int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
-            new ContentStreamBuilder(sb)
-                .SaveState()
-                .Rectangle(item.X, bottomY, item.Width, item.Height)
-                .ClipPath()
-                .EndPath();
+            new ContentStreamBuilder(sb).SaveState();
+            AppendClipPath(sb, item.ClipPath, item.X, bottomY, item.Height);
 
             _canvasClipDepth++;
             try {

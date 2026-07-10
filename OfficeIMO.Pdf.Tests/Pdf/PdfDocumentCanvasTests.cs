@@ -762,6 +762,44 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_AcceptsRoundedSharedClipPath() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(20, 20, OfficeClipPath.RoundedRectangle(100, 80, 10), clipped =>
+                clipped.Image(CreateMinimalRgbPng(), 20, 20, 100, 80)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains(" c", raw, StringComparison.Ordinal);
+        Assert.Contains(" W n\n", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("20 60 100 80 re W", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasClip_AcceptsFreeformSharedClipPath() {
+        OfficeClipPath triangle = OfficeClipPath.Path(
+            OfficePathCommand.MoveTo(0, 0),
+            OfficePathCommand.LineTo(100, 0),
+            OfficePathCommand.LineTo(50, 80),
+            OfficePathCommand.Close());
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(20, 20, triangle, clipped =>
+                clipped.Image(CreateMinimalRgbPng(), 20, 20, 100, 80)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 140 m 120 140 l 70 60 l h W n", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("20 60 100 80 re W", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,

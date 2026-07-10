@@ -250,16 +250,19 @@ public sealed class PdfPageCanvas {
     }
 
     /// <summary>Adds a clipped fixed-position canvas frame using top-left page coordinates.</summary>
-    public PdfPageCanvas Clip(double x, double y, double width, double height, Action<PdfPageCanvas> build) {
+    public PdfPageCanvas Clip(double x, double y, double width, double height, Action<PdfPageCanvas> build) =>
+        Clip(x, y, OfficeClipPath.Rectangle(width, height), build);
+
+    /// <summary>Adds a path-clipped fixed-position canvas frame using top-left page coordinates.</summary>
+    public PdfPageCanvas Clip(double x, double y, OfficeClipPath clipPath, Action<PdfPageCanvas> build) {
         Guard.NonNegative(x, nameof(x));
         Guard.NonNegative(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        Guard.NotNull(clipPath, nameof(clipPath));
         Guard.NotNull(build, nameof(build));
 
         var clippedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
         build(clippedCanvas);
-        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x, y, width, height));
+        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x, y, clipPath));
         return this;
     }
 
@@ -544,16 +547,16 @@ internal sealed class PdfCanvasTableItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasClipItem : PdfCanvasItem {
-    public PdfCanvasClipItem(IReadOnlyList<PdfCanvasItem> items, double x, double y, double width, double height)
+    public PdfCanvasClipItem(IReadOnlyList<PdfCanvasItem> items, double x, double y, OfficeClipPath clipPath)
         : base(x, y) {
         Items = items;
-        Width = width;
-        Height = height;
+        ClipPath = clipPath.Clone();
     }
 
     public IReadOnlyList<PdfCanvasItem> Items { get; }
-    public double Width { get; }
-    public double Height { get; }
+    public OfficeClipPath ClipPath { get; }
+    public double Width => ClipPath.Width;
+    public double Height => ClipPath.Height;
 }
 
 internal sealed class PdfCanvasEffectItem : PdfCanvasItem {

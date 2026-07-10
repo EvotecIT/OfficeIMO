@@ -19,6 +19,9 @@ public enum HtmlRenderVisualKind {
     /// <summary>Ordered child visuals clipped as one paint group.</summary>
     ClipGroup,
 
+    /// <summary>Ordered child visuals clipped by shared Drawing path geometry.</summary>
+    PathClipGroup,
+
     /// <summary>Ordered child visuals painted through an affine transform and isolated opacity.</summary>
     EffectGroup
 }

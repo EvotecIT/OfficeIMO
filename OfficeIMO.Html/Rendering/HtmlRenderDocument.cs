@@ -41,6 +41,8 @@ public sealed class HtmlRenderDocument {
             yield return visual;
             IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
                 ? clipGroup.Visuals
+                : visual is HtmlRenderPathClipGroup pathClipGroup
+                    ? pathClipGroup.Visuals
                 : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;

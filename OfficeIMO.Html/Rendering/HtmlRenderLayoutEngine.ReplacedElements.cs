@@ -119,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             crop);
     }
 
-    private void ReportReplacedElementFallbacks(HtmlRenderBoxStyle style, IElement element, double boxWidth, double boxHeight) {
+    private void ReportReplacedElementFallbacks(HtmlRenderBoxStyle style, IElement element) {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (style.UnsupportedReplacedElementLayout.Length > 0 && _reportedReplacedElementFallbacks.Add(source)) {
             _diagnostics.Add(
@@ -129,18 +129,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlDiagnosticSeverity.Warning,
                 source,
                 style.UnsupportedReplacedElementLayout);
-        }
-
-        if (HtmlCssBorderRadiusParser.TryResolveUniformRadius(style, boxWidth, boxHeight, _options.DefaultFontSize, out double radius, out _)
-            && radius > 0D
-            && _reportedBorderRadiusFallbacks.Add(source + ":replaced-image-clip")) {
-            _diagnostics.Add(
-                ComponentName,
-                HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported,
-                "A rounded replaced image used rectangular content clipping.",
-                HtmlDiagnosticSeverity.Warning,
-                source,
-                "replaced-image-rounded-clip");
         }
     }
 

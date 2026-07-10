@@ -74,6 +74,8 @@ internal static class HtmlPdfRenderedConverter {
             AddImagePattern(canvas, imagePattern);
         } else if (visual is HtmlRenderClipGroup group) {
             AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight);
+        } else if (visual is HtmlRenderPathClipGroup pathClipGroup) {
+            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight);
         } else if (visual is HtmlRenderEffectGroup effectGroup) {
             AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight);
         }
@@ -116,6 +118,23 @@ internal static class HtmlPdfRenderedConverter {
             top * PointsPerCssPixel,
             (right - left) * PointsPerCssPixel,
             (bottom - top) * PointsPerCssPixel,
+            clipped => {
+                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight);
+                }
+            });
+    }
+
+    private static void AddPathClipGroup(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderPathClipGroup group,
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        double surfaceWidth,
+        double surfaceHeight) {
+        canvas.Clip(
+            group.ClipX * PointsPerCssPixel,
+            group.ClipY * PointsPerCssPixel,
+            group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel),
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight);
