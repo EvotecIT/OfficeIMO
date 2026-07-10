@@ -347,8 +347,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
-        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, style.Color, out style.BoxShadow)) {
+        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
             style.UnsupportedBoxShadow = boxShadow;
+        } else {
+            style.BoxShadowLayerCount = shadows.Count;
+            style.BoxShadows = shadows.Take(_options.MaxBoxShadowLayers).ToArray();
         }
     }
 

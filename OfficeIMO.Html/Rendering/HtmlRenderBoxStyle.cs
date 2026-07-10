@@ -125,7 +125,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string TransformOrigin = "50% 50%";
     internal bool OpacityWasSpecified;
     internal string UnsupportedOpacity = string.Empty;
-    internal OfficeShadow? BoxShadow;
+    internal int BoxShadowLayerCount;
+    internal IReadOnlyList<HtmlCssBoxShadow> BoxShadows = Array.Empty<HtmlCssBoxShadow>();
     internal string UnsupportedBoxShadow = string.Empty;
     internal double OutlineWidth;
     internal double OutlineOffset;

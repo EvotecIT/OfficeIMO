@@ -74,8 +74,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";
     /// <summary>A CSS border radius contained invalid or unsupported syntax and used square-corner fallback.</summary>
     public const string BorderRadiusValueUnsupported = "HtmlRenderBorderRadiusValueUnsupported";
-    /// <summary>A CSS box shadow could not be represented by the current outer-shadow model.</summary>
+    /// <summary>A CSS box shadow contained invalid or unsupported syntax.</summary>
     public const string BoxShadowValueUnsupported = "HtmlRenderBoxShadowValueUnsupported";
+    /// <summary>CSS box-shadow layers beyond the configured per-element limit were omitted.</summary>
+    public const string BoxShadowLayerLimit = "HtmlRenderBoxShadowLayerLimit";
     /// <summary>A CSS border paint declaration used invalid or unsupported syntax.</summary>
     public const string BorderPaintValueUnsupported = "HtmlRenderBorderPaintValueUnsupported";
     /// <summary>A CSS outline paint declaration could not be represented by the current outline model.</summary>
@@ -160,6 +162,7 @@ public static class HtmlRenderDiagnosticCodes {
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,
+        BoxShadowLayerLimit,
         BoxShadowValueUnsupported,
         BorderPaintValueUnsupported,
         OutlinePaintValueUnsupported,

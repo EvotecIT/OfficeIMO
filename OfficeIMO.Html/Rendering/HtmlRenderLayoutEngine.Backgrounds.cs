@@ -16,8 +16,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
-        AddBoxShadow(visuals, style, x, y, width, height, radii, source, sourceDescription);
+        AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, source, sourceDescription, sourceDescription);
+        AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
 
         AddBorderPaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
     }
@@ -48,8 +49,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string diagnosticSourceDescription,
         string visualSourceDescription) {
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
-        AddBoxShadow(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
+        AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);
+        AddInsetBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
     }
 
     private void AddBoxBackgroundCore(
@@ -326,37 +328,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return normalized.IsUniformCircular
             ? OfficeShape.RoundedRectangle(width, height, normalized.UniformRadius)
             : OfficeShape.Path(normalized.CreatePathCommands(width, height));
-    }
-
-    private void AddBoxShadow(
-        ICollection<HtmlRenderVisual> visuals,
-        HtmlRenderBoxStyle style,
-        double x,
-        double y,
-        double width,
-        double height,
-        HtmlResolvedBorderRadii radii,
-        IElement source,
-        string sourceDescription) {
-        if (style.UnsupportedBoxShadow.Length > 0) {
-            if (_reportedBoxShadowFallbacks.Add(sourceDescription)) {
-                _diagnostics.Add(
-                    ComponentName,
-                    HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported,
-                    "A CSS box shadow was omitted.",
-                    HtmlDiagnosticSeverity.Warning,
-                    HtmlRenderStyleResolver.DescribeSource(source),
-                    "box-shadow=" + style.UnsupportedBoxShadow);
-            }
-            return;
-        }
-        if (style.BoxShadow == null || style.BoxShadow.Opacity <= 0D) return;
-        OfficeShape carrier = CreateBoxShape(width, height, radii);
-        carrier.FillColor = null;
-        carrier.StrokeColor = null;
-        carrier.StrokeWidth = 0D;
-        carrier.Shadow = style.BoxShadow.Clone();
-        visuals.Add(new HtmlRenderShape(carrier, x, y, visuals.Count, source: sourceDescription + ":box-shadow"));
     }
 
     private static void AddVisibleBackgroundImage(
