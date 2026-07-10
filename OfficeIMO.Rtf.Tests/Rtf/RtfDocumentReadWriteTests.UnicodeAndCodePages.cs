@@ -21,6 +21,21 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(rtf, result.ToRtfLossless());
     }
 
+    [Theory]
+    [InlineData(932, 26085, @"\'93\'fa", "日")]
+    [InlineData(936, 20013, @"\'d6\'d0", "中")]
+    [InlineData(949, -10916, @"\'c7\'d1", "한")]
+    [InlineData(950, 20013, @"\'a4\'a4", "中")]
+    public void Read_Consumes_Dbcs_Unicode_Fallback_Per_Source_Byte(int codePage, int unicodeValue, string fallback, string expected) {
+        string rtf = "{\\rtf1\\ansi\\ansicpg" + codePage.ToString(CultureInfo.InvariantCulture) +
+            "\\uc2\\u" + unicodeValue.ToString(CultureInfo.InvariantCulture) + fallback + "X}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(expected + "X", Assert.Single(result.Document.Paragraphs).ToPlainText());
+        Assert.Equal(rtf, result.ToRtfLossless());
+    }
+
     [Fact]
     public void Load_Decodes_Literal_Ansi_Text_With_CodePage_And_Preserves_Source_Bytes() {
         var bytes = new List<byte>();

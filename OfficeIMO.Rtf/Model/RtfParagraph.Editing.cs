@@ -91,6 +91,18 @@ public sealed partial class RtfParagraph {
         RebuildRuns();
     }
 
+    internal void RemoveGeneratedNoteReferences(ISet<RtfNote> notes) {
+        for (int index = _inlines.Count - 1; index >= 0; index--) {
+            if (_inlines[index] is RtfGeneratedText generatedText &&
+                generatedText.Kind == RtfGeneratedTextKind.NoteReference &&
+                generatedText.Note != null && notes.Contains(generatedText.Note)) {
+                _inlines.RemoveAt(index);
+            }
+        }
+
+        RebuildRuns();
+    }
+
     private static int FindRunIndex(IReadOnlyList<int> starts, IReadOnlyList<RtfRun> runs, int offset) {
         for (int index = starts.Count - 1; index >= 0; index--) {
             if (offset >= starts[index] && offset < starts[index] + runs[index].Text.Length) return index;

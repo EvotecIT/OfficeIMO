@@ -91,6 +91,7 @@ public static partial class WordRtfConverterExtensions {
             foreach (LevelOverride wordOverride in instance.Elements<LevelOverride>()) {
                 RtfListLevelOverride levelOverride = item.AddLevelOverride();
                 levelOverride.StartAt = wordOverride.StartOverrideNumberingValue?.Val?.Value;
+                levelOverride.OverrideStartAt = levelOverride.StartAt.HasValue;
             }
         }
     }

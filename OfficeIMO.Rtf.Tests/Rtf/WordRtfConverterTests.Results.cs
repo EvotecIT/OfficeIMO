@@ -27,6 +27,25 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_ToWord_Result_Reports_Losses_Inside_Nested_Table_Cells() {
+        RtfDocument rtf = RtfDocument.Create();
+        RtfTable outer = rtf.AddTable(1, 1);
+        RtfTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+        RtfParagraph nestedParagraph = nested.Rows[0].Cells[0].AddParagraph("Nested");
+        nestedParagraph.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
+        nestedParagraph.AddShape().AddTextBoxParagraph("Shape");
+
+        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        using (result.Value) {
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "RtfWordObjectsOmitted" && diagnostic.Count == 1);
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "RtfWordShapesOmitted" && diagnostic.Count == 1);
+            Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        }
+    }
+
+    [Fact]
     public void Word_Rtf_Read_Result_Combines_Core_Policy_And_Bridge_Diagnostics() {
         const string rtf = @"{\rtf1{\object\objemb{\*\objdata 0102}}Visible}";
 
@@ -60,7 +79,10 @@ public partial class WordRtfConverterTests {
         level.StartAt = 3;
         level.Text = "%1.";
         level.LeftIndentTwips = 720;
-        rtf.AddListOverride(20, 10);
+        RtfListOverride listOverride = rtf.AddListOverride(20, 10);
+        RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
+        levelOverride.StartAt = 7;
+        levelOverride.OverrideStartAt = true;
         RtfParagraph paragraph = rtf.AddParagraph().SetStyle(7).SetList(20, 0, RtfListKind.Decimal);
         paragraph.ListDefinitionId = 10;
         paragraph.AddText("Styled list item").SetStyle(8);
@@ -85,6 +107,9 @@ public partial class WordRtfConverterTests {
         Assert.Equal(20, roundTripParagraph.ListId);
         Assert.Equal(10, roundTripParagraph.ListDefinitionId);
         Assert.Equal(3, Assert.Single(roundTrip.ListDefinitions, item => item.Id == 10).Levels[0].StartAt);
+        RtfListLevelOverride roundTripOverride = Assert.Single(Assert.Single(roundTrip.ListOverrides, item => item.Id == 20).LevelOverrides);
+        Assert.Equal(7, roundTripOverride.StartAt);
+        Assert.True(roundTripOverride.OverrideStartAt);
         Assert.Contains(toWord.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordStylesMapped");
         Assert.Contains(toWord.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordListDefinitionsMapped");
         toWord.Report.RequireNoLoss();

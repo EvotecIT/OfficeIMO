@@ -33,7 +33,7 @@ internal static partial class RtfDocumentWriter {
         WriteUserProperties(builder, document, unicodeSkipCount);
         WriteDocumentVariables(builder, document, unicodeSkipCount);
         WriteHeaderFooters(builder, document, unicodeSkipCount);
-        HashSet<RtfNote> referencedNotes = CollectReferencedNotes(document);
+        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
         WriteDetachedNotes(builder, document, referencedNotes, document.Settings.DefaultLanguageId, unicodeSkipCount);
         builder.AppendLine();
 

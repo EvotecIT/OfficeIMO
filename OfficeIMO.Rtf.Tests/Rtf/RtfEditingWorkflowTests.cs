@@ -40,6 +40,23 @@ public class RtfEditingWorkflowTests {
     }
 
     [Fact]
+    public void Semantic_Clone_Preserves_Detached_Notes_Without_Injecting_A_Body_Reference() {
+        RtfDocument source = RtfDocument.Create();
+        RtfNote note = source.AddNote(RtfNoteKind.Footnote);
+        note.AddParagraph("Detached note");
+        source.AddParagraph("Body");
+
+        RtfDocument clone = source.Clone();
+
+        Assert.Equal("Body", Assert.Single(clone.Paragraphs).ToPlainText());
+        RtfNote clonedNote = Assert.Single(clone.Notes);
+        Assert.NotSame(note, clonedNote);
+        Assert.Equal("Detached note", clonedNote.ToPlainText());
+        Assert.DoesNotContain(clone.Paragraphs.SelectMany(paragraph => paragraph.Inlines), inline =>
+            inline is RtfGeneratedText generatedText && generatedText.Note == clonedNote);
+    }
+
+    [Fact]
     public void Semantic_Document_Append_Remaps_Resources_And_Reports_Flattened_Bindings() {
         RtfDocument destination = RtfDocument.Create();
         destination.AddColor(255, 0, 0);

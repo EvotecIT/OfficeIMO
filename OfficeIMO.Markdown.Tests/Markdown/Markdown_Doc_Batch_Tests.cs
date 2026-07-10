@@ -1,7 +1,7 @@
 using OfficeIMO.Markdown;
 using Xunit;
 
-namespace OfficeIMO.Markdown.Tests;
+namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class MarkdownDocBatchTests {
     [Fact]

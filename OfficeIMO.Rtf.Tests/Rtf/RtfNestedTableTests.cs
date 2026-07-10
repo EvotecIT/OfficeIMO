@@ -70,6 +70,44 @@ public class RtfNestedTableTests {
     }
 
     [Fact]
+    public void Semantic_Writer_RoundTrips_Three_Table_Levels() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable outer = document.AddTable(1, 1);
+        outer.Rows[0].Cells[0].AddParagraph("Level 1");
+        RtfTable levelTwo = outer.Rows[0].Cells[0].AddTable(1, 1);
+        levelTwo.Rows[0].Cells[0].AddParagraph("Level 2");
+        RtfTable levelThree = levelTwo.Rows[0].Cells[0].AddTable(1, 1);
+        levelThree.Rows[0].Cells[0].AddParagraph("Level 3");
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfTable readOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
+        RtfTable readLevelTwo = Assert.Single(Assert.Single(Assert.Single(readOuter.Rows).Cells).Blocks.OfType<RtfTable>());
+        RtfTable readLevelThree = Assert.Single(Assert.Single(Assert.Single(readLevelTwo.Rows).Cells).Blocks.OfType<RtfTable>());
+
+        Assert.Contains(@"\itap3", rtf, StringComparison.Ordinal);
+        Assert.Equal("Level 1", Assert.Single(readOuter.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.ToPlainText().Length > 0).ToPlainText());
+        Assert.Equal("Level 2", Assert.Single(readLevelTwo.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.ToPlainText().Length > 0).ToPlainText());
+        Assert.Equal("Level 3", Assert.Single(readLevelThree.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.ToPlainText().Length > 0).ToPlainText());
+    }
+
+    [Fact]
+    public void Semantic_Writer_Emits_Nested_Table_Note_Exactly_Once() {
+        RtfDocument document = CreateNestedDocument();
+        RtfTable outer = Assert.IsType<RtfTable>(document.Blocks[0]);
+        RtfTable nested = Assert.Single(Assert.Single(Assert.Single(outer.Rows).Cells).Blocks.OfType<RtfTable>());
+        RtfNote note = document.AddNote(RtfNoteKind.Footnote);
+        note.AddParagraph("Nested note");
+        nested.Rows[0].Cells[0].Paragraphs[0].AddNoteReference(note, "1");
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+
+        Assert.Equal(1, CountOccurrences(rtf, @"{\footnote"));
+        Assert.Equal("Nested note", Assert.Single(roundTrip.Notes).ToPlainText());
+    }
+
+    [Fact]
     public void Html_Writer_Emits_Semantic_Nested_Tables() {
         string html = CreateNestedDocument().ToHtml();
 

@@ -3,7 +3,24 @@ namespace OfficeIMO.Rtf;
 /// <content>Provides semantic block, text, bookmark, and clone operations.</content>
 public sealed partial class RtfDocument {
     /// <summary>Creates an independent semantic clone through the deterministic RTF representation.</summary>
-    public RtfDocument Clone() => Read(ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+    public RtfDocument Clone() {
+        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(this);
+        int[] detachedNoteIndices = _notes
+            .Select((note, index) => new { note, index })
+            .Where(item => !referencedNotes.Contains(item.note))
+            .Select(item => item.index)
+            .ToArray();
+        RtfDocument clone = Read(ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        if (detachedNoteIndices.Length == 0) return clone;
+
+        var detachedClones = new HashSet<RtfNote>(detachedNoteIndices
+            .Where(index => index < clone.Notes.Count)
+            .Select(index => clone.Notes[index]));
+        var paragraphs = new List<RtfParagraph>();
+        CollectParagraphsInOrder(clone.Blocks, paragraphs);
+        foreach (RtfParagraph paragraph in paragraphs) paragraph.RemoveGeneratedNoteReferences(detachedClones);
+        return clone;
+    }
 
     /// <summary>Adds an existing semantic block at the end of the document.</summary>
     public void AddBlock(IRtfBlock block) => InsertBlock(_blocks.Count, block);

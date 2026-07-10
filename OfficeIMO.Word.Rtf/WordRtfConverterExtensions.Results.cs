@@ -76,8 +76,8 @@ public static partial class WordRtfConverterExtensions {
             case RtfTable table:
                 foreach (RtfTableRow row in table.Rows) {
                     foreach (RtfTableCell cell in row.Cells) {
-                        foreach (RtfParagraph cellParagraph in cell.Paragraphs) {
-                            CountUnsupportedRtfInlines(cellParagraph.Inlines, ref objectCount, ref shapeCount);
+                        foreach (IRtfBlock child in cell.Blocks) {
+                            CountUnsupportedRtfBlock(child, ref objectCount, ref shapeCount);
                         }
                     }
                 }

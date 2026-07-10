@@ -38,7 +38,7 @@ internal static partial class RtfSemanticReader {
         private int? _currentSectionColumnNumber;
         private Dictionary<int, RtfListOverride> _listOverridesById = null!;
         private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
-        private List<List<RtfParagraph>>? _nestedCellParagraphs;
+        private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
 
         public Binder(RtfReadOptions options, List<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
             _options = options;
@@ -346,29 +346,32 @@ internal static partial class RtfSemanticReader {
 
         private void AppendAnsiText(string text, CharacterState state) {
             if (string.IsNullOrEmpty(text)) return;
-            int start = 0;
+            int start = ConsumeAnsiFallbackBytes(state, text.Length);
+            if (start >= text.Length) return;
             if (state.PendingAnsiLeadByte.HasValue) {
-                if (text[0] <= byte.MaxValue) {
+                if (text[start] <= byte.MaxValue) {
                     byte lead = state.PendingAnsiLeadByte.Value;
                     state.PendingAnsiLeadByte = null;
-                    AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, (byte)text[0] })), state);
-                    start = 1;
+                    AppendText(RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, (byte)text[start] }), state);
+                    start++;
                 } else {
+                    state.PendingAnsiLeadByte = null;
                     AppendText("\uFFFD", state);
                 }
             }
 
             if (start < text.Length) {
-                AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeText(state.AnsiCodePage, text.Substring(start))), state);
+                AppendText(RtfAnsiCodePage.DecodeText(state.AnsiCodePage, text.Substring(start)), state);
             }
         }
 
         private void AppendAnsiByte(int value, CharacterState state) {
+            if (ConsumeAnsiFallbackBytes(state, 1) == 1) return;
             byte current = (byte)(value & 0xFF);
             if (state.PendingAnsiLeadByte.HasValue) {
                 byte lead = state.PendingAnsiLeadByte.Value;
                 state.PendingAnsiLeadByte = null;
-                AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, current })), state);
+                AppendText(RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, current }), state);
                 return;
             }
 
@@ -377,7 +380,7 @@ internal static partial class RtfSemanticReader {
                 return;
             }
 
-            AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeByte(state.AnsiCodePage, current)), state);
+            AppendText(RtfAnsiCodePage.DecodeByte(state.AnsiCodePage, current), state);
         }
 
         private void AppendGeneratedText(RtfGeneratedTextKind kind, CharacterState state) {
@@ -481,9 +484,9 @@ internal static partial class RtfSemanticReader {
                 return;
             }
 
-            if (_nestedCellParagraphs != null) {
+            if (_nestedTableContexts.Count > 0) {
                 if (_currentParagraph.Inlines.Count > 0) {
-                    _nestedCellParagraphs[_nestedCellParagraphs.Count - 1].Add(_currentParagraph);
+                    _nestedTableContexts[_nestedTableContexts.Count - 1].CurrentCellBlocks.Add(_currentParagraph);
                 }
 
                 _currentParagraph = new RtfParagraph();
@@ -505,14 +508,10 @@ internal static partial class RtfSemanticReader {
             _currentParagraph = new RtfParagraph();
         }
 
-        private static string ApplySkip(CharacterState state, string text) {
-            if (state.SkipCharacters <= 0 || string.IsNullOrEmpty(text)) {
-                return text;
-            }
-
-            int skip = Math.Min(state.SkipCharacters, text.Length);
+        private static int ConsumeAnsiFallbackBytes(CharacterState state, int availableBytes) {
+            int skip = Math.Min(state.SkipCharacters, availableBytes);
             state.SkipCharacters -= skip;
-            return text.Substring(skip);
+            return skip;
         }
 
         private void AppendUnicodeValue(int value, CharacterState state) {
