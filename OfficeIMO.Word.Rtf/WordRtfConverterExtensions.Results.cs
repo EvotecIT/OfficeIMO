@@ -129,7 +129,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
-        var unsupported = document.Elements
+        var unsupported = EnumerateWordElements(document.Elements)
             .Where(IsUnsupportedWordElement)
             .GroupBy(element => element.GetType().Name, StringComparer.Ordinal)
             .OrderBy(group => group.Key, StringComparer.Ordinal);
@@ -141,6 +141,20 @@ public static partial class WordRtfConverterExtensions {
                 RtfConversionAction.Omitted,
                 feature: group.Key,
                 count: group.Count());
+        }
+    }
+
+    private static IEnumerable<WordElement> EnumerateWordElements(IEnumerable<WordElement> elements) {
+        foreach (WordElement element in elements) {
+            yield return element;
+            if (!(element is WordTable table)) continue;
+            foreach (WordTableRow row in table.Rows) {
+                foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
+                    foreach (WordElement child in EnumerateWordElements(cell.Elements)) {
+                        yield return child;
+                    }
+                }
+            }
         }
     }
 

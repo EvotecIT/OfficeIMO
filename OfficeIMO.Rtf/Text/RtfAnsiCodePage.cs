@@ -32,7 +32,7 @@ internal static partial class RtfAnsiCodePage {
             77 => MacRomanCodePage,
             128 => 932,
             129 => 949,
-            130 => 949,
+            130 => 1361,
             134 => 936,
             136 => 950,
             161 => 1253,
@@ -108,12 +108,16 @@ internal static partial class RtfAnsiCodePage {
     }
 
     public static bool IsDoubleByteCodePage(int codePage) =>
-        codePage == 932 || codePage == 936 || codePage == 949 || codePage == 950;
+        codePage == 932 || codePage == 936 || codePage == 949 || codePage == 950 || codePage == 1361;
 
     public static bool IsLeadByte(int codePage, int value) {
         int b = value & 0xFF;
         if (codePage == 932) {
             return (b >= 0x81 && b <= 0x9F) || (b >= 0xE0 && b <= 0xFC);
+        }
+
+        if (codePage == 1361) {
+            return b >= 0x84 && b <= 0xD3;
         }
 
         return (codePage == 936 || codePage == 949 || codePage == 950) && b >= 0x81 && b <= 0xFE;

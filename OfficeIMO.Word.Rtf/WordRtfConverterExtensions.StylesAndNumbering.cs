@@ -72,12 +72,17 @@ public static partial class WordRtfConverterExtensions {
             RtfListDefinition definition = destination.AddListDefinition(id.Value);
             foreach (Level wordLevel in abstractNum.Elements<Level>().OrderBy(level => level.LevelIndex?.Value ?? 0)) {
                 NumberFormatValues? format = wordLevel.NumberingFormat?.Val?.Value;
+                int levelIndex = wordLevel.LevelIndex?.Value ?? definition.Levels.Count;
+                while (definition.Levels.Count < levelIndex) {
+                    definition.AddLevel();
+                }
                 RtfListLevel level = definition.AddLevel(format == NumberFormatValues.Bullet ? RtfListKind.Bullet : RtfListKind.Decimal);
                 level.NumberFormat = ToRtfNumberFormat(format);
                 level.StartAt = wordLevel.StartNumberingValue?.Val?.Value;
                 level.Text = wordLevel.LevelText?.Val?.Value;
                 level.LeftIndentTwips = ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.Left?.Value);
-                level.FirstLineIndentTwips = Negate(ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.Hanging?.Value));
+                level.FirstLineIndentTwips = ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.FirstLine?.Value)
+                    ?? Negate(ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.Hanging?.Value));
                 level.Alignment = ToRtfListAlignment(wordLevel.LevelJustification?.Val?.Value);
                 level.FollowCharacter = ToRtfFollowCharacter(wordLevel.LevelSuffix?.Val?.Value);
             }

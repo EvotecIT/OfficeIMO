@@ -1,6 +1,8 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -140,5 +142,48 @@ public partial class WordRtfConverterTests {
                 diagnostic.Code == "RtfWordShapesOmitted" && diagnostic.Count == 1);
             Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
         }
+    }
+
+    [Fact]
+    public void Word_Bridge_Preserves_Sparse_Numbering_Level_And_Positive_First_Line_Indent() {
+        using WordDocument word = WordDocument.Create();
+        MainDocumentPart main = word._wordprocessingDocument.MainDocumentPart!;
+        NumberingDefinitionsPart numberingPart = main.AddNewPart<NumberingDefinitionsPart>();
+        numberingPart.Numbering = new Numbering(
+            new AbstractNum(
+                new Level(
+                    new StartNumberingValue { Val = 1 },
+                    new NumberingFormat { Val = NumberFormatValues.Decimal },
+                    new LevelText { Val = "%3." },
+                    new PreviousParagraphProperties(
+                        new Indentation { Left = "720", FirstLine = "240" })) {
+                    LevelIndex = 2
+                }) {
+                AbstractNumberId = 10
+            });
+
+        RtfDocument rtf = word.ToRtfDocument();
+
+        RtfListDefinition definition = Assert.Single(rtf.ListDefinitions);
+        Assert.Equal(3, definition.Levels.Count);
+        RtfListLevel level = definition.Levels[2];
+        Assert.Equal(2, level.LevelIndex);
+        Assert.Equal(240, level.FirstLineIndentTwips);
+    }
+
+    [Fact]
+    public void Word_ToRtf_Result_Reports_Unsupported_Content_Inside_Table_Cells() {
+        using WordDocument word = WordDocument.Create();
+        WordTable table = word.AddTable(1, 1);
+        table.Rows[0].Cells[0]._tableCell.Append(new SdtBlock(
+            new SdtContentBlock(new Paragraph(new Run(new Text("Controlled"))))));
+
+        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "WordRtfElementOmitted" &&
+            diagnostic.Feature == nameof(WordStructuredDocumentTag) &&
+            diagnostic.Count == 1);
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
     }
 }

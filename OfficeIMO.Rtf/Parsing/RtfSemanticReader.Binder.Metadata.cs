@@ -108,12 +108,22 @@ internal static partial class RtfSemanticReader {
                 if (text[0] <= byte.MaxValue) {
                     byte lead = state.PendingAnsiLeadByte.Value;
                     state.PendingAnsiLeadByte = null;
-                    AppendWithSkip(RtfAnsiCodePage.DecodeBytes(ansiCodePage, new[] { lead, (byte)text[0] }), builder, state);
+                    if (!ConsumeAnsiFallbackBytes(state, 2)) {
+                        AppendWithSkip(RtfAnsiCodePage.DecodeBytes(ansiCodePage, new[] { lead, (byte)text[0] }), builder, state);
+                    }
                     start = 1;
                 } else {
                     state.PendingAnsiLeadByte = null;
-                    AppendWithSkip("\uFFFD", builder, state);
+                    if (!ConsumeAnsiFallbackBytes(state, 1)) {
+                        AppendWithSkip("\uFFFD", builder, state);
+                    }
                 }
+            }
+
+            if (state.SkipCharacters > 0 && start < text.Length) {
+                int skipped = Math.Min(state.SkipCharacters, text.Length - start);
+                state.SkipCharacters -= skipped;
+                start += skipped;
             }
 
             if (start < text.Length) {
@@ -126,7 +136,9 @@ internal static partial class RtfSemanticReader {
             if (state.PendingAnsiLeadByte.HasValue) {
                 byte lead = state.PendingAnsiLeadByte.Value;
                 state.PendingAnsiLeadByte = null;
-                AppendWithSkip(RtfAnsiCodePage.DecodeBytes(ansiCodePage, new[] { lead, current }), builder, state);
+                if (!ConsumeAnsiFallbackBytes(state, 2)) {
+                    AppendWithSkip(RtfAnsiCodePage.DecodeBytes(ansiCodePage, new[] { lead, current }), builder, state);
+                }
                 return;
             }
 
@@ -135,7 +147,15 @@ internal static partial class RtfSemanticReader {
                 return;
             }
 
-            AppendWithSkip(RtfAnsiCodePage.DecodeByte(ansiCodePage, current), builder, state);
+            if (!ConsumeAnsiFallbackBytes(state, 1)) {
+                AppendWithSkip(RtfAnsiCodePage.DecodeByte(ansiCodePage, current), builder, state);
+            }
+        }
+
+        private static bool ConsumeAnsiFallbackBytes(PlainTextState state, int count) {
+            if (state.SkipCharacters <= 0) return false;
+            state.SkipCharacters = Math.Max(0, state.SkipCharacters - count);
+            return true;
         }
 
         private static bool IsSpecialCharacterControl(string controlName) {
