@@ -132,6 +132,7 @@ public static partial class OfficeDocumentStructuredExtractor {
     private static void AddDiagnosticReadinessSummaries(OfficeDocumentReadResult document, ExtractionState state) {
         IReadOnlyList<OfficeDocumentDiagnostic> diagnostics = document.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>();
         for (int index = 0; index < diagnostics.Count; index++) {
+            state.CancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentDiagnostic diagnostic = diagnostics[index];
             if (!IsReadinessDiagnostic(diagnostic)) continue;
             var attributes = CopyAttributes(diagnostic.Attributes);

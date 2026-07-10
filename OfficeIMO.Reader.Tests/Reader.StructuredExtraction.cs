@@ -83,6 +83,56 @@ public sealed class ReaderStructuredExtractionTests {
     }
 
     [Fact]
+    public void Extract_IncludesAndDeduplicatesPageFormsBeforeApplyingLimit() {
+        var documentForm = new OfficeDocumentFormField { Id = "customer", Name = "Customer" };
+        var pageDuplicate = new OfficeDocumentFormField { Id = "customer", Name = "Customer duplicate" };
+        var pageOnly = new OfficeDocumentFormField { Id = "approval", Name = "Approval" };
+        var document = new OfficeDocumentReadResult {
+            Forms = new[] { documentForm },
+            Pages = new[] {
+                new OfficeDocumentPage { Forms = new[] { pageDuplicate, pageOnly } }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(
+            document,
+            new OfficeDocumentStructuredExtractionOptions { MaxForms = 2 });
+
+        Assert.Equal(new[] { "customer", "approval" }, result.Forms.Select(form => form.Id));
+        Assert.Equal(
+            new[] { "customer", "approval" },
+            result.Records.Where(record => record.Category == "form").Select(record => record.SourceObjectId));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "structured-form-limit");
+    }
+
+    [Fact]
+    public void Extract_ChecksCancellationWhileScanningNonReadinessDiagnostics() {
+        var document = new OfficeDocumentReadResult {
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic { Code = "general", Category = OfficeDocumentDiagnosticCategory.General }
+            }
+        };
+        var options = new OfficeDocumentStructuredExtractionOptions {
+            IncludeMetadata = false,
+            IncludeForms = false,
+            IncludeKeyValueRows = false,
+            IncludeShapeData = false,
+            IncludeChartSummaries = false,
+            IncludeQualitySummaries = true,
+            IncludeSections = false,
+            IncludeNamedTables = false,
+            IncludeSourceDiagnostics = false
+        };
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => OfficeDocumentStructuredExtractor.Extract(
+            document,
+            options,
+            cancellation.Token));
+    }
+
+    [Fact]
     public void StructuredJson_RejectsUnsupportedSchemaVersions() {
         var result = new OfficeDocumentStructuredExtractionResult { SchemaVersion = 2 };
 

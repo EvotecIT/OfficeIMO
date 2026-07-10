@@ -25,10 +25,8 @@ public static partial class OfficeDocumentStructuredExtractor {
         }
     }
 
-    private static void AddForms(OfficeDocumentReadResult document, ExtractionState state) {
-        IReadOnlyList<OfficeDocumentFormField> forms = document.Forms ?? Array.Empty<OfficeDocumentFormField>();
-        int count = Math.Min(forms.Count, state.Options.MaxForms);
-        for (int index = 0; index < count; index++) {
+    private static void AddForms(IReadOnlyList<OfficeDocumentFormField> forms, ExtractionState state) {
+        for (int index = 0; index < forms.Count; index++) {
             state.CancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentFormField form = forms[index];
             if (!state.TryAdd(new OfficeDocumentStructuredRecord {

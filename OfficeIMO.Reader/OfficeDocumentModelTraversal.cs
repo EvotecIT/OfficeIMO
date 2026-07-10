@@ -48,6 +48,26 @@ internal static class OfficeDocumentModelTraversal {
             }
         }
     }
+
+    internal static IEnumerable<OfficeDocumentFormField> Forms(OfficeDocumentReadResult document) {
+        var seen = new HashSet<OfficeDocumentFormField>(ReferenceIdentityComparer<OfficeDocumentFormField>.Instance);
+        var seenIds = new HashSet<string>(System.StringComparer.Ordinal);
+        foreach (OfficeDocumentFormField form in document.Forms ?? System.Array.Empty<OfficeDocumentFormField>()) {
+            if (form != null && seen.Add(form) &&
+                (string.IsNullOrWhiteSpace(form.Id) || seenIds.Add(form.Id))) {
+                yield return form;
+            }
+        }
+        foreach (OfficeDocumentPage page in document.Pages ?? System.Array.Empty<OfficeDocumentPage>()) {
+            if (page?.Forms == null) continue;
+            foreach (OfficeDocumentFormField form in page.Forms) {
+                if (form != null && seen.Add(form) &&
+                    (string.IsNullOrWhiteSpace(form.Id) || seenIds.Add(form.Id))) {
+                    yield return form;
+                }
+            }
+        }
+    }
 }
 
 internal sealed class ReferenceIdentityComparer<T> : IEqualityComparer<T> where T : class {

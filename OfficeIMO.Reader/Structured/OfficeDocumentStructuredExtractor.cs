@@ -17,9 +17,12 @@ public static partial class OfficeDocumentStructuredExtractor {
         OfficeDocumentStructuredExtractionOptions effective = Normalize(options);
         var state = new ExtractionState(effective, cancellationToken);
         state.CopySourceDiagnostics(document.Diagnostics);
+        IReadOnlyList<OfficeDocumentFormField> forms = effective.IncludeForms
+            ? SelectForms(document, state)
+            : Array.Empty<OfficeDocumentFormField>();
 
         if (effective.IncludeMetadata) AddMetadata(document, state);
-        if (effective.IncludeForms) AddForms(document, state);
+        if (effective.IncludeForms) AddForms(forms, state);
         if (effective.IncludeKeyValueRows) AddKeyValueRows(document, state);
         if (effective.IncludeShapeData) AddShapeData(document, state);
         if (effective.IncludeChartSummaries) AddChartSummaries(document, state);
@@ -31,10 +34,6 @@ public static partial class OfficeDocumentStructuredExtractor {
         IReadOnlyList<ReaderTable> tables = effective.IncludeNamedTables
             ? SelectNamedTables(document, state)
             : Array.Empty<ReaderTable>();
-        IReadOnlyList<OfficeDocumentFormField> forms = effective.IncludeForms
-            ? SelectForms(document, state)
-            : Array.Empty<OfficeDocumentFormField>();
-
         return new OfficeDocumentStructuredExtractionResult {
             Source = document.Source ?? new OfficeDocumentSource(),
             Records = state.Records.Count == 0 ? Array.Empty<OfficeDocumentStructuredRecord>() : state.Records.ToArray(),
@@ -79,13 +78,16 @@ public static partial class OfficeDocumentStructuredExtractor {
     private static IReadOnlyList<OfficeDocumentFormField> SelectForms(
         OfficeDocumentReadResult document,
         ExtractionState state) {
-        IReadOnlyList<OfficeDocumentFormField> forms = document.Forms ?? Array.Empty<OfficeDocumentFormField>();
-        int count = Math.Min(forms.Count, state.Options.MaxForms);
-        if (forms.Count > count) state.AddLimitDiagnostic("structured-form-limit", state.Options.MaxForms, "forms");
-        if (count == 0) return Array.Empty<OfficeDocumentFormField>();
-        var selected = new OfficeDocumentFormField[count];
-        for (int index = 0; index < count; index++) selected[index] = forms[index];
-        return selected;
+        var selected = new List<OfficeDocumentFormField>();
+        foreach (OfficeDocumentFormField form in OfficeDocumentModelTraversal.Forms(document)) {
+            state.CancellationToken.ThrowIfCancellationRequested();
+            if (selected.Count >= state.Options.MaxForms) {
+                state.AddLimitDiagnostic("structured-form-limit", state.Options.MaxForms, "forms");
+                break;
+            }
+            selected.Add(form);
+        }
+        return selected.Count == 0 ? Array.Empty<OfficeDocumentFormField>() : selected.ToArray();
     }
 
     internal sealed class ExtractionState {

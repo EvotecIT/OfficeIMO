@@ -89,6 +89,42 @@ public sealed class ReaderProcessorPipelineTests {
     }
 
     [Fact]
+    public void Pipeline_ContinuePolicyRetainsFailureDiagnosticWhenLaterStepReplacesDocument() {
+        OfficeDocumentProcessorPipeline pipeline = new OfficeDocumentProcessorPipelineBuilder()
+            .Add(Failing("broken"))
+            .Add(new DelegateOfficeDocumentProcessor("replace", (_, _) => new OfficeDocumentReadResult()))
+            .Build();
+
+        OfficeDocumentProcessingResult result = pipeline.Process(
+            new OfficeDocumentReadResult(),
+            new OfficeDocumentProcessingOptions {
+                FailureBehavior = OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic
+            });
+
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(result.Document.Diagnostics);
+        Assert.Equal("processor-failed", diagnostic.Code);
+        Assert.Equal("broken", diagnostic.Attributes["processorId"]);
+    }
+
+    [Fact]
+    public async Task Pipeline_ContinuePolicyRetainsFailureDiagnosticWhenAsyncStepReplacesDocument() {
+        OfficeDocumentProcessorPipeline pipeline = new OfficeDocumentProcessorPipelineBuilder()
+            .Add(Failing("broken"))
+            .Add(new DelegateOfficeDocumentProcessor("replace", (_, _) => new OfficeDocumentReadResult()))
+            .Build();
+
+        OfficeDocumentProcessingResult result = await pipeline.ProcessAsync(
+            new OfficeDocumentReadResult(),
+            new OfficeDocumentProcessingOptions {
+                FailureBehavior = OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic
+            });
+
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(result.Document.Diagnostics);
+        Assert.Equal("processor-failed", diagnostic.Code);
+        Assert.Equal("broken", diagnostic.Attributes["processorId"]);
+    }
+
+    [Fact]
     public void Pipeline_StopPolicyMarksLaterStepsSkipped() {
         bool laterRan = false;
         OfficeDocumentProcessorPipeline pipeline = new OfficeDocumentProcessorPipelineBuilder()
@@ -149,6 +185,35 @@ public sealed class ReaderProcessorPipelineTests {
 
         using JsonDocument json = JsonDocument.Parse(first.ReadDocumentJson(markdown, "note.md"));
         Assert.Equal("Applied", json.RootElement.GetProperty("metadata")[0].GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task InstanceReader_RefreshesProcessorReplacementChunkMetadata() {
+        const string processedText = "processor replacement body";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("replace-chunk", (document, _) => {
+                return new OfficeDocumentReadResult {
+                    Chunks = new[] {
+                        new ReaderChunk {
+                            Id = "replacement",
+                            Kind = ReaderInputKind.Markdown,
+                            Text = processedText,
+                            SourceId = "stale-source",
+                            SourceHash = "stale-source-hash",
+                            ChunkHash = "stale-chunk-hash",
+                            TokenEstimate = 999
+                        }
+                    }
+                };
+            }))
+            .Build();
+        byte[] markdown = Encoding.UTF8.GetBytes("Original body");
+
+        OfficeDocumentReadResult sync = reader.ReadDocument(markdown, "note.md");
+        OfficeDocumentReadResult asyncResult = await reader.ReadDocumentAsync(markdown, "note.md");
+
+        AssertRefreshedChunk(sync, processedText);
+        AssertRefreshedChunk(asyncResult, processedText);
     }
 
     [Fact]
@@ -265,6 +330,15 @@ public sealed class ReaderProcessorPipelineTests {
 
     private static IOfficeDocumentProcessor Failing(string id) =>
         new DelegateOfficeDocumentProcessor(id, (_, _) => throw new FormatException("bad input"));
+
+    private static void AssertRefreshedChunk(OfficeDocumentReadResult document, string expectedText) {
+        ReaderChunk chunk = Assert.Single(document.Chunks);
+        Assert.Equal(document.Source.SourceId, chunk.SourceId);
+        Assert.Equal(document.Source.SourceHash, chunk.SourceHash);
+        Assert.Equal((expectedText.Length + 3) / 4, chunk.TokenEstimate);
+        Assert.NotEqual("stale-chunk-hash", chunk.ChunkHash);
+        Assert.Equal(64, chunk.ChunkHash?.Length);
+    }
 
     private sealed class InvalidIdProcessor : IOfficeDocumentProcessor {
         public string Id => " invalid ";

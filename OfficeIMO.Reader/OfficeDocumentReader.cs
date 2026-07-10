@@ -96,6 +96,7 @@ public sealed partial class OfficeDocumentReader {
         }
         return ExecuteProcessedChunksAsync(
             () => DocumentReader.ReadDocumentAsync(path, options, cancellationToken),
+            options?.ComputeHashes ?? true,
             cancellationToken);
     }
 
@@ -112,6 +113,7 @@ public sealed partial class OfficeDocumentReader {
         }
         return ExecuteProcessedChunksAsync(
             () => DocumentReader.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
             cancellationToken);
     }
 
@@ -128,6 +130,7 @@ public sealed partial class OfficeDocumentReader {
         }
         return ExecuteProcessedChunksAsync(
             () => DocumentReader.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
             cancellationToken);
     }
 
@@ -139,7 +142,10 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return ProcessDocumentResult(DocumentReader.ReadDocument(path, options, cancellationToken), cancellationToken);
+            return ProcessDocumentResult(
+                DocumentReader.ReadDocument(path, options, cancellationToken),
+                options?.ComputeHashes ?? true,
+                cancellationToken);
         }
     }
 
@@ -152,7 +158,10 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return ProcessDocumentResult(DocumentReader.ReadDocument(stream, sourceName, options, cancellationToken), cancellationToken);
+            return ProcessDocumentResult(
+                DocumentReader.ReadDocument(stream, sourceName, options, cancellationToken),
+                options?.ComputeHashes ?? true,
+                cancellationToken);
         }
     }
 
@@ -165,7 +174,10 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return ProcessDocumentResult(DocumentReader.ReadDocument(bytes, sourceName, options, cancellationToken), cancellationToken);
+            return ProcessDocumentResult(
+                DocumentReader.ReadDocument(bytes, sourceName, options, cancellationToken),
+                options?.ComputeHashes ?? true,
+                cancellationToken);
         }
     }
 
@@ -178,6 +190,7 @@ public sealed partial class OfficeDocumentReader {
         CancellationToken cancellationToken = default) {
         return ExecuteProcessedDocumentAsync(
             () => DocumentReader.ReadDocumentAsync(path, options, cancellationToken),
+            options?.ComputeHashes ?? true,
             cancellationToken);
     }
 
@@ -191,6 +204,7 @@ public sealed partial class OfficeDocumentReader {
         CancellationToken cancellationToken = default) {
         return ExecuteProcessedDocumentAsync(
             () => DocumentReader.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
             cancellationToken);
     }
 
@@ -204,6 +218,7 @@ public sealed partial class OfficeDocumentReader {
         CancellationToken cancellationToken = default) {
         return ExecuteProcessedDocumentAsync(
             () => DocumentReader.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
             cancellationToken);
     }
 

@@ -34,6 +34,7 @@ public sealed class OfficeDocumentProcessorPipeline {
         if (document == null) throw new ArgumentNullException(nameof(document));
         OfficeDocumentProcessorFailureBehavior failureBehavior = Normalize(options).FailureBehavior;
         var steps = new OfficeDocumentProcessorStepResult[_processors.Length];
+        var retainedFailureDiagnostics = new List<OfficeDocumentDiagnostic>();
         OfficeDocumentReadResult current = document;
 
         for (int index = 0; index < _processors.Length; index++) {
@@ -43,6 +44,7 @@ public sealed class OfficeDocumentProcessorPipeline {
             try {
                 current = processor.Process(current, context)
                     ?? throw new InvalidOperationException("Processor returned a null document result.");
+                AppendDiagnostics(current, retainedFailureDiagnostics);
                 steps[index] = Completed(processor, index);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
@@ -52,6 +54,7 @@ public sealed class OfficeDocumentProcessorPipeline {
                 }
                 OfficeDocumentDiagnostic diagnostic = BuildFailureDiagnostic(processor, index, exception, failureBehavior);
                 AppendDiagnostic(current, diagnostic);
+                retainedFailureDiagnostics.Add(diagnostic);
                 steps[index] = Failed(processor, index, diagnostic);
                 if (failureBehavior == OfficeDocumentProcessorFailureBehavior.StopWithDiagnostic) {
                     MarkRemainingSkipped(steps, index + 1);
@@ -71,6 +74,7 @@ public sealed class OfficeDocumentProcessorPipeline {
         if (document == null) throw new ArgumentNullException(nameof(document));
         OfficeDocumentProcessorFailureBehavior failureBehavior = Normalize(options).FailureBehavior;
         var steps = new OfficeDocumentProcessorStepResult[_processors.Length];
+        var retainedFailureDiagnostics = new List<OfficeDocumentDiagnostic>();
         OfficeDocumentReadResult current = document;
 
         for (int index = 0; index < _processors.Length; index++) {
@@ -82,6 +86,7 @@ public sealed class OfficeDocumentProcessorPipeline {
                     ?? throw new InvalidOperationException("Processor returned a null asynchronous operation.");
                 current = await task.ConfigureAwait(false)
                     ?? throw new InvalidOperationException("Processor returned a null document result.");
+                AppendDiagnostics(current, retainedFailureDiagnostics);
                 steps[index] = Completed(processor, index);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
@@ -91,6 +96,7 @@ public sealed class OfficeDocumentProcessorPipeline {
                 }
                 OfficeDocumentDiagnostic diagnostic = BuildFailureDiagnostic(processor, index, exception, failureBehavior);
                 AppendDiagnostic(current, diagnostic);
+                retainedFailureDiagnostics.Add(diagnostic);
                 steps[index] = Failed(processor, index, diagnostic);
                 if (failureBehavior == OfficeDocumentProcessorFailureBehavior.StopWithDiagnostic) {
                     MarkRemainingSkipped(steps, index + 1);
@@ -166,5 +172,40 @@ public sealed class OfficeDocumentProcessorPipeline {
         for (int index = 0; index < count; index++) diagnostics[index] = existing![index];
         diagnostics[count] = diagnostic;
         document.Diagnostics = diagnostics;
+    }
+
+    private static void AppendDiagnostics(
+        OfficeDocumentReadResult document,
+        IReadOnlyList<OfficeDocumentDiagnostic> diagnostics) {
+        for (int index = 0; index < diagnostics.Count; index++) {
+            OfficeDocumentDiagnostic diagnostic = diagnostics[index];
+            if (!ContainsProcessorFailure(document.Diagnostics, diagnostic)) {
+                AppendDiagnostic(document, diagnostic);
+            }
+        }
+    }
+
+    private static bool ContainsProcessorFailure(
+        IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics,
+        OfficeDocumentDiagnostic expected) {
+        if (diagnostics == null) return false;
+        expected.Attributes.TryGetValue("processorId", out string? expectedProcessorId);
+        expected.Attributes.TryGetValue("processorIndex", out string? expectedProcessorIndex);
+        for (int index = 0; index < diagnostics.Count; index++) {
+            OfficeDocumentDiagnostic? candidate = diagnostics[index];
+            if (candidate == null) continue;
+            if (ReferenceEquals(candidate, expected)) return true;
+            if (!string.Equals(candidate.Code, expected.Code, StringComparison.Ordinal) ||
+                candidate.Attributes == null ||
+                !candidate.Attributes.TryGetValue("processorId", out string? processorId) ||
+                !candidate.Attributes.TryGetValue("processorIndex", out string? processorIndex)) {
+                continue;
+            }
+            if (string.Equals(processorId, expectedProcessorId, StringComparison.Ordinal) &&
+                string.Equals(processorIndex, expectedProcessorIndex, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
