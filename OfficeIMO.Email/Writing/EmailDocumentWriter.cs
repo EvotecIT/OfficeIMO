@@ -37,6 +37,20 @@ public sealed class EmailDocumentWriter {
         return WriteToBytes(document, format, out _);
     }
 
+    /// <summary>Asynchronously writes an artifact to a file.</summary>
+    public async Task<EmailWriteResult> WriteAsync(EmailDocument document, string filePath,
+        EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
+        cancellationToken.ThrowIfCancellationRequested();
+        using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None,
+            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+            await stream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
+
     /// <summary>Asynchronously writes an artifact to a stream without closing it.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailDocument document, Stream stream,
         EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {

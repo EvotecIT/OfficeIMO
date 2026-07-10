@@ -37,6 +37,15 @@ public sealed class EmailMailboxReader {
         return Parse(EmailByteReader.ReadAll(stream, _options.MessageOptions.MaxInputBytes, cancellationToken), cancellationToken);
     }
 
+    /// <summary>Asynchronously reads a mailbox file.</summary>
+    public async Task<EmailMailboxReadResult> ReadAsync(string filePath, CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+            return await ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>Asynchronously reads from the stream's current position without closing it.</summary>
     public async Task<EmailMailboxReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MessageOptions.MaxInputBytes, cancellationToken).ConfigureAwait(false);

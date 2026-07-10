@@ -35,6 +35,19 @@ public sealed class EmailMailboxWriter {
     /// <summary>Writes a mailbox to memory.</summary>
     public byte[] WriteToBytes(EmailMailbox mailbox) => WriteToBytes(mailbox, out _, CancellationToken.None);
 
+    /// <summary>Asynchronously writes a mailbox file.</summary>
+    public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, string filePath,
+        CancellationToken cancellationToken = default) {
+        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, cancellationToken);
+        using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None,
+            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+            await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
+
     /// <summary>Asynchronously writes a mailbox without closing the stream.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, Stream stream,
         CancellationToken cancellationToken = default) {

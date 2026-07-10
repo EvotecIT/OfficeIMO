@@ -76,6 +76,29 @@ public sealed class EmailReaderContractTests {
     }
 
     [Fact]
+    public async Task AsyncFileApisRoundTripMessageAndMailbox() {
+        string directory = Path.Combine(Path.GetTempPath(), string.Concat("OfficeIMO-Email-Async-", Guid.NewGuid().ToString("N")));
+        Directory.CreateDirectory(directory);
+        try {
+            var document = new EmailDocument { Format = EmailFileFormat.Eml, Subject = "async-file" };
+            document.Body.Text = "body";
+            string emlPath = Path.Combine(directory, "message.eml");
+            await new EmailDocumentWriter().WriteAsync(document, emlPath);
+            EmailReadResult message = await new EmailDocumentReader().ReadAsync(emlPath);
+            Assert.Equal("async-file", message.Document.Subject);
+
+            var mailbox = new EmailMailbox();
+            mailbox.Messages.Add(new EmailMailboxEntry(document));
+            string mboxPath = Path.Combine(directory, "archive.mbox");
+            await new EmailMailboxWriter().WriteAsync(mailbox, mboxPath);
+            EmailMailboxReadResult archive = await new EmailMailboxReader().ReadAsync(mboxPath);
+            Assert.Equal("async-file", Assert.Single(archive.Mailbox.Messages).Document.Subject);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void CanSkipAttachmentContentWhileKeepingMetadata() {
         const string eml = "Subject: x\r\nContent-Type: application/octet-stream; name=a.bin\r\n\r\n123";
         EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false))
