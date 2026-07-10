@@ -16,6 +16,7 @@ public static partial class DocumentReaderRtfExtensions {
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
+        effectiveRtfOptions.ConversionReport.Clear();
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes);
 
@@ -34,6 +35,7 @@ public static partial class DocumentReaderRtfExtensions {
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
+        effectiveRtfOptions.ConversionReport.Clear();
         var logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.rtf");
         var source = new SourceMetadata {
             Path = logicalSourceName,
@@ -68,6 +70,7 @@ public static partial class DocumentReaderRtfExtensions {
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
+        effectiveRtfOptions.ConversionReport.Clear();
         var logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.rtf");
         var source = new SourceMetadata {
             Path = logicalSourceName,
@@ -81,6 +84,7 @@ public static partial class DocumentReaderRtfExtensions {
 
     private static IEnumerable<ReaderChunk> ReadRtfResult(RtfReadResult readResult, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
         if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        rtfOptions.ConversionReport.AddReadDiagnostics(readResult.Diagnostics, source.Path);
         IReadOnlyList<RtfDiagnostic> diagnostics = rtfOptions.IncludeDiagnostics ? readResult.Diagnostics : Array.Empty<RtfDiagnostic>();
         foreach (var chunk in ReadRtfDocument(readResult.Document, source, readerOptions, rtfOptions, diagnostics, cancellationToken)) {
             yield return chunk;
@@ -152,10 +156,15 @@ public static partial class DocumentReaderRtfExtensions {
                 case RtfImage image when options.IncludeImagePlaceholders:
                     yield return BuildImageBlock(image, sourcePath, index++);
                     break;
+                case RtfImage:
+                    options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfImageOmitted", "RTF image placeholder was omitted because IncludeImagePlaceholders is false.", RtfConversionAction.Omitted, sourcePath, "image");
+                    break;
                 case RtfObject rtfObject:
+                    options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfObjectFlattened", "RTF object was flattened to visible text for Reader output.", RtfConversionAction.Flattened, sourcePath, "object");
                     yield return new RtfReaderBlock("object", index++, rtfObject.ToPlainText(), rtfObject.ToPlainText(), null, null, null);
                     break;
                 case RtfShape shape:
+                    options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfShapeFlattened", "RTF shape was flattened to visible text for Reader output.", RtfConversionAction.Flattened, sourcePath, "shape");
                     yield return new RtfReaderBlock("shape", index++, shape.ToPlainText(), shape.ToPlainText(), null, null, null);
                     break;
             }
@@ -168,6 +177,8 @@ public static partial class DocumentReaderRtfExtensions {
                 if (string.IsNullOrWhiteSpace(text)) continue;
                 yield return new RtfReaderBlock("header-footer", index++, text, text, null, null, null);
             }
+        } else if (document.HeaderFooters.Count > 0) {
+            options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfHeaderFooterOmitted", "RTF headers and footers were omitted by Reader options.", RtfConversionAction.Omitted, sourcePath, "header-footer", document.HeaderFooters.Count);
         }
 
         if (options.IncludeNotes) {
@@ -177,6 +188,8 @@ public static partial class DocumentReaderRtfExtensions {
                 if (string.IsNullOrWhiteSpace(text)) continue;
                 yield return new RtfReaderBlock("note", index++, text, text, null, null, null);
             }
+        } else if (document.Notes.Count > 0) {
+            options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfNotesOmitted", "RTF notes were omitted by Reader options.", RtfConversionAction.Omitted, sourcePath, "note", document.Notes.Count);
         }
     }
 

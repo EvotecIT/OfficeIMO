@@ -721,6 +721,9 @@ public class RtfMarkdownConverterTests {
 
         Assert.Contains("1", markdown, StringComparison.Ordinal);
         Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+        RtfConversionDiagnostic shared = Assert.Single(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+        Assert.Equal(RtfConversionAction.Omitted, shared.Action);
+        Assert.Throws<RtfConversionLossException>(() => options.ConversionReport.RequireNoLoss());
     }
 
     [Fact]

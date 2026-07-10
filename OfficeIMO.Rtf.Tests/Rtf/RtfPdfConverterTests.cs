@@ -574,6 +574,26 @@ public class RtfPdfConverterTests {
         Assert.DoesNotContain("Hidden footer", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Reports_Object_And_Shape_Text_Fallback() {
+        RtfDocument document = RtfDocument.Create();
+        RtfObject rtfObject = document.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
+        rtfObject.Result.AddText("Object result");
+        document.AddShape().AddTextBoxParagraph("Shape result");
+        var options = new RtfPdfSaveOptions();
+
+        byte[] pdf = document.SaveAsPdf(options);
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Object result", text, StringComparison.Ordinal);
+        Assert.Contains("Shape result", text, StringComparison.Ordinal);
+        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "ObjectFlattened");
+        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "ShapeFlattened");
+        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Throws<RtfConversionLossException>(() => options.RtfConversionReport.RequireNoLoss());
+    }
+
     private static string ExtractPdfContentStreams(byte[] pdf) {
         string raw = Encoding.GetEncoding("ISO-8859-1").GetString(pdf);
         StringBuilder streams = new StringBuilder();

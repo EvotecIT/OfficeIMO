@@ -20,6 +20,9 @@ public class RtfHtmlSafetyTests {
         HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
         Assert.Equal("RtfHtmlHyperlinkRejected", diagnostic.Code);
         Assert.Equal("run.Hyperlink", diagnostic.Source);
+        RtfConversionDiagnostic shared = Assert.Single(options.ConversionReport.Diagnostics);
+        Assert.Equal(RtfConversionAction.Blocked, shared.Action);
+        Assert.Throws<RtfConversionLossException>(() => options.ConversionReport.RequireNoLoss());
     }
 
     [Fact]

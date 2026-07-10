@@ -8,6 +8,7 @@ public sealed partial class HtmlToRtfOptions {
 
         var diagnostic = new HtmlRtfConversionDiagnostic(code, message, severity, source, detail);
         Diagnostics.Add(diagnostic);
+        HtmlRtfConversionReportMapper.Add(ConversionReport, diagnostic);
         DiagnosticHandler?.Invoke(diagnostic);
     }
 }

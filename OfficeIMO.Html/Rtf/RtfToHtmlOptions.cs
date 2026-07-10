@@ -62,6 +62,9 @@ public sealed partial class RtfToHtmlOptions {
     /// </summary>
     public List<HtmlRtfConversionDiagnostic> Diagnostics { get; } = new List<HtmlRtfConversionDiagnostic>();
 
+    /// <summary>Shared cross-adapter fidelity and policy report for this conversion.</summary>
+    public RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
+
     /// <summary>
     /// Optional callback invoked whenever a conversion diagnostic is produced.
     /// </summary>
@@ -92,6 +95,7 @@ public sealed partial class RtfToHtmlOptions {
         string? detail = exception == null ? null : exception.GetType().Name + ": " + exception.Message;
         var diagnostic = new HtmlRtfConversionDiagnostic(code, message, severity, source, detail);
         Diagnostics.Add(diagnostic);
+        HtmlRtfConversionReportMapper.Add(ConversionReport, diagnostic);
         DiagnosticHandler?.Invoke(diagnostic);
     }
 }

@@ -151,6 +151,32 @@ public sealed class ReaderRtfModularTests {
         Assert.Equal(64, clone.RtfReadOptions.MaxDepth);
     }
 
+    [Fact]
+    public void ReaderRtfOptions_Defaults_To_Bounded_Core_Profile() {
+        var options = new ReaderRtfOptions();
+
+        Assert.NotNull(options.RtfReadOptions?.MaxInputBytes);
+        Assert.NotNull(options.RtfReadOptions?.MaxTokenCount);
+        Assert.False(options.RtfReadOptions?.ReadEmbeddedObjects);
+        Assert.False(options.RtfReadOptions?.ReadFileReferences);
+    }
+
+    [Fact]
+    public void DocumentReaderRtf_Reports_Object_And_Shape_Text_Fallback() {
+        RtfDocument document = RtfDocument.Create();
+        RtfObject rtfObject = document.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
+        rtfObject.Result.AddText("Object text");
+        document.AddShape().AddTextBoxParagraph("Shape text");
+        var options = ReaderRtfOptions.CreateTrustedProfile();
+
+        List<ReaderChunk> chunks = DocumentReaderRtfExtensions.ReadRtfDocument(document, rtfOptions: options).ToList();
+
+        Assert.Contains(chunks, chunk => chunk.Text.Contains("Object text", StringComparison.Ordinal));
+        Assert.Contains(chunks, chunk => chunk.Text.Contains("Shape text", StringComparison.Ordinal));
+        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+    }
+
     private static string CreateSampleRtf(string text) {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph(text);

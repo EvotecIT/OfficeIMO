@@ -4,6 +4,14 @@ namespace OfficeIMO.Reader.Rtf;
 /// Options for RTF ingestion through the OfficeIMO.Reader adapter.
 /// </summary>
 public sealed class ReaderRtfOptions {
+    /// <summary>Creates bounded Reader RTF options.</summary>
+    public ReaderRtfOptions() : this(new RtfConversionReport()) {
+    }
+
+    private ReaderRtfOptions(RtfConversionReport conversionReport) {
+        ConversionReport = conversionReport;
+    }
+
     /// <summary>
     /// Creates the default RTF reader profile.
     /// </summary>
@@ -44,10 +52,13 @@ public sealed class ReaderRtfOptions {
     /// </summary>
     public bool IncludeDiagnostics { get; set; } = true;
 
+    /// <summary>Shared fidelity and policy report populated while Reader chunks are produced.</summary>
+    public RtfConversionReport ConversionReport { get; }
+
     /// <summary>
     /// Creates a defensive copy for handler registration reuse.
     /// </summary>
-    public ReaderRtfOptions Clone() => new ReaderRtfOptions {
+    public ReaderRtfOptions Clone() => new ReaderRtfOptions(ConversionReport) {
         RtfReadOptions = CloneReadOptions(RtfReadOptions),
         ChunkByBlock = ChunkByBlock,
         IncludeHeadersAndFooters = IncludeHeadersAndFooters,
