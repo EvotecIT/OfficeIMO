@@ -142,6 +142,16 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.UnsupportedCaptionSide = captionSide;
             style.CaptionSide = "top";
         }
+
+        string tableLayout = computed.GetValue("table-layout").Trim().ToLowerInvariant();
+        if (tableLayout.Length == 0 || tableLayout == "auto") {
+            style.TableLayout = "auto";
+        } else if (tableLayout == "fixed") {
+            style.TableLayout = "fixed";
+        } else {
+            style.UnsupportedTableLayout = tableLayout;
+            style.TableLayout = "auto";
+        }
     }
 
     private static void ApplyFloat(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {

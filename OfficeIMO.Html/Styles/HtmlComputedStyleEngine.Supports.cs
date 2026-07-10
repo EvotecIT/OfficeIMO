@@ -73,6 +73,9 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "caption-side", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "top", "bottom");
         }
+        if (string.Equals(propertyName, "table-layout", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "auto", "fixed");
+        }
         if (string.Equals(propertyName, "overflow", StringComparison.OrdinalIgnoreCase)) {
             string[] values = normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
             return values.Length >= 1 && values.Length <= 2

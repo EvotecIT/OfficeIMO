@@ -165,6 +165,7 @@ public static partial class HtmlComputedStyleEngine {
         "text-align",
         "text-decoration-line",
         "text-transform",
+        "table-layout",
         "transform",
         "transform-origin",
         "top",

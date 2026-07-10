@@ -12,6 +12,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedClear = string.Empty;
     internal string CaptionSide = "top";
     internal string UnsupportedCaptionSide = string.Empty;
+    internal string TableLayout = "auto";
+    internal string UnsupportedTableLayout = string.Empty;
     internal string Top = "auto";
     internal string Right = "auto";
     internal string Bottom = "auto";

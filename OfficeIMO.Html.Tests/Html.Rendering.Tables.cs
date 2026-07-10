@@ -64,8 +64,45 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_AutoLayoutAllocatesColumnsFromIntrinsicCellContent() {
+        const string html = "<table style='width:100px;margin:0;table-layout:auto;font-size:8px;line-height:10px'><tr>"
+            + "<td id='wide' style='background:red'>WWWWWWWWWW</td><td id='narrow' style='background:blue'>i</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape wide = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#wide" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape narrow = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#narrow" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.True(wide.Width > narrow.Width * 2D);
+        Assert.Equal(100D, wide.Width + narrow.Width, 3);
+        Assert.Equal(wide.Width, narrow.X, 3);
+    }
+
+    [Fact]
+    public void HtmlTables_FixedLayoutHonorsColWidthsAndDistributesRemainder() {
+        const string html = "<table style='width:100px;margin:0;table-layout:fixed;font-size:8px;line-height:10px'>"
+            + "<colgroup><col style='width:70px'><col></colgroup><tr>"
+            + "<td id='first' style='background:red'>A</td><td id='second' style='background:blue'>Long content does not resize this column</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#first" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape second = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#second" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.Equal(70D, first.Width, 3);
+        Assert.Equal(30D, second.Width, 3);
+        Assert.Equal(70D, second.X, 3);
+    }
+
+    [Fact]
     public void HtmlTables_InvalidCaptionSideUsesCatalogedTopFallbackAndSupportsTruth() {
-        const string html = "<table id='table' style='caption-side:left;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
+        const string html = "<table id='table' style='caption-side:left;table-layout:balanced;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 80D,
@@ -78,11 +115,15 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("table#table", diagnostic.Source);
         Assert.Contains("caption-side=left", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.Contains("table-layout=balanced", diagnostic.Detail, StringComparison.Ordinal);
         Assert.True(caption.Y < cell.Y);
         Assert.Contains(HtmlRenderDiagnosticCodes.TableValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TableValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(caption-side:top)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(caption-side:bottom)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(caption-side:left)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(table-layout:auto)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(table-layout:fixed)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(table-layout:balanced)"));
     }
 }
