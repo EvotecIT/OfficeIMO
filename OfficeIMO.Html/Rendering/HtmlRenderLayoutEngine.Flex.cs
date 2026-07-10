@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         bool row = style.FlexDirection == "row" || style.FlexDirection == "row-reverse";
         bool column = style.FlexDirection == "column" || style.FlexDirection == "column-reverse";
-        if (!row && !column || column && style.FlexWrap != "nowrap") return false;
+        if (!row && !column) return false;
         if (!TryCollectFlexItems(element, containingWidth, style, out List<FlexItem> items)) return false;
         if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, out block);
 
@@ -291,9 +291,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveFlexCrossOffset(FlexItem item, HtmlRenderBoxStyle containerStyle, double crossSize) {
         string alignment = ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems);
         double remaining = Math.Max(0D, crossSize - item.Block!.Height);
-        if (alignment == "flex-end" || alignment == "end") return remaining;
+        bool reverse = containerStyle.FlexWrap == "wrap-reverse";
+        if (alignment == "flex-end") return reverse ? 0D : remaining;
+        if (alignment == "end") return remaining;
         if (alignment == "center") return remaining / 2D;
-        if (alignment == "stretch" || alignment == "flex-start" || alignment == "start") return 0D;
+        if (alignment == "stretch" || alignment == "flex-start") return reverse ? remaining : 0D;
+        if (alignment == "start") return 0D;
         ReportUnsupportedFlexValue(item.Element, "align-self=" + alignment);
         return 0D;
     }
@@ -320,7 +323,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Basis { get; set; }
         internal double MainSize { get; set; }
         internal double MainOffset { get; set; }
+        internal double CrossBasis { get; set; }
         internal double CrossOffset { get; set; }
+        internal bool HasExplicitCrossSize { get; set; }
         internal HtmlRenderFlowBlock? Block { get; set; }
     }
 }

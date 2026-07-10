@@ -390,6 +390,88 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexColumnWrap_CreatesColumnsAndDistributesTheirCrossAxis() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap;width:220px;height:120px;gap:10px 20px;align-content:space-between;align-items:flex-start">
+              <div id="column-wrap-a" style="width:50px;height:50px;background:#ff0000"></div>
+              <div id="column-wrap-b" style="width:50px;height:50px;background:#0000ff"></div>
+              <div id="column-wrap-c" style="width:50px;height:50px;background:#00ff00"></div>
+              <div id="column-wrap-d" style="width:50px;height:50px;background:#ffff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 240D);
+
+        Assert.Equal(0D, FindFlexShape(rendered, "div#column-wrap-a").X, 3);
+        Assert.Equal(0D, FindFlexShape(rendered, "div#column-wrap-a").Y, 3);
+        Assert.Equal(0D, FindFlexShape(rendered, "div#column-wrap-b").X, 3);
+        Assert.Equal(60D, FindFlexShape(rendered, "div#column-wrap-b").Y, 3);
+        Assert.Equal(170D, FindFlexShape(rendered, "div#column-wrap-c").X, 3);
+        Assert.Equal(0D, FindFlexShape(rendered, "div#column-wrap-c").Y, 3);
+        Assert.Equal(170D, FindFlexShape(rendered, "div#column-wrap-d").X, 3);
+        Assert.Equal(60D, FindFlexShape(rendered, "div#column-wrap-d").Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlFlexColumnWrapReverse_ReversesColumnsAndGrowsItemsPerColumn() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap-reverse;width:220px;height:120px;gap:10px 20px;align-content:space-between;align-items:flex-start">
+              <div id="column-reverse-wrap-a" style="flex:1 1 40px;width:50px;background:#ff0000"></div>
+              <div id="column-reverse-wrap-b" style="flex:1 1 40px;width:50px;background:#0000ff"></div>
+              <div id="column-reverse-wrap-c" style="flex:1 1 40px;width:50px;background:#00ff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 240D);
+        HtmlRenderShape a = FindFlexShape(rendered, "div#column-reverse-wrap-a");
+        HtmlRenderShape b = FindFlexShape(rendered, "div#column-reverse-wrap-b");
+        HtmlRenderShape c = FindFlexShape(rendered, "div#column-reverse-wrap-c");
+
+        Assert.Equal(170D, a.X, 3);
+        Assert.Equal(55D, a.Height, 3);
+        Assert.Equal(65D, b.Y, 3);
+        Assert.Equal(55D, b.Height, 3);
+        Assert.Equal(0D, c.X, 3);
+        Assert.Equal(120D, c.Height, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexColumnWrap_WithAutoHeightRemainsOneNaturalColumn() {
+        const string html = """
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap;width:100px;row-gap:5px;align-items:flex-start">
+              <div id="auto-column-a" style="width:30px;height:20px;background:#ff0000"></div>
+              <div id="auto-column-b" style="width:40px;height:30px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 120D);
+
+        Assert.Equal(0D, FindFlexShape(rendered, "div#auto-column-a").X, 3);
+        Assert.Equal(0D, FindFlexShape(rendered, "div#auto-column-a").Y, 3);
+        Assert.Equal(0D, FindFlexShape(rendered, "div#auto-column-b").X, 3);
+        Assert.Equal(25D, FindFlexShape(rendered, "div#auto-column-b").Y, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexWrapReverse_ReversesFlexItemCrossStartInsideEachLine() {
+        const string html = """
+            <div style="display:flex;flex-wrap:wrap-reverse;width:120px;height:80px;align-items:flex-start">
+              <div id="row-cross-start" style="width:50px;height:20px;background:#ff0000"></div>
+              <div style="width:50px;height:40px;background:#0000ff"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;flex-wrap:wrap-reverse;width:100px;height:80px;align-items:flex-start">
+              <div id="column-cross-start" style="width:30px;height:40px;background:#00ff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 140D);
+
+        Assert.Equal(60D, FindFlexShape(rendered, "div#row-cross-start").Y, 3);
+        Assert.Equal(70D, FindFlexShape(rendered, "div#column-cross-start").X, 3);
+    }
+
+    [Fact]
     public void HtmlFlexRow_DiagnosesUnsupportedValuesWithoutDiscardingItems() {
         const string html = """
             <div id="flex" style="display:flex;width:200px;gap:calc(4px + 2px);justify-content:safe center">
@@ -435,9 +517,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFlexFallbacks_RemainExplicitForColumnWrapDirectTextAutoMarginsAndInlineFlex() {
+    public void HtmlFlexFallbacks_RemainExplicitForContentsDirectTextAutoMarginsAndInlineFlex() {
         const string html = """
-            <div class="column-wrap" style="display:flex;flex-direction:column;flex-wrap:wrap"><span>Column wrap</span></div>
+            <div class="contents" style="display:flex"><span style="display:contents">Contents</span></div>
             <div class="text" style="display:flex">Direct text</div>
             <div class="margin" style="display:flex"><span style="margin-left:auto">Auto</span></div>
             <span class="inline" style="display:inline-flex"><span>Inline</span></span>
@@ -449,7 +531,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.Equal(4, diagnostics.Count);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.column-wrap");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.contents");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.text");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.margin");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "span.inline");
