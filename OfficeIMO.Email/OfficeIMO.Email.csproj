@@ -50,4 +50,16 @@
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFile.cs" Link="Shared\Compound\OfficeCompoundFile.cs" />
+    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileEntry.cs" Link="Shared\Compound\OfficeCompoundFileEntry.cs" />
+    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileReader.cs" Link="Shared\Compound\OfficeCompoundFileReader.cs" />
+    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileWriter.cs" Link="Shared\Compound\OfficeCompoundFileWriter.cs" />
+    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundWriterLayout.cs" Link="Shared\Compound\OfficeCompoundWriterLayout.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Email.Tests" />
+  </ItemGroup>
+
 </Project>

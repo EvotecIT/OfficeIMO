@@ -15,15 +15,16 @@ namespace OfficeIMO.Shared {
         private const uint FreeSect = 0xffffffff;
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
-        private const uint NoStream = 0xffffffff;
+        private const uint DifSect = 0xfffffffc;
 
         internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams) {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            PaddedStream[] paddedStreams = streams
+            OfficeCompoundWriterLayout directoryLayout = OfficeCompoundWriterLayout.Create(streams);
+            PaddedStream[] paddedStreams = directoryLayout.Streams
                 .Select(PadStream)
-                .OrderBy(stream => stream.Name, DirectoryNameComparer.Instance)
+                .OrderBy(stream => stream.Entry.Path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
             MiniStreamLayout miniStreamLayout = MiniStreamLayout.Create(paddedStreams);
@@ -43,13 +44,10 @@ namespace OfficeIMO.Shared {
                 regularStreamSectorCount += miniStreamLayout.StreamBytes.Length / SectorSize;
             }
 
-            int directorySectorCount = CalculateDirectorySectorCount(paddedStreams.Length + 1);
+            int directorySectorCount = CalculateDirectorySectorCount(directoryLayout.Entries.Count);
             int miniFatSectorCount = miniStreamLayout.FatBytes.Length / SectorSize;
             int sectorCountBeforeFat = regularStreamSectorCount + directorySectorCount + miniFatSectorCount;
-            int fatSectorCount = CalculateFatSectorCount(sectorCountBeforeFat);
-            if (fatSectorCount > 109) {
-                throw new NotSupportedException("Native XLS saving currently supports compound files with up to 109 FAT sectors.");
-            }
+            CalculateAllocationTableSectorCounts(sectorCountBeforeFat, out int fatSectorCount, out int difatSectorCount);
 
             int directorySector = regularStreamSectorCount;
             uint miniFatStartSector = miniFatSectorCount == 0
@@ -59,8 +57,10 @@ namespace OfficeIMO.Shared {
             if (miniFatSectorCount > 0) {
                 firstFatSector += miniFatSectorCount;
             }
+            int firstDifatSector = firstFatSector + fatSectorCount;
 
-            byte[] directory = BuildDirectory(paddedStreams, directorySectorCount, miniStreamStartSector, miniStreamLayout.StreamLength);
+            byte[] directory = BuildDirectory(directoryLayout, paddedStreams, directorySectorCount,
+                miniStreamStartSector, miniStreamLayout.StreamLength);
             byte[] fat = BuildFat(
                 paddedStreams,
                 miniStreamStartSector,
@@ -70,10 +70,14 @@ namespace OfficeIMO.Shared {
                 miniFatStartSector,
                 miniFatSectorCount,
                 firstFatSector,
-                fatSectorCount);
+                fatSectorCount,
+                firstDifatSector,
+                difatSectorCount);
+            byte[] difat = BuildDifat(firstFatSector, fatSectorCount, firstDifatSector, difatSectorCount);
 
             using var output = new MemoryStream();
-            output.Write(BuildHeader(directorySector, firstFatSector, fatSectorCount, miniFatStartSector, miniFatSectorCount), 0, SectorSize);
+            output.Write(BuildHeader(directorySector, firstFatSector, fatSectorCount, miniFatStartSector,
+                miniFatSectorCount, firstDifatSector, difatSectorCount), 0, SectorSize);
             foreach (PaddedStream stream in paddedStreams) {
                 if (!stream.IsMiniStream) {
                     output.Write(stream.PaddedBytes, 0, stream.PaddedBytes.Length);
@@ -90,6 +94,7 @@ namespace OfficeIMO.Shared {
             }
 
             output.Write(fat, 0, fat.Length);
+            if (difat.Length > 0) output.Write(difat, 0, difat.Length);
             return output.ToArray();
         }
 
@@ -97,20 +102,22 @@ namespace OfficeIMO.Shared {
             return Math.Max(1, (checked(directoryEntryCount * 128) + SectorSize - 1) / SectorSize);
         }
 
-        private static int CalculateFatSectorCount(int sectorCountBeforeFat) {
-            int fatSectorCount = 1;
+        private static void CalculateAllocationTableSectorCounts(int sectorCountBeforeFat,
+            out int fatSectorCount, out int difatSectorCount) {
+            fatSectorCount = 1;
+            difatSectorCount = 0;
             while (true) {
-                int totalSectors = sectorCountBeforeFat + fatSectorCount;
+                int totalSectors = checked(sectorCountBeforeFat + fatSectorCount + difatSectorCount);
                 int requiredFatSectors = (totalSectors + 127) / 128;
-                if (requiredFatSectors == fatSectorCount) {
-                    return fatSectorCount;
-                }
-
+                int requiredDifatSectors = requiredFatSectors <= 109 ? 0 : (requiredFatSectors - 109 + 126) / 127;
+                if (requiredFatSectors == fatSectorCount && requiredDifatSectors == difatSectorCount) return;
                 fatSectorCount = requiredFatSectors;
+                difatSectorCount = requiredDifatSectors;
             }
         }
 
-        private static byte[] BuildHeader(int directorySector, int firstFatSector, int fatSectorCount, uint miniFatStartSector, int miniFatSectorCount) {
+        private static byte[] BuildHeader(int directorySector, int firstFatSector, int fatSectorCount,
+            uint miniFatStartSector, int miniFatSectorCount, int firstDifatSector, int difatSectorCount) {
             byte[] header = new byte[SectorSize];
             byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
             Buffer.BlockCopy(signature, 0, header, 0, signature.Length);
@@ -124,7 +131,8 @@ namespace OfficeIMO.Shared {
             WriteUInt32(header, 56, MiniStreamCutoffSize);
             WriteUInt32(header, 60, miniFatStartSector);
             WriteUInt32(header, 64, unchecked((uint)miniFatSectorCount));
-            WriteUInt32(header, 68, EndOfChain);
+            WriteUInt32(header, 68, difatSectorCount == 0 ? EndOfChain : unchecked((uint)firstDifatSector));
+            WriteUInt32(header, 72, unchecked((uint)difatSectorCount));
 
             for (int i = 0; i < 109; i++) {
                 uint value = i < fatSectorCount ? unchecked((uint)(firstFatSector + i)) : FreeSect;
@@ -134,23 +142,31 @@ namespace OfficeIMO.Shared {
             return header;
         }
 
-        private static byte[] BuildDirectory(IReadOnlyList<PaddedStream> streams, int directorySectorCount, uint miniStreamStartSector, int miniStreamLength) {
+        private static byte[] BuildDirectory(OfficeCompoundWriterLayout layout, IReadOnlyList<PaddedStream> streams,
+            int directorySectorCount, uint miniStreamStartSector, int miniStreamLength) {
             byte[] directory = new byte[checked(directorySectorCount * SectorSize)];
-            DirectoryTreeLinks directoryLinks = DirectoryTreeLinks.Create(streams.Count);
-            WriteDirectoryEntry(directory, 0, "Root Entry", 5, NoStream, NoStream, directoryLinks.RootChild, miniStreamStartSector, unchecked((ulong)miniStreamLength));
-
-            for (int i = 0; i < streams.Count; i++) {
-                PaddedStream stream = streams[i];
+            var paddedByEntry = streams.ToDictionary(stream => stream.Entry);
+            foreach (OfficeCompoundWriterEntry entry in layout.Entries) {
+                uint startSector = EndOfChain;
+                ulong size = 0;
+                if (entry.ObjectType == 5) {
+                    startSector = miniStreamStartSector;
+                    size = unchecked((ulong)miniStreamLength);
+                } else if (entry.ObjectType == 2) {
+                    PaddedStream stream = paddedByEntry[entry];
+                    startSector = stream.StartSector;
+                    size = unchecked((ulong)stream.OriginalLength);
+                }
                 WriteDirectoryEntry(
                     directory,
-                    checked((i + 1) * 128),
-                    stream.Name,
-                    2,
-                    directoryLinks.GetLeftSibling(i),
-                    directoryLinks.GetRightSibling(i),
-                    NoStream,
-                    stream.StartSector,
-                    unchecked((ulong)stream.OriginalLength));
+                    checked(entry.DirectoryIndex * 128),
+                    entry.Name,
+                    entry.ObjectType,
+                    entry.LeftSiblingId,
+                    entry.RightSiblingId,
+                    entry.ChildId,
+                    startSector,
+                    size);
             }
 
             return directory;
@@ -165,7 +181,9 @@ namespace OfficeIMO.Shared {
             uint miniFatStartSector,
             int miniFatSectorCount,
             int firstFatSector,
-            int fatSectorCount) {
+            int fatSectorCount,
+            int firstDifatSector,
+            int difatSectorCount) {
             byte[] fat = new byte[checked(fatSectorCount * SectorSize)];
             for (int offset = 0; offset < fat.Length; offset += 4) {
                 WriteUInt32(fat, offset, FreeSect);
@@ -189,8 +207,30 @@ namespace OfficeIMO.Shared {
             for (int i = 0; i < fatSectorCount; i++) {
                 WriteFatEntry(fat, firstFatSector + i, FatSect);
             }
+            for (int i = 0; i < difatSectorCount; i++) {
+                WriteFatEntry(fat, firstDifatSector + i, DifSect);
+            }
 
             return fat;
+        }
+
+        private static byte[] BuildDifat(int firstFatSector, int fatSectorCount, int firstDifatSector,
+            int difatSectorCount) {
+            if (difatSectorCount == 0) return Array.Empty<byte>();
+            byte[] difat = new byte[checked(difatSectorCount * SectorSize)];
+            for (int offset = 0; offset < difat.Length; offset += 4) WriteUInt32(difat, offset, FreeSect);
+            int fatIndex = 109;
+            for (int sectorIndex = 0; sectorIndex < difatSectorCount; sectorIndex++) {
+                int offset = sectorIndex * SectorSize;
+                for (int entryIndex = 0; entryIndex < 127 && fatIndex < fatSectorCount; entryIndex++, fatIndex++) {
+                    WriteUInt32(difat, offset + entryIndex * 4, unchecked((uint)(firstFatSector + fatIndex)));
+                }
+                uint next = sectorIndex + 1 == difatSectorCount
+                    ? EndOfChain
+                    : unchecked((uint)(firstDifatSector + sectorIndex + 1));
+                WriteUInt32(difat, offset + 127 * 4, next);
+            }
+            return difat;
         }
 
         private static void WriteFatChain(byte[] fat, uint firstSector, int sectorCount) {
@@ -261,26 +301,23 @@ namespace OfficeIMO.Shared {
             WriteUInt32(fat, checked(sector * 4), value);
         }
 
-        private static PaddedStream PadStream(OfficeCompoundStream stream) {
-            if (string.IsNullOrEmpty(stream.Name)) {
-                throw new ArgumentException("Compound stream name is required.", nameof(stream));
-            }
-
-            bool isMiniStream = stream.Bytes.Length < MiniStreamCutoffSize;
-            byte[] paddedBytes = isMiniStream ? PadToMiniSector(stream.Bytes) : PadToSector(stream.Bytes);
-            return new PaddedStream(stream.Name, stream.Bytes.Length, paddedBytes, isMiniStream);
+        private static PaddedStream PadStream(OfficeCompoundWriterEntry entry) {
+            byte[] bytes = entry.Bytes ?? Array.Empty<byte>();
+            bool isMiniStream = bytes.Length < MiniStreamCutoffSize;
+            byte[] paddedBytes = isMiniStream ? PadToMiniSector(bytes) : PadToSector(bytes);
+            return new PaddedStream(entry, bytes.Length, paddedBytes, isMiniStream);
         }
 
         private sealed class PaddedStream {
-            internal PaddedStream(string name, int originalLength, byte[] paddedBytes, bool isMiniStream) {
-                Name = name;
+            internal PaddedStream(OfficeCompoundWriterEntry entry, int originalLength, byte[] paddedBytes, bool isMiniStream) {
+                Entry = entry;
                 OriginalLength = originalLength;
                 PaddedBytes = paddedBytes;
                 IsMiniStream = isMiniStream;
                 StartSector = EndOfChain;
             }
 
-            internal string Name { get; }
+            internal OfficeCompoundWriterEntry Entry { get; }
 
             internal int OriginalLength { get; }
 
@@ -339,64 +376,6 @@ namespace OfficeIMO.Shared {
             }
         }
 
-        private sealed class DirectoryTreeLinks {
-            private readonly int[] _left;
-            private readonly int[] _right;
-
-            private DirectoryTreeLinks(int[] left, int[] right, int root) {
-                _left = left;
-                _right = right;
-                Root = root;
-            }
-
-            internal int Root { get; }
-
-            internal uint RootChild => ToDirectoryEntryId(Root);
-
-            internal static DirectoryTreeLinks Create(int streamCount) {
-                var left = Enumerable.Repeat(-1, streamCount).ToArray();
-                var right = Enumerable.Repeat(-1, streamCount).ToArray();
-                int root = BuildBalancedTree(0, streamCount - 1, left, right);
-                return new DirectoryTreeLinks(left, right, root);
-            }
-
-            internal uint GetLeftSibling(int streamIndex) {
-                return ToDirectoryEntryId(_left[streamIndex]);
-            }
-
-            internal uint GetRightSibling(int streamIndex) {
-                return ToDirectoryEntryId(_right[streamIndex]);
-            }
-
-            private static int BuildBalancedTree(int firstIndex, int lastIndex, int[] left, int[] right) {
-                if (firstIndex > lastIndex) {
-                    return -1;
-                }
-
-                int middleIndex = firstIndex + ((lastIndex - firstIndex) / 2);
-                left[middleIndex] = BuildBalancedTree(firstIndex, middleIndex - 1, left, right);
-                right[middleIndex] = BuildBalancedTree(middleIndex + 1, lastIndex, left, right);
-                return middleIndex;
-            }
-
-            private static uint ToDirectoryEntryId(int streamIndex) {
-                return streamIndex < 0 ? NoStream : unchecked((uint)(streamIndex + 1));
-            }
-        }
-
-        private sealed class DirectoryNameComparer : IComparer<string> {
-            internal static DirectoryNameComparer Instance { get; } = new DirectoryNameComparer();
-
-            public int Compare(string? left, string? right) {
-                int length = (left?.Length ?? 0).CompareTo(right?.Length ?? 0);
-                if (length != 0) {
-                    return length;
-                }
-
-                int ignoreCase = StringComparer.OrdinalIgnoreCase.Compare(left, right);
-                return ignoreCase != 0 ? ignoreCase : StringComparer.Ordinal.Compare(left, right);
-            }
-        }
     }
 
     /// <summary>
