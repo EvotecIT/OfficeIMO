@@ -326,6 +326,92 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_PrefersPageScopeForBlocksAlsoPresentAtDocumentLevel() {
+        var shared = new OfficeDocumentBlock { Id = "shared", Kind = "paragraph", Text = "Page body" };
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "pages.pdf" },
+            Blocks = new[] { shared },
+            Pages = new[] {
+                new OfficeDocumentPage { Number = 7, Blocks = new[] { shared } }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        Assert.Equal(7, Assert.Single(result.Chunks).Location.Page);
+        Assert.Equal("Page 7", Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Container).Title);
+    }
+
+    [Fact]
+    public void Chunk_InfersSourceIdentityWithoutDroppingEnvelopeTitle() {
+        ReaderChunk firstChunk = CreateChunk("same", "body");
+        firstChunk.SourceId = null;
+        firstChunk.Location.Path = "first.txt";
+        ReaderChunk secondChunk = CreateChunk("same", "body");
+        secondChunk.SourceId = null;
+        secondChunk.Location.Path = "second.txt";
+        var first = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Title = "Shared title" },
+            Chunks = new[] { firstChunk }
+        };
+        var second = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Title = "Shared title" },
+            Chunks = new[] { secondChunk }
+        };
+
+        ReaderChunkHierarchyResult firstResult = ReaderHierarchicalChunker.Chunk(first);
+        ReaderChunkHierarchyResult secondResult = ReaderHierarchicalChunker.Chunk(second);
+
+        Assert.Equal("Shared title", firstResult.Source.Title);
+        Assert.Equal("first.txt", firstResult.Source.Path);
+        Assert.NotEqual(firstResult.RootNodeId, secondResult.RootNodeId);
+    }
+
+    [Fact]
+    public void Chunk_UsesSlideContainerKindForBlockOnlyResults() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "slides.pptx" },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 3,
+                    Location = new ReaderLocation { SourceBlockKind = "slide" },
+                    Blocks = new[] { new OfficeDocumentBlock { Id = "slide-body", Kind = "paragraph", Text = "Slide body" } }
+                }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        ReaderLocation location = Assert.Single(result.Chunks).Location;
+        Assert.Equal(3, location.Slide);
+        Assert.Null(location.Page);
+        Assert.Equal("Slide 3", Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Container).Title);
+    }
+
+    [Fact]
+    public void Chunk_PropagatesHeadingSlugsToFallbackBodyBlocks() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "repeated-headings" },
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "overview-a", Kind = "heading", Level = 1, Text = "Overview" },
+                new OfficeDocumentBlock { Id = "body-a", Kind = "paragraph", Text = "First body" },
+                new OfficeDocumentBlock { Id = "overview-b", Kind = "heading", Level = 1, Text = "Overview" },
+                new OfficeDocumentBlock { Id = "body-b", Kind = "paragraph", Text = "Second body" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        Assert.Equal("overview-a", result.Chunks[1].Location.HeadingSlug);
+        Assert.Equal("overview-b", result.Chunks[3].Location.HeadingSlug);
+        ReaderChunkHierarchyNode[] headings = result.Nodes
+            .Where(node => node.Kind == ReaderChunkHierarchyNodeKind.Heading && node.Title == "Overview")
+            .ToArray();
+        Assert.Equal(2, headings.Length);
+        Assert.All(headings, heading => Assert.Equal(2, heading.ChildNodeIds.Count));
+    }
+
+    [Fact]
     public void Chunk_DerivesContextTokensFromCombinedTokenizerOutput() {
         ReaderChunk source = CreateChunk("source", "a", page: 3);
 

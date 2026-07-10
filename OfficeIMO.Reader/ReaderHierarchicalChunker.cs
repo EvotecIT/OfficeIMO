@@ -55,9 +55,7 @@ public static partial class ReaderHierarchicalChunker {
             inputIndex++;
         }
 
-        OfficeDocumentSource effectiveSource = HasSourceIdentity(sourceInfo)
-            ? sourceInfo
-            : InferSource(state.Chunks);
+        OfficeDocumentSource effectiveSource = ResolveSource(sourceInfo, state.Chunks);
         IReadOnlyList<ReaderChunkHierarchyNode> nodes = BuildHierarchy(state, effectiveSource);
         return new ReaderChunkHierarchyResult {
             Source = CloneSource(effectiveSource),
@@ -102,21 +100,25 @@ public static partial class ReaderHierarchicalChunker {
             yield break;
         }
 
-        var headings = new List<KeyValuePair<int, string>>();
+        var headings = new List<FallbackHeading>();
         int index = 0;
         foreach (FallbackBlock fallback in EnumerateFallbackBlocks(document)) {
             OfficeDocumentBlock block = fallback.Block;
             string text = block.Text ?? string.Empty;
             bool isHeading = string.Equals(block.Kind?.Trim(), "heading", StringComparison.OrdinalIgnoreCase);
-            if (isHeading) UpdateFallbackHeadings(headings, block.Level ?? 1, text);
             ReaderLocation location = CloneLocation(block.Location);
             InheritPageLocation(location, fallback.Page);
             location.Path ??= document.Source?.Path;
             location.SourceBlockIndex ??= index;
             location.SourceBlockKind ??= block.Kind;
             location.BlockAnchor ??= string.IsNullOrWhiteSpace(block.Id) ? "block-" + index.ToString(CultureInfo.InvariantCulture) : block.Id;
-            location.HeadingPath ??= BuildFallbackHeadingPath(headings);
-            if (isHeading) location.HeadingSlug ??= string.IsNullOrWhiteSpace(block.Id) ? null : block.Id;
+            if (isHeading) UpdateFallbackHeadings(headings, block.Level ?? 1, text, location.BlockAnchor);
+            if (string.IsNullOrWhiteSpace(location.HeadingPath)) {
+                location.HeadingPath = BuildFallbackHeadingPath(headings);
+                location.HeadingSlug ??= BuildFallbackHeadingSlug(headings);
+            } else if (isHeading) {
+                location.HeadingSlug ??= location.BlockAnchor;
+            }
             string sourceIdentity = document.Source?.SourceId ?? document.Source?.Path ?? string.Empty;
             yield return new ReaderChunk {
                 Id = "block:" + ComputeSha256Hex(sourceIdentity + "|" + block.Id + "|" + index.ToString(CultureInfo.InvariantCulture)),
@@ -147,15 +149,32 @@ public static partial class ReaderHierarchicalChunker {
 
     private static IEnumerable<FallbackBlock> EnumerateFallbackBlocks(OfficeDocumentReadResult document) {
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
+        IReadOnlyDictionary<OfficeDocumentBlock, OfficeDocumentPage> pageByBlock = IndexPageBlocks(pages);
         foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
-            if (block != null && seen.Add(block)) yield return new FallbackBlock(block, null);
+            if (block == null || !seen.Add(block)) continue;
+            pageByBlock.TryGetValue(block, out OfficeDocumentPage? page);
+            yield return new FallbackBlock(block, page);
         }
-        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
+        foreach (OfficeDocumentPage page in pages) {
             if (page?.Blocks == null) continue;
             foreach (OfficeDocumentBlock block in page.Blocks) {
                 if (block != null && seen.Add(block)) yield return new FallbackBlock(block, page);
             }
         }
+    }
+
+    private static IReadOnlyDictionary<OfficeDocumentBlock, OfficeDocumentPage> IndexPageBlocks(
+        IReadOnlyList<OfficeDocumentPage> pages) {
+        var pageByBlock = new Dictionary<OfficeDocumentBlock, OfficeDocumentPage>(
+            ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        foreach (OfficeDocumentPage page in pages) {
+            if (page?.Blocks == null) continue;
+            foreach (OfficeDocumentBlock block in page.Blocks) {
+                if (block != null && !pageByBlock.ContainsKey(block)) pageByBlock.Add(block, page);
+            }
+        }
+        return pageByBlock;
     }
 
     private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
@@ -194,29 +213,60 @@ public static partial class ReaderHierarchicalChunker {
         location.Sheet ??= container.Sheet;
         location.A1Range ??= container.A1Range;
         location.Slide ??= container.Slide;
-        location.Page ??= page.Number > 0 ? page.Number : container.Page;
+        if (!location.Page.HasValue &&
+            !location.Slide.HasValue &&
+            string.IsNullOrWhiteSpace(location.Sheet)) {
+            int? number = page.Number > 0 ? page.Number : container.Page;
+            if (string.Equals(container.SourceBlockKind?.Trim(), "slide", StringComparison.OrdinalIgnoreCase)) {
+                location.Slide = number;
+            } else {
+                location.Page = number;
+            }
+        }
     }
 
-    private static void UpdateFallbackHeadings(List<KeyValuePair<int, string>> headings, int level, string text) {
+    private static void UpdateFallbackHeadings(
+        List<FallbackHeading> headings,
+        int level,
+        string text,
+        string? slug) {
         int effectiveLevel = Math.Max(1, level);
         for (int index = headings.Count - 1; index >= 0; index--) {
-            if (headings[index].Key >= effectiveLevel) headings.RemoveAt(index);
+            if (headings[index].Level >= effectiveLevel) headings.RemoveAt(index);
         }
         string title = string.IsNullOrWhiteSpace(text)
             ? "Heading " + effectiveLevel.ToString(CultureInfo.InvariantCulture)
             : text.Trim();
-        headings.Add(new KeyValuePair<int, string>(effectiveLevel, title));
+        headings.Add(new FallbackHeading(effectiveLevel, title, slug));
     }
 
-    private static string? BuildFallbackHeadingPath(IReadOnlyList<KeyValuePair<int, string>> headings) {
+    private static string? BuildFallbackHeadingPath(IReadOnlyList<FallbackHeading> headings) {
         if (headings.Count == 0) return null;
-        return string.Join(" > ", headings.Select(heading => heading.Value));
+        return string.Join(" > ", headings.Select(heading => heading.Title));
     }
 
-    private static bool HasSourceIdentity(OfficeDocumentSource source) =>
-        !string.IsNullOrWhiteSpace(source.SourceId) ||
-        !string.IsNullOrWhiteSpace(source.Path) ||
-        !string.IsNullOrWhiteSpace(source.Title);
+    private static string? BuildFallbackHeadingSlug(IReadOnlyList<FallbackHeading> headings) =>
+        headings.Count == 0 ? null : headings[headings.Count - 1].Slug;
+
+    private static OfficeDocumentSource ResolveSource(
+        OfficeDocumentSource source,
+        IReadOnlyList<ReaderChunk> chunks) {
+        OfficeDocumentSource inferred = InferSource(chunks);
+        return new OfficeDocumentSource {
+            Path = PreferSourceValue(source.Path, inferred.Path),
+            SourceId = PreferSourceValue(source.SourceId, inferred.SourceId),
+            SourceHash = PreferSourceValue(source.SourceHash, inferred.SourceHash),
+            LastWriteUtc = source.LastWriteUtc ?? inferred.LastWriteUtc,
+            LengthBytes = source.LengthBytes ?? inferred.LengthBytes,
+            Title = source.Title,
+            Author = source.Author,
+            Subject = source.Subject,
+            Keywords = source.Keywords
+        };
+    }
+
+    private static string? PreferSourceValue(string? preferred, string? fallback) =>
+        !string.IsNullOrWhiteSpace(preferred) ? preferred : fallback;
 
     private static OfficeDocumentSource InferSource(IReadOnlyList<ReaderChunk> chunks) {
         if (chunks.Count == 0) return new OfficeDocumentSource();
@@ -331,5 +381,17 @@ public static partial class ReaderHierarchicalChunker {
 
         internal OfficeDocumentBlock Block { get; }
         internal OfficeDocumentPage? Page { get; }
+    }
+
+    private readonly struct FallbackHeading {
+        internal FallbackHeading(int level, string title, string? slug) {
+            Level = level;
+            Title = title;
+            Slug = slug;
+        }
+
+        internal int Level { get; }
+        internal string Title { get; }
+        internal string? Slug { get; }
     }
 }
