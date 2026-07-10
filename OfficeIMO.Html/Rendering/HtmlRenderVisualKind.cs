@@ -11,5 +11,8 @@ public enum HtmlRenderVisualKind {
     Text,
 
     /// <summary>Positioned raster or vector image.</summary>
-    Image
+    Image,
+
+    /// <summary>Clipped repeating image pattern.</summary>
+    ImagePattern
 }

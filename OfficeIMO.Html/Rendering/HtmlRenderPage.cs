@@ -60,7 +60,13 @@ public sealed class HtmlRenderPage {
                 drawing.AddText(text.Text, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             } else if (visual is HtmlRenderImage image) {
                 var placement = new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height);
-                drawing.AddImage(image.Bytes, image.ContentType, new OfficeImageProjection(placement), image.AlternativeText);
+                drawing.AddImage(image.EncodedBytes, image.ContentType, new OfficeImageProjection(placement, image.SourceCrop), image.AlternativeText);
+            } else if (visual is HtmlRenderImagePattern imagePattern) {
+                drawing.AddImagePattern(
+                    imagePattern.EncodedBytes,
+                    imagePattern.ContentType,
+                    imagePattern.Pattern,
+                    imagePattern.MaximumTileCount);
             }
         }
 

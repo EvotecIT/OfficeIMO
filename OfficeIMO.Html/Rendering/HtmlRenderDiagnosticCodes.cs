@@ -8,10 +8,12 @@ namespace OfficeIMO.Html;
 public static class HtmlRenderDiagnosticCodes {
     /// <summary>Only the first CSS background-image layer was painted.</summary>
     public const string BackgroundImageLayerLimit = "HtmlRenderBackgroundImageLayerLimit";
-    /// <summary>A repeating CSS background image used a single-image fallback.</summary>
+    /// <summary>A CSS background-repeat value used a single-image fallback.</summary>
     public const string BackgroundImageRepeatUnsupported = "HtmlRenderBackgroundImageRepeatUnsupported";
     /// <summary>A CSS background image value used a deterministic supported fallback.</summary>
     public const string BackgroundImageValueUnsupported = "HtmlRenderBackgroundImageValueUnsupported";
+    /// <summary>Repeated CSS background images exceeded the configured operation-wide tile limit.</summary>
+    public const string BackgroundImageTileLimitExceeded = "HtmlRenderBackgroundImageTileLimitExceeded";
     /// <summary>Layout exceeded the configured nesting-depth limit.</summary>
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
     /// <summary>A table contained no renderable rows or cells.</summary>
@@ -84,6 +86,7 @@ public static class HtmlRenderDiagnosticCodes {
         BackgroundImageLayerLimit,
         BackgroundImageRepeatUnsupported,
         BackgroundImageValueUnsupported,
+        BackgroundImageTileLimitExceeded,
         DepthLimitExceeded,
         EmptyTable,
         ExternalImagePending,

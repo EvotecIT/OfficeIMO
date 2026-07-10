@@ -241,14 +241,20 @@ internal sealed class HtmlRenderStyleResolver {
     }
 
     private static string ExtractBackgroundRepeat(string shorthand) {
+        var values = new List<string>();
         foreach (string token in HtmlRenderCssValues.SplitWhitespace(shorthand)) {
             string value = token.Trim().ToLowerInvariant();
-            if (value == "repeat" || value == "no-repeat" || value == "repeat-x" || value == "repeat-y" || value == "space" || value == "round") {
+            if (value == "repeat-x" || value == "repeat-y") {
                 return value;
+            }
+
+            if (value == "repeat" || value == "no-repeat" || value == "space" || value == "round") {
+                values.Add(value);
+                if (values.Count == 2) break;
             }
         }
 
-        return string.Empty;
+        return string.Join(" ", values);
     }
 
     private static string ExtractBackgroundSize(string shorthand) {

@@ -125,6 +125,23 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
     public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
         Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
+        return ImageShared(
+            PdfCanvasImageResource.Create(imageBytes),
+            x,
+            y,
+            width,
+            height,
+            style,
+            linkUri,
+            linkContents,
+            alternativeText,
+            rotationAngle,
+            horizontalFlip,
+            verticalFlip);
+    }
+
+    internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
+        Guard.NotNull(imageResource, nameof(imageResource));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
@@ -137,12 +154,12 @@ public sealed class PdfPageCanvas {
             PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
         }
 
-        OfficeImageInfo imageInfo = PdfDocument.ValidateImageBytes(imageBytes);
+        OfficeImageInfo imageInfo = imageResource.Info;
         if (imageStyle != null) {
             PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(style));
         }
 
-        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageBytes, width, height, imageInfo, imageStyle, linkUri, linkContents), x, y, rotationAngle, horizontalFlip, verticalFlip));
+        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageResource.Bytes, width, height, imageInfo, imageStyle, linkUri, linkContents, useDataSnapshot: true), x, y, rotationAngle, horizontalFlip, verticalFlip));
         return this;
     }
 
@@ -315,6 +332,22 @@ public sealed class PdfPageCanvas {
         if (!_allowOutOfPageCoordinates) {
             Guard.NonNegative(value, paramName);
         }
+    }
+}
+
+internal sealed class PdfCanvasImageResource {
+    private PdfCanvasImageResource(byte[] bytes, OfficeImageInfo info) {
+        Bytes = bytes;
+        Info = info;
+    }
+
+    internal byte[] Bytes { get; }
+    internal OfficeImageInfo Info { get; }
+
+    internal static PdfCanvasImageResource Create(byte[] bytes) {
+        Guard.NotNullOrEmpty(bytes, nameof(bytes));
+        byte[] snapshot = (byte[])bytes.Clone();
+        return new PdfCanvasImageResource(snapshot, PdfDocument.ValidateImageBytes(snapshot));
     }
 }
 

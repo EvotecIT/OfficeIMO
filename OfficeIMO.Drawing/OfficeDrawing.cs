@@ -13,6 +13,8 @@ public sealed partial class OfficeDrawing {
     private readonly ReadOnlyCollection<OfficeDrawingShape> _shapesView;
     private readonly List<OfficeDrawingImage> _images = new List<OfficeDrawingImage>();
     private readonly ReadOnlyCollection<OfficeDrawingImage> _imagesView;
+    private readonly List<OfficeDrawingImagePattern> _imagePatterns = new List<OfficeDrawingImagePattern>();
+    private readonly ReadOnlyCollection<OfficeDrawingImagePattern> _imagePatternsView;
     private readonly List<OfficeDrawingElement> _elements = new List<OfficeDrawingElement>();
     private readonly ReadOnlyCollection<OfficeDrawingElement> _elementsView;
     private readonly HashSet<OfficeDrawingElement> _behindContentElements = new HashSet<OfficeDrawingElement>();
@@ -29,6 +31,9 @@ public sealed partial class OfficeDrawing {
     /// <summary>Positioned images in paint order.</summary>
     public IReadOnlyList<OfficeDrawingImage> Images => _imagesView;
 
+    /// <summary>Clipped image patterns in paint order.</summary>
+    public IReadOnlyList<OfficeDrawingImagePattern> ImagePatterns => _imagePatternsView;
+
     /// <summary>Positioned drawing elements in paint order.</summary>
     public IReadOnlyList<OfficeDrawingElement> Elements => _elementsView;
 
@@ -41,6 +46,7 @@ public sealed partial class OfficeDrawing {
         Height = height;
         _shapesView = new ReadOnlyCollection<OfficeDrawingShape>(_shapes);
         _imagesView = new ReadOnlyCollection<OfficeDrawingImage>(_images);
+        _imagePatternsView = new ReadOnlyCollection<OfficeDrawingImagePattern>(_imagePatterns);
         _elementsView = new ReadOnlyCollection<OfficeDrawingElement>(_elements);
     }
 
@@ -264,6 +270,11 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing content must fit inside the drawing bounds.");
         }
 
+        if (!allowOverflow && frameTransform.HasValue && frameTransform.Value.HasTransform && ContainsImagePattern(drawing)) {
+            AddNestedGroupElement(drawing, x, y, OfficeClipPath.Rectangle(drawing.Width, drawing.Height), frameTransform, allowOverflow);
+            return this;
+        }
+
         Fonts.AddRange(drawing.Fonts);
         for (int i = 0; i < drawing.Elements.Count; i++) {
             OfficeDrawingElement element = drawing.Elements[i];
@@ -275,6 +286,8 @@ public sealed partial class OfficeDrawing {
                 AddNestedRichText(richText, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingImage image) {
                 AddNestedImage(image, x, y, frameTransform, allowOverflow);
+            } else if (element is OfficeDrawingImagePattern imagePattern) {
+                AddNestedImagePattern(imagePattern, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingGroup group) {
                 AddNestedGroup(group, x, y, frameTransform, allowOverflow);
             }
@@ -403,11 +416,11 @@ public sealed partial class OfficeDrawing {
         }
 
         if (allowOverflow) {
-            var item = new OfficeDrawingImage(image.Bytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
+            var item = new OfficeDrawingImage(image.EncodedBytes, image.ContentType, projection, image.AlternativeText, image.Opacity, useDataSnapshot: true);
             _images.Add(item);
             _elements.Add(item);
         } else {
-            AddImage(image.Bytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
+            AddImage(image.EncodedBytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
         }
     }
 
@@ -504,10 +517,20 @@ public sealed partial class OfficeDrawing {
                 clone._shapes.Add(shape);
             } else if (element is OfficeDrawingImage image) {
                 clone._images.Add(image);
+            } else if (element is OfficeDrawingImagePattern imagePattern) {
+                clone._imagePatterns.Add(imagePattern);
             }
         }
 
         return clone;
+    }
+
+    private static bool ContainsImagePattern(OfficeDrawing drawing) {
+        for (int index = 0; index < drawing.Elements.Count; index++) {
+            if (drawing.Elements[index] is OfficeDrawingImagePattern) return true;
+        }
+
+        return false;
     }
 
     private static void ValidatePositiveFinite(double value, string paramName) {

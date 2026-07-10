@@ -14,14 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
-        if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
-            OfficeShape fill = OfficeShape.Rectangle(width, height);
-            fill.FillColor = style.BackgroundColor;
-            fill.StrokeWidth = 0D;
-            visuals.Add(new HtmlRenderShape(fill, x, y, visuals.Count, source: sourceDescription));
-        }
-
-        AddBackgroundImage(visuals, style, x, y, width, height, source, sourceDescription);
+        AddBoxBackground(visuals, style, x, y, width, height, style.BorderWidth, source, sourceDescription, sourceDescription);
 
         if (style.BorderWidth > 0D) {
             OfficeShape border = OfficeShape.Rectangle(width, height);
@@ -32,6 +25,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    private void AddBoxBackground(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        double x,
+        double y,
+        double width,
+        double height,
+        double borderWidth,
+        IElement source,
+        string diagnosticSourceDescription,
+        string visualSourceDescription) {
+        if (style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0) {
+            OfficeShape fill = OfficeShape.Rectangle(width, height);
+            fill.FillColor = style.BackgroundColor;
+            fill.StrokeWidth = 0D;
+            visuals.Add(new HtmlRenderShape(fill, x, y, visuals.Count, source: visualSourceDescription));
+        }
+
+        AddBackgroundImage(visuals, style, x, y, width, height, borderWidth, source, diagnosticSourceDescription, visualSourceDescription);
+    }
+
     private void AddBackgroundImage(
         ICollection<HtmlRenderVisual> visuals,
         HtmlRenderBoxStyle style,
@@ -39,8 +53,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y,
         double width,
         double height,
+        double borderWidth,
         IElement source,
-        string sourceDescription) {
+        string diagnosticSourceDescription,
+        string visualSourceDescription) {
         if (string.IsNullOrWhiteSpace(style.BackgroundImageSource)) {
             return;
         }
@@ -53,15 +69,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "layers=" + style.BackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (!TryResolveImageSource(style.BackgroundImageSource, sourceDescription + ":background-image", out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo)
+        if (!TryResolveImageSource(style.BackgroundImageSource, diagnosticSourceDescription + ":background-image", out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo)
             || bytes == null) {
             return;
         }
 
-        double areaX = x + style.BorderWidth;
-        double areaY = y + style.BorderWidth;
-        double areaWidth = Math.Max(0.01D, width - (style.BorderWidth * 2D));
-        double areaHeight = Math.Max(0.01D, height - (style.BorderWidth * 2D));
+        double areaX = x + borderWidth;
+        double areaY = y + borderWidth;
+        double areaWidth = Math.Max(0.01D, width - (borderWidth * 2D));
+        double areaHeight = Math.Max(0.01D, height - (borderWidth * 2D));
         double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
             ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
             : areaWidth;
@@ -69,12 +85,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
             : areaHeight;
         BackgroundImageSize imageSize = ResolveBackgroundImageSize(style.BackgroundSize, areaWidth, areaHeight, intrinsicWidth, intrinsicHeight, style.Font.Size, out bool usedSizeFallback);
-        if (imageSize.Width > areaWidth + 0.0001D || imageSize.Height > areaHeight + 0.0001D) {
-            double fit = Math.Min(areaWidth / imageSize.Width, areaHeight / imageSize.Height);
-            imageSize = new BackgroundImageSize(imageSize.Width * fit, imageSize.Height * fit);
-            usedSizeFallback = true;
-        }
-
         if (usedSizeFallback) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
@@ -83,10 +93,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.BackgroundSize);
         }
 
-        if (!string.Equals(style.BackgroundRepeat, "no-repeat", StringComparison.OrdinalIgnoreCase)) {
+        bool repeatSupported = TryResolveBackgroundRepeat(style.BackgroundRepeat, out bool repeatX, out bool repeatY);
+        if (!repeatSupported) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported,
-                "A repeating CSS background image used a single-image fallback until clipped pattern paint is available.",
+                "A CSS background-repeat value used a single-image fallback.",
                 source,
                 style.BackgroundRepeat);
         }
@@ -96,15 +107,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
             areaWidth - imageSize.Width,
             areaHeight - imageSize.Height,
             style.Font.Size);
-        visuals.Add(new HtmlRenderImage(
-            bytes,
-            contentType,
-            areaX + offsetX,
-            areaY + offsetY,
-            imageSize.Width,
-            imageSize.Height,
-            visuals.Count,
-            source: sourceDescription + ":background-image"));
+        double tileX = areaX + offsetX;
+        double tileY = areaY + offsetY;
+        if (repeatSupported && (repeatX || repeatY)) {
+            var pattern = new OfficeImagePatternLayout(
+                new OfficeImagePlacement(areaX, areaY, areaWidth, areaHeight),
+                new OfficeImagePlacement(tileX, tileY, imageSize.Width, imageSize.Height),
+                repeatX,
+                repeatY);
+            long tileCount = pattern.EstimatedTileCount;
+            if (tileCount > 0L && tileCount <= _options.MaxBackgroundImageTiles - _backgroundImageTileCount) {
+                visuals.Add(new HtmlRenderImagePattern(
+                    bytes,
+                    contentType,
+                    pattern,
+                    _options.MaxBackgroundImageTiles,
+                    visuals.Count,
+                    visualSourceDescription + ":background-image"));
+                _backgroundImageTileCount += tileCount;
+            } else if (tileCount > 0L) {
+                _diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded,
+                    "Repeated CSS background images exceeded the configured operation-wide tile limit and used one clipped origin tile.",
+                    HtmlDiagnosticSeverity.Error,
+                    diagnosticSourceDescription,
+                    "tiles=" + tileCount.ToString(CultureInfo.InvariantCulture) + ";limit=" + _options.MaxBackgroundImageTiles.ToString(CultureInfo.InvariantCulture));
+                AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, visualSourceDescription);
+            }
+        } else {
+            AddVisibleBackgroundImage(visuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, visualSourceDescription);
+        }
+
         if (!OfficeRasterImageDecoder.TryDecode(bytes, out _)
             && !string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
             _diagnostics.Add(
@@ -112,9 +146,79 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderDiagnosticCodes.RasterDecoderUnavailable,
                 "The background image can be retained for SVG/PDF but the dependency-free PNG backend cannot decode it.",
                 HtmlDiagnosticSeverity.Warning,
-                sourceDescription,
+                diagnosticSourceDescription,
                 contentType);
         }
+    }
+
+    private static void AddVisibleBackgroundImage(
+        ICollection<HtmlRenderVisual> visuals,
+        byte[] bytes,
+        string contentType,
+        double tileX,
+        double tileY,
+        double tileWidth,
+        double tileHeight,
+        double areaX,
+        double areaY,
+        double areaWidth,
+        double areaHeight,
+        string sourceDescription) {
+        double visibleLeft = Math.Max(tileX, areaX);
+        double visibleTop = Math.Max(tileY, areaY);
+        double visibleRight = Math.Min(tileX + tileWidth, areaX + areaWidth);
+        double visibleBottom = Math.Min(tileY + tileHeight, areaY + areaHeight);
+        if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) return;
+
+        OfficeImageSourceCrop crop = OfficeImageSourceCrop.FromStrictFractions(
+            Math.Max(0D, (visibleLeft - tileX) / tileWidth),
+            Math.Max(0D, (visibleTop - tileY) / tileHeight),
+            Math.Max(0D, (tileX + tileWidth - visibleRight) / tileWidth),
+            Math.Max(0D, (tileY + tileHeight - visibleBottom) / tileHeight));
+        visuals.Add(new HtmlRenderImage(
+            bytes,
+            contentType,
+            visibleLeft,
+            visibleTop,
+            visibleRight - visibleLeft,
+            visibleBottom - visibleTop,
+            visuals.Count,
+            source: sourceDescription + ":background-image",
+            sourceCrop: crop));
+    }
+
+    private static bool TryResolveBackgroundRepeat(string value, out bool repeatX, out bool repeatY) {
+        repeatX = false;
+        repeatY = false;
+        IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(value ?? string.Empty)
+            .Select(token => token.Trim().ToLowerInvariant())
+            .Where(token => token.Length > 0)
+            .ToList()
+            .AsReadOnly();
+        if (values.Count > 2) return false;
+        if (values.Count == 0 || values[0] == "repeat") {
+            repeatX = true;
+            repeatY = values.Count < 2 || values[1] == "repeat";
+            return values.Count < 2 || values[1] == "repeat" || values[1] == "no-repeat";
+        }
+
+        if (values[0] == "no-repeat") {
+            repeatX = false;
+            repeatY = values.Count > 1 && values[1] == "repeat";
+            return values.Count < 2 || values[1] == "repeat" || values[1] == "no-repeat";
+        }
+
+        if (values.Count == 1 && values[0] == "repeat-x") {
+            repeatX = true;
+            return true;
+        }
+
+        if (values.Count == 1 && values[0] == "repeat-y") {
+            repeatY = true;
+            return true;
+        }
+
+        return false;
     }
 
     private BackgroundImageSize ResolveBackgroundImageSize(
@@ -178,8 +282,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return (
-            ResolveBackgroundAxis(first, Math.Max(0D, availableX), fontSize, horizontal: true),
-            ResolveBackgroundAxis(second, Math.Max(0D, availableY), fontSize, horizontal: false));
+            ResolveBackgroundAxis(first, availableX, fontSize, horizontal: true),
+            ResolveBackgroundAxis(second, availableY, fontSize, horizontal: false));
     }
 
     private double ResolveBackgroundAxis(string value, double available, double fontSize, bool horizontal) {
@@ -188,11 +292,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (value == (horizontal ? "left" : "top")) return 0D;
         if (value.EndsWith("%", StringComparison.Ordinal)
             && double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
-            return Math.Max(0D, Math.Min(available, available * percentage / 100D));
+            return available * percentage / 100D;
         }
 
         return HtmlRenderCssValues.TryLength(value, available, fontSize, _options.DefaultFontSize, out double length)
-            ? Math.Max(0D, Math.Min(available, length))
+            ? length
             : 0D;
     }
 

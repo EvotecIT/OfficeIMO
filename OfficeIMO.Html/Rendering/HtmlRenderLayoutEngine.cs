@@ -15,7 +15,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly OfficeFontFaceCollection _fonts;
     private readonly Uri? _baseUri;
     private readonly HtmlUrlPolicy _resourceUrlPolicy;
+    private IElement? _surfaceRootElement;
+    private HtmlRenderBoxStyle? _surfaceRootStyle;
     private int _paintOrder;
+    private long _backgroundImageTileCount;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
         _document = document;
@@ -34,6 +37,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double surfaceWidth = _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth;
         double contentWidth = surfaceWidth - _options.Margins.Left - _options.Margins.Right;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
+        _surfaceRootElement = root;
+        _surfaceRootStyle = rootStyle;
+        IElement? documentRoot = _document.DocumentElement;
+        if (documentRoot != null && !ReferenceEquals(documentRoot, root)) {
+            HtmlRenderBoxStyle documentRootStyle = _styleResolver.Resolve(documentRoot, contentWidth);
+            if (HasRenderableBackground(documentRootStyle)) {
+                _surfaceRootElement = documentRoot;
+                _surfaceRootStyle = documentRootStyle;
+            }
+        }
+
         IReadOnlyList<HtmlRenderFlowBlock> blocks = BuildChildBlocks(root, contentWidth, rootStyle, 0);
         return _options.Mode == HtmlRenderMode.Paged
             ? RenderPaged(blocks)
@@ -54,9 +68,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         height = Math.Max(1D, height);
         ValidateSurface(width, height);
 
-        var visuals = new List<HtmlRenderVisual> {
-            CreatePageBackground(width, height)
-        };
+        List<HtmlRenderVisual> visuals = CreatePageVisuals(width, height);
         visuals.AddRange(content);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts);
@@ -74,7 +86,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? currentPageName = null;
         for (int index = 0; index < blocks.Count; index++) {
             HtmlRenderFlowBlock block = blocks[index];
-            bool hasPageContent = visuals.Count > 1;
+            bool hasPageContent = HasPageFlowContent(visuals);
             if (hasPageContent && !string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
                 CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                 visuals = CreatePageVisuals(pageWidth, pageHeight);
@@ -85,7 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!hasPageContent) currentPageName = block.PageName;
             if (block.BreakBefore != HtmlPageBreakTarget.None) {
                 ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, pageWidth, pageHeight, currentPageName);
-                hasPageContent = visuals.Count > 1;
+                hasPageContent = HasPageFlowContent(visuals);
                 currentPageName = block.PageName;
             }
 
@@ -114,7 +126,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
                         : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
-                        if (visuals.Count > 1) {
+                        if (HasPageFlowContent(visuals)) {
                             CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
                             visuals = CreatePageVisuals(pageWidth, pageHeight);
                             y = _options.Margins.Top;
@@ -223,10 +235,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts);
     }
 
-    private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) => new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
+    private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) {
+        var visuals = new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
+        if (_surfaceRootElement == null || _surfaceRootStyle == null) return visuals;
+
+        var rootBackground = new List<HtmlRenderVisual>();
+        AddBoxBackground(
+            rootBackground,
+            _surfaceRootStyle,
+            0D,
+            0D,
+            width,
+            height,
+            0D,
+            _surfaceRootElement,
+            HtmlRenderStyleResolver.DescribeSource(_surfaceRootElement),
+            "render-root-background");
+        for (int index = 0; index < rootBackground.Count; index++) {
+            visuals.Add(rootBackground[index].Translate(0D, 0D, int.MinValue + 1 + index));
+        }
+
+        return visuals;
+    }
 
     private void ApplyBreakBefore(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height, string? pageName) {
-        if (visuals.Count > 1) {
+        if (HasPageFlowContent(visuals)) {
             CommitPage(pages, visuals, width, height, pageName);
             visuals = CreatePageVisuals(width, height);
             y = _options.Margins.Top;
@@ -250,8 +283,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeShape background = OfficeShape.Rectangle(width, height);
         background.FillColor = _options.BackgroundColor;
         background.StrokeWidth = 0D;
-        return new HtmlRenderShape(background, 0D, 0D, _paintOrder++, source: "render-surface");
+        return new HtmlRenderShape(background, 0D, 0D, int.MinValue, source: "render-surface");
     }
+
+    private static bool HasPageFlowContent(IEnumerable<HtmlRenderVisual> visuals) => visuals.Any(visual => visual.PaintOrder >= 0);
+
+    private static bool HasRenderableBackground(HtmlRenderBoxStyle style) =>
+        style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
+        || !string.IsNullOrWhiteSpace(style.BackgroundImageSource);
 
     private void CommitPage(ICollection<HtmlRenderPage> pages, List<HtmlRenderVisual> visuals, double width, double height, string? pageName) {
         if (pages.Count >= _options.MaxPageCount) {

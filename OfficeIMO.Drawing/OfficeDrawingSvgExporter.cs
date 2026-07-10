@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Exports dependency-free OfficeIMO drawings to SVG for consumers that need a portable visual fallback.
 /// </summary>
-public static class OfficeDrawingSvgExporter {
+public static partial class OfficeDrawingSvgExporter {
     /// <summary>
     /// Converts a drawing to an SVG document.
     /// </summary>
@@ -148,6 +148,9 @@ public static class OfficeDrawingSvgExporter {
                         ? "officeimo-image-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture)
                         : null;
                     AppendImage(sb, drawingImage, imageClipPathId);
+                    break;
+                case OfficeDrawingImagePattern imagePattern:
+                    AppendImagePattern(sb, imagePattern, ref clipPathId);
                     break;
                 case OfficeDrawingGroup drawingGroup:
                     AppendGroup(sb, drawingGroup, ref gradientId, ref clipPathId);
@@ -339,7 +342,7 @@ public static class OfficeDrawingSvgExporter {
     }
 
     private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId) {
-        byte[] bytes = drawingImage.Bytes;
+        byte[] bytes = drawingImage.EncodedBytes;
         if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, out string dataUri)) {
             return;
         }
