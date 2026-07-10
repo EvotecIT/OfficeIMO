@@ -108,7 +108,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             double offsetX = ResolveLineOffset(paragraphStyle.Alignment, width, current.Width);
             double x = offsetX;
-            foreach (InlineSegment segment in current.Segments) {
+            foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
                 if (segment.Text.Length > 0 && segment.Width > 0D) {
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
                     double frameWidth = Math.Min(Math.Max(0.01D, width - x), segment.Width + frameTolerance);
@@ -136,6 +136,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return new HtmlInlineLayout(visuals, y, breakOffsets);
+    }
+
+    private static IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
+        var merged = new List<InlineSegment>(segments.Count);
+        foreach (InlineSegment segment in segments) {
+            if (merged.Count > 0 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
+                InlineSegment previous = merged[merged.Count - 1];
+                merged[merged.Count - 1] = new InlineSegment(previous.Text + segment.Text, previous.Width + segment.Width, previous.Run);
+            } else {
+                merged.Add(segment);
+            }
+        }
+
+        return merged;
     }
 
     private void AddBrokenToken(ICollection<InlineLine> lines, ref InlineLine line, HtmlInlineRun run, string token, double width) {

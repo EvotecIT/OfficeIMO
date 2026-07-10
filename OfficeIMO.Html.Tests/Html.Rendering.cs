@@ -670,6 +670,23 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_RenderedProfile_UsesManagedFontFallbacksForUnicodeText() {
+        const string marker = "Café Ω Ж";
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+
+        byte[] pdf = ("<p>" + marker + "</p>").SaveAsPdf(options);
+        string extracted = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Equal(PdfCore.PdfTextFallbackFeatures.Default, options.RenderedTextFallbacks);
+        Assert.Equal(PdfCore.PdfTextShapingMode.LatinLigatures, options.RenderedTextShapingMode);
+        Assert.Contains(marker, extracted, StringComparison.Ordinal);
+        var fallbackProbe = new PdfCore.PdfOptions();
+        if (fallbackProbe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
+            Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+        }
+    }
+
+    [Fact]
     public void HtmlRender_ReportsPendingAdvancedLayoutInsteadOfSilentlyClaimingSupport() {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(
             "<div style='display:flex'><span>One</span><span>Two</span></div>",

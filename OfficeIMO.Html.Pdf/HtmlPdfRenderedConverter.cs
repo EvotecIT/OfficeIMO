@@ -32,6 +32,12 @@ internal static class HtmlPdfRenderedConverter {
         options.RenderDiagnostics = rendered.Diagnostics.Clone();
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create();
+        if (options.RenderedFontFamily != null) {
+            pdf.UseFontFamily(options.RenderedFontFamily);
+        }
+
+        pdf.UseTextFallbacks(options.RenderedTextFallbacks)
+            .UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             double pageWidth = renderedPage.Width * PointsPerCssPixel;
             double pageHeight = renderedPage.Height * PointsPerCssPixel;

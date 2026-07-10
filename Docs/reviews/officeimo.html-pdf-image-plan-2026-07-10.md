@@ -46,7 +46,7 @@ OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
 - `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
 ## Implemented Checkpoint
 
@@ -61,6 +61,7 @@ The current renderer deliberately starts with normal flow, styled text, grapheme
 - [x] Nested page fragmentation with widows/orphans, repeated table headers and footers, and parity-correct left/right/recto/verso breaks.
 - [x] Table occupancy-grid layout for `colspan`, row-group-bounded `rowspan` including `rowspan="0"`, distributed span height, and span-safe page breaks.
 - [x] Shared `OfficeIMO.Drawing` Unicode text-element measurement and HTML long-token fragmentation that preserve combining sequences and surrogate pairs, plus managed TrueType format-12 cmap lookup for non-BMP scalars.
+- [x] Rendered PDF font fallback and shaping controls over the existing dependency-free `OfficeIMO.Pdf` engine, including caller-supplied embedded families/providers and exact Unicode whitespace extraction across rich text runs.
 - [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
 - [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, pagination, resources, timeout, cancellation, and diagnostics.
 
@@ -220,10 +221,10 @@ Exit gate: every rendered node has deterministic computed values or a stable uns
 
 ### Phase 3 - Typography and inline layout
 
-- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Grapheme-safe deterministic measurement and non-BMP TrueType cmap lookup are implemented; font fallback planning and richer OpenType metrics remain.
-- [ ] Implement managed shaping, bidi resolution, ligatures, kerning, combining marks, and script-aware fallback.
+- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Grapheme-safe deterministic measurement, non-BMP TrueType cmap lookup, and rendered-PDF fallback wiring are implemented; shared HTML font discovery/fallback planning and richer OpenType metrics remain.
+- [ ] Implement managed shaping, bidi resolution, ligatures, kerning, combining marks, and script-aware fallback. The direct PDF adapter now exposes the existing managed Latin-ligature mode and optional shaping-provider seam, but shared layout must still consume positioned glyph results.
 - [ ] Implement whitespace, line breaking, inline boxes, decorations, baseline alignment, and intrinsic text measurement.
-- [ ] Verify positioned glyphs round-trip to searchable/extractable PDF text.
+- [ ] Verify positioned glyphs round-trip to searchable/extractable PDF text. Current scalar text, Unicode fallback, and explicit spaces round-trip exactly; positioned shaped glyph sequences remain.
 
 Exit gate: multilingual line boxes are deterministic across supported target frameworks and platforms.
 
@@ -268,7 +269,7 @@ Exit gate: HTML image output uses only `OfficeIMO.Html` plus existing OfficeIMO 
 ### Phase 8 - Direct HTML to PDF
 
 - [x] Add a direct/paged `Rendered` profile in `OfficeIMO.Html.Pdf` that consumes the shared rendered-document model.
-- [ ] Complete mapping to PDF structures. Searchable text, basic shapes, images, and external links are implemented; richer semantics remain.
+- [ ] Complete mapping to PDF structures. Searchable Unicode text with managed fallback controls, exact explicit spaces, basic shapes, images, and external links are implemented; positioned shaped glyphs and richer semantics remain.
 - [x] Preserve existing semantic/document conversion profiles for users who want those contracts.
 - [x] Add async/cancellable save APIs with explicitly buffered final PDF serialization.
 - [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure.

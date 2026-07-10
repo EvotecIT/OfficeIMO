@@ -80,6 +80,21 @@ public sealed class HtmlPdfSaveOptions {
     public HtmlRenderOptions? RenderOptions { get; set; }
 
     /// <summary>
+    /// OfficeIMO-managed font fallback groups used by the direct rendered profile.
+    /// The default enables document, monospace, symbol, and emoji fallbacks from available installed fonts.
+    /// </summary>
+    public PdfCore.PdfTextFallbackFeatures RenderedTextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+
+    /// <summary>Dependency-free PDF shaping mode used by the direct rendered profile.</summary>
+    public PdfCore.PdfTextShapingMode RenderedTextShapingMode { get; set; } = PdfCore.PdfTextShapingMode.LatinLigatures;
+
+    /// <summary>Optional caller-supplied embedded font family used by direct rendered PDF text.</summary>
+    public PdfCore.PdfEmbeddedFontFamily? RenderedFontFamily { get; set; }
+
+    /// <summary>Optional host-provided shaping seam used with caller-supplied or resolved embedded fonts.</summary>
+    public PdfCore.IPdfTextShapingProvider? RenderedTextShapingProvider { get; set; }
+
+    /// <summary>
     /// Shared conversion report populated from the selected internal HTML and PDF path.
     /// </summary>
     public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();

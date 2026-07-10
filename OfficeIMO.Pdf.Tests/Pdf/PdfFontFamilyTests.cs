@@ -2115,6 +2115,32 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfRegisteredEmbeddedFontFallbacksPreserveExplicitSpacesInCanvasText() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        const string marker = "Café Ω Ж";
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath)) },
+            new[] { PdfStandardFont.TimesRoman });
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 180
+            })
+            .RegisterEmbeddedFontFallbacks(fallbackSet)
+            .Canvas(canvas => canvas.Text(marker, 18, 16, 180, 28, fontSize: 12))
+            .ToBytes();
+
+        PdfReadDocument read = PdfReadDocument.Load(bytes);
+
+        Assert.Contains(read.Pages[0].GetTextSpans(), span => span.Text == " ");
+        Assert.Contains(marker, read.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfRegisteredEmbeddedFontFallbacksRenderFreeTextAnnotationAppearancesAutomatically() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

@@ -240,6 +240,7 @@ internal static class TextLayoutEngine {
     private static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
         // X sort within the line
         spans.Sort((a, b) => a.X.CompareTo(b.X));
+        bool hasExplicitWhitespace = spans.Any(span => ContainsWhitespace(span.Text));
         double xs = spans[0].X;
         var last = spans[spans.Count - 1];
         double xe = last.X + Math.Max(0, last.Advance);
@@ -295,8 +296,22 @@ internal static class TextLayoutEngine {
             }
         }
         string outText = text.ToString();
-        if (!IsLeaderRun(outText)) outText = NormalizeLineText(outText);
+        if (!IsLeaderRun(outText)) {
+            outText = hasExplicitWhitespace
+                ? System.Text.RegularExpressions.Regex.Replace(outText, "\\s+", " ").Trim()
+                : NormalizeLineText(outText);
+        }
         return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans));
+    }
+
+    private static bool ContainsWhitespace(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (char.IsWhiteSpace(value[index])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static double Median(IEnumerable<double> seq) {
