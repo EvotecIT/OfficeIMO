@@ -774,14 +774,7 @@ public static partial class DocumentReader {
     }
 
     private static string? BuildHeadingPath(List<MarkdownHeadingState> stack) {
-        if (stack.Count == 0) return null;
-        var sb = new StringBuilder();
-        for (int i = 0; i < stack.Count; i++) {
-            if (i > 0) sb.Append(" > ");
-            sb.Append(stack[i].Text);
-        }
-        var s = sb.ToString().Trim();
-        return s.Length == 0 ? null : s;
+        return ReaderHeadingPath.Combine(stack.Select(static heading => heading.Text));
     }
 
     private static string? BuildHeadingSlug(List<MarkdownHeadingState> stack) {

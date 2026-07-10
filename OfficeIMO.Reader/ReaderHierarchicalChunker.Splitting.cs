@@ -296,7 +296,8 @@ public static partial class ReaderHierarchicalChunker {
         if (!string.IsNullOrWhiteSpace(location.Sheet)) AppendContext(builder, "Sheet: " + location.Sheet!.Trim());
         else if (location.Slide.HasValue) AppendContext(builder, "Slide " + location.Slide.Value.ToString(CultureInfo.InvariantCulture));
         else if (location.Page.HasValue) AppendContext(builder, "Page " + location.Page.Value.ToString(CultureInfo.InvariantCulture));
-        if (!string.IsNullOrWhiteSpace(location.HeadingPath)) AppendContext(builder, location.HeadingPath!.Trim());
+        string? headingDisplay = ReaderHeadingPath.ToDisplayString(location.HeadingPath);
+        if (!string.IsNullOrWhiteSpace(headingDisplay)) AppendContext(builder, headingDisplay!);
         if (builder.Length == 0) return null;
         string context = builder.ToString();
         if (context.Length <= state.Options.MaxContextCharacters) return context;

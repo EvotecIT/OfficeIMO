@@ -159,10 +159,10 @@ public static partial class ReaderHierarchicalChunker {
     }
 
     private static HierarchyHeading[] SplitHeadingPath(string? headingPath, ChunkingState state) {
-        if (string.IsNullOrWhiteSpace(headingPath)) return Array.Empty<HierarchyHeading>();
-        string[] candidates = headingPath!.Trim().Split(new[] { " > " }, StringSplitOptions.RemoveEmptyEntries);
-        var headings = new List<HierarchyHeading>(candidates.Length);
-        for (int index = 0; index < candidates.Length; index++) {
+        IReadOnlyList<string> candidates = ReaderHeadingPath.Split(headingPath);
+        if (candidates.Count == 0) return Array.Empty<HierarchyHeading>();
+        var headings = new List<HierarchyHeading>(candidates.Count);
+        for (int index = 0; index < candidates.Count; index++) {
             string heading = candidates[index].Trim();
             if (heading.Length > 0) headings.Add(new HierarchyHeading(
                 heading,

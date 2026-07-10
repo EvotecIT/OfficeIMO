@@ -40,11 +40,11 @@ public static partial class ReaderHierarchicalChunker {
         using IEnumerator<ReaderChunk> enumerator = source.GetEnumerator();
         while (!state.OutputLimitReached) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!enumerator.MoveNext()) break;
             if (inputIndex >= options.MaxInputChunks) {
                 state.AddLimitDiagnostic("hierarchical-input-chunk-limit", options.MaxInputChunks, "input chunks");
                 break;
             }
-            if (!enumerator.MoveNext()) break;
             ReaderChunk? chunk = enumerator.Current;
             if (chunk == null) {
                 state.AddDiagnostic("hierarchical-null-input-chunk", "A null input chunk was skipped.");
@@ -149,19 +149,31 @@ public static partial class ReaderHierarchicalChunker {
 
     private static IEnumerable<FallbackBlock> EnumerateFallbackBlocks(OfficeDocumentReadResult document) {
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
         IReadOnlyDictionary<OfficeDocumentBlock, OfficeDocumentPage> pageByBlock = IndexPageBlocks(pages);
+        IReadOnlyDictionary<string, OfficeDocumentPage> pageByBlockId = IndexPageBlockIds(pages);
         foreach (OfficeDocumentBlock block in document.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
-            if (block == null || !seen.Add(block)) continue;
-            pageByBlock.TryGetValue(block, out OfficeDocumentPage? page);
+            if (!TryRegisterFallbackBlock(block, seen, seenIds)) continue;
+            if (!pageByBlock.TryGetValue(block, out OfficeDocumentPage? page) && !string.IsNullOrWhiteSpace(block.Id)) {
+                pageByBlockId.TryGetValue(block.Id!, out page);
+            }
             yield return new FallbackBlock(block, page);
         }
         foreach (OfficeDocumentPage page in pages) {
             if (page?.Blocks == null) continue;
             foreach (OfficeDocumentBlock block in page.Blocks) {
-                if (block != null && seen.Add(block)) yield return new FallbackBlock(block, page);
+                if (TryRegisterFallbackBlock(block, seen, seenIds)) yield return new FallbackBlock(block, page);
             }
         }
+    }
+
+    private static bool TryRegisterFallbackBlock(
+        OfficeDocumentBlock? block,
+        ISet<OfficeDocumentBlock> seen,
+        ISet<string> seenIds) {
+        if (block == null || !seen.Add(block)) return false;
+        return string.IsNullOrWhiteSpace(block.Id) || seenIds.Add(block.Id!);
     }
 
     private static IReadOnlyDictionary<OfficeDocumentBlock, OfficeDocumentPage> IndexPageBlocks(
@@ -175,6 +187,20 @@ public static partial class ReaderHierarchicalChunker {
             }
         }
         return pageByBlock;
+    }
+
+    private static IReadOnlyDictionary<string, OfficeDocumentPage> IndexPageBlockIds(
+        IReadOnlyList<OfficeDocumentPage> pages) {
+        var pageByBlockId = new Dictionary<string, OfficeDocumentPage>(StringComparer.Ordinal);
+        foreach (OfficeDocumentPage page in pages) {
+            if (page?.Blocks == null) continue;
+            foreach (OfficeDocumentBlock block in page.Blocks) {
+                if (block != null && !string.IsNullOrWhiteSpace(block.Id) && !pageByBlockId.ContainsKey(block.Id!)) {
+                    pageByBlockId.Add(block.Id!, page);
+                }
+            }
+        }
+        return pageByBlockId;
     }
 
     private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
@@ -213,11 +239,19 @@ public static partial class ReaderHierarchicalChunker {
         location.Sheet ??= container.Sheet;
         location.A1Range ??= container.A1Range;
         location.Slide ??= container.Slide;
+        string? containerKind = container.SourceBlockKind?.Trim();
+        if (string.Equals(containerKind, "sheet", StringComparison.OrdinalIgnoreCase)) {
+            location.Sheet ??= !string.IsNullOrWhiteSpace(page.Name)
+                ? page.Name
+                : page.Number > 0
+                    ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture)
+                    : null;
+        }
         if (!location.Page.HasValue &&
             !location.Slide.HasValue &&
             string.IsNullOrWhiteSpace(location.Sheet)) {
             int? number = page.Number > 0 ? page.Number : container.Page;
-            if (string.Equals(container.SourceBlockKind?.Trim(), "slide", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(containerKind, "slide", StringComparison.OrdinalIgnoreCase)) {
                 location.Slide = number;
             } else {
                 location.Page = number;
@@ -241,8 +275,7 @@ public static partial class ReaderHierarchicalChunker {
     }
 
     private static string? BuildFallbackHeadingPath(IReadOnlyList<FallbackHeading> headings) {
-        if (headings.Count == 0) return null;
-        return string.Join(" > ", headings.Select(heading => heading.Title));
+        return ReaderHeadingPath.Combine(headings.Select(heading => heading.Title));
     }
 
     private static string? BuildFallbackHeadingSlug(IReadOnlyList<FallbackHeading> headings) =>

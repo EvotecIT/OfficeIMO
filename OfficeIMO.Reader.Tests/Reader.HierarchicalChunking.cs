@@ -1,5 +1,4 @@
 using OfficeIMO.Reader;
-using System.Collections;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -174,24 +173,24 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
-    public void Chunk_StopsLazyFallbackTraversalAtInputBound() {
-        var document = new OfficeDocumentReadResult {
-            Source = new OfficeDocumentSource { SourceId = "lazy-blocks" },
-            Blocks = new ThrowAfterFirstBlockList()
+    public void Chunk_ReportsInputLimitOnlyWhenAnotherChunkExists() {
+        var options = new ReaderHierarchicalChunkingOptions {
+            MaxTokens = 10,
+            OverlapTokens = 0,
+            MaxInputChunks = 1,
+            IncludeContextInText = false,
+            TokenCounter = WordCounter
         };
 
-        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
-            document,
-            new ReaderHierarchicalChunkingOptions {
-                MaxTokens = 10,
-                OverlapTokens = 0,
-                MaxInputChunks = 1,
-                IncludeContextInText = false,
-                TokenCounter = WordCounter
-            });
+        ReaderChunkHierarchyResult exact = ReaderHierarchicalChunker.Chunk(
+            new[] { CreateChunk("first", "first block") },
+            options);
+        ReaderChunkHierarchyResult truncated = ReaderHierarchicalChunker.Chunk(
+            new[] { CreateChunk("first", "first block"), CreateChunk("second", "second block") },
+            options);
 
-        Assert.Single(result.Chunks);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+        Assert.DoesNotContain(exact.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
+        Assert.Contains(truncated.Diagnostics, diagnostic => diagnostic.Code == "hierarchical-input-chunk-limit");
     }
 
     [Fact]
@@ -327,12 +326,13 @@ public sealed class ReaderHierarchicalChunkingTests {
 
     [Fact]
     public void Chunk_PrefersPageScopeForBlocksAlsoPresentAtDocumentLevel() {
-        var shared = new OfficeDocumentBlock { Id = "shared", Kind = "paragraph", Text = "Page body" };
+        var documentBlock = new OfficeDocumentBlock { Id = "shared", Kind = "paragraph", Text = "Page body" };
+        var pageClone = new OfficeDocumentBlock { Id = "shared", Kind = "paragraph", Text = "Page body" };
         var document = new OfficeDocumentReadResult {
             Source = new OfficeDocumentSource { Path = "pages.pdf" },
-            Blocks = new[] { shared },
+            Blocks = new[] { documentBlock },
             Pages = new[] {
-                new OfficeDocumentPage { Number = 7, Blocks = new[] { shared } }
+                new OfficeDocumentPage { Number = 7, Blocks = new[] { pageClone } }
             }
         };
 
@@ -340,6 +340,45 @@ public sealed class ReaderHierarchicalChunkingTests {
 
         Assert.Equal(7, Assert.Single(result.Chunks).Location.Page);
         Assert.Equal("Page 7", Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Container).Title);
+    }
+
+    [Fact]
+    public void Chunk_UsesSheetContainerKindForBlockOnlyResults() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "workbook.xlsx" },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 2,
+                    Name = "Inventory",
+                    Location = new ReaderLocation { SourceBlockKind = "sheet" },
+                    Blocks = new[] { new OfficeDocumentBlock { Id = "sheet-body", Kind = "paragraph", Text = "Sheet body" } }
+                }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        ReaderLocation location = Assert.Single(result.Chunks).Location;
+        Assert.Equal("Inventory", location.Sheet);
+        Assert.Null(location.Page);
+        Assert.Equal("Sheet: Inventory", Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Container).Title);
+    }
+
+    [Fact]
+    public void Chunk_PreservesLiteralHeadingSeparators() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "literal-heading" },
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "quarter", Kind = "heading", Level = 1, Text = "Q1 > Q2" },
+                new OfficeDocumentBlock { Id = "body", Kind = "paragraph", Text = "Comparison" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        ReaderChunkHierarchyNode heading = Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Heading);
+        Assert.Equal("Q1 > Q2", heading.Title);
+        Assert.Equal("Q1 > Q2", result.Segments[1].Context);
     }
 
     [Fact]
@@ -673,24 +712,4 @@ public sealed class ReaderHierarchicalChunkingTests {
         }
     }
 
-    private sealed class ThrowAfterFirstBlockList : IReadOnlyList<OfficeDocumentBlock> {
-        private readonly OfficeDocumentBlock _first = new OfficeDocumentBlock {
-            Id = "first",
-            Kind = "paragraph",
-            Text = "first block"
-        };
-
-        public int Count => 2;
-
-        public OfficeDocumentBlock this[int index] => index == 0
-            ? _first
-            : throw new InvalidOperationException("The input bound should stop before reading another block.");
-
-        public IEnumerator<OfficeDocumentBlock> GetEnumerator() {
-            yield return _first;
-            throw new InvalidOperationException("The input bound should stop before reading another block.");
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    }
 }

@@ -86,7 +86,7 @@ public static class DocumentReaderEpubExtensions {
                         Path = BuildVirtualPath(sourcePath, chapter.Path),
                         BlockIndex = blockIndex,
                         SourceBlockIndex = chapter.Order > 0 ? chapter.Order - 1 : null,
-                        HeadingPath = chapter.Title
+                        HeadingPath = ReaderHeadingPath.Combine(new[] { chapter.Title })
                     },
                     Text = piece,
                     Markdown = BuildMarkdown(chapter.Title, piece),

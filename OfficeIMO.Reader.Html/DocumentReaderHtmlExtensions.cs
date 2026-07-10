@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown.Html;
+using System.Linq;
 
 namespace OfficeIMO.Reader.Html;
 
@@ -278,16 +279,7 @@ public static class DocumentReaderHtmlExtensions {
     }
 
     private static string? BuildHeadingPath(List<(int Level, string Text)> stack) {
-        if (stack.Count == 0) return null;
-
-        var sb = new StringBuilder();
-        for (int i = 0; i < stack.Count; i++) {
-            if (i > 0) sb.Append(" > ");
-            sb.Append(stack[i].Text);
-        }
-
-        var value = sb.ToString().Trim();
-        return value.Length == 0 ? null : value;
+        return ReaderHeadingPath.Combine(stack.Select(static heading => heading.Text));
     }
 
     private static bool WouldExceed(int maxChars, StringBuilder current, string nextLine) {
