@@ -146,6 +146,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Expands dense semantic content into continuation pages and renders the resulting valid plan.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlide> AddSlidesWithContinuation(PowerPointDeckPlan plan,
+            PowerPointDeckContinuationOptions? options = null, bool validate = true) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            return AddSlides(plan.WithContinuations(options), validate);
+        }
+
+        /// <summary>
+        ///     Renders a continued semantic plan and returns the same machine-readable report used by direct
+        ///     presentation and markup workflows.
+        /// </summary>
+        public PowerPointDeckGenerationResult AddSlidesWithReport(PowerPointDeckPlan plan,
+            PowerPointDeckContinuationOptions? continuationOptions = null,
+            PowerPointDeckPreflightOptions? preflightOptions = null, bool validate = true) {
+            IReadOnlyList<PowerPointSlide> slides = AddSlidesWithContinuation(plan, continuationOptions, validate);
+            PowerPointDeckPreflightReport report = _presentation.Preflight(preflightOptions);
+            return new PowerPointDeckGenerationResult(slides.ToList(), report);
+        }
+
+        /// <summary>
         ///     Previews how a semantic deck plan resolves against the active deck design from the composer's
         ///     current slide position.
         /// </summary>

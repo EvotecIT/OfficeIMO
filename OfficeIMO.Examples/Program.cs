@@ -101,6 +101,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
             PowerPoint.ValidateDocument.Example(folderPath, false);
             PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+            PowerPoint.EndToEndPowerPointProof.Example_EndToEndPowerPointProof(folderPath, false);
 
             ValidateGeneratedPowerPointDecks(folderPath, startedUtc);
         }
@@ -164,6 +165,11 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--powerpoint-layout-strategy")) {
                 PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--powerpoint-e2e")) {
+                PowerPoint.EndToEndPowerPointProof.Example_EndToEndPowerPointProof(folderPath, false);
                 return;
             }
 

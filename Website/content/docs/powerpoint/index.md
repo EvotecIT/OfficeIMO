@@ -110,6 +110,8 @@ presentation.Save();
 4. Add speaker notes, sections, theme tweaks, or layout helpers when the deck grows.
 5. Save the file and ship it as a build artifact, report attachment, or generated deliverable.
 
+For report-sized content, use `AddTableSlides(...)` or `PowerPointDeckPlan.WithContinuations()` so source rows and semantic items continue instead of being clipped or dropped. Call `Preflight()` before publishing to produce a deterministic layout report or fail at a selected severity.
+
 ## Layout and content model
 
 - Use `SlideSize.GetContentBoxCm(...)` to reserve consistent margins around the live slide area.
@@ -127,5 +129,6 @@ presentation.Save();
 
 - [Slides](/docs/powerpoint/slides) -- Creating slides with text boxes, shapes, images, and charts.
 - [Designer Decks](/docs/powerpoint/designer/) -- Build visually structured decks with design briefs, recommendations, semantic plans, and screenshots.
+- [Capability Matrix](/docs/powerpoint/capabilities/) -- Understand native authoring, preservation, preview, and reporting boundaries.
 - [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) -- Build decks from PowerShell with DSL aliases and cmdlets.
 - [OfficeIMO.PowerPoint product page](/products/powerpoint/) -- Package-level overview, install command, and positioning.

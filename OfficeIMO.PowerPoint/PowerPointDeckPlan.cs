@@ -209,5 +209,20 @@ namespace OfficeIMO.PowerPoint {
 
             return diagnostics.AsReadOnly();
         }
+
+        /// <summary>
+        ///     Expands dense semantic requests into deterministic continuation slides without dropping content.
+        /// </summary>
+        public PowerPointDeckPlan WithContinuations(PowerPointDeckContinuationOptions? options = null) {
+            PowerPointDeckContinuationOptions resolved = options ?? new PowerPointDeckContinuationOptions();
+            var expanded = new PowerPointDeckPlan();
+            for (int slideIndex = 0; slideIndex < _slides.Count; slideIndex++) {
+                foreach (PowerPointDeckPlanSlide page in _slides[slideIndex].ExpandContinuations(resolved)) {
+                    expanded.Add(page);
+                }
+            }
+
+            return expanded;
+        }
     }
 }

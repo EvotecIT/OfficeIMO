@@ -40,6 +40,14 @@ public sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     public void Export(OfficeMarkupDocument document, OfficeMarkupPowerPointExportOptions options) {
+        ExportWithReport(document, options);
+    }
+
+    /// <summary>
+    /// Exports presentation markup and returns the shared machine-readable PowerPoint generation report.
+    /// </summary>
+    public PowerPointDeckPreflightReport ExportWithReport(OfficeMarkupDocument document,
+        OfficeMarkupPowerPointExportOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -76,6 +84,16 @@ public sealed partial class OfficeMarkupPowerPointExporter {
             }
         }
 
+        PowerPointDeckPreflightOptions preflightOptions = options.PreflightOptions?.Clone()
+            ?? new PowerPointDeckPreflightOptions();
+        PowerPointDeckPreflightReport report = presentation.Preflight(preflightOptions);
+        if (!string.IsNullOrWhiteSpace(options.PreflightReportPath)) {
+            report.SaveJson(options.PreflightReportPath!);
+        }
+        if (options.FailOnPreflightFindings) {
+            report.ThrowIfFindings(preflightOptions.FailureSeverity);
+        }
         presentation.Save();
+        return report;
     }
 }

@@ -24,6 +24,7 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj" />
     </ItemGroup>
 
     <ItemGroup>

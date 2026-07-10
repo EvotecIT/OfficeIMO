@@ -40,6 +40,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal abstract PowerPointSlide AddTo(PowerPointDeckComposer deck);
 
+        internal virtual IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            yield return this;
+        }
+
         internal virtual int ContentItemCount => 0;
 
         internal PowerPointDeckPlanSlideSummary Describe(int index) {
@@ -201,6 +206,31 @@ namespace OfficeIMO.PowerPoint {
             return deck.AddCaseStudySlide(Title, Sections, Metrics, Seed, _configure);
         }
 
+        internal override IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            IReadOnlyList<IReadOnlyList<PowerPointCaseStudySection>> sectionPages =
+                PowerPointDeckContinuationOptions.Chunk(Sections, options.CaseStudySectionsPerSlide);
+            IReadOnlyList<IReadOnlyList<PowerPointMetric>> metricPages =
+                PowerPointDeckContinuationOptions.Chunk(Metrics, options.CaseStudyMetricsPerSlide);
+            int pageCount = Math.Max(sectionPages.Count, Math.Max(1, metricPages.Count));
+            if (pageCount == 1) {
+                yield return this;
+                yield break;
+            }
+
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+                IReadOnlyList<PowerPointCaseStudySection> pageSections = pageIndex < sectionPages.Count
+                    ? sectionPages[pageIndex]
+                    : sectionPages[sectionPages.Count - 1];
+                IReadOnlyList<PowerPointMetric> pageMetrics = pageIndex < metricPages.Count
+                    ? metricPages[pageIndex]
+                    : Array.Empty<PowerPointMetric>();
+                yield return new PowerPointCaseStudyPlanSlide(
+                    options.CreateTitle(Title, pageIndex, pageCount), pageSections, pageMetrics,
+                    options.CreateSeed(Seed, Title, pageIndex), _configure);
+            }
+        }
+
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCaseStudySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCaseStudyVariant(options, Sections, Metrics).ToString();
@@ -270,6 +300,20 @@ namespace OfficeIMO.PowerPoint {
             return deck.AddProcessSlide(Title, Subtitle, Steps, Seed, _configure);
         }
 
+        internal override IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            IReadOnlyList<IReadOnlyList<PowerPointProcessStep>> pages =
+                PowerPointDeckContinuationOptions.Chunk(Steps, options.ProcessStepsPerSlide);
+            if (pages.Count == 1) {
+                yield return this;
+                yield break;
+            }
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                yield return new PowerPointProcessPlanSlide(options.CreateTitle(Title, pageIndex, pages.Count),
+                    Subtitle, pages[pageIndex], options.CreateSeed(Seed, Title, pageIndex), _configure);
+            }
+        }
+
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointProcessSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveProcessVariant(options, Steps).ToString();
@@ -336,6 +380,20 @@ namespace OfficeIMO.PowerPoint {
             return deck.AddCardGridSlide(Title, Subtitle, Cards, Seed, _configure);
         }
 
+        internal override IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            IReadOnlyList<IReadOnlyList<PowerPointCardContent>> pages =
+                PowerPointDeckContinuationOptions.Chunk(Cards, options.CardsPerSlide);
+            if (pages.Count == 1) {
+                yield return this;
+                yield break;
+            }
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                yield return new PowerPointCardGridPlanSlide(options.CreateTitle(Title, pageIndex, pages.Count),
+                    Subtitle, pages[pageIndex], options.CreateSeed(Seed, Title, pageIndex), _configure);
+            }
+        }
+
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCardGridSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCardGridVariant(options, Cards).ToString();
@@ -385,6 +443,20 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddLogoWallSlide(Title, Subtitle, Logos, Seed, _configure);
+        }
+
+        internal override IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            IReadOnlyList<IReadOnlyList<PowerPointLogoItem>> pages =
+                PowerPointDeckContinuationOptions.Chunk(Logos, options.LogosPerSlide);
+            if (pages.Count == 1) {
+                yield return this;
+                yield break;
+            }
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                yield return new PowerPointLogoWallPlanSlide(options.CreateTitle(Title, pageIndex, pages.Count),
+                    Subtitle, pages[pageIndex], options.CreateSeed(Seed, Title, pageIndex), _configure);
+            }
         }
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
@@ -445,6 +517,20 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCoverageSlide(Title, Subtitle, Locations, Seed, _configure);
+        }
+
+        internal override IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            IReadOnlyList<IReadOnlyList<PowerPointCoverageLocation>> pages =
+                PowerPointDeckContinuationOptions.Chunk(Locations, options.LocationsPerSlide);
+            if (pages.Count == 1) {
+                yield return this;
+                yield break;
+            }
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                yield return new PowerPointCoveragePlanSlide(options.CreateTitle(Title, pageIndex, pages.Count),
+                    Subtitle, pages[pageIndex], options.CreateSeed(Seed, Title, pageIndex), _configure);
+            }
         }
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
@@ -518,6 +604,20 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCapabilitySlide(Title, Subtitle, Sections, Seed, _configure);
+        }
+
+        internal override IEnumerable<PowerPointDeckPlanSlide> ExpandContinuations(
+            PowerPointDeckContinuationOptions options) {
+            IReadOnlyList<IReadOnlyList<PowerPointCapabilitySection>> pages =
+                PowerPointDeckContinuationOptions.Chunk(Sections, options.CapabilitySectionsPerSlide);
+            if (pages.Count == 1) {
+                yield return this;
+                yield break;
+            }
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+                yield return new PowerPointCapabilityPlanSlide(options.CreateTitle(Title, pageIndex, pages.Count),
+                    Subtitle, pages[pageIndex], options.CreateSeed(Seed, Title, pageIndex), _configure);
+            }
         }
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {

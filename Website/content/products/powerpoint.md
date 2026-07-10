@@ -20,8 +20,8 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 - **Text boxes & bullets** -- rich text with fonts, colors, sizes, and multi-level bullet lists
 - **Tables with merged cells** -- rows, columns, horizontal and vertical merges, and per-cell styling
 - **Images** -- insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
-- **Shapes with fill, stroke & effects** -- rectangles, circles, arrows, callouts, and freeform shapes with shadow, glow, and blur effects
-- **Charts with formatting** -- bar, column, pie, line, and area charts with data labels, legends, and axis configuration
+- **Shapes with fill, stroke & effects** -- rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
+- **Editable charts with formatting** -- column/bar, line, scatter, pie, and doughnut charts with data labels, legends, and axis configuration
 - **Slide sections & transitions** -- organize slides into sections and apply transition animations
 - **Themes & layouts** -- apply built-in or custom themes and choose from standard slide layouts
 - **Designer decks** -- generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable
@@ -41,29 +41,29 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 
 ```csharp
 using OfficeIMO.PowerPoint;
+using DocumentFormat.OpenXml.Drawing.Charts;
 
-using var presentation = PowerPointDocument.Create("Overview.pptx");
+using var presentation = PowerPointPresentation.Create("Overview.pptx");
+presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
-// Title slide
-var titleSlide = presentation.AddSlide(SlideLayoutType.Title);
-titleSlide.Title.Text = "Product Overview";
-titleSlide.Subtitle.Text = "Engineering Team -- March 2026";
+var intro = presentation.AddSlide();
+intro.AddTitleCm("Product overview", 1.5, 1.2, 22, 1.4);
+var highlights = intro.AddTextBoxCm(string.Empty, 1.5, 3.0, 12, 5.5);
+highlights.AddBullets(new[] {
+    "Revenue grew 18% year over year",
+    "Customer satisfaction reached 94%",
+    "Delivery expanded to 12 markets"
+});
 
-// Content slide with bullet points
-var contentSlide = presentation.AddSlide(SlideLayoutType.TitleAndContent);
-contentSlide.Title.Text = "Key Highlights";
-var body = contentSlide.Content;
-body.AddParagraph("Revenue grew 18% year-over-year");
-body.AddParagraph("Launched 3 new product lines");
-body.AddParagraph("Customer satisfaction at 94%");
-body.AddParagraph("Expanded to 12 new markets");
+var data = new PowerPointChartData(
+    new[] { "Q1", "Q2", "Q3", "Q4" },
+    new[] { new PowerPointChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
-// Chart slide
-var chartSlide = presentation.AddSlide(SlideLayoutType.Blank);
-var chart = chartSlide.AddChart(ChartType.ColumnClustered, 50, 80, 600, 350);
-chart.Title.Text = "Revenue by Quarter";
-chart.AddSeries("2025", new[] { "Q1", "Q2", "Q3", "Q4" }, new double[] { 3.2, 3.8, 4.1, 4.9 });
-chart.AddSeries("2024", new[] { "Q1", "Q2", "Q3", "Q4" }, new double[] { 2.8, 3.1, 3.4, 3.9 });
+var chartSlide = presentation.AddSlide();
+chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
+chartSlide.AddChartCm(data, 1.5, 3.0, 22, 9)
+    .SetTitle("2025 revenue")
+    .SetLegend(LegendPositionValues.Bottom);
 
 presentation.Save();
 ```
@@ -75,6 +75,8 @@ presentation.Save();
 3. Reserve charts, tables, and notes for the slides that benefit from structured output rather than manual formatting.
 4. Export decks as pipeline artifacts for email, GitHub Actions, scheduled reports, or customer handoff packages.
 5. Reuse the same source data across Word, Excel, Reader, and PowerPoint outputs when your workflow needs multiple deliverables.
+
+Before publishing a generated deck, call `Preflight()` to measure text fit, check shape bounds and image relationships, and write a JSON report. Use `AddTableSlides(...)` or `PowerPointDeckPlan.WithContinuations()` when source content can exceed one slide.
 
 ## Compatibility
 
@@ -94,5 +96,6 @@ OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.
 | [PowerPoint documentation](/docs/powerpoint/) | Start with the package overview and supported presentation workflow. |
 | [Slides guide](/docs/powerpoint/slides/) | Build title slides, content slides, charts, and slide layouts. |
 | [Designer Decks](/docs/powerpoint/designer/) | Create visually structured, editable decks from briefs, recommendations, and semantic plans. |
+| [Capability matrix](/docs/powerpoint/capabilities/) | See what is authored, edited, preserved, rendered, or intentionally reported. |
 | [Getting Started](/docs/getting-started/) | Set up the package family and choose the right companion libraries for reporting pipelines. |
 | [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |
