@@ -26,6 +26,11 @@ public class CsvHeaderNormalizationTests
 
         Assert.Equal(new[] { "Name", "Name" }, parsed.Header);
         Assert.Equal("Alpha", parsed.AsEnumerable().Single().AsString("Name"));
+
+        using var reader = parsed.CreateDataReader();
+        Assert.Equal(0, reader.GetOrdinal("Name"));
+        Assert.True(reader.Read());
+        Assert.Equal("Alpha", reader["Name"]);
     }
 
     [Fact]

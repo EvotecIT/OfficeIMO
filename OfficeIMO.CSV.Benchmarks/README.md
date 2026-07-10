@@ -38,36 +38,57 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 
 `CsvDbatoolsLibraryParityBenchmarks` mirrors the published dbatools.library CSV benchmark layout from [dataplat/dbatools.library `benchmarks/CsvBenchmarks`](https://github.com/dataplat/dbatools.library/tree/main/benchmarks/CsvBenchmarks), specifically `CsvReaderBenchmarks.Benchmarks.cs` and `QuickTest.cs`: small, medium, large, wide, quoted, modern medium/large, all-values, and quick-test-style single-column/all-column read lanes. It keeps OfficeIMO in the same file-path reader shape beside Dataplat.Dbatools.Csv, LumenWorks, Sep, Sylvan, and CsvHelper so the raw parser comparison is apples-to-apples. Each parity lane validates the expected row count and deterministic field-length checksum for its input file, so a lane cannot win by silently under-reading or skipping field materialization. The broader `CsvBenchmarks` and `CsvWideBenchmarks` lanes still touch every field and return checksums for stricter payload validation.
 
-Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. Dataplat remains the BenchmarkDotNet baseline in this parity class to preserve the upstream comparison frame. `TypeConverterBenchmarks` is intentionally out of scope here because it measures dbatools vector conversion rather than CSV parser throughput, not CSV reader throughput.
+Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods by benchmark description plus all 10 QuickTest read lanes, then adds matching OfficeIMO lanes beside them. The extra `OfficeIMO-DataReader-QuickTest-GetValues` lane keeps the SQL/bulk-copy-shaped `DbDataReader.GetValues` path visible at the same 100k-row QuickTest size. Dataplat remains the BenchmarkDotNet baseline in this parity class to preserve the upstream comparison frame. `TypeConverterBenchmarks` is intentionally out of scope here because it measures dbatools vector conversion rather than CSV parser throughput, not CSV reader throughput.
 
 CsvHelper, Sylvan.Data.Csv, Dataplat.Dbatools.Csv, LumenWorksCsvReader2, and Sep are benchmark-only dependencies in this project. They should not be added to `OfficeIMO.CSV` unless a future design decision intentionally changes the runtime dependency model.
 
 ## Current dbatools.library Parity Snapshot
 
-Fresh local short-job run on 2026-07-08 using the 14 QuickTest-shaped parity lanes with row-count and field-length checksum validation enabled. Treat these as direction-finding numbers; run a longer BenchmarkDotNet job before release claims or performance gates.
+Fresh local short-job run on 2026-07-09 using the 14 QuickTest-shaped parity lanes with row-count and field-length checksum validation enabled. Treat these as direction-finding numbers; run a longer BenchmarkDotNet job before release claims or performance gates.
 
 QuickTest single-column/all-column read lanes:
 
 | Method | Single column mean | All columns mean | Allocated |
 | --- | ---: | ---: | ---: |
-| OfficeIMO span reader | 5.42 ms | 5.69 ms | 772 KB / 775 KB |
-| OfficeIMO streaming DataReader | 24.67 ms | 28.69 ms | 41.3 MB |
-| SEP | 10.39 ms | 20.20 ms | 3.1 MB / 39.4 MB |
-| Sylvan | 12.44 ms | 21.44 ms | 3.1 MB / 39.6 MB |
-| CsvHelper | 35.27 ms | 53.79 ms | 3.1 MB / 39.6 MB |
-| Dataplat.Dbatools.Csv | 33.30 ms | 36.87 ms | 39.9 MB |
-| LumenWorks | 136.98 ms | 41.76 ms | 1.58 GB / 39.7 MB |
+| OfficeIMO span reader | 4.57 ms | 4.70 ms | 770 KB / 770 KB |
+| OfficeIMO streaming DataReader | 19.68 ms | 21.33 ms | 40.6 MB |
+| SEP | 7.14 ms | 15.59 ms | 3.1 MB / 39.4 MB |
+| Sylvan | 8.23 ms | 16.34 ms | 3.1 MB / 39.6 MB |
+| CsvHelper | 30.15 ms | 45.63 ms | 3.1 MB / 39.6 MB |
+| Dataplat.Dbatools.Csv | 26.13 ms | 29.38 ms | 39.9 MB |
+| LumenWorks | 118.19 ms | 33.17 ms | 1.58 GB / 39.7 MB |
 
 All-values read lane:
 
 | Method | Mean | Allocated |
 | --- | ---: | ---: |
-| OfficeIMO span reader | 4.68 ms | 772 KB |
-| OfficeIMO streaming DataReader | 18.75 ms | 41.3 MB |
-| Dataplat.Dbatools.Csv DataReader | 26.38 ms | 39.9 MB |
-| LumenWorks | 38.56 ms | 39.7 MB |
+| OfficeIMO span reader | 4.60 ms | 770 KB |
+| OfficeIMO streaming DataReader | 22.64 ms | 41.3 MB |
+| Dataplat.Dbatools.Csv DataReader | 26.70 ms | 39.9 MB |
+| LumenWorks | 32.53 ms | 39.7 MB |
+
+Additional guardrail: `OfficeIMO-DataReader-QuickTest-GetValues` reads the same
+100k-row QuickTest file through `DbDataReader.GetValues`; the latest 2026-07-09
+short run measured 23.10 ms and 40.6 MB. Keep this lane visible when optimizing
+the SQL/bulk-copy-shaped reader path.
 
 The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it now reads reusable parser string rows directly and is faster than Dataplat's DataReader in these short runs, with Dataplat still holding a small allocation edge.
+
+## Current Typed DataReader Snapshot
+
+Fresh local short-job runs on 2026-07-09 using the 25,000-row, 40-column wide payload. Every lane traverses every value. The file lane includes file decoding and uses the public `CsvDocument.CreateDataReader(path, ...)` API used by PSWriteOffice and DbaClientX.
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*DataReader*Schema*" --job short --warmupCount 5 --iterationCount 10
+```
+
+| Input | Schema | Mean | Allocated |
+| --- | --- | ---: | ---: |
+| CSV file | Explicit 40-column schema | 103.11 ms | 101.49 MB |
+| CSV text | Explicit 40-column schema | 91.41 ms | 66.95 MB |
+| CSV text | Inferred from 25,000 rows | 135.78 ms | 66.97 MB |
+
+Explicit typed readers parse numbers, booleans, dates, and GUIDs directly from source spans. Inferred readers inspect spans without retaining sampled rows, then replay the immutable text through the typed reader. String-only file readers stay on the lower-memory streaming path.
 
 ## Current Write Snapshot
 
@@ -102,7 +123,7 @@ Fresh local short-job run on 2026-07-07:
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*Write*" --job short --warmupCount 1 --iterationCount 3
 ```
 
-The table keeps the SQL-shaped writer path visible. `OfficeIMO_WriteDataReader` writes through the public `IDataReader` bridge, `Dataplat_WriteFromReader` uses the dbatools reader bridge, and the trusted text lane shows the faster path available when the caller already owns culture-aware formatting and schema validation.
+The table keeps the SQL-shaped writer path visible. `OfficeIMO_WriteDataReader` writes through the public `IDataReader` bridge, `Dataplat_WriteFromReader` uses the dbatools reader bridge, and the trusted text lane shows the faster path available when the caller already supplies culture-aware formatting and schema validation.
 
 | Rows | OfficeIMO IDataReader | dbatools reader | Sylvan reader | SEP projected | OfficeIMO trusted text |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -110,7 +131,7 @@ The table keeps the SQL-shaped writer path visible. `OfficeIMO_WriteDataReader` 
 | 10000 | 18.36 ms | 20.68 ms | 14.82 ms | 14.48 ms | 6.26 ms |
 | 25000 | 47.57 ms | 78.13 ms | 35.75 ms | 33.28 ms | 16.02 ms |
 
-In this run the OfficeIMO `IDataReader` bridge stays ahead of dbatools' reader bridge at every tested row count while allocating about one-third as much memory. Sylvan and SEP remain faster in the projected-row lanes, and the OfficeIMO trusted text lane shows the upper bound when the caller already owns formatting and schema validation.
+In this run the OfficeIMO `IDataReader` bridge stays ahead of dbatools' reader bridge at every tested row count while allocating about one-third as much memory. Sylvan and SEP remain faster in the projected-row lanes, and the OfficeIMO trusted text lane shows the upper bound when the caller already supplies formatting and schema validation.
 
 ## Current Wide Read Snapshot
 
@@ -124,6 +145,6 @@ The table shows the fastest raw field-span read method per wide row-count lane. 
 
 | Shape | Rows | Fastest method | Mean | SEP span read | Sylvan span read |
 | --- | ---: | --- | ---: | ---: | ---: |
-| Wide | 1000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.07 ms | 0.10 ms | 0.14 ms |
-| Wide | 10000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.77 ms | 1.10 ms | 1.45 ms |
-| Wide | 25000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 1.91 ms | 2.87 ms | 3.71 ms |
+| Wide | 1000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.06 ms | 0.08 ms | 0.11 ms |
+| Wide | 10000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.67 ms | 0.87 ms | 1.05 ms |
+| Wide | 25000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 1.73 ms | 2.09 ms | 2.79 ms |

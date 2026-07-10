@@ -22,17 +22,6 @@ OfficeIMO should expose, whether OfficeIMO should add a runtime dependency, or
 whether OfficeIMO should pursue full binary `.xls` authoring before the import
 model is mature.
 
-## Boundaries
-
-- NPOI stays in the opt-in `OfficeIMO.Excel.Benchmarks.NPOI` project.
-- The project is intentionally outside `OfficeIMO.sln`.
-- OfficeIMO runtime projects must not reference NPOI.
-- The runner may accept benchmark-only package terms when needed for local
-  evidence, but that acceptance must not leak into product/runtime projects.
-- The checked-in result JSON is evidence for the measured fixture signals only.
-- Different metrics in rich metadata lanes are not failure by themselves; the
-  two libraries expose some workbook concepts through different object shapes.
-
 ## Current Lanes
 
 The current opt-in runner covers scenarios that are natural benchmark checks:

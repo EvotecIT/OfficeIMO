@@ -12,6 +12,9 @@ namespace OfficeIMO.Tests {
     public class ExcelRowsFromObjectsTests {
         private static string GetCellValue(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
+            if (cell.DataType?.Value == CellValues.InlineString) {
+                return cell.InlineString?.InnerText ?? string.Empty;
+            }
             var value = cell.CellValue?.Text ?? string.Empty;
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
                 var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;

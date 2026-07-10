@@ -362,6 +362,43 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowFieldSpans_ReadsSmallUncompressedFileWithMultilineField()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RowFieldSpans." + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            File.WriteAllText(path, "Name,Note,Value\nAlpha,\"one\ntwo\",1\nBeta,plain\n");
+            var events = new List<string>();
+            var visitor = new CapturingRowFieldSpanVisitor(events);
+
+            CsvDocument.ReadRowFieldSpans(path, ref visitor);
+
+            Assert.Equal(
+                new[]
+                {
+                    "begin:0:Name|Note|Value",
+                    "field:0:0:Alpha",
+                    "field:0:1:one\ntwo",
+                    "field:0:2:1",
+                    "end:0:3",
+                    "begin:1:Name|Note|Value",
+                    "field:1:0:Beta",
+                    "field:1:1:plain",
+                    "field:1:2:",
+                    "end:1:2"
+                },
+                events);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void ReadRowFieldSpansFromText_DetectDelimiterSkipsInitialRecordsAfterLeadingComments()
     {
         var events = new List<string>();

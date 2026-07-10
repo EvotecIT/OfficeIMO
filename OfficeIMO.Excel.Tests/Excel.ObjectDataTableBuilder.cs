@@ -187,6 +187,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromSingleEnumerableObject_PreservesTheRow() {
+            var row = new EnumerableObjectRow { Name = "Single", Value = 42 };
+
+            var table = ObjectDataTableBuilder.FromObjects(new object?[] { row }, "Data");
+
+            Assert.Single(table.Rows.Cast<System.Data.DataRow>());
+            Assert.Equal("Single", table.Rows[0]["Name"]);
+            Assert.Equal(42, table.Rows[0]["Value"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullItems() {
             var ex = Assert.Throws<ArgumentNullException>(() => ObjectDataTableBuilder.FromObjects(null!));
             Assert.Equal("items", ex.ParamName);
@@ -197,6 +208,19 @@ namespace OfficeIMO.Tests {
             var ex = Assert.Throws<ArgumentException>(() => ObjectDataTableBuilder.FromObjects(Array.Empty<object?>()));
             Assert.StartsWith("Provide at least one data row.", ex.Message);
             Assert.Equal("items", ex.ParamName);
+        }
+
+        [Fact]
+        public void Test_ObjectDataTableBuilder_FromObjects_ThrowsWhenColumnsCannotBeInferred() {
+            foreach (var items in new[] {
+                new object?[] { "A", "B" },
+                new object?[] { new object() },
+                new object?[] { new Dictionary<string, object?> { [" "] = 1 } },
+                new object?[] { new System.Collections.Hashtable { [" "] = 1 } }
+            }) {
+                var ex = Assert.Throws<InvalidOperationException>(() => ObjectDataTableBuilder.FromObjects(items));
+                Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);
+            }
         }
 
         [Fact]
@@ -224,6 +248,19 @@ namespace OfficeIMO.Tests {
         private sealed class HiddenObjectRow : ObjectDataBaseRow {
             public new string Name { get; set; } = string.Empty;
             public new int Value { get; set; }
+        }
+
+        private sealed class EnumerableObjectRow : IEnumerable<int> {
+            public string Name { get; set; } = string.Empty;
+            public int Value { get; set; }
+
+            public IEnumerator<int> GetEnumerator() {
+                yield return Value;
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
         }
 
     }

@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Csv)](https://www.nuget.org/packages/OfficeIMO.Reader.Csv)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Csv?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Csv)
 
-`OfficeIMO.Reader.Csv` registers a modular CSV/TSV ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Csv` provides CSV/TSV ingestion for `OfficeIMO.Reader` and CSV exchange helpers for `OfficeIMO.Excel`.
 
 ## Install
 
@@ -64,18 +64,28 @@ foreach (var table in chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<Rea
 }
 ```
 
-## What it emits
+### Import CSV into Excel
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Reader.Csv;
+
+using var workbook = ExcelDocument.Create("report.xlsx");
+var result = workbook.ImportDelimitedFile("sales.csv", new ExcelDelimitedImportOptions {
+    SheetName = "Sales",
+    TableName = "SalesData"
+});
+```
+
+Worksheet ranges can also be exchanged directly with `sheet.FromCsv(csv)`, `sheet.ToCsv()`, and `sheet.TableToCsv("SalesData")`.
+
+## Output
 
 - CSV/TSV chunks with table-aware output.
 - Path and stream dispatch.
 - Deterministic chunk IDs and row-based locations.
 - `MaxInputBytes` enforcement through shared `ReaderInputLimits`.
-
-## Boundaries
-
-- Reader adapter registration belongs here.
-- CSV parsing and document modeling belongs in `OfficeIMO.CSV`.
-- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Excel worksheet and table CSV exchange.
 
 ## Targets and license
 

@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Text;
+
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument
@@ -23,6 +25,15 @@ public sealed partial class CsvDocument
         options ??= new CsvLoadOptions();
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
         var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        if (CanUseMemoryBackedFileText(path, resolvedOptions))
+        {
+            resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
+            var encoding = resolvedOptions.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            var text = File.ReadAllText(path, encoding);
+            ReadRowFieldSpans(text.AsSpan(), ref rowVisitor, resolvedOptions);
+            return;
+        }
+
         using var reader = readerFactory();
         ReadRowFieldSpans(reader, ref rowVisitor, resolvedOptions);
     }

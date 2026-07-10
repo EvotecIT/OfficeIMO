@@ -85,6 +85,7 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
     bool includeLegacyEpPlus = !HasSwitch(args, "--skip-legacy-epplus");
     string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
+    string[] libraryFilters = ParseOptionValues(args, "--library", "--libraries");
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
     string? outputPathOverride = ParseOutputPath(args);
@@ -94,7 +95,8 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
         includeLegacyEpPlus,
         scenarioFilters,
         warmupIterations,
-        measuredIterations);
+        measuredIterations,
+        libraryFilters);
     Console.WriteLine($"Excel library comparison written to '{outputPath}'.");
     return;
 }
@@ -283,7 +285,7 @@ static void WriteUsage() {
     Console.WriteLine("  write-profile [output] [--rows N]");
     Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
-    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
+    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
     Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
     Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
@@ -327,6 +329,31 @@ static int ParseRowCount(string[] args, int startIndex) {
         }
 
         return rowCount;
+    }
+
+    if (startIndex < args.Length && !args[startIndex].StartsWith("-", StringComparison.Ordinal)) {
+        string value = args[startIndex].Replace(",", string.Empty, StringComparison.Ordinal).Replace("_", string.Empty, StringComparison.Ordinal);
+        if (int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int rowCount)
+            && rowCount > 0) {
+            return rowCount;
+        }
+    }
+
+    for (int i = startIndex; i < args.Length; i++) {
+        string arg = args[i];
+        if (arg.StartsWith("-", StringComparison.Ordinal)) {
+            if (OptionConsumesValue(arg)) {
+                i++;
+            }
+
+            continue;
+        }
+
+        string value = arg.Replace(",", string.Empty, StringComparison.Ordinal).Replace("_", string.Empty, StringComparison.Ordinal);
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int rowCount)
+            && rowCount > 0) {
+            return rowCount;
+        }
     }
 
     return defaultRowCount;
@@ -442,6 +469,29 @@ static bool HasSwitch(string[] args, string optionName)
 static bool HasAnyOption(string[] args, params string[] optionNames)
     => args.Any(arg => optionNames.Any(option => string.Equals(arg, option, StringComparison.OrdinalIgnoreCase)));
 
+static bool OptionConsumesValue(string option)
+    => string.Equals(option, "--out", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--output", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--output-path", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--out-dir", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--output-dir", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--directory", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--website-data", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--website-benchmarks", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--scenario", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--scenarios", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--library", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--libraries", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--warmup", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--warmups", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--iterations", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--measured-iterations", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--samples", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--rows", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--row-count", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--row-set", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--row-counts", StringComparison.OrdinalIgnoreCase);
+
 static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenarioFilters) {
     if (scenarioFilters.Count == 0) {
         return [];
@@ -458,6 +508,8 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-datareader-table",
         "write-datareader-table-autofit",
         "write-datareader-plain",
+        "write-datareader-direct-package",
+        "write-datareader-compact-package",
         "write-cellvalues-rectangle-direct",
         "write-cellvalues-headerless-rectangle-direct",
         "write-cellvalue-strings",
@@ -472,6 +524,8 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-cellvalue-object-sparse-batch",
         "write-cellformula",
         "write-insertobjects-direct",
+        "write-objects-direct-package",
+        "write-typed-rows-compact-package",
         "write-insertobjects-autofitcolumnsfor-direct",
         "write-insertobjects-partial-autofitcolumnsfor-direct",
         "write-insertobjects-flat-dictionaries-direct",

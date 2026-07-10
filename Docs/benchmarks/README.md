@@ -30,10 +30,3 @@ After a suite run, generate the website/blog data layer:
 ```powershell
 .\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
 ```
-
-## Boundaries
-
-- This folder stores benchmark artifacts and artifact-generation notes.
-- Benchmark code lives in `OfficeIMO.Excel.Benchmarks`.
-- NPOI verification code lives in `OfficeIMO.Excel.Benchmarks.NPOI` and is explicit benchmark-only evidence, not an OfficeIMO runtime dependency.
-- Runtime Excel behavior lives in `OfficeIMO.Excel`.

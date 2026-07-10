@@ -14,8 +14,7 @@ namespace OfficeIMO.Excel {
         Info,
         Warning,
         Error
-    }
-
+}
     /// <summary>
     /// A diagnostic issue discovered in an Excel workbook.
     /// </summary>
@@ -119,38 +118,6 @@ namespace OfficeIMO.Excel {
         public string? SheetName { get; }
         public bool Hidden { get; }
         public bool BuiltIn { get; }
-    }
-
-    /// <summary>
-    /// Result of importing normalized delimited text.
-    /// </summary>
-    public sealed class ExcelDelimitedImportResult {
-        internal ExcelDelimitedImportResult(ExcelDataSetImportResult importResult, char delimiter, string encodingName, IReadOnlyList<string> warnings) {
-            ImportResult = importResult;
-            Delimiter = delimiter;
-            EncodingName = encodingName;
-            Warnings = warnings;
-        }
-
-        public ExcelDataSetImportResult ImportResult { get; }
-        public char Delimiter { get; }
-        public string EncodingName { get; }
-        public IReadOnlyList<string> Warnings { get; }
-    }
-
-    /// <summary>
-    /// Options for culture-aware CSV/TSV import normalization.
-    /// </summary>
-    public sealed class ExcelDelimitedImportOptions {
-        public char? Delimiter { get; set; }
-        public bool HeadersInFirstRow { get; set; } = true;
-        public int SkipInitialRecords { get; set; }
-        public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
-        public bool ConvertNumbersAndDates { get; set; } = true;
-        public bool CreateTable { get; set; } = true;
-        public string? SheetName { get; set; }
-        public string? TableName { get; set; }
-        public TableStyle TableStyle { get; set; } = TableStyle.TableStyleMedium2;
     }
 
     /// <summary>
