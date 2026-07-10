@@ -9,7 +9,7 @@ public sealed partial class CsvDocument
 {
     // Large explicit schema samples are faster when streamed twice than kept live through reader traversal.
     private const int StreamingInferredReaderBufferLimit = 1000;
-    private const long MemoryBackedDataReaderFileLimit = 32L * 1024 * 1024;
+    private const long MemoryBackedCsvFileLimit = 32L * 1024 * 1024;
 
     /// <summary>
     /// Creates a forward-only data reader over a CSV file.
@@ -157,15 +157,20 @@ public sealed partial class CsvDocument
         CsvLoadOptions options,
         CsvDataReaderOptions readerOptions)
     {
-        if ((readerOptions.Schema is null && !readerOptions.InferSchema) ||
-            options.Mode != CsvLoadMode.Stream ||
+        return (readerOptions.Schema is not null || readerOptions.InferSchema) &&
+            CanUseMemoryBackedFileText(path, options);
+    }
+
+    private static bool CanUseMemoryBackedFileText(string path, CsvLoadOptions options)
+    {
+        if (options.Mode != CsvLoadMode.Stream ||
             CsvFile.ResolveCompression(options.CompressionType, path) != CsvCompressionType.None)
         {
             return false;
         }
 
         var fileLength = new FileInfo(path).Length;
-        return fileLength <= MemoryBackedDataReaderFileLimit &&
+        return fileLength <= MemoryBackedCsvFileLimit &&
             (options.MaxDecompressedBytes is null || fileLength <= options.MaxDecompressedBytes.Value);
     }
 #endif
