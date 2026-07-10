@@ -496,7 +496,8 @@ namespace OfficeIMO.Excel {
                 .Select(axis => axis.Val!.Value));
             return plotArea.Elements<ValueAxis>().Any(axis =>
                        axis.AxisId?.Val?.Value != null && axisIds.Contains(axis.AxisId.Val.Value) &&
-                       axis.AxisPosition?.Val?.Value == AxisPositionValues.Right)
+                       (axis.AxisPosition?.Val?.Value == AxisPositionValues.Right ||
+                        axis.AxisPosition?.Val?.Value == AxisPositionValues.Top))
                 ? ExcelChartAxisGroup.Secondary
                 : ExcelChartAxisGroup.Primary;
         }

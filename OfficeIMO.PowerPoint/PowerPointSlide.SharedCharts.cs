@@ -68,7 +68,7 @@ namespace OfficeIMO.PowerPoint {
             string? alternativeText = options.AlternativeText;
             if (options.IncludeDataSummaryInAlternativeText && !string.IsNullOrWhiteSpace(summary)) {
                 alternativeText = string.IsNullOrWhiteSpace(alternativeText)
-                    ? summary
+                    ? "Data summary:" + Environment.NewLine + summary!.Trim()
                     : alternativeText!.Trim() + Environment.NewLine + Environment.NewLine + "Data summary:" +
                       Environment.NewLine + summary!.Trim();
             }

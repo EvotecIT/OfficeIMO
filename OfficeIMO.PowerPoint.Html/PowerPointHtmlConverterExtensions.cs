@@ -127,7 +127,8 @@ public static class PowerPointHtmlConverterExtensions {
         IReadOnlyList<OfficeImageExportDiagnostic> slideDiagnostics = Array.Empty<OfficeImageExportDiagnostic>();
         if (options.UseSharedVisualSnapshot) {
             var snapshotOptions = new PptCore.PowerPointImageExportOptions {
-                IncludeHiddenShapes = options.IncludeHiddenShapes
+                IncludeHiddenShapes = options.IncludeHiddenShapes,
+                IncludeTables = options.IncludeTables
             };
             PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(snapshotOptions);
             slideDiagnostics = snapshot.Diagnostics;

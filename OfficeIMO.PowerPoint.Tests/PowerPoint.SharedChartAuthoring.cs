@@ -117,6 +117,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SharedScatterChartUsesExplicitXValuesWithNonNumericLabels() {
+            var data = new OfficeChartData(new[] { "Discovery", "Delivery" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+
+            PowerPointChart chart = presentation.Slides[0].AddChart(
+                OfficeChartKind.Scatter, data);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(new[] { 1.25D, 2.75D }, Assert.Single(snapshot.Data.Series).XValues);
+        }
+
+        [Fact]
+        public void GeneratedChartSummaryCarriesAccessibilityMarker() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointChart chart = presentation.Slides[0].AddChart(
+                OfficeChartKind.ColumnClustered, CreateData(OfficeChartKind.ColumnClustered),
+                accessibility: new PowerPointChartAccessibilityOptions());
+
+            Assert.StartsWith("Data summary:", chart.AltText, StringComparison.Ordinal);
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+            Assert.DoesNotContain(report.Findings,
+                finding => finding.Code == "Accessibility.ChartColorOnlyMeaning");
+        }
+
+        [Fact]
         public void SharedChartContract_RejectsUnsupportedMixedAxesBeforeMutatingSlide() {
             var data = new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeChartSeries("Bars", new[] { 1D, 2D }, null, null, null, showMarkers: false,

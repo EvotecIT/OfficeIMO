@@ -81,6 +81,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void VisualReviewSharedSnapshotHonorsTableSuppression() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 40, 180, 45);
+            table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
+
+            string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+                Profile = OfficeHtmlConversionProfile.PowerPointVisualReview,
+                IncludeTables = false,
+                IncludeExtractionProof = false
+            });
+
+            Assert.Contains("officeimo-shared-slide-snapshot", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("FILTERED REVIEW TABLE", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SanitizedPowerPointAuthoredFixtureProducesImportedProof() {
             string fixture = Path.Combine(GetRepositoryRoot(), "Assets", "PowerPointTemplates",
                 "PowerPointWithTablesAndCharts.pptx");

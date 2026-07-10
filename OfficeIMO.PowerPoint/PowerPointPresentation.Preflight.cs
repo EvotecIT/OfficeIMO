@@ -30,6 +30,9 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointDeckPreflightReport SaveWithPreflight(PowerPointDeckPreflightOptions? options = null) {
             PowerPointDeckPreflightOptions resolved = options?.Clone() ?? new PowerPointDeckPreflightOptions();
             PowerPointDeckPreflightReport report = Preflight(resolved);
+            if (report.HasFindingsAtOrAbove(resolved.FailureSeverity)) {
+                _discardChangesOnDispose = true;
+            }
             report.ThrowIfFindings(resolved.FailureSeverity);
             Save();
             return report;

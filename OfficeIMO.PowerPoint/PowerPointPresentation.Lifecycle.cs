@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocument? document = _document;
             try {
                 if (document != null) {
-                    if (_copyPackageToSourceOnDispose || _saveOnDispose) {
+                    if (!_discardChangesOnDispose && (_copyPackageToSourceOnDispose || _saveOnDispose)) {
                         Save();
                     }
                 }
@@ -38,11 +38,13 @@ namespace OfficeIMO.PowerPoint {
                 }
                 _document = null;
                 try {
-                    PersistPackageToSourceIfNeeded(persistChanges: pendingException == null);
+                    PersistPackageToSourceIfNeeded(
+                        persistChanges: pendingException == null && !_discardChangesOnDispose);
                 } catch (Exception ex) when (pendingException == null) {
                     pendingException = ex;
                 }
                 _saveOnDispose = false;
+                _discardChangesOnDispose = false;
                 _disposed = true;
             }
 

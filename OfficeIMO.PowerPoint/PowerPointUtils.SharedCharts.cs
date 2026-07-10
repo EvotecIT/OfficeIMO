@@ -73,9 +73,11 @@ namespace OfficeIMO.PowerPoint {
                 new PowerPointChartSeries(series.Name, series.Values)));
 
         internal static PowerPointScatterChartData ToPowerPointScatterChartData(OfficeChartData data) {
-            IReadOnlyList<double> sharedX = ParseScatterCategories(data.Categories);
+            IReadOnlyList<double>? sharedX = data.Series.Any(series => series.XValues == null)
+                ? ParseScatterCategories(data.Categories)
+                : null;
             return new PowerPointScatterChartData(data.Series.Select(series =>
-                new PowerPointScatterChartSeries(series.Name, series.XValues ?? sharedX, series.Values)));
+                new PowerPointScatterChartSeries(series.Name, series.XValues ?? sharedX!, series.Values)));
         }
 
         internal static void PopulateSharedChart(ChartPart chartPart, string embeddedRelId, OfficeChartData data,

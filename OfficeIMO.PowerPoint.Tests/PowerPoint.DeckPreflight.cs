@@ -59,23 +59,33 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SaveWithPreflight_RejectsSelectedSeverityBeforeSaving() {
-            using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
-            presentation.Slides[0].AddRectanglePoints(390, 210, 30, 30, "Outside");
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                    presentation.SlideSize.SetSizePoints(400, 225);
+                    presentation.Save();
+                    presentation.Slides[0].AddRectanglePoints(390, 210, 30, 30, "Outside");
 
-            var options = new PowerPointDeckPreflightOptions {
-                DetectTextOverflow = false,
-                DetectShapeCollisions = false,
-                DetectMissingVisualAssets = false,
-                IncludeVisualSnapshotDiagnostics = false,
-                AllowDecorativeShapeBleed = false,
-                FailureSeverity = PowerPointDeckPreflightSeverity.Error
-            };
+                    var options = new PowerPointDeckPreflightOptions {
+                        DetectTextOverflow = false,
+                        DetectShapeCollisions = false,
+                        DetectMissingVisualAssets = false,
+                        IncludeVisualSnapshotDiagnostics = false,
+                        AllowDecorativeShapeBleed = false,
+                        FailureSeverity = PowerPointDeckPreflightSeverity.Error
+                    };
 
-            PowerPointDeckPreflightException exception =
-                Assert.Throws<PowerPointDeckPreflightException>(() => presentation.SaveWithPreflight(options));
-            Assert.Contains(exception.Report.Findings, finding => finding.Code == "Layout.ShapeOffSlide");
+                    PowerPointDeckPreflightException exception = Assert.Throws<PowerPointDeckPreflightException>(
+                        () => presentation.SaveWithPreflight(options));
+                    Assert.Contains(exception.Report.Findings,
+                        finding => finding.Code == "Layout.ShapeOffSlide");
+                }
+
+                using PowerPointPresentation reopened = PowerPointPresentation.OpenRead(path);
+                Assert.DoesNotContain(reopened.Slides[0].Shapes, shape => shape.Name == "Outside");
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
         }
 
         [Fact]

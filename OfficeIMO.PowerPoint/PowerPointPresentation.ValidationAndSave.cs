@@ -75,6 +75,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
+            _discardChangesOnDispose = false;
         }
 
         /// <summary>
@@ -93,6 +94,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
+            _discardChangesOnDispose = false;
 
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);

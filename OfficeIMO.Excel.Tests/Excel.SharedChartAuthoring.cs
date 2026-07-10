@@ -71,5 +71,33 @@ namespace OfficeIMO.Tests {
                     });
             }
         }
+
+        [Fact]
+        public void Test_ExcelCharts_HorizontalSharedContractPreservesSecondaryAxis() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.HorizontalSecondary.xlsx");
+            var sharedData = new OfficeChartData(new[] { "North", "South" }, new[] {
+                new OfficeChartSeries("Primary", new[] { 42D, 55D },
+                    xValues: null, color: null, pointColors: null, showMarkers: true,
+                    renderKind: OfficeChartKind.BarClustered),
+                new OfficeChartSeries("Secondary", new[] { 4.2D, 5.5D },
+                    xValues: null, color: null, pointColors: null, showMarkers: true,
+                    renderKind: OfficeChartKind.BarClustered,
+                    axisGroup: OfficeChartAxisGroup.Secondary)
+            });
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                sheet.AddChart(OfficeChartKind.BarClustered, sharedData,
+                    row: 1, column: 5, title: "Horizontal secondary");
+                document.Save();
+            }
+
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
+            ExcelChart chart = Assert.Single(reopenedSheet.Charts);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(ExcelChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
+            Assert.Equal(ExcelChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
+        }
     }
 }
