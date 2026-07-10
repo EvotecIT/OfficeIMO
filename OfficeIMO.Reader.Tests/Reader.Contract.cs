@@ -158,7 +158,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultJson_RejectsNumericEnums() {
         string json = OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult());
-        string withNumericKind = json.Replace("\"kind\":\"Unknown\"", "\"kind\":0", StringComparison.Ordinal);
+        string withNumericKind = json.Replace("\"kind\":\"Unknown\"", "\"kind\":0");
 
         Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Deserialize(withNumericKind));
     }
