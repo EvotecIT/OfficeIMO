@@ -81,7 +81,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// Bounded-profile LaTeX technical document.
     /// </summary>
-    Latex
+    Latex,
+    /// <summary>
+    /// Email, Outlook item, TNEF payload, or mbox mailbox.
+    /// </summary>
+    Email
 }
 
 /// <summary>

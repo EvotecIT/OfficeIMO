@@ -56,12 +56,16 @@ public static partial class DocumentReader {
                     : GetDocumentResultChunks(customStreamHandler.ReadDocumentStream!(readStream, logicalSourceName, opt, cancellationToken), customStreamHandler.Id);
             } else {
                 var kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName!);
+                if (kind == ReaderInputKind.Unknown && IsEmailArtifact(readStream, opt, cancellationToken)) {
+                    kind = ReaderInputKind.Email;
+                }
                 raw = kind switch {
                     ReaderInputKind.Word => ReadWord(readStream, logicalSourceName, opt, cancellationToken),
                     ReaderInputKind.Excel => ReadExcel(readStream, logicalSourceName, opt, cancellationToken),
                     ReaderInputKind.PowerPoint => ReadPowerPoint(readStream, logicalSourceName, opt, cancellationToken),
                     ReaderInputKind.Markdown => ReadMarkdown(readStream, logicalSourceName, opt, cancellationToken),
                     ReaderInputKind.Pdf => ReadPdf(readStream, logicalSourceName, opt, cancellationToken),
+                    ReaderInputKind.Email => ReadEmail(readStream, logicalSourceName, opt, cancellationToken),
                     ReaderInputKind.Text => ReadText(readStream, logicalSourceName, opt, cancellationToken),
                     _ => ReadUnknown(readStream, logicalSourceName, opt, cancellationToken)
                 };

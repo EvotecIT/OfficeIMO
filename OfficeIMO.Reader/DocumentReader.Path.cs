@@ -55,12 +55,16 @@ public static partial class DocumentReader {
                 : GetDocumentResultChunks(customPathHandler.ReadDocumentPath!(path, opt, cancellationToken), customPathHandler.Id);
         } else {
             var kind = DetectKind(path);
+            if (kind == ReaderInputKind.Unknown && IsEmailArtifact(path, opt, cancellationToken)) {
+                kind = ReaderInputKind.Email;
+            }
             raw = kind switch {
                 ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
                 ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
                 ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
                 ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
                 ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
+                ReaderInputKind.Email => ReadEmail(path, opt, cancellationToken),
                 ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
                 _ => ReadUnknown(path, opt, cancellationToken)
             };

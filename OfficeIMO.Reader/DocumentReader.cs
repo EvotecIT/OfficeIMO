@@ -35,6 +35,7 @@ public static partial class DocumentReader {
         ".pptx", ".pptm",
         ".md", ".markdown",
         ".pdf",
+        ".eml", ".msg", ".mbox", ".mbx", ".tnef",
         ".txt", ".log", ".csv", ".tsv", ".json", ".xml", ".yml", ".yaml"
     };
 
@@ -85,6 +86,16 @@ public static partial class DocumentReader {
             Description = "Built-in PDF logical page and markdown extractor.",
             Kind = ReaderInputKind.Pdf,
             Extensions = new[] { ".pdf" },
+            IsBuiltIn = true,
+            SupportsPath = true,
+            SupportsStream = true
+        },
+        new ReaderHandlerCapability {
+            Id = "officeimo.reader.email",
+            DisplayName = "Email Reader",
+            Description = "Built-in EML/MIME, Outlook MSG/MAPI, TNEF, and mbox extractor.",
+            Kind = ReaderInputKind.Email,
+            Extensions = new[] { ".eml", ".msg", ".mbox", ".mbx", ".tnef" },
             IsBuiltIn = true,
             SupportsPath = true,
             SupportsStream = true
@@ -449,6 +460,9 @@ public static partial class DocumentReader {
         if (extLower.Length > 0 && TryResolveCustomHandlerByExtension(extLower, out var custom)) {
             return custom.Kind;
         }
+        if (string.Equals(Path.GetFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
+            return ReaderInputKind.Email;
+        }
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
             ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,
@@ -456,6 +470,7 @@ public static partial class DocumentReader {
             ".pptx" or ".pptm" => ReaderInputKind.PowerPoint,
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
+            ".eml" or ".msg" or ".mbox" or ".mbx" or ".tnef" => ReaderInputKind.Email,
             ".txt" or ".log" or ".csv" or ".tsv" or ".json" or ".xml" or ".yml" or ".yaml" => ReaderInputKind.Text,
             ".ppt" => ReaderInputKind.Unknown, // Legacy binary PowerPoint is not supported.
             _ => ReaderInputKind.Unknown

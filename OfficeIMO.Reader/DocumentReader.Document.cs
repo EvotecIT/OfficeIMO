@@ -31,6 +31,11 @@ public static partial class DocumentReader {
                 customPathHandler.Id);
         }
 
+        if (!hasCustomPathHandler && (kind == ReaderInputKind.Email ||
+            (kind == ReaderInputKind.Unknown && IsEmailArtifact(path, opt, cancellationToken)))) {
+            return ReadEmailDocument(path, opt, cancellationToken);
+        }
+
         bool customPathReaderOwnsExtension = hasCustomPathHandler && customPathHandler.ReadPath != null;
         ReaderChunk[] chunks = Read(path, opt, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = customPathReaderOwnsExtension
@@ -77,6 +82,13 @@ public static partial class DocumentReader {
         }
 
         using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
+        if (!hasCustomStreamHandler && (kind == ReaderInputKind.Email ||
+            (kind == ReaderInputKind.Unknown && IsEmailArtifact(snapshot, opt, cancellationToken)))) {
+            snapshot.Position = 0;
+            return ReadEmailDocument(snapshot, logicalSourceName, opt, cancellationToken);
+        }
+
+        snapshot.Position = 0;
         ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
         snapshot.Position = 0;
         bool customStreamReaderOwnsExtension = hasCustomStreamHandler && customStreamHandler.ReadStream != null;
