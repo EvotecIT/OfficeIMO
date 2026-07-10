@@ -112,6 +112,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (outerHeight <= 0D) outerHeight = 0.01D;
         var visuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AppendLocalPositionedVisuals(
+            element,
+            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
+            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
+            style.MarginLeft + style.BorderWidth,
+            style.MarginTop + style.BorderWidth,
+            PositionedPaintBand.Negative,
+            visuals);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in contentVisuals) {
@@ -124,6 +132,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
                 style.MarginLeft + style.BorderWidth,
                 style.MarginTop + style.BorderWidth,
+                PositionedPaintBand.NonNegative,
                 visuals);
         }
 

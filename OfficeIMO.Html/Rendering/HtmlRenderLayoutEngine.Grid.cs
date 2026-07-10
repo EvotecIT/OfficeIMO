@@ -74,6 +74,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AppendLocalPositionedVisuals(
+            element,
+            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
+            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
+            style.MarginLeft + style.BorderWidth,
+            style.MarginTop + style.BorderWidth,
+            PositionedPaintBand.Negative,
+            visuals);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (GridItem item in items) {
@@ -87,6 +95,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
             style.MarginLeft + style.BorderWidth,
             style.MarginTop + style.BorderWidth,
+            PositionedPaintBand.NonNegative,
             visuals);
 
         IEnumerable<double> breakOffsets = Enumerable.Range(1, Math.Max(0, rowCount - 1))

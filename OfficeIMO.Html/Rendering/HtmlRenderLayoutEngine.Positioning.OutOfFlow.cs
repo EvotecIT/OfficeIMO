@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using System.Globalization;
 
 namespace OfficeIMO.Html;
 
@@ -16,12 +17,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth) {
         if (style.Position == "fixed") {
-            if (_registeredFixedElements.Add(element)) _fixedPositionedElements.Add(new PositionedElementRequest(element, style.Clone(), parentStyle.Clone(), depth));
+            if (!_registeredFixedElements.Add(element)) return;
+            _fixedPositionedElements.Add(new PositionedElementRequest(
+                element,
+                style.Clone(),
+                parentStyle.Clone(),
+                depth,
+                ResolveOutOfFlowZIndex(element, style),
+                _positionedSourceOrder++));
             return;
         }
         if (style.Position != "absolute" || !_registeredAbsoluteElements.Add(element)) return;
 
-        var request = new PositionedElementRequest(element, style.Clone(), parentStyle.Clone(), depth);
+        var request = new PositionedElementRequest(
+            element,
+            style.Clone(),
+            parentStyle.Clone(),
+            depth,
+            ResolveOutOfFlowZIndex(element, style),
+            _positionedSourceOrder++);
         IElement containingBlock = ResolveAbsoluteContainingBlock(element, container, parentStyle);
         if (IsRootLayoutContainer(containingBlock)) {
             _rootPositionedElements.Add(request);
@@ -38,6 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IElement ResolveAbsoluteContainingBlock(IElement element, IElement directParent, HtmlRenderBoxStyle directParentStyle) {
         IElement root = _document.Body ?? _document.DocumentElement ?? directParent;
         if (ReferenceEquals(directParent, root)) return root;
+        if (_registeredAbsoluteElements.Contains(directParent) || _registeredFixedElements.Contains(directParent)) return directParent;
         if (EstablishesSupportedAbsoluteContainingBlock(directParent, directParentStyle)) return directParent;
         if (directParentStyle.Position != "static") return ReportInlineContainingBlockFallback(element, directParent, root);
 
@@ -78,15 +93,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return root;
     }
 
+    private int ResolveOutOfFlowZIndex(IElement element, HtmlRenderBoxStyle style) {
+        if (string.Equals(style.ZIndex, "auto", StringComparison.OrdinalIgnoreCase)) return 0;
+        if (int.TryParse(style.ZIndex, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zIndex)) return zIndex;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.PositionZIndexPending,
+            "A positioned z-index was not an integer and used the auto stacking level.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            "z-index=" + style.ZIndex);
+        return 0;
+    }
+
     private void AppendLocalPositionedVisuals(
         IElement container,
         double containingWidth,
         double containingHeight,
         double originX,
         double originY,
+        PositionedPaintBand band,
         ICollection<HtmlRenderVisual> visuals) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
-        foreach (PositionedElementRequest request in requests) {
+        foreach (PositionedElementRequest request in OrderPositionedRequests(requests, band)) {
             PositionedLayer layer = request.Resolve(this, containingWidth, containingHeight);
             foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
                 visuals.Add(visual.Translate(originX + layer.X, originY + layer.Y, visuals.Count));
@@ -94,37 +123,64 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void AppendPositionedRequests(
-        ICollection<HtmlRenderVisual> visuals,
-        IEnumerable<PositionedElementRequest> requests,
-        double containingWidth,
-        double containingHeight,
-        double originX,
-        double originY) {
-        if (requests is IList<PositionedElementRequest> requestList) {
-            for (int index = 0; index < requestList.Count; index++) {
-                AppendPositionedRequest(visuals, requestList[index], containingWidth, containingHeight, originX, originY);
+    private void PrepareGlobalPositionedRequests(
+        bool includeRoot,
+        double surfaceWidth,
+        double surfaceHeight,
+        double contentWidth,
+        double contentHeight) {
+        if (includeRoot) {
+            for (int index = 0; index < _rootPositionedElements.Count; index++) {
+                _rootPositionedElements[index].Resolve(this, contentWidth, contentHeight);
             }
-            return;
         }
-
-        foreach (PositionedElementRequest request in requests) {
-            AppendPositionedRequest(visuals, request, containingWidth, containingHeight, originX, originY);
+        for (int index = 0; index < _fixedPositionedElements.Count; index++) {
+            _fixedPositionedElements[index].Resolve(this, surfaceWidth, surfaceHeight);
         }
     }
 
-    private void AppendPositionedRequest(
+    private void AppendGlobalPositionedRequests(
         ICollection<HtmlRenderVisual> visuals,
-        PositionedElementRequest request,
-        double containingWidth,
-        double containingHeight,
-        double originX,
-        double originY) {
-        PositionedLayer layer = request.Resolve(this, containingWidth, containingHeight);
-        foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-            visuals.Add(visual.Translate(originX + layer.X, originY + layer.Y, _paintOrder++));
+        bool includeRoot,
+        double surfaceWidth,
+        double surfaceHeight,
+        double contentWidth,
+        double contentHeight,
+        PositionedPaintBand band) {
+        var placements = new List<PositionedRequestPlacement>();
+        if (includeRoot) {
+            placements.AddRange(_rootPositionedElements.Select(request => new PositionedRequestPlacement(
+                request,
+                contentWidth,
+                contentHeight,
+                _options.Margins.Left,
+                _options.Margins.Top)));
+        }
+        placements.AddRange(_fixedPositionedElements.Select(request => new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));
+        foreach (PositionedRequestPlacement placement in placements
+            .Where(item => band == PositionedPaintBand.Negative ? item.Request.ZIndex < 0 : item.Request.ZIndex >= 0)
+            .OrderBy(item => item.Request.ZIndex)
+            .ThenBy(item => item.Request.SourceOrder)) {
+            AppendGlobalPositionedRequest(visuals, placement, band);
         }
     }
+
+    private void AppendGlobalPositionedRequest(
+        ICollection<HtmlRenderVisual> visuals,
+        PositionedRequestPlacement placement,
+        PositionedPaintBand band) {
+        PositionedLayer layer = placement.Request.Resolve(this, placement.Width, placement.Height);
+        foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
+            int paintOrder = band == PositionedPaintBand.Negative ? _underlayPaintOrder++ : _paintOrder++;
+            visuals.Add(visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder));
+        }
+    }
+
+    private static IEnumerable<PositionedElementRequest> OrderPositionedRequests(IEnumerable<PositionedElementRequest> requests, PositionedPaintBand band) =>
+        requests
+            .Where(request => band == PositionedPaintBand.Negative ? request.ZIndex < 0 : request.ZIndex >= 0)
+            .OrderBy(request => request.ZIndex)
+            .ThenBy(request => request.SourceOrder);
 
     private PositionedLayer LayoutPositionedElement(
         IElement element,
@@ -145,9 +201,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double targetOuterHeight = Math.Max(0.01D, containingHeight - top.Value - bottom.Value);
             double targetBoxHeight = Math.Max(0.01D, targetOuterHeight - style.MarginTop - style.MarginBottom);
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
-        }
-        if (style.ZIndex != "auto") {
-            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PositionZIndexPending, "CSS z-index is not yet active; the positioned element paints after in-flow content.", HtmlDiagnosticSeverity.Warning, source, "z-index=" + style.ZIndex);
         }
         style.Position = "static";
         style.ZIndex = "auto";
@@ -187,16 +240,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private PositionedLayer? _cached;
         private double _width;
         private double _height;
-        internal PositionedElementRequest(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
+        internal PositionedElementRequest(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth, int zIndex, int sourceOrder) {
             Element = element;
             Style = style;
             ParentStyle = parentStyle;
             Depth = depth;
+            ZIndex = zIndex;
+            SourceOrder = sourceOrder;
         }
         private IElement Element { get; }
         private HtmlRenderBoxStyle Style { get; }
         private HtmlRenderBoxStyle ParentStyle { get; }
         private int Depth { get; }
+        internal int ZIndex { get; }
+        internal int SourceOrder { get; }
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
             if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D) {
                 _cached = engine.LayoutPositionedElement(Element, Style, ParentStyle, width, height, Depth);
@@ -216,5 +273,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal HtmlRenderFlowBlock Block { get; }
         internal double X { get; }
         internal double Y { get; }
+    }
+
+    private sealed class PositionedRequestPlacement {
+        internal PositionedRequestPlacement(PositionedElementRequest request, double width, double height, double originX, double originY) {
+            Request = request;
+            Width = width;
+            Height = height;
+            OriginX = originX;
+            OriginY = originY;
+        }
+        internal PositionedElementRequest Request { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal double OriginX { get; }
+        internal double OriginY { get; }
+    }
+
+    private enum PositionedPaintBand {
+        Negative,
+        NonNegative
     }
 }

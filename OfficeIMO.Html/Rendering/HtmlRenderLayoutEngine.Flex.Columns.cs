@@ -63,6 +63,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AppendLocalPositionedVisuals(
+            element,
+            Math.Max(1D, boxWidth - style.BorderWidth * 2D),
+            Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
+            style.MarginLeft + style.BorderWidth,
+            style.MarginTop + style.BorderWidth,
+            PositionedPaintBand.Negative,
+            visuals);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
         foreach (FlexLine line in lines) {
@@ -78,6 +86,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Math.Max(0.01D, boxHeight - style.BorderWidth * 2D),
             style.MarginLeft + style.BorderWidth,
             style.MarginTop + style.BorderWidth,
+            PositionedPaintBand.NonNegative,
             visuals);
 
         IEnumerable<double>? breakOffsets = lines.Count != 1 || lines[0].Items.Count < 2

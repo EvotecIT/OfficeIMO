@@ -345,6 +345,84 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlAbsolutePosition_OrdersNegativeFlowAutoAndPositiveStackingBands() {
+        const string html = "<div id='stack' style='position:relative;width:40px;height:40px;margin:0;background:#eeeeee'>"
+            + "<div id='negative' style='position:absolute;z-index:-2;left:0;top:0;width:40px;height:40px;background:#ff0000'></div>"
+            + "<div id='flow-layer' style='width:40px;height:40px;margin:0;background:#00ff00'></div>"
+            + "<div id='auto-layer' style='position:absolute;left:0;top:0;width:40px;height:40px;background:#0000ff'></div>"
+            + "<div id='positive-two' style='position:absolute;z-index:2;left:0;top:0;width:40px;height:40px;background:#ffff00'></div>"
+            + "<div id='positive-one' style='position:absolute;z-index:1;left:0;top:0;width:40px;height:40px;background:#ff00ff'></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "div#stack"
+                || shape.Source == "div#negative"
+                || shape.Source == "div#flow-layer"
+                || shape.Source == "div#auto-layer"
+                || shape.Source == "div#positive-one"
+                || shape.Source == "div#positive-two")
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "div#stack", "div#negative", "div#flow-layer", "div#auto-layer", "div#positive-one", "div#positive-two" }, paintSources);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
+    public void HtmlAbsolutePosition_KeepsDescendantsInsideParentStackingContext() {
+        const string html = "<div style='position:relative;width:40px;height:40px;margin:0'>"
+            + "<div id='sibling-context' style='position:absolute;z-index:5;left:0;top:0;width:40px;height:40px;background:#0000ff'></div>"
+            + "<div id='parent-context' style='position:absolute;z-index:10;left:0;top:0;width:40px;height:40px;background:#ff0000'>"
+            + "<div id='nested-negative' style='position:absolute;z-index:-100;left:0;top:0;width:40px;height:40px;background:#00ff00'></div></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "div#sibling-context" || shape.Source == "div#parent-context" || shape.Source == "div#nested-negative")
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "div#sibling-context", "div#parent-context", "div#nested-negative" }, paintSources);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.FromRgb(0x00, 0xFF, 0x00), raster.GetPixel(20, 20));
+    }
+
+    [Fact]
+    public void HtmlPositioning_OrdersRootAbsoluteAndFixedLayersAroundDocumentFlow() {
+        const string html = "<div id='root-positive' style='position:absolute;z-index:2;left:0;top:0;width:40px;height:40px;background:#ffff00'></div>"
+            + "<div id='fixed-one' style='position:fixed;z-index:1;left:0;top:0;width:40px;height:40px;background:#0000ff'></div>"
+            + "<div id='root-negative' style='position:absolute;z-index:-1;left:0;top:0;width:40px;height:40px;background:#ff0000'></div>"
+            + "<div id='document-flow' style='width:40px;height:40px;margin:0;background:#00ff00'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 40D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string[] paintSources = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "div#root-positive"
+                || shape.Source == "div#fixed-one"
+                || shape.Source == "div#root-negative"
+                || shape.Source == "div#document-flow")
+            .Select(shape => shape.Source!)
+            .ToArray();
+        Assert.Equal(new[] { "div#root-negative", "div#document-flow", "div#fixed-one", "div#root-positive" }, paintSources);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+    }
+
+    [Fact]
     public void HtmlRelativePosition_ResolvesTrailingInsetsAndExplicitVerticalPercentages() {
         const string baselineHtml = "<div style='height:100px;margin:0'><span>Marker</span></div>";
         const string positionedHtml = "<div style='height:100px;margin:0'><span style='position:relative;right:5px;bottom:10%'>Marker</span></div>";

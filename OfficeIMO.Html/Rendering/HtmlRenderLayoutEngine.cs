@@ -19,6 +19,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private IElement? _surfaceRootElement;
     private HtmlRenderBoxStyle? _surfaceRootStyle;
     private int _paintOrder;
+    private int _positionedSourceOrder;
+    private int _underlayPaintOrder = -1000000000;
     private long _backgroundImageTileCount;
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
@@ -78,10 +80,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ValidateSurface(width, height);
 
         List<HtmlRenderVisual> visuals = CreatePageVisuals(width, height);
-        visuals.AddRange(content);
         double contentWidth = Math.Max(1D, width - _options.Margins.Left - _options.Margins.Right);
-        AppendPositionedRequests(visuals, _rootPositionedElements, contentWidth, Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom), _options.Margins.Left, _options.Margins.Top);
-        AppendPositionedRequests(visuals, _fixedPositionedElements, width, height, 0D, 0D);
+        double contentHeight = Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom);
+        PrepareGlobalPositionedRequests(includeRoot: true, width, height, contentWidth, contentHeight);
+        AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
+        visuals.AddRange(content);
+        AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts);
     }
@@ -309,16 +313,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             throw new InvalidOperationException("HTML rendering exceeded the configured maximum page count.");
         }
 
-        if (pages.Count == 0) {
-            AppendPositionedRequests(
-                visuals,
-                _rootPositionedElements,
-                Math.Max(1D, width - _options.Margins.Left - _options.Margins.Right),
-                Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom),
-                _options.Margins.Left,
-                _options.Margins.Top);
-        }
-        AppendPositionedRequests(visuals, _fixedPositionedElements, width, height, 0D, 0D);
+        bool includeRoot = pages.Count == 0;
+        double contentWidth = Math.Max(1D, width - _options.Margins.Left - _options.Margins.Right);
+        double contentHeight = Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom);
+        PrepareGlobalPositionedRequests(includeRoot, width, height, contentWidth, contentHeight);
+        AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
+        AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
         pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts));
     }
 
