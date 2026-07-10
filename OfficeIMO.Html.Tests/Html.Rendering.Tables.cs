@@ -138,6 +138,53 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_CollapsedBordersResolveSharedCellEdgeOnceAcrossBackends() {
+        const string html = "<table id='conflict' style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse;font-size:8px;line-height:10px'><tr>"
+            + "<td style='border:1px solid black;border-right:5px solid red'>LeftPdf</td>"
+            + "<td style='border:1px solid black;border-left:2px solid blue'>RightPdf</td></tr></table>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 110D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderShape shared = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "table#conflict:collapsed-border-v-1-0");
+        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(110D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(OfficeColor.Red, shared.Shape.StrokeColor);
+        Assert.Equal(5D, shared.Shape.StrokeWidth, 3);
+        Assert.Contains("stroke=\"#FF0000\"", svg, StringComparison.Ordinal);
+        Assert.Contains("LeftPdf", pdfText, StringComparison.Ordinal);
+        Assert.Contains("RightPdf", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlTables_CollapsedHiddenBorderSuppressesSharedCellEdge() {
+        const string html = "<table id='hidden-conflict' style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse'><tr>"
+            + "<td style='border:1px solid black;border-right:5px solid red'>Left</td>"
+            + "<td style='border:1px solid black;border-left:1px hidden blue'>Right</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 110D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "table#hidden-conflict:collapsed-border-v-1-0");
+    }
+
+    [Fact]
     public void HtmlTables_InvalidCaptionSideUsesCatalogedTopFallbackAndSupportsTruth() {
         const string html = "<table id='table' style='caption-side:left;table-layout:balanced;border-collapse:merge;border-spacing:-2px;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
 

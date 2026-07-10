@@ -107,7 +107,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);
-                AddBoxPaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
+                HtmlRenderBoxStyle paintStyle = style.BorderCollapse == "collapse" ? CreateCollapsedCellPaintStyle(cell.Style) : cell.Style;
+                AddBoxPaint(visuals, paintStyle, cellX, rowY, cell.Width, cellHeight, cell.Element);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
@@ -137,6 +138,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             rowY += row.Height + verticalSpacing;
             bool headerHasBodyAfter = row.IsHeader && rowLayouts.Skip(rowIndex + 1).Any(candidate => !candidate.IsHeader && !candidate.IsFooter);
             if (!headerHasBodyAfter && canBreakAfterRows[rowIndex]) breakOffsets.Add(rowY);
+        }
+        if (style.BorderCollapse == "collapse") {
+            AddCollapsedTableBorders(visuals, table, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
         }
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         if (caption != null && caption.Side == "bottom") AppendTableCaption(visuals, caption, style.MarginLeft, tableY + tableHeight);
