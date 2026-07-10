@@ -672,7 +672,7 @@ namespace OfficeIMO.Excel {
                 autoFit);
         }
 
-        private static string[] BuildReaderHeaders(IDataReader reader) {
+        internal static string[] BuildReaderHeaders(IDataReader reader) {
             var headers = new string[reader.FieldCount];
             for (int i = 0; i < reader.FieldCount; i++) {
                 string name;
@@ -695,11 +695,11 @@ namespace OfficeIMO.Excel {
 
         private static List<object?[]> CreateDirectDataReaderRowBuffer() => new List<object?[]>(DirectDataReaderInitialRowCapacity);
 
-        private static bool CanUseBulkDataReaderValues(IDataReader reader) {
+        internal static bool CanUseBulkDataReaderValues(IDataReader reader) {
             return reader is not DataTableReader;
         }
 
-        private static void FillDataReaderValues(IDataReader reader, object?[] values, int columnCount, ref bool useBulkRead) {
+        internal static void FillDataReaderValues(IDataReader reader, object?[] values, int columnCount, ref bool useBulkRead) {
             int copied = 0;
             if (useBulkRead) {
                 try {
@@ -751,7 +751,7 @@ namespace OfficeIMO.Excel {
             values[7] = value7 == DBNull.Value ? null : value7;
         }
 
-        private static Type[] BuildReaderFieldTypes(IDataReader reader) {
+        internal static Type[] BuildReaderFieldTypes(IDataReader reader) {
             var types = new Type[reader.FieldCount];
             for (int i = 0; i < reader.FieldCount; i++) {
                 try {
@@ -764,7 +764,7 @@ namespace OfficeIMO.Excel {
             return types;
         }
 
-        private static string[] BuildDirectReaderColumnNames(IReadOnlyList<string> headers, bool includeHeaders) {
+        internal static string[] BuildDirectReaderColumnNames(IReadOnlyList<string> headers, bool includeHeaders) {
             if (includeHeaders) {
                 if (headers is string[] headerArray) {
                     return headerArray;
@@ -781,7 +781,7 @@ namespace OfficeIMO.Excel {
             return columnNames;
         }
 
-        private static Type[] BuildDirectReaderColumnTypes(IReadOnlyList<Type> fieldTypes) {
+        internal static Type[] BuildDirectReaderColumnTypes(IReadOnlyList<Type> fieldTypes) {
             for (int i = 0; i < fieldTypes.Count; i++) {
                 Type fieldType = fieldTypes[i];
                 Type columnType = fieldType == typeof(DBNull) || fieldType == typeof(void)

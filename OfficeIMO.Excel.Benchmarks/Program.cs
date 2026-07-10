@@ -85,6 +85,7 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
     bool includeLegacyEpPlus = !HasSwitch(args, "--skip-legacy-epplus");
     string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
+    string[] libraryFilters = ParseOptionValues(args, "--library", "--libraries");
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
     string? outputPathOverride = ParseOutputPath(args);
@@ -94,7 +95,8 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
         includeLegacyEpPlus,
         scenarioFilters,
         warmupIterations,
-        measuredIterations);
+        measuredIterations,
+        libraryFilters);
     Console.WriteLine($"Excel library comparison written to '{outputPath}'.");
     return;
 }
@@ -283,7 +285,7 @@ static void WriteUsage() {
     Console.WriteLine("  write-profile [output] [--rows N]");
     Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
-    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
+    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
     Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
     Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
@@ -478,6 +480,8 @@ static bool OptionConsumesValue(string option)
        || string.Equals(option, "--website-benchmarks", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--scenario", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--scenarios", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--library", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--libraries", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--warmup", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--warmups", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--iterations", StringComparison.OrdinalIgnoreCase)
@@ -504,6 +508,8 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-datareader-table",
         "write-datareader-table-autofit",
         "write-datareader-plain",
+        "write-datareader-direct-package",
+        "write-datareader-compact-package",
         "write-cellvalues-rectangle-direct",
         "write-cellvalues-headerless-rectangle-direct",
         "write-cellvalue-strings",
@@ -518,6 +524,8 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-cellvalue-object-sparse-batch",
         "write-cellformula",
         "write-insertobjects-direct",
+        "write-objects-direct-package",
+        "write-typed-rows-compact-package",
         "write-insertobjects-autofitcolumnsfor-direct",
         "write-insertobjects-partial-autofitcolumnsfor-direct",
         "write-insertobjects-flat-dictionaries-direct",

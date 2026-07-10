@@ -51,29 +51,33 @@ namespace OfficeIMO.Tests {
                     return cells.First(c => c.CellReference == reference);
                 }
 
+                void AssertNumericCell(Cell cell) {
+                    Assert.True(cell.DataType == null || cell.DataType.Value == CellValues.Number);
+                }
+
                 var amountRow2 = GetCell("B2");
-                Assert.Equal(CellValues.Number, amountRow2.DataType!.Value);
+                AssertNumericCell(amountRow2);
                 Assert.Equal(10.5.ToString(CultureInfo.InvariantCulture), amountRow2.CellValue!.Text);
 
                 var dateRow2 = GetCell("C2");
-                Assert.Equal(CellValues.Number, dateRow2.DataType!.Value);
+                AssertNumericCell(dateRow2);
                 Assert.Equal(new DateTime(2024, 1, 1).ToOADate().ToString(CultureInfo.InvariantCulture), dateRow2.CellValue!.Text);
 
                 var amountRow3 = GetCell("B3");
                 Assert.Equal(CellValues.String, amountRow3.DataType!.Value);
-                Assert.True(string.IsNullOrEmpty(amountRow3.CellValue!.Text));
+                Assert.True(string.IsNullOrEmpty(amountRow3.CellValue?.Text));
 
                 var dateRow3 = GetCell("C3");
-                Assert.Equal(CellValues.Number, dateRow3.DataType!.Value);
+                AssertNumericCell(dateRow3);
                 Assert.Equal(new DateTime(2024, 1, 2).ToOADate().ToString(CultureInfo.InvariantCulture), dateRow3.CellValue!.Text);
 
                 var amountRow4 = GetCell("B4");
-                Assert.Equal(CellValues.Number, amountRow4.DataType!.Value);
+                AssertNumericCell(amountRow4);
                 Assert.Equal(5.75.ToString(CultureInfo.InvariantCulture), amountRow4.CellValue!.Text);
 
                 var dateRow4 = GetCell("C4");
                 Assert.Equal(CellValues.String, dateRow4.DataType!.Value);
-                Assert.True(string.IsNullOrEmpty(dateRow4.CellValue!.Text));
+                Assert.True(string.IsNullOrEmpty(dateRow4.CellValue?.Text));
             }
 
             File.Delete(filePath);

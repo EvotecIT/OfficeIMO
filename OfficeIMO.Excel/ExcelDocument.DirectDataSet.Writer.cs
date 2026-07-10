@@ -22,10 +22,10 @@ namespace OfficeIMO.Excel {
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
+            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, bool disableSharedStrings = false) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
-                var sharedStrings = DirectSharedStringTable.Create(model, columnWritePlans, ct);
+                var sharedStrings = disableSharedStrings ? null : DirectSharedStringTable.Create(model, columnWritePlans, ct);
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
                 WriteContentTypes(archive, model.Sheets, sharedStrings != null);
                 WriteTextEntry(archive, "_rels/.rels",

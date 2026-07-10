@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel {
             private int _currentRowOffset = -1;
             private int _lastDateStyleIndex = -1;
             private bool _lastDateStyleResult;
+            private bool _cellsFitWithinRange = true;
             private bool _parseFailed;
             private bool _disposed;
 
@@ -124,6 +125,8 @@ namespace OfficeIMO.Excel {
                 _rowCursor++;
                 return true;
             }
+
+            internal bool CellsFitWithinRange => _cellsFitWithinRange;
 
             internal void ReadValue(
                 int ordinal,
@@ -317,7 +320,7 @@ namespace OfficeIMO.Excel {
                         InitializeMetadataRow(rowOffset);
                     }
 
-                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowOffset)) {
+                    if (!tag.IsEmpty && !TryIndexRow(ref position, rowOffset, includeRow)) {
                         return false;
                     }
 
@@ -325,12 +328,13 @@ namespace OfficeIMO.Excel {
                         _rowIndexes![_rowCount] = rowIndex;
                         _rowCount++;
                     }
+
                 }
 
                 return false;
             }
 
-            private bool TryIndexRow(ref int position, int rowOffset) {
+            private bool TryIndexRow(ref int position, int rowOffset, bool rowWithinRange) {
                 int nextColumn = 1;
                 int previousColumn = 0;
                 while (TryReadNextTag(ref position, _length, out Utf8Tag tag)) {
@@ -349,6 +353,10 @@ namespace OfficeIMO.Excel {
 
                     previousColumn = columnIndex;
                     int ordinal = columnIndex - _firstColumn;
+                    if (!rowWithinRange || (uint)ordinal >= (uint)_fieldCount) {
+                        _cellsFitWithinRange = false;
+                    }
+
                     int cellIndex = rowOffset >= 0 && (uint)ordinal < (uint)_fieldCount
                         ? rowOffset + ordinal
                         : -1;
@@ -457,19 +465,14 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (trimmed.IndexOf((byte)'&') >= 0) {
-                    ReadDecodedNumberValue(
-                        dateStyle,
-                        DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]),
-                        targetKind,
-                        out primitiveKind,
-                        out doubleValue,
-                        out dateTimeValue,
-                        out objectValue);
-                    return;
-                }
-
-                objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
+                ReadDecodedNumberValue(
+                    dateStyle,
+                    DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]),
+                    targetKind,
+                    out primitiveKind,
+                    out doubleValue,
+                    out dateTimeValue,
+                    out objectValue);
             }
 
             private void ReadDecodedNumberValue(
@@ -485,7 +488,8 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 objectValue = null;
 
-                bool parsedNumber = TryParseInvariantDoubleFast(value, out double number)
+                bool parsedNumber = double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, _options.Culture, out double number)
+                    || TryParseInvariantDoubleFast(value, out number)
                     || double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
                 if (parsedNumber && dateStyle) {
                     DateTime date = _owner.FromExcelSerialDate(number);

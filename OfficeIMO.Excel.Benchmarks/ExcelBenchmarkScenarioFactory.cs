@@ -5,6 +5,29 @@ namespace OfficeIMO.Excel.Benchmarks;
 internal static class ExcelBenchmarkScenarioFactory {
     private static readonly string[] Regions = ["North", "South", "East", "West", "Central"];
     private static readonly string[] Owners = ["Ava", "Noah", "Mia", "Liam", "Zoe", "Ethan", "Ivy", "Mason"];
+    internal static readonly (string Header, Func<SalesRecord, object?> Selector)[] SalesColumns = [
+        ("Id", item => item.Id),
+        ("Region", item => item.Region),
+        ("Owner", item => item.Owner),
+        ("CreatedOn", item => item.CreatedOn),
+        ("Amount", item => item.Amount),
+        ("Units", item => item.Units),
+        ("Active", item => item.Active),
+        ("Notes", item => item.Notes)
+    ];
+
+    internal static readonly ExcelTabularColumn<SalesRecord>[] SalesTypedColumns = [
+        ExcelTabularColumn<SalesRecord>.Create("Id", item => item.Id),
+        ExcelTabularColumn<SalesRecord>.Create("Region", item => item.Region),
+        ExcelTabularColumn<SalesRecord>.Create("Owner", item => item.Owner),
+        ExcelTabularColumn<SalesRecord>.Create("CreatedOn", item => item.CreatedOn),
+        ExcelTabularColumn<SalesRecord>.Create("Amount", item => item.Amount),
+        ExcelTabularColumn<SalesRecord>.Create("Units", item => item.Units),
+        ExcelTabularColumn<SalesRecord>.Create("Active", item => item.Active),
+        ExcelTabularColumn<SalesRecord>.Create("Notes", item => item.Notes)
+    ];
+
+    internal static readonly string[] SalesColumnNames = ["Id", "Region", "Owner", "CreatedOn", "Amount", "Units", "Active", "Notes"];
 
     internal sealed class SalesRecord {
         public int Id { get; init; }
@@ -62,15 +85,7 @@ internal static class ExcelBenchmarkScenarioFactory {
     }
 
     public static void InsertOfficeImoObjects(ExcelSheet sheet, IReadOnlyList<SalesRecord> rows) {
-        sheet.InsertObjects(rows,
-            ("Id", item => item.Id),
-            ("Region", item => item.Region),
-            ("Owner", item => item.Owner),
-            ("CreatedOn", item => item.CreatedOn),
-            ("Amount", item => item.Amount),
-            ("Units", item => item.Units),
-            ("Active", item => item.Active),
-            ("Notes", item => item.Notes));
+        sheet.InsertObjects(rows, SalesColumns);
     }
 
     public static void AddOfficeImoTable(ExcelSheet sheet, int rowCount) {

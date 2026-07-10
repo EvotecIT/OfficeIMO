@@ -417,7 +417,8 @@ namespace OfficeIMO.Excel {
             int workload = height * width;
             if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
                 if (CanUseAutomaticXmlReadFastPath(policy)) {
-                    if (TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
+                    if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
+                        || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
                         return result;
                     }
                 }
@@ -426,7 +427,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
-                if (TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
+                if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
+                    || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
                     return result;
                 }
 

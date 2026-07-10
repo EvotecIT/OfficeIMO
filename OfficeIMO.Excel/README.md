@@ -310,6 +310,28 @@ document.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
 document.Execution.SaveWorksheetAfterAutoFit = false;
 ```
 
+For a new workbook that only contains tabular data, write the XLSX package
+directly without building an editable workbook model:
+
+```csharp
+using var output = File.Create("large-export.xlsx");
+
+ExcelDocument.WriteRows(
+    output,
+    rows,
+    new[] { "Id", "Name", "Created", "Active" },
+    static (writer, row) => writer
+        .Write(row.Id)
+        .Write(row.Name)
+        .Write(row.Created)
+        .Write(row.Active),
+    new ExcelTabularWriteOptions {
+        SheetName = "Data",
+        IncludeCellReferences = false,
+        UseSharedStrings = false
+    });
+```
+
 ### Fluent compose
 
 ```csharp
@@ -350,13 +372,6 @@ document.Save();
 | [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Excel to PDF export through `OfficeIMO.Pdf`, plus PDF table import to Excel. |
 | [OfficeIMO.Excel.GoogleSheets](../OfficeIMO.Excel.GoogleSheets/README.md) | Planning and exporting Excel content to Google Sheets. |
 | [OfficeIMO.Excel.Benchmarks](../OfficeIMO.Excel.Benchmarks/README.md) | Benchmark harness for Excel workloads. |
-
-## Boundaries
-
-- `OfficeIMO.Excel` owns workbook modeling and Open XML read/write behavior.
-- PDF layout belongs in `OfficeIMO.Excel.Pdf` and `OfficeIMO.Pdf`.
-- Google Sheets export orchestration belongs in `OfficeIMO.Excel.GoogleSheets`.
-- Long benchmark results and compatibility matrices belong in `Docs/`, not this README.
 
 ## Deeper docs
 

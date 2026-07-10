@@ -217,8 +217,7 @@ namespace OfficeIMO.Excel {
                     bool canCancel = ct.CanBeCanceled;
                     for (int sheetIndex = 0; sheetIndex < model.Sheets.Count; sheetIndex++) {
                         var sheet = model.Sheets[sheetIndex];
-                        if (sheet.Table.TryGetCellValueRows(out _)
-                            || sheet.Table.TryGetExactDictionaryRows(out _)
+                        if (sheet.Table.TryGetExactDictionaryRows(out _)
                             || sheet.Table.TryGetDictionaryRows(out _)
                             || sheet.Table.TryGetLegacyDictionaryRows(out _)) {
                             return null;

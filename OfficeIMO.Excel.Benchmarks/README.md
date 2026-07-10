@@ -34,18 +34,9 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500
 ```
 
-The comparison harness includes only libraries whose public APIs map to a scenario. It uses separate handling for legacy EPPlus so incompatible package generations do not run in one process.
-
-### Competitor coverage
-
-The comparison suite is intentionally scenario-shaped rather than forcing every library into every workflow:
-
-- Workbook/package edit scenarios, such as `copy-worksheet-package`, compare `OfficeIMO.Excel`, `OfficeIMO.Excel Values`, `ClosedXML`, current `EPPlus`, and legacy `EPPlus 4.5.3.3`.
-- Streaming/table export scenarios compare `OfficeIMO.Excel` with `ClosedXML`, current `EPPlus`, legacy `EPPlus 4.5.3.3`, `MiniExcel`, `LargeXlsx`, and `Sylvan.Data.Excel` where those libraries expose a matching write path.
-- Read scenarios compare `OfficeIMO.Excel` with `ClosedXML`, current `EPPlus`, legacy `EPPlus 4.5.3.3`, `MiniExcel`, `ExcelDataReader`, and `Sylvan.Data.Excel` where the library exposes a matching read path.
-- Libraries that do not expose a natural worksheet-copy or workbook-edit API are omitted from that specific scenario instead of being represented by an artificial row-by-row workaround.
-
-NPOI is intentionally not a default comparison package. Benchmark-only local comparison is fine, but normal solution restore/build should not pull NPOI and OfficeIMO runtime code must not depend on it. Use the opt-in [OfficeIMO.Excel.Benchmarks.NPOI](../OfficeIMO.Excel.Benchmarks.NPOI/README.md) runner for NPOI evidence. Natural NPOI lanes are plain row/cell write and read, DataTable/DataSet-style import/export, formula text/cached value reads, conditional-formatting rule reads, and a separate `.xls` compatibility lane; do not force it into OfficeIMO-specific template, feature-preflight, PDF, package-copy, or fast-package scenarios.
+Each scenario runs only libraries with a directly comparable public API. Legacy
+EPPlus runs in a separate process. NPOI comparisons are available through the
+opt-in [NPOI runner](../OfficeIMO.Excel.Benchmarks.NPOI/README.md).
 
 For release-style evidence:
 
@@ -59,29 +50,36 @@ Focus the package-copy workbook merge scenario:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 25000 --scenario copy-worksheet-package --warmup 1 --iterations 3
 ```
 
-Focus the `IDataReader.GetValues` read path used by bulk-copy style consumers:
-
-```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-getvalues-25000.json --rows 25000 --scenario read-datareader-getvalues --skip-legacy-epplus --warmup 2 --iterations 7
-```
-
 Compare row scanning, selective field access, full `GetValues`, and typed getters:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-datareader-25000.json --rows 25000 --scenario read-datareader-readonly,read-datareader-first-column,read-datareader-getvalues,read-datareader-typed --skip-legacy-epplus --warmup 3 --iterations 15
 ```
 
-Local 2026-07-10 median results at 25,000 rows, with three warmups and 15
-measured iterations:
+Compare the fastest package-native write paths:
 
-Each result is median elapsed time / median managed allocation.
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-write-25000.json --rows 25000 --scenario write-datareader-compact-package,write-typed-rows-compact-package --skip-legacy-epplus --warmup 7 --iterations 31
+```
 
-| Reader access | OfficeIMO.Excel | Sylvan.Data.Excel | ExcelDataReader | Result |
-| --- | ---: | ---: | ---: | --- |
-| Rows only | 26.17 ms / 0.2 MB | 38.28 ms / 3.4 MB | 91.19 ms / 42.6 MB | OfficeIMO 1.46x faster |
-| First column | 24.33 ms / 0.2 MB | 36.90 ms / 3.4 MB | 97.48 ms / 42.6 MB | OfficeIMO 1.52x faster |
-| `GetValues` | 31.21 ms / 2.5 MB | 54.77 ms / 7.4 MB | 93.05 ms / 42.6 MB | OfficeIMO 1.75x faster |
-| Typed getters | 30.50 ms / 0.2 MB | 42.00 ms / 3.4 MB | 90.05 ms / 42.6 MB | OfficeIMO 1.38x faster |
+## Current timings
+
+Local 2026-07-10 medians at 25,000 rows. Lower is faster.
+
+| Read workflow | OfficeIMO.Excel | Sylvan.Data.Excel | ExcelDataReader |
+| --- | ---: | ---: | ---: |
+| Scan rows | **26.17 ms** | 38.28 ms | 91.19 ms |
+| Read first column | **24.33 ms** | 36.90 ms | 97.48 ms |
+| Read all values | **31.21 ms** | 54.77 ms | 93.05 ms |
+| Read typed values | **30.50 ms** | 42.00 ms | 90.05 ms |
+
+The write values pool two independent 31-iteration runs. LargeXlsx uses the
+same date formatting and compact cell-reference setting as OfficeIMO.
+
+| Write workflow | OfficeIMO.Excel | LargeXlsx | Sylvan.Data.Excel |
+| --- | ---: | ---: | ---: |
+| DataReader to compact XLSX | **33.42 ms** | 39.09 ms | 41.89 ms |
+| Typed rows to compact XLSX | **26.39 ms** | 27.80 ms | n/a |
 
 Use `--skip-legacy-epplus` only when you want a faster local pass without the isolated EPPlus 4.x subprocess:
 
