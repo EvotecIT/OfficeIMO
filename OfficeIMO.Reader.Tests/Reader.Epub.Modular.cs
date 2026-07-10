@@ -13,6 +13,39 @@ internal static class ReaderCurrentDirectoryLock {
 
 public sealed class ReaderEpubModularTests {
     [Fact]
+    public void DocumentReaderEpub_RichDispatch_MapsChaptersTablesLinksAndManifestAssets() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+            DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(epubPath);
+
+            Assert.Equal(ReaderInputKind.Epub, result.Kind);
+            Assert.Equal("Demo Book", result.Source.Title);
+            Assert.Equal("OfficeIMO Team", result.Source.Author);
+            Assert.Equal(2, result.Pages.Count);
+            Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Text == "Two");
+            Assert.Contains(result.Tables, table => table.Kind == "html-table" && table.Rows.Any(row => row.Contains("2")));
+            Assert.Contains(result.Links, link => link.Uri == "https://example.test/chapter-two" && link.Text == "details");
+            OfficeDocumentAsset asset = Assert.Single(result.Assets, item => item.MediaType == "image/png");
+            Assert.NotNull(asset.PayloadBytes);
+            Assert.True(asset.PayloadHashMatches(out _));
+            ReaderVisual visual = Assert.Single(result.Visuals, item => item.Kind == "image" && item.SourceName == "images/cover.png");
+            Assert.StartsWith("epub-chapter-0001-html-image-", visual.Location!.BlockAnchor!, StringComparison.Ordinal);
+            using (FileStream stream = File.OpenRead(epubPath)) {
+                OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
+                    DocumentReaderEpubExtensions.ReadEpubDocumentJson(stream, "book.epub"));
+                Assert.Equal(ReaderInputKind.Epub, jsonResult.Kind);
+            }
+            Assert.Contains("officeimo.reader.epub.rich-v5", result.CapabilitiesUsed);
+        } finally {
+            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
     public void EpubReader_UsesOpfSpineOrderAndMetadata() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
@@ -45,6 +78,29 @@ public sealed class ReaderEpubModularTests {
             Assert.Equal(2, second.SpineIndex);
             Assert.True(second.IsLinear);
             Assert.Contains("First chapter text.", second.Text, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void EpubReader_ManifestResourcePayloads_AreOptInAndBounded() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+
+            EpubDocument metadataOnly = EpubReader.Read(epubPath);
+            EpubResource imageMetadata = Assert.Single(metadataOnly.Resources, resource => resource.MediaType == "image/png");
+            Assert.Null(imageMetadata.Data);
+
+            EpubDocument bounded = EpubReader.Read(epubPath, new EpubReadOptions {
+                IncludeResourceData = true,
+                MaxResourceBytes = 4,
+                MaxTotalResourceBytes = 32
+            });
+            EpubResource boundedImage = Assert.Single(bounded.Resources, resource => resource.MediaType == "image/png");
+            Assert.Null(boundedImage.Data);
+            Assert.Contains(bounded.Warnings, warning => warning.Contains("MaxResourceBytes", StringComparison.Ordinal));
         } finally {
             if (File.Exists(epubPath)) File.Delete(epubPath);
         }
@@ -361,6 +417,7 @@ public sealed class ReaderEpubModularTests {
             "<item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/>" +
             "<item id=\"ch1\" href=\"chapter1.xhtml\" media-type=\"application/xhtml+xml\"/>" +
             "<item id=\"ch2\" href=\"chapter2.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+            "<item id=\"cover\" href=\"images/cover.png\" media-type=\"image/png\" properties=\"cover-image\"/>" +
             "</manifest>" +
             "<spine toc=\"ncx\"><itemref idref=\"ch2\"/><itemref idref=\"ch1\"/></spine>" +
             "</package>");
@@ -385,7 +442,10 @@ public sealed class ReaderEpubModularTests {
 
         WriteTextEntry(archive, "OEBPS/chapter2.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local Two</title></head><body><h1>Two</h1><p>Second chapter text.</p></body></html>");
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Local Two</title></head><body><h1>Two</h1><p>Second chapter text. <a href=\"https://example.test/chapter-two\">details</a></p>" +
+            "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Chapter</td><td>2</td></tr></table><img src=\"images/cover.png\" alt=\"Cover\"/></body></html>");
+
+        WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
     }
 
     private static void BuildEpubWithMalformedChapter(string epubPath) {
@@ -419,5 +479,11 @@ public sealed class ReaderEpubModularTests {
         using var stream = entry.Open();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 4096, leaveOpen: false);
         writer.Write(content);
+    }
+
+    private static void WriteBinaryEntry(ZipArchive archive, string path, byte[] content) {
+        ZipArchiveEntry entry = archive.CreateEntry(path, CompressionLevel.Optimal);
+        using Stream stream = entry.Open();
+        stream.Write(content, 0, content.Length);
     }
 }

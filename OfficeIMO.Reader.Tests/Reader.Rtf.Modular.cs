@@ -9,6 +9,51 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderRtfModularTests {
     [Fact]
+    public void DocumentReaderRtf_RichResult_MapsMetadataLinksFormsTablesAndImagePayloads() {
+        RtfDocument document = RtfDocument.Create();
+        document.Info.Title = "Rich RTF";
+        document.Info.Author = "OfficeIMO";
+        document.AddHeader().AddParagraph("Confidential");
+        RtfParagraph paragraph = document.AddParagraph("Portal ");
+        paragraph.AddText("open").SetHyperlink(new Uri("https://example.test/rtf"));
+        RtfNote sourceNote = document.AddNote(RtfNoteKind.Footnote);
+        sourceNote.AddParagraph("Review note");
+        paragraph.AddNoteReference(sourceNote, "1");
+        RtfField field = paragraph.AddField("FORMTEXT");
+        field.AddText("Ada");
+        field.SetFormFieldData(data => { data.Kind = RtfFormFieldKind.Text; data.Name = "Patient"; data.Protected = true; });
+        RtfTable table = document.AddTable(2, 2);
+        table.Rows[0].Cells[0].AddParagraph("Name");
+        table.Rows[0].Cells[1].AddParagraph("Qty");
+        table.Rows[1].Cells[0].AddParagraph("Bandage");
+        table.Rows[1].Cells[1].AddParagraph("4");
+        RtfImage image = document.AddImage(RtfImageFormat.Png, new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+        image.Description = "Tiny image";
+
+        OfficeDocumentReadResult result = DocumentReaderRtfExtensions.ReadRtfDocumentResult(document, "rich.rtf");
+
+        Assert.Equal("Rich RTF", result.Source.Title);
+        Assert.Equal("OfficeIMO", result.Source.Author);
+        Assert.Equal("https://example.test/rtf", Assert.Single(result.Links).Uri);
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("Patient", form.Name);
+        Assert.True(form.IsReadOnly);
+        Assert.Equal("Bandage", Assert.Single(result.Tables).Rows[1][0]);
+        OfficeDocumentAsset asset = Assert.Single(result.Assets, item => item.Kind == "image");
+        Assert.NotNull(asset.PayloadBytes);
+        Assert.True(asset.PayloadHashMatches(out _));
+        Assert.Contains(result.Visuals, visual => visual.Kind == "image" && visual.PayloadHash == asset.PayloadHash);
+        OfficeDocumentBlock header = Assert.Single(result.Blocks, block => block.Kind == "header-footer");
+        OfficeDocumentBlock note = Assert.Single(result.Blocks, block => block.Kind == "note");
+        Assert.Equal(header.Id, header.Location.BlockAnchor);
+        Assert.Equal(note.Id, note.Location.BlockAnchor);
+        OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
+            DocumentReaderRtfExtensions.ReadRtfDocumentResultJson(document, "rich.rtf"));
+        Assert.Equal(ReaderInputKind.Rtf, jsonResult.Kind);
+        Assert.Contains("officeimo.reader.rtf.rich-v5", result.CapabilitiesUsed);
+    }
+
+    [Fact]
     public void DocumentReaderRtf_ReadRtfDocument_EmitsParagraphChunks() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Hello RTF reader.");

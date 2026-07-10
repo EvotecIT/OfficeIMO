@@ -9,6 +9,60 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderHtmlModularTests {
     [Fact]
+    public void DocumentReaderHtml_RichDispatch_MapsMetadataStructureLinksFormsAndImages() {
+        const string html = "<html><head><title>Rich HTML</title><meta name=\"author\" content=\"OfficeIMO\"/></head><body>"
+            + "<h2>Inventory</h2><p>See <a href=\"https://example.test/inventory\">inventory</a>.</p>"
+            + "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Bandage</td><td>4</td></tr></table>"
+            + "<form><input type=\"text\" name=\"patient\" value=\"Ada\" required=\"required\"/></form>"
+            + "<img alt=\"Tiny image\" src=\"data:image/png;base64,iVBORw0KGgo=\"/></body></html>";
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "rich.html");
+
+            Assert.Equal("Rich HTML", result.Source.Title);
+            Assert.Equal("OfficeIMO", result.Source.Author);
+            Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Level == 2 && block.Text == "Inventory");
+            ReaderTable table = Assert.Single(result.Tables);
+            Assert.Equal("Bandage", table.Rows[0][0]);
+            Assert.Equal("https://example.test/inventory", Assert.Single(result.Links).Uri);
+            OfficeDocumentFormField form = Assert.Single(result.Forms);
+            Assert.Equal("patient", form.Name);
+            Assert.True(form.IsRequired);
+            OfficeDocumentAsset image = Assert.Single(result.Assets);
+            Assert.Equal("image/png", image.MediaType);
+            Assert.NotNull(image.PayloadBytes);
+            ReaderVisual visual = Assert.Single(result.Visuals);
+            Assert.Equal("image", visual.Kind);
+            Assert.Equal(image.PayloadHash, visual.PayloadHash);
+            stream.Position = 0;
+            OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
+                DocumentReaderHtmlExtensions.ReadHtmlDocumentJson(stream, "rich.html"));
+            Assert.Equal(ReaderInputKind.Html, jsonResult.Kind);
+            Assert.Contains("officeimo.reader.html.rich-v5", result.CapabilitiesUsed);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichTables_DoNotFoldNestedRowsIntoParentTable() {
+        const string html = "<table><caption>Outer</caption><tr><th>Name</th></tr><tr><td>Parent"
+            + "<table><caption>Inner</caption><tr><th>Code</th></tr><tr><td>Nested</td></tr></table>"
+            + "</td></tr></table>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "nested.html");
+
+        Assert.Equal(2, result.Tables.Count);
+        ReaderTable outer = Assert.Single(result.Tables, table => table.Title == "Outer");
+        ReaderTable inner = Assert.Single(result.Tables, table => table.Title == "Inner");
+        Assert.Equal(1, outer.TotalRowCount);
+        Assert.Equal(1, inner.TotalRowCount);
+        Assert.Equal("Nested", inner.Rows[0][0]);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsChunks() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
 

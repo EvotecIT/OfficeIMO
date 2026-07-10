@@ -6,7 +6,7 @@ namespace OfficeIMO.Reader.Html;
 /// <summary>
 /// HTML ingestion adapter for <see cref="DocumentReader"/>.
 /// </summary>
-public static class DocumentReaderHtmlExtensions {
+public static partial class DocumentReaderHtmlExtensions {
     /// <summary>
     /// Reads an HTML file and emits normalized chunks.
     /// </summary>

@@ -1,0 +1,243 @@
+using OfficeIMO.Word;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+
+namespace OfficeIMO.Reader;
+
+public static partial class DocumentReader {
+    private static OfficeDocumentReadResult ApplyWordRichMapping(
+        WordDocumentSnapshot snapshot,
+        ReaderOptions options,
+        OfficeDocumentReadResult result) {
+        result.Source.Title = snapshot.Title;
+        result.Source.Author = snapshot.Author;
+        result.Source.Subject = snapshot.Subject;
+        result.Source.Keywords = snapshot.Keywords;
+
+        var blocks = new List<OfficeDocumentBlock>();
+        var tables = new List<ReaderTable>();
+        var links = new List<OfficeDocumentLink>();
+        int sourceBlockIndex = 0;
+        int tableIndex = 0;
+        int linkIndex = 0;
+        for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {
+            WordSectionSnapshot section = snapshot.Sections[sectionIndex];
+            ProjectWordElements(
+                section.Elements,
+                result.Source.Path,
+                "section-" + (sectionIndex + 1).ToString("D4", CultureInfo.InvariantCulture),
+                options,
+                blocks,
+                tables,
+                links,
+                ref sourceBlockIndex,
+                ref tableIndex,
+                ref linkIndex);
+
+            ProjectWordHeaderFooter(section.DefaultHeader, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+            ProjectWordHeaderFooter(section.FirstHeader, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+            ProjectWordHeaderFooter(section.EvenHeader, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+            ProjectWordHeaderFooter(section.DefaultFooter, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+            ProjectWordHeaderFooter(section.FirstFooter, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+            ProjectWordHeaderFooter(section.EvenFooter, sectionIndex, result.Source.Path, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+        }
+
+        var metadata = new[] {
+            BuildCountMetadataEntry("word-section-count", "word.structure", "SectionCount", snapshot.Sections.Count)
+        };
+        return FinalizeRichMapping(
+            result,
+            new[] { "officeimo.word.inspection-snapshot", "officeimo.reader.word.rich-v5" },
+            blocks,
+            tables,
+            links,
+            result.Visuals,
+            result.Pages,
+            metadata);
+    }
+
+    private static void ProjectWordHeaderFooter(
+        WordHeaderFooterSnapshot? headerFooter,
+        int sectionIndex,
+        string? sourcePath,
+        ReaderOptions options,
+        List<OfficeDocumentBlock> blocks,
+        List<ReaderTable> tables,
+        List<OfficeDocumentLink> links,
+        ref int sourceBlockIndex,
+        ref int tableIndex,
+        ref int linkIndex) {
+        if (headerFooter == null) return;
+        string owner = "section-" + (sectionIndex + 1).ToString("D4", CultureInfo.InvariantCulture)
+            + "-" + headerFooter.Kind + "-" + headerFooter.Variant;
+        ProjectWordElements(headerFooter.Elements, sourcePath, owner, options, blocks, tables, links, ref sourceBlockIndex, ref tableIndex, ref linkIndex);
+    }
+
+    private static void ProjectWordElements(
+        IReadOnlyList<WordBlockSnapshot> elements,
+        string? sourcePath,
+        string owner,
+        ReaderOptions options,
+        List<OfficeDocumentBlock> blocks,
+        List<ReaderTable> tables,
+        List<OfficeDocumentLink> links,
+        ref int sourceBlockIndex,
+        ref int tableIndex,
+        ref int linkIndex) {
+        var headingStack = new List<(int Level, string Text)>();
+        for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+            WordBlockSnapshot element = elements[elementIndex];
+            string anchor = "word-" + owner + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture);
+            ReaderLocation location = new ReaderLocation {
+                Path = sourcePath,
+                SourceBlockIndex = sourceBlockIndex,
+                SourceBlockKind = element.Kind,
+                BlockAnchor = anchor
+            };
+
+            if (element is WordParagraphSnapshot paragraph) {
+                int? headingLevel = ResolveWordHeadingLevel(paragraph);
+                if (headingLevel.HasValue) {
+                    for (int headingIndex = headingStack.Count - 1; headingIndex >= 0; headingIndex--) {
+                        if (headingStack[headingIndex].Level >= headingLevel.Value) headingStack.RemoveAt(headingIndex);
+                    }
+                    headingStack.Add((headingLevel.Value, string.IsNullOrWhiteSpace(paragraph.Text) ? "Heading " + headingLevel.Value.ToString(CultureInfo.InvariantCulture) : paragraph.Text));
+                }
+                location.HeadingPath = BuildWordHeadingPath(headingStack);
+                string kind = headingLevel.HasValue ? "heading" : paragraph.IsListItem ? "list-item" : "paragraph";
+                location.SourceBlockKind = kind;
+                blocks.Add(new OfficeDocumentBlock {
+                    Id = anchor,
+                    Kind = kind,
+                    Text = paragraph.Text,
+                    Level = headingLevel ?? paragraph.ListLevel,
+                    Marker = paragraph.IsListItem ? (paragraph.IsOrderedList == true ? "1." : "-") : null,
+                    Location = location
+                });
+                AddWordParagraphLinks(paragraph, location, links, ref linkIndex);
+            } else if (element is WordTableSnapshot table) {
+                location.HeadingPath = BuildWordHeadingPath(headingStack);
+                blocks.Add(new OfficeDocumentBlock {
+                    Id = anchor,
+                    Kind = "table",
+                    Text = BuildWordTableText(table),
+                    Location = location
+                });
+                ReaderTable mapped = MapWordTable(table, location, tableIndex++, options.MaxTableRows);
+                tables.Add(mapped);
+                foreach (WordTableRowSnapshot row in table.Rows) {
+                    foreach (WordTableCellSnapshot cell in row.Cells) {
+                        foreach (WordParagraphSnapshot cellParagraph in cell.Paragraphs) {
+                            AddWordParagraphLinks(cellParagraph, location, links, ref linkIndex);
+                        }
+                    }
+                }
+            }
+            sourceBlockIndex++;
+        }
+    }
+
+    private static void AddWordParagraphLinks(
+        WordParagraphSnapshot paragraph,
+        ReaderLocation ownerLocation,
+        List<OfficeDocumentLink> links,
+        ref int linkIndex) {
+        for (int runIndex = 0; runIndex < paragraph.Runs.Count; runIndex++) {
+            WordRunSnapshot run = paragraph.Runs[runIndex];
+            if (!run.IsHyperlink || (string.IsNullOrWhiteSpace(run.HyperlinkUri) && string.IsNullOrWhiteSpace(run.HyperlinkAnchor))) continue;
+            links.Add(new OfficeDocumentLink {
+                Id = "word-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
+                Kind = string.IsNullOrWhiteSpace(run.HyperlinkUri) ? "internal" : "uri",
+                Uri = run.HyperlinkUri,
+                DestinationName = run.HyperlinkAnchor,
+                Text = run.Text,
+                Location = CloneWordLocation(ownerLocation, "hyperlink", ownerLocation.BlockAnchor + "-link-" + runIndex.ToString("D4", CultureInfo.InvariantCulture))
+            });
+            linkIndex++;
+        }
+    }
+
+    private static ReaderTable MapWordTable(WordTableSnapshot table, ReaderLocation location, int tableIndex, int maxRows) {
+        int columnCount = Math.Max(table.ColumnCount, table.Rows.Count == 0 ? 0 : table.Rows.Max(static row => row.Cells.Count));
+        IReadOnlyList<string> columns = table.Rows.Count == 0
+            ? BuildFallbackColumns(columnCount)
+            : BuildWordRowValues(table.Rows[0], columnCount, useFallbacks: true);
+        int totalRowCount = Math.Max(0, table.Rows.Count - 1);
+        IEnumerable<WordTableRowSnapshot> sourceRows = table.Rows.Skip(1);
+        bool truncated = maxRows > 0 && totalRowCount > maxRows;
+        if (truncated) sourceRows = sourceRows.Take(maxRows);
+        IReadOnlyList<IReadOnlyList<string>> rows = sourceRows
+            .Select(row => BuildWordRowValues(row, columnCount, useFallbacks: false))
+            .ToArray();
+        ReaderLocation tableLocation = CloneWordLocation(location, "table", location.BlockAnchor);
+        tableLocation.TableIndex = tableIndex;
+        return new ReaderTable {
+            Title = string.IsNullOrWhiteSpace(table.Title) ? "Word table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture) : table.Title,
+            Kind = "word-table",
+            Location = tableLocation,
+            Columns = columns,
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, rows),
+            Rows = rows,
+            TotalRowCount = totalRowCount,
+            Truncated = truncated
+        };
+    }
+
+    private static IReadOnlyList<string> BuildWordRowValues(WordTableRowSnapshot row, int columnCount, bool useFallbacks) {
+        var values = new string[columnCount];
+        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+            WordTableCellSnapshot? cell = row.Cells.FirstOrDefault(candidate => candidate.ColumnIndex == columnIndex)
+                ?? (columnIndex < row.Cells.Count ? row.Cells[columnIndex] : null);
+            string value = cell == null
+                ? string.Empty
+                : string.Join(" ", cell.Paragraphs.Select(static paragraph => paragraph.Text).Where(static text => !string.IsNullOrWhiteSpace(text)));
+            values[columnIndex] = string.IsNullOrWhiteSpace(value) && useFallbacks
+                ? "Column " + (columnIndex + 1).ToString(CultureInfo.InvariantCulture)
+                : value;
+        }
+        return values;
+    }
+
+    private static IReadOnlyList<string> BuildFallbackColumns(int count) {
+        return Enumerable.Range(1, count).Select(index => "Column " + index.ToString(CultureInfo.InvariantCulture)).ToArray();
+    }
+
+    private static string BuildWordTableText(WordTableSnapshot table) {
+        return string.Join(Environment.NewLine, table.Rows.Select(row => string.Join(" | ", BuildWordRowValues(row, table.ColumnCount, useFallbacks: false))));
+    }
+
+    private static int? ResolveWordHeadingLevel(WordParagraphSnapshot paragraph) {
+        string style = paragraph.StyleName ?? paragraph.StyleId ?? string.Empty;
+        if (style.IndexOf("heading", StringComparison.OrdinalIgnoreCase) < 0) return null;
+        for (int i = style.Length - 1; i >= 0; i--) {
+            if (style[i] >= '1' && style[i] <= '9') return style[i] - '0';
+        }
+        return 1;
+    }
+
+    private static string? BuildWordHeadingPath(IReadOnlyList<(int Level, string Text)> headings) {
+        return headings.Count == 0 ? null : string.Join(" > ", headings.Select(static heading => heading.Text));
+    }
+
+    private static ReaderLocation CloneWordLocation(ReaderLocation source, string kind, string? anchor) {
+        return new ReaderLocation {
+            Path = source.Path,
+            SourceBlockIndex = source.SourceBlockIndex,
+            HeadingPath = source.HeadingPath,
+            SourceBlockKind = kind,
+            BlockAnchor = anchor
+        };
+    }
+
+    private static OfficeDocumentMetadataEntry BuildCountMetadataEntry(string id, string category, string name, int count) {
+        return new OfficeDocumentMetadataEntry {
+            Id = id,
+            Category = category,
+            Name = name,
+            Value = count.ToString(CultureInfo.InvariantCulture),
+            ValueType = "count"
+        };
+    }
+}

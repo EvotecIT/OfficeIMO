@@ -6,6 +6,9 @@ namespace OfficeIMO.Word {
 
         public string? FilePath { get; internal set; }
         public string? Title { get; internal set; }
+        public string? Author { get; internal set; }
+        public string? Subject { get; internal set; }
+        public string? Keywords { get; internal set; }
         public IReadOnlyList<WordSectionSnapshot> Sections => _sections;
 
         internal void AddSection(WordSectionSnapshot section) {

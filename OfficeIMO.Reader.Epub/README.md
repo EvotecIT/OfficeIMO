@@ -64,6 +64,28 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 }
 ```
 
+### Read chapters and packaged images as one rich result
+
+```csharp
+OfficeDocumentReadResult document = DocumentReaderEpubExtensions.ReadEpubDocument(
+    "book.epub",
+    epubOptions: new EpubReadOptions {
+        MaxResources = 500,
+        MaxResourceBytes = 4L * 1024L * 1024L,
+        MaxTotalResourceBytes = 32L * 1024L * 1024L
+    });
+
+foreach (OfficeDocumentPage chapter in document.Pages) {
+    Console.WriteLine($"{chapter.Number}. {chapter.Name}");
+}
+
+foreach (OfficeDocumentAsset image in document.Assets) {
+    Console.WriteLine($"{image.FileName}: {image.LengthBytes} bytes");
+}
+```
+
+The rich reader always requests bounded chapter HTML and manifest payloads from `OfficeIMO.Epub` so it can reuse the HTML semantic mapping. After registration, `DocumentReader.ReadDocument("book.epub")` uses this native result path.
+
 ## What it emits
 
 - Chapter-to-chunk projection.
@@ -72,6 +94,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 - Warning chunks propagated from EPUB parser warnings.
 - Virtual source paths such as `.epub::chapter.xhtml` for traceability.
 - Path and stream dispatch, including non-seekable stream support.
+- A schema-v5 rich result with chapter pages, HTML blocks, tables, links, forms, manifest image assets, metadata, and structured parser diagnostics.
 
 ## Boundaries
 

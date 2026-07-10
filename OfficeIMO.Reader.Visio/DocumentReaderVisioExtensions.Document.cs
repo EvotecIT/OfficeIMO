@@ -1,4 +1,5 @@
 using OfficeIMO.Visio;
+using System.Text.Json;
 
 namespace OfficeIMO.Reader.Visio;
 
@@ -142,6 +143,7 @@ public static partial class DocumentReaderVisioExtensions {
         VisioPage[] snapshotOrderedPages = GetSnapshotOrderedPages(document, snapshot).ToArray();
         OfficeDocumentLink[] links = BuildDocumentLinks(snapshotOrderedPages, source).ToArray();
         OfficeDocumentAsset[] assets = BuildDocumentAssets(snapshotOrderedPages, source, visioOptions, cancellationToken).ToArray();
+        ReaderVisual[] visuals = BuildDocumentVisuals(snapshot, source).ToArray();
 
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Visio,
@@ -157,13 +159,14 @@ public static partial class DocumentReaderVisioExtensions {
             CapabilitiesUsed = BuildDocumentCapabilities(visioOptions),
             Markdown = chunks.Length == 0 ? null : string.Join(Environment.NewLine + Environment.NewLine, chunks.Select(static chunk => chunk.Markdown ?? chunk.Text)),
             Chunks = chunks,
+            Metadata = BuildDocumentMetadata(snapshot, tables, links, assets, visuals),
             Pages = BuildDocumentPages(snapshot, source, blocks, tables, links, assets),
             Blocks = blocks,
             Tables = tables,
             Assets = assets,
             Links = links,
             Forms = Array.Empty<OfficeDocumentFormField>(),
-            Visuals = Array.Empty<ReaderVisual>(),
+            Visuals = visuals,
             Diagnostics = Array.Empty<OfficeDocumentDiagnostic>()
         };
     }
@@ -171,7 +174,9 @@ public static partial class DocumentReaderVisioExtensions {
     private static IReadOnlyList<string> BuildDocumentCapabilities(ReaderVisioOptions options) {
         var capabilities = new List<string> {
             "officeimo.reader.visio",
-            "officeimo.visio.inspection-snapshot"
+            "officeimo.reader.visio.rich-v5",
+            "officeimo.visio.inspection-snapshot",
+            "officeimo.visio.topology-visual"
         };
         if (options.IncludeSvgPreviewAssets) {
             capabilities.Add("officeimo.visio.svg-preview");
@@ -193,10 +198,10 @@ public static partial class DocumentReaderVisioExtensions {
                     Text = BuildShapeBlockText(shape),
                     Location = BuildLocation(source, pageIndex, "shape", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-shape-" + shape.Id),
                     Region = new OfficeDocumentRegion {
-                        X = shape.PinX - (shape.Width / 2D),
-                        Y = shape.PinY - (shape.Height / 2D),
-                        Width = shape.Width,
-                        Height = shape.Height
+                        X = InchesToPoints(shape.PinX - (shape.Width / 2D)),
+                        Y = InchesToPoints(shape.PinY - (shape.Height / 2D)),
+                        Width = InchesToPoints(shape.Width),
+                        Height = InchesToPoints(shape.Height)
                     }
                 };
             }
@@ -226,8 +231,8 @@ public static partial class DocumentReaderVisioExtensions {
             pages.Add(new OfficeDocumentPage {
                 Number = pageNumber,
                 Name = page.Name,
-                Width = page.Width,
-                Height = page.Height,
+                Width = InchesToPoints(page.Width),
+                Height = InchesToPoints(page.Height),
                 Location = BuildLocation(source, pageIndex, "page", "page-" + pageNumber.ToString(CultureInfo.InvariantCulture)),
                 Blocks = blocks.Where(block => block.Location.Page == pageNumber).ToArray(),
                 Tables = tables.Where(table => table.Location?.Page == pageNumber).ToArray(),
@@ -264,10 +269,10 @@ public static partial class DocumentReaderVisioExtensions {
                         ownerKind: "shape",
                         ownerId: shape.Id,
                         region: new OfficeDocumentRegion {
-                            X = shape.PinX - (shape.Width / 2D),
-                            Y = shape.PinY - (shape.Height / 2D),
-                            Width = shape.Width,
-                            Height = shape.Height
+                            X = InchesToPoints(shape.PinX - (shape.Width / 2D)),
+                            Y = InchesToPoints(shape.PinY - (shape.Height / 2D)),
+                            Width = InchesToPoints(shape.Width),
+                            Height = InchesToPoints(shape.Height)
                         });
                 }
             }
@@ -333,6 +338,89 @@ public static partial class DocumentReaderVisioExtensions {
             PayloadBytes = payload,
             Location = BuildLocation(source, pageIndex, kind, "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-" + kind)
         };
+    }
+
+    private static IEnumerable<ReaderVisual> BuildDocumentVisuals(VisioInspectionSnapshot snapshot, SourceMetadata source) {
+        for (int pageIndex = 0; pageIndex < snapshot.Pages.Count; pageIndex++) {
+            VisioInspectionPageSnapshot page = snapshot.Pages[pageIndex];
+            string content = JsonSerializer.Serialize(new {
+                page = new { id = page.Id, name = page.Name, width = page.Width, height = page.Height, layers = page.Layers },
+                nodes = page.Shapes.Select(static shape => new {
+                    id = shape.Id,
+                    name = shape.Name,
+                    text = shape.Text,
+                    type = shape.Type,
+                    master = shape.MasterNameU,
+                    parentId = shape.ParentId,
+                    x = shape.PinX,
+                    y = shape.PinY,
+                    width = shape.Width,
+                    height = shape.Height,
+                    angle = shape.Angle,
+                    layers = shape.Layers,
+                    data = shape.ShapeData.Select(static row => new { name = row.Name, label = row.Label, value = row.Value, type = row.Type }).ToArray()
+                }).ToArray(),
+                edges = page.Connectors.Select(static connector => new {
+                    id = connector.Id,
+                    source = connector.FromId,
+                    target = connector.ToId,
+                    kind = connector.Kind,
+                    label = connector.Label,
+                    waypoints = connector.Waypoints.Select(static point => new { x = point.X, y = point.Y }).ToArray(),
+                    data = connector.ShapeData.Select(static row => new { name = row.Name, label = row.Label, value = row.Value, type = row.Type }).ToArray()
+                }).ToArray()
+            });
+            yield return new ReaderVisual {
+                Kind = "network",
+                Language = "officeimo-visio-topology",
+                Content = content,
+                PayloadHash = ComputeSha256Hex(content),
+                SourceName = page.Name,
+                Width = InchesToPoints(page.Width),
+                Height = InchesToPoints(page.Height),
+                PlacedWidth = InchesToPoints(page.Width),
+                PlacedHeight = InchesToPoints(page.Height),
+                PlacementCount = 1,
+                HasGeometry = true,
+                IsAxisAligned = true,
+                Location = BuildLocation(source, pageIndex, "diagram", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-topology")
+            };
+        }
+    }
+
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(
+        VisioInspectionSnapshot snapshot,
+        IReadOnlyList<ReaderTable> tables,
+        IReadOnlyList<OfficeDocumentLink> links,
+        IReadOnlyList<OfficeDocumentAsset> assets,
+        IReadOnlyList<ReaderVisual> visuals) {
+        var metadata = new List<OfficeDocumentMetadataEntry> {
+            BuildVisioCountMetadata("visio-page-count", "PageCount", snapshot.Pages.Count),
+            BuildVisioCountMetadata("visio-shape-count", "ShapeCount", snapshot.ShapeCount),
+            BuildVisioCountMetadata("visio-connector-count", "ConnectorCount", snapshot.ConnectorCount),
+            BuildVisioCountMetadata("visio-table-count", "TableCount", tables.Count),
+            BuildVisioCountMetadata("visio-link-count", "LinkCount", links.Count),
+            BuildVisioCountMetadata("visio-asset-count", "AssetCount", assets.Count),
+            BuildVisioCountMetadata("visio-visual-count", "VisualCount", visuals.Count)
+        };
+        if (!string.IsNullOrWhiteSpace(snapshot.ThemeType)) metadata.Add(new OfficeDocumentMetadataEntry {
+            Id = "visio-theme", Category = "visio.document", Name = "Theme", Value = snapshot.ThemeType, ValueType = "string"
+        });
+        return metadata;
+    }
+
+    private static OfficeDocumentMetadataEntry BuildVisioCountMetadata(string id, string name, int count) {
+        return new OfficeDocumentMetadataEntry {
+            Id = id,
+            Category = "visio.summary",
+            Name = name,
+            Value = count.ToString(CultureInfo.InvariantCulture),
+            ValueType = "count"
+        };
+    }
+
+    private static double InchesToPoints(double value) {
+        return value * 72D;
     }
 
     private static string ResolveShapeKind(VisioInspectionShapeSnapshot shape) {

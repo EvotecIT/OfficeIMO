@@ -53,6 +53,17 @@ public static class DocumentReaderRtfRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+                rtfPath: path,
+                readerOptions: readerOptions,
+                rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+                rtfStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
         };
     }

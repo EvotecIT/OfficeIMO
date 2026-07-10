@@ -75,6 +75,17 @@ public static class DocumentReaderEpubRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 epubOptions: Clone(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpubDocument(
+                epubPath: path,
+                readerOptions: readerOptions,
+                epubOptions: Clone(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpubDocument(
+                epubStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                epubOptions: Clone(registeredOptions),
                 cancellationToken: ct)
         };
     }
@@ -85,6 +96,10 @@ public static class DocumentReaderEpubRegistrationExtensions {
             MaxChapters = options.MaxChapters,
             MaxChapterBytes = options.MaxChapterBytes,
             IncludeRawHtml = options.IncludeRawHtml,
+            IncludeResourceData = options.IncludeResourceData,
+            MaxResources = options.MaxResources,
+            MaxResourceBytes = options.MaxResourceBytes,
+            MaxTotalResourceBytes = options.MaxTotalResourceBytes,
             DeterministicOrder = options.DeterministicOrder,
             PreferSpineOrder = options.PreferSpineOrder,
             IncludeNonLinearSpineItems = options.IncludeNonLinearSpineItems,

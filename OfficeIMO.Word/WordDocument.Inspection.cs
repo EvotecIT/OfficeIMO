@@ -9,6 +9,9 @@ namespace OfficeIMO.Word {
             var snapshot = new WordDocumentSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 Title = BuiltinDocumentProperties?.Title,
+                Author = BuiltinDocumentProperties?.Creator,
+                Subject = BuiltinDocumentProperties?.Subject,
+                Keywords = BuiltinDocumentProperties?.Keywords,
             };
 
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {
