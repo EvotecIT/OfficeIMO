@@ -19,6 +19,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var blocks = new List<HtmlRenderFlowBlock>();
         if (includeGeneratedBefore) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
         double flowHeight = blocks.Sum(block => block.Height);
+        bool previousMarginCanCollapse = false;
+        double previousMarginBottom = 0D;
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             if (node is IElement element) {
@@ -35,7 +37,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         inlineNodes.Add(node);
                         continue;
                     }
-                    flowHeight += FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    flowHeight += inlineHeight;
+                    if (inlineHeight > 0D) previousMarginCanCollapse = false;
                     PositionedStaticAnchor? staticAnchor = HtmlRenderStyleResolver.IsBlockElement(element, childStyle)
                         ? new PositionedStaticAnchor(container, 0D, flowHeight)
                         : null;
@@ -49,11 +53,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
-                    flowHeight += FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
-                    RecordNormalFlowPlacement(element, container, 0D, flowHeight, childStyle);
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    flowHeight += inlineHeight;
+                    if (inlineHeight > 0D) previousMarginCanCollapse = false;
+                    double marginAdjustment = previousMarginCanCollapse
+                        ? previousMarginBottom + childStyle.MarginTop - CollapseVerticalMargins(previousMarginBottom, childStyle.MarginTop)
+                        : 0D;
                     HtmlRenderFlowBlock childBlock = LayoutElement(element, width, childStyle, parentStyle, depth + 1);
+                    childBlock = childBlock.AdjustLeadingFlowSpace(marginAdjustment);
+                    RecordNormalFlowPlacement(element, container, 0D, flowHeight - marginAdjustment, childStyle);
                     blocks.Add(childBlock);
                     flowHeight += childBlock.Height;
+                    previousMarginCanCollapse = true;
+                    previousMarginBottom = childStyle.MarginBottom;
                     continue;
                 }
             }
@@ -61,9 +73,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineNodes.Add(node);
         }
 
-        FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+        double trailingInlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+        if (trailingInlineHeight > 0D) previousMarginCanCollapse = false;
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
+    }
+
+    private static double CollapseVerticalMargins(double first, double second) {
+        double positive = Math.Max(0D, Math.Max(first, second));
+        double negative = Math.Min(0D, Math.Min(first, second));
+        return positive + negative;
     }
 
     private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {

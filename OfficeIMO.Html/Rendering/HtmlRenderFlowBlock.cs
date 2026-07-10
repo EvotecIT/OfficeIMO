@@ -133,6 +133,26 @@ internal sealed class HtmlRenderFlowBlock {
             pageName: PageName,
             stackingZIndex: StackingZIndex,
             stackingSourceOrder: StackingSourceOrder);
+
+    internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
+        if (Math.Abs(adjustment) <= 0.0001D) return this;
+        double adjustedHeight = Math.Max(0.01D, Height - adjustment);
+        return new HtmlRenderFlowBlock(
+            Width,
+            adjustedHeight,
+            Visuals.Select((visual, index) => visual.Translate(0D, -adjustment, index)),
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets.Select(offset => offset - adjustment),
+            lineBreakGroups: LineBreakGroups.Select(group => group.Translate(-adjustment)),
+            continuationGroups: ContinuationGroups.Select(group => group.Translate(0D, -adjustment)),
+            trailingGroups: TrailingGroups.Select(group => group.Translate(0D, -adjustment)),
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder);
+    }
 }
 
 internal sealed class HtmlRenderContinuationGroup {
