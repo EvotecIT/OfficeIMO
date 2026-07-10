@@ -1,5 +1,6 @@
 using System.IO;
 using DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -21,13 +22,16 @@ namespace OfficeIMO.Tests {
                         "Delivery expanded to 12 markets"
                     });
 
-                    var data = new PowerPointChartData(
+                    var data = new OfficeChartData(
                         new[] { "Q1", "Q2", "Q3", "Q4" },
-                        new[] { new PowerPointChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
+                        new[] { new OfficeChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
                     PowerPointSlide chartSlide = presentation.AddSlide();
                     chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-                    chartSlide.AddChartCm(data, 1.5, 3.0, 22, 9)
+                    chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
+                            new PowerPointChartAccessibilityOptions {
+                                AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
+                            })
                         .SetTitle("2025 revenue")
                         .SetLegend(LegendPositionValues.Bottom);
 

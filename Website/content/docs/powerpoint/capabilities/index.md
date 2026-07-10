@@ -17,7 +17,9 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 | Native tables | Yes | Yes | Yes | `AddTableSlides(...)` creates deterministic continuation pages and repeats headers. |
 | Semantic story families | Yes | Yes | Yes | Executive, chart, comparison, screenshot, appendix, architecture, and closing stories each have two editable compositions. |
 | Deck rhythm inspection | Yes, before rendering | Not applicable | Not applicable | Reports repeated kinds/variants, dense streaks, long sections, weak openings, and missing closings with stable codes. |
-| Column/bar, line, scatter, pie, doughnut charts | Yes | Yes | Yes | Chart data stays in native chart XML and the embedded workbook. |
+| All 16 shared chart kinds | Yes | Yes | Yes | Clustered/stacked/100% column and bar, line and area variants, scatter, radar, pie, and doughnut use `OfficeChartKind`. |
+| Categorical combo charts and secondary value axes | Yes | Yes | Yes | Per-series `RenderKind` and `OfficeChartAxisGroup` stay in native chart XML with cached values and embedded workbook data. |
+| Chart accessibility and data summary | Yes | Yes | Yes | Native alt text can include a deterministic data summary; `SaveDataSummary(...)` writes a UTF-8 sidecar. |
 | Other chart XML already present in a deck | Limited edit surface | Yes | Snapshot/export support varies | Inspect and test the concrete family before promising mutation parity. |
 | Themes, masters, layouts, placeholders | Inspect, select, copy from `.pptx`/`.potx`, and map by semantic name | Yes | Inherited content is included where supported | Template inventory includes brand tokens, footer content, assets, and safe areas. |
 | Transitions | Yes | Yes | Static proof only | Preview exports show the slide state, not animated playback. |

@@ -504,33 +504,38 @@ public static partial class OfficeChartDrawingRenderer {
     private static ValueRange GetCartesianValueRange(OfficeChartSnapshot snapshot, OfficeChartLayout layout, bool horizontalValueAxis) =>
         ApplyValueAxisScale(GetCartesianValueRange(snapshot), layout, horizontalValueAxis);
 
-    private static ValueRange GetMixedCartesianValueRange(OfficeChartSnapshot snapshot) {
+    private static ValueRange GetMixedCartesianValueRange(OfficeChartSnapshot snapshot,
+        OfficeChartAxisGroup? axisGroup = null) {
         int categoryCount = snapshot.Data.Categories.Count;
         var ranges = new List<ValueRange>();
 
         AddSeriesRange(
             ranges,
-            snapshot.Data.Series.Where(series => ShouldRenderSeriesAsBarOrColumn(snapshot, series)).ToList(),
+            snapshot.Data.Series.Where(series => ShouldRenderSeriesAsBarOrColumn(snapshot, series) &&
+                (!axisGroup.HasValue || series.AxisGroup == axisGroup.Value)).ToList(),
             categoryCount,
             kind => IsStackedBarOrColumnChart(kind),
             kind => IsPercentStackedBarOrColumnChart(kind),
             snapshot);
         AddSeriesRange(
             ranges,
-            GetRenderableAreaSeries(snapshot).Select(item => item.Series).ToList(),
+            GetRenderableAreaSeries(snapshot).Where(item =>
+                !axisGroup.HasValue || item.Series.AxisGroup == axisGroup.Value).Select(item => item.Series).ToList(),
             categoryCount,
             kind => IsStackedAreaChart(kind),
             kind => IsPercentStackedAreaChart(kind),
             snapshot);
         AddSeriesRange(
             ranges,
-            GetRenderableLineSeries(snapshot).Select(item => item.Series).ToList(),
+            GetRenderableLineSeries(snapshot).Where(item =>
+                !axisGroup.HasValue || item.Series.AxisGroup == axisGroup.Value).Select(item => item.Series).ToList(),
             categoryCount,
             kind => IsStackedLineChart(kind),
             kind => IsPercentStackedLineChart(kind),
             snapshot);
 
-        List<OfficeChartSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+        List<OfficeChartSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Where(item =>
+            !axisGroup.HasValue || item.Series.AxisGroup == axisGroup.Value).Select(item => item.Series).ToList();
         if (scatterSeries.Count > 0) {
             ranges.Add(GetFiniteSeriesRange(scatterSeries));
         }

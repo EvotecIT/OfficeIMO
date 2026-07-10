@@ -22,12 +22,15 @@ namespace OfficeIMO.PowerPoint {
         public int MaximumSlidesBetweenAnchors { get; set; } = 6;
         /// <summary>Deck length at which a closing slide is expected.</summary>
         public int ClosingExpectedAtSlideCount { get; set; } = 5;
+        /// <summary>Maximum consecutive slides with the same light or dark tonal role.</summary>
+        public int MaximumSameToneStreak { get; set; } = 6;
 
         internal void Validate() {
             if (MaximumRepeatedKind < 1) throw new ArgumentOutOfRangeException(nameof(MaximumRepeatedKind));
             if (MaximumDenseStreak < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDenseStreak));
             if (MaximumSlidesBetweenAnchors < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSlidesBetweenAnchors));
             if (ClosingExpectedAtSlideCount < 1) throw new ArgumentOutOfRangeException(nameof(ClosingExpectedAtSlideCount));
+            if (MaximumSameToneStreak < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSameToneStreak));
         }
     }
 
@@ -87,6 +90,7 @@ namespace OfficeIMO.PowerPoint {
             InspectRepeatedKinds(slides, resolved, findings);
             InspectRepeatedVariants(slides, resolved, findings);
             InspectDensity(slides, resolved, findings);
+            InspectTone(slides, resolved, findings);
             InspectAnchors(slides, resolved, findings);
             InspectClosing(slides, resolved, findings);
             return new PowerPointDeckRhythmReport(slides,
@@ -162,6 +166,44 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointDeckPlanSlideKind.Capability: return slide.ContentItemCount > 4;
                 default: return false;
             }
+        }
+
+        private static void InspectTone(IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
+            PowerPointDeckRhythmOptions options, ICollection<PowerPointDeckRhythmFinding> findings) {
+            if (slides.Count == 0) return;
+            bool firstTone = IsDark(slides[0]);
+            bool hasLight = !firstTone;
+            bool hasDark = firstTone;
+            int streak = 1;
+            for (int index = 1; index < slides.Count; index++) {
+                bool dark = IsDark(slides[index]);
+                hasDark |= dark;
+                hasLight |= !dark;
+                streak = dark == IsDark(slides[index - 1]) ? streak + 1 : 1;
+                if (streak == options.MaximumSameToneStreak + 1) {
+                    findings.Add(new PowerPointDeckRhythmFinding("Rhythm.SameToneStreak",
+                        PowerPointDeckRhythmSeverity.Warning, index,
+                        "The deck stays in the same " + (dark ? "dark" : "light") +
+                        " tonal role for too long without a contrast reset."));
+                }
+            }
+            if (slides.Count >= options.ClosingExpectedAtSlideCount && (!hasLight || !hasDark)) {
+                findings.Add(new PowerPointDeckRhythmFinding("Rhythm.FlatTone",
+                    PowerPointDeckRhythmSeverity.Warning, slides.Count - 1,
+                    "The resolved deck has no light/dark tonal contrast across its section and story roles."));
+            }
+        }
+
+        private static bool IsDark(PowerPointDeckPlanSlideRenderSummary slide) {
+            if (slide.Kind == PowerPointDeckPlanSlideKind.Closing) {
+                return string.Equals(slide.LayoutVariant, PowerPointClosingLayoutVariant.Statement.ToString(),
+                    StringComparison.Ordinal);
+            }
+            if (slide.Kind != PowerPointDeckPlanSlideKind.Section) return false;
+            return string.Equals(slide.LayoutVariant, PowerPointSectionLayoutVariant.GeometricCover.ToString(),
+                       StringComparison.Ordinal) ||
+                   string.Equals(slide.LayoutVariant, PowerPointSectionLayoutVariant.Poster.ToString(),
+                       StringComparison.Ordinal);
         }
 
         private static void InspectAnchors(IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,

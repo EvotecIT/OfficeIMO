@@ -91,7 +91,11 @@ public static partial class OfficeChartDrawingRenderer {
             (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
         bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
             (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
-        ValueRange axisRange = GetCartesianValueRange(snapshot, layout, horizontalValueAxis: barChart);
+        SecondaryAxisRenderContext secondaryAxis = CreateSecondaryAxisRenderContext(
+            snapshot, layout, barChart, showVerticalAxisLabels);
+        bool hasSecondaryAxis = secondaryAxis.HasSeries;
+        ValueRange axisRange = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondaryAxis);
+        ValueRange secondaryAxisRange = secondaryAxis.Range;
         double? valueAxisMajorUnit = GetValueAxisMajorUnit(layout, horizontal: barChart);
         IReadOnlyList<double> valueAxisMajorTicks = GetValueAxisMajorTicks(axisRange, valueAxisMajorUnit);
         double? valueAxisMinorUnit = GetValueAxisMinorUnit(layout, horizontal: barChart);
@@ -105,7 +109,10 @@ public static partial class OfficeChartDrawingRenderer {
             : 28D;
         double horizontalValueAxisLabelWidth = GetHorizontalValueAxisLabelWidth(axisRange, valueAxisMajorTicks, layout, valueAxisUsesPercentDefaults);
         double horizontalAxisTopLabelHeight = showHorizontalAxisLabels && horizontalAxisLabelsHigh ? 15D : 0D;
-        double verticalAxisRightLabelWidth = showVerticalAxisLabels && verticalAxisLabelsHigh ? verticalAxisLabelBandWidth + 8D : 0D;
+        double secondaryAxisLabelBandWidth = secondaryAxis.LabelBandWidth;
+        double verticalAxisRightLabelWidth = Math.Max(
+            showVerticalAxisLabels && verticalAxisLabelsHigh ? verticalAxisLabelBandWidth + 8D : 0D,
+            secondaryAxisLabelBandWidth > 0D ? secondaryAxisLabelBandWidth + 8D : 0D);
         double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight + horizontalAxisTopLabelHeight;
         double legendWidth = GetSeriesLegendWidth(legendSeries, width, layout);
@@ -121,7 +128,8 @@ public static partial class OfficeChartDrawingRenderer {
         double axisLabelLeft = leftLegend ? legendWidth + 2D : 2D;
         double axisLabelWidth = Math.Max(12D, verticalAxisLabelBandWidth);
         double axisLabelRight = plotLeft + plotWidth + 4D;
-        double axisLabelRightWidth = Math.Max(12D, verticalAxisLabelBandWidth);
+        double axisLabelRightWidth = Math.Max(12D,
+            hasSecondaryAxis ? secondaryAxisLabelBandWidth : verticalAxisLabelBandWidth);
         double verticalAxisX = verticalAxisCrossesAtMaximum ? plotLeft + plotWidth : plotLeft;
 
         if (style.PlotAreaBackgroundColor.HasValue || style.PlotAreaBorderColor.HasValue) {
@@ -238,6 +246,11 @@ public static partial class OfficeChartDrawingRenderer {
                     verticalAxisColor,
                     verticalAxisLineWidth);
             }
+        }
+
+        if (hasSecondaryAxis && showVerticalAxis) {
+            AddSecondaryValueAxis(drawing, secondaryAxis, plotLeft + plotWidth, plotTop, plotHeight,
+                style, layout);
         }
 
         if (GetShowCategoryMinorGridLines(style)) {
@@ -386,8 +399,9 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        if (HasMixedCartesianSeriesKinds(snapshot)) {
-            AddMixedCartesianSeries(drawing, snapshot, axisRange, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        if (HasMixedCartesianSeriesKinds(snapshot) || hasSecondaryAxis) {
+            AddMixedCartesianSeries(drawing, snapshot, axisRange, secondaryAxisRange, hasSecondaryAxis,
+                plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsAreaChart(snapshot.ChartKind)) {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {
@@ -425,7 +439,6 @@ public static partial class OfficeChartDrawingRenderer {
                     layout,
                     valueAxisUsesPercentDefaults);
             }
-
             AddAxisTitles(drawing, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, layout.ShowValueAxis ? layout.ValueAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         } else {
             if (layout.ShowValueAxis && layout.ShowValueAxisLabels) {
@@ -440,6 +453,11 @@ public static partial class OfficeChartDrawingRenderer {
                     style,
                     layout,
                     valueAxisUsesPercentDefaults);
+            }
+
+            if (hasSecondaryAxis && layout.ShowValueAxis && layout.ShowValueAxisLabels) {
+                AddSecondaryValueAxisLabels(drawing, secondaryAxis, plotTop, plotHeight,
+                    axisLabelRight, axisLabelRightWidth, style, layout);
             }
 
             if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
@@ -492,15 +510,6 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return drawing;
-    }
-
-    private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, ValueRange sharedValueAxisRange, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
-        AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
-        AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
-        AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
-        if (!HasMixedScatterSeriesOnCategoryAxes(snapshot)) {
-            AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
-        }
     }
 
     /// <summary>
@@ -934,7 +943,9 @@ public static partial class OfficeChartDrawingRenderer {
         return null;
     }
 
-    private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, ValueRange? sharedValueAxisRange = null) {
+    private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
+        double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
@@ -943,7 +954,8 @@ public static partial class OfficeChartDrawingRenderer {
 
         var barSeries = new List<(OfficeChartSeries Series, int SourceIndex)>();
         for (int i = 0; i < series.Count; i++) {
-            if (ShouldRenderSeriesAsBarOrColumn(snapshot, series[i])) {
+            if (ShouldRenderSeriesAsBarOrColumn(snapshot, series[i]) &&
+                (!axisGroup.HasValue || series[i].AxisGroup == axisGroup.Value)) {
                 barSeries.Add((series[i], i));
             }
         }
@@ -1153,10 +1165,14 @@ public static partial class OfficeChartDrawingRenderer {
         return new ValueRange(min, max);
     }
 
-    private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, ValueRange? sharedValueAxisRange = null) {
+    private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
+        double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> areaSeries = GetRenderableAreaSeries(snapshot);
+        if (axisGroup.HasValue) areaSeries = areaSeries.Where(item =>
+            item.Series.AxisGroup == axisGroup.Value).ToList();
         if (categories.Count < 2 || areaSeries.Count == 0) {
             return;
         }
@@ -1263,10 +1279,14 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, ValueRange? sharedValueAxisRange = null) {
+    private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
+        double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> lineSeries = GetRenderableLineSeries(snapshot);
+        if (axisGroup.HasValue) lineSeries = lineSeries.Where(item =>
+            item.Series.AxisGroup == axisGroup.Value).ToList();
         if (categories.Count == 0 || lineSeries.Count == 0) {
             return;
         }

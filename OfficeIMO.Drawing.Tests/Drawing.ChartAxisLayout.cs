@@ -177,4 +177,37 @@ public class DrawingChartAxisLayoutTests {
         Assert.Contains("Columns", text);
         Assert.DoesNotContain("Scatter", text);
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_UsesIndependentSecondaryValueAxisRange() {
+        OfficeColor columnColor = OfficeColor.ParseHex("#2563EB");
+        OfficeColor lineColor = OfficeColor.ParseHex("#DC2626");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Secondary axis",
+            "Secondary Axis",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Revenue", new[] { 100D, 150D, 200D }, null, columnColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Margin", new[] { 1D, 1.5D, 2D }, null, lineColor, null,
+                        showMarkers: true, renderKind: OfficeChartKind.Line,
+                        axisGroup: OfficeChartAxisGroup.Secondary)
+                }),
+            widthPoints: 360D,
+            heightPoints: 220D,
+            layout: new OfficeChartLayout(showLegend: false)));
+
+        OfficeDrawingShape[] marginLines = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == lineColor)
+            .ToArray();
+        Assert.NotEmpty(marginLines);
+        double verticalSpan = marginLines.Max(shape => shape.Y + shape.Shape.Height) -
+                              marginLines.Min(shape => shape.Y);
+        Assert.True(verticalSpan > 40D,
+            "Secondary-axis line values should use their own 0-2 range rather than the primary 0-200 range.");
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "200");
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "2");
+    }
 }

@@ -40,6 +40,7 @@ presentation.Save();
 - Provides designer composition helpers for theme-aware business decks and repeatable layout alternatives.
 - Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
 - Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
+- Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
 - Supports encrypted presentation save/open workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
@@ -160,6 +161,41 @@ slide.AddChartCm(metrics, row => row.Quarter,
 
 record MetricRow(string Quarter, double Revenue, double Margin);
 ```
+
+### Shared chart families, combo axes, and accessibility
+
+Use `OfficeChartData` when the same categories and series should drive PowerPoint, Excel, Drawing, HTML, PDF,
+or image workflows. A series can choose its own chart kind and primary or secondary value axis without a
+PowerPoint-only chart model.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var sharedData = new OfficeChartData(
+    new[] { "Q1", "Q2", "Q3", "Q4" },
+    new[] {
+        new OfficeChartSeries("Revenue", new[] { 120d, 145d, 172d, 190d },
+            xValues: null, color: OfficeColor.Parse("#0B7FAB"), pointColors: null,
+            showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+        new OfficeChartSeries("Margin", new[] { 22d, 26d, 31d, 35d },
+            xValues: null, color: OfficeColor.Parse("#E85D04"), pointColors: null,
+            showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
+            axisGroup: OfficeChartAxisGroup.Secondary)
+    });
+
+PowerPointChart chart = slide.AddChartCm(
+    OfficeChartKind.ColumnClustered, sharedData,
+    leftCm: 1.5, topCm: 3, widthCm: 22, heightCm: 9,
+    accessibility: new PowerPointChartAccessibilityOptions {
+        AlternativeText = "Revenue columns with margin line on a secondary axis"
+    });
+
+chart.SaveDataSummary("quarterly-chart.txt");
+```
+
+The shared authoring overload covers clustered, stacked, and 100% stacked column/bar; line variants; area
+variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
+used by PNG/SVG, HTML, and PDF paths.
 
 ```csharp
 var mix = new PowerPointChartData(

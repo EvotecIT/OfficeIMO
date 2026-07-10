@@ -178,7 +178,8 @@ deck.AddSlides(expanded);
 ```
 
 The rhythm report uses stable codes such as `Rhythm.RepeatedKind`, `Rhythm.RepeatedVariant`,
-`Rhythm.DenseStreak`, `Rhythm.LongSection`, and `Rhythm.MissingClosing`. It is an advisory composition check;
+`Rhythm.DenseStreak`, `Rhythm.SameToneStreak`, `Rhythm.FlatTone`, `Rhythm.LongSection`, and
+`Rhythm.MissingClosing`. It is an advisory composition check;
 `Preflight()` remains the artifact-level gate for clipping, bounds, collisions, and missing image relationships.
 
 When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:

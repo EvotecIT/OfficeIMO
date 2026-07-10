@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChartStoryContent Content { get; }
         /// <inheritdoc />
         public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.ChartStory;
-        internal override int ContentItemCount => Content.Data.Series.Count + Content.Insights.Count;
+        internal override int ContentItemCount => Content.SharedData.Series.Count + Content.Insights.Count;
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) =>
             deck.AddChartStorySlide(Title, Subtitle, Content, Seed, _configure);
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {

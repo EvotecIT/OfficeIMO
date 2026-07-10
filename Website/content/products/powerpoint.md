@@ -21,7 +21,7 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 - **Tables with merged cells** -- rows, columns, horizontal and vertical merges, and per-cell styling
 - **Images** -- insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
 - **Shapes with fill, stroke & effects** -- rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
-- **Editable charts with formatting** -- column/bar, line, scatter, pie, and doughnut charts with data labels, legends, and axis configuration
+- **Editable shared charts with formatting** -- all 16 `OfficeChartKind` families, combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
 - **Slide sections & transitions** -- organize slides into sections and apply transition animations
 - **Themes & layouts** -- apply built-in or custom themes and choose from standard slide layouts
 - **Designer decks** -- generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable
@@ -42,6 +42,7 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 ## Quick start
 
 ```csharp
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -57,13 +58,16 @@ highlights.AddBullets(new[] {
     "Delivery expanded to 12 markets"
 });
 
-var data = new PowerPointChartData(
+var data = new OfficeChartData(
     new[] { "Q1", "Q2", "Q3", "Q4" },
-    new[] { new PowerPointChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
+    new[] { new OfficeChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
 var chartSlide = presentation.AddSlide();
 chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-chartSlide.AddChartCm(data, 1.5, 3.0, 22, 9)
+chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
+        new PowerPointChartAccessibilityOptions {
+            AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
+        })
     .SetTitle("2025 revenue")
     .SetLegend(LegendPositionValues.Bottom);
 

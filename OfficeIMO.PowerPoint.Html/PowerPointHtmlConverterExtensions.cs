@@ -413,7 +413,10 @@ public static class PowerPointHtmlConverterExtensions {
 
         try {
             var series = snapshot.Data.Series
-                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues))
+                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
+                    pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
+                    renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
+                    axisGroup: item.AxisGroup))
                 .ToList();
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             officeSnapshot = new OfficeChartSnapshot(

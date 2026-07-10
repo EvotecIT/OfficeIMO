@@ -119,7 +119,7 @@ Those are closer to OfficeIMO's intended generated-document workflow than obscur
 | Template and brand workflow | Partial | Existing master/layout selection, placeholder editing, theme color/font updates | No first-class create-from-template/brand-kit contract or code-defined master/layout model |
 | Content fit and pagination | Weak | Count-based plan diagnostics and PowerPoint auto-fit metadata | No measured preflight, collision detection, table/text auto-splitting, or repeated-header pagination |
 | Tables | Strong on one slide | Typed binding, formatting, merges, sizing, style metadata | No overflow-to-next-slide workflow; no reusable appendix/table-story component |
-| Charts | Partial | Five authored families and deep formatting; broader chart snapshots | Missing stacked/100%, area, radar, combo, secondary-axis, bubble, and broader PowerPoint chart families |
+| Charts | Strong shared authoring | All 16 `OfficeChartKind` families, categorical combo charts, secondary value axes, embedded data, accessibility summaries, and shared snapshots | Bubble, stock, surface, 3D, modern, and unusual extension families remain demand-driven gaps |
 | Media and visual assets | Partial | Pictures, crop, SVG input, audio/video, poster frames, logo images | No semantic asset pipeline, annotation/callout workflow, icon strategy, or content-aware crop/focal point |
 | SmartArt and diagrams | Partial | Basic Process authoring and existing-node text editing; Mermaid adapter | One authored SmartArt layout; no general diagram model integrated with deck planning |
 | Transitions and motion | Partial | 19 transition values including Morph fallback; media timing | Shape/text/chart animation timelines are preserve-only |
@@ -269,13 +269,13 @@ These matter for object-model completeness, but most do less for beautiful gener
 
 ### P0: Trustworthy end-to-end generation
 
-- [ ] Fix the PowerPoint product-page quick start and narrow unsupported marketing claims.
-- [ ] Add compile-tested public snippets and a maintained author/edit/preserve/render capability matrix.
-- [ ] Introduce a measured deck preflight contract using `OfficeIMO.Drawing` text layout and chart primitives.
-- [ ] Detect overflow, collisions, off-slide shapes, clipped text, unreadable font reduction, and missing visual assets.
-- [ ] Add automatic continuation slides for tables and long semantic content, including repeated table headers.
-- [ ] Add one machine-readable generation report shared by designer and markup workflows.
-- [ ] Publish one real end-to-end example that emits PPTX, PNG/SVG previews, PDF, and the proof report.
+- [x] Fix the PowerPoint product-page quick start and narrow unsupported marketing claims.
+- [x] Add compile-tested public snippets and a maintained author/edit/preserve/render capability matrix.
+- [x] Introduce a measured deck preflight contract using `OfficeIMO.Drawing` text layout and chart primitives.
+- [x] Detect overflow, collisions, off-slide shapes, clipped text, unreadable font reduction, and missing visual assets.
+- [x] Add automatic continuation slides for tables and long semantic content, including repeated table headers.
+- [x] Add one machine-readable generation report shared by designer and markup workflows.
+- [x] Publish one real end-to-end example that emits PPTX, PNG/SVG previews, PDF, and the proof report.
 
 Exit criteria:
 
@@ -286,12 +286,12 @@ Exit criteria:
 
 ### P1: Template and brand-kit workflow
 
-- [ ] Define the smallest template inventory model for masters, layouts, placeholders, theme, logos, footer content, slide size, and safe areas.
-- [ ] Add a create-from-template workflow with deterministic removal or retention of source slides.
-- [ ] Select layout roles and placeholders by semantic name with clear ambiguity diagnostics.
-- [ ] Map imported brand tokens into `PowerPointDesignBrief` and native PowerPoint theme parts.
-- [ ] Prove preservation with sanitized PowerPoint-authored `.pptx` and `.potx` fixtures.
-- [ ] Add code-defined layouts only after the template-consumption contract is stable.
+- [x] Define the smallest template inventory model for masters, layouts, placeholders, theme, logos, footer content, slide size, and safe areas.
+- [x] Add a create-from-template workflow with deterministic removal or retention of source slides.
+- [x] Select layout roles and placeholders by semantic name with clear ambiguity diagnostics.
+- [x] Map imported brand tokens into `PowerPointDesignBrief` and native PowerPoint theme parts.
+- [x] Prove preservation with sanitized PowerPoint-authored `.pptx` and `.potx` fixtures.
+- [x] Add code-defined layouts only after the template-consumption contract is stable.
 
 Exit criteria:
 
@@ -299,12 +299,12 @@ Exit criteria:
 
 ### P2: Broader visual grammar and real assets
 
-- [ ] Add executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing slide families first.
-- [ ] Give each family at least two materially different layouts rather than color-only variations.
-- [ ] Accept real images, charts, tables, diagrams, and callouts through semantic content models.
-- [ ] Add crop/focal-point, annotation, caption, and provenance/alt-text metadata for images.
-- [ ] Add deck-level rhythm checks for consecutive repeated variants, density, dark/light balance, and section pacing.
-- [ ] Expand the market-facing showcase with complete multi-slide deliverables rather than isolated component demos.
+- [x] Add executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing slide families first.
+- [x] Give each family at least two materially different layouts rather than color-only variations.
+- [x] Accept real images, charts, tables, diagrams, and callouts through semantic content models.
+- [x] Add crop/focal-point, annotation, caption, and provenance/alt-text metadata for images.
+- [x] Add deck-level rhythm checks for consecutive repeated variants, density, dark/light balance, and section pacing.
+- [x] Expand the market-facing showcase with complete multi-slide deliverables rather than isolated component demos.
 
 Exit criteria:
 
@@ -314,12 +314,12 @@ Exit criteria:
 
 ### P3: Shared chart authoring parity
 
-- [ ] Route PowerPoint chart family and data semantics through `OfficeIMO.Drawing.OfficeChartKind` and shared chart contracts.
-- [ ] Author all currently shared column, bar, line, area, scatter, radar, pie, and doughnut variants.
-- [ ] Add combo charts and primary/secondary axis assignment.
-- [ ] Keep embedded workbook data, cached values, chart XML, snapshots, image export, HTML, and PDF consistent.
-- [ ] Add chart accessibility metadata and data-summary output.
-- [ ] Add broader families only with real fixture and renderer demand.
+- [x] Route PowerPoint chart family and data semantics through `OfficeIMO.Drawing.OfficeChartKind` and shared chart contracts.
+- [x] Author all currently shared column, bar, line, area, scatter, radar, pie, and doughnut variants.
+- [x] Add combo charts and primary/secondary axis assignment.
+- [x] Keep embedded workbook data, cached values, chart XML, snapshots, image export, HTML, and PDF consistent.
+- [x] Add chart accessibility metadata and data-summary output.
+- [x] Add broader families only with real fixture and renderer demand.
 
 Exit criteria:
 

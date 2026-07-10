@@ -134,34 +134,13 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointChart AddStoryChart(PowerPointSlide slide, PowerPointChartStoryContent content,
             PowerPointLayoutBox bounds) {
-            PowerPointChart chart;
-            switch (content.ChartKind) {
-                case OfficeChartKind.ColumnClustered:
-                case OfficeChartKind.ColumnStacked:
-                case OfficeChartKind.ColumnStacked100:
-                case OfficeChartKind.BarClustered:
-                case OfficeChartKind.BarStacked:
-                case OfficeChartKind.BarStacked100:
-                    chart = slide.AddChart(content.Data, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
-                    break;
-                case OfficeChartKind.Line:
-                case OfficeChartKind.LineStacked:
-                case OfficeChartKind.LineStacked100:
-                    chart = slide.AddLineChart(content.Data, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
-                    break;
-                case OfficeChartKind.Pie:
-                    chart = slide.AddPieChart(content.Data, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
-                    break;
-                case OfficeChartKind.Doughnut:
-                    chart = slide.AddDoughnutChart(content.Data, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
-                    break;
-                default:
-                    throw new NotSupportedException("Chart-story authoring for " + content.ChartKind +
-                        " requires the shared chart-authoring overload.");
-            }
-            chart.Name = "Chart Story";
-            chart.AltText = content.AlternativeText ?? content.DataSummary ?? "Editable chart story";
-            return chart;
+            return slide.AddChart(content.ChartKind, content.SharedData, bounds.Left, bounds.Top,
+                bounds.Width, bounds.Height, new PowerPointChartAccessibilityOptions {
+                    Name = "Chart Story",
+                    AlternativeText = content.AlternativeText ?? "Editable chart story",
+                    DataSummary = content.DataSummary,
+                    IncludeDataSummaryInAlternativeText = true
+                });
         }
 
         private static void AddComparisonColumns(PowerPointSlide slide, PowerPointDesignTheme theme,

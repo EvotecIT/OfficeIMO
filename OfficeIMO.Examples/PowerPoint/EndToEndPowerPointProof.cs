@@ -35,18 +35,21 @@ namespace OfficeIMO.Examples.PowerPoint {
                 Placement = PowerPointImagePlacement.Fit
             }.Annotate(new PowerPointImageAnnotation(0.5, 0.5, "Real asset",
                 "The picture remains native and editable in PowerPoint."));
-            var chartData = new PowerPointChartData(
+            var chartData = new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
                 new[] {
-                    new PowerPointChartSeries("Adoption", new[] { 28D, 43D, 61D, 72D }),
-                    new PowerPointChartSeries("Target", new[] { 35D, 50D, 65D, 80D })
+                    new OfficeChartSeries("Adoption", new[] { 28D, 43D, 61D, 72D }, null, null, null,
+                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Conversion", new[] { 6.2D, 7.8D, 9.6D, 11.4D }, null, null, null,
+                        showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
+                        axisGroup: OfficeChartAxisGroup.Secondary)
                 });
             var chartStory = new PowerPointChartStoryContent(OfficeChartKind.ColumnClustered, chartData,
-                new[] { "Adoption improved every quarter.", "The remaining gap to target is eight points." }) {
-                Caption = "Quarterly product adoption",
+                new[] { "Adoption improved every quarter.", "Conversion increased with adoption." }) {
+                Caption = "Quarterly adoption and conversion",
                 Provenance = "Illustrative customer-success dataset",
-                AlternativeText = "Clustered columns comparing quarterly adoption with target",
-                DataSummary = "Adoption rose from 28 to 72 while target rose from 35 to 80."
+                AlternativeText = "Adoption columns with conversion line on a secondary axis",
+                DataSummary = "Adoption rose from 28 to 72 while conversion rose from 6.2 to 11.4."
             };
             var appendixData = new PowerPointTableData(new[] { "Workstream", "Status", "Complete" },
                 Enumerable.Range(1, 17).Select(index => (IEnumerable<string>)new[] {
@@ -72,7 +75,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .AddSection("Executive delivery review", "Editable, measured, and ready for inspection")
                 .AddExecutiveSummary("Executive summary", "A decision-ready opening",
                     new PowerPointExecutiveSummaryContent(
-                        new[] { new PowerPointMetric("13", "proof slides"), new PowerPointMetric("0", "hidden rows") },
+                        new[] { new PowerPointMetric("14", "proof slides"), new PowerPointMetric("0", "hidden rows") },
                         new[] {
                             new PowerPointCardContent("Decision", new[] { "Use semantic story families" }),
                             new PowerPointCardContent("Evidence", new[] { "Preflight every generated deck" })
@@ -88,6 +91,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .AddArchitecture("End-to-end ownership", "Native shapes keep the system map editable", architecture)
                 .AddScreenshotStory("Semantic image proof", "Crop, focal point, caption, provenance, and alt text",
                     brandImage, new[] { "Real image relationship", "Visible provenance", "Accessible description" })
+                .AddSection("Delivery and evidence", "A contrast reset before implementation detail",
+                    configure: options => options.SectionVariant = PowerPointSectionLayoutVariant.GeometricCover)
                 .AddProcess("Delivery path", "Long content continues deterministically",
                     Enumerable.Range(1, 8).Select(index => new PowerPointProcessStep(
                         "Phase " + index, "Evidence and owner for delivery phase " + index + ".")))
@@ -97,7 +102,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .AddAppendixTable("Delivery detail", "Editable rows continue without truncation", appendixData)
                 .AddClosing("Next decision", new PowerPointClosingContent(
                     "Beautiful automation is trustworthy automation.",
-                    "Inspect the proof bundle and approve the next release."));
+                    "Inspect the proof bundle and approve the next release."),
+                    configure: options => options.Variant = PowerPointClosingLayoutVariant.Statement);
 
             PowerPointDeckPlan expandedPlan = plan.WithContinuations();
             PowerPointDeckRhythmReport rhythm = expandedPlan.InspectRhythm(deck.Design);
