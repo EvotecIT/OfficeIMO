@@ -6,9 +6,11 @@ namespace OfficeIMO.Rtf.Syntax;
 /// Loss-preserving RTF syntax tree produced from tokens.
 /// </summary>
 public sealed class RtfSyntaxTree {
-    internal RtfSyntaxTree(RtfGroup root, IReadOnlyList<RtfDiagnostic> diagnostics) {
+    internal RtfSyntaxTree(RtfGroup root, IReadOnlyList<RtfDiagnostic> diagnostics, string? sourcePrefix = null, string? sourceSuffix = null) {
         Root = root ?? throw new ArgumentNullException(nameof(root));
         Diagnostics = diagnostics ?? Array.Empty<RtfDiagnostic>();
+        SourcePrefix = sourcePrefix ?? string.Empty;
+        SourceSuffix = sourceSuffix ?? string.Empty;
     }
 
     /// <summary>Root RTF group.</summary>
@@ -16,6 +18,12 @@ public sealed class RtfSyntaxTree {
 
     /// <summary>Parser diagnostics.</summary>
     public IReadOnlyList<RtfDiagnostic> Diagnostics { get; }
+
+    internal string SourcePrefix { get; }
+
+    internal string SourceSuffix { get; }
+
+    internal RtfSyntaxTree WithRoot(RtfGroup root) => new RtfSyntaxTree(root, Diagnostics, SourcePrefix, SourceSuffix);
 
     /// <summary>
     /// Parses RTF content into a syntax tree.

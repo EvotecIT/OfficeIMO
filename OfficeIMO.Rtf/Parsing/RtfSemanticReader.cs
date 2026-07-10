@@ -91,13 +91,23 @@ internal static partial class RtfSemanticReader {
         }
 
         private CharacterState CreateInitialState(int ansiCodePage, bool hasExplicitAnsiCodePage, int unicodeSkipCount) {
+            int effectiveCodePage = ResolveFontCodePage(_document.Settings.DefaultFontId, ansiCodePage);
             return new CharacterState {
-                AnsiCodePage = ansiCodePage,
+                AnsiCodePage = effectiveCodePage,
+                DocumentAnsiCodePage = ansiCodePage,
                 HasExplicitAnsiCodePage = hasExplicitAnsiCodePage,
                 UnicodeSkipCount = unicodeSkipCount,
                 DefaultLanguageId = _document.Settings.DefaultLanguageId,
                 LanguageId = _document.Settings.DefaultLanguageId
             };
+        }
+
+        private int ResolveFontCodePage(int? fontId, int fallbackCodePage) {
+            if (!fontId.HasValue) return fallbackCodePage;
+            RtfFont? font = _document.Fonts.FirstOrDefault(item => item.Id == fontId.Value);
+            if (font == null) return fallbackCodePage;
+            if (font.CodePage.HasValue) return font.CodePage.Value;
+            return RtfAnsiCodePage.GetCodePageForCharset(font.Charset) ?? fallbackCodePage;
         }
 
         private void WalkGroup(RtfGroup group, CharacterState state, int depth, bool allowDestinationSkip) {

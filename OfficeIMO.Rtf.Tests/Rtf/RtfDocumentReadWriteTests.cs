@@ -24,6 +24,17 @@ public partial class RtfDocumentReadWriteTests {
     }
 
     [Fact]
+    public void Read_Uses_Font_Charset_CodePage_For_Ansi_Bytes() {
+        const string rtf = @"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0\fcharset0 Arial;}{\f1\fcharset238 Arial CE;}}\f1 Za\'bf\'f3\'b3\'e6 g\'ea\'9cl\'b9 ja\'9f\'f1\f0  \'bf\par}";
+
+        RtfDocument document = RtfDocument.Read(rtf).Document;
+        string text = Assert.Single(document.Paragraphs).ToPlainText();
+
+        Assert.StartsWith("Zażółć gęślą jaźń", text, StringComparison.Ordinal);
+        Assert.EndsWith("¿", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Write_Emits_Deterministic_Rtf_And_Reads_Back_Formatting() {
         RtfDocument document = RtfDocument.Create();
         int red = document.AddColor(255, 0, 0);

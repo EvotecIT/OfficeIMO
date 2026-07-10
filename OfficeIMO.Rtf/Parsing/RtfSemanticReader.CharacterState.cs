@@ -87,6 +87,7 @@ internal static partial class RtfSemanticReader {
         public RtfTabAlignment PendingTabAlignment { get; set; } = RtfTabAlignment.Left;
         public RtfTabLeader PendingTabLeader { get; set; } = RtfTabLeader.None;
         public int AnsiCodePage { get; set; } = RtfAnsiCodePage.DefaultWindowsCodePage;
+        public int DocumentAnsiCodePage { get; set; } = RtfAnsiCodePage.DefaultWindowsCodePage;
         public bool HasExplicitAnsiCodePage { get; set; }
         public int UnicodeSkipCount { get; set; } = 1;
         public int SkipCharacters { get; set; }
@@ -170,6 +171,7 @@ internal static partial class RtfSemanticReader {
                 PendingTabAlignment = PendingTabAlignment,
                 PendingTabLeader = PendingTabLeader,
                 AnsiCodePage = AnsiCodePage,
+                DocumentAnsiCodePage = DocumentAnsiCodePage,
                 HasExplicitAnsiCodePage = HasExplicitAnsiCodePage,
                 UnicodeSkipCount = UnicodeSkipCount,
                 SkipCharacters = SkipCharacters,

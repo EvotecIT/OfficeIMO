@@ -27,6 +27,29 @@ internal static partial class RtfAnsiCodePage {
         };
     }
 
+    public static int? GetCodePageForCharset(int? charset) {
+        return charset switch {
+            77 => MacRomanCodePage,
+            128 => 932,
+            129 => 949,
+            130 => 949,
+            134 => 936,
+            136 => 950,
+            161 => 1253,
+            162 => 1254,
+            163 => 1258,
+            177 => 1255,
+            178 => 1256,
+            186 => 1257,
+            204 => 1251,
+            222 => 874,
+            238 => 1250,
+            254 => IbmPcCodePage,
+            255 => IbmPcCodePage,
+            _ => null
+        };
+    }
+
     public static string DecodeText(int codePage, string text) {
         if (string.IsNullOrEmpty(text)) return text;
 
