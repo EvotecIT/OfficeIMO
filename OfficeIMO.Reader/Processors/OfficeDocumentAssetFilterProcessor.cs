@@ -22,12 +22,14 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
         OfficeDocumentProcessorContext context) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var removedIds = new HashSet<string>(StringComparer.Ordinal);
-        document.Assets = FilterAssets(document.Assets, removedIds, context.CancellationToken);
+        var keptIds = new HashSet<string>(StringComparer.Ordinal);
+        document.Assets = FilterAssets(document.Assets, removedIds, keptIds, context.CancellationToken);
         foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
             context.CancellationToken.ThrowIfCancellationRequested();
-            page.Assets = FilterAssets(page.Assets, removedIds, context.CancellationToken);
+            page.Assets = FilterAssets(page.Assets, removedIds, keptIds, context.CancellationToken);
         }
 
+        removedIds.ExceptWith(keptIds);
         if (removedIds.Count == 0) return document;
         document.OcrCandidates = FilterCandidates(document.OcrCandidates, removedIds);
         foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
@@ -40,6 +42,7 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
     private IReadOnlyList<OfficeDocumentAsset> FilterAssets(
         IReadOnlyList<OfficeDocumentAsset>? assets,
         ISet<string> removedIds,
+        ISet<string> keptIds,
         System.Threading.CancellationToken cancellationToken) {
         if (assets == null || assets.Count == 0) return Array.Empty<OfficeDocumentAsset>();
         var kept = new List<OfficeDocumentAsset>(assets.Count);
@@ -48,6 +51,7 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
             OfficeDocumentAsset asset = assets[index];
             if (asset != null && _predicate(asset)) {
                 kept.Add(asset);
+                if (!string.IsNullOrWhiteSpace(asset.Id)) keptIds.Add(asset.Id);
             } else if (asset != null && !string.IsNullOrWhiteSpace(asset.Id)) {
                 removedIds.Add(asset.Id);
             }

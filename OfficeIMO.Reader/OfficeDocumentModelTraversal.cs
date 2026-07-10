@@ -67,21 +67,27 @@ internal static class OfficeDocumentModelTraversal {
                 }
             }
         }
-        foreach (ReaderChunk chunk in document.Chunks ?? System.Array.Empty<ReaderChunk>()) {
+        IReadOnlyList<ReaderChunk> chunks = document.Chunks ?? System.Array.Empty<ReaderChunk>();
+        for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+            ReaderChunk chunk = chunks[chunkIndex];
             if (chunk?.FormFields == null) continue;
             for (int index = 0; index < chunk.FormFields.Count; index++) {
                 ReaderFormField field = chunk.FormFields[index];
                 if (field == null) continue;
-                OfficeDocumentFormField form = ProjectChunkForm(chunk, field, index);
+                OfficeDocumentFormField form = ProjectChunkForm(chunk, field, chunkIndex, index);
                 if (seenIds.Add(form.Id)) yield return form;
             }
         }
     }
 
-    private static OfficeDocumentFormField ProjectChunkForm(ReaderChunk chunk, ReaderFormField field, int index) {
+    private static OfficeDocumentFormField ProjectChunkForm(
+        ReaderChunk chunk,
+        ReaderFormField field,
+        int chunkIndex,
+        int fieldIndex) {
         ReaderFormWidget? widget = field.Widgets == null || field.Widgets.Count == 0 ? null : field.Widgets[0];
         return new OfficeDocumentFormField {
-            Id = BuildChunkFormId(chunk, field, index),
+            Id = BuildChunkFormId(chunk, field, chunkIndex, fieldIndex),
             Name = FirstNonEmpty(field.Name, field.PartialName, field.AlternateName, field.MappingName),
             Kind = string.IsNullOrWhiteSpace(field.FieldType) ? field.Kind.ToString().ToLowerInvariant() : field.FieldType!,
             Value = BuildChunkFormValue(field),
@@ -97,11 +103,17 @@ internal static class OfficeDocumentModelTraversal {
         };
     }
 
-    private static string BuildChunkFormId(ReaderChunk chunk, ReaderFormField field, int index) {
+    private static string BuildChunkFormId(
+        ReaderChunk chunk,
+        ReaderFormField field,
+        int chunkIndex,
+        int fieldIndex) {
         string? identity = FirstNonEmpty(field.Name, field.PartialName, field.MappingName, field.AlternateName);
         if (!string.IsNullOrWhiteSpace(identity)) return identity!;
-        string chunkId = string.IsNullOrWhiteSpace(chunk.Id) ? "chunk" : chunk.Id;
-        return chunkId + "-form-" + index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
+        string chunkId = string.IsNullOrWhiteSpace(chunk.Id)
+            ? "chunk-" + chunkIndex.ToString("D4", System.Globalization.CultureInfo.InvariantCulture)
+            : chunk.Id;
+        return chunkId + "-form-" + fieldIndex.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string? BuildChunkFormValue(ReaderFormField field) {

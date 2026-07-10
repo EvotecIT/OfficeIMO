@@ -54,7 +54,7 @@ public static partial class DocumentReader {
             chunk.SourceLastWriteUtc = sourceLastWriteUtc;
             chunk.SourceLengthBytes = sourceLengthBytes;
             chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
-            chunk.ChunkHash = computeHashes ? ComputeChunkHash(chunk) : null;
+            if (computeHashes) chunk.ChunkHash = ComputeChunkHash(chunk);
         }
 
         document.Chunks = chunks;

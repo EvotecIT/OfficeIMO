@@ -47,7 +47,7 @@ public sealed class OfficeDocumentBlockNormalizationProcessor : OfficeDocumentPr
             if (_options.NormalizeLevels && block.Level.HasValue) {
                 if (string.Equals(block.Kind, "heading", StringComparison.OrdinalIgnoreCase)) {
                     block.Level = Math.Max(1, Math.Min(6, block.Level.Value));
-                } else if (block.Kind.IndexOf("list", StringComparison.OrdinalIgnoreCase) >= 0) {
+                } else if ((block.Kind?.IndexOf("list", StringComparison.OrdinalIgnoreCase) ?? -1) >= 0) {
                     block.Level = Math.Max(1, block.Level.Value);
                 }
             }

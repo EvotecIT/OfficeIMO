@@ -230,6 +230,26 @@ public sealed class ReaderProcessorPipelineTests {
     }
 
     [Fact]
+    public void InstanceReader_PreservesProcessorChunkHashWhenHashComputationIsDisabled() {
+        const string suppliedHash = "processor-owned-hash";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("supply-hash", (document, _) => {
+                document.Chunks = new[] {
+                    new ReaderChunk { Id = "replacement", Text = "processed", ChunkHash = suppliedHash }
+                };
+                return document;
+            }))
+            .Build();
+
+        ReaderChunk chunk = Assert.Single(reader.Read(
+            Encoding.UTF8.GetBytes("Original body"),
+            "note.md",
+            new ReaderOptions { ComputeHashes = false }));
+
+        Assert.Equal(suppliedHash, chunk.ChunkHash);
+    }
+
+    [Fact]
     public void BuiltInProcessorsNormalizeAndFilterSharedModels() {
         var kept = new OfficeDocumentAsset { Id = "keep", Kind = "image", LengthBytes = 10 };
         var removed = new OfficeDocumentAsset { Id = "drop", Kind = "preview", LengthBytes = 1000 };
@@ -275,6 +295,53 @@ public sealed class ReaderProcessorPipelineTests {
         OfficeDocumentDiagnostic ocrDiagnostic = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
         Assert.Equal("Keep OCR", ocrDiagnostic.Message);
         Assert.Equal("keep", ocrDiagnostic.Location!.BlockAnchor);
+    }
+
+    [Fact]
+    public void AssetFilter_KeepsOcrForAnAssetIdThatSurvivesInAnotherScope() {
+        var document = new OfficeDocumentReadResult {
+            Assets = new[] {
+                new OfficeDocumentAsset { Id = "shared", LengthBytes = 10 }
+            },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Assets = new[] { new OfficeDocumentAsset { Id = "shared", LengthBytes = null } }
+                }
+            },
+            OcrCandidates = new[] {
+                new OfficeDocumentOcrCandidate { Id = "shared-ocr", AssetId = "shared" }
+            },
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic { Code = "ocr-needed", Message = "OCR shared asset" }
+            }
+        };
+
+        new OfficeDocumentProcessorPipelineBuilder()
+            .Add(new OfficeDocumentAssetFilterProcessor(asset => asset.LengthBytes.HasValue))
+            .Build()
+            .Process(document);
+
+        Assert.Equal("shared", Assert.Single(document.Assets).Id);
+        Assert.Empty(Assert.Single(document.Pages).Assets);
+        Assert.Equal("shared-ocr", Assert.Single(document.OcrCandidates).Id);
+        Assert.Equal("ocr-needed", Assert.Single(document.Diagnostics).Code);
+    }
+
+    [Fact]
+    public void BlockNormalization_AllowsNullKindWhenKindNormalizationIsDisabled() {
+        var block = new OfficeDocumentBlock { Kind = null!, Level = 3 };
+        var document = new OfficeDocumentReadResult { Blocks = new[] { block } };
+        new OfficeDocumentProcessorPipelineBuilder()
+            .Add(new OfficeDocumentBlockNormalizationProcessor(
+                new OfficeDocumentBlockNormalizationOptions {
+                    NormalizeKinds = false,
+                    NormalizeLevels = true
+                }))
+            .Build()
+            .Process(document);
+
+        Assert.Null(block.Kind);
+        Assert.Equal(3, block.Level);
     }
 
     [Fact]

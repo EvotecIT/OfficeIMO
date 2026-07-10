@@ -139,6 +139,25 @@ public sealed class ReaderStructuredExtractionTests {
     }
 
     [Fact]
+    public void Extract_KeepsAnonymousFormsFromSeparateIdlessChunks() {
+        var document = new OfficeDocumentReadResult {
+            Chunks = new[] {
+                new ReaderChunk {
+                    FormFields = new[] { new ReaderFormField { Value = "first" } }
+                },
+                new ReaderChunk {
+                    FormFields = new[] { new ReaderFormField { Value = "second" } }
+                }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(document);
+
+        Assert.Equal(new[] { "chunk-0000-form-0000", "chunk-0001-form-0000" }, result.Forms.Select(form => form.Id));
+        Assert.Equal(new[] { "first", "second" }, result.Forms.Select(form => form.Value));
+    }
+
+    [Fact]
     public void Extract_MergesDocumentAndPageBlocksWhenBuildingSections() {
         var heading = new OfficeDocumentBlock { Id = "heading", Kind = "heading", Text = "Overview", Level = 1 };
         var pageHeadingDuplicate = new OfficeDocumentBlock { Id = "heading", Kind = "heading", Text = "Overview", Level = 1 };
