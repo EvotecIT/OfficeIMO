@@ -327,6 +327,13 @@ namespace OfficeIMO.Word {
             RefreshParent();
         }
 
+        internal WordParagraph(WordDocument document, Paragraph paragraph, Run run, object? parent) {
+            _document = document;
+            _paragraph = paragraph;
+            _run = run;
+            Parent = parent;
+        }
+
         internal WordParagraph(WordDocument document, Paragraph paragraph, Hyperlink hyperlink) {
             _document = document;
             _paragraph = paragraph;

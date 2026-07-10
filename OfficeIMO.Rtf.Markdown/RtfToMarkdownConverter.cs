@@ -12,7 +12,7 @@ internal static class RtfToMarkdownConverter {
     private const int ListIndentTwips = 720;
 
     internal static MarkdownDoc Convert(RtfDocument document, RtfToMarkdownOptions options) {
-        var markdown = MarkdownDoc.Create();
+        var blocks = new List<IMarkdownBlock>(document.Blocks.Count + document.Notes.Count + 1);
         int imageIndex = 0;
         options.NoteRegistry = new RtfMarkdownNoteRegistry();
 
@@ -22,24 +22,24 @@ internal static class RtfToMarkdownConverter {
                 switch (block) {
                     case RtfParagraph paragraph:
                         if (paragraph.ListKind != RtfListKind.None) {
-                            i = ConvertListRun(document, options, markdown, i, ref imageIndex);
-                        } else if (TryConvertCodeBlockRun(document, markdown, i, out int codeBlockEndIndex)) {
+                            i = ConvertListRun(document, options, blocks, i, ref imageIndex);
+                        } else if (TryConvertCodeBlockRun(document, blocks, i, out int codeBlockEndIndex)) {
                             i = codeBlockEndIndex;
                         } else {
-                            markdown.Add(ConvertParagraph(document, paragraph, options, ref imageIndex));
+                            blocks.Add(ConvertParagraph(document, paragraph, options, ref imageIndex));
                         }
                         break;
                     case RtfTable table:
-                        markdown.Add(ConvertTable(document, table, options, ref imageIndex));
+                        blocks.Add(ConvertTable(document, table, options, ref imageIndex));
                         break;
                     case RtfImage image:
-                        markdown.Add(ConvertImageBlock(image, options, ref imageIndex));
+                        blocks.Add(ConvertImageBlock(image, options, ref imageIndex));
                         break;
                     case RtfObject:
-                        AddUnsupportedBlock(markdown, options, "RTF object block omitted.", "rtf-object");
+                        AddUnsupportedBlock(blocks, options, "RTF object block omitted.", "rtf-object");
                         break;
                     case RtfShape:
-                        AddUnsupportedBlock(markdown, options, "RTF drawing shape block omitted.", "rtf-shape");
+                        AddUnsupportedBlock(blocks, options, "RTF drawing shape block omitted.", "rtf-shape");
                         break;
                     default:
                         options.Report("RTFMD001", RtfMarkdownDiagnosticSeverity.Warning, "Unsupported RTF block omitted.", block.GetType().Name);
@@ -47,15 +47,15 @@ internal static class RtfToMarkdownConverter {
                 }
             }
 
-            ReportOmittedHeaderFooters(document, markdown, options);
-            AppendNoteDefinitions(document, markdown, options);
-            return markdown;
+            ReportOmittedHeaderFooters(document, blocks, options);
+            AppendNoteDefinitions(document, blocks, options);
+            return MarkdownDoc.Create().AddRange(blocks);
         } finally {
             options.NoteRegistry = null;
         }
     }
 
-    private static int ConvertListRun(RtfDocument document, RtfToMarkdownOptions options, MarkdownDoc markdown, int startIndex, ref int imageIndex) {
+    private static int ConvertListRun(RtfDocument document, RtfToMarkdownOptions options, ICollection<IMarkdownBlock> blocks, int startIndex, ref int imageIndex) {
         var first = (RtfParagraph)document.Blocks[startIndex];
         int? firstListId = first.ListId;
         int? firstListDefinitionId = first.ListDefinitionId;
@@ -89,7 +89,7 @@ internal static class RtfToMarkdownConverter {
             paragraphs.Add(paragraph);
         }
 
-        markdown.Add(ConvertListParagraphs(document, options, paragraphs, ref imageIndex));
+        blocks.Add(ConvertListParagraphs(document, options, paragraphs, ref imageIndex));
         return i - 1;
     }
 
@@ -392,7 +392,7 @@ internal static class RtfToMarkdownConverter {
         return markdown;
     }
 
-    private static bool TryConvertCodeBlockRun(RtfDocument document, MarkdownDoc markdown, int startIndex, out int endIndex) {
+    private static bool TryConvertCodeBlockRun(RtfDocument document, ICollection<IMarkdownBlock> blocks, int startIndex, out int endIndex) {
         endIndex = startIndex;
         if (!(document.Blocks[startIndex] is RtfParagraph first) ||
             !TryGetCodeBlockMarker(first, out string key, out string infoString)) {
@@ -415,7 +415,7 @@ internal static class RtfToMarkdownConverter {
             lines.Add(paragraph.ToPlainText());
         }
 
-        markdown.Add(new CodeBlock(infoString, string.Join("\n", lines)));
+        blocks.Add(new CodeBlock(infoString, string.Join("\n", lines)));
         endIndex = index - 1;
         return true;
     }
@@ -780,10 +780,10 @@ internal static class RtfToMarkdownConverter {
         options.Report("RTFMD009", RtfMarkdownDiagnosticSeverity.Info, "Inline RTF image represented by Markdown image reference.", path);
     }
 
-    private static void AddUnsupportedBlock(MarkdownDoc markdown, RtfToMarkdownOptions options, string message, string source) {
+    private static void AddUnsupportedBlock(ICollection<IMarkdownBlock> blocks, RtfToMarkdownOptions options, string message, string source) {
         options.Report("RTFMD010", RtfMarkdownDiagnosticSeverity.Warning, message, source);
         if (options.EmitUnsupportedHtmlComments) {
-            markdown.Add(new HtmlRawBlock("<!-- " + message + " -->"));
+            blocks.Add(new HtmlRawBlock("<!-- " + message + " -->"));
         }
     }
 
@@ -794,7 +794,7 @@ internal static class RtfToMarkdownConverter {
         }
     }
 
-    private static void ReportOmittedHeaderFooters(RtfDocument document, MarkdownDoc markdown, RtfToMarkdownOptions options) {
+    private static void ReportOmittedHeaderFooters(RtfDocument document, ICollection<IMarkdownBlock> blocks, RtfToMarkdownOptions options) {
         if (document.HeaderFooters.Count == 0) {
             return;
         }
@@ -802,7 +802,7 @@ internal static class RtfToMarkdownConverter {
         const string message = "RTF header/footer content omitted from Markdown output.";
         options.Report("RTFMD014", RtfMarkdownDiagnosticSeverity.Warning, message, document.HeaderFooters.Count.ToString(CultureInfo.InvariantCulture));
         if (options.EmitUnsupportedHtmlComments) {
-            markdown.Add(new HtmlRawBlock("<!-- " + message + " -->"));
+            blocks.Add(new HtmlRawBlock("<!-- " + message + " -->"));
         }
     }
 
@@ -825,7 +825,7 @@ internal static class RtfToMarkdownConverter {
         return true;
     }
 
-    private static void AppendNoteDefinitions(RtfDocument document, MarkdownDoc markdown, RtfToMarkdownOptions options) {
+    private static void AppendNoteDefinitions(RtfDocument document, ICollection<IMarkdownBlock> blocks, RtfToMarkdownOptions options) {
         RtfMarkdownNoteRegistry? registry = options.NoteRegistry;
         if (registry == null) return;
         foreach (RtfNote note in document.Notes) {
@@ -833,7 +833,7 @@ internal static class RtfToMarkdownConverter {
         }
 
         foreach (KeyValuePair<string, RtfNote> entry in registry.Ordered) {
-            markdown.Add(new FootnoteDefinitionBlock(entry.Key, entry.Value.ToPlainText()));
+            blocks.Add(new FootnoteDefinitionBlock(entry.Key, entry.Value.ToPlainText()));
         }
 
         if (registry.Ordered.Count > 0) {

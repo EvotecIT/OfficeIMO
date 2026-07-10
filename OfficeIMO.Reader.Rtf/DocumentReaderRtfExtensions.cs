@@ -106,6 +106,8 @@ public static partial class DocumentReaderRtfExtensions {
 
         int emittedIndex = 0;
         IReadOnlyList<string>? documentWarnings = BuildDiagnosticWarnings(diagnostics);
+        int documentLinkCount = CountHyperlinkRuns(document);
+        int documentFormFieldCount = CountFormFields(document);
         for (int i = 0; i < blocks.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             RtfReaderBlock block = blocks[i];
@@ -133,7 +135,7 @@ public static partial class DocumentReaderRtfExtensions {
                     Markdown = markdown,
                     Tables = partIndex == 0 ? block.Tables : null,
                     Visuals = partIndex == 0 ? block.Visuals : null,
-                    Diagnostics = BuildDiagnostics(document, block),
+                    Diagnostics = BuildDiagnostics(block, documentLinkCount, documentFormFieldCount),
                     Warnings = warnings
                 }, source, readerOptions.ComputeHashes);
 

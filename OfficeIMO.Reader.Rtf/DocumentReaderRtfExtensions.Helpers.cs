@@ -78,7 +78,7 @@ public static partial class DocumentReaderRtfExtensions {
         warnings.Add(warning);
     }
 
-    private static ReaderChunkDiagnostics BuildDiagnostics(RtfDocument document, RtfReaderBlock block) {
+    private static ReaderChunkDiagnostics BuildDiagnostics(RtfReaderBlock block, int documentLinkCount, int documentFormFieldCount) {
         int imageCount = block.Visuals?.Count(static visual => string.Equals(visual.Kind, "image", StringComparison.OrdinalIgnoreCase)) ?? 0;
         return new ReaderChunkDiagnostics {
             SourceKind = "rtf",
@@ -86,8 +86,8 @@ public static partial class DocumentReaderRtfExtensions {
             ImageCount = imageCount,
             SelectedPageCount = 0,
             PageCount = 0,
-            LinkCount = CountHyperlinkRuns(document),
-            FormFieldCount = CountFormFields(document)
+            LinkCount = documentLinkCount,
+            FormFieldCount = documentFormFieldCount
         };
     }
 
