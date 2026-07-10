@@ -35,6 +35,7 @@ internal static class MsgPropertyReader {
         int codePage = DetermineCodePage(propertyStream, headerLength);
         int count = remainder / 16;
         for (int index = 0; index < count; index++) {
+            state.ThrowIfCancellationRequested();
             int offset = headerLength + index * 16;
             uint tag = MsgBinary.ReadUInt32(propertyStream, offset);
             uint flags = MsgBinary.ReadUInt32(propertyStream, offset + 4);
@@ -137,6 +138,7 @@ internal static class MsgPropertyReader {
             MapiPropertyType scalarType = type == MapiPropertyType.MultipleBinary ? MapiPropertyType.Binary :
                 type == MapiPropertyType.MultipleUnicode ? MapiPropertyType.Unicode : MapiPropertyType.String8;
             for (int index = 0; index < count; index++) {
+                state.ThrowIfCancellationRequested();
                 uint declaredLength = MsgBinary.ReadUInt32(lengthOrValueStream, index * entrySize);
                 string itemName = string.Concat(valueName, "-", index.ToString("X8", CultureInfo.InvariantCulture));
                 string itemPath = MsgBinary.CombinePath(prefix, itemName);
@@ -166,6 +168,7 @@ internal static class MsgPropertyReader {
         }
         var fixedValues = new object[lengthOrValueStream.Length / itemSize];
         for (int index = 0; index < fixedValues.Length; index++) {
+            state.ThrowIfCancellationRequested();
             fixedValues[index] = DecodeScalar(itemType, MsgBinary.Slice(lengthOrValueStream, index * itemSize, itemSize),
                 codePage, state, location) ?? 0;
         }

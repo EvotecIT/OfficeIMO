@@ -14,6 +14,7 @@ internal static class TnefMapiCodec {
         }
         var rows = new List<List<MapiProperty>>((int)rawCount);
         for (int index = 0; index < rawCount; index++) {
+            state.ThrowIfCancellationRequested();
             rows.Add(ReadPropertyArray(cursor, codePage, state,
                 string.Concat(location, "/recipient[", index.ToString(CultureInfo.InvariantCulture), "]")));
         }
@@ -49,6 +50,7 @@ internal static class TnefMapiCodec {
         }
         var properties = new List<MapiProperty>((int)rawCount);
         for (int index = 0; index < rawCount; index++) {
+            state.ThrowIfCancellationRequested();
             uint tag = cursor.ReadUInt32();
             ushort propertyId = unchecked((ushort)(tag >> 16));
             MapiPropertyType type = (MapiPropertyType)unchecked((ushort)tag);
@@ -67,6 +69,7 @@ internal static class TnefMapiCodec {
                 using (MemoryStream rawValues = new MemoryStream()) {
                     MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(type) : type;
                     for (int valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+                        state.ThrowIfCancellationRequested();
                         byte[] itemBytes;
                         if (MsgValueWriter.IsVariable(itemType)) {
                             uint rawLength = cursor.ReadUInt32();

@@ -46,7 +46,7 @@ public sealed class EmailMailboxReader {
     private EmailMailboxReadResult Parse(byte[] data, CancellationToken cancellationToken) {
         var diagnostics = new List<EmailDiagnostic>();
         var mailbox = new EmailMailbox();
-        List<Envelope> envelopes = FindEnvelopes(data);
+        List<Envelope> envelopes = FindEnvelopes(data, cancellationToken);
         if (envelopes.Count == 0 || envelopes[0].LineStart != 0) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_ENVELOPE_MISSING",
                 "The mailbox does not begin with an mbox From separator.", EmailDiagnosticSeverity.Error));
@@ -63,8 +63,8 @@ public sealed class EmailMailboxReader {
             Envelope envelope = envelopes[index];
             int end = index + 1 < envelopes.Count ? envelopes[index + 1].LineStart : data.Length;
             byte[] messageBytes = MsgBinary.Slice(data, envelope.MessageStart, end - envelope.MessageStart);
-            MboxVariant variant = _options.Variant == MboxVariant.Auto ? DetectVariant(messageBytes) : _options.Variant;
-            messageBytes = Unescape(messageBytes, variant);
+            MboxVariant variant = _options.Variant == MboxVariant.Auto ? DetectVariant(messageBytes, cancellationToken) : _options.Variant;
+            messageBytes = Unescape(messageBytes, variant, cancellationToken);
             EmailReadResult message = reader.Read(messageBytes, cancellationToken);
             var entry = new EmailMailboxEntry(message.Document) {
                 EnvelopeSender = envelope.Sender,
@@ -81,10 +81,11 @@ public sealed class EmailMailboxReader {
         return new EmailMailboxReadResult(mailbox, diagnostics.AsReadOnly(), data.LongLength);
     }
 
-    private static List<Envelope> FindEnvelopes(byte[] data) {
+    private static List<Envelope> FindEnvelopes(byte[] data, CancellationToken cancellationToken) {
         var result = new List<Envelope>();
         int lineStart = 0;
         while (lineStart < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int lineEnd = lineStart;
             while (lineEnd < data.Length && data[lineEnd] != '\r' && data[lineEnd] != '\n') lineEnd++;
             if (lineEnd - lineStart >= 5 && StartsWith(data, lineStart, "From ")) {
@@ -106,9 +107,10 @@ public sealed class EmailMailboxReader {
             DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out DateTimeOffset parsed) ? parsed : (DateTimeOffset?)null;
     }
 
-    private static MboxVariant DetectVariant(byte[] message) {
+    private static MboxVariant DetectVariant(byte[] message, CancellationToken cancellationToken) {
         int lineStart = 0;
         while (lineStart < message.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int lineEnd = lineStart;
             while (lineEnd < message.Length && message[lineEnd] != '\r' && message[lineEnd] != '\n') lineEnd++;
             int position = lineStart;
@@ -120,10 +122,11 @@ public sealed class EmailMailboxReader {
         return MboxVariant.Mboxo;
     }
 
-    private static byte[] Unescape(byte[] message, MboxVariant variant) {
+    private static byte[] Unescape(byte[] message, MboxVariant variant, CancellationToken cancellationToken) {
         using (MemoryStream output = new MemoryStream(message.Length)) {
             int lineStart = 0;
             while (lineStart < message.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int lineEnd = lineStart;
                 while (lineEnd < message.Length && message[lineEnd] != '\r' && message[lineEnd] != '\n') lineEnd++;
                 int writeStart = lineStart;

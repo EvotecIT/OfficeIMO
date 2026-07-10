@@ -20,8 +20,9 @@ Measured on 2026-07-10 with an Apple M4, 24 GB memory, macOS 26.5, .NET 8.0.23 r
 
 | Workload | Source bytes | Parsing-thread allocations | Elapsed |
 | --- | ---: | ---: | ---: |
-| One 1 MiB decoded plain-text MIME body | 1,435,016 | 13,123,064 | 3.4 ms |
-| 500-message mbox archive | 120,850 | 4,554,840 | 12.0 ms |
+| One 1 MiB decoded plain-text MIME body | 1,435,016 | 13,123,072 | 4.8 ms |
+| One MSG with a 1 MiB attachment | 1,060,864 | 5,426,256 | 6.7 ms |
+| 500-message mbox archive | 120,850 | 4,558,648 | 9.8 ms |
 
 These numbers are a local regression baseline, not a cross-machine throughput promise. The committed contracts enforce allocation ceilings proportional to source size plus fixed headroom and a ten-second hang ceiling. Returned strings, message models, and requested attachment payloads are intentionally included in the allocation measurement.
 

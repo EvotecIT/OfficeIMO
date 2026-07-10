@@ -18,7 +18,7 @@ public sealed class EmailMailboxWriter {
     /// <summary>Writes a mailbox to a file.</summary>
     public EmailWriteResult Write(EmailMailbox mailbox, string filePath) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result);
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
         File.WriteAllBytes(filePath, bytes);
         return result;
     }
@@ -27,30 +27,34 @@ public sealed class EmailMailboxWriter {
     public EmailWriteResult Write(EmailMailbox mailbox, Stream stream) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result);
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
         stream.Write(bytes, 0, bytes.Length);
         return result;
     }
 
     /// <summary>Writes a mailbox to memory.</summary>
-    public byte[] WriteToBytes(EmailMailbox mailbox) => WriteToBytes(mailbox, out _);
+    public byte[] WriteToBytes(EmailMailbox mailbox) => WriteToBytes(mailbox, out _, CancellationToken.None);
 
     /// <summary>Asynchronously writes a mailbox without closing the stream.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, Stream stream,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
         return result;
     }
 
-    private byte[] WriteToBytes(EmailMailbox mailbox, out EmailWriteResult result) {
+    private byte[] WriteToBytes(EmailMailbox mailbox, out EmailWriteResult result, CancellationToken cancellationToken) {
         if (mailbox == null) throw new ArgumentNullException(nameof(mailbox));
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<EmailDiagnostic>();
         var messageWriter = new EmailDocumentWriter(_options.MessageOptions);
         using (MemoryStream output = new MemoryStream()) {
             for (int index = 0; index < mailbox.Messages.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 EmailMailboxEntry entry = mailbox.Messages[index];
                 string sender = entry.EnvelopeSender ?? entry.Document.From?.Address ?? "MAILER-DAEMON";
                 DateTimeOffset date = entry.EnvelopeDate ?? entry.Document.Date ??
@@ -70,6 +74,7 @@ public sealed class EmailMailboxWriter {
                 }
             }
             byte[] bytes = output.ToArray();
+            cancellationToken.ThrowIfCancellationRequested();
             result = new EmailWriteResult(bytes.LongLength, diagnostics.AsReadOnly(), false);
             return bytes;
         }

@@ -1,14 +1,17 @@
 namespace OfficeIMO.Email;
 
 internal sealed class MsgParserState {
-    internal MsgParserState(EmailReaderOptions options, IList<EmailDiagnostic> diagnostics) {
+    internal MsgParserState(EmailReaderOptions options, IList<EmailDiagnostic> diagnostics, CancellationToken cancellationToken) {
         Options = options;
         Diagnostics = diagnostics;
+        CancellationToken = cancellationToken;
     }
 
     internal EmailReaderOptions Options { get; }
 
     internal IList<EmailDiagnostic> Diagnostics { get; }
+
+    internal CancellationToken CancellationToken { get; }
 
     internal int PropertyCount { get; private set; }
 
@@ -21,6 +24,7 @@ internal sealed class MsgParserState {
     internal int TnefAttributeCount { get; private set; }
 
     internal void CountProperty(int bytes) {
+        ThrowIfCancellationRequested();
         PropertyCount++;
         if (PropertyCount > Options.MaxMapiPropertyCount) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
@@ -30,6 +34,7 @@ internal sealed class MsgParserState {
     }
 
     internal void CountDecodedBytes(int bytes) {
+        ThrowIfCancellationRequested();
         DecodedPropertyBytes = checked(DecodedPropertyBytes + bytes);
         if (DecodedPropertyBytes > Options.MaxDecodedPropertyBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxDecodedPropertyBytes),
@@ -38,6 +43,7 @@ internal sealed class MsgParserState {
     }
 
     internal void CountAttachment(long bytes) {
+        ThrowIfCancellationRequested();
         AttachmentCount++;
         if (AttachmentCount > Options.MaxPartCount) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount), AttachmentCount, Options.MaxPartCount);
@@ -53,10 +59,15 @@ internal sealed class MsgParserState {
     }
 
     internal void CountTnefAttribute() {
+        ThrowIfCancellationRequested();
         TnefAttributeCount++;
         if (TnefAttributeCount > Options.MaxTnefAttributeCount) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTnefAttributeCount),
                 TnefAttributeCount, Options.MaxTnefAttributeCount);
         }
+    }
+
+    internal void ThrowIfCancellationRequested() {
+        CancellationToken.ThrowIfCancellationRequested();
     }
 }

@@ -12,7 +12,7 @@ internal sealed class MsgNamedPropertyMap {
         return _properties.TryGetValue(propertyId, out value!) ? value : null;
     }
 
-    internal static MsgNamedPropertyMap Read(OfficeCompoundFile compound, IList<EmailDiagnostic> diagnostics) {
+    internal static MsgNamedPropertyMap Read(OfficeCompoundFile compound, IList<EmailDiagnostic> diagnostics, MsgParserState state) {
         var result = new MsgNamedPropertyMap();
         const string prefix = "__nameid_version1.0";
         if (!compound.Streams.TryGetValue(string.Concat(prefix, "/__substg1.0_00030102"), out byte[]? entries)) return result;
@@ -27,6 +27,7 @@ internal sealed class MsgNamedPropertyMap {
 
         int count = entries.Length / 8;
         for (int index = 0; index < count; index++) {
+            state.ThrowIfCancellationRequested();
             int offset = index * 8;
             uint identifier = MsgBinary.ReadUInt32(entries, offset);
             uint indexAndKind = MsgBinary.ReadUInt32(entries, offset + 4);

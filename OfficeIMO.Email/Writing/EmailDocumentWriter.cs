@@ -42,7 +42,9 @@ public sealed class EmailDocumentWriter {
         EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
+        cancellationToken.ThrowIfCancellationRequested();
         await stream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(false);
         return result;
     }

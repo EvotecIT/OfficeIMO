@@ -6,12 +6,14 @@ internal static class TnefReader {
     private static readonly Guid IidMessage = new Guid("00020307-0000-0000-C000-000000000046");
     private static readonly Guid IidStorage = new Guid("0000000B-0000-0000-C000-000000000046");
 
-    internal static EmailDocument Read(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics) {
-        var state = new MsgParserState(options, diagnostics);
+    internal static EmailDocument Read(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
+        CancellationToken cancellationToken) {
+        var state = new MsgParserState(options, diagnostics, cancellationToken);
         return ReadMessage(data, state, 0, "tnef");
     }
 
     private static EmailDocument ReadMessage(byte[] data, MsgParserState state, int nestedDepth, string location) {
+        state.ThrowIfCancellationRequested();
         var document = new EmailDocument { Format = EmailFileFormat.Tnef, OutlookItemKind = OutlookItemKind.Message };
         if (data.Length < 6 || MsgBinary.ReadUInt32(data, 0) != TnefConstants.Signature) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_SIGNATURE_INVALID",
@@ -35,6 +37,7 @@ internal static class TnefReader {
         DateTimeOffset? received = null;
 
         foreach (ParsedAttribute attribute in attributes) {
+            state.ThrowIfCancellationRequested();
             var rawAttribute = new TnefAttribute(attribute.Level, attribute.Tag, attribute.Data, attribute.ChecksumIsValid);
             if (attribute.Level == TnefAttributeLevel.Message) {
                 document.TnefAttributes.Add(rawAttribute);
@@ -80,6 +83,7 @@ internal static class TnefReader {
         document.ReceivedDate = received ?? document.ReceivedDate;
 
         foreach (EmailAttachment attachment in document.Attachments) {
+            state.ThrowIfCancellationRequested();
             ProjectAttachment(attachment, data, state, nestedDepth, location);
         }
         return document;
@@ -177,6 +181,7 @@ internal static class TnefReader {
             if (OfficeCompoundFileReader.TryRead(compoundBytes, out OfficeCompoundFile? compound, out _) && compound != null) {
                 long total = 0;
                 foreach (KeyValuePair<string, byte[]> stream in compound.Streams) {
+                    state.ThrowIfCancellationRequested();
                     attachment.StructuredStorageStreams[stream.Key] = stream.Value;
                     total = checked(total + stream.Value.LongLength);
                 }

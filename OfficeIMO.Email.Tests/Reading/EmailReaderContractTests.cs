@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;
@@ -53,6 +54,25 @@ public sealed class EmailReaderContractTests {
         Assert.Equal("async", result.Document.Subject);
         Assert.True(stream.CanRead);
         stream.Dispose();
+    }
+
+    [Fact]
+    public async Task AsyncReadersAndWritersHonorCancellationBeforeCpuWork() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        byte[] source = Encoding.ASCII.GetBytes("Subject: cancelled\r\n\r\nbody");
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new EmailDocumentReader().ReadAsync(new MemoryStream(source), cancellation.Token));
+
+        var document = new EmailDocument { Format = EmailFileFormat.Eml, Subject = "cancelled" };
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new EmailDocumentWriter().WriteAsync(document, new MemoryStream(), EmailFileFormat.Eml, cancellation.Token));
+
+        var mailbox = new EmailMailbox();
+        mailbox.Messages.Add(new EmailMailboxEntry(document));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new EmailMailboxWriter().WriteAsync(mailbox, new MemoryStream(), cancellation.Token));
     }
 
     [Fact]

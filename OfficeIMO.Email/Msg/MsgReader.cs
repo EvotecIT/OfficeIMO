@@ -3,7 +3,9 @@ using OfficeIMO.Shared;
 namespace OfficeIMO.Email;
 
 internal static class MsgReader {
-    internal static EmailDocument Read(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics) {
+    internal static bool TryRead(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
+        CancellationToken cancellationToken, out EmailDocument document) {
+        cancellationToken.ThrowIfCancellationRequested();
         var compoundOptions = new OfficeCompoundReadOptions(
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
@@ -12,16 +14,23 @@ internal static class MsgReader {
         if (!OfficeCompoundFileReader.TryRead(data, compoundOptions, out OfficeCompoundFile? compound, out string? error) || compound == null) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_COMPOUND_INVALID", error ?? "The MSG compound file is invalid.",
                 EmailDiagnosticSeverity.Error));
-            return new EmailDocument { Format = EmailFileFormat.OutlookMsg, OutlookItemKind = OutlookItemKind.Unknown };
+            document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
+            return false;
+        }
+        if (!compound.Streams.ContainsKey("__properties_version1.0")) {
+            document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
+            return false;
         }
 
-        MsgNamedPropertyMap names = MsgNamedPropertyMap.Read(compound, diagnostics);
-        MsgParserState state = new MsgParserState(options, diagnostics);
-        return ReadMessage(compound, string.Empty, MsgPropertyStreamKind.TopLevel, names, state, 0);
+        MsgParserState state = new MsgParserState(options, diagnostics, cancellationToken);
+        MsgNamedPropertyMap names = MsgNamedPropertyMap.Read(compound, diagnostics, state);
+        document = ReadMessage(compound, string.Empty, MsgPropertyStreamKind.TopLevel, names, state, 0);
+        return true;
     }
 
     private static EmailDocument ReadMessage(OfficeCompoundFile compound, string prefix, MsgPropertyStreamKind kind,
         MsgNamedPropertyMap names, MsgParserState state, int nestedDepth) {
+        state.ThrowIfCancellationRequested();
         var document = new EmailDocument { Format = EmailFileFormat.OutlookMsg };
         foreach (MapiProperty property in MsgPropertyReader.Read(compound, prefix, kind, names, state)) {
             document.MapiProperties.Add(property);
@@ -29,9 +38,11 @@ internal static class MsgReader {
         MsgProjection.Apply(document, state.Options, state.Diagnostics, string.IsNullOrEmpty(prefix) ? "msg" : prefix);
 
         foreach (string recipientPath in GetDirectChildStorages(compound, prefix, "__recip_version1.0_#")) {
+            state.ThrowIfCancellationRequested();
             ReadRecipient(compound, recipientPath, names, state, document);
         }
         foreach (string attachmentPath in GetDirectChildStorages(compound, prefix, "__attach_version1.0_#")) {
+            state.ThrowIfCancellationRequested();
             ReadAttachment(compound, attachmentPath, names, state, document, nestedDepth);
         }
         return document;
@@ -87,6 +98,7 @@ internal static class MsgReader {
             string storagePrefix = string.Concat(objectStorage, "/");
             foreach (KeyValuePair<string, byte[]> stream in compound.Streams.Where(item =>
                 item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
+                state.ThrowIfCancellationRequested();
                 string relative = stream.Key.Substring(storagePrefix.Length);
                 attachment.StructuredStorageStreams[relative] = stream.Value;
                 total = checked(total + stream.Value.LongLength);

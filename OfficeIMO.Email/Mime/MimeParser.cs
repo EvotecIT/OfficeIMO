@@ -1,13 +1,15 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeParser {
-    internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics) {
-        MimeParserState state = new MimeParserState(options, diagnostics);
+    internal static EmailDocument Parse(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
+        CancellationToken cancellationToken) {
+        MimeParserState state = new MimeParserState(options, diagnostics, cancellationToken);
         return ParseMessage(data, 0, data.Length, state, 0, "message");
     }
 
     private static EmailDocument ParseMessage(byte[] data, int offset, int count, MimeParserState state,
         int nestedMessageDepth, string location) {
+        state.ThrowIfCancellationRequested();
         EmailDocument document = new EmailDocument { Format = EmailFileFormat.Eml, OutlookItemKind = OutlookItemKind.Message };
         List<EmailHeader> headers = new List<EmailHeader>();
         int bodyOffset = MimeHeaderParser.Parse(data, offset, count, state.Options, headers, state.Diagnostics, location);
@@ -42,8 +44,9 @@ internal static class MimeParser {
                 return;
             }
 
-            List<ArraySegment<byte>> parts = SplitMultipart(data, offset, count, boundary!, state.Diagnostics, location);
+            List<ArraySegment<byte>> parts = SplitMultipart(data, offset, count, boundary!, state, location);
             for (int i = 0; i < parts.Count; i++) {
+                state.ThrowIfCancellationRequested();
                 string partLocation = string.Concat(location, "/part[", i.ToString(CultureInfo.InvariantCulture), "]");
                 List<EmailHeader> partHeaders = new List<EmailHeader>();
                 ArraySegment<byte> part = parts[i];
@@ -159,7 +162,7 @@ internal static class MimeParser {
     }
 
     private static List<ArraySegment<byte>> SplitMultipart(byte[] data, int offset, int count, string boundary,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        MimeParserState state, string location) {
         byte[] marker = Encoding.ASCII.GetBytes(string.Concat("--", boundary));
         int end = offset + count;
         int lineStart = offset;
@@ -168,6 +171,7 @@ internal static class MimeParser {
         List<ArraySegment<byte>> parts = new List<ArraySegment<byte>>();
 
         while (lineStart < end) {
+            state.ThrowIfCancellationRequested();
             int lineEnd = lineStart;
             while (lineEnd < end && data[lineEnd] != '\r' && data[lineEnd] != '\n') lineEnd++;
             if (IsBoundaryLine(data, lineStart, lineEnd, marker, out bool closing)) {
@@ -189,12 +193,12 @@ internal static class MimeParser {
                 int partEnd = TrimLineEndingBefore(data, partStart, end);
                 parts.Add(new ArraySegment<byte>(data, partStart, Math.Max(0, partEnd - partStart)));
             }
-            diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",
+            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",
                 string.Concat("Multipart boundary '", boundary, "' has no closing delimiter."),
                 EmailDiagnosticSeverity.Warning, location));
         }
         if (partStart < 0) {
-            diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_FOUND",
+            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_FOUND",
                 string.Concat("Multipart boundary '", boundary, "' was not found."),
                 EmailDiagnosticSeverity.Error, location));
         }

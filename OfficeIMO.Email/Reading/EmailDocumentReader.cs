@@ -32,12 +32,12 @@ public sealed class EmailDocumentReader {
         if (data.LongLength > _options.MaxInputBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), data.LongLength, _options.MaxInputBytes);
         }
-        return Parse(data);
+        return Parse(data, cancellationToken);
     }
 
     /// <summary>Reads an artifact from the stream's current position without closing it.</summary>
     public EmailReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
-        return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken));
+        return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken), cancellationToken);
     }
 
     /// <summary>Asynchronously reads an artifact from a file.</summary>
@@ -52,7 +52,7 @@ public sealed class EmailDocumentReader {
     /// <summary>Asynchronously reads an artifact from the stream's current position without closing it.</summary>
     public async Task<EmailReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
-        return Parse(data);
+        return Parse(data, cancellationToken);
     }
 
     /// <summary>Detects the artifact format from content rather than the filename.</summary>
@@ -71,19 +71,27 @@ public sealed class EmailDocumentReader {
         return LooksLikeMessage(data) ? EmailFileFormat.Eml : EmailFileFormat.Unknown;
     }
 
-    private EmailReadResult Parse(byte[] data) {
-        EmailFileFormat format = DetectFormat(data);
+    private EmailReadResult Parse(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
         EmailDocument document;
+        if (StartsWith(data, CompoundSignature)) {
+            if (!MsgReader.TryRead(data, _options, diagnostics, cancellationToken, out document)) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
+                    "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_options.PreserveRawSource) document.RawSource = (byte[])data.Clone();
+            return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+        }
+
+        EmailFileFormat format = DetectFormat(data);
         switch (format) {
             case EmailFileFormat.Eml:
-                document = MimeParser.Parse(data, _options, diagnostics);
-                break;
-            case EmailFileFormat.OutlookMsg:
-                document = MsgReader.Read(data, _options, diagnostics);
+                document = MimeParser.Parse(data, _options, diagnostics, cancellationToken);
                 break;
             case EmailFileFormat.Tnef:
-                document = TnefReader.Read(data, _options, diagnostics);
+                document = TnefReader.Read(data, _options, diagnostics, cancellationToken);
                 break;
             case EmailFileFormat.Unknown:
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_UNKNOWN",
@@ -95,12 +103,15 @@ public sealed class EmailDocumentReader {
                     "Use EmailMailboxReader to read all messages from an mbox aggregate.", EmailDiagnosticSeverity.Error));
                 document = new EmailDocument { Format = EmailFileFormat.Mbox, OutlookItemKind = OutlookItemKind.Unknown };
                 break;
+            case EmailFileFormat.OutlookMsg:
+                throw new InvalidOperationException("MSG input must be handled by the compound-file read path.");
             default:
                 diagnostics.Add(new EmailDiagnostic("EMAIL_FORMAT_NOT_IMPLEMENTED",
                     string.Concat(format.ToString(), " support is not available in this delivery slice."), EmailDiagnosticSeverity.Error));
                 document = new EmailDocument { Format = format, OutlookItemKind = OutlookItemKind.Unknown };
                 break;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         if (_options.PreserveRawSource) document.RawSource = (byte[])data.Clone();
         return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
     }
