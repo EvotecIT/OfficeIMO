@@ -282,7 +282,7 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static HtmlCssPageMarginTemplate CreateMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, string body, HtmlRenderOptions options) {
-        string family = HtmlRenderCssValues.FirstFontFamily(FindTopLevelDeclaration(body, "font-family"), options.DefaultFontFamily);
+        string family = HtmlRenderCssValues.FontFamilyList(FindTopLevelDeclaration(body, "font-family"), options.DefaultFontFamily);
         double fontSize = options.DefaultFontSize;
         HtmlRenderCssValues.TryLength(FindTopLevelDeclaration(body, "font-size"), options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, out fontSize);
         if (fontSize <= 0D) fontSize = options.DefaultFontSize;

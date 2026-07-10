@@ -40,13 +40,13 @@ The renderer should ultimately cover the full business-document HTML/CSS surface
 
 OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
 
-- `OfficeIMO.Html` parses HTML with AngleSharp, evaluates CSS media, resolves custom properties, discovers resources, enforces URL and document limits, and reports diagnostics.
+- `OfficeIMO.Html` parses HTML with AngleSharp, evaluates CSS media, resolves custom properties, discovers resources, applies policy-approved external stylesheets in document order, enforces URL and document limits, and reports diagnostics.
 - `OfficeIMO.Drawing` already supports the PNG/SVG rendering path used by Excel, Word, PowerPoint, and Visio.
 - `OfficeIMO.Pdf` already supplies text, images, drawings, annotations, outlines, metadata, font embedding, extraction, security, and PDF inspection.
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
 - `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
 
-The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
+The current renderer deliberately starts with normal flow, styled text, grapheme-safe token fragmentation, non-BMP font cmap lookup, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, policy-bound external stylesheet loading, preserved CSS font-family fallback lists, tables with row/column spans, images, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Recursive stylesheet imports/assets, web-font activation, flex, grid, per-master page geometry, pseudo-page body reflow, advanced positioning, bidi, complex shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
 ## Implemented Checkpoint
 
@@ -54,6 +54,7 @@ The current renderer deliberately starts with normal flow, styled text, grapheme
 - [x] Direct PNG and SVG export through the existing dependency-free `OfficeIMO.Drawing` backend.
 - [x] Direct searchable PDF output through a thin `OfficeIMO.Html.Pdf` adapter, without a PDF or image intermediate.
 - [x] Synchronous APIs for embedded/local content and asynchronous APIs for application-resolved external resources.
+- [x] Policy-, timeout-, cancellation-, media-type-, and byte-budget-controlled external stylesheet loading in DOM cascade order, including external `@page` rules and explicit diagnostics for synchronous or nested-resource gaps.
 - [x] URL policy, per-resource and total byte budgets, timeout, cancellation, content-type checks, surface limits, page limits, and layout-depth limits.
 - [x] Screen/print media selection, CSS custom-property inheritance/fallback/cycle handling, basic page rules, and stable text/table fragmentation.
 - [x] First/left/right page-margin content across all standard top, bottom, side, and corner boxes, with quoted text, page counters, font/color/alignment styling, and shared SVG/PDF output.
@@ -140,7 +141,7 @@ The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains
 ### HTML and resources
 
 - HTML5 parsing, malformed-markup recovery, base URI handling, and nested documents.
-- Inline, embedded, linked, and imported stylesheets.
+- Inline and embedded stylesheets plus policy-approved linked stylesheets; recursive `@import` loading remains before this contract is complete.
 - Images, data URIs, SVG, fonts, and controlled remote resources.
 - Source-neutral URL policy, size/count/depth budgets, media-type validation, timeouts, and cancellation.
 - Deterministic handling of unavailable or rejected resources.
@@ -204,6 +205,7 @@ Exit gate: the public behavior and proof corpus exist before implementation deta
 - [x] Split `HtmlResourcePipeline.cs` into focused partials for element discovery, CSS discovery and syntax, custom-property resolution, selector matching, policy, and internal models.
 - [x] Split `HtmlComputedStyleEngine.cs` by rules, media, supports, cascade, selector matching, CSS syntax, and internal models so the existing engine remains the shared owner.
 - [x] Add cancellation and timeout propagation to direct-render resource loading and conversion orchestration.
+- [x] Apply policy-approved linked stylesheets before page-rule and computed-style resolution; recursive imports and nested URL resources remain.
 - [ ] Carry the same cancellation contract through any shared discovery/loading paths reused outside the direct renderer.
 - [x] Add the `OfficeIMO.Drawing` project reference to `OfficeIMO.Html`.
 - [x] Establish initial shared units, coordinate systems, colors, font descriptors, and diagnostic codes.
@@ -212,7 +214,7 @@ Exit gate: parsing, CSS, resources, and diagnostics can serve Word/RTF conversio
 
 ### Phase 2 - Computed values and formatting tree
 
-- [ ] Complete cascade, inheritance, media, and computed-value handling required by the corpus. Custom-property inheritance, fallback, and cycle handling are implemented.
+- [ ] Complete cascade, inheritance, media, and computed-value handling required by the corpus. Custom-property inheritance/fallback/cycle handling, linked stylesheet order, and preserved font-family fallback lists are implemented.
 - [ ] Build a typed formatting tree separate from the AngleSharp DOM.
 - [ ] Resolve display roles, generated content, counters, replaced elements, pseudo-elements, and stacking contexts.
 - [ ] Preserve source and semantic references needed for diagnostics, links, accessibility, and extraction order.
@@ -221,7 +223,7 @@ Exit gate: every rendered node has deterministic computed values or a stable uns
 
 ### Phase 3 - Typography and inline layout
 
-- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Grapheme-safe deterministic measurement, non-BMP TrueType cmap lookup, and rendered-PDF fallback wiring are implemented; shared HTML font discovery/fallback planning and richer OpenType metrics remain.
+- [ ] Consolidate font parsing, metrics, fallback, and glyph outlines in the existing shared owner, primarily `OfficeIMO.Drawing` where reusable. Grapheme-safe deterministic measurement, non-BMP TrueType cmap lookup, rendered-PDF fallback wiring, and authored CSS family-list preservation are implemented; `@font-face` activation, shared HTML fallback planning, and richer OpenType metrics remain.
 - [ ] Implement managed shaping, bidi resolution, ligatures, kerning, combining marks, and script-aware fallback. The direct PDF adapter now exposes the existing managed Latin-ligature mode and optional shaping-provider seam, but shared layout must still consume positioned glyph results.
 - [ ] Implement whitespace, line breaking, inline boxes, decorations, baseline alignment, and intrinsic text measurement.
 - [ ] Verify positioned glyphs round-trip to searchable/extractable PDF text. Current scalar text, Unicode fallback, and explicit spaces round-trip exactly; positioned shaped glyph sequences remain.

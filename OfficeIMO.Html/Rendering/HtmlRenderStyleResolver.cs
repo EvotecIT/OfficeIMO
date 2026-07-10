@@ -27,7 +27,7 @@ internal sealed class HtmlRenderStyleResolver {
         string defaultFamily = tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp"
             ? "Consolas"
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = HtmlRenderCssValues.FirstFontFamily(computed.GetValue("font-family"), defaultFamily);
+        string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
 
         var style = new HtmlRenderBoxStyle {
             Display = ResolveDisplay(tag, computed.GetValue("display")),

@@ -127,13 +127,13 @@ internal static class HtmlRenderCssValues {
         return false;
     }
 
-    internal static string FirstFontFamily(string? value, string fallback) {
+    internal static string FontFamilyList(string? value, string fallback) {
         if (string.IsNullOrWhiteSpace(value)) {
             return fallback;
         }
 
-        string first = value!.Split(',')[0].Trim().Trim('\'', '"');
-        return first.Length == 0 ? fallback : first;
+        string normalized = value!.Trim();
+        return normalized.Length == 0 ? fallback : normalized;
     }
 
     internal static IReadOnlyList<string> SplitWhitespace(string? value) {

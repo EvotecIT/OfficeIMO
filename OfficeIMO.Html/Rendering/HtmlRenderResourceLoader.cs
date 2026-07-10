@@ -36,7 +36,7 @@ internal static class HtmlRenderResourceLoader {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (HtmlResourceReference reference in manifest.Resources) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!reference.IsAllowed || reference.Kind != HtmlResourceKind.Image || reference.ResolvedSource.Length == 0) continue;
+            if (!reference.IsAllowed || !IsLoadableKind(reference.Kind) || reference.ResolvedSource.Length == 0) continue;
             if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
             if (!seen.Add(reference.ResolvedSource)) continue;
             result.MarkAttempted(reference);
@@ -67,8 +67,8 @@ internal static class HtmlRenderResourceLoader {
                     break;
                 }
 
-                if (!resource.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
-                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "An image resolver returned a non-image media type.", HtmlDiagnosticSeverity.Warning, reference.Source, resource.ContentType);
+                if (!IsAcceptedContentType(reference.Kind, resource.ContentType)) {
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "A resolver returned an incompatible media type for the requested resource kind.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.Kind + ":" + resource.ContentType);
                     continue;
                 }
 
@@ -82,5 +82,19 @@ internal static class HtmlRenderResourceLoader {
         }
 
         return result;
+    }
+
+    private static bool IsLoadableKind(HtmlResourceKind kind) =>
+        kind == HtmlResourceKind.Image || kind == HtmlResourceKind.Stylesheet;
+
+    private static bool IsAcceptedContentType(HtmlResourceKind kind, string contentType) {
+        string normalized = contentType.Split(';')[0].Trim();
+        if (kind == HtmlResourceKind.Image) {
+            return normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return kind == HtmlResourceKind.Stylesheet
+            && (string.Equals(normalized, "text/css", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalized, "application/css", StringComparison.OrdinalIgnoreCase));
     }
 }

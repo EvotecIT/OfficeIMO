@@ -5,6 +5,25 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
+    internal static bool HasNestedStylesheetResources(string css) {
+        if (string.IsNullOrWhiteSpace(css)) {
+            return false;
+        }
+
+        string normalized = StripCssCommentsOutsideStrings(css);
+        if (ExtractCssImports(normalized).Any()) {
+            return true;
+        }
+
+        foreach (Match match in CssUrlExpression.Matches(normalized)) {
+            if (IsCssFunctionNameAt(normalized, match.Index, "url") && !IsInsideCssString(normalized, match.Index)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {
         Dictionary<string, List<CssCustomPropertyDefinition>> documentCustomPropertyDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options.MediaContext);
         Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));

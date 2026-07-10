@@ -39,6 +39,68 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_AppliesExternalStylesheetInCascadeOrder() {
+        const string stylesheet = "@page { size:4in 3in; margin:12px; } .external { color:#123456; font-family:\"Definitely Missing\", Arial, sans-serif; }";
+        int calls = 0;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                calls++;
+                Assert.Equal(new Uri("https://assets.example.test/theme.css"), request.Uri);
+                Assert.Equal(HtmlResourceKind.Stylesheet, request.Kind);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes(stylesheet), "text/css; charset=utf-8"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/theme.css'><style>.override { color:#654321; }</style><p class='external'>External sheet</p><p class='external override'>Cascade override</p>",
+            options);
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        HtmlRenderText external = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("External sheet", StringComparison.Ordinal));
+        HtmlRenderText overridden = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Cascade override", StringComparison.Ordinal));
+        Assert.Equal(1, calls);
+        Assert.Equal(384D, page.Width, 3);
+        Assert.Equal(288D, page.Height, 3);
+        Assert.Equal(OfficeColor.FromRgb(0x12, 0x34, 0x56), external.Color);
+        Assert.Equal(OfficeColor.FromRgb(0x65, 0x43, 0x21), overridden.Color);
+        Assert.Contains("Definitely Missing", external.Font.FamilyName, StringComparison.Ordinal);
+        Assert.Contains("Arial", external.Font.FamilyName, StringComparison.Ordinal);
+        Assert.Contains(",", external.Font.FamilyName, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+    }
+
+    [Fact]
+    public void HtmlRender_ReportsExternalStylesheetPendingForSynchronousRendering() {
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
+            "<link rel='stylesheet' href='https://assets.example.test/theme.css'><p>Pending sheet</p>",
+            new HtmlRenderOptions { ViewportWidth = 240D, Margins = HtmlRenderMargins.All(8D) });
+
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending
+            && diagnostic.Source == "https://assets.example.test/theme.css");
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_RejectsNonCssStylesheetContent() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(8D),
+            ResourceResolver = (request, cancellationToken) =>
+                Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes(".unsafe { color:red; }"), "text/html"))
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/not-css'><p class='unsafe'>Rejected sheet</p>",
+            options);
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("Rejected sheet", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.Black, text.Color);
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_ReportsResolverTimeoutAndHonorsCallerCancellation() {
         var timeoutOptions = new HtmlRenderOptions {
             ViewportWidth = 240D,
@@ -72,6 +134,25 @@ public sealed class HtmlRenderingTests {
         Assert.Contains("AsyncPdfMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+    }
+
+    [Fact]
+    public async Task HtmlPdf_RenderedProfileAsync_AppliesExternalStylesheetPageRules() {
+        const string html = "<link rel='stylesheet' href='https://assets.example.test/print.css'><p>ExternalCssPdfMarker</p>";
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+        options.RenderOptions!.ResourceResolver = (request, cancellationToken) =>
+            Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                System.Text.Encoding.UTF8.GetBytes("@page { size:4in 3in; margin:12px; } p { color:#123456; }"),
+                "text/css"));
+
+        byte[] pdf = await html.SaveAsPdfAsync(options);
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+        (double width, double height) = read.Pages[0].GetPageSize();
+
+        Assert.Equal(288D, width, 2);
+        Assert.Equal(216D, height, 2);
+        Assert.Contains("ExternalCssPdfMarker", read.ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
     }
 
     [Fact]

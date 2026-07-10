@@ -18,8 +18,6 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var diagnostics = new HtmlDiagnosticReport();
-        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
-        resolved.Validate();
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
@@ -27,8 +25,12 @@ public static class HtmlRenderEngine {
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
+        var resources = new HtmlRenderResourceSet();
+        AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
+        resolved.Validate();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, pageRules: pageRules).Render();
+        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules).Render();
     }
 
     /// <summary>
@@ -41,8 +43,6 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var diagnostics = new HtmlDiagnosticReport();
-        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
-        resolved.Validate();
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
@@ -52,6 +52,10 @@ public static class HtmlRenderEngine {
         diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
         HtmlRenderResourceSet resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
+        HtmlRenderStylesheetApplier.Apply(document, resources, diagnostics);
+        AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
+        HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
+        resolved.Validate();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(document, resolved.MediaContext);
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules).Render();
     }
@@ -60,4 +64,26 @@ public static class HtmlRenderEngine {
     /// Renders HTML through the shared first-party layout engine.
     /// </summary>
     public static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);
+
+    private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlRenderResourceSet resources, HtmlDiagnosticReport diagnostics) {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (HtmlResourceReference reference in manifest.Resources) {
+            if (!reference.IsAllowed
+                || reference.Kind != HtmlResourceKind.Stylesheet
+                || reference.ResolvedSource.Length == 0
+                || resources.TryGet(reference.Source, reference.ResolvedSource, out _)
+                || resources.WasAttempted(reference.Source, reference.ResolvedSource)
+                || !seen.Add(reference.ResolvedSource)) {
+                continue;
+            }
+
+            diagnostics.Add(
+                "OfficeIMO.Html.Renderer",
+                HtmlRenderDiagnosticCodes.ExternalStylesheetPending,
+                "An external stylesheet was not loaded; use the asynchronous renderer with a resource resolver.",
+                HtmlDiagnosticSeverity.Warning,
+                reference.Source,
+                reference.ResolvedSource);
+        }
+    }
 }

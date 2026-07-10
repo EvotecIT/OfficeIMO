@@ -12,6 +12,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string EmptyTable = "HtmlRenderEmptyTable";
     /// <summary>An external image requires asynchronous resource resolution.</summary>
     public const string ExternalImagePending = "HtmlRenderExternalImagePending";
+    /// <summary>An external stylesheet requires asynchronous resource resolution.</summary>
+    public const string ExternalStylesheetPending = "HtmlRenderExternalStylesheetPending";
     /// <summary>Flex layout used the documented normal-flow fallback.</summary>
     public const string FlexLayoutPending = "HtmlRenderFlexLayoutPending";
     /// <summary>Content without a safe page break was force-fragmented.</summary>
@@ -44,6 +46,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ResourceUnavailable = "HtmlRenderResourceUnavailable";
     /// <summary>A resource reference could not be represented as an absolute URI.</summary>
     public const string ResourceUriInvalid = "HtmlRenderResourceUriInvalid";
+    /// <summary>A resolved stylesheet could not be decoded as supported CSS text.</summary>
+    public const string StylesheetEncodingUnsupported = "HtmlRenderStylesheetEncodingUnsupported";
+    /// <summary>A resolved stylesheet referenced imports or assets that require recursive resource loading.</summary>
+    public const string StylesheetNestedResourcesPending = "HtmlRenderStylesheetNestedResourcesPending";
     /// <summary>A repeated table header was suppressed because it left no safe body-row break.</summary>
     public const string TableHeaderRepeatSuppressed = "HtmlRenderTableHeaderRepeatSuppressed";
     /// <summary>A repeated table footer was suppressed because it left no safe body-row break.</summary>
@@ -58,6 +64,7 @@ public static class HtmlRenderDiagnosticCodes {
         DepthLimitExceeded,
         EmptyTable,
         ExternalImagePending,
+        ExternalStylesheetPending,
         FlexLayoutPending,
         ForcedFragment,
         GridLayoutPending,
@@ -74,6 +81,8 @@ public static class HtmlRenderDiagnosticCodes {
         ResourceTimeout,
         ResourceUnavailable,
         ResourceUriInvalid,
+        StylesheetEncodingUnsupported,
+        StylesheetNestedResourcesPending,
         TableFooterRepeatSuppressed,
         TableHeaderRepeatSuppressed,
         TotalResourceByteLimitExceeded,
