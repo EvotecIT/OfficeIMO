@@ -44,8 +44,6 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ResourceUnavailable = "HtmlRenderResourceUnavailable";
     /// <summary>A resource reference could not be represented as an absolute URI.</summary>
     public const string ResourceUriInvalid = "HtmlRenderResourceUriInvalid";
-    /// <summary>A table row span could not yet be fragmented across pages.</summary>
-    public const string TableRowSpanPending = "HtmlRenderTableRowSpanPending";
     /// <summary>A repeated table header was suppressed because it left no safe body-row break.</summary>
     public const string TableHeaderRepeatSuppressed = "HtmlRenderTableHeaderRepeatSuppressed";
     /// <summary>A repeated table footer was suppressed because it left no safe body-row break.</summary>
@@ -78,7 +76,6 @@ public static class HtmlRenderDiagnosticCodes {
         ResourceUriInvalid,
         TableFooterRepeatSuppressed,
         TableHeaderRepeatSuppressed,
-        TableRowSpanPending,
         TotalResourceByteLimitExceeded,
         VisualFragmentUnsupported
     });

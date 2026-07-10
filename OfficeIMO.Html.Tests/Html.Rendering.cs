@@ -347,6 +347,46 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_LaysOutRowSpansAndKeepsSpanGroupsTogether() {
+        string groups = string.Join(string.Empty, Enumerable.Range(0, 10).Select(index =>
+            "<tr><td id='span" + index + "' rowspan='2'>Group" + index.ToString("D2") + "</td><td id='regular" + index + "'>Row" + index.ToString("D2") + "A</td></tr>"
+            + "<tr><td>Row" + index.ToString("D2") + "B</td></tr>"));
+        string html = "<div><table><thead><tr><th>HeaderMarker</th><th>Value</th></tr></thead><tbody>" + groups
+            + "</tbody><tbody><tr><td id='zero' rowspan='0'>ZeroMarker</td><td>ZeroA</td></tr><tr><td>ZeroB</td></tr></tbody>"
+            + "<tfoot><tr><td>FooterMarker</td><td>End</td></tr></tfoot></table></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(3D, 2D),
+            Margins = HtmlRenderMargins.All(16D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages.SelectMany(page => page.Visuals).ToList();
+        string renderedText = string.Join(" ", visuals.OfType<HtmlRenderText>().Select(text => text.Text));
+
+        Assert.True(rendered.Pages.Count >= 3);
+        foreach (int index in Enumerable.Range(0, 10)) {
+            string marker = "Group" + index.ToString("D2");
+            Assert.Equal(1, renderedText.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
+        }
+
+        HtmlRenderShape spanShape = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#span0");
+        HtmlRenderShape regularShape = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#regular0");
+        HtmlRenderShape zeroShape = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#zero");
+        Assert.True(spanShape.Height > regularShape.Height);
+        Assert.True(zeroShape.Height > regularShape.Height);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        Assert.Contains("Group00", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Group09", pdfText, StringComparison.Ordinal);
+        Assert.Contains("ZeroMarker", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_RendersFirstLeftRightMarginContentAcrossSvgAndPdf() {
         string words = string.Join(" ", Enumerable.Range(0, 120).Select(index => "word" + index.ToString("D3")));
         string html = """
