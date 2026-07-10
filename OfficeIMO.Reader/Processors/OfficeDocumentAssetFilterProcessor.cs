@@ -33,6 +33,7 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
         foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
             page.OcrCandidates = FilterCandidates(page.OcrCandidates, removedIds);
         }
+        document.Diagnostics = RebuildOcrDiagnostics(document);
         return document;
     }
 
@@ -62,5 +63,40 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
             .Where(candidate => candidate != null &&
                 (string.IsNullOrWhiteSpace(candidate.AssetId) || !removedIds.Contains(candidate.AssetId!)))
             .ToArray();
+    }
+
+    private static IReadOnlyList<OfficeDocumentDiagnostic> RebuildOcrDiagnostics(OfficeDocumentReadResult document) {
+        var diagnostics = (document.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>())
+            .Where(static diagnostic => diagnostic != null &&
+                !string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal))
+            .ToList();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var seenCandidates = new HashSet<OfficeDocumentOcrCandidate>(ReferenceIdentityComparer<OfficeDocumentOcrCandidate>.Instance);
+        foreach (OfficeDocumentOcrCandidate candidate in EnumerateCandidates(document)) {
+            if (candidate == null || !seenCandidates.Add(candidate)) continue;
+            if (!string.IsNullOrWhiteSpace(candidate.Id) && !seenIds.Add(candidate.Id)) continue;
+            diagnostics.Add(new OfficeDocumentDiagnostic {
+                Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                Category = OfficeDocumentDiagnosticCategory.Ocr,
+                Code = "ocr-needed",
+                Message = candidate.Reason ?? "OCR may be needed before text extraction is complete.",
+                Source = "officeimo.reader.filter-assets",
+                IsRecoverable = true,
+                Location = candidate.Location
+            });
+        }
+        return diagnostics.Count == 0 ? Array.Empty<OfficeDocumentDiagnostic>() : diagnostics.ToArray();
+    }
+
+    private static IEnumerable<OfficeDocumentOcrCandidate> EnumerateCandidates(OfficeDocumentReadResult document) {
+        foreach (OfficeDocumentOcrCandidate candidate in document.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>()) {
+            if (candidate != null) yield return candidate;
+        }
+        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
+            if (page?.OcrCandidates == null) continue;
+            foreach (OfficeDocumentOcrCandidate candidate in page.OcrCandidates) {
+                if (candidate != null) yield return candidate;
+            }
+        }
     }
 }

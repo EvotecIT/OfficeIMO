@@ -245,8 +245,12 @@ public sealed class ReaderProcessorPipelineTests {
             Links = new[] { link },
             Assets = new[] { kept, removed },
             OcrCandidates = new[] {
-                new OfficeDocumentOcrCandidate { Id = "keep-ocr", AssetId = "keep" },
-                new OfficeDocumentOcrCandidate { Id = "drop-ocr", AssetId = "drop" }
+                new OfficeDocumentOcrCandidate { Id = "keep-ocr", AssetId = "keep", Reason = "Keep OCR", Location = new ReaderLocation { BlockAnchor = "keep" } },
+                new OfficeDocumentOcrCandidate { Id = "drop-ocr", AssetId = "drop", Reason = "Drop OCR", Location = new ReaderLocation { BlockAnchor = "drop" } }
+            },
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic { Code = "ocr-needed", Message = "Keep OCR", Location = new ReaderLocation { BlockAnchor = "keep" } },
+                new OfficeDocumentDiagnostic { Code = "ocr-needed", Message = "Drop OCR", Location = new ReaderLocation { BlockAnchor = "drop" } }
             }
         };
         OfficeDocumentProcessorPipeline pipeline = new OfficeDocumentProcessorPipelineBuilder()
@@ -268,6 +272,9 @@ public sealed class ReaderProcessorPipelineTests {
         Assert.Equal("https://example.test", link.Uri);
         Assert.Equal("keep", Assert.Single(result.Assets).Id);
         Assert.Equal("keep-ocr", Assert.Single(result.OcrCandidates).Id);
+        OfficeDocumentDiagnostic ocrDiagnostic = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
+        Assert.Equal("Keep OCR", ocrDiagnostic.Message);
+        Assert.Equal("keep", ocrDiagnostic.Location!.BlockAnchor);
     }
 
     [Fact]

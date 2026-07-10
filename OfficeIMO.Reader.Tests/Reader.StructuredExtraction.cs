@@ -106,6 +106,57 @@ public sealed class ReaderStructuredExtractionTests {
     }
 
     [Fact]
+    public void Extract_ProjectsChunkOnlyFormFieldsIntoTypedFormsAndRecords() {
+        var document = new OfficeDocumentReadResult {
+            Chunks = new[] {
+                new ReaderChunk {
+                    Id = "chunk-1",
+                    Location = new ReaderLocation { Path = "form.pdf", Page = 2 },
+                    FormFields = new[] {
+                        new ReaderFormField {
+                            Name = "Contact.Email",
+                            FieldType = "Tx",
+                            Value = "person@example.test",
+                            IsRequired = true,
+                            PageNumbers = new[] { 2 }
+                        }
+                    }
+                }
+            }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(document);
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("Contact.Email", form.Id);
+        Assert.Equal("Tx", form.Kind);
+        Assert.Equal("person@example.test", form.Value);
+        Assert.Equal(2, form.Location.Page);
+        Assert.Contains(result.Records, record =>
+            record.Category == "form" &&
+            record.SourceObjectId == "Contact.Email" &&
+            record.Value == "person@example.test");
+    }
+
+    [Fact]
+    public void Extract_MergesDocumentAndPageBlocksWhenBuildingSections() {
+        var heading = new OfficeDocumentBlock { Id = "heading", Kind = "heading", Text = "Overview", Level = 1 };
+        var pageHeadingDuplicate = new OfficeDocumentBlock { Id = "heading", Kind = "heading", Text = "Overview", Level = 1 };
+        var pageBody = new OfficeDocumentBlock { Id = "page-body", Kind = "paragraph", Text = "Page-only body" };
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] { heading },
+            Pages = new[] { new OfficeDocumentPage { Number = 1, Blocks = new[] { pageHeadingDuplicate, pageBody } } }
+        };
+
+        OfficeDocumentStructuredExtractionResult result = OfficeDocumentStructuredExtractor.Extract(document);
+
+        OfficeDocumentStructuredSection section = Assert.Single(result.Sections);
+        Assert.Equal("Overview", section.Heading);
+        Assert.Equal("Page-only body", section.Text);
+        Assert.Equal(new[] { "heading", "page-body" }, section.BlockIds);
+    }
+
+    [Fact]
     public void Extract_ChecksCancellationWhileScanningNonReadinessDiagnostics() {
         var document = new OfficeDocumentReadResult {
             Diagnostics = new[] {

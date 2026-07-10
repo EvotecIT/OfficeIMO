@@ -67,6 +67,79 @@ internal static class OfficeDocumentModelTraversal {
                 }
             }
         }
+        foreach (ReaderChunk chunk in document.Chunks ?? System.Array.Empty<ReaderChunk>()) {
+            if (chunk?.FormFields == null) continue;
+            for (int index = 0; index < chunk.FormFields.Count; index++) {
+                ReaderFormField field = chunk.FormFields[index];
+                if (field == null) continue;
+                OfficeDocumentFormField form = ProjectChunkForm(chunk, field, index);
+                if (seenIds.Add(form.Id)) yield return form;
+            }
+        }
+    }
+
+    private static OfficeDocumentFormField ProjectChunkForm(ReaderChunk chunk, ReaderFormField field, int index) {
+        ReaderFormWidget? widget = field.Widgets == null || field.Widgets.Count == 0 ? null : field.Widgets[0];
+        return new OfficeDocumentFormField {
+            Id = BuildChunkFormId(chunk, field, index),
+            Name = FirstNonEmpty(field.Name, field.PartialName, field.AlternateName, field.MappingName),
+            Kind = string.IsNullOrWhiteSpace(field.FieldType) ? field.Kind.ToString().ToLowerInvariant() : field.FieldType!,
+            Value = BuildChunkFormValue(field),
+            IsReadOnly = field.IsReadOnly,
+            IsRequired = field.IsRequired,
+            Location = BuildChunkFormLocation(chunk.Location, widget?.PageNumber, field.PageNumbers),
+            Region = widget == null ? null : new OfficeDocumentRegion {
+                X = widget.X1,
+                Y = widget.Y1,
+                Width = widget.Width,
+                Height = widget.Height
+            }
+        };
+    }
+
+    private static string BuildChunkFormId(ReaderChunk chunk, ReaderFormField field, int index) {
+        string? identity = FirstNonEmpty(field.Name, field.PartialName, field.MappingName, field.AlternateName);
+        if (!string.IsNullOrWhiteSpace(identity)) return identity!;
+        string chunkId = string.IsNullOrWhiteSpace(chunk.Id) ? "chunk" : chunk.Id;
+        return chunkId + "-form-" + index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string? BuildChunkFormValue(ReaderFormField field) {
+        if (field.Value != null) return field.Value;
+        if (field.Values == null || field.Values.Count == 0) return null;
+        return string.Join("\n", field.Values);
+    }
+
+    private static string? FirstNonEmpty(params string?[] values) {
+        for (int index = 0; index < values.Length; index++) {
+            if (!string.IsNullOrWhiteSpace(values[index])) return values[index];
+        }
+        return null;
+    }
+
+    private static ReaderLocation BuildChunkFormLocation(
+        ReaderLocation? source,
+        int? widgetPage,
+        IReadOnlyList<int>? fieldPages) {
+        source ??= new ReaderLocation();
+        return new ReaderLocation {
+            Path = source.Path,
+            BlockIndex = source.BlockIndex,
+            SourceBlockIndex = source.SourceBlockIndex,
+            StartLine = source.StartLine,
+            EndLine = source.EndLine,
+            NormalizedStartLine = source.NormalizedStartLine,
+            NormalizedEndLine = source.NormalizedEndLine,
+            HeadingPath = source.HeadingPath,
+            HeadingSlug = source.HeadingSlug,
+            SourceBlockKind = source.SourceBlockKind,
+            BlockAnchor = source.BlockAnchor,
+            Sheet = source.Sheet,
+            A1Range = source.A1Range,
+            Slide = source.Slide,
+            Page = widgetPage ?? (fieldPages == null || fieldPages.Count == 0 ? source.Page : fieldPages[0]),
+            TableIndex = source.TableIndex
+        };
     }
 }
 

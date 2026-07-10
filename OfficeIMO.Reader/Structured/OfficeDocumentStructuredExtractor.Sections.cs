@@ -44,11 +44,10 @@ public static partial class OfficeDocumentStructuredExtractor {
     }
 
     private static IReadOnlyList<OfficeDocumentBlock> GetSectionBlocks(OfficeDocumentReadResult document) {
-        if (document.Blocks != null && document.Blocks.Count > 0) return document.Blocks;
         var blocks = new List<OfficeDocumentBlock>();
-        foreach (OfficeDocumentPage page in document.Pages ?? Array.Empty<OfficeDocumentPage>()) {
-            if (page?.Blocks == null) continue;
-            blocks.AddRange(page.Blocks);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OfficeDocumentBlock block in OfficeDocumentModelTraversal.Blocks(document)) {
+            if (string.IsNullOrWhiteSpace(block.Id) || seenIds.Add(block.Id)) blocks.Add(block);
         }
         return blocks.Count == 0 ? Array.Empty<OfficeDocumentBlock>() : blocks.ToArray();
     }
