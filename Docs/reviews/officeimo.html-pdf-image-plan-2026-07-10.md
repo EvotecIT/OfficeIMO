@@ -297,7 +297,7 @@ Exit gate: a single rendered result contains everything needed by both image and
 
 ### Phase 7 - HTML to PNG and SVG
 
-- [x] Add `OfficeIMO.Html` image-export options aligned with `OfficeImageExportOptions`.
+- [x] Use the shared `HtmlRenderOptions` contract for PNG and SVG output, aligned with `OfficeIMO.Drawing` export behavior without introducing a second HTML image-options type.
 - [x] Add continuous `ToPng`, `ToSvg`, file, stream, synchronous, and asynchronous APIs.
 - [x] Add paged `ExportImages` APIs with page numbering and diagnostics.
 - [x] Carry active TrueType web fonts into PNG rasterization and embed them as data-backed `@font-face` definitions in SVG output.
@@ -308,9 +308,9 @@ Exit gate: HTML image output uses only `OfficeIMO.Html` plus existing OfficeIMO 
 
 ### Phase 8 - Direct HTML to PDF
 
-- [x] Add a direct/paged `Rendered` profile in `OfficeIMO.Html.Pdf` that consumes the shared rendered-document model.
+- [x] Add direct paged `ToPdf`, `ToPdfDocument`, `ToPdfResult`, and destination-only `SaveAsPdf` APIs in `OfficeIMO.Html.Pdf` over the shared rendered-document model.
 - [ ] Complete mapping to PDF structures. Searchable Unicode HTML and positioned/affine SVG tspan text with managed fallback controls, exact explicit spaces, active TrueType web-font embedding, basic shapes, multi-stop axial/radial gradients through native PDF stitching functions, raster and grouped vector figures with alternative text, external links, affine effect transforms, isolated transparency Form XObjects, tagged document markers, shared Sect/Div plus single-owner multi-run H1-H6/P structure, nested native PDF outlines, shared L/LI/Lbl/LBody list hierarchy, and shared Table/Caption/TR/TH/TD hierarchy with scope and span attributes are implemented; more than three simultaneous distinct web-font families currently diagnose and fall back because the PDF writer exposes three semantic generated-font slots, while positioned shaped glyphs and more specialized reading-order semantics remain.
-- [x] Preserve existing semantic/document conversion profiles for users who want those contracts.
+- [x] Keep HTML-to-Word, HTML-to-Markdown, HTML-to-Excel, and HTML-to-PowerPoint as explicit target projections in their owning packages instead of hiding them behind PDF profiles.
 - [x] Add async/cancellable save APIs with explicitly buffered final PDF serialization.
 - [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure. Rendered PDF now carries retained HTML title and document language into PDF metadata/catalog, requests display of the document title, maps resolved RTL root direction to viewer page progression, preserves logical extraction for positioned RTL text through `ActualText`, emits typed H1-H6/P marked content, retains nested heading outlines with absolute page destinations, and proves raster plus multi-operation SVG image alt text through Figure structure; richer structure and encryption-profile coverage remain.
 
