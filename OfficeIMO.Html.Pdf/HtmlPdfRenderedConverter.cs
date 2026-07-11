@@ -37,6 +37,12 @@ internal static class HtmlPdfRenderedConverter {
             .TaggedPdfCatalogMarkers();
         if (rendered.Metadata.Title != null) pdf.Meta(title: rendered.Metadata.Title);
         if (rendered.Metadata.Language != null) pdf.Language(rendered.Metadata.Language);
+        if (rendered.Metadata.Title != null || rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) {
+            pdf.ViewerPreferences(preferences => {
+                if (rendered.Metadata.Title != null) preferences.DisplayDocTitle = true;
+                if (rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) preferences.Direction = PdfCore.PdfViewerDirection.RightToLeft;
+            });
+        }
         if (options.RenderedFontFamily != null) {
             pdf.UseFontFamily(options.RenderedFontFamily);
         }

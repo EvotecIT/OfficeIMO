@@ -884,8 +884,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlComputedStyle_DirAttributeParticipatesAsAnOverridablePresentationalHint() {
+        const string html = "<!doctype html><html id='root' dir='rtl' style='direction:ltr'><body id='body'><p id='rtl' dir='rtl'><span id='child'>Text</span></p></body></html>";
+
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> styles = HtmlComputedStyleEngine.Compute(html);
+
+        Assert.Equal("ltr", styles.Single(pair => pair.Key.Id == "root").Value.GetValue("direction"));
+        Assert.Equal("ltr", styles.Single(pair => pair.Key.Id == "body").Value.GetValue("direction"));
+        Assert.Equal("rtl", styles.Single(pair => pair.Key.Id == "rtl").Value.GetValue("direction"));
+        Assert.Equal("rtl", styles.Single(pair => pair.Key.Id == "child").Value.GetValue("direction"));
+    }
+
+    [Fact]
     public void HtmlPdf_RenderedProfile_MapsHeadingsAndParagraphsToTaggedStructure() {
-        const string html = "<!doctype html><html lang='pl-PL'><head><title>Semantic document</title></head><body><h1>Semantic <em>heading</em></h1><p>Semantic paragraph.</p><h2>Nested detail</h2></body></html>";
+        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title></head><body><h1>Semantic <em>heading</em></h1><p>Semantic paragraph.</p><h2>Nested detail</h2></body></html>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
         byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
 
@@ -893,8 +905,12 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
         Assert.Equal("Semantic document", rendered.Metadata.Title);
         Assert.Equal("pl-PL", rendered.Metadata.Language);
+        Assert.Equal(HtmlRenderTextDirection.RightToLeft, rendered.Metadata.Direction);
         Assert.Equal("Semantic document", info.Metadata.Title);
         Assert.Equal("pl-PL", info.CatalogLanguage);
+        PdfCore.PdfViewerPreferences viewerPreferences = Assert.IsType<PdfCore.PdfViewerPreferences>(info.ViewerPreferences);
+        Assert.Equal("true", viewerPreferences.GetValue("DisplayDocTitle"));
+        Assert.Equal("R2L", viewerPreferences.GetValue("Direction"));
         Assert.Collection(
             rendered.Headings,
             heading => {

@@ -63,6 +63,7 @@ public static partial class HtmlComputedStyleEngine {
         internal int ClassesAttributesAndPseudoClasses { get; }
         internal int Elements { get; }
         internal static Specificity Inherited { get; } = new Specificity(-1, -1, -1);
+        internal static Specificity PresentationalHint { get; } = new Specificity(0, 0, 0);
         internal static Specificity Inline { get; } = new Specificity(int.MaxValue, int.MaxValue, int.MaxValue);
 
         internal int CompareTo(Specificity other) {

@@ -273,6 +273,12 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
+        string? directionAttribute = element.GetAttribute("dir")?.Trim();
+        if (string.Equals(directionAttribute, "ltr", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(directionAttribute, "rtl", StringComparison.OrdinalIgnoreCase)) {
+            properties["direction"] = new CascadedProperty(directionAttribute!.ToLowerInvariant(), false, Specificity.PresentationalHint, -1);
+        }
+
         foreach (StyleRule rule in rules) {
             if (!TryParsePseudoElementSelector(rule.Selector, out _, out _)
                 && MatchesSelector(element, rule.Selector)) {

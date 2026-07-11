@@ -66,9 +66,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         string? language = document.DocumentElement?.GetAttribute("lang");
         if (string.IsNullOrWhiteSpace(language)) language = document.DocumentElement?.GetAttribute("xml:lang");
-        _metadata = new HtmlRenderMetadata(document.Title, language);
+        _metadata = new HtmlRenderMetadata(document.Title, language, ResolveDocumentDirection(document, computedStyles));
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
+    }
+
+    private static HtmlRenderTextDirection ResolveDocumentDirection(IHtmlDocument document, HtmlComputedStyleSet computedStyles) {
+        IElement? root = document.DocumentElement;
+        if (root != null && computedStyles.Elements.TryGetValue(root, out HtmlComputedStyle? style)) {
+            string computedDirection = style.GetValue("direction").Trim();
+            if (string.Equals(computedDirection, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                return HtmlRenderTextDirection.RightToLeft;
+            }
+            if (string.Equals(computedDirection, "ltr", StringComparison.OrdinalIgnoreCase)) {
+                return HtmlRenderTextDirection.LeftToRight;
+            }
+        }
+
+        string? attributeDirection = root?.GetAttribute("dir");
+        return string.Equals(attributeDirection?.Trim(), "rtl", StringComparison.OrdinalIgnoreCase)
+            ? HtmlRenderTextDirection.RightToLeft
+            : HtmlRenderTextDirection.LeftToRight;
     }
 
     internal HtmlRenderDocument Render() {
