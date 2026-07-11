@@ -165,6 +165,36 @@ string json = extracted.ToJson(indented: true);
 
 The extractor recognizes metadata, forms, two-column key/value tables, Path/Type/Value tables, Visio Shape Data, chart summaries, table and visual quality, chunk readiness, and security/OCR/limit diagnostics. Each collection and section body has an explicit positive limit; reaching a bound adds a structured limit diagnostic instead of silently growing output. The non-generic schema-friendly shape is versioned independently from the stable `OfficeDocumentReadResult` transport. It is currently a serialization and host-integration contract; a generic `ExtractStructured<T>()` mapper and model-assisted extraction are intentionally outside the core package.
 
+## Token-aware hierarchical chunks
+
+`ReadHierarchical(...)` keeps `ReaderChunk` as the embedding leaf while adding document, page/slide/sheet, and heading nodes around it:
+
+```csharp
+ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
+    @"C:\Docs\Policy.docx",
+    chunkingOptions: new ReaderHierarchicalChunkingOptions {
+        MaxTokens = 800,
+        OverlapTokens = 80,
+        MaxInputChunks = 10_000,
+        MaxOutputChunks = 50_000,
+        MaxHierarchyDepth = 32,
+        MaxContextCharacters = 4_096,
+        IncludeContextInText = true
+    });
+
+foreach (ReaderChunk chunk in hierarchy.Chunks) {
+    StoreEmbedding(chunk.Id, chunk.Text, chunk.TokenEstimate ?? 0);
+}
+
+string sidecarJson = hierarchy.ToJson(indented: true);
+```
+
+The result records the selected token counter, original/output/overlap/context token totals, exact source character spans, deterministic leaf IDs and hashes, and a flattened hierarchy with explicit parent/child IDs. Splits prefer paragraph, line, sentence, and whitespace boundaries but enforce the token maximum even when a source block is larger. Structured tables, visuals, forms, actions, diagnostics, and warnings stay on the first segment so overlap does not duplicate sidecars.
+
+The dependency-free default uses the existing four-characters-per-token heuristic. Supply a deterministic, thread-safe `IReaderTokenCounter` when the embedding model needs its exact tokenizer. A hierarchy represents one source document and rejects mixed-source chunk collections. Context and input/output/depth bounds emit structured diagnostics; invalid token budgets or counters fail explicitly.
+
+This is an opt-in projection with its own schema id/version. It does not add fields to `ReaderChunk`, change normal reads, or alter the stable `OfficeDocumentReadResult` v5 transport. Static and instance sync/async file, stream, and byte overloads are available; instance reads apply configured processors before chunking.
+
 ## Stable document transport
 
 `OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Versions 1 through 4 were experimental and are deliberately rejected when reading transport payloads.
@@ -275,6 +305,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
 - `OfficeDocumentProcessorPipeline` freezes ordered processors and reports each completed, failed, or skipped step.
 - `OfficeDocumentStructuredExtractor` produces bounded non-generic records, sections, named tables, forms, and diagnostics without AI dependencies.
+- `ReaderHierarchicalChunker` produces token-bounded `ReaderChunk` leaves, exact overlap spans, and document/container/heading hierarchy nodes.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 

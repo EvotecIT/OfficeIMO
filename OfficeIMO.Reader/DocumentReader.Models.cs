@@ -39,13 +39,14 @@ public static partial class DocumentReader {
     }
 
     private sealed class MarkdownChunkBlock {
-        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables, IReadOnlyList<ReaderVisual> visuals) {
+        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? hierarchyHeadingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables, IReadOnlyList<ReaderVisual> visuals) {
             BlockIndex = blockIndex;
             StartLine = startLine;
             EndLine = endLine;
             SourceStartLine = sourceStartLine;
             SourceEndLine = sourceEndLine;
             HeadingPath = headingPath;
+            HierarchyHeadingPath = hierarchyHeadingPath;
             HeadingSlug = headingSlug;
             BlockKind = string.IsNullOrWhiteSpace(blockKind) ? "unknown" : blockKind;
             BlockAnchor = string.IsNullOrWhiteSpace(blockAnchor) ? "block-" + blockIndex.ToString(CultureInfo.InvariantCulture) : blockAnchor;
@@ -61,6 +62,7 @@ public static partial class DocumentReader {
         public int SourceStartLine { get; }
         public int SourceEndLine { get; }
         public string? HeadingPath { get; }
+        public string? HierarchyHeadingPath { get; }
         public string? HeadingSlug { get; }
         public string BlockKind { get; }
         public string BlockAnchor { get; }
