@@ -9,6 +9,224 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderHtmlModularTests {
     [Fact]
+    public void DocumentReaderHtml_RichDispatch_MapsMetadataStructureLinksFormsAndImages() {
+        const string html = "<html><head><title>Rich HTML</title><meta name=\"author\" content=\"OfficeIMO\"/></head><body>"
+            + "<h2>Inventory</h2><p>See <a href=\"https://example.test/inventory\">inventory</a>.</p>"
+            + "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Bandage</td><td>4</td></tr></table>"
+            + "<form><input type=\"text\" name=\"patient\" value=\"Ada\" required=\"required\"/></form>"
+            + "<img alt=\"Tiny image\" src=\"data:image/png;base64,iVBORw0KGgo=\"/></body></html>";
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "rich.html");
+
+            Assert.Equal("Rich HTML", result.Source.Title);
+            Assert.Equal("OfficeIMO", result.Source.Author);
+            Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Level == 2 && block.Text == "Inventory");
+            ReaderTable table = Assert.Single(result.Tables);
+            Assert.Equal("Bandage", table.Rows[0][0]);
+            Assert.Equal("https://example.test/inventory", Assert.Single(result.Links).Uri);
+            OfficeDocumentFormField form = Assert.Single(result.Forms);
+            Assert.Equal("patient", form.Name);
+            Assert.True(form.IsRequired);
+            OfficeDocumentAsset image = Assert.Single(result.Assets);
+            Assert.Equal("image/png", image.MediaType);
+            Assert.NotNull(image.PayloadBytes);
+            ReaderVisual visual = Assert.Single(result.Visuals);
+            Assert.Equal("image", visual.Kind);
+            Assert.Equal(image.PayloadHash, visual.PayloadHash);
+            stream.Position = 0;
+            OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
+                DocumentReaderHtmlExtensions.ReadHtmlDocumentJson(stream, "rich.html"));
+            Assert.Equal(ReaderInputKind.Html, jsonResult.Kind);
+            Assert.Contains("officeimo.reader.html.rich-v5", result.CapabilitiesUsed);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichDispatch_AppliesConfiguredUrlPolicyToLinks() {
+        const string html = "<p><a href=\"javascript:alert(1)\">Unsafe</a> <a href=\"https://example.test/safe\">Safe</a></p>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "links.html");
+
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Equal("https://example.test/safe", link.Uri);
+        Assert.DoesNotContain(result.Links, item => item.Uri?.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_ResolvesDocumentBaseUriWithoutFilters() {
+        const string html = "<html><head><base href=\"https://example.test/docs/\"></head>"
+            + "<body><a href=\"guide.html\">Guide</a></body></html>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "guide.html");
+
+        Assert.Equal("https://example.test/docs/guide.html", Assert.Single(result.Links).Uri);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_RejectsOversizedInputBeforeLogicalProjection() {
+        const string html = "<p>This input exceeds its configured bound.</p>";
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+                html,
+                "bounded-rich.html",
+                htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(12)));
+
+        Assert.Contains("MaxInputCharacters", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(HtmlBase64ImageHandling.Skip)]
+    [InlineData(HtmlBase64ImageHandling.SaveToFile)]
+    public void DocumentReaderHtml_RichDispatch_RespectsBase64ImageHandling(HtmlBase64ImageHandling handling) {
+        const string html = "<img alt=\"Inline\" src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\"/>";
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-html-images-" + Guid.NewGuid().ToString("N"));
+        try {
+            var options = new ReaderHtmlOptions {
+                HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
+                    Base64Images = handling,
+                    Base64ImageOutputDirectory = directory
+                }
+            };
+
+            OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+                html,
+                "inline-image.html",
+                htmlOptions: options);
+
+            Assert.Empty(result.Assets);
+            Assert.Empty(result.Visuals);
+            if (handling == HtmlBase64ImageHandling.SaveToFile) Assert.Single(Directory.EnumerateFiles(directory));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichTables_DoNotFoldNestedRowsIntoParentTable() {
+        const string html = "<table><caption>Outer</caption><tr><th>Name</th></tr><tr><td>Parent"
+            + "<table><caption>Inner</caption><tr><th>Code</th></tr><tr><td>Nested</td></tr></table>"
+            + "</td></tr></table>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "nested.html");
+
+        Assert.Equal(2, result.Tables.Count);
+        ReaderTable outer = Assert.Single(result.Tables, table => table.Title == "Outer");
+        ReaderTable inner = Assert.Single(result.Tables, table => table.Title == "Inner");
+        Assert.Equal(1, outer.TotalRowCount);
+        Assert.Equal(1, inner.TotalRowCount);
+        Assert.Equal("Nested", inner.Rows[0][0]);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichTables_ApplyRowLimitToTableBlocks() {
+        const string html = "<table><tr><th>Name</th></tr><tr><td>Row 1</td></tr>"
+            + "<tr><td>Row 2</td></tr><tr><td>Row 3</td></tr></table>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+            html,
+            "bounded.html",
+            new ReaderOptions { MaxTableRows = 1 });
+
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Single(table.Rows);
+        Assert.True(table.Truncated);
+        OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
+        Assert.Contains("Row 1", block.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 2", block.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Row 3", block.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_MapsTextareaAndResponsiveImageSources() {
+        const string html = "<form><textarea name=\"comments\">Hello there</textarea></form>"
+            + "<img alt=\"Responsive\" srcset=\"small.png 1x, large.png 2x\"/>"
+            + "<img alt=\"Lazy\" data-src=\"lazy.png\"/>"
+            + "<picture><source srcset=\"picture.png 1x\"/></picture>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "responsive.html");
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms, item => item.Name == "comments");
+        Assert.Equal("Hello there", form.Value);
+        Assert.Contains(result.Assets, asset => asset.SourceObjectId == "small.png");
+        Assert.Contains(result.Assets, asset => asset.SourceObjectId == "lazy.png");
+        Assert.Contains(result.Assets, asset => asset.SourceObjectId == "picture.png");
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_MapsSelectAsOneFormField() {
+        const string html = "<form><select name=\"status\"><option value=\"draft\">Draft</option>"
+            + "<option value=\"approved\" selected>Approved</option></select></form>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "select.html");
+
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("status", form.Name);
+        Assert.Equal("select", form.Kind);
+        Assert.Equal("approved", form.Value);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_PreservesCheckedStateForCheckboxesAndRadios() {
+        const string html = "<form>"
+            + "<input type=\"checkbox\" name=\"unchecked\" value=\"yes\">"
+            + "<input type=\"checkbox\" name=\"checked\" value=\"yes\" checked>"
+            + "<input type=\"radio\" name=\"choice\" value=\"a\">"
+            + "<input type=\"radio\" name=\"choice\" value=\"b\" checked>"
+            + "</form>";
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "controls.html");
+
+        Assert.Null(Assert.Single(result.Forms, form => form.Name == "unchecked").Value);
+        Assert.Equal("yes", Assert.Single(result.Forms, form => form.Name == "checked").Value);
+        Assert.Null(result.Forms.Single(form => form.Kind == "radio" && form.Value == null).Value);
+        Assert.Equal("b", Assert.Single(result.Forms, form => form.Kind == "radio" && form.Value != null).Value);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_PreservesHeaderlessTableRows() {
+        const string html = "<table><tr><td>A</td></tr><tr><td>B</td></tr></table>";
+
+        ReaderTable table = Assert.Single(DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "headerless.html").Tables);
+
+        Assert.Equal(new[] { "Column 1" }, table.Columns);
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.Equal(new[] { "A", "B" }, table.Rows.Select(row => row[0]));
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_RichProjection_AppliesConfiguredElementFilters() {
+        const string html = "<section class=\"private\"><p>Private text</p><a href=\"https://private.test\">Private link</a></section>"
+            + "<p id=\"delegate-private\">Delegate private</p><p>Public text</p>";
+        var markdownOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        markdownOptions.ExcludeSelectors.Add(".private");
+        int delegateMatchCount = 0;
+        markdownOptions.ElementFilters.Add(element => {
+            if (!string.Equals(element.Id, "delegate-private", StringComparison.Ordinal)) return false;
+            delegateMatchCount++;
+            return true;
+        });
+        var options = new ReaderHtmlOptions { HtmlToMarkdownOptions = markdownOptions };
+
+        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+            html,
+            "filtered.html",
+            htmlOptions: options);
+
+        Assert.DoesNotContain(result.Blocks, block => block.Text.Contains("Private", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(result.Links);
+        Assert.DoesNotContain("Private text", result.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Delegate private", result.Html, StringComparison.Ordinal);
+        Assert.Contains(result.Blocks, block => block.Text.Contains("Public text", StringComparison.Ordinal));
+        Assert.Equal(1, delegateMatchCount);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsChunks() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
 

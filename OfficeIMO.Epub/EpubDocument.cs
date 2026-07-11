@@ -35,6 +35,11 @@ public sealed class EpubDocument {
     public IReadOnlyList<EpubChapter> Chapters { get; set; } = Array.Empty<EpubChapter>();
 
     /// <summary>
+    /// OPF manifest resources in deterministic package order.
+    /// </summary>
+    public IReadOnlyList<EpubResource> Resources { get; set; } = Array.Empty<EpubResource>();
+
+    /// <summary>
     /// Non-fatal warnings encountered during extraction.
     /// </summary>
     public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();

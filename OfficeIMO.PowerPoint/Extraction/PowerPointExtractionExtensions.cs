@@ -1,9 +1,7 @@
-using DocumentFormat.OpenXml.Presentation;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint;
 
@@ -71,8 +69,7 @@ public static class PowerPointExtractionExtensions {
             }
 
             if (extract.IncludeNotes) {
-                var notes = ReadNotesTextNoCreate(slide).Trim();
-                if (notes.Length > 0) {
+                if (slide.Notes.TryGetExistingText(out string notes)) {
                     md.AppendLine("### Notes");
                     md.AppendLine();
                     md.AppendLine(notes);
@@ -166,53 +163,6 @@ public static class PowerPointExtractionExtensions {
             .Replace("|", "\\|");
     }
 
-    private static string ReadNotesTextNoCreate(PowerPointSlide slide) {
-        // Avoid side effects: PowerPointSlide.Notes.Text will create a NotesSlidePart if absent.
-        // For extraction we only read notes when they already exist.
-        try {
-            var notesPart = slide.SlidePart.NotesSlidePart;
-            var notesSlide = notesPart?.NotesSlide;
-            if (notesSlide == null) return string.Empty;
-
-            List<string> blocks = notesSlide.CommonSlideData?.ShapeTree?
-                .Elements<Shape>()
-                .Select(ReadShapeText)
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .ToList() ?? new List<string>();
-            return string.Join("\n\n", blocks);
-        } catch {
-            return string.Empty;
-        }
-    }
-
-    private static string ReadShapeText(Shape shape) {
-        List<string> paragraphs = shape.TextBody?
-            .Elements<A.Paragraph>()
-            .Select(ReadParagraphText)
-            .Where(text => !string.IsNullOrWhiteSpace(text))
-            .ToList() ?? new List<string>();
-        return string.Join("\n", paragraphs);
-    }
-
-    private static string ReadParagraphText(A.Paragraph paragraph) {
-        var builder = new StringBuilder();
-        foreach (DocumentFormat.OpenXml.OpenXmlElement child in paragraph.ChildElements) {
-            switch (child) {
-                case A.Run run:
-                    builder.Append(run.Text?.Text ?? string.Empty);
-                    break;
-                case A.Break:
-                    builder.AppendLine();
-                    break;
-                case A.Field field:
-                    builder.Append(field.Text?.Text ?? string.Empty);
-                    break;
-            }
-        }
-
-        return NormalizeText(builder.ToString());
-    }
-
     private static string NormalizeText(string? text) {
         return (text ?? string.Empty).Trim();
     }
@@ -222,4 +172,3 @@ public static class PowerPointExtractionExtensions {
         return $"{kind}:{safe}:s{slideNumber}";
     }
 }
-

@@ -6,7 +6,7 @@ namespace OfficeIMO.Reader.Epub;
 /// <summary>
 /// EPUB ingestion adapter for <see cref="DocumentReader"/>.
 /// </summary>
-public static class DocumentReaderEpubExtensions {
+public static partial class DocumentReaderEpubExtensions {
     /// <summary>
     /// Reads EPUB content from a file path and emits normalized chunks.
     /// </summary>
