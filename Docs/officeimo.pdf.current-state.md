@@ -261,7 +261,7 @@ why content was ordered or classified, and export a standard interchange model.
   identifiers, invalid name trees, and broken destinations.
 - [x] Add decoded-stream and object-count budgets before allocating large
   buffers; report compressed and decoded sizes separately.
-- [ ] Add a PDF debugger dump for objects, revisions, page resources, content
+- [x] Add a PDF debugger dump for objects, revisions, page resources, content
   operators, reachability, and optionally decoded streams or a decompressed
   inspection copy. Keep it a diagnostic projection, not another mutable object
   model.

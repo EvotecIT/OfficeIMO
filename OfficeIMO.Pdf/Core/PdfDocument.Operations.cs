@@ -53,6 +53,11 @@ public sealed partial class PdfDocument {
         return PdfDiagnostics.Analyze(Snapshot(), options ?? ReadOptions);
     }
 
+    /// <summary>Creates a bounded debugger projection of objects, revisions, pages, resources, and content operators.</summary>
+    public PdfDebuggerReport Debug(PdfDebuggerOptions? options = null, PdfReadOptions? readOptions = null) {
+        return PdfDebugger.Dump(Snapshot(), options, readOptions ?? ReadOptions);
+    }
+
     /// <summary>
     /// Builds an optimization opportunity report for this document without modifying it.
     /// </summary>
