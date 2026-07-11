@@ -110,6 +110,7 @@ public static partial class PdfIncrementalUpdater {
         var commonBlockers = new List<string>();
         var metadataBlockers = new List<string>();
         var formBlockers = new List<string>();
+        var longTermValidationBlockers = new List<string>();
         var warnings = new List<string>();
         if (security.HasEncryption) {
             commonBlockers.Add("Encrypted");
@@ -130,6 +131,7 @@ public static partial class PdfIncrementalUpdater {
 
         metadataBlockers.AddRange(commonBlockers);
         formBlockers.AddRange(commonBlockers);
+        longTermValidationBlockers.AddRange(commonBlockers);
         bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {
@@ -141,6 +143,10 @@ public static partial class PdfIncrementalUpdater {
             }
         }
 
+        if (!hasSignatureContent) {
+            longTermValidationBlockers.Add("Unsigned");
+        }
+
         if (security.HasDocMDPPermissions) {
             metadataBlockers.Add("DocMDP");
             if (!CanAppendFormFieldsWithDocMDP(security, null)) {
@@ -148,6 +154,8 @@ public static partial class PdfIncrementalUpdater {
             } else {
                 warnings.Add("DocMDPAllowsFormFill");
             }
+
+            warnings.Add("DocMDPDssMaintenance");
         }
 
         if (blockedBySignatureFieldLock) {
@@ -171,6 +179,10 @@ public static partial class PdfIncrementalUpdater {
             supported.Add("FormFill");
         }
 
+        if (longTermValidationBlockers.Count == 0) {
+            supported.Add("LongTermValidation");
+        }
+
         bool canPrepareSignature =
             commonBlockers.Count == 0 &&
             !hasSignatureContent &&
@@ -190,6 +202,10 @@ public static partial class PdfIncrementalUpdater {
 
         if (!canPrepareSignature) {
             blocked.Add("SignaturePrepare");
+        }
+
+        if (longTermValidationBlockers.Count > 0) {
+            blocked.Add("LongTermValidation");
         }
 
         blocked.Add("Annotations");

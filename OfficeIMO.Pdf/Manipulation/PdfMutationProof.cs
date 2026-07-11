@@ -42,5 +42,8 @@ public enum PdfMutationProof {
     EncryptionRoundTrip,
 
     /// <summary>Removed content must not remain extractable or recoverable from decoded objects and streams.</summary>
-    RedactionResidue
+    RedactionResidue,
+
+    /// <summary>DSS/VRI certificate, OCSP, CRL, and timestamp references must match after readback.</summary>
+    LongTermValidationReadback
 }

@@ -124,6 +124,7 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.FillAndFlattenFormFields:
                 return preflight.CanFillAndFlattenSimpleFormFields;
             case PdfMutationOperation.PrepareExternalSignature:
+            case PdfMutationOperation.EnrichLongTermValidation:
             case PdfMutationOperation.ModifyAttachments:
                 return false;
             case PdfMutationOperation.ChangeEncryption:
@@ -143,6 +144,8 @@ public static class PdfMutationPlanner {
                 return report.CanAppendFormFields;
             case PdfMutationOperation.PrepareExternalSignature:
                 return report.CanPrepareExternalSignature;
+            case PdfMutationOperation.EnrichLongTermValidation:
+                return report.CanAppendLongTermValidation;
             default:
                 return false;
         }
@@ -150,17 +153,20 @@ public static class PdfMutationPlanner {
 
     private static bool IsFullRewriteImplemented(PdfMutationOperation operation) {
         return operation != PdfMutationOperation.PrepareExternalSignature &&
+            operation != PdfMutationOperation.EnrichLongTermValidation &&
             operation != PdfMutationOperation.ModifyAttachments;
     }
 
     private static bool IsAppendOnlyImplemented(PdfMutationOperation operation) {
         return operation == PdfMutationOperation.UpdateMetadata ||
             operation == PdfMutationOperation.FillFormFields ||
-            operation == PdfMutationOperation.PrepareExternalSignature;
+            operation == PdfMutationOperation.PrepareExternalSignature ||
+            operation == PdfMutationOperation.EnrichLongTermValidation;
     }
 
     private static bool RequiresAppendOnlyByDefinition(PdfMutationOperation operation) =>
-        operation == PdfMutationOperation.PrepareExternalSignature;
+        operation == PdfMutationOperation.PrepareExternalSignature ||
+        operation == PdfMutationOperation.EnrichLongTermValidation;
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfMutationStructure> GetAffectedStructures(PdfMutationOperation operation) {
         switch (operation) {
@@ -173,6 +179,8 @@ public static class PdfMutationPlanner {
                 return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations, PdfMutationStructure.PageContent, PdfMutationStructure.PageResources);
             case PdfMutationOperation.PrepareExternalSignature:
                 return ReadOnly(PdfMutationStructure.Signatures, PdfMutationStructure.AcroForm, PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph);
+            case PdfMutationOperation.EnrichLongTermValidation:
+                return ReadOnly(PdfMutationStructure.Signatures, PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph);
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog);
@@ -270,6 +278,11 @@ public static class PdfMutationPlanner {
                 Add(proofs, PdfMutationProof.SignatureByteRanges);
                 Add(proofs, PdfMutationProof.SignaturePermissions);
                 break;
+            case PdfMutationOperation.EnrichLongTermValidation:
+                Add(proofs, PdfMutationProof.SignatureByteRanges);
+                Add(proofs, PdfMutationProof.SignaturePermissions);
+                Add(proofs, PdfMutationProof.LongTermValidationReadback);
+                break;
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
@@ -349,6 +362,10 @@ public static class PdfMutationPlanner {
         if (!appendOnlyImplemented) {
             Add(blockers, "AppendOnly.NotImplemented." + operation);
         } else {
+            if (operation == PdfMutationOperation.EnrichLongTermValidation && !security.HasSignatures) {
+                Add(blockers, "AppendOnly.Unsigned");
+            }
+
             for (int i = 0; i < appendOnly.Blockers.Count; i++) {
                 Add(blockers, "AppendOnly." + appendOnly.Blockers[i]);
             }
@@ -442,6 +459,8 @@ public static class PdfMutationPlanner {
                 return "FormFill";
             case PdfMutationOperation.PrepareExternalSignature:
                 return "SignaturePrepare";
+            case PdfMutationOperation.EnrichLongTermValidation:
+                return "LongTermValidation";
             case PdfMutationOperation.ModifyAnnotations:
                 return "Annotations";
             case PdfMutationOperation.ModifyPageTree:
@@ -557,7 +576,7 @@ public static class PdfMutationPlanner {
                 return PdfMutationCapabilityKind.EncryptionChanges;
             case PdfMutationStructure.Signatures:
                 return PdfMutationCapabilityKind.SignatureChanges;
-            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature:
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature || operation == PdfMutationOperation.EnrichLongTermValidation:
                 return PdfMutationCapabilityKind.SignatureChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyAttachments:
                 return PdfMutationCapabilityKind.AttachmentChanges;
@@ -580,7 +599,7 @@ public static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.Redact) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.EnrichLongTermValidation) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }

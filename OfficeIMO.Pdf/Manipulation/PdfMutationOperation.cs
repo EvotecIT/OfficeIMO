@@ -42,5 +42,8 @@ public enum PdfMutationOperation {
     Optimize,
 
     /// <summary>Apply destructive content redaction.</summary>
-    Redact
+    Redact,
+
+    /// <summary>Append DSS/VRI evidence for cryptographically verified signatures.</summary>
+    EnrichLongTermValidation
 }
