@@ -16,6 +16,7 @@ public sealed class ReaderEmailTests {
     public void EmailKindAndCapabilities_AreBuiltInWithoutChangingEarlierEnumValues() {
         Assert.Equal(17, (int)ReaderInputKind.Latex);
         Assert.Equal(18, (int)ReaderInputKind.Email);
+        Assert.Equal(19, (int)ReaderInputKind.OpenDocument);
         Assert.Equal(ReaderInputKind.Email, DocumentReader.DetectKind("message.eml"));
         Assert.Equal(ReaderInputKind.Email, DocumentReader.DetectKind("outlook.msg"));
         Assert.Equal(ReaderInputKind.Email, DocumentReader.DetectKind("archive.mbox"));

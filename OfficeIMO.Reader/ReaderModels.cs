@@ -85,7 +85,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// Email, Outlook item, TNEF payload, or mbox mailbox.
     /// </summary>
-    Email
+    Email,
+    /// <summary>
+    /// OpenDocument Text, Spreadsheet, or Presentation package.
+    /// </summary>
+    OpenDocument
 }
 
 /// <summary>

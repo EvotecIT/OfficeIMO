@@ -14,6 +14,38 @@ It is designed for deterministic ingestion. Format-specific parsing stays in the
 
 Reference the `OfficeIMO.Reader` NuGet package or add a project reference. Install only the modular adapter packages required by the host.
 
+The package README at `OfficeIMO.Reader/README.md` is the detailed API guide. The sections below summarize the stable host contracts and common ingestion patterns.
+
+## Current Reader Surfaces
+
+- `DocumentReader.Read(...)` returns compatible `ReaderChunk` sequences for indexing and folder traversal.
+- `ReadDocument(...)` returns the stable version 5 rich result with pages, blocks, tables, links, forms, assets, visuals, OCR candidates, metadata, and structured diagnostics.
+- `OfficeDocumentReaderBuilder` freezes handlers, options, processor order, and concurrency into an isolated reader for services and concurrent hosts.
+- Async file, stream, byte, and bounded multi-document APIs preserve cancellation, ordering, input limits, and caller-owned stream lifetime.
+- Ordered processors provide opt-in normalization, artifact classification, link/table cleanup, and asset filtering.
+- `ReadStructured(...)` emits bounded scalar records, sections, named tables, forms, and readiness diagnostics without an AI dependency.
+- `ReadHierarchical(...)` creates token-bounded RAG leaves with overlap, exact source spans, and document/container/heading ancestry.
+- `IOfficeOcrEngine` keeps OCR execution in a dependency-free core contract; process and Tesseract implementations are separate optional packages.
+
+For format adapters, prefer instance-scoped registration:
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .WithMaxConcurrentReads(4)
+    .AddProcessor(new OfficeDocumentBlockNormalizationProcessor())
+    .Build();
+
+OfficeDocumentReadResult document = await reader.ReadDocumentAsync(
+    "report.pdf",
+    cancellationToken: cancellationToken);
+```
+
+The static registration helpers remain available for compatibility, but they update process-wide state.
+
 ## Basic Use (File Path)
 
 ```csharp
@@ -188,4 +220,4 @@ Keep raw BenchmarkDotNet artifacts local. When a result is used as a release bas
 - Folder ingestion is best-effort: unreadable/corrupt/oversized files emit warning chunks and processing continues.
 - `ReadFolderDocuments(...)` yields per-source payloads (`ReaderSourceDocument`) for straightforward source/chunk table upserts.
 - `ReadFolderDetailed(...)` provides aggregate counts and per-file status with optional progress callbacks.
-- The core reader identifies OCR candidates but does not include an OCR engine. OCR providers belong in optional packages.
+- The core reader identifies OCR candidates and owns the bounded `IOfficeOcrEngine` execution/merge contract, but it does not include an OCR implementation. Use `OfficeIMO.Reader.Ocr.Process`, `OfficeIMO.Reader.Ocr.Tesseract`, or a host-supplied delegate engine when OCR should run.

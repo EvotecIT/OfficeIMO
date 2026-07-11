@@ -1,3 +1,5 @@
+using OfficeIMO.Shared.Packaging;
+
 namespace OfficeIMO.Zip;
 
 /// <summary>
@@ -168,68 +170,23 @@ public static class ZipTraversal {
     }
 
     private static string NormalizeEntryName(string? fullName) {
-        var value = fullName ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
-
-        var normalized = value.Replace('\\', '/').Trim();
-        while (normalized.StartsWith("./", StringComparison.Ordinal)) {
-            normalized = normalized.Substring(2);
-        }
-
-        return normalized;
+        return OfficeArchiveSafety.NormalizeEntryName(fullName);
     }
 
     private static bool IsUnsafePath(string fullName) {
-        if (fullName.Length == 0) return true;
-        if (fullName[0] == '/' || fullName[0] == '\\') return true;
-        if (fullName.IndexOf('\0') >= 0) return true;
-        if (fullName.Length >= 2 && char.IsLetter(fullName[0]) && fullName[1] == ':') return true;
-
-        var segments = fullName.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var segment in segments) {
-            if (segment == "." || segment == "..") return true;
-        }
-
-        return false;
+        return OfficeArchiveSafety.IsUnsafePath(fullName);
     }
 
     private static int ComputeDepth(string fullName, bool isDirectory) {
-        var normalized = isDirectory ? fullName.TrimEnd('/') : fullName;
-        if (normalized.Length == 0) return 0;
-
-        int depth = 1;
-        for (int i = 0; i < normalized.Length; i++) {
-            if (normalized[i] == '/') depth++;
-        }
-
-        return depth;
+        return OfficeArchiveSafety.ComputeDepth(fullName, isDirectory);
     }
 
     private static bool TryGetLength(ZipArchiveEntry entry, out long length) {
-        try {
-            length = entry.Length;
-            return true;
-        } catch {
-            length = 0;
-            return false;
-        }
+        return OfficeArchiveSafety.TryGetLength(entry, out length);
     }
 
     private static bool IsCompressionRatioExceeded(ZipArchiveEntry entry, long uncompressedLength, double maxRatio) {
-        if (maxRatio <= 0) return false;
-        if (uncompressedLength <= 0) return false;
-
-        long compressedLength;
-        try {
-            compressedLength = entry.CompressedLength;
-        } catch {
-            return false;
-        }
-
-        if (compressedLength <= 0) return false;
-
-        var ratio = (double)uncompressedLength / compressedLength;
-        return ratio > maxRatio;
+        return OfficeArchiveSafety.IsCompressionRatioExceeded(entry, uncompressedLength, maxRatio);
     }
 
     private static DateTime TryGetLastWriteUtc(ZipArchiveEntry entry) {
