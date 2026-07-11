@@ -143,6 +143,14 @@ The shared result must retain more than pixels. It needs positioned text runs, f
 - Produces a full-document PNG/SVG without inventing page breaks.
 - Applies an explicit maximum-dimension and memory policy for very tall documents.
 
+### Platform and resource envelope
+
+- `OfficeIMO.Html` targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. The executable benchmark harness targets `net8.0` and `net10.0`; end-to-end contracts also run on `net472`, and the existing trim/AOT smoke exercises the project-only dependency graph.
+- Parsing, layout, Drawing projection, PNG encoding, SVG serialization, and PDF serialization do not require a browser, native rendering host, or a new runtime package.
+- Installed fonts are inherently platform-specific. For byte- and metric-stable cross-platform output, callers should supply policy-approved TrueType `@font-face` data. Managed PDF system-font resolution uses a bounded 32-entry process cache and is activated only when scene text needs more than the standard WinAnsi path; restart the process after installing or removing fonts.
+- Default source and DOM ceilings are 16,777,216 UTF-16 characters and 100,000 nodes. Resource, page, surface, layout-depth, track, column, gradient, shadow, and image-tile limits remain independently configurable.
+- The non-packable `OfficeIMO.Html.Benchmarks` project defines review budgets for small and standard report classes across parse, styles, prepared layout, combined layout, Drawing, PNG, SVG, WinAnsi PDF, and multilingual PDF lanes. Allocation ceilings are stable review triggers; timing regressions are compared on the same machine instead of asserted by unit tests.
+
 ### Public API direction
 
 The final names should follow existing OfficeIMO image-export conventions. The intended shape is:
@@ -220,7 +228,7 @@ Text shaping must be implemented with first-party managed code and existing Offi
 - [ ] Add semantic-node, glyph, clipping, transform, and advanced paint contracts as their formatting phases land.
 - [x] Build a representative corpus: invoices, statements, reports, letters, certificates, catalog pages, dashboards, multilingual documents, and hostile-resource cases. The test-owned corpus covers every published `HtmlMarketScenarioCatalog` id so public examples cannot drift away from end-to-end evidence.
 - [ ] Record expected geometry, page counts, extracted text, links, diagnostics, and visual baselines. The corpus now records mode, surface width, page count, minimum scene/headings, logical text, links, diagnostics, PNG signature, SVG text, and searchable-PDF readback for ten cases; approved pixel/byte visual baselines remain.
-- [ ] Define performance and memory budgets by document class.
+- [x] Define performance and memory budgets by document class. The non-packable benchmark project records small 10-row and standard 100-row stage budgets plus standard 40-row Drawing, PNG, SVG, WinAnsi PDF, and Unicode PDF output budgets; timing uses same-machine relative regression review rather than flaky wall-clock tests.
 
 Exit gate: the public behavior and proof corpus exist before implementation details become permanent APIs.
 
@@ -320,9 +328,9 @@ Exit gate: every accepted feature has corpus proof and every unimplemented featu
 
 - [ ] Add fuzz/hostile-input, resource-budget, timeout, cancellation, and deterministic-output tests. Byte-identical PNG, SVG, and rendered-PDF output for identical fully resolved input/options is now protected across supported target frameworks. Source strings are rejected before parsing above the configurable character budget, parsed DOMs are rejected before styling above the configurable node budget, and sync/async paths share the typed limit contract; broader hostile corpus and fuzz coverage remain.
 - [x] Add an executable NativeAOT/trimming smoke that parses and lays out HTML, emits dependency-free SVG and PNG, creates rendered searchable PDF, reads the PDF marker back, and runs in the existing AOT/trim CI lane. The smoke has no package references; it consumes only the repository projects.
-- [ ] Benchmark parse, style, layout, paint, image export, and PDF export independently.
+- [x] Benchmark parse, style, prepared layout, combined parse/style/layout, Drawing projection, PNG, SVG, and rendered PDF independently. The output lane covers both WinAnsi and multilingual Unicode text, uses the repository's existing BenchmarkDotNet development dependency, and adds nothing to shipped packages.
 - [x] Add deterministic Markdown support-matrix generation directly from `HtmlConversionProfileContracts` and the ordered `HtmlDiagnosticCatalog`, including a no-BOM file writer so docs and release tooling can publish the same source of truth without a parallel hand-maintained capability list.
-- [ ] Document platform/target-framework differences and memory limits. The renderer defaults are now explicit at 16,777,216 UTF-16 source characters and 100,000 parsed DOM nodes, in addition to existing resource, page, surface, depth, track, column, gradient, shadow, and image-tile budgets; measured working-set guidance by document class remains.
+- [x] Document platform/target-framework differences and memory limits. The plan now records target frameworks, executable cross-target/AOT evidence, platform-font variability, process-cached managed fallback behavior, the no-browser/no-native-host boundary, explicit source/DOM and renderer budgets, and benchmark review ceilings by document class.
 
 Exit gate: support claims are generated from passing evidence, not maintained as an aspirational list.
 
