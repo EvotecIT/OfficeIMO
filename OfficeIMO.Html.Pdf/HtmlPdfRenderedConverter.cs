@@ -109,7 +109,18 @@ internal static class HtmlPdfRenderedConverter {
             AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
             AddSemanticGroup(canvas, semanticGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+        } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+            AddLogicalTextGroup(canvas, logicalTextGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
         }
+    }
+
+    private static void AddLogicalTextGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderLogicalTextGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
+        canvas.ActualText(group.Text, nested => {
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
+            }
+        });
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
@@ -503,7 +514,8 @@ internal static class HtmlPdfRenderedConverter {
                 : visual is HtmlRenderPathClipGroup pathClipGroup
                     ? pathClipGroup.Visuals
                     : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
-                    : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals : null;
+                    : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
+                    : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }

@@ -977,7 +977,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_RenderedProfile_UsesManagedFontFallbacksForUnicodeText() {
-        const string marker = "Café Ω Ж";
+        const string marker = "Café Ω Ж שלום";
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
 
         byte[] pdf = ("<p>" + marker + "</p>").SaveAsPdf(options);
@@ -1005,6 +1005,10 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(4, hebrew.Count);
         Assert.Equal("שלום", string.Concat(hebrew.Select(run => run.Text)));
+        HtmlRenderLogicalTextGroup logicalGroup = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text == "שלום 123");
+        Assert.Equal("שלום 123", logicalGroup.Text);
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
         HtmlRenderText number = Assert.Single(text, run => run.Text == "123");
         Assert.Equal("שלום 123", string.Concat(text.Where(run => Math.Abs(run.Y - number.Y) < 0.001D).OrderBy(run => run.PaintOrder).Select(run => run.Text)));

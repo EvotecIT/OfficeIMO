@@ -51,6 +51,23 @@ public sealed class PdfPageCanvas {
         return this;
     }
 
+    /// <summary>
+    /// Groups positioned text fragments under one logical replacement string for extraction and accessibility.
+    /// Child paint remains unchanged while readers that honor <c>ActualText</c> receive the supplied logical text once.
+    /// </summary>
+    public PdfPageCanvas ActualText(string text, Action<PdfPageCanvas> build) {
+        Guard.NotNull(text, nameof(text));
+        if (text.Length == 0) throw new ArgumentException("Canvas actual text cannot be empty.", nameof(text));
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (nestedCanvas.Items.Count == 0) {
+            throw new ArgumentException("Canvas actual-text groups require at least one content item.", nameof(build));
+        }
+        _items.Add(new PdfCanvasActualTextItem(text, nestedCanvas.Items));
+        return this;
+    }
+
     /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
     public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
         if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Caption) {
@@ -486,6 +503,17 @@ internal sealed class PdfCanvasStructureItem : PdfCanvasItem {
 
     public PdfCanvasStructureRole Role { get; }
     public PdfCanvasStructureOptions Options { get; }
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+}
+
+internal sealed class PdfCanvasActualTextItem : PdfCanvasItem {
+    public PdfCanvasActualTextItem(string text, IReadOnlyList<PdfCanvasItem> items)
+        : base(0D, 0D) {
+        Text = text;
+        Items = items;
+    }
+
+    public string Text { get; }
     public IReadOnlyList<PdfCanvasItem> Items { get; }
 }
 

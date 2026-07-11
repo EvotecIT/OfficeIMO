@@ -53,7 +53,8 @@ public sealed class HtmlRenderDocument {
                 : visual is HtmlRenderPathClipGroup pathClipGroup
                     ? pathClipGroup.Visuals
                 : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
-                : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals : null;
+                : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
+                : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }

@@ -75,6 +75,8 @@ public sealed class HtmlRenderPage {
         foreach (HtmlRenderVisual visual in visuals) {
             if (visual is HtmlRenderSemanticGroup semanticGroup) {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(semanticGroup.Visuals)) yield return child;
+            } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+                foreach (HtmlRenderVisual child in FlattenSemanticGroups(logicalTextGroup.Visuals)) yield return child;
             } else {
                 yield return visual;
             }
@@ -116,6 +118,8 @@ public sealed class HtmlRenderPage {
             AddEffectGroup(drawing, effectGroup, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
             foreach (HtmlRenderVisual child in semanticGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+            foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         }
     }
 
@@ -198,6 +202,8 @@ public sealed class HtmlRenderPage {
                 ? Math.Max(visual.X + visual.Width, MaximumRight(effectGroup.Visuals))
             : visual is HtmlRenderSemanticGroup semanticGroup
                 ? Math.Max(visual.X + visual.Width, MaximumRight(semanticGroup.Visuals))
+            : visual is HtmlRenderLogicalTextGroup logicalTextGroup
+                ? Math.Max(visual.X + visual.Width, MaximumRight(logicalTextGroup.Visuals))
                 : visual.X + visual.Width)
         .DefaultIfEmpty(0.01D)
         .Max();
@@ -211,6 +217,8 @@ public sealed class HtmlRenderPage {
                 ? Math.Max(visual.Y + visual.Height, MaximumBottom(effectGroup.Visuals))
             : visual is HtmlRenderSemanticGroup semanticGroup
                 ? Math.Max(visual.Y + visual.Height, MaximumBottom(semanticGroup.Visuals))
+            : visual is HtmlRenderLogicalTextGroup logicalTextGroup
+                ? Math.Max(visual.Y + visual.Height, MaximumBottom(logicalTextGroup.Visuals))
                 : visual.Y + visual.Height)
         .DefaultIfEmpty(0.01D)
         .Max();
@@ -224,6 +232,8 @@ public sealed class HtmlRenderPage {
                     ? Math.Min(visual.X, MinimumLeft(effectGroup.Visuals))
                 : visual is HtmlRenderSemanticGroup semanticGroup
                     ? Math.Min(visual.X, MinimumLeft(semanticGroup.Visuals))
+                : visual is HtmlRenderLogicalTextGroup logicalTextGroup
+                    ? Math.Min(visual.X, MinimumLeft(logicalTextGroup.Visuals))
                     : visual.X)
         .DefaultIfEmpty(0D)
         .Min();
@@ -237,6 +247,8 @@ public sealed class HtmlRenderPage {
                     ? Math.Min(visual.Y, MinimumTop(effectGroup.Visuals))
                 : visual is HtmlRenderSemanticGroup semanticGroup
                     ? Math.Min(visual.Y, MinimumTop(semanticGroup.Visuals))
+                : visual is HtmlRenderLogicalTextGroup logicalTextGroup
+                    ? Math.Min(visual.Y, MinimumTop(logicalTextGroup.Visuals))
                     : visual.Y)
         .DefaultIfEmpty(0D)
         .Min();

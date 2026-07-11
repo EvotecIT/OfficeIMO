@@ -102,6 +102,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
             : visual is HtmlRenderEffectGroup effect ? effect.Visuals
             : visual is HtmlRenderSemanticGroup semantic ? semantic.Visuals
+            : visual is HtmlRenderLogicalTextGroup logicalText ? logicalText.Visuals
             : null;
 
     private static HtmlRenderVisual CloneGroupWithChildren(HtmlRenderVisual visual, IReadOnlyList<HtmlRenderVisual> children) {
@@ -144,20 +145,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 effect.LayoutY);
         }
 
-        HtmlRenderSemanticGroup semantic = (HtmlRenderSemanticGroup)visual;
-        return new HtmlRenderSemanticGroup(
-            semantic.Role,
-            semantic.X,
-            semantic.Y,
-            semantic.Width,
-            semantic.Height,
+        if (visual is HtmlRenderSemanticGroup semantic) {
+            return new HtmlRenderSemanticGroup(
+                semantic.Role,
+                semantic.X,
+                semantic.Y,
+                semantic.Width,
+                semantic.Height,
+                children,
+                semantic.PaintOrder,
+                semantic.Source,
+                semantic.ColumnSpan,
+                semantic.RowSpan,
+                semantic.HeaderScope,
+                semantic.LayoutY);
+        }
+
+        HtmlRenderLogicalTextGroup logicalText = (HtmlRenderLogicalTextGroup)visual;
+        return new HtmlRenderLogicalTextGroup(
+            logicalText.Text,
+            logicalText.X,
+            logicalText.Y,
+            logicalText.Width,
+            logicalText.Height,
             children,
-            semantic.PaintOrder,
-            semantic.Source,
-            semantic.ColumnSpan,
-            semantic.RowSpan,
-            semantic.HeaderScope,
-            semantic.LayoutY);
+            logicalText.PaintOrder,
+            logicalText.Source,
+            logicalText.LayoutY);
     }
 
     private static (double X, double Y, double Width, double Height) ResolveSemanticBounds(

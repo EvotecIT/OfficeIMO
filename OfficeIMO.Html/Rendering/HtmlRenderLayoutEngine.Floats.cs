@@ -277,9 +277,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         : lineY;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, segment.Width, textLineHeight, inlineBounds);
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
-                    foreach (InlinePaintSegment paintSegment in ResolveInlinePaintSegments(segment, x)) {
+                    IReadOnlyList<InlinePaintSegment> paintSegments = ResolveInlinePaintSegments(segment, x);
+                    var textVisuals = new List<HtmlRenderVisual>(paintSegments.Count);
+                    foreach (InlinePaintSegment paintSegment in paintSegments) {
                         double frameWidth = Math.Min(Math.Max(0.01D, lineRight - paintSegment.X), paintSegment.Width + frameTolerance);
-                        HtmlRenderVisual visual = new HtmlRenderText(
+                        textVisuals.Add(new HtmlRenderText(
                             paintSegment.Text,
                             paintSegment.X,
                             textY,
@@ -289,18 +291,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.Style.Color,
                             OfficeTextAlignment.Left,
                             textLineHeight,
-                            visuals.Count,
+                            textVisuals.Count,
                             segment.Run.LinkUri,
                             segment.Run.Source,
                             segment.Run.SemanticRole,
-                            semanticNodeId: segment.Run.SemanticNodeId);
-                        AddInlineOwnedVisual(
-                            visuals,
-                            ownedVisuals,
-                            visual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
-                            segment.Run.OwnerElement,
-                            formattingContainer);
+                            semanticNodeId: segment.Run.SemanticNodeId));
                     }
+                    HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text)
+                        ? new HtmlRenderLogicalTextGroup(
+                            segment.Text,
+                            x,
+                            textY,
+                            Math.Max(0.01D, segment.Width),
+                            Math.Max(0.01D, textLineHeight),
+                            textVisuals,
+                            visuals.Count,
+                            segment.Run.Source)
+                        : textVisuals[0];
+                    AddInlineOwnedVisual(
+                        visuals,
+                        ownedVisuals,
+                        textVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
+                        segment.Run.OwnerElement,
+                        formattingContainer);
                 }
                 cursor += rightToLeftLine ? -segment.Width : segment.Width;
             }

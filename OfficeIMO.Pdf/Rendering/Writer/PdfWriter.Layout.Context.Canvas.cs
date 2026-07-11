@@ -9,6 +9,9 @@ internal static partial class PdfWriter {
             EnsurePage();
             foreach (PdfCanvasItem item in canvas.Items) {
                 switch (item) {
+                    case PdfCanvasActualTextItem actualText:
+                        RenderCanvasActualText(actualText);
+                        break;
                     case PdfCanvasStructureItem structure:
                         RenderCanvasStructure(structure);
                         break;
@@ -53,6 +56,15 @@ internal static partial class PdfWriter {
                         break;
                 }
             }
+        }
+
+        private void RenderCanvasActualText(PdfCanvasActualTextItem item) {
+            EnsurePage();
+            sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(item.Text))
+                .Append(" >> BDC\n");
+            RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            sb.Append("EMC\n");
         }
 
         private void RenderCanvasStructure(PdfCanvasStructureItem item) {

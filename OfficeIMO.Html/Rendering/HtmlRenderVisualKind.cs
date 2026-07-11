@@ -29,5 +29,8 @@ public enum HtmlRenderVisualKind {
     Drawing,
 
     /// <summary>Paint-neutral semantic ownership group.</summary>
-    SemanticGroup
+    SemanticGroup,
+
+    /// <summary>Paint-neutral positioned fragments sharing one logical extraction string.</summary>
+    LogicalTextGroup
 }

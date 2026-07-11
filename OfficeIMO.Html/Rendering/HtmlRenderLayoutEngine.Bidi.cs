@@ -4,6 +4,19 @@ using System.Text;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private static string ResolveLogicalText(IEnumerable<HtmlRenderVisual> visuals, string fallback) {
+        var text = new StringBuilder();
+        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderText renderedText) text.Append(renderedText.Text);
+            else if (visual is HtmlRenderLogicalTextGroup logicalText) text.Append(logicalText.Text);
+            else if (visual is HtmlRenderClipGroup clip) text.Append(ResolveLogicalText(clip.Visuals, string.Empty));
+            else if (visual is HtmlRenderPathClipGroup pathClip) text.Append(ResolveLogicalText(pathClip.Visuals, string.Empty));
+            else if (visual is HtmlRenderEffectGroup effect) text.Append(ResolveLogicalText(effect.Visuals, string.Empty));
+            else if (visual is HtmlRenderSemanticGroup semantic) text.Append(ResolveLogicalText(semantic.Visuals, string.Empty));
+        }
+        return text.Length == 0 ? fallback : text.ToString();
+    }
+
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
         if (!OfficeTextElements.ContainsRightToLeft(segment.Text)) {
             return new[] { new InlinePaintSegment(segment.Text, x, segment.Width) };

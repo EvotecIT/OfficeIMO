@@ -362,7 +362,9 @@ public sealed partial class HtmlRenderingTests {
                 ? clipGroup.Visuals
                 : visual is HtmlRenderPathClipGroup pathClipGroup
                     ? pathClipGroup.Visuals
-                    : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+                    : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
+                    : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
+                    : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateRenderVisuals(children)) yield return child;
         }

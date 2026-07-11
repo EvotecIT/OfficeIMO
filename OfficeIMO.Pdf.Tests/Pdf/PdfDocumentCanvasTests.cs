@@ -12,6 +12,30 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentCanvasTests {
     [Fact]
+    public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.ActualText("ABC", logical => logical
+                .Text("A", 50D, 10D, 10D, 20D)
+                .Text("B", 35D, 10D, 10D, 20D)
+                .Text("C", 20D, 10D, 10D, 20D)))
+            .ToBytes();
+
+        Assert.Contains("ABC", PdfReadDocument.Load(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasActualText_RejectsInvalidArgumentsAndEmptyBuilders() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentNullException>(() => canvas.ActualText(null!, _ => { }));
+        Assert.Throws<ArgumentException>(() => canvas.ActualText(string.Empty, _ => { }));
+        Assert.Throws<ArgumentNullException>(() => canvas.ActualText("Text", null!));
+        Assert.Throws<ArgumentException>(() => canvas.ActualText("Text", _ => { }));
+    }
+
+    [Fact]
     public void CanvasStructure_GroupsFragmentedHeadingAndParagraphTextUnderSection() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()

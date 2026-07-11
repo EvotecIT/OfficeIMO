@@ -526,6 +526,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+                IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end);
+                if (children.Count > 0) {
+                    fragment.Add(new HtmlRenderLogicalTextGroup(
+                        ResolveLogicalText(children, logicalTextGroup.Text),
+                        logicalTextGroup.X,
+                        logicalTextGroup.Y - start,
+                        logicalTextGroup.Width,
+                        Math.Max(0.01D, intersectionBottom - intersectionTop),
+                        children,
+                        fragment.Count,
+                        logicalTextGroup.Source,
+                        logicalTextGroup.LayoutY - start));
+                }
+                continue;
+            }
+
             if (visual is HtmlRenderEffectGroup effectGroup) {
                 IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, start, end);
                 if (children.Count > 0) {
