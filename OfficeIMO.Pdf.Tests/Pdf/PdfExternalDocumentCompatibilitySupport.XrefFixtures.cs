@@ -137,7 +137,7 @@ public partial class PdfExternalDocumentCompatibilityTests {
         return stream.ToArray();
     }
 
-    private static byte[] BuildIncrementalClassicXrefPdfWithWrongGenerationReplacementPage() {
+    internal static byte[] BuildIncrementalClassicXrefPdfWithWrongGenerationReplacementPage() {
         using var stream = new MemoryStream();
         var offsets = new Dictionary<int, int>();
 
@@ -444,7 +444,7 @@ public partial class PdfExternalDocumentCompatibilityTests {
         return stream.ToArray();
     }
 
-    private static byte[] BuildHybridClassicXrefPdfWithXRefStmAndTrailingStaleDuplicatePage() {
+    internal static byte[] BuildHybridClassicXrefPdfWithXRefStmAndTrailingStaleDuplicatePage() {
         using var stream = new MemoryStream();
         var offsets = new Dictionary<int, int>();
 
