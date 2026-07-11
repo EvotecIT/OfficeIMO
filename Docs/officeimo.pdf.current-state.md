@@ -245,7 +245,7 @@ second parser or renderer.
   and PAGE XML without duplicating extraction algorithms in each exporter.
 - [ ] Add a debug overlay that renders word/line/region boxes and reading order
   through the shared Drawing/PDF annotation primitives.
-- [ ] Keep OCR as a provider interface and merge contract. Do not ship an OCR
+- [x] Keep OCR as a provider interface and merge contract. Do not ship an OCR
   engine or model in the dependency-light PDF core.
 
 Exit criterion: callers can choose a fast or advanced layout strategy, inspect
