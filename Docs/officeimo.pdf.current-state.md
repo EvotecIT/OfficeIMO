@@ -166,7 +166,7 @@ permissions, and later revisions.
   update rectangles/quads/vertices/ink paths/line endings/popups/replies,
   regenerate appearances, remove actions, flatten selected annotations, and use
   append-only changes when the mutation planner permits them.
-- [ ] Expand metadata editing to Info and XMP with synchronized common fields,
+- [x] Expand metadata editing to Info and XMP with synchronized common fields,
   custom-schema preservation, explicit clear/preserve semantics, and both full
   rewrite and append-only variants.
 - [ ] Add an existing-document AcroForm editor for field creation, rename,
@@ -197,7 +197,7 @@ report instead of silently discarding document structures.
   attachments according to an explicit redaction policy.
 - [ ] Add search-driven redaction for literal text, regular expressions, logical
   fields, and caller-provided geometry, with reviewable plans before apply.
-- [ ] Keep visual-only overlays as a separately named non-redaction operation.
+- [x] Keep visual-only overlays as a separately named non-redaction operation.
 - [ ] Validate output through extraction, raw/decoded-stream residue checks,
   page rendering, and at least one independent development-time parser.
 
@@ -217,10 +217,10 @@ visual-only operation is allowed to claim secure redaction.
   thumbnails, cancellation, render limits, and per-page reports.
 - [ ] Add text-selection and hit-testing primitives over glyph geometry,
   annotation/link/form hit regions, page transforms, and selection quads.
-- [ ] Keep WPF, WinUI, MAUI, Avalonia, Blazor, and other viewer controls outside
+- [x] Keep WPF, WinUI, MAUI, Avalonia, Blazor, and other viewer controls outside
   the core. They should be thin packages over shared rendering, selection,
   navigation, and caching contracts if real consumers require them.
-- [ ] Keep platform printing outside the core as well. A thin print adapter must
+- [x] Keep platform printing outside the core as well. A thin print adapter must
   honor document permissions and reuse the same page geometry and render plan;
   it must not introduce another parser or silently rasterize at low quality.
 - [x] Add visual comparison helpers for page alignment, pixel/structural diffs,

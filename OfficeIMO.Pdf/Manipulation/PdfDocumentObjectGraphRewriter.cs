@@ -5,14 +5,18 @@ internal static class PdfDocumentObjectGraphRewriter {
     internal static byte[] Rewrite(
         byte[] sourcePdf,
         PdfReadOptions? sourceReadOptions,
-        PdfStandardEncryptionOptions? outputEncryption) {
+        PdfStandardEncryptionOptions? outputEncryption,
+        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(sourcePdf, sourceReadOptions);
         var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
         Dictionary<int, PdfIndirectObject> objects = parsed.Map;
         int rootObjectNumber = RequireRootObjectNumber(security, objects);
-        int? infoObjectNumber = FindInfoObjectNumber(security, objects);
+        int? infoObjectNumber = mutateObjectGraph is null
+            ? FindInfoObjectNumber(security, objects)
+            : mutateObjectGraph(objects, security);
+        rootObjectNumber = RequireRootObjectNumber(security, objects);
 
         var collector = new PdfPageExtractor.ObjectCollector(objects);
         PdfIndirectObject root = objects[rootObjectNumber];

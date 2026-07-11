@@ -48,5 +48,8 @@ public enum PdfMutationOperation {
     Redact,
 
     /// <summary>Append DSS/VRI evidence for cryptographically verified signatures.</summary>
-    EnrichLongTermValidation
+    EnrichLongTermValidation,
+
+    /// <summary>Synchronize document information metadata with catalog XMP metadata.</summary>
+    SynchronizeMetadata
 }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides first-party PDF metadata editing helpers for PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static class PdfMetadataEditor {
+public static partial class PdfMetadataEditor {
     /// <summary>
     /// Creates a new PDF with updated document metadata. Null values preserve existing fields; empty strings clear fields.
     /// </summary>

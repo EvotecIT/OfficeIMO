@@ -34,6 +34,19 @@ internal static class PdfXmpMetadataSynchronizer {
         return Serialize(document);
     }
 
+    internal static PdfDictionary CloneUnfilteredMetadataDictionary(PdfDictionary source) {
+        var clone = new PdfDictionary();
+        foreach (KeyValuePair<string, PdfObject> item in source.Items) {
+            if (item.Key != "Length" && item.Key != "Filter" && item.Key != "DecodeParms") {
+                clone.Items[item.Key] = item.Value;
+            }
+        }
+
+        clone.Items["Type"] = new PdfName("Metadata");
+        clone.Items["Subtype"] = new PdfName("XML");
+        return clone;
+    }
+
     private static XDocument Parse(string rawXml) {
         try {
             var settings = new XmlReaderSettings {

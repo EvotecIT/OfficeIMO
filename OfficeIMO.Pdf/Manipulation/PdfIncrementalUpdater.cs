@@ -167,7 +167,7 @@ public static partial class PdfIncrementalUpdater {
             }
 
             xml = PdfXmpMetadataSynchronizer.Synchronize(existingXmp.RawXml, updated);
-            streamDictionary = CloneUnfilteredMetadataDictionary(metadataStream.Dictionary);
+            streamDictionary = PdfXmpMetadataSynchronizer.CloneUnfilteredMetadataDictionary(metadataStream.Dictionary);
             metadataObjectNumber = metadataObject.ObjectNumber;
             metadataGeneration = metadataObject.Generation;
         } else {
@@ -186,19 +186,6 @@ public static partial class PdfIncrementalUpdater {
             metadataGeneration,
             new PdfStream(streamDictionary, xml));
         changedObjectNumbers.Add(metadataObjectNumber);
-    }
-
-    private static PdfDictionary CloneUnfilteredMetadataDictionary(PdfDictionary source) {
-        var clone = new PdfDictionary();
-        foreach (KeyValuePair<string, PdfObject> item in source.Items) {
-            if (item.Key != "Length" && item.Key != "Filter" && item.Key != "DecodeParms") {
-                clone.Items[item.Key] = item.Value;
-            }
-        }
-
-        clone.Items["Type"] = new PdfName("Metadata");
-        clone.Items["Subtype"] = new PdfName("XML");
-        return clone;
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {

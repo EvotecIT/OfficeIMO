@@ -313,6 +313,37 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
+    /// Creates a normalized full-rewrite PDF whose Info dictionary and XMP packet share the supplied common fields.
+    /// Null values preserve existing values and empty strings clear them.
+    /// </summary>
+    public PdfDocument SynchronizeMetadata(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        bool createXmpMetadata = true) {
+        return FromBytes(PdfMetadataEditor.SynchronizeMetadata(
+            Snapshot(), title, author, subject, keywords, createXmpMetadata));
+    }
+
+    /// <summary>Attempts a full-rewrite Info/XMP synchronization and returns planner diagnostics when blocked.</summary>
+    public PdfOperationResult<PdfDocument> TrySynchronizeMetadata(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        bool createXmpMetadata = true,
+        PdfReadOptions? options = null) {
+        return TryMutationOperation(
+            "Synchronize Info and XMP metadata",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.SynchronizeMetadata,
+            _ => SynchronizeMetadata(title, author, subject, keywords, createXmpMetadata),
+            options: options,
+            executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
+    }
+
+    /// <summary>
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryUpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {

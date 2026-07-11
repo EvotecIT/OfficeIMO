@@ -149,6 +149,8 @@ public static class PdfMutationPlanner {
 
     private static bool CanFullRewrite(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
         switch (operation) {
+            case PdfMutationOperation.SynchronizeMetadata:
+                return CanSynchronizeMetadata(preflight);
             case PdfMutationOperation.FillFormFields:
                 return preflight.CanFillSimpleFormFields;
             case PdfMutationOperation.FlattenFormFields:
@@ -224,6 +226,8 @@ public static class PdfMutationPlanner {
         switch (operation) {
             case PdfMutationOperation.UpdateMetadata:
                 return ReadOnly(PdfMutationStructure.InfoDictionary);
+            case PdfMutationOperation.SynchronizeMetadata:
+                return ReadOnly(PdfMutationStructure.InfoDictionary, PdfMutationStructure.XmpMetadata);
             case PdfMutationOperation.FillFormFields:
                 return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations);
             case PdfMutationOperation.FlattenFormFields:
@@ -328,6 +332,7 @@ public static class PdfMutationPlanner {
 
         switch (operation) {
             case PdfMutationOperation.UpdateMetadata:
+            case PdfMutationOperation.SynchronizeMetadata:
                 Add(proofs, PdfMutationProof.MetadataReadback);
                 break;
             case PdfMutationOperation.FillFormFields:
@@ -408,7 +413,9 @@ public static class PdfMutationPlanner {
             }
         } else {
             for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
-                Add(blockers, "FullRewrite." + preflight.RewriteBlockers[i].Kind);
+                if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, operation)) {
+                    Add(blockers, "FullRewrite." + preflight.RewriteBlockers[i].Kind);
+                }
             }
 
             if (security.HasXrefStreams) {
@@ -581,6 +588,24 @@ public static class PdfMutationPlanner {
         return !security.HasEncryption || security.HasOwnerAuthorization;
     }
 
+    private static bool CanSynchronizeMetadata(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) {
+            return false;
+        }
+
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.SynchronizeMetadata)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
+        return operation != PdfMutationOperation.SynchronizeMetadata || blocker != PdfRewriteBlockerKind.XmpMetadata;
+    }
+
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfMutationCapabilityRecord> BuildCapabilityRecords(
         PdfMutationOperation operation,
         IReadOnlyList<PdfMutationStructure> structures,
@@ -668,7 +693,7 @@ public static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.EnrichLongTermValidation) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.SynchronizeMetadata) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }
