@@ -4,6 +4,20 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public async Task SaveAsync_PathlessStreamBackedDocumentCopiesEditsToOriginalStream() {
+            using var source = new MemoryStream();
+            using var document = WordDocument.Create(source);
+            document.AddParagraph("Explicit async save");
+
+            await document.SaveAsync();
+
+            Assert.True(source.CanRead);
+            source.Position = 0;
+            using WordDocument reopened = WordDocument.Load(source, readOnly: true);
+            Assert.Equal("Explicit async save", Assert.Single(reopened.Paragraphs).Text);
+        }
+
+        [Fact]
         public async Task LoadAsync_StreamAutoSaveCopiesEditsBackOnAsyncDispose() {
             using var source = new MemoryStream();
             using (WordDocument created = WordDocument.Create(source)) {

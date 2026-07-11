@@ -371,6 +371,12 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
+
+            if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
+                await SaveAsync(OriginalStream, WordFileFormat.Docx, options, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
             PreSaving();
 
