@@ -112,6 +112,75 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderResolvesInheritedLinearPaintServersWithoutRasterFallback() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='80%' stop-color='blue'/></linearGradient>"
+            + "<linearGradient id='fill' href='#base' x1='0' y1='0.5' x2='1' y2='0.5'/></defs>"
+            + "<rect width='40' height='20' fill='url(#fill)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        OfficeLinearGradient gradient = Assert.IsType<OfficeLinearGradient>(shape.FillGradient);
+        Assert.Null(shape.FillColor);
+        Assert.Equal(4, gradient.Stops.Count);
+        Assert.Equal(0D, gradient.Stops[0].Offset);
+        Assert.Equal(1D, gradient.Stops[3].Offset);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        OfficeColor left = raster.GetPixel(2, 10);
+        OfficeColor right = raster.GetPixel(37, 10);
+        Assert.True(left.R > left.B);
+        Assert.True(right.B > right.R);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<linearGradient", exported, StringComparison.Ordinal);
+        Assert.Contains("fill=\"url(#", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderResolvesRadialFillAndLinearStrokePaintServers() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><radialGradient id='spot' cx='50%' cy='50%' r='50%' fx='25%' fy='50%'>"
+            + "<stop offset='0' style='stop-color:white;stop-opacity:0.5'/><stop offset='1' stop-color='navy'/></radialGradient>"
+            + "<linearGradient id='edge'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>"
+            + "<rect x='1' y='1' width='38' height='18' fill='url(#spot)' stroke='url(#edge)' stroke-width='2'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        OfficeRadialGradient radial = Assert.IsType<OfficeRadialGradient>(shape.FillRadialGradient);
+        Assert.IsType<OfficeLinearGradient>(shape.StrokeGradient);
+        Assert.InRange(radial.Stops[0].Color.A, (byte)127, (byte)128);
+        Assert.Equal(0.25D, radial.StartX);
+        Assert.Equal(0.5D, radial.EndRadius);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<radialGradient", exported, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"url(#", exported, StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
+            + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"
+            + "<linearGradient id='duplicate'><stop stop-color='red'/></linearGradient><linearGradient id='duplicate'><stop stop-color='blue'/></linearGradient></defs>"
+            + "<rect width='10' height='10' fill='url(#a)'/><rect x='10' width='10' height='10' fill='url(https://example.test/g)'/>"
+            + "<rect x='20' width='10' height='10' fill='url(#duplicate)'/><rect x='30' width='10' height='10' fill='lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(3, unsupported);
+        Assert.Equal(4, drawing!.Shapes.Count);
+        Assert.Null(drawing.Shapes[0].Shape.FillColor);
+        Assert.Null(drawing.Shapes[1].Shape.FillColor);
+        Assert.Null(drawing.Shapes[2].Shape.FillColor);
+        Assert.Equal(OfficeColor.Lime, drawing.Shapes[3].Shape.FillColor);
+        Assert.Equal(OfficeColor.Lime, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(35, 5));
+    }
+
+    [Fact]
     public void SvgReaderRejectsDocumentsWithDoctypeOrExternalEntities() {
         const string svg = "<!DOCTYPE svg [<!ENTITY xxe SYSTEM 'file:///secret.txt'>]><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>&xxe;</text></svg>";
 

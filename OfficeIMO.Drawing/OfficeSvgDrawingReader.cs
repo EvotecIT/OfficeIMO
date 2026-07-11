@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Reads a bounded subset of SVG into the shared dependency-free drawing scene.
 /// </summary>
-public static class OfficeSvgDrawingReader {
+public static partial class OfficeSvgDrawingReader {
     private const int MaximumInputBytes = 8 * 1024 * 1024;
     private const int MaximumElements = 10000;
 
@@ -42,13 +42,15 @@ public static class OfficeSvgDrawingReader {
 
             XElement? root = document.Root;
             if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
+            if (root.Descendants().Take(MaximumElements + 1).Count() > MaximumElements) return false;
             if (!TryResolveViewport(bytes, root, out double viewX, out double viewY, out double width, out double height)) return false;
 
             var result = new OfficeDrawing(width, height);
             int visited = 0;
-            var context = ResolvePaintContext(root, SvgPaintContext.Default, ref unsupportedFeatureCount);
+            SvgPaintServerRegistry paintServers = SvgPaintServerRegistry.Create(root);
+            var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
-            AddChildren(root, result, context, rootTransform, viewX, viewY, ref visited, ref unsupportedFeatureCount);
+            AddChildren(root, result, context, paintServers, rootTransform, viewX, viewY, ref visited, ref unsupportedFeatureCount);
             if (visited > MaximumElements) return false;
             drawing = result;
             return true;
@@ -85,6 +87,7 @@ public static class OfficeSvgDrawingReader {
         XElement parent,
         OfficeDrawing drawing,
         SvgPaintContext inherited,
+        SvgPaintServerRegistry paintServers,
         OfficeTransform inheritedTransform,
         double viewX,
         double viewY,
@@ -95,16 +98,13 @@ public static class OfficeSvgDrawingReader {
             if (visited > MaximumElements) return;
             string name = element.Name.LocalName.ToLowerInvariant();
             if (name is "title" or "desc" or "metadata") continue;
-            if (name == "defs") {
-                if (element.Elements().Any()) unsupported++;
-                continue;
-            }
+            if (name == "defs") continue;
 
-            SvgPaintContext style = ResolvePaintContext(element, inherited, ref unsupported);
+            SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
             if (!style.Visible) continue;
             OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
             if (name is "g" or "svg" or "a" or "switch") {
-                AddChildren(element, drawing, style, transform, viewX, viewY, ref visited, ref unsupported);
+                AddChildren(element, drawing, style, paintServers, transform, viewX, viewY, ref visited, ref unsupported);
                 continue;
             }
             if (name == "text") {
@@ -151,7 +151,12 @@ public static class OfficeSvgDrawingReader {
         string raw = string.Concat(element.Nodes().OfType<XText>().Select(node => node.Value));
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
         string text = preserve ? raw : string.Join(" ", raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        if (text.Length == 0 || !style.Fill.HasValue) return;
+        if (text.Length == 0) return;
+        if (style.FillGradient != null || style.FillRadialGradient != null) {
+            unsupported++;
+            return;
+        }
+        if (!style.Fill.HasValue) return;
 
         double x = ReadFirstLength(element, "x") + ReadFirstLength(element, "dx") - viewX;
         double baseline = ReadFirstLength(element, "y") + ReadFirstLength(element, "dy") - viewY;
@@ -252,6 +257,8 @@ public static class OfficeSvgDrawingReader {
         OfficeShape shape = OfficeShape.Line(x1, y1, x2, y2);
         shape.FillColor = null;
         shape.StrokeColor = style.Stroke ?? style.Fill ?? OfficeColor.Black;
+        shape.StrokeGradient = style.StrokeGradient;
+        shape.StrokeRadialGradient = style.StrokeRadialGradient;
         shape.StrokeWidth = style.StrokeWidth;
         shape.StrokeOpacity = style.StrokeOpacity * style.Opacity;
         shape.StrokeDashStyle = style.DashStyle;
@@ -346,47 +353,53 @@ public static class OfficeSvgDrawingReader {
         maxY = Math.Max(maxY, point.Y);
     }
 
-    private static SvgPaintContext ResolvePaintContext(XElement element, SvgPaintContext inherited, ref int unsupported) {
+    private static SvgPaintContext ResolvePaintContext(XElement element, SvgPaintContext inherited, SvgPaintServerRegistry paintServers, ref int unsupported) {
         SvgPaintContext result = inherited;
-        ApplyProperty("fill", element.Attribute("fill")?.Value, ref result, ref unsupported);
-        ApplyProperty("stroke", element.Attribute("stroke")?.Value, ref result, ref unsupported);
-        ApplyProperty("stroke-width", element.Attribute("stroke-width")?.Value, ref result, ref unsupported);
-        ApplyProperty("opacity", element.Attribute("opacity")?.Value, ref result, ref unsupported);
-        ApplyProperty("fill-opacity", element.Attribute("fill-opacity")?.Value, ref result, ref unsupported);
-        ApplyProperty("stroke-opacity", element.Attribute("stroke-opacity")?.Value, ref result, ref unsupported);
-        ApplyProperty("stroke-dasharray", element.Attribute("stroke-dasharray")?.Value, ref result, ref unsupported);
-        ApplyProperty("stroke-linecap", element.Attribute("stroke-linecap")?.Value, ref result, ref unsupported);
-        ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, ref result, ref unsupported);
-        ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, ref result, ref unsupported);
-        ApplyProperty("font-family", element.Attribute("font-family")?.Value, ref result, ref unsupported);
-        ApplyProperty("font-size", element.Attribute("font-size")?.Value, ref result, ref unsupported);
-        ApplyProperty("font-style", element.Attribute("font-style")?.Value, ref result, ref unsupported);
-        ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, ref result, ref unsupported);
-        ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, ref result, ref unsupported);
-        ApplyProperty("display", element.Attribute("display")?.Value, ref result, ref unsupported);
-        ApplyProperty("visibility", element.Attribute("visibility")?.Value, ref result, ref unsupported);
+        ApplyProperty("fill", element.Attribute("fill")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke", element.Attribute("stroke")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-width", element.Attribute("stroke-width")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("opacity", element.Attribute("opacity")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("fill-opacity", element.Attribute("fill-opacity")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-opacity", element.Attribute("stroke-opacity")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-dasharray", element.Attribute("stroke-dasharray")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-linecap", element.Attribute("stroke-linecap")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("stroke-linejoin", element.Attribute("stroke-linejoin")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("fill-rule", element.Attribute("fill-rule")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-family", element.Attribute("font-family")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
         string? declarations = element.Attribute("style")?.Value;
         if (!string.IsNullOrWhiteSpace(declarations)) {
             foreach (string declaration in declarations!.Split(';')) {
                 int colon = declaration.IndexOf(':');
                 if (colon <= 0) continue;
-                ApplyProperty(declaration.Substring(0, colon).Trim(), declaration.Substring(colon + 1).Trim(), ref result, ref unsupported);
+                ApplyProperty(declaration.Substring(0, colon).Trim(), declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
             }
         }
         return result;
     }
 
-    private static void ApplyProperty(string name, string? value, ref SvgPaintContext style, ref int unsupported) {
+    private static void ApplyProperty(string name, string? value, SvgPaintServerRegistry paintServers, ref SvgPaintContext style, ref int unsupported) {
         if (string.IsNullOrWhiteSpace(value)) return;
         string normalized = value!.Trim();
         switch (name.Trim().ToLowerInvariant()) {
             case "fill":
-                if (!TryPaint(normalized, out OfficeColor? fill)) unsupported++;
-                else style.Fill = fill;
+                if (!TryPaint(normalized, paintServers, out SvgResolvedPaint fill)) {
+                    unsupported++;
+                    if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetFill(default);
+                }
+                else style.SetFill(fill);
                 break;
             case "stroke":
-                if (!TryPaint(normalized, out OfficeColor? stroke)) unsupported++;
-                else style.Stroke = stroke;
+                if (!TryPaint(normalized, paintServers, out SvgResolvedPaint stroke)) {
+                    unsupported++;
+                    if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetStroke(default);
+                }
+                else style.SetStroke(stroke);
                 break;
             case "stroke-width":
                 if (!TrySvgLength(normalized, out double strokeWidth) || strokeWidth < 0D) unsupported++;
@@ -472,18 +485,13 @@ public static class OfficeSvgDrawingReader {
         }
     }
 
-    private static bool TryPaint(string value, out OfficeColor? color) {
-        color = null;
-        if (value.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
-        if (value.Equals("currentcolor", StringComparison.OrdinalIgnoreCase) || value.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return false;
-        if (!OfficeColor.TryParse(value, out OfficeColor parsed)) return false;
-        color = parsed;
-        return true;
-    }
-
     private static void ApplyPaint(OfficeShape shape, SvgPaintContext style) {
         shape.FillColor = style.Fill;
+        shape.FillGradient = style.FillGradient;
+        shape.FillRadialGradient = style.FillRadialGradient;
         shape.StrokeColor = style.Stroke;
+        shape.StrokeGradient = style.StrokeGradient;
+        shape.StrokeRadialGradient = style.StrokeRadialGradient;
         shape.StrokeWidth = style.StrokeWidth;
         shape.FillOpacity = style.FillOpacity * style.Opacity;
         shape.StrokeOpacity = style.StrokeOpacity * style.Opacity;
@@ -536,7 +544,11 @@ public static class OfficeSvgDrawingReader {
 
     private struct SvgPaintContext {
         internal OfficeColor? Fill;
+        internal OfficeLinearGradient? FillGradient;
+        internal OfficeRadialGradient? FillRadialGradient;
         internal OfficeColor? Stroke;
+        internal OfficeLinearGradient? StrokeGradient;
+        internal OfficeRadialGradient? StrokeRadialGradient;
         internal double StrokeWidth;
         internal double Opacity;
         internal double FillOpacity;
@@ -550,6 +562,18 @@ public static class OfficeSvgDrawingReader {
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
         internal bool Visible;
+
+        internal void SetFill(SvgResolvedPaint paint) {
+            Fill = paint.Color;
+            FillGradient = paint.LinearGradient;
+            FillRadialGradient = paint.RadialGradient;
+        }
+
+        internal void SetStroke(SvgResolvedPaint paint) {
+            Stroke = paint.Color;
+            StrokeGradient = paint.LinearGradient;
+            StrokeRadialGradient = paint.RadialGradient;
+        }
 
         internal static SvgPaintContext Default => new SvgPaintContext {
             Fill = OfficeColor.Black,

@@ -77,6 +77,51 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_SvgPaintServersStayNativeAcrossPngSvgAndSearchablePdf() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
+            + "<linearGradient id='linear'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<radialGradient id='radial'><stop offset='0' stop-color='white'/><stop offset='1' stop-color='navy'/></radialGradient>"
+            + "</defs><rect width='20' height='20' fill='url(#linear)'/><rect x='20' width='20' height='20' fill='url(#radial)'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<body style='margin:0'><img id='paint-server' src='data:image/svg+xml;base64," + data
+            + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdfX</div></body>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 90D,
+            ViewportHeight = 55D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), item => item.Source == "img#paint-server");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string exportedSvg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(90D / HtmlRenderOptions.CssPixelsPerInch, 55D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[0].Shape.FillGradient);
+        Assert.IsType<OfficeRadialGradient>(visual.Drawing.Shapes[1].Shape.FillRadialGradient);
+        Assert.True(raster.GetPixel(3, 20).R > raster.GetPixel(3, 20).B);
+        Assert.True(raster.GetPixel(37, 20).B > raster.GetPixel(37, 20).R);
+        Assert.Contains("<linearGradient", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("<radialGradient", exportedSvg, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("SvgPdfX", pdfText, StringComparison.Ordinal);
+        Assert.Contains("/Shading", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
     public void HtmlImages_SvgUnsupportedFeaturesAreDiagnosedWhilePrimitivesRemain() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' fill='lime'/><text x='1' y='10'>Pending</text></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
