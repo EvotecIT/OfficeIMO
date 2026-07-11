@@ -230,6 +230,38 @@ public sealed class ReaderEpubModularTests {
     }
 
     [Fact]
+    public void DocumentReaderEpub_PreservesLiteralChapterTitleAndAllowsVirtualChapterSources() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath, "Q1 &gt; Q2\\Back");
+            var chunks = DocumentReaderEpubExtensions.ReadEpub(
+                epubPath,
+                readerOptions: new ReaderOptions { MaxChars = 4_000 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+
+            ReaderChunk chapter = Assert.Single(
+                chunks,
+                chunk => chunk.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+            Assert.Equal("Q1 > Q2\\Back", chapter.Location.HeadingPath);
+            Assert.NotEqual(chunks[0].SourceId, chunks[1].SourceId);
+
+            var document = new OfficeDocumentReadResult {
+                Kind = ReaderInputKind.Epub,
+                Source = new OfficeDocumentSource { SourceId = "book", Path = epubPath },
+                Chunks = chunks
+            };
+            ReaderChunkHierarchyResult hierarchy = ReaderHierarchicalChunker.Chunk(document);
+            Assert.Equal(chunks.Count, hierarchy.Chunks.Count);
+            Assert.Contains(
+                hierarchy.Nodes,
+                node => node.Kind == ReaderChunkHierarchyNodeKind.Heading &&
+                        string.Equals(node.Title, "Q1 > Q2\\Back", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderEpub_DirectStreamRead_EmitsLogicalSourceMetadata() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
@@ -307,7 +339,7 @@ public sealed class ReaderEpubModularTests {
         }
     }
 
-    private static void BuildEpubWithSpine(string epubPath) {
+    private static void BuildEpubWithSpine(string epubPath, string secondTitleXml = "Second") {
         using var fs = new FileStream(epubPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);
 
@@ -336,14 +368,14 @@ public sealed class ReaderEpubModularTests {
         WriteTextEntry(archive, "OEBPS/nav.xhtml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><nav epub:type=\"toc\" xmlns:epub=\"http://www.idpf.org/2007/ops\"><ol>" +
-            "<li><a href=\"chapter2.xhtml\">Second</a></li>" +
+            "<li><a href=\"chapter2.xhtml\">" + secondTitleXml + "</a></li>" +
             "<li><a href=\"chapter1.xhtml\">First</a></li>" +
             "</ol></nav></body></html>");
 
         WriteTextEntry(archive, "OEBPS/toc.ncx",
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\"><navMap>" +
-            "<navPoint id=\"n1\"><navLabel><text>Second</text></navLabel><content src=\"chapter2.xhtml\"/></navPoint>" +
+            "<navPoint id=\"n1\"><navLabel><text>" + secondTitleXml + "</text></navLabel><content src=\"chapter2.xhtml\"/></navPoint>" +
             "<navPoint id=\"n2\"><navLabel><text>First</text></navLabel><content src=\"chapter1.xhtml\"/></navPoint>" +
             "</navMap></ncx>");
 

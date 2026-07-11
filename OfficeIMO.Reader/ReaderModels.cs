@@ -396,6 +396,9 @@ public sealed class ReaderLocation {
     /// </summary>
     internal string? HierarchyHeadingPath { get; set; }
 
+    /// <summary>Display-path snapshot associated with <see cref="HierarchyHeadingPath"/>.</summary>
+    internal string? HierarchyHeadingDisplayPath { get; set; }
+
     /// <summary>
     /// Optional unique slug/anchor for the active heading section.
     /// </summary>

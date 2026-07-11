@@ -107,15 +107,17 @@ public static class DocumentReaderHtmlExtensions {
                 ? sourceTables
                 : Array.Empty<ReaderTable>();
 
+            var location = new ReaderLocation {
+                Path = logicalSourceName,
+                BlockIndex = chunkIndex,
+                StartLine = part.StartLine,
+                HeadingPath = part.HeadingPath
+            };
+            ReaderHeadingPath.SetHierarchyPath(location, part.HierarchyHeadingPath);
             yield return EnrichChunk(new ReaderChunk {
                 Id = string.Concat("html-", chunkIndex.ToString("D4", CultureInfo.InvariantCulture)),
                 Kind = ReaderInputKind.Html,
-                Location = new ReaderLocation {
-                    Path = logicalSourceName,
-                    BlockIndex = chunkIndex,
-                    StartLine = part.StartLine,
-                    HeadingPath = part.HeadingPath
-                },
+                Location = location,
                 Text = part.Text,
                 Markdown = part.Text,
                 Tables = tables.Count > 0 ? tables : null,
@@ -140,6 +142,7 @@ public static class DocumentReaderHtmlExtensions {
         var currentWarnings = new List<string>(2);
         int currentStartLine = 1;
         string? currentHeadingPath = null;
+        string? currentHierarchyHeadingPath = null;
 
         void FlushCurrent() {
             if (currentText.Length == 0) return;
@@ -150,6 +153,7 @@ public static class DocumentReaderHtmlExtensions {
                     text,
                     currentStartLine,
                     currentHeadingPath,
+                    currentHierarchyHeadingPath,
                     currentWarnings.Count == 0 ? null : currentWarnings.ToArray()));
             }
 
@@ -181,6 +185,7 @@ public static class DocumentReaderHtmlExtensions {
             if (currentText.Length == 0) {
                 currentStartLine = lineNo;
                 currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
+                currentHierarchyHeadingPath = chunkByHeadings ? BuildHierarchyHeadingPath(headingStack) : null;
             }
 
             if (line.Length > maxChars) {
@@ -194,6 +199,7 @@ public static class DocumentReaderHtmlExtensions {
                     if (currentText.Length == 0) {
                         currentStartLine = lineNo;
                         currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
+                        currentHierarchyHeadingPath = chunkByHeadings ? BuildHierarchyHeadingPath(headingStack) : null;
                     }
 
                     int take = Math.Min(maxChars, line.Length - segmentIndex);
@@ -214,6 +220,7 @@ public static class DocumentReaderHtmlExtensions {
                 FlushCurrent();
                 currentStartLine = lineNo;
                 currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
+                currentHierarchyHeadingPath = chunkByHeadings ? BuildHierarchyHeadingPath(headingStack) : null;
             }
 
             AppendLine(currentText, line);
@@ -264,6 +271,7 @@ public static class DocumentReaderHtmlExtensions {
 
         level = i;
         text = line.Substring(i).Trim();
+        text = text.Replace("\\\\", "\\");
         if (text.Length == 0) text = "Heading " + level.ToString(CultureInfo.InvariantCulture);
         return true;
     }
@@ -279,6 +287,14 @@ public static class DocumentReaderHtmlExtensions {
     }
 
     private static string? BuildHeadingPath(List<(int Level, string Text)> stack) {
+        string[] values = stack
+            .Select(static heading => heading.Text.Trim())
+            .Where(static heading => heading.Length > 0)
+            .ToArray();
+        return values.Length == 0 ? null : string.Join(" > ", values);
+    }
+
+    private static string? BuildHierarchyHeadingPath(List<(int Level, string Text)> stack) {
         return ReaderHeadingPath.Combine(stack.Select(static heading => heading.Text));
     }
 
@@ -501,16 +517,18 @@ public static class DocumentReaderHtmlExtensions {
     }
 
     private sealed class MarkdownPart {
-        public MarkdownPart(string text, int startLine, string? headingPath, IReadOnlyList<string>? warnings) {
+        public MarkdownPart(string text, int startLine, string? headingPath, string? hierarchyHeadingPath, IReadOnlyList<string>? warnings) {
             Text = text;
             StartLine = startLine;
             HeadingPath = headingPath;
+            HierarchyHeadingPath = hierarchyHeadingPath;
             Warnings = warnings;
         }
 
         public string Text { get; }
         public int StartLine { get; }
         public string? HeadingPath { get; }
+        public string? HierarchyHeadingPath { get; }
         public IReadOnlyList<string>? Warnings { get; }
     }
 

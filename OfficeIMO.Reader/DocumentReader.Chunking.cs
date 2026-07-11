@@ -317,6 +317,7 @@ public static partial class DocumentReader {
                 EndLine = sourceEndLine,
                 HeadingPath = headingPath,
                 HierarchyHeadingPath = hierarchyHeadingPath,
+                HierarchyHeadingDisplayPath = headingPath,
                 HeadingSlug = headingSlug,
                 SourceBlockKind = sourceBlockKind,
                 BlockAnchor = blockAnchor,

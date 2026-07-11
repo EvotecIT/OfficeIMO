@@ -22,7 +22,8 @@ public static partial class ReaderHierarchicalChunker {
             GetSourceChunks(document),
             document.Source ?? new OfficeDocumentSource(),
             Normalize(options),
-            cancellationToken);
+            cancellationToken,
+            enforceSingleSourceIdentity: false);
     }
 
     /// <summary>Chunks an existing source-ordered collection.</summary>
@@ -31,15 +32,21 @@ public static partial class ReaderHierarchicalChunker {
         ReaderHierarchicalChunkingOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (chunks == null) throw new ArgumentNullException(nameof(chunks));
-        return ChunkCore(chunks, new OfficeDocumentSource(), Normalize(options), cancellationToken);
+        return ChunkCore(
+            chunks,
+            new OfficeDocumentSource(),
+            Normalize(options),
+            cancellationToken,
+            enforceSingleSourceIdentity: true);
     }
 
     private static ReaderChunkHierarchyResult ChunkCore(
         IEnumerable<ReaderChunk> source,
         OfficeDocumentSource sourceInfo,
         ReaderHierarchicalChunkingOptions options,
-        CancellationToken cancellationToken) {
-        var state = new ChunkingState(options, cancellationToken);
+        CancellationToken cancellationToken,
+        bool enforceSingleSourceIdentity) {
+        var state = new ChunkingState(options, cancellationToken, enforceSingleSourceIdentity);
         int inputIndex = 0;
         using IEnumerator<ReaderChunk> enumerator = source.GetEnumerator();
         while (!state.OutputLimitReached) {
@@ -353,15 +360,20 @@ public static partial class ReaderHierarchicalChunker {
     private sealed class ChunkingState {
         private readonly HashSet<string> _diagnosticCodes = new HashSet<string>(StringComparer.Ordinal);
 
-        internal ChunkingState(ReaderHierarchicalChunkingOptions options, CancellationToken cancellationToken) {
+        internal ChunkingState(
+            ReaderHierarchicalChunkingOptions options,
+            CancellationToken cancellationToken,
+            bool enforceSingleSourceIdentity) {
             Options = options;
             CancellationToken = cancellationToken;
             TokenCounterId = options.TokenCounter.Id;
+            EnforceSingleSourceIdentity = enforceSingleSourceIdentity;
         }
 
         internal ReaderHierarchicalChunkingOptions Options { get; }
         internal CancellationToken CancellationToken { get; }
         internal string TokenCounterId { get; }
+        internal bool EnforceSingleSourceIdentity { get; }
         internal List<ReaderChunk> Chunks { get; } = new List<ReaderChunk>();
         internal List<ReaderChunkSegment> Segments { get; } = new List<ReaderChunkSegment>();
         internal List<OfficeDocumentDiagnostic> Diagnostics { get; } = new List<OfficeDocumentDiagnostic>();
@@ -377,7 +389,8 @@ public static partial class ReaderHierarchicalChunker {
         internal void AddSourceChunk(ReaderChunk source, int inputIndex) {
             string? sourceIdentity = GetSourceIdentity(source);
             if (SourceIdentity == null) SourceIdentity = sourceIdentity;
-            else if (sourceIdentity != null && !string.Equals(SourceIdentity, sourceIdentity, StringComparison.Ordinal)) {
+            else if (EnforceSingleSourceIdentity && sourceIdentity != null &&
+                     !string.Equals(SourceIdentity, sourceIdentity, StringComparison.Ordinal)) {
                 throw new InvalidOperationException("One chunk hierarchy cannot contain chunks from multiple source documents.");
             }
             int firstOutputIndex = Chunks.Count;

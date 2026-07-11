@@ -79,15 +79,19 @@ public static class DocumentReaderEpubExtensions {
                 var chunkId = BuildId(fileName, chapter.Order, chunkPart);
                 var wasSplit = chapter.Text.Length > maxChars;
 
+                var location = new ReaderLocation {
+                    Path = BuildVirtualPath(sourcePath, chapter.Path),
+                    BlockIndex = blockIndex,
+                    SourceBlockIndex = chapter.Order > 0 ? chapter.Order - 1 : null,
+                    HeadingPath = string.IsNullOrWhiteSpace(chapter.Title) ? null : chapter.Title.Trim()
+                };
+                ReaderHeadingPath.SetHierarchyPath(
+                    location,
+                    ReaderHeadingPath.Combine(new[] { chapter.Title }));
                 var chunk = EnrichChunk(new ReaderChunk {
                     Id = chunkId,
                     Kind = ReaderInputKind.Epub,
-                    Location = new ReaderLocation {
-                        Path = BuildVirtualPath(sourcePath, chapter.Path),
-                        BlockIndex = blockIndex,
-                        SourceBlockIndex = chapter.Order > 0 ? chapter.Order - 1 : null,
-                        HeadingPath = ReaderHeadingPath.Combine(new[] { chapter.Title })
-                    },
+                    Location = location,
                     Text = piece,
                     Markdown = BuildMarkdown(chapter.Title, piece),
                     Warnings = wasSplit ? new[] { "Chapter content was split due to MaxChars." } : null

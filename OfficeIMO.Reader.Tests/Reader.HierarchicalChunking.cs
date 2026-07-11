@@ -195,6 +195,28 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_UsesProcessorUpdatedPublicHeadingPathInsteadOfStaleHint() {
+        ReaderChunk chunk = Assert.Single(DocumentReader.Read(
+            Encoding.UTF8.GetBytes("# Original > Literal\n\nBody"),
+            "note.md"));
+        chunk.Location.HeadingPath = "Processed";
+
+        ReaderChunkHierarchyResult hierarchy = ReaderHierarchicalChunker.Chunk(
+            new[] { chunk },
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 100,
+                OverlapTokens = 0,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+
+        ReaderChunkHierarchyNode heading = Assert.Single(
+            hierarchy.Nodes,
+            node => node.Kind == ReaderChunkHierarchyNodeKind.Heading);
+        Assert.Equal("Processed", heading.Title);
+    }
+
+    [Fact]
     public void Chunk_InheritsMissingEnvelopeProvenanceAndReplacesWhitespacePath() {
         ReaderChunk source = CreateChunk("source", "body");
         source.SourceId = "chunk-id";

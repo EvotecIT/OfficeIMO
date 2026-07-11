@@ -325,6 +325,7 @@ public static partial class ReaderHierarchicalChunker {
             NormalizedEndLine = source.NormalizedEndLine,
             HeadingPath = source.HeadingPath,
             HierarchyHeadingPath = source.HierarchyHeadingPath,
+            HierarchyHeadingDisplayPath = source.HierarchyHeadingDisplayPath,
             HeadingSlug = source.HeadingSlug,
             SourceBlockKind = source.SourceBlockKind,
             BlockAnchor = source.BlockAnchor,

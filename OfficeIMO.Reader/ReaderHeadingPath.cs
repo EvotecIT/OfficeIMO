@@ -51,6 +51,16 @@ public static class ReaderHeadingPath {
         return parts.Count == 0 ? null : string.Join(Separator, parts);
     }
 
+    /// <summary>
+    /// Associates an escaped hierarchy-only path with the current public display path.
+    /// Reader adapters use this to preserve literal heading delimiters without changing normal output.
+    /// </summary>
+    public static void SetHierarchyPath(ReaderLocation location, string? hierarchyPath) {
+        if (location == null) throw new ArgumentNullException(nameof(location));
+        location.HierarchyHeadingPath = hierarchyPath;
+        location.HierarchyHeadingDisplayPath = location.HeadingPath;
+    }
+
     private static string Escape(string value) => value
         .Replace("\\", "\\\\")
         .Replace(">", "\\>");

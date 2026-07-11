@@ -46,9 +46,11 @@ public static partial class ReaderHierarchicalChunker {
                     state);
             }
 
-            HierarchyHeading[] headings = SplitHeadingPath(
-                location.HierarchyHeadingPath ?? location.HeadingPath,
-                state);
+            string? hierarchyHeadingPath = location.HierarchyHeadingPath;
+            if (!string.Equals(location.HierarchyHeadingDisplayPath, location.HeadingPath, StringComparison.Ordinal)) {
+                hierarchyHeadingPath = null;
+            }
+            HierarchyHeading[] headings = SplitHeadingPath(hierarchyHeadingPath ?? location.HeadingPath, state);
             state.HeadingSlugsByChunkId.TryGetValue(chunk.Id, out IReadOnlyList<string?>? fallbackHeadingSlugs);
             int remainingDepth = Math.Max(0, state.Options.MaxHierarchyDepth - parent.Depth);
             if (headings.Length > remainingDepth) {
