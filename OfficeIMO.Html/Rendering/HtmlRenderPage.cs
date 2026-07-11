@@ -99,12 +99,13 @@ public sealed class HtmlRenderPage {
                     text.Text,
                     text.X,
                     text.Y,
-                    text.TextAdvanceWidth.Value,
+                    text.Width,
                     text.Height,
                     text.Font,
                     text.Color,
                     text.Alignment,
-                    text.LineHeight);
+                    text.LineHeight,
+                    textAdvanceWidth: text.TextAdvanceWidth.Value);
             } else {
                 drawing.AddText(text.Text, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }

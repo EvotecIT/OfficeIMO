@@ -23,15 +23,15 @@ public static partial class HtmlPdfConverterExtensions {
     /// <summary>Asynchronously resolves HTML resources and converts HTML to PDF bytes.</summary>
     /// <example><code>byte[] pdf = await html.ToPdfAsync(cancellationToken: token);</code></example>
     public static async Task<byte[]> ToPdfAsync(this string html, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        (await html.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).ToBytes();
+        SerializeToBytes(await html.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false), cancellationToken);
 
     /// <summary>Asynchronously converts a shared HTML conversion document to PDF bytes.</summary>
     public static async Task<byte[]> ToPdfAsync(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        (await document.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).ToBytes();
+        SerializeToBytes(await document.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false), cancellationToken);
 
     /// <summary>Asynchronously reads UTF-8 HTML from a stream and converts it to PDF bytes.</summary>
     public static async Task<byte[]> ToPdfAsync(this Stream htmlStream, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        (await htmlStream.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).ToBytes();
+        SerializeToBytes(await htmlStream.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false), cancellationToken);
 
     /// <summary>Converts HTML to the first-party PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this string html, HtmlPdfSaveOptions? options = null) =>
@@ -100,6 +100,14 @@ public static partial class HtmlPdfConverterExtensions {
     }
 
     private static HtmlPdfSaveOptions Normalize(HtmlPdfSaveOptions? options) => options?.ClonePdf() ?? new HtmlPdfSaveOptions();
+
+    /// <summary>Serializes a completed conversion while honoring cancellation immediately before and after the synchronous writer.</summary>
+    internal static byte[] SerializeToBytes(PdfCore.PdfDocumentConversionResult result, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = result.ToBytes();
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
 
     private static PdfCore.PdfDocumentConversionResult CreateResult(HtmlPdfRenderResult rendered) {
         PdfCore.PdfConversionReport report = rendered.ConversionReport;

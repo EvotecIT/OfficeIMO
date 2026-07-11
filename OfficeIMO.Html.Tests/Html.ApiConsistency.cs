@@ -1,6 +1,8 @@
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Pdf;
+using PdfCore = OfficeIMO.Pdf;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -77,6 +79,36 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
+    public void HtmlPdfOptions_CopyConstructorPreservesPdfSpecificSettings() {
+        var fontFamily = new PdfCore.PdfEmbeddedFontFamily("ContractFont", new byte[] { 1 });
+        var shapingProvider = new NullShapingProvider();
+        var options = new HtmlPdfSaveOptions {
+            TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
+            TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar,
+            FontFamily = fontFamily,
+            TextShapingProvider = shapingProvider
+        };
+
+        var copied = new HtmlPdfSaveOptions(options);
+
+        Assert.Equal(PdfCore.PdfTextFallbackFeatures.None, copied.TextFallbacks);
+        Assert.Equal(PdfCore.PdfTextShapingMode.UnicodeScalar, copied.TextShapingMode);
+        Assert.Same(fontFamily, copied.FontFamily);
+        Assert.Same(shapingProvider, copied.TextShapingProvider);
+    }
+
+    [Fact]
+    public void HtmlPdf_ByteSerializationHonorsCancellation() {
+        PdfCore.PdfDocumentConversionResult result = "<p>Cancellation contract</p>".ToPdfResult();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => {
+            _ = HtmlPdfConverterExtensions.SerializeToBytes(result, cancellation.Token);
+        });
+    }
+
+    [Fact]
     public void RawTextConverters_UseSourceExplicitPdfNames() {
         Assert.DoesNotContain(typeof(MarkdownPdfConverterExtensions).GetMethods(), method =>
             method.Name == "ToPdf" && method.GetParameters()[0].ParameterType == typeof(string));
@@ -99,5 +131,9 @@ public sealed class HtmlApiConsistencyTests {
         Assert.DoesNotContain("OfficeIMO.Markdown.Pdf", references);
         Assert.DoesNotContain("OfficeIMO.Word.Html", references);
         Assert.DoesNotContain("OfficeIMO.Word.Pdf", references);
+    }
+
+    private sealed class NullShapingProvider : PdfCore.IPdfTextShapingProvider {
+        public PdfCore.PdfTextShapingResult? ShapeText(PdfCore.PdfTextShapingRequest request) => null;
     }
 }

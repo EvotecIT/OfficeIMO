@@ -27,7 +27,11 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// PDF conversion enforces paged layout on its own conversion snapshot.
     /// </summary>
     /// <param name="renderOptions">Shared settings used by PNG, SVG, and PDF rendering.</param>
-    public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) { }
+    public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
+        if (renderOptions is HtmlPdfSaveOptions pdfOptions) {
+            CopyPdfSettingsFrom(pdfOptions);
+        }
+    }
 
     /// <summary>OfficeIMO-managed font fallback groups used by generated PDF text.</summary>
     public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
@@ -43,12 +47,7 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
 
     /// <summary>Creates an independent options snapshot for one PDF conversion.</summary>
     public HtmlPdfSaveOptions ClonePdf() {
-        HtmlPdfSaveOptions clone = CopyTo(new HtmlPdfSaveOptions());
-        clone.TextFallbacks = TextFallbacks;
-        clone.TextShapingMode = TextShapingMode;
-        clone.FontFamily = FontFamily;
-        clone.TextShapingProvider = TextShapingProvider;
-        return clone;
+        return new HtmlPdfSaveOptions(this);
     }
 
     /// <summary>Creates an independent options snapshot.</summary>
@@ -56,4 +55,11 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
 
     /// <summary>Returns a snapshot of the active HTML resource policy.</summary>
     public HtmlPdfResourcePolicySummary GetResourcePolicySummary() => HtmlPdfResourcePolicySummary.From(this);
+
+    private void CopyPdfSettingsFrom(HtmlPdfSaveOptions source) {
+        TextFallbacks = source.TextFallbacks;
+        TextShapingMode = source.TextShapingMode;
+        FontFamily = source.FontFamily;
+        TextShapingProvider = source.TextShapingProvider;
+    }
 }
