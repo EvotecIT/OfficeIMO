@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Pdf;
 
-internal sealed class PdfStandardSecurityHandler {
+internal sealed partial class PdfStandardSecurityHandler {
     private static readonly byte[] PasswordPadding = new byte[] {
         0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41,
         0x64, 0x00, 0x4E, 0x56, 0xFF, 0xFA, 0x01, 0x08,
@@ -41,13 +41,17 @@ internal sealed class PdfStandardSecurityHandler {
 
         int version = GetRequiredInt(encryptionDictionary, "V");
         int revision = GetRequiredInt(encryptionDictionary, "R");
+        if ((revision == 5 || revision == 6) && version == 5) {
+            return CreateModern(encryptionDictionary, password, passwordWasSupplied, revision);
+        }
+
         if (revision < 2 || revision > 4 || version < 1 || version > 4) {
-            throw new PdfUnsupportedEncryptionException("Only PDF Standard security handler revisions 2, 3, and 4 are supported.");
+            throw new PdfUnsupportedEncryptionException("Only PDF Standard security handler revisions 2 through 6 are supported.");
         }
 
         byte[] ownerEntry = GetRequiredBytes(encryptionDictionary, "O");
         byte[] userEntry = GetRequiredBytes(encryptionDictionary, "U");
-        int permissions = GetRequiredInt(encryptionDictionary, "P");
+        int permissions = GetRequiredPermissions(encryptionDictionary);
         int keyLengthBits = revision == 2 ? 40 : (GetOptionalInt(encryptionDictionary, "Length") ?? 128);
         int keyLengthBytes = Math.Max(5, Math.Min(16, keyLengthBits / 8));
         bool encryptMetadata = encryptionDictionary.Get<PdfBoolean>("EncryptMetadata")?.Value ?? true;
@@ -125,6 +129,10 @@ internal sealed class PdfStandardSecurityHandler {
     private byte[] DecryptData(int objectNumber, int generation, byte[] data, PdfCryptMethod method) {
         if (method == PdfCryptMethod.Identity || data.Length == 0) {
             return data;
+        }
+
+        if (method == PdfCryptMethod.AesV3) {
+            return DecryptAesV2(_fileKey, data);
         }
 
         byte[] objectKey = ComputeObjectKey(objectNumber, generation, method == PdfCryptMethod.AesV2);
@@ -302,6 +310,8 @@ internal sealed class PdfStandardSecurityHandler {
                 return PdfCryptMethod.Rc4;
             case "AESV2":
                 return PdfCryptMethod.AesV2;
+            case "AESV3":
+                return PdfCryptMethod.AesV3;
             default:
                 throw new PdfUnsupportedEncryptionException("Unsupported PDF crypt filter method /" + cfm + ".");
         }
@@ -397,6 +407,20 @@ internal sealed class PdfStandardSecurityHandler {
         return (int)number.Value;
     }
 
+    private static int GetRequiredPermissions(PdfDictionary dictionary) {
+        PdfNumber? number = dictionary.Get<PdfNumber>("P");
+        if (number is null) {
+            throw new PdfUnsupportedEncryptionException("PDF encryption dictionary is missing /P.");
+        }
+
+        double value = number.Value;
+        if (value >= 0D && value <= uint.MaxValue && value > int.MaxValue) {
+            return unchecked((int)(uint)value);
+        }
+
+        return (int)value;
+    }
+
     private static int? GetOptionalInt(PdfDictionary dictionary, string key) {
         return dictionary.Get<PdfNumber>(key) is PdfNumber number ? (int)number.Value : null;
     }
@@ -458,7 +482,8 @@ internal sealed class PdfStandardSecurityHandler {
     private enum PdfCryptMethod {
         Identity,
         Rc4,
-        AesV2
+        AesV2,
+        AesV3
     }
 
     private static class Rc4 {

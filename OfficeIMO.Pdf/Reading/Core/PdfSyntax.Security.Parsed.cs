@@ -29,7 +29,7 @@ internal static partial class PdfSyntax {
             encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
             encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
             encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-            encryptionPermissions = TryReadInteger(parsedEncryptionDictionary, "P");
+            encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
             encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
         }
 

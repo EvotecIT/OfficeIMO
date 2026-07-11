@@ -50,7 +50,7 @@ internal static partial class PdfSyntax {
             encryptionVersion = TryReadInteger(encryptionDictionary, "V");
             encryptionRevision = TryReadInteger(encryptionDictionary, "R");
             encryptionLengthBits = TryReadInteger(encryptionDictionary, "Length");
-            encryptionPermissions = TryReadInteger(encryptionDictionary, "P");
+            encryptionPermissions = TryReadPermissionMask(encryptionDictionary);
             encryptMetadata = TryReadBoolean(encryptionDictionary, "EncryptMetadata");
         }
 
@@ -102,7 +102,7 @@ internal static partial class PdfSyntax {
                 encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
                 encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
                 encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-                encryptionPermissions = TryReadInteger(parsedEncryptionDictionary, "P");
+                encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
                 encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
             }
 
@@ -614,6 +614,20 @@ internal static partial class PdfSyntax {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfNumber number
             ? ToInteger(number)
             : null;
+    }
+
+    private static int? TryReadPermissionMask(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("P", out PdfObject? value) || value is not PdfNumber number) {
+            return null;
+        }
+
+        if (Math.Truncate(number.Value) != number.Value || number.Value < int.MinValue || number.Value > uint.MaxValue) {
+            return null;
+        }
+
+        return number.Value > int.MaxValue
+            ? unchecked((int)(uint)number.Value)
+            : (int)number.Value;
     }
 
     private static int? TryReadInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {

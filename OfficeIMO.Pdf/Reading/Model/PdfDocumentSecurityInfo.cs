@@ -118,6 +118,12 @@ public sealed class PdfDocumentSecurityInfo {
     /// <summary>Raw standard-security-handler permission bits from /P, when readable.</summary>
     public int? EncryptionPermissions { get; }
 
+    /// <summary>Typed Standard security permissions, when a raw `/P` mask is present.</summary>
+    public PdfStandardPermissions? AllowedStandardPermissions =>
+        EncryptionPermissions.HasValue
+            ? PdfStandardEncryptionOptions.FromRawPermissions(EncryptionPermissions.Value)
+            : (PdfStandardPermissions?)null;
+
     /// <summary>Encryption /EncryptMetadata flag, when readable.</summary>
     public bool? EncryptMetadata { get; }
 

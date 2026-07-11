@@ -9,6 +9,7 @@ internal static class PdfFileAssembler {
 
         PdfEncryptionAssembly? encryptionAssembly = null;
         if (encryption != null) {
+            fileVersion = RequireAtLeast(fileVersion, GetMinimumEncryptionVersion(encryption.Algorithm));
             encryptionAssembly = PdfStandardSecurityWriter.Encrypt(objects, encryption);
             objects = encryptionAssembly.Objects;
         }
@@ -51,6 +52,19 @@ internal static class PdfFileAssembler {
         string id = PdfSyntaxEscaper.HexString(encryptionAssembly.FileId);
         return " /Encrypt " + PdfSyntaxEscaper.IndirectReference(encryptionAssembly.EncryptionObjectNumber) +
             " /ID [" + id + " " + id + "]";
+    }
+
+    private static PdfFileVersion GetMinimumEncryptionVersion(PdfStandardEncryptionAlgorithm algorithm) {
+        switch (algorithm) {
+            case PdfStandardEncryptionAlgorithm.Aes256:
+                return PdfFileVersion.Pdf20;
+            case PdfStandardEncryptionAlgorithm.Aes128:
+                return PdfFileVersion.Pdf16;
+            case PdfStandardEncryptionAlgorithm.LegacyRc4:
+                return PdfFileVersion.Pdf14;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unsupported PDF Standard encryption algorithm.");
+        }
     }
 
     internal static string GetHeaderVersion(PdfFileVersion fileVersion) {
