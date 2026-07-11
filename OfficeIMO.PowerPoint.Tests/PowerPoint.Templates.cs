@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string templatePath = CreateTemplatePresentation();
             string targetPath = TempPath(".pptx");
             try {
-                PowerPointTemplateInventory inventory = PowerPointPresentation.InspectTemplate(templatePath);
+                PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect(templatePath);
 
                 PowerPointTemplateMasterInfo master = Assert.Single(inventory.Masters);
                 Assert.Equal("Corporate Test Theme", master.ThemeName);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
                     layoutPart.SlideLayout.Save();
                 }
 
-                PowerPointTemplateInventory inventory = PowerPointPresentation.InspectTemplate(templatePath);
+                PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect(templatePath);
                 PowerPointTemplateAssetInfo asset = Assert.Single(inventory.Assets,
                     candidate => candidate.Name == "Grouped Logo" &&
                                  candidate.Kind == PowerPointTemplateAssetKind.Logo);
@@ -102,11 +102,11 @@ namespace OfficeIMO.Tests {
             string templatePath = CreateTemplatePresentation();
             string outputPath = TempPath(".pptx");
             try {
-                PowerPointTemplateInventory inventory = PowerPointPresentation.InspectTemplate(templatePath);
+                PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect(templatePath);
                 PowerPointTemplateLayoutInfo layout = inventory.Masters[0].Layouts[0];
                 PowerPointTemplatePlaceholderInfo body = layout.ResolvePlaceholder("Executive Summary Body");
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.CreateFromTemplate(templatePath,
+                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(templatePath,
                            outputPath)) {
                     Assert.Empty(presentation.Slides);
                     PowerPointSlide slide = presentation.AddSlide(layout);
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
                 };
                 options.SourceSlideIndexes.Add(1);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.CreateFromTemplate(templatePath,
+                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(templatePath,
                            outputPath, options)) {
                     PowerPointSlide retained = Assert.Single(presentation.Slides);
                     Assert.True(retained.Hidden);
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                     template.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.CreateFromTemplate(sourcePotx,
+                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(sourcePotx,
                            outputPath)) {
                     Assert.Empty(presentation.Slides);
                     presentation.AddSlide();
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
             string templatePath = CreateTemplatePresentation();
             string outputPath = TempPath(".pptx");
             try {
-                PowerPointTemplateInventory inventory = PowerPointPresentation.InspectTemplate(templatePath);
+                PowerPointTemplateInventory inventory = PowerPointTemplate.Inspect(templatePath);
                 PowerPointTemplateLayoutInfo namedLayout = inventory.Masters[0].Layouts[0];
                 var map = new PowerPointTemplateLayoutMap()
                     .Map(PowerPointDeckPlanSlideKind.Process, namedLayout);
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
                     new PowerPointProcessStep("Deliver", "Ship with evidence.")
                 });
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.CreateFromTemplate(templatePath,
+                using (PowerPointPresentation presentation = PowerPointTemplate.CreatePresentation(templatePath,
                            outputPath)) {
                     PowerPointDeckComposer deck = presentation.UseTemplateDesigner(inventory, map,
                         "template-render", "delivery plan");
@@ -222,13 +222,13 @@ namespace OfficeIMO.Tests {
             Assert.True(File.Exists(fixturePath), "Expected PowerPoint template fixture at " + fixturePath);
             string outputPath = TempPath(".pptx");
             try {
-                PowerPointTemplateInventory source = PowerPointPresentation.InspectTemplate(fixturePath);
+                PowerPointTemplateInventory source = PowerPointTemplate.Inspect(fixturePath);
                 var options = new PowerPointTemplateCreationOptions {
                     SlideRetention = PowerPointTemplateSlideRetention.All
                 };
-                using (PowerPointPresentation copied = PowerPointPresentation.CreateFromTemplate(fixturePath,
+                using (PowerPointPresentation copied = PowerPointTemplate.CreatePresentation(fixturePath,
                            outputPath, options)) {
-                    PowerPointTemplateInventory result = copied.InspectTemplate();
+                    PowerPointTemplateInventory result = PowerPointTemplate.Inspect(copied);
                     Assert.Equal(source.SourceSlideCount, result.SourceSlideCount);
                     Assert.Equal(source.Masters.Count, result.Masters.Count);
                     Assert.Equal(source.Masters.Sum(master => master.Layouts.Count),

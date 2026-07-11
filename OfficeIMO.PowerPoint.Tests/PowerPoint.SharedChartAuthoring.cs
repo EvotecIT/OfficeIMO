@@ -11,6 +11,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
@@ -48,7 +49,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 Assert.Contains("Chart kind: ColumnClustered", File.ReadAllText(summaryPath));
-                using (PowerPointPresentation reopened = PowerPointPresentation.Open(output)) {
+                using (PowerPointPresentation reopened = PowerPointPresentation.Open(output, PowerPointOpenMode.ReadOnly)) {
                     Assert.Equal(kinds.Length, reopened.Slides.Count);
                     for (int index = 0; index < kinds.Length; index++) {
                         PowerPointChart chart = Assert.Single(reopened.Slides[index].Charts);
@@ -125,8 +126,8 @@ namespace OfficeIMO.Tests {
                     showMarkers: false, showInLegend: false)
             });
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide slide = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
 
             C.Legend legend = slide.SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!
@@ -142,6 +143,278 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SharedChartUpdate_RebuildsRadarDataAndLegendMetadataWithoutLosingTitle() {
+            var initial = new OfficeChartData(new[] { "Q1", "Q2", "Q3" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 12D, 14D }),
+                new OfficeChartSeries("Target", new[] { 11D, 13D, 15D })
+            });
+            var updated = new OfficeChartData(new[] { "Q1", "Q2", "Q3" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 20D, 22D, 24D }, null, null, null,
+                    showMarkers: true, showInLegend: true),
+                new OfficeChartSeries("Target", new[] { 21D, 23D, 25D }, null, null, null,
+                    showMarkers: true, showInLegend: false)
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Radar, initial).SetTitle("Radar update");
+
+            chart.UpdateData(updated);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(OfficeChartKind.Radar, snapshot.ChartKind);
+            Assert.Equal("Radar update", snapshot.Title);
+            Assert.Equal(new[] { 20D, 22D, 24D }, snapshot.Data.Series[0].Values);
+            Assert.False(snapshot.Data.Series[1].ShowInLegend);
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Equal(2, Assert.Single(plotArea.Elements<C.RadarChart>())
+                .Elements<C.RadarChartSeries>().Count());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RebuildsEveryComboLayerAndSecondaryAxisSeries() {
+            var updated = new OfficeChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] {
+                new OfficeChartSeries("Revenue", new[] { 210D, 230D, 250D, 280D }, null,
+                    OfficeColor.Parse("#0B7FAB"), null, showMarkers: false,
+                    renderKind: OfficeChartKind.ColumnClustered),
+                new OfficeChartSeries("Margin", new[] { 31D, 34D, 37D, 40D }, null,
+                    OfficeColor.Parse("#E85D04"), null, showMarkers: true, showInLegend: false,
+                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, CreateComboData());
+
+            chart.UpdateData(updated);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(new[] { 210D, 230D, 250D, 280D }, snapshot.Data.Series[0].Values);
+            Assert.Equal(new[] { 31D, 34D, 37D, 40D }, snapshot.Data.Series[1].Values);
+            Assert.Equal(OfficeChartKind.Line, snapshot.Data.Series[1].RenderKind);
+            Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
+            Assert.False(snapshot.Data.Series[1].ShowInLegend);
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Single(plotArea.Elements<C.BarChart>());
+            Assert.Single(plotArea.Elements<C.LineChart>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_PreservesAxisCustomization() {
+            OfficeChartData initial = CreateData(OfficeChartKind.ColumnClustered);
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Revenue", new[] { 40D, 45D, 52D, 61D }),
+                new OfficeChartSeries("Margin", new[] { 20D, 23D, 27D, 31D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, initial)
+                .SetCategoryAxisTitle("Quarter")
+                .SetValueAxisTitle("Revenue")
+                .SetValueAxisNumberFormat("$#,##0")
+                .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "D9E2F3");
+
+            chart.UpdateData(updated);
+
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.CategoryAxis categoryAxis = Assert.Single(plotArea.Elements<C.CategoryAxis>());
+            C.ValueAxis valueAxis = Assert.Single(plotArea.Elements<C.ValueAxis>());
+            Assert.Equal("Quarter", string.Concat(categoryAxis.Descendants<A.Text>().Select(text => text.Text)));
+            Assert.Equal("Revenue", string.Concat(valueAxis.Descendants<A.Text>().Select(text => text.Text)));
+            Assert.Equal("$#,##0", valueAxis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+            Assert.NotNull(valueAxis.GetFirstChild<C.MajorGridlines>());
+            Assert.NotNull(valueAxis.GetFirstChild<C.MinorGridlines>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_PreservesHiddenLegend() {
+            OfficeChartData initial = CreateData(OfficeChartKind.ColumnClustered);
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Revenue", new[] { 40D, 45D, 52D, 61D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, initial)
+                .HideLegend();
+
+            chart.UpdateData(updated);
+
+            C.Chart nativeChart = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!;
+            Assert.Null(nativeChart.GetFirstChild<C.Legend>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_PreservesCompatibleChartAndSeriesFormatting() {
+            OfficeChartData initial = CreateData(OfficeChartKind.Line);
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Actual", new[] { 31D, 47D, 64D, 76D }),
+                new OfficeChartSeries("Target", new[] { 36D, 52D, 68D, 83D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Line, initial)
+                .SetDataLabels(showValue: true)
+                .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0")
+                .SetSeriesTrendline(0, C.TrendlineValues.Linear, displayRSquared: true);
+
+            chart.UpdateData(updated);
+
+            C.LineChart lineChart = Assert.Single(slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!.Elements<C.LineChart>());
+            Assert.True(lineChart.GetFirstChild<C.DataLabels>()!
+                .GetFirstChild<C.ShowValue>()!.Val!.Value);
+            C.LineChartSeries firstSeries = lineChart.Elements<C.LineChartSeries>().First();
+            Assert.Equal("0.0", firstSeries.GetFirstChild<C.DataLabels>()!
+                .GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+            Assert.NotNull(firstSeries.GetFirstChild<C.Trendline>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RegeneratesAxesWhenOrientationChanges() {
+            OfficeChartData initial = CreateData(OfficeChartKind.ColumnClustered);
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Actual", new[] { 31D, 47D, 64D, 76D }, null, null, null,
+                    showMarkers: false, renderKind: OfficeChartKind.BarClustered),
+                new OfficeChartSeries("Target", new[] { 36D, 52D, 68D, 83D }, null, null, null,
+                    showMarkers: false, renderKind: OfficeChartKind.BarClustered)
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, initial)
+                .SetCategoryAxisTitle("Quarter")
+                .SetValueAxisTitle("Revenue");
+
+            chart.UpdateData(updated);
+
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Equal(C.BarDirectionValues.Bar,
+                Assert.Single(plotArea.Elements<C.BarChart>()).BarDirection!.Val!.Value);
+            Assert.Equal(C.AxisPositionValues.Left,
+                Assert.Single(plotArea.Elements<C.CategoryAxis>()).AxisPosition!.Val!.Value);
+            Assert.Equal(C.AxisPositionValues.Bottom,
+                Assert.Single(plotArea.Elements<C.ValueAxis>()).AxisPosition!.Val!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_PreservesImportedDateAxisSemantics() {
+            var initial = new OfficeChartData(new[] { "2026-01-01", "2026-02-01", "2026-03-01" }, new[] {
+                new OfficeChartSeries("Revenue", new[] { 12D, 18D, 25D })
+            });
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Revenue", new[] { 15D, 22D, 31D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Line, initial)
+                .SetCategoryAxisTitle("Month");
+            ChartPart chartPart = slide.SlidePart.ChartParts.Single();
+            C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.DateAxis importedDateAxis = ReplaceWithDateAxis(plotArea,
+                Assert.Single(plotArea.Elements<C.CategoryAxis>()));
+            importedDateAxis.NumberingFormat = new C.NumberingFormat {
+                FormatCode = "mmm-yy",
+                SourceLinked = false
+            };
+            importedDateAxis.AddChild(new C.BaseTimeUnit { Val = C.TimeUnitValues.Days }, true);
+            importedDateAxis.AddChild(new C.MajorUnit { Val = 2D }, true);
+            importedDateAxis.AddChild(new C.MajorTimeUnit { Val = C.TimeUnitValues.Months }, true);
+            chartPart.ChartSpace.Save();
+
+            chart.UpdateData(updated);
+
+            plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Empty(plotArea.Elements<C.CategoryAxis>());
+            C.DateAxis dateAxis = Assert.Single(plotArea.Elements<C.DateAxis>());
+            Assert.Equal("Month", string.Concat(dateAxis.Descendants<A.Text>().Select(text => text.Text)));
+            Assert.Equal("mmm-yy", dateAxis.NumberingFormat!.FormatCode!.Value);
+            Assert.Equal(C.TimeUnitValues.Days, dateAxis.GetFirstChild<C.BaseTimeUnit>()!.Val!.Value);
+            Assert.Equal(2D, dateAxis.GetFirstChild<C.MajorUnit>()!.Val!.Value);
+            Assert.Equal(C.TimeUnitValues.Months, dateAxis.GetFirstChild<C.MajorTimeUnit>()!.Val!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RefreshesEveryImportedScatterLayer() {
+            var initial = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 12D, 14D }, new[] { 1D, 2D, 3D }),
+                new OfficeChartSeries("Forecast", new[] { 11D, 13D, 15D }, new[] { 1D, 2D, 3D })
+            });
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Actual", new[] { 20D, 24D, 28D }, new[] { 1D, 2D, 3D }),
+                new OfficeChartSeries("Forecast", new[] { 21D, 25D, 29D }, new[] { 1D, 2D, 3D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Scatter, initial);
+            ChartPart chartPart = slide.SlidePart.ChartParts.Single();
+            C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.ScatterChart firstLayer = Assert.Single(plotArea.Elements<C.ScatterChart>());
+            var secondLayer = (C.ScatterChart)firstLayer.CloneNode(true);
+            firstLayer.Elements<C.ScatterChartSeries>().Last().Remove();
+            secondLayer.Elements<C.ScatterChartSeries>().First().Remove();
+            plotArea.InsertAfter(secondLayer, firstLayer);
+            chartPart.ChartSpace.Save();
+
+            chart.UpdateData(updated);
+
+            C.ScatterChart[] layers = plotArea.Elements<C.ScatterChart>().ToArray();
+            Assert.Equal(2, layers.Length);
+            Assert.Equal(0U, Assert.Single(layers[0].Elements<C.ScatterChartSeries>()).Index!.Val!.Value);
+            Assert.Equal(1U, Assert.Single(layers[1].Elements<C.ScatterChartSeries>()).Index!.Val!.Value);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(2, snapshot.Data.Series.Count);
+            Assert.Equal(new[] { 20D, 24D, 28D }, snapshot.Data.Series[0].Values);
+            Assert.Equal(new[] { 21D, 25D, 29D }, snapshot.Data.Series[1].Values);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RejectsUnsupportedNativeChartWithoutMutation() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+                CreateData(OfficeChartKind.ColumnClustered));
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            plotArea.ReplaceChild(new C.BubbleChart(), Assert.Single(plotArea.Elements<C.BarChart>()));
+            string originalPlotArea = plotArea.OuterXml;
+
+            Assert.Throws<NotSupportedException>(() => chart.UpdateData(
+                CreateData(OfficeChartKind.ColumnClustered)));
+
+            Assert.Equal(originalPlotArea, plotArea.OuterXml);
+        }
+
+        [Fact]
         public void SharedChartSnapshot_ClassifiesTopValueAxisAsSecondaryForHorizontalBars() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             var data = new OfficeChartData(new[] { "North", "South" }, new[] {
@@ -153,7 +426,7 @@ namespace OfficeIMO.Tests {
             });
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
-                    PowerPointSlide slide = presentation.Slides[0];
+                    PowerPointSlide slide = presentation.AddSlide();
                     slide.AddChart(OfficeChartKind.ColumnClustered, data);
                     ChartPart chartPart = slide.SlidePart.ChartParts.Single();
                     C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -174,7 +447,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.OpenRead(output);
+                using PowerPointPresentation reopened = PowerPointPresentation.Open(output, PowerPointOpenMode.ReadOnly);
                 PowerPointChart chart = Assert.Single(reopened.Slides[0].Charts);
                 Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
                 Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
@@ -190,9 +463,9 @@ namespace OfficeIMO.Tests {
                 new OfficeChartSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })
             });
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
 
-            PowerPointChart chart = presentation.Slides[0].AddChart(
+            PowerPointChart chart = presentation.AddSlide().AddChart(
                 OfficeChartKind.Scatter, data);
 
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -202,8 +475,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void GeneratedChartSummaryCarriesAccessibilityMarker() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointChart chart = presentation.Slides[0].AddChart(
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointChart chart = presentation.AddSlide().AddChart(
                 OfficeChartKind.ColumnClustered, CreateData(OfficeChartKind.ColumnClustered),
                 accessibility: new PowerPointChartAccessibilityOptions());
 
@@ -315,6 +588,21 @@ namespace OfficeIMO.Tests {
                     OfficeColor.Parse("#4CAF50"), null, showMarkers: true,
                     markerSize: 7, strokeWidth: 1.8, strokeDashStyle: OfficeStrokeDashStyle.Dash)
             });
+        }
+
+        private static C.DateAxis ReplaceWithDateAxis(C.PlotArea plotArea, C.CategoryAxis categoryAxis) {
+            var dateAxis = new C.DateAxis();
+            foreach (var child in categoryAxis.ChildElements) {
+                if (child is C.AxisId or C.Scaling or C.Delete or C.AxisPosition or
+                    C.MajorGridlines or C.MinorGridlines or C.Title or C.NumberingFormat or
+                    C.MajorTickMark or C.MinorTickMark or C.TickLabelPosition or
+                    C.ChartShapeProperties or C.TextProperties or C.CrossingAxis or
+                    C.Crosses or C.CrossesAt or C.AutoLabeled or C.LabelOffset) {
+                    dateAxis.AddChild(child.CloneNode(true), true);
+                }
+            }
+            plotArea.ReplaceChild(dateAxis, categoryAxis);
+            return dateAxis;
         }
 
         private static OfficeChartData CreateComboData() => new(

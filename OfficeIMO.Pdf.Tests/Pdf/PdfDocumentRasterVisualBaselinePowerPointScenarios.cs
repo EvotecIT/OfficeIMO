@@ -23,7 +23,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(320, 180);
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape background = slide.AddRectanglePoints(0, 0, 320, 180);
         background.FillColor = "F6FAFC";
@@ -95,7 +95,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(320, 180);
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape background = slide.AddRectanglePoints(0, 0, 320, 180);
         background.FillColor = "FFFDF7";

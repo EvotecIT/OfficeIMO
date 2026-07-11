@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Copies a `.pptx` or `.potx` template into a new editable `.pptx`, preserving its masters,
         ///     layouts, theme, relationships, and assets while applying an explicit source-slide policy.
         /// </summary>
-        public static PowerPointPresentation CreateFromTemplate(string templatePath, string outputPath,
+        internal static PowerPointPresentation CreateFromTemplate(string templatePath, string outputPath,
             PowerPointTemplateCreationOptions? options = null) {
             if (string.IsNullOrWhiteSpace(templatePath)) {
                 throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
@@ -103,7 +103,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             _slides.Clear();
-            _initialSlideUntouched = false;
             SyncSectionsWithSlides();
             PresentationRoot.Save();
         }

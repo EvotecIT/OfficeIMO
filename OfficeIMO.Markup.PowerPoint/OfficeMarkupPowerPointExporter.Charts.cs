@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -28,7 +29,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         panel.OutlineWidthPoints = 0.75;
     }
 
-    private static void ApplyChartStyle(PowerPointChart chart, OfficeMarkupChartBlock source, PowerPointChartData data) {
+    private static void ApplyChartStyle(PowerPointChart chart, OfficeMarkupChartBlock source, OfficeChartData data) {
         var font = GetAttribute(source.Attributes, "font") ?? "Aptos";
         var textColor = ToPowerPointColor(GetAttribute(source.Attributes, "color")) ?? "172033";
         var gridColor = ToPowerPointColor(GetAttribute(source.Attributes, "grid-color")) ?? "E5E7EB";
@@ -313,27 +314,17 @@ public sealed partial class OfficeMarkupPowerPointExporter {
     private static PowerPointChart AddNativeChart(
         PowerPointSlide slide,
         string chartType,
-        PowerPointChartData data,
+        OfficeChartData data,
         LayoutCursor box) {
-        switch (Normalize(chartType)) {
-            case "line":
-                return slide.AddLineChartInches(data, box.Left, box.Top, box.Width, box.Height);
-            case "pie":
-                return slide.AddPieChartInches(FirstSeriesOnly(data), box.Left, box.Top, box.Width, box.Height);
-            case "donut":
-            case "doughnut":
-                return slide.AddDoughnutChartInches(FirstSeriesOnly(data), box.Left, box.Top, box.Width, box.Height);
-            case "column":
-            case "clusteredcolumn":
-            case "bar":
-            case "clusteredbar":
-            default:
-                return slide.AddChartInches(data, box.Left, box.Top, box.Width, box.Height);
-        }
+        OfficeChartKind kind = OfficeMarkupChartKindResolver.Resolve(chartType);
+        OfficeChartData resolved = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut
+            ? FirstSeriesOnly(data)
+            : data;
+        return slide.AddChartInches(kind, resolved, box.Left, box.Top, box.Width, box.Height);
     }
 
-    private static bool TryCreateChartData(OfficeMarkupChartBlock chart, out PowerPointChartData data) {
-        data = PowerPointChartData.CreateDefault();
+    private static bool TryCreateChartData(OfficeMarkupChartBlock chart, out OfficeChartData data) {
+        data = null!;
         if (chart.Data.Count < 2) {
             return false;
         }
@@ -366,18 +357,18 @@ public sealed partial class OfficeMarkupPowerPointExporter {
             return false;
         }
 
-        var series = new List<PowerPointChartSeries>();
+        var series = new List<OfficeChartSeries>();
         for (int index = 0; index < seriesValues.Count; index++) {
             var name = string.IsNullOrWhiteSpace(headers[index + 1]) ? $"Series {index + 1}" : headers[index + 1];
-            series.Add(new PowerPointChartSeries(name, seriesValues[index]));
+            series.Add(new OfficeChartSeries(name, seriesValues[index]));
         }
 
-        data = new PowerPointChartData(categories, series);
+        data = new OfficeChartData(categories, series);
         return true;
     }
 
-    private static PowerPointChartData FirstSeriesOnly(PowerPointChartData data) =>
-        new PowerPointChartData(data.Categories, data.Series.Take(1));
+    private static OfficeChartData FirstSeriesOnly(OfficeChartData data) =>
+        new OfficeChartData(data.Categories, data.Series.Take(1));
 
     private static double ParseDouble(string value) =>
         double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)

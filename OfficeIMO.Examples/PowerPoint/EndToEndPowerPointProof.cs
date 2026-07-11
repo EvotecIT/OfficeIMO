@@ -33,7 +33,6 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .FromBrand("#0B7FAB", "e2e-proof", "executive delivery review")
                 .WithIdentity("Delivery Review", eyebrow: "OFFICEIMO", footerLeft: "DELIVERY",
                     footerRight: "Generated proof");
-            PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 0);
             string brandImagePath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
             var brandImage = new PowerPointImageAsset(brandImagePath,
                 "OfficeIMO brand mark used as a semantic visual asset") {
@@ -112,15 +111,17 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "Inspect the proof bundle and approve the next release."),
                     configure: options => options.Variant = PowerPointClosingLayoutVariant.Statement);
 
-            PowerPointDeckPlan expandedPlan = plan.WithContinuations();
-            PowerPointDeckRhythmReport rhythm = expandedPlan.InspectRhythm(deck.Design);
-            deck.AddSlides(expandedPlan);
-
             var preflightOptions = new PowerPointDeckPreflightOptions {
                 MinimumReadableFontSizePoints = 8,
                 DetectShapeCollisions = false
             };
-            PowerPointDeckPreflightReport report = presentation.Preflight(preflightOptions);
+            PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
+            composition.SelectBestAlternative = false;
+            composition.AlternativeIndex = 0;
+            composition.Preflight = preflightOptions;
+            PowerPointCompositionResult result = presentation.Compose(plan, composition);
+            PowerPointDeckRhythmReport rhythm = result.Plan.InspectRhythm(result.Design);
+            PowerPointDeckPreflightReport report = result.Preflight;
             report.SaveJson(reportPath);
             PowerPointAccessibilityReport accessibility = presentation.InspectAccessibility();
             accessibility.EnsureCompliant().SaveJson(accessibilityPath);
@@ -143,7 +144,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             };
             presentation.SaveAsHtml(htmlPath, htmlOptions);
 
-            PowerPointVisualProofReport visualProof = presentation.CreateVisualProofReport()
+            PowerPointVisualProofReport visualProof = presentation.InspectVisuals()
                 .RecordArtifact(Path.GetFileName(presentationPath),
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     File.ReadAllBytes(presentationPath))

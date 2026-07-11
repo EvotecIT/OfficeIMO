@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 80, 30);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(260, 180);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 200, 120);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 70);
             PowerPointTableCell cell = table.GetCell(0, 0);

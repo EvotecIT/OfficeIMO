@@ -7,7 +7,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.PowerPoint.Fluent;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -146,7 +145,8 @@ namespace OfficeIMO.PowerPoint {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             ValidateSlideIndex(slideIndex);
-            using PowerPointPresentation exported = Create(destination, autoSave: false);
+            using PowerPointPresentation exported = Create(destination,
+                new PowerPointStreamCreateOptions { AutoSave = false });
             exported.ImportSlide(this, slideIndex);
             exported.Save(destination);
         }

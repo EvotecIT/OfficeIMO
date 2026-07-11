@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             var stream = new MemoryStream();
             PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 180);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
             PowerPointTextBox title = slide.AddTextBoxPoints("Executive Summary", 18, 12, 260, 24);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
             var stream = new MemoryStream();
             PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 180);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("EFF6FF", "F8FAFC", 0D);
 
             AddProcessNode(slide, "Discovery", "1E40AF", 20, 58);

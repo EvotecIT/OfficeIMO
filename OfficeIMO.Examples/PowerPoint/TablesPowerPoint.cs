@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -175,15 +176,16 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 5: chart from the same dataset
             PowerPointSlide chartSlide = presentation.AddSlide();
             chartSlide.AddTitleCm("Quarterly Performance", marginCm, marginCm, content.WidthCm, titleHeightCm);
-            PowerPointChartData chartData = new(
+            OfficeChartData chartData = new(
                 data.Select(d => d.Product),
                 new[] {
-                    new PowerPointChartSeries("Q1", data.Select(d => (double)d.Q1)),
-                    new PowerPointChartSeries("Q2", data.Select(d => (double)d.Q2)),
-                    new PowerPointChartSeries("Q3", data.Select(d => (double)d.Q3)),
-                    new PowerPointChartSeries("Q4", data.Select(d => (double)d.Q4))
+                    new OfficeChartSeries("Q1", data.Select(d => (double)d.Q1)),
+                    new OfficeChartSeries("Q2", data.Select(d => (double)d.Q2)),
+                    new OfficeChartSeries("Q3", data.Select(d => (double)d.Q3)),
+                    new OfficeChartSeries("Q4", data.Select(d => (double)d.Q4))
                 });
-            chartSlide.AddChartCm(chartData, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
+            chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, chartData, marginCm, bodyTopCm,
+                content.WidthCm, bodyHeightCm);
             chartSlide.Notes.Text = "Chart and table share the same source data.";
 
             // Slide 6: table + chart side by side
@@ -221,8 +223,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }
             }
 
-            comboSlide.AddChartCm(chartData, rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm,
-                rightColumn.HeightCm);
+            comboSlide.AddChartCm(OfficeChartKind.ColumnClustered, chartData, rightColumn.LeftCm,
+                rightColumn.TopCm, rightColumn.WidthCm, rightColumn.HeightCm);
 
             // Slide 7: totals by quarter
             PowerPointSlide totalsSlide = presentation.AddSlide();
@@ -234,10 +236,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                 data.Sum(d => d.Q3),
                 data.Sum(d => d.Q4)
             };
-            PowerPointChartData totalsData = new(
+            OfficeChartData totalsData = new(
                 quarterLabels,
-                new[] { new PowerPointChartSeries("Total", totals.Select(t => (double)t)) });
-            totalsSlide.AddChartCm(totalsData, marginCm, bodyTopCm, content.WidthCm, bodyHeightCm);
+                new[] { new OfficeChartSeries("Total", totals.Select(t => (double)t)) });
+            totalsSlide.AddChartCm(OfficeChartKind.ColumnClustered, totalsData, marginCm, bodyTopCm,
+                content.WidthCm, bodyHeightCm);
 
             // Slide 8: picture with caption
             PowerPointSlide imageSlide = presentation.AddSlide();

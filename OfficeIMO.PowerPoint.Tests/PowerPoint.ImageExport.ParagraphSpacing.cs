@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 190, 80);
             textBox.FontSize = 12;
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint line spacing", 20, 20, 190, 80);
             textBox.FontSize = 12;

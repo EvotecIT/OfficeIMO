@@ -5,9 +5,9 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    ///     Structured composition surface for building custom designer slides without manual placement for every shape.
+    ///     Plan-owned callback context for building a custom designed slide without manually placing every shape.
     /// </summary>
-    public sealed class PowerPointSlideComposer {
+    public sealed class PowerPointSlideCompositionContext {
         private readonly PowerPointSlide _slide;
         private readonly PowerPointDesignTheme _theme;
         private readonly PowerPointDesignerSlideOptions _options;
@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly double _slideHeightCm;
         private readonly bool _dark;
 
-        internal PowerPointSlideComposer(PowerPointSlide slide, PowerPointDesignTheme theme,
+        internal PowerPointSlideCompositionContext(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointDesignerSlideOptions options, double slideWidthCm, double slideHeightCm, bool dark) {
             _slide = slide;
             _theme = theme;
@@ -483,12 +483,12 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>
         ///     Creates a designer slide and exposes reusable primitives for custom composition.
         /// </summary>
         public static PowerPointSlide ComposeDesignerSlide(this PowerPointPresentation presentation,
-            Action<PowerPointSlideComposer> compose, PowerPointDesignTheme? theme = null,
+            Action<PowerPointSlideCompositionContext> compose, PowerPointDesignTheme? theme = null,
             PowerPointDesignerSlideOptions? options = null, bool dark = false) {
             if (presentation == null) {
                 throw new ArgumentNullException(nameof(presentation));
@@ -511,7 +511,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             AddChrome(slide, resolvedTheme, width, height, dark, resolvedOptions);
-            compose(new PowerPointSlideComposer(slide, resolvedTheme, resolvedOptions, width, height, dark));
+            compose(new PowerPointSlideCompositionContext(slide, resolvedTheme, resolvedOptions, width, height, dark));
             return slide;
         }
     }

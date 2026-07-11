@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    PowerPointSlide slide = presentation.Slides[0];
+                    PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape accent = slide.AddRectanglePoints(10, 10, 40, 20, "Decorative accent");
                     accent.Title = "Decorative accent";
                     accent.Decorative = true;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath, PowerPointOpenMode.ReadOnly)) {
                     PowerPointTextBox text = presentation.Slides[0].TextBoxes.Single();
                     PowerPointAutoShape accent = presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>().Single();
                     Assert.Equal("Slide title", text.Title);
@@ -55,8 +55,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StrictAccessibilityProfileReturnsStructuredPolicyFindings() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide slide = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
             PowerPointTextBox link = slide.AddTextBoxPoints("click here", 20, 20, 180, 28);
             link.Color = "D0D0D0";
@@ -95,8 +95,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AccessibilityGroupsContiguousRunsWithTheSameHyperlinkBeforeJudgingTheLabel() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointTextBox link = presentation.Slides[0].AddTextBoxPoints("Open", 20, 20, 180, 28);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointTextBox link = presentation.AddSlide().AddTextBoxPoints("Open", 20, 20, 180, 28);
             PowerPointParagraph paragraph = link.Paragraphs.Single();
             paragraph.Runs.Single().SetHyperlink("https://openai.com");
             paragraph.AddRun("AI", run => {
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DesignerSlidesPassDefaultAccessibilityProfileWithoutCallerCleanup() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
             presentation.AddDesignerSectionSlide("Delivery and evidence", "Accessible by default");
             presentation.AddDesignerProcessSlide("A controlled workflow", "Every step remains editable", new[] {
                 new PowerPointProcessStep("Inspect", "Read the source"),
@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AccessibilitySkipsHiddenSlidesUnlessExplicitlyIncluded() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide hidden = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide hidden = presentation.AddSlide();
             hidden.Hidden = true;
             hidden.AddRectanglePoints(20, 20, 120, 80, "Undescribed visual");
 
@@ -162,8 +162,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AccessibilityDoesNotTreatInheritedPlaceholderPromptAsAuthoredSlideTitle() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide slide = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox inheritedTitle = presentation.EnsureLayoutPlaceholderTextBox(0, slide.LayoutIndex,
                 PlaceholderValues.Title, bounds: PowerPointLayoutBox.FromCentimeters(1D, 1D, 20D, 2D));
             inheritedTitle.Text = "Click to add title";
@@ -178,8 +178,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AccessibilityInspectsTableNestedInsideGroup() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide slide = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(2, 2, 20, 50, 180, 70);
             table.HeaderRow = false;
             PowerPointAutoShape anchor = slide.AddRectanglePoints(210, 50, 20, 20, "Group anchor");
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath, PowerPointOpenMode.ReadOnly)) {
                     PowerPointAccessibilityReport imported = presentation.InspectAccessibility();
                     Assert.Equal(generatedCodes, imported.Findings.Select(finding => finding.Code));
                     Assert.True(imported.IsSuccessful);
@@ -231,8 +231,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AccessibilityContrastUsesInheritedLayoutShapeBackground() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide slide = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
             SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
             DocumentFormat.OpenXml.Presentation.ShapeTree tree =
                 layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;

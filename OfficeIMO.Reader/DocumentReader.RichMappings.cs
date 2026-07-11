@@ -27,7 +27,7 @@ public static partial class DocumentReader {
                     return ApplyExcelRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.PowerPoint:
-                using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(path)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(path, PowerPointOpenMode.ReadOnly)) {
                     return ApplyPowerPointRichMapping(presentation, options, result, cancellationToken);
                 }
             default:
@@ -56,7 +56,7 @@ public static partial class DocumentReader {
                 }
             case ReaderInputKind.PowerPoint:
                 stream.Position = 0;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(stream, readOnly: true, autoSave: false)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly })) {
                     return ApplyPowerPointRichMapping(presentation, options, result, cancellationToken);
                 }
             default:

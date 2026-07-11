@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         private static void AddSectionGeometricCover(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointDesignerSlideOptions options, string title, string? subtitle, double slideWidthCm,
             double slideHeightCm) {

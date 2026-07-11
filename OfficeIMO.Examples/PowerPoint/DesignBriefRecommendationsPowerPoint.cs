@@ -29,14 +29,14 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-            PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Design.Index);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan();
 
-            deck.AddSectionSlide("Design brief recommendations",
+            plan.AddSection("Design brief recommendations",
                 "Preview several directions, then choose one before rendering.",
                 "brief-cover",
                 options => options.SectionVariant = PowerPointSectionLayoutVariant.Poster);
 
-            deck.AddCardGridSlide("Generated alternatives",
+            plan.AddCardGrid("Generated alternatives",
                 "The caller can inspect direction, mood, density, fonts, colors, and recommendation reasons.",
                 recommendations.Select(recommendation => new PowerPointCardContent(
                     recommendation.Design.DirectionName,
@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.SupportingText = "Recommendations are explainable, not hidden template magic.";
                 });
 
-            deck.AddProcessSlide("Caller workflow",
+            plan.AddProcess("Caller workflow",
                 "Keep the API simple while preserving room for different visual outcomes.",
                 new[] {
                     new PowerPointProcessStep("Describe", "Create deterministic alternatives from brand, seed, and purpose."),
@@ -68,7 +68,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows;
                 });
 
-            deck.ComposeSlide(composer => {
+            plan.AddCustom("Selected direction", composer => {
                 composer.AddTitle("Selected direction", selected.Design.DirectionName);
                 PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
 
@@ -95,6 +95,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                     columns[1].InsetCm(0, 4.85, 0, 0).TakeTopCm(1.45));
             }, "selected-direction", options => options.FooterRight = "Recommended");
 
+            PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
+            composition.SelectBestAlternative = false;
+            composition.AlternativeIndex = selected.Design.Index;
+            presentation.Compose(plan, composition);
             presentation.Save();
             Validate(filePath, presentation);
             Helpers.Open(filePath, openPowerPoint);

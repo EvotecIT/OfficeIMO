@@ -657,13 +657,13 @@ namespace OfficeIMO.PowerPoint {
     ///     Custom raw-composition slide request.
     /// </summary>
     public sealed class PowerPointCustomPlanSlide : PowerPointDeckPlanSlide {
-        private readonly Action<PowerPointSlideComposer> _compose;
+        private readonly Action<PowerPointSlideCompositionContext> _compose;
         private readonly Action<PowerPointDesignerSlideOptions>? _configure;
 
         /// <summary>
         ///     Creates a custom slide request that can use slide composer primitives.
         /// </summary>
-        public PowerPointCustomPlanSlide(string title, Action<PowerPointSlideComposer> compose,
+        public PowerPointCustomPlanSlide(string title, Action<PowerPointSlideCompositionContext> compose,
             string? seed = null, Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false)
             : base(title, null, seed) {
             _compose = compose ?? throw new ArgumentNullException(nameof(compose));

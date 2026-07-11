@@ -112,6 +112,38 @@ namespace OfficeIMO.PowerPoint {
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
         }
 
+        internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
+            OfficeChartKind defaultKind) {
+            if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
+            ValidateSharedChartData(data, defaultKind);
+
+            C.ChartSpace chartSpace = chartPart.ChartSpace ??
+                throw new InvalidOperationException("Chart space not found.");
+            C.Chart chart = chartSpace.GetFirstChild<C.Chart>() ??
+                throw new InvalidOperationException("Chart not found.");
+            C.PlotArea plotArea = chart.GetFirstChild<C.PlotArea>() ??
+                throw new InvalidOperationException("Chart plot area not found.");
+
+            if (defaultKind == OfficeChartKind.Scatter) {
+                UpdateChartData(chartPart, ToPowerPointScatterChartData(data));
+            } else {
+                var replacement = new C.PlotArea();
+                replacement.Append(plotArea.GetFirstChild<C.Layout>()?.CloneNode(true) ?? new C.Layout());
+                AppendSharedChartContent(replacement, data, defaultKind);
+                PreserveSharedChartFormatting(plotArea, replacement);
+                foreach (OpenXmlElement child in plotArea.ChildElements) {
+                    if (child is C.DataTable || child is C.ChartShapeProperties || child is C.ExtensionList) {
+                        replacement.Append(child.CloneNode(true));
+                    }
+                }
+                chart.ReplaceChild(replacement, plotArea);
+            }
+
+            UpdateSharedLegend(chart, data);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
+            chartSpace.Save();
+        }
+
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
             OfficeChartKind defaultKind) {
             C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
@@ -321,6 +353,26 @@ namespace OfficeIMO.PowerPoint {
             legend.Append(new C.Layout());
             legend.Append(new C.Overlay { Val = false });
             return legend;
+        }
+
+        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data) {
+            C.Legend? current = chart.GetFirstChild<C.Legend>();
+            if (current == null) {
+                return;
+            }
+
+            var replacement = (C.Legend)current.CloneNode(true);
+            replacement.RemoveAllChildren<C.LegendEntry>();
+            OpenXmlElement? insertBefore = replacement.ChildElements.FirstOrDefault(child =>
+                child is not C.LegendPosition && child is not C.LegendEntry);
+            for (int index = 0; index < data.Series.Count; index++) {
+                if (data.Series[index].ShowInLegend) continue;
+                var entry = new C.LegendEntry(new C.Index { Val = (uint)index },
+                    new C.Delete { Val = true });
+                if (insertBefore == null) replacement.Append(entry);
+                else replacement.InsertBefore(entry, insertBefore);
+            }
+            chart.ReplaceChild(replacement, current);
         }
 
         private static IEnumerable<OpenXmlCompositeElement> EnumerateSharedSeriesElements(C.PlotArea plotArea) {

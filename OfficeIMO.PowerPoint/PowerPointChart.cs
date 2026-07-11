@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Updates the chart data (series and categories).
         /// </summary>
-        public PowerPointChart UpdateData(PowerPointChartData data) {
+        internal PowerPointChart UpdateData(PowerPointChartData data) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Updates scatter chart data (series X/Y values).
         /// </summary>
-        public PowerPointChart UpdateData(PowerPointScatterChartData data) {
+        internal PowerPointChart UpdateData(PowerPointScatterChartData data) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Updates the chart data using selectors.
         /// </summary>
-        public PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             PowerPointChartData data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
             return UpdateData(data);
@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Updates scatter chart data using selectors.
         /// </summary>
-        public PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, double> xSelector,
+        internal PowerPointChart UpdateData<T>(IEnumerable<T> items, Func<T, double> xSelector,
             params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
             PowerPointScatterChartData data = PowerPointScatterChartData.From(items, xSelector, seriesDefinitions);
             return UpdateData(data);

@@ -57,7 +57,10 @@ var best = brief.DescribeDeckPlanAlternatives(plan, 3)
 
 using var presentation = PowerPointPresentation.Create("proposal.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-presentation.UseDesigner(brief, best.Index).AddSlides(plan);
+PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
+composition.SelectBestAlternative = false;
+composition.AlternativeIndex = best.Index;
+presentation.Compose(plan, composition);
 presentation.Save();
 ```
 
@@ -111,7 +114,7 @@ presentation.Save();
 4. Add speaker notes, sections, theme tweaks, or layout helpers when the deck grows.
 5. Save the file and ship it as a build artifact, report attachment, or generated deliverable.
 
-For report-sized content, use `AddTableSlides(...)` or `PowerPointDeckPlan.WithContinuations()` so source rows and semantic items continue instead of being clipped or dropped. Call `Preflight()` before publishing to produce a deterministic layout report or fail at a selected severity.
+For report-sized content, use `AddTableSlides(...)` or semantic composition's continuation policy so source rows and semantic items continue instead of being clipped or dropped. Call `InspectPreflight()` before publishing to produce a deterministic layout report or fail at a selected severity.
 
 ## Layout and content model
 
