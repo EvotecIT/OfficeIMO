@@ -108,6 +108,7 @@ namespace OfficeIMO.Excel {
 
         private bool HasLossyLegacyXlsImportState(bool includeProjectedChartSheets) {
             return _legacyXlsUnsupportedFeatures.Length > 0
+                || _legacyXlsPreservedFeatures.Length > 0
                 || _legacyXlsUnsupportedSheets.Length > 0
                 || (includeProjectedChartSheets && _legacyXlsChartSheets.Length > 0)
                 || _legacyXlsCompoundFeatures.Any(feature =>
@@ -127,6 +128,7 @@ namespace OfficeIMO.Excel {
                 : $"legacy binary .xls source '{_legacyXlsSourcePath}'";
             string codes = string.Join(", ", _legacyXlsUnsupportedFeatures
                 .Select(feature => feature.Code)
+                .Concat(_legacyXlsPreservedFeatures.Select(feature => feature.Code))
                 .Concat(_legacyXlsUnsupportedSheets.Select(sheet => "UnsupportedSheet:" + sheet.Kind))
                 .Concat(_legacyXlsCompoundFeatures
                     .Where(feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject)
@@ -135,7 +137,7 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.Ordinal)
                 .Take(8));
             string details = string.IsNullOrWhiteSpace(codes) ? string.Empty : $" Findings: {codes}.";
-            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to ExcelConversionLossPolicy.Allow when that loss is intentional.");
+            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsPreservedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to ExcelConversionLossPolicy.Allow when that loss is intentional.");
         }
 
         private bool TrySaveNativeLegacyXlsToFile(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {

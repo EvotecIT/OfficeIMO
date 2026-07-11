@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Model;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -233,6 +234,31 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Feature", text);
             } finally {
                 TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalSave_BlocksPreservedRecordsWithoutUnsupportedSummary() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string xlsPath = WriteTempWorkbook(compound, ".xls");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(xlsPath);
+                Assert.NotEmpty(document.LegacyXlsPreservedFeatures);
+
+                typeof(ExcelDocument)
+                    .GetField("_legacyXlsUnsupportedFeatures", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .SetValue(document, Array.Empty<LegacyXlsUnsupportedFeature>());
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(destinationPath));
+
+                Assert.Contains(nameof(ExcelDocument.LegacyXlsPreservedFeatures), exception.Message, StringComparison.Ordinal);
+                Assert.False(File.Exists(destinationPath));
+            } finally {
+                TryDelete(xlsPath);
+                TryDelete(destinationPath);
             }
         }
 

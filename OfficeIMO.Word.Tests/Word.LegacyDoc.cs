@@ -2866,12 +2866,16 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("Read only legacy doc"));
+                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Read only legacy doc"));
 
                 using WordDocument document = WordDocument.Load(docPath, readOnly: true);
 
                 Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+                Assert.True(
+                    document.LegacyDocUnsupportedFeatures.Count
+                    + document.LegacyDocPreservedFeatures.Count
+                    + document.LegacyDocCompoundFeatures.Count > 0);
                 Assert.Throws<InvalidOperationException>(() => document.Save());
                 using var output = new MemoryStream();
                 Assert.Throws<InvalidOperationException>(() => document.Save(output));

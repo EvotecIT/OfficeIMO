@@ -69,7 +69,12 @@ namespace OfficeIMO.Word {
         private static WordDocument ReopenProjectedLegacyDocReadOnly(WordDocument projectedDocument, string? sourcePath, LegacyDocDocument legacyDocument) {
             var packageStream = new MemoryStream();
             try {
-                projectedDocument.Save(packageStream);
+                // This is an internal package transition used only to enforce read-only access.
+                // The caller has not requested a lossy export, so the public loss gate must not
+                // prevent inspection of the projection and its diagnostics.
+                projectedDocument.Save(packageStream, WordFileFormat.Docx, new WordSaveOptions {
+                    LossPolicy = WordConversionLossPolicy.Allow
+                });
                 packageStream.Seek(0, SeekOrigin.Begin);
                 projectedDocument.Dispose();
 

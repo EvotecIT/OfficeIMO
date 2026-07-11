@@ -174,6 +174,9 @@ namespace OfficeIMO.Excel {
             foreach (LegacyXlsUnsupportedFeature feature in document.LegacyXlsUnsupportedFeatures) {
                 diagnostics.Add(CreateExcelDataLossDiagnostic(feature.Code, feature.Description));
             }
+            foreach (LegacyXlsPreservedFeatureRecord feature in document.LegacyXlsPreservedFeatures) {
+                diagnostics.Add(CreateExcelDataLossDiagnostic(feature.Code, feature.Description));
+            }
             foreach (LegacyXlsUnsupportedSheet sheet in document.LegacyXlsUnsupportedSheets) {
                 diagnostics.Add(CreateExcelDataLossDiagnostic(
                     $"Excel.LegacyXls.UnsupportedSheet.{sheet.Kind}",

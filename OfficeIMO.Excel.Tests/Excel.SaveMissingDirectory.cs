@@ -69,5 +69,50 @@ namespace OfficeIMO.Tests {
             if (File.Exists(destinationPath)) File.Delete(destinationPath);
             if (Directory.Exists(destinationDirectory)) Directory.Delete(destinationDirectory, recursive: true);
         }
+
+        [Fact]
+        public void Test_SaveCopy_CreatesMissingDirectory() {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"CopySource_{Guid.NewGuid():N}.xlsx");
+            string destinationDirectory = Path.Combine(_directoryWithFiles, "MissingCopy", Guid.NewGuid().ToString("N"));
+            string destinationPath = Path.Combine(destinationDirectory, "Copy.xlsx");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false);
+                document.AddWorkSheet("CopyData").CellValue(1, 1, "Directory copy");
+
+                using ExcelDocument copy = document.SaveCopy(destinationPath);
+
+                Assert.True(Directory.Exists(destinationDirectory));
+                Assert.True(File.Exists(destinationPath));
+                Assert.Equal("CopyData", copy.Sheets[0].Name);
+                Assert.True(copy.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal("Directory copy", value);
+            } finally {
+                if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                if (Directory.Exists(destinationDirectory)) Directory.Delete(destinationDirectory, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void Test_SaveCopy_PreservesReadOnlyDestination() {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"ReadOnlyCopySource_{Guid.NewGuid():N}.xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, $"ReadOnlyCopy_{Guid.NewGuid():N}.xlsx");
+            byte[] originalBytes = { 1, 2, 3, 4 };
+            File.WriteAllBytes(destinationPath, originalBytes);
+            var destination = new FileInfo(destinationPath) { IsReadOnly = true };
+
+            try {
+                using ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false);
+                document.AddWorkSheet("Data").CellValue(1, 1, "Must not overwrite");
+
+                Assert.Throws<IOException>(() => document.SaveCopy(destinationPath));
+
+                Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
+            } finally {
+                destination.IsReadOnly = false;
+                if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                File.Delete(destinationPath);
+            }
+        }
     }
 }

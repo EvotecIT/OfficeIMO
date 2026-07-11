@@ -144,9 +144,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(filePath)) {
                 throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
             }
-            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(filePath);
 
             byte[] packageBytes = ToDocx(saveOptions);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageBytes, password);
@@ -237,7 +235,7 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("File path cannot be empty", nameof(filePath));
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAs");
+            EnsureSignedDocumentSaveAllowed(options, "SaveCopy");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -391,6 +389,7 @@ namespace OfficeIMO.Word {
                         return;
                     }
 
+                    EnsureDestinationFileWritable(filePath);
                     this._wordprocessingDocument.Save();
                     EnsureLegacyDocSaveDoesNotDropImportedContent(options);
                     byte[] openXmlBytes = CreateOpenXmlBytesAfterSave(filePath);
@@ -584,9 +583,7 @@ namespace OfficeIMO.Word {
         }
 
         private void SaveOpenXmlFile(string filePath, bool updateFilePath, WordSaveOptions? options) {
-            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(filePath);
 
             EnsureLegacyDocSaveDoesNotDropImportedContent(options);
             _wordprocessingDocument.Save();
@@ -645,10 +642,14 @@ namespace OfficeIMO.Word {
             destination.SetLength(0);
         }
 
-        private byte[] CreateLegacyDocBytesAfterPreflight(string filePath, WordSaveOptions? options) {
+        private static void EnsureDestinationFileWritable(string filePath) {
             if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
                 throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
             }
+        }
+
+        private byte[] CreateLegacyDocBytesAfterPreflight(string filePath, WordSaveOptions? options) {
+            EnsureDestinationFileWritable(filePath);
 
             return LegacyDocWriter.WriteDocument(this, options);
         }

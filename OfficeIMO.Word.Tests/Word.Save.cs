@@ -279,6 +279,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_SaveAsync_PreservesReadOnlyDestination() {
+            string destinationPath = Path.Combine(_directoryWithFiles, $"ReadOnlyAsync_{Guid.NewGuid():N}.docx");
+            byte[] originalBytes = { 1, 2, 3, 4 };
+            File.WriteAllBytes(destinationPath, originalBytes);
+            var destination = new FileInfo(destinationPath) { IsReadOnly = true };
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Must not replace the read-only target");
+
+                await Assert.ThrowsAsync<IOException>(() => document.SaveAsync(destinationPath));
+
+                Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
+            } finally {
+                destination.IsReadOnly = false;
+                File.Delete(destinationPath);
+            }
+        }
+
+        [Fact]
         public void Test_Save_RunsCompatibilityFixerAndReloads() {
             var filePath = Path.Combine(_directoryWithFiles, "CompatibilityFixerFile.docx");
             File.Delete(filePath);
