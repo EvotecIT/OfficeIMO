@@ -26,6 +26,9 @@ public enum PdfMutationPermissionCheck {
     /// <summary>The operation requires a valid append-only revision chain.</summary>
     AppendRevision,
 
+    /// <summary>The operation may only fill a prepared signature contents reservation.</summary>
+    FillSignatureContentsReservation,
+
     /// <summary>The operation requires owner-level authorization for encryption changes.</summary>
     OwnerAuthorization
 }

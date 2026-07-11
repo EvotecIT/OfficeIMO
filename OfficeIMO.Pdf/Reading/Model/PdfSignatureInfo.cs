@@ -134,6 +134,12 @@ public sealed class PdfSignatureInfo {
     /// <summary>True when /Contents contains at least one decoded byte.</summary>
     public bool HasNonEmptyContents => ContentsSizeBytes.GetValueOrDefault() > 0;
 
+    /// <summary>True when /Contents is a non-empty all-zero reservation ready for external signature bytes.</summary>
+    public bool HasUnsignedContentsPlaceholder =>
+        HasByteRange &&
+        ContentsBytes is { Length: > 0 } &&
+        ContentsBytes.All(static value => value == 0);
+
     /// <summary>Number of entries in the signature dictionary /Reference array, when readable.</summary>
     public int ReferenceCount { get; }
 }

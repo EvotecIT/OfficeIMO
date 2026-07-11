@@ -194,6 +194,35 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void ExternalSignatureFinalizationUsesReservedPatchContract() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Signature finalization planner source"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 256 });
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(
+            preparation.PreparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature);
+
+        Assert.True(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+        Assert.Equal(new[] { PdfMutationStructure.Signatures }, plan.AffectedStructures);
+        Assert.Contains(PdfMutationPermissionCheck.FillSignatureContentsReservation, plan.PermissionChecks);
+        Assert.DoesNotContain(PdfMutationPermissionCheck.AppendRevision, plan.PermissionChecks);
+        Assert.Contains(PdfMutationProof.ReservedSignatureContentsPatch, plan.RequiredProofs);
+        Assert.Contains(PdfMutationProof.SignatureByteRanges, plan.RequiredProofs);
+        Assert.DoesNotContain(PdfMutationProof.BytePrefixPreservation, plan.RequiredProofs);
+        Assert.DoesNotContain(PdfMutationProof.RevisionChain, plan.RequiredProofs);
+
+        byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
+        PdfMutationPlan completedPlan = PdfMutationPlanner.Plan(signed, PdfMutationOperation.FinalizeExternalSignature);
+        Assert.False(completedPlan.CanExecute);
+        Assert.Contains("AppendOnly.ActionBlocked.SignatureFinalize", completedPlan.BlockerCodes);
+    }
+
+    [Fact]
     public void Plan_ExposesSharedCapabilityRecordsForAffectedStructures() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Capability record source"))

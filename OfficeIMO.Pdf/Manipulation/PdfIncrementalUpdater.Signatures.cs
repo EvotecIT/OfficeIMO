@@ -112,6 +112,9 @@ public static partial class PdfIncrementalUpdater {
     public static byte[] ApplyExternalSignature(PdfExternalSignaturePreparation preparation, byte[] signatureContents) {
         Guard.NotNull(preparation, nameof(preparation));
         Guard.NotNull(signatureContents, nameof(signatureContents));
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            preparation.PreparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature);
         return ApplyExternalSignature(
             preparation.PreparedPdf,
             signatureContents,
@@ -123,6 +126,9 @@ public static partial class PdfIncrementalUpdater {
     public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            preparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature);
         if (!TryFindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength)) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
         }

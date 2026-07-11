@@ -35,6 +35,9 @@ public enum PdfMutationProof {
     /// <summary>Signature byte ranges and revision coverage must remain structurally valid.</summary>
     SignatureByteRanges,
 
+    /// <summary>Only the prepared signature /Contents reservation may change and the file length must remain unchanged.</summary>
+    ReservedSignatureContentsPatch,
+
     /// <summary>DocMDP and FieldMDP permission results must remain valid for the applied change.</summary>
     SignaturePermissions,
 

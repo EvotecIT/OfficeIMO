@@ -80,11 +80,11 @@ security proof.
 
 ### P0 - Make Mutation Safety A Product Contract
 
-- [ ] Add a single mutation planner used by every editing API. It should return
+- [x] Add a single mutation planner used by every editing API. It should return
   `FullRewrite`, `AppendOnly`, or `Blocked`, list the exact structures and
   permissions that drove the decision, and name the proof required after the
   operation.
-- [ ] Replace operation-specific safety guesses with shared capability records
+- [x] Replace operation-specific safety guesses with shared capability records
   for page-tree changes, content changes, catalog changes, form changes,
   annotations, metadata, attachments, encryption, and signatures.
 - [x] Build a curated interoperability corpus containing classic xref tables,

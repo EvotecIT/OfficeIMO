@@ -156,6 +156,7 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.FillAndFlattenFormFields:
                 return preflight.CanFillAndFlattenSimpleFormFields;
             case PdfMutationOperation.PrepareExternalSignature:
+            case PdfMutationOperation.FinalizeExternalSignature:
             case PdfMutationOperation.EnrichLongTermValidation:
             case PdfMutationOperation.ModifyAttachments:
                 return false;
@@ -176,6 +177,8 @@ public static class PdfMutationPlanner {
                 return report.CanAppendFormFields;
             case PdfMutationOperation.PrepareExternalSignature:
                 return report.CanPrepareExternalSignature;
+            case PdfMutationOperation.FinalizeExternalSignature:
+                return report.Security.Signatures.Any(static signature => signature.HasUnsignedContentsPlaceholder);
             case PdfMutationOperation.EnrichLongTermValidation:
                 return report.CanAppendLongTermValidation;
             case PdfMutationOperation.ModifyAnnotations:
@@ -187,6 +190,7 @@ public static class PdfMutationPlanner {
 
     private static bool IsFullRewriteImplemented(PdfMutationOperation operation) {
         return operation != PdfMutationOperation.PrepareExternalSignature &&
+            operation != PdfMutationOperation.FinalizeExternalSignature &&
             operation != PdfMutationOperation.EnrichLongTermValidation &&
             operation != PdfMutationOperation.ModifyAttachments;
     }
@@ -195,12 +199,14 @@ public static class PdfMutationPlanner {
         return operation == PdfMutationOperation.UpdateMetadata ||
             operation == PdfMutationOperation.FillFormFields ||
             operation == PdfMutationOperation.PrepareExternalSignature ||
+            operation == PdfMutationOperation.FinalizeExternalSignature ||
             operation == PdfMutationOperation.EnrichLongTermValidation ||
             operation == PdfMutationOperation.ModifyAnnotations;
     }
 
     private static bool RequiresAppendOnlyByDefinition(PdfMutationOperation operation) =>
         operation == PdfMutationOperation.PrepareExternalSignature ||
+        operation == PdfMutationOperation.FinalizeExternalSignature ||
         operation == PdfMutationOperation.EnrichLongTermValidation;
 
     private static bool RequiresAppendOnlyForOperation(PdfDocumentSecurityInfo security, PdfMutationOperation operation) {
@@ -225,6 +231,8 @@ public static class PdfMutationPlanner {
                 return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations, PdfMutationStructure.PageContent, PdfMutationStructure.PageResources);
             case PdfMutationOperation.PrepareExternalSignature:
                 return ReadOnly(PdfMutationStructure.Signatures, PdfMutationStructure.AcroForm, PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph);
+            case PdfMutationOperation.FinalizeExternalSignature:
+                return ReadOnly(PdfMutationStructure.Signatures);
             case PdfMutationOperation.EnrichLongTermValidation:
                 return ReadOnly(PdfMutationStructure.Signatures, PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph);
             case PdfMutationOperation.ModifyPageTree:
@@ -272,6 +280,9 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.ChangeEncryption:
                 Add(permissions, PdfMutationPermissionCheck.OwnerAuthorization);
                 break;
+            case PdfMutationOperation.FinalizeExternalSignature:
+                Add(permissions, PdfMutationPermissionCheck.FillSignatureContentsReservation);
+                break;
             default:
                 Add(permissions, PdfMutationPermissionCheck.ModifyDocument);
                 if (operation != PdfMutationOperation.Optimize) {
@@ -280,7 +291,8 @@ public static class PdfMutationPlanner {
                 break;
         }
 
-        if (mode == PdfMutationExecutionMode.AppendOnly || operation == PdfMutationOperation.PrepareExternalSignature) {
+        if ((mode == PdfMutationExecutionMode.AppendOnly && operation != PdfMutationOperation.FinalizeExternalSignature) ||
+            operation == PdfMutationOperation.PrepareExternalSignature) {
             Add(permissions, PdfMutationPermissionCheck.AppendRevision);
         }
 
@@ -293,6 +305,13 @@ public static class PdfMutationPlanner {
         PdfDocumentSecurityInfo security) {
         if (mode == PdfMutationExecutionMode.Blocked) {
             return Array.Empty<PdfMutationProof>();
+        }
+
+        if (operation == PdfMutationOperation.FinalizeExternalSignature) {
+            return ReadOnly(
+                PdfMutationProof.ReadableOutput,
+                PdfMutationProof.ReservedSignatureContentsPatch,
+                PdfMutationProof.SignatureByteRanges);
         }
 
         var proofs = new List<PdfMutationProof> { PdfMutationProof.ReadableOutput };
@@ -469,12 +488,16 @@ public static class PdfMutationPlanner {
         if (mode == PdfMutationExecutionMode.FullRewrite) {
             Add(diagnostics, operation + " can use a full rewrite for this PDF; rewrite-preservation proof is required.");
         } else if (mode == PdfMutationExecutionMode.AppendOnly) {
-            string reason = RequiresAppendOnlyForOperation(security, operation)
-                ? "the input requires prior bytes and revisions to be preserved"
-                : fullRewriteCapability
-                    ? "append-only mutation is the safer available path"
-                    : "full rewrite is blocked for this document structure";
-            Add(diagnostics, operation + " will use an append-only revision because " + reason + ".");
+            if (operation == PdfMutationOperation.FinalizeExternalSignature) {
+                Add(diagnostics, operation + " will fill the prepared signature contents reservation without changing file length or signed byte ranges.");
+            } else {
+                string reason = RequiresAppendOnlyForOperation(security, operation)
+                    ? "the input requires prior bytes and revisions to be preserved"
+                    : fullRewriteCapability
+                        ? "append-only mutation is the safer available path"
+                        : "full rewrite is blocked for this document structure";
+                Add(diagnostics, operation + " will use an append-only revision because " + reason + ".");
+            }
         } else {
             Add(diagnostics, operation + " is blocked because neither a proven full rewrite nor append-only path is available.");
             for (int i = 0; i < blockers.Count; i++) {
@@ -505,6 +528,8 @@ public static class PdfMutationPlanner {
                 return "FormFill";
             case PdfMutationOperation.PrepareExternalSignature:
                 return "SignaturePrepare";
+            case PdfMutationOperation.FinalizeExternalSignature:
+                return "SignatureFinalize";
             case PdfMutationOperation.EnrichLongTermValidation:
                 return "LongTermValidation";
             case PdfMutationOperation.ModifyAnnotations:
@@ -620,7 +645,7 @@ public static class PdfMutationPlanner {
                 return PdfMutationCapabilityKind.EncryptionChanges;
             case PdfMutationStructure.Signatures:
                 return PdfMutationCapabilityKind.SignatureChanges;
-            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature || operation == PdfMutationOperation.EnrichLongTermValidation:
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature || operation == PdfMutationOperation.FinalizeExternalSignature || operation == PdfMutationOperation.EnrichLongTermValidation:
                 return PdfMutationCapabilityKind.SignatureChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyAttachments:
                 return PdfMutationCapabilityKind.AttachmentChanges;
