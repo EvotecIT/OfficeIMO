@@ -5,9 +5,16 @@ public sealed class OdpTable : OdpShape {
     internal OdpTable(OdpPresentation presentation, XElement element) : base(presentation, element) { }
     private XElement TableElement => Element.Element(OdfNamespaces.Table + "table") ?? throw new InvalidDataException("ODP table frame has no table:table.");
     /// <summary>Table rows.</summary>
-    public IReadOnlyList<OdpTableRow> Rows => new OdfRepeatedElementCollection<OdpTableRow>(
-        OdfTableRowElements.Enumerate(TableElement).ToList(), OdfNamespaces.Table + "number-rows-repeated",
-        (element, offset) => new OdpTableRow(Presentation, element, offset));
+    public IReadOnlyList<OdpTableRow> Rows {
+        get {
+            List<XElement> elements = OdfTableRowElements.Enumerate(TableElement).ToList();
+            return new OdfRepeatedElementCollection<OdpTableRow>(elements, OdfNamespaces.Table + "number-rows-repeated",
+                (element, offset) => {
+                    long logicalIndex = LogicalIndex(elements, element, offset, OdfNamespaces.Table + "number-rows-repeated");
+                    return new OdpTableRow(Presentation, element, offset, () => ResolveRowElement(logicalIndex));
+                });
+        }
+    }
     /// <summary>Gets a zero-based table cell.</summary>
     public OdpTableCell Cell(int row, int column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
@@ -36,13 +43,25 @@ public sealed class OdpTable : OdpShape {
         var frame = new XElement(OdfNamespaces.Draw + "frame", new XAttribute(OdfNamespaces.Draw + "name", name), table);
         ApplyBounds(frame, bounds); return new OdpTable(presentation, frame);
     }
+    private OdfRepeatedElementPosition ResolveRowElement(long logicalIndex) => OdsRepeatModel.Resolve(
+        OdfTableRowElements.Enumerate(TableElement).ToList(), OdfNamespaces.Table + "number-rows-repeated", logicalIndex);
+    private static long LogicalIndex(IReadOnlyList<XElement> elements, XElement selected, long offset, XName repeatAttribute) {
+        long index = 0;
+        foreach (XElement element in elements) {
+            if (ReferenceEquals(element, selected)) return checked(index + offset);
+            index = checked(index + OdsRepeatModel.Read(element, repeatAttribute));
+        }
+        throw new InvalidOperationException("Repeated ODF element is no longer present in its collection.");
+    }
 }
 
 /// <summary>An XML-backed presentation table row.</summary>
 public sealed class OdpTableRow {
-    private readonly OdpPresentation _presentation; private XElement _element; private readonly long _repeatOffset;
-    internal OdpTableRow(OdpPresentation presentation, XElement element, long repeatOffset = 0) {
-        _presentation = presentation; _element = element; _repeatOffset = repeatOffset;
+    private readonly OdpPresentation _presentation; private XElement _element; private long _repeatOffset;
+    private Func<OdfRepeatedElementPosition>? _resolveRow;
+    internal OdpTableRow(OdpPresentation presentation, XElement element, long repeatOffset = 0,
+        Func<OdfRepeatedElementPosition>? resolveRow = null) {
+        _presentation = presentation; _element = element; _repeatOffset = repeatOffset; _resolveRow = resolveRow;
     }
     /// <summary>Cells, including covered merged positions.</summary>
     public IReadOnlyList<OdpTableCell> Cells {
@@ -51,27 +70,44 @@ public sealed class OdpTableRow {
                 .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
                 .ToList();
             return new OdfRepeatedElementCollection<OdpTableCell>(elements, OdfNamespaces.Table + "number-columns-repeated",
-                (element, offset) => new OdpTableCell(_presentation, element, offset,
-                    () => ResolveCellElement(elements.IndexOf(element))));
+                (element, offset) => {
+                    long logicalIndex = LogicalIndex(elements, element, offset);
+                    return new OdpTableCell(_presentation, element, offset, () => ResolveCellElement(logicalIndex));
+                });
         }
     }
     private void EnsureMaterialized() {
+        if (_resolveRow != null) {
+            OdfRepeatedElementPosition position = _resolveRow();
+            _element = position.Element;
+            _repeatOffset = position.Offset;
+            _resolveRow = null;
+        }
         if (_element.Attribute(OdfNamespaces.Table + "number-rows-repeated") == null) return;
         _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-rows-repeated", _repeatOffset);
     }
-    private XElement ResolveCellElement(int physicalIndex) {
+    private OdfRepeatedElementPosition ResolveCellElement(long logicalIndex) {
         EnsureMaterialized();
-        return _element.Elements()
+        return OdsRepeatModel.Resolve(_element.Elements()
             .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
-            .ElementAt(physicalIndex);
+            .ToList(), OdfNamespaces.Table + "number-columns-repeated", logicalIndex);
+    }
+    private static long LogicalIndex(IReadOnlyList<XElement> elements, XElement selected, long offset) {
+        long index = 0;
+        foreach (XElement element in elements) {
+            if (ReferenceEquals(element, selected)) return checked(index + offset);
+            index = checked(index + OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated"));
+        }
+        throw new InvalidOperationException("Repeated ODF cell is no longer present in its row.");
     }
 }
 
 /// <summary>An XML-backed presentation table cell.</summary>
 public sealed class OdpTableCell {
-    private readonly OdpPresentation _presentation; private XElement _element; private readonly long _repeatOffset;
-    private Func<XElement>? _resolveRowCell;
-    internal OdpTableCell(OdpPresentation presentation, XElement element, long repeatOffset = 0, Func<XElement>? resolveRowCell = null) {
+    private readonly OdpPresentation _presentation; private XElement _element; private long _repeatOffset;
+    private Func<OdfRepeatedElementPosition>? _resolveRowCell;
+    internal OdpTableCell(OdpPresentation presentation, XElement element, long repeatOffset = 0,
+        Func<OdfRepeatedElementPosition>? resolveRowCell = null) {
         _presentation = presentation; _element = element; _repeatOffset = repeatOffset; _resolveRowCell = resolveRowCell;
     }
     /// <summary>True when covered by a merged cell.</summary>
@@ -102,7 +138,9 @@ public sealed class OdpTableCell {
     }
     private void EnsureMaterialized() {
         if (_resolveRowCell != null) {
-            _element = _resolveRowCell();
+            OdfRepeatedElementPosition position = _resolveRowCell();
+            _element = position.Element;
+            _repeatOffset = position.Offset;
             _resolveRowCell = null;
         }
         if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;

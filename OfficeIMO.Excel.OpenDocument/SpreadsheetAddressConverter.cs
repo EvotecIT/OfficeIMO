@@ -5,10 +5,10 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 internal static class SpreadsheetAddressConverter {
     private static readonly Regex ExcelReference = new Regex(
-        @"(?<![A-Za-z0-9_.'!])(?<start>\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(?<end>\$?[A-Z]{1,3}\$?[1-9][0-9]*))?",
+        @"(?<![A-Za-z0-9_.'!])(?<start>\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(?<end>\$?[A-Z]{1,3}\$?[1-9][0-9]*))?(?![A-Za-z0-9_])",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
     private static readonly Regex QualifiedExcelReference = new Regex(
-        @"(?<![A-Za-z0-9_.])(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_.]*)!(?<start>\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(?<end>\$?[A-Z]{1,3}\$?[1-9][0-9]*))?",
+        @"(?<![A-Za-z0-9_.])(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_.]*)!(?<start>\$?[A-Z]{1,3}\$?[1-9][0-9]*)(?::(?<end>\$?[A-Z]{1,3}\$?[1-9][0-9]*))?(?![A-Za-z0-9_])",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     internal static string ExcelFormulaToOpenFormula(string formula) {

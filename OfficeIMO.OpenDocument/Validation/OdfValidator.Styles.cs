@@ -8,8 +8,7 @@ internal static partial class OdfValidator {
             if (!package.ContainsEntry(partPath)) continue;
             XDocument document = package.GetXml(partPath);
             foreach (XElement element in document.Descendants()) {
-                string? declaredName = (string?)element.Attribute(OdfNamespaces.Style + "name") ??
-                    (string?)element.Attribute(OdfNamespaces.Draw + "name");
+                string? declaredName = (string?)element.Attribute(OdfNamespaces.Style + "name");
                 if (!string.IsNullOrWhiteSpace(declaredName)) knownNames.Add(declaredName!);
                 if (element.Name != OdfNamespaces.Style + "style") continue;
                 string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");

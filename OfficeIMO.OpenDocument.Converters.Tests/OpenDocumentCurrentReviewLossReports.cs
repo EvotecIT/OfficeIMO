@@ -128,10 +128,13 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         ExcelSheet sheet = source.AddWorkSheet("Data");
         sheet.CellAt(1, 1).SetValue(1);
         sheet.CellAt(1, 2).SetFormula("sum(a1,'Data'!a1)");
+        source.SetNamedRange("A1_total", "'Data'!$A$1", save: false);
+        sheet.CellAt(1, 3).SetFormula("SUM(A1_total,a1)");
 
         using OdsDocument target = source.ToOpenDocument().Document;
 
         Assert.Equal("of:=sum([.a1];[$'Data'.a1])", target.GetSheet("Data")!.GetFormula(0, 1));
+        Assert.Equal("of:=SUM(A1_total;[.a1])", target.GetSheet("Data")!.GetFormula(0, 2));
     }
 
     [Fact]
@@ -185,6 +188,46 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Single(target.Slides);
         Assert.Contains("Text", target.Slides.Single().TextBoxes.Single().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OdsToExcelPrefersContentScopedDuplicateDataStyle() {
+        using OdsDocument template = OdsDocument.Create();
+        template.AddNumberStyle("Amount", 2);
+        template.AddSheet("Data").Cell(0, 0).SetNumber(12.5);
+        byte[] package = RewriteXmlEntry(template.ToBytes(), "styles.xml", document => {
+            XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
+            XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+            XNamespace number = "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0";
+            document.Root!.Element(office + "styles")!.Add(
+                new XElement(number + "percentage-style", new XAttribute(style + "name", "Amount")));
+        });
+        using OdsDocument source = OdsDocument.Open(new MemoryStream(package));
+
+        using ExcelDocument target = source.ToExcelDocument().Document;
+
+        Assert.Single(target.CreateInspectionSnapshot().Worksheets);
+    }
+
+    [Fact]
+    public void WordToOdtReportsHeaderFooterTablesAndLaterSectionDefaults() {
+        using WordDocument source = WordDocument.Create();
+        source.AddHeadersAndFooters();
+        source.Sections[0].Header.Default!.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Table";
+        WordSection second = source.AddSection();
+        second.AddHeadersAndFooters();
+        second.Header.Default!.AddParagraph("Later header");
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocument(new WordOpenDocumentConversionOptions {
+            IncludeHeadersAndFooters = true
+        });
+        using OdtDocument target = conversion.Document;
+        OdfConversionReport report = conversion.Report;
+
+        Assert.Contains(report.Mappings, mapping => mapping.Feature == "header-footer-tables" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+        Assert.Contains(report.Mappings, mapping => mapping.Feature == "section-headers-footers" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 1);
     }
 
     private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) {

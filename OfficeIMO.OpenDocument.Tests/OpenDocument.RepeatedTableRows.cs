@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -39,5 +40,31 @@ public sealed class OpenDocumentRepeatedTableRowTests {
             reopenedText.Tables.Single().Rows.Select(row => row.Cells[0].Text));
         Assert.Equal(new[] { "Slide row", "Changed slide row", "Slide row" }, reopenedPresentation.Slides.Single()
             .Shapes.OfType<OdpTable>().Single().Rows.Select(row => row.Cells[0].Text));
+    }
+
+    [Fact]
+    public void CachedTextAndPresentationCellCollectionsTrackRepeatedCellSplits() {
+        using OdtDocument text = OdtDocument.Create();
+        OdtTable textTable = text.AddTable(1, 1, "RepeatedTextCells");
+        textTable.Cell(0, 0).Text = "Original";
+        textTable.Element.Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        IReadOnlyList<OdtTableCell> textCells = textTable.Rows[0].Cells;
+
+        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpTable presentationTable = presentation.AddSlide("RepeatedCells").AddTable(
+            OdfRect.FromCentimeters(1, 1, 8, 4), 1, 1, "RepeatedPresentationCells");
+        presentationTable.Cell(0, 0).Text = "Original";
+        presentationTable.Element.Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        IReadOnlyList<OdpTableCell> presentationCells = presentationTable.Rows[0].Cells;
+
+        textCells[1].Text = "Middle";
+        textCells[2].Text = "Last";
+        presentationCells[1].Text = "Middle";
+        presentationCells[2].Text = "Last";
+
+        Assert.Equal(new[] { "Original", "Middle", "Last" }, textTable.Rows[0].Cells.Select(cell => cell.Text));
+        Assert.Equal(new[] { "Original", "Middle", "Last" }, presentationTable.Rows[0].Cells.Select(cell => cell.Text));
     }
 }

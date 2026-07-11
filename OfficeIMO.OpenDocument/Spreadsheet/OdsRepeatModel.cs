@@ -38,4 +38,21 @@ internal static class OdsRepeatModel {
         element.ReplaceWith(replacements);
         return target;
     }
+
+    internal static OdfRepeatedElementPosition Resolve(IReadOnlyList<XElement> elements, XName repeatAttribute, long logicalIndex) {
+        if (logicalIndex < 0) throw new ArgumentOutOfRangeException(nameof(logicalIndex));
+        long start = 0;
+        foreach (XElement element in elements) {
+            long repeat = Read(element, repeatAttribute);
+            if (logicalIndex < start + repeat) return new OdfRepeatedElementPosition(element, logicalIndex - start);
+            start = checked(start + repeat);
+        }
+        throw new ArgumentOutOfRangeException(nameof(logicalIndex));
+    }
+}
+
+internal readonly struct OdfRepeatedElementPosition {
+    internal OdfRepeatedElementPosition(XElement element, long offset) { Element = element; Offset = offset; }
+    internal XElement Element { get; }
+    internal long Offset { get; }
 }

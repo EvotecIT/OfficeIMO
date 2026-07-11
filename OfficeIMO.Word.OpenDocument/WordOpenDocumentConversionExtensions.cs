@@ -64,6 +64,13 @@ public static class WordOpenDocumentConversionExtensions {
             WordSectionSnapshot first = snapshot.Sections[0];
             CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header);
             CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer);
+            int firstDefaultTables = (first.DefaultHeader?.Tables.Count ?? 0) + (first.DefaultFooter?.Tables.Count ?? 0);
+            if (firstDefaultTables > 0) report.Add("header-footer-tables", OdfConversionMappingStatus.Skipped, firstDefaultTables,
+                "Tables in the first section's default header and footer are not represented by the current ODT header/footer surface.");
+            int laterDefaultBlocks = snapshot.Sections.Skip(1).Sum(section =>
+                (section.DefaultHeader?.Elements.Count ?? 0) + (section.DefaultFooter?.Elements.Count ?? 0));
+            if (laterDefaultBlocks > 0) report.Add("section-headers-footers", OdfConversionMappingStatus.Skipped, laterDefaultBlocks,
+                "Default header and footer content from later Word sections is omitted because ODT conversion emits one page layout.");
             int alternate = snapshot.Sections.Sum(section =>
                 (section.FirstHeader == null ? 0 : 1) + (section.FirstFooter == null ? 0 : 1) +
                 (section.EvenHeader == null ? 0 : 1) + (section.EvenFooter == null ? 0 : 1));

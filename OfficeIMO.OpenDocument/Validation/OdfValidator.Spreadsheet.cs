@@ -69,7 +69,7 @@ internal static partial class OdfValidator {
     private static List<ValidationRowRun> BuildRowRuns(XElement table) {
         var result = new List<ValidationRowRun>();
         long rowStart = 0;
-        foreach (XElement row in table.Elements(OdfNamespaces.Table + "table-row")) {
+        foreach (XElement row in OdfTableRowElements.Enumerate(table)) {
             long rowRepeat = ReadPositive(row, OdfNamespaces.Table + "number-rows-repeated");
             var cells = new List<ValidationCellRun>();
             long columnStart = 0;

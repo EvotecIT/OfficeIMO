@@ -59,20 +59,20 @@ internal sealed class OdsFormulaParser {
     }
 
     private OdsFormulaOperand ParseMultiplicative() {
-        OdsFormulaOperand left = ParsePower();
+        OdsFormulaOperand left = ParseUnary();
         while (_current.Kind == OdsFormulaTokenKind.Star || _current.Kind == OdsFormulaTokenKind.Slash) {
             OdsFormulaTokenKind operation = Take().Kind;
-            OdsFormulaValue right = ParsePower().RequireScalar();
+            OdsFormulaValue right = ParseUnary().RequireScalar();
             left = Scalar(NumericBinary(operation, left.RequireScalar(), right));
         }
         return left;
     }
 
     private OdsFormulaOperand ParsePower() {
-        OdsFormulaOperand left = ParseUnary();
+        OdsFormulaOperand left = ParsePostfix();
         if (_current.Kind == OdsFormulaTokenKind.Caret) {
             Take();
-            OdsFormulaValue right = ParsePower().RequireScalar();
+            OdsFormulaValue right = ParseUnary().RequireScalar();
             left = Scalar(NumericBinary(OdsFormulaTokenKind.Caret, left.RequireScalar(), right));
         }
         return left;
@@ -85,6 +85,10 @@ internal sealed class OdsFormulaParser {
             OdsFormulaValue value = ParseUnary().RequireScalar();
             return value.Kind == OdsFormulaValueKind.Error ? Scalar(value) : Scalar(Number(-RequireNumber(value)));
         }
+        return ParsePower();
+    }
+
+    private OdsFormulaOperand ParsePostfix() {
         OdsFormulaOperand result = ParsePrimary();
         while (_current.Kind == OdsFormulaTokenKind.Percent) {
             Take();

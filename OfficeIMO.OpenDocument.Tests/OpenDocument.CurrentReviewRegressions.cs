@@ -147,6 +147,35 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.Contains(document.DataStyles, style => style.Name == "Amount");
     }
 
+    [Fact]
+    public void SpreadsheetMergeValidationIncludesHeaderRows() {
+        using OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Anchor");
+        sheet.Cell(0, 1).SetString("Not covered");
+        XElement row = sheet.Element.Elements(OdfNamespaces.Table + "table-row").Single();
+        row.Elements(OdfNamespaces.Table + "table-cell").First()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-spanned", 2);
+        row.Remove();
+        sheet.Element.Add(new XElement(OdfNamespaces.Table + "table-header-rows", row));
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODS104");
+    }
+
+    [Fact]
+    public void DrawableNamesDoNotSatisfyMissingStyleReferences() {
+        using OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("Styled");
+        XDocument content = document.Package.GetXml("content.xml");
+        content.Descendants(OdfNamespaces.Text + "p").Single()
+            .SetAttributeValue(OdfNamespaces.Text + "style-name", "Missing");
+        content.Descendants(OdfNamespaces.Office + "text").Single().Add(
+            new XElement(OdfNamespaces.Draw + "frame", new XAttribute(OdfNamespaces.Draw + "name", "Missing")));
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODF200" &&
+            diagnostic.Message.Contains("Missing", StringComparison.Ordinal));
+    }
+
     private static void WrapFirstRowAsHeader(XElement table) {
         XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").First();
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();

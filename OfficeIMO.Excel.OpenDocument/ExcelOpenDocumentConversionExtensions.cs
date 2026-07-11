@@ -174,7 +174,8 @@ public static class ExcelOpenDocumentConversionExtensions {
         ExcelDocument target = ExcelDocument.Create(new MemoryStream(), autoSave: false);
         var report = new OdfConversionReport("ODS", "XLSX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
-        var dataStyles = source.DataStyles.ToDictionary(style => style.Name, style => style.Kind, StringComparer.Ordinal);
+        var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().Kind, StringComparer.Ordinal);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, styles = 0, hyperlinks = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
