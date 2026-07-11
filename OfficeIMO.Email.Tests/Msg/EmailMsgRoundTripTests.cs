@@ -289,6 +289,30 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void RetainsDepthLimitedEmbeddedMsgAsOpaqueStorageForLaterWriting() {
+        var child = new EmailDocument { Subject = "depth-limited child" };
+        child.Body.Text = "inside";
+        var parent = new EmailDocument { Subject = "parent" };
+        parent.Attachments.Add(new EmailAttachment { FileName = "child.msg", EmbeddedDocument = child });
+        byte[] source = new EmailDocumentWriter().WriteToBytes(parent, EmailFileFormat.OutlookMsg);
+
+        EmailReadResult limited = new EmailDocumentReader(new EmailReaderOptions(maxNestedMessageDepth: 0)).Read(source);
+        EmailAttachment opaque = Assert.Single(limited.Document.Attachments);
+        Assert.Null(opaque.EmbeddedDocument);
+        Assert.NotEmpty(opaque.StructuredStorageStreams);
+        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_NESTED_MESSAGE_LIMIT");
+
+        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(
+            limited.Document, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
+        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
+
+        Assert.DoesNotContain(writeResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+        Assert.Equal("depth-limited child", roundTrip.EmbeddedDocument!.Subject);
+        Assert.Equal("inside", roundTrip.EmbeddedDocument.Body.Text);
+    }
+
+    [Fact]
     public void ReadsMsgKitGeneratedMessageAsCompatibilityOracle() {
         string directory = Path.Combine(Path.GetTempPath(), string.Concat("OfficeIMO-Email-", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(directory);

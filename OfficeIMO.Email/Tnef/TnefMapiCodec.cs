@@ -1,6 +1,53 @@
 namespace OfficeIMO.Email;
 
 internal static class TnefMapiCodec {
+    internal static long GetAttachmentPayloadLength(byte[] data, int offset, int count, MsgParserState state) {
+        try {
+            var cursor = new PreflightCursor(data, offset, count);
+            uint propertyCount = cursor.ReadUInt32();
+            if (propertyCount > state.Options.MaxMapiPropertyCount) {
+                throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
+                    propertyCount, state.Options.MaxMapiPropertyCount);
+            }
+
+            long maximumPayloadLength = 0;
+            for (uint propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++) {
+                uint tag = cursor.ReadUInt32();
+                ushort propertyId = unchecked((ushort)(tag >> 16));
+                MapiPropertyType type = (MapiPropertyType)unchecked((ushort)tag);
+                if (propertyId >= 0x8000) SkipNamedProperty(cursor);
+
+                bool multiple = MsgValueWriter.IsMultiple(type);
+                bool variable = IsVariableValue(type) || multiple;
+                if (!variable) {
+                    cursor.Skip(GetFixedSize(type));
+                    cursor.Align4();
+                    continue;
+                }
+
+                uint valueCount = cursor.ReadUInt32();
+                if (valueCount > state.Options.MaxMapiPropertyCount) {
+                    throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
+                        valueCount, state.Options.MaxMapiPropertyCount);
+                }
+                MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(type) : type;
+                for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+                    long itemLength = IsVariableValue(itemType) ? cursor.ReadUInt32() : GetFixedSize(itemType);
+                    if (propertyId == 0x3701 && itemLength > maximumPayloadLength) {
+                        maximumPayloadLength = itemLength;
+                    }
+                    if (itemLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
+                    cursor.Skip((int)itemLength);
+                    cursor.Align4();
+                }
+            }
+            return maximumPayloadLength;
+        } catch (Exception exception) when (exception is InvalidDataException || exception is ArgumentOutOfRangeException ||
+            exception is OverflowException || exception is IndexOutOfRangeException) {
+            return 0;
+        }
+    }
+
     internal static List<MapiProperty> ReadProperties(byte[] data, int codePage, MsgParserState state, string location) {
         var cursor = new Cursor(data);
         return ReadPropertyArray(cursor, codePage, state, location);
@@ -200,7 +247,7 @@ internal static class TnefMapiCodec {
             WriteUInt32(output, unchecked((uint)values.Length));
             MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(property.PropertyType) : property.PropertyType;
             foreach (object value in values) {
-                var item = new MapiProperty(propertyId, itemType, value) { RawData = property.RawData };
+                var item = new MapiProperty(propertyId, itemType, value) { RawData = multiple ? null : property.RawData };
                 byte[] bytes = EncodeValue(item, codePage);
                 if (IsVariableValue(itemType)) WriteUInt32(output, unchecked((uint)bytes.Length));
                 output.Write(bytes, 0, bytes.Length);
@@ -239,6 +286,7 @@ internal static class TnefMapiCodec {
 
     private static byte[] EncodeValue(MapiProperty property, int codePage) {
         if (property.PropertyType == MapiPropertyType.String8) {
+            if (property.RawData != null) return (byte[])property.RawData.Clone();
             string text = string.Concat(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty, "\0");
             return MsgValueWriter.EncodeString8(text, codePage);
         }
@@ -275,6 +323,53 @@ internal static class TnefMapiCodec {
 
     private static void Pad4(Stream stream) {
         while (stream.Position % 4 != 0) stream.WriteByte(0);
+    }
+
+    private static void SkipNamedProperty(PreflightCursor cursor) {
+        cursor.Skip(16);
+        uint kind = cursor.ReadUInt32();
+        if (kind == 0) {
+            cursor.Skip(4);
+            return;
+        }
+        if (kind != 1) throw new InvalidDataException("Unknown TNEF named-property kind.");
+        uint characters = cursor.ReadUInt32();
+        if (characters > int.MaxValue / 2) throw new InvalidDataException("TNEF named-property string is too large.");
+        cursor.Skip(checked((int)characters * 2));
+        cursor.Align4();
+    }
+
+    private sealed class PreflightCursor {
+        private readonly byte[] _data;
+        private readonly int _origin;
+        private readonly int _end;
+
+        internal PreflightCursor(byte[] data, int offset, int count) {
+            if (offset < 0 || count < 0 || offset > data.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
+            _data = data;
+            _origin = offset;
+            _end = offset + count;
+            Position = offset;
+        }
+
+        internal int Position { get; private set; }
+
+        internal uint ReadUInt32() {
+            if (Position > _end - 4) throw new InvalidDataException("TNEF MAPI property data is truncated.");
+            uint value = MsgBinary.ReadUInt32(_data, Position);
+            Position += 4;
+            return value;
+        }
+
+        internal void Skip(int count) {
+            if (count < 0 || Position > _end - count) throw new InvalidDataException("TNEF MAPI property data is truncated.");
+            Position += count;
+        }
+
+        internal void Align4() {
+            int remainder = (Position - _origin) % 4;
+            if (remainder != 0) Skip(4 - remainder);
+        }
     }
 
     private sealed class Cursor {

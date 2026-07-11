@@ -98,7 +98,8 @@ internal static class TnefReader {
     private static List<ParsedAttribute> ParseAttributes(byte[] data, MsgParserState state, string location) {
         var result = new List<ParsedAttribute>();
         int offset = 6;
-        long pendingAttachmentBytes = 0;
+        long completedAttachmentBytes = 0;
+        long currentAttachmentBytes = 0;
         while (offset < data.Length) {
             state.CountTnefAttribute();
             if (offset + 9 > data.Length) {
@@ -116,9 +117,20 @@ internal static class TnefReader {
                     "A TNEF attribute length exceeds the remaining input.", EmailDiagnosticSeverity.Error, location));
                 break;
             }
-            if (rawLevel == (byte)TnefAttributeLevel.Attachment && tag == TnefConstants.AttachData) {
-                state.EnsureAttachmentBytesWithinLimits(rawLength, pendingAttachmentBytes);
-                pendingAttachmentBytes = checked(pendingAttachmentBytes + rawLength);
+            if (rawLevel == (byte)TnefAttributeLevel.Attachment) {
+                if (tag == TnefConstants.AttachRendData) {
+                    completedAttachmentBytes = checked(completedAttachmentBytes + currentAttachmentBytes);
+                    currentAttachmentBytes = 0;
+                }
+                long candidateLength = tag == TnefConstants.AttachData
+                    ? rawLength
+                    : tag == TnefConstants.AttachmentProperties
+                        ? TnefMapiCodec.GetAttachmentPayloadLength(data, offset, (int)rawLength, state)
+                        : 0;
+                if (candidateLength > currentAttachmentBytes) {
+                    currentAttachmentBytes = candidateLength;
+                    state.EnsureAttachmentBytesWithinLimits(currentAttachmentBytes, completedAttachmentBytes);
+                }
             }
             byte[] bytes = MsgBinary.Slice(data, offset, (int)rawLength);
             offset += (int)rawLength;

@@ -123,13 +123,17 @@ internal static class MimeWriter {
             ? "message/rfc822"
             : string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType!;
         if (!embeddedMessage && contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
-            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MULTIPART_ATTACHMENT_WRITTEN_OPAQUE",
-                "A retained multipart attachment was written as application/octet-stream because its boundary metadata is not part of the attachment model.",
-                EmailDiagnosticSeverity.Warning, string.Concat("attachment[", index.ToString(CultureInfo.InvariantCulture), "]")));
-            contentType = "application/octet-stream";
+            if (!attachment.ContentTypeParameters.TryGetValue("boundary", out string? retainedBoundary) ||
+                string.IsNullOrWhiteSpace(retainedBoundary)) {
+                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MULTIPART_ATTACHMENT_WRITTEN_OPAQUE",
+                    "A retained multipart attachment was written as application/octet-stream because its boundary metadata is unavailable.",
+                    EmailDiagnosticSeverity.Warning, string.Concat("attachment[", index.ToString(CultureInfo.InvariantCulture), "]")));
+                contentType = "application/octet-stream";
+            }
         }
         string? fileName = attachment.FileName;
-        WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType), FormatFileNameParameter("name", fileName)));
+        WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
+            FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));
         WriteLine(output, string.Concat("Content-Disposition: ", attachment.IsInline ? "inline" : "attachment",
             FormatFileNameParameter("filename", fileName)));
         if (!string.IsNullOrWhiteSpace(attachment.ContentId)) {
@@ -146,8 +150,6 @@ internal static class MimeWriter {
             return;
         }
 
-        WriteLine(output, "Content-Transfer-Encoding: base64");
-        WriteLine(output, string.Empty);
         byte[] content = attachment.Content ?? Array.Empty<byte>();
         if (attachment.Content == null && attachment.Length > 0) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
@@ -155,6 +157,15 @@ internal static class MimeWriter {
                     " has a declared length but no retained content; an empty payload was written."),
                 EmailDiagnosticSeverity.Error, string.Concat("attachment[", index.ToString(CultureInfo.InvariantCulture), "]")));
         }
+        if (contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
+            WriteLine(output, "Content-Transfer-Encoding: 8bit");
+            WriteLine(output, string.Empty);
+            WriteRawEntity(output, content);
+            return;
+        }
+
+        WriteLine(output, "Content-Transfer-Encoding: base64");
+        WriteLine(output, string.Empty);
         WriteBase64(output, content, state.Options.Base64LineLength);
     }
 
@@ -266,6 +277,25 @@ internal static class MimeWriter {
             }
         }
         return string.Concat("; ", name, "*=utf-8''", encoded.ToString());
+    }
+
+    private static string FormatContentTypeParameters(IEnumerable<KeyValuePair<string, string>> parameters) {
+        var result = new StringBuilder();
+        foreach (KeyValuePair<string, string> parameter in parameters
+            .Where(parameter => !string.Equals(parameter.Key, "name", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(parameter => parameter.Key, StringComparer.OrdinalIgnoreCase)) {
+            string name = new string(parameter.Key.Where(character => char.IsLetterOrDigit(character) ||
+                character == '-' || character == '_').ToArray());
+            if (name.Length > 0) result.Append(FormatFileNameParameter(name, parameter.Value));
+        }
+        return result.ToString();
+    }
+
+    private static void WriteRawEntity(Stream output, byte[] content) {
+        if (content.Length > 0) output.Write(content, 0, content.Length);
+        if (content.Length < 2 || content[content.Length - 2] != '\r' || content[content.Length - 1] != '\n') {
+            WriteLine(output, string.Empty);
+        }
     }
 
     private static string SanitizeAddress(string value) {

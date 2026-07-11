@@ -23,14 +23,15 @@ internal static class MimeParser {
     }
 
     private static void ParseEntity(IReadOnlyList<EmailHeader> headers, byte[] data, int offset, int count,
-        EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location) {
+        EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location,
+        string defaultContentType = "text/plain") {
         if (mimeDepth > state.Options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
         state.CountPart();
 
         MimeValue contentType = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Type"),
-            "text/plain", state.Diagnostics, location);
+            defaultContentType, state.Diagnostics, location);
         MimeValue disposition = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Disposition"),
             string.Empty, state.Diagnostics, location);
         string? transferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
@@ -50,6 +51,9 @@ internal static class MimeParser {
             }
 
             List<ArraySegment<byte>> parts = SplitMultipart(data, offset, count, boundary!, state, location);
+            string childDefaultContentType = string.Equals(contentType.Value, "multipart/digest", StringComparison.OrdinalIgnoreCase)
+                ? "message/rfc822"
+                : "text/plain";
             for (int i = 0; i < parts.Count; i++) {
                 state.ThrowIfCancellationRequested();
                 string partLocation = string.Concat(location, "/part[", i.ToString(CultureInfo.InvariantCulture), "]");
@@ -59,12 +63,12 @@ internal static class MimeParser {
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
-                    document, state, mimeDepth + 1, nestedMessageDepth, partLocation);
+                    document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType);
             }
             return;
         }
 
-        bool isBody = !attachmentDisposition && !inlineDisposition && string.IsNullOrWhiteSpace(fileName) &&
+        bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
             string.IsNullOrWhiteSpace(contentId) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
@@ -127,7 +131,7 @@ internal static class MimeParser {
 
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
         MimeValue disposition, string? fileName, bool inlineDisposition, byte[]? content, long length) {
-        return new EmailAttachment {
+        var attachment = new EmailAttachment {
             FileName = fileName,
             ContentType = contentType.Value,
             ContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(headers, "Content-ID")),
@@ -136,6 +140,12 @@ internal static class MimeParser {
             Length = length,
             Content = content
         };
+        foreach (KeyValuePair<string, string> parameter in contentType.Parameters) {
+            if (!string.Equals(parameter.Key, "name", StringComparison.OrdinalIgnoreCase)) {
+                attachment.ContentTypeParameters[parameter.Key] = parameter.Value;
+            }
+        }
+        return attachment;
     }
 
     private static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,

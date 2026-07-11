@@ -51,6 +51,11 @@ internal static class MsgWriter {
             if (method == 5 && attachment.EmbeddedDocument != null) {
                 BuildMessage(attachment.EmbeddedDocument, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,
                     names, streams, diagnostics, options, depth + 1);
+            } else if (method == 5 && attachment.StructuredStorageStreams.Count > 0) {
+                foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
+                    .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
+                    streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
+                }
             } else if (method == 6) {
                 foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
                     .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
@@ -248,7 +253,7 @@ internal static class MsgWriter {
         properties.Set(0x370D, MapiPropertyType.Unicode, attachment.LinkedPath);
         if (method == 5 || method == 6) {
             properties.Set(0x3701, MapiPropertyType.Object, null);
-            if (method == 5 && attachment.EmbeddedDocument == null) {
+            if (method == 5 && attachment.EmbeddedDocument == null && attachment.StructuredStorageStreams.Count == 0) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
                     "An embedded MSG attachment has no retained embedded document.",
                     EmailDiagnosticSeverity.Error, location));

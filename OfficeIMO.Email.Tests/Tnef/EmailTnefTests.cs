@@ -140,6 +140,20 @@ public sealed class EmailTnefTests {
     }
 
     [Fact]
+    public void PreservesRetainedString8RawBytesUntilTheyAreExplicitlyCleared() {
+        byte[] raw = { 0x80, 0x00 };
+        var source = new MapiProperty(0x66AB, MapiPropertyType.String8, "replacement") { RawData = raw };
+        var diagnostics = new List<EmailDiagnostic>();
+        byte[] bytes = TnefMapiCodec.WriteProperties(new[] { source }, 1252, diagnostics, "tnef/mapi");
+        var state = new MsgParserState(EmailReaderOptions.Default, diagnostics, CancellationToken.None);
+
+        MapiProperty property = Assert.Single(TnefMapiCodec.ReadProperties(bytes, 1252, state, "tnef/mapi"));
+
+        Assert.Equal(raw, property.RawData);
+        Assert.Equal("€", property.Value);
+    }
+
+    [Fact]
     public void WritesFixedWidthNullPropertiesWithoutDesynchronizingFollowingValues() {
         var source = new[] {
             new MapiProperty(0x66AA, MapiPropertyType.Null, null),

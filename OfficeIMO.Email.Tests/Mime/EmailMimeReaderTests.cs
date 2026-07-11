@@ -62,15 +62,17 @@ public sealed class EmailMimeReaderTests {
         EmailAttachment attachment = Assert.Single(document.Attachments);
         Assert.Equal("delivery-report.mime", attachment.FileName);
         Assert.Equal("multipart/report", attachment.ContentType);
+        Assert.Equal("report", attachment.ContentTypeParameters["boundary"]);
         Assert.Contains("inner report", Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)),
             StringComparison.Ordinal);
 
         byte[] rewritten = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.Eml,
             out EmailWriteResult writeResult);
         EmailAttachment rewrittenAttachment = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
-        Assert.Contains(writeResult.Diagnostics,
+        Assert.DoesNotContain(writeResult.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_MULTIPART_ATTACHMENT_WRITTEN_OPAQUE");
-        Assert.Equal("application/octet-stream", rewrittenAttachment.ContentType);
+        Assert.Equal("multipart/report", rewrittenAttachment.ContentType);
+        Assert.Equal("report", rewrittenAttachment.ContentTypeParameters["boundary"]);
         Assert.Equal(attachment.Content, rewrittenAttachment.Content);
     }
 
@@ -209,5 +211,60 @@ public sealed class EmailMimeReaderTests {
         Assert.True(attachment.IsInline);
         Assert.Equal("caption", attachment.ContentId);
         Assert.Equal("inline caption", Encoding.UTF8.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
+    }
+
+    [Fact]
+    public void TreatsInlineTextWithoutAttachmentIdentityAsBody() {
+        const string eml = "Subject: inline body\r\nContent-Type: text/plain; charset=utf-8\r\n" +
+            "Content-Disposition: inline\r\n\r\nbody text";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("body text", document.Body.Text);
+        Assert.Empty(document.Attachments);
+    }
+
+    [Fact]
+    public void ParsesAddressGroupsAndIgnoresEmptyGroups() {
+        const string eml = "To: undisclosed-recipients:;, Team: Alice <alice@example.com>, Bob <bob@example.com>;\r\n\r\nbody";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal(2, document.Recipients.Count);
+        Assert.Equal("alice@example.com", document.Recipients[0].Address.Address);
+        Assert.Equal("bob@example.com", document.Recipients[1].Address.Address);
+    }
+
+    [Fact]
+    public void DefaultsMultipartDigestChildrenToEmbeddedMessages() {
+        const string eml = "Subject: digest\r\nContent-Type: multipart/digest; boundary=d\r\n\r\n" +
+            "--d\r\n\r\nFrom: child@example.com\r\nSubject: Digest child\r\n\r\nchild body\r\n" +
+            "--d--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Equal("message/rfc822", attachment.ContentType);
+        Assert.Equal("Digest child", attachment.EmbeddedDocument!.Subject);
+        Assert.Equal("child body", attachment.EmbeddedDocument.Body.Text!.Trim());
+    }
+
+    [Fact]
+    public void RoundTripsSemanticAttachmentContentTypeParameters() {
+        const string eml = "Subject: invite\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain\r\n\r\nbody\r\n" +
+            "--x\r\nContent-Type: text/calendar; method=REQUEST; charset=utf-8; name=invite.ics\r\n" +
+            "Content-Disposition: attachment; filename=invite.ics\r\n\r\nBEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n" +
+            "--x--\r\n";
+
+        EmailDocument parsed = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+        EmailAttachment attachment = Assert.Single(parsed.Attachments);
+        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(parsed);
+        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
+
+        Assert.Equal("REQUEST", attachment.ContentTypeParameters["method"]);
+        Assert.Equal("utf-8", attachment.ContentTypeParameters["charset"]);
+        Assert.False(attachment.ContentTypeParameters.ContainsKey("name"));
+        Assert.Equal(attachment.ContentTypeParameters, roundTrip.ContentTypeParameters);
     }
 }

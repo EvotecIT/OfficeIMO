@@ -114,8 +114,17 @@ internal static class MsgReader {
             attachment.Length = total;
             state.CountAttachment(total);
             if (nestedDepth >= state.Options.MaxNestedMessageDepth) {
+                if (state.Options.IncludeAttachmentContent) {
+                    string storagePrefix = string.Concat(objectStorage, "/");
+                    foreach (KeyValuePair<string, byte[]> stream in compound.Streams.Where(item =>
+                        item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
+                        attachment.StructuredStorageStreams[stream.Key.Substring(storagePrefix.Length)] = stream.Value;
+                    }
+                }
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_NESTED_MESSAGE_LIMIT",
-                    "The embedded MSG was retained but not projected because the nested-message limit was reached.",
+                    state.Options.IncludeAttachmentContent
+                        ? "The embedded MSG was retained as opaque storage but not projected because the nested-message limit was reached."
+                        : "The embedded MSG was not projected because the nested-message limit was reached and attachment content retention is disabled.",
                     EmailDiagnosticSeverity.Warning, objectStorage));
             } else {
                 attachment.EmbeddedDocument = ReadMessage(compound, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,

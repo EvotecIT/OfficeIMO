@@ -79,6 +79,14 @@ internal static class MimeHeaderParser {
     }
 
     private static int FindHeaderEnd(byte[] data, int offset, int end, out int separatorLength) {
+        if (offset < end && data[offset] == '\r') {
+            separatorLength = offset + 1 < end && data[offset + 1] == '\n' ? 2 : 1;
+            return offset;
+        }
+        if (offset < end && data[offset] == '\n') {
+            separatorLength = 1;
+            return offset;
+        }
         for (int i = offset; i < end; i++) {
             if (i + 3 < end && data[i] == '\r' && data[i + 1] == '\n' && data[i + 2] == '\r' && data[i + 3] == '\n') {
                 separatorLength = 4;

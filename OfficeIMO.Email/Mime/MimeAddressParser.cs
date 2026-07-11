@@ -40,6 +40,7 @@ internal static class MimeAddressParser {
         StringBuilder current = new StringBuilder();
         bool quoted = false;
         bool escaped = false;
+        bool inGroup = false;
         int angleDepth = 0;
         int commentDepth = 0;
         for (int index = 0; index < input.Length; index++) {
@@ -69,6 +70,18 @@ internal static class MimeAddressParser {
                 if (character == '(') commentDepth++;
                 if (character == ')' && commentDepth > 0) commentDepth--;
             }
+            if (character == ':' && !quoted && angleDepth == 0 && commentDepth == 0 && !inGroup &&
+                IsGroupLabel(current)) {
+                current.Clear();
+                inGroup = true;
+                continue;
+            }
+            if (character == ';' && !quoted && angleDepth == 0 && commentDepth == 0 && inGroup) {
+                if (current.Length > 0) yield return current.ToString();
+                current.Clear();
+                inGroup = false;
+                continue;
+            }
             if ((character == ',' || (allowSemicolonSeparator && character == ';')) &&
                 !quoted && angleDepth == 0 && commentDepth == 0) {
                 if (current.Length > 0) yield return current.ToString();
@@ -78,6 +91,11 @@ internal static class MimeAddressParser {
             }
         }
         if (current.Length > 0) yield return current.ToString();
+    }
+
+    private static bool IsGroupLabel(StringBuilder value) {
+        string candidate = value.ToString().Trim();
+        return candidate.Length > 0 && candidate.IndexOf('@') < 0;
     }
 
     private static string DecodeDisplayName(string value) {
