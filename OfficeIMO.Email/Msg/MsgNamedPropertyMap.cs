@@ -30,10 +30,10 @@ internal sealed class MsgNamedPropertyMap {
             state.ThrowIfCancellationRequested();
             int offset = index * 8;
             uint identifier = MsgBinary.ReadUInt32(entries, offset);
-            uint indexAndKind = MsgBinary.ReadUInt32(entries, offset + 4);
-            ushort propertyIndex = unchecked((ushort)indexAndKind);
-            int guidIndex = (int)((indexAndKind >> 16) & 0x7fff);
-            bool stringNamed = (indexAndKind & 0x80000000U) != 0;
+            ushort guidAndKind = MsgBinary.ReadUInt16(entries, offset + 4);
+            ushort propertyIndex = MsgBinary.ReadUInt16(entries, offset + 6);
+            int guidIndex = guidAndKind >> 1;
+            bool stringNamed = (guidAndKind & 0x0001) != 0;
             Guid? propertySet = ResolveGuid(guidIndex, guidBytes);
             if (!propertySet.HasValue) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_NAMEID_GUID_INVALID",
@@ -56,7 +56,7 @@ internal sealed class MsgNamedPropertyMap {
             } else {
                 name = new MapiNamedProperty(propertySet.Value, identifier);
             }
-            result._properties[unchecked((ushort)(0x8000 + propertyIndex))] = name;
+            result._properties[checked((ushort)(0x8000 + propertyIndex))] = name;
         }
         return result;
     }

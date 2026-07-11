@@ -13,6 +13,8 @@ public sealed class MsgMetadataRoundTripTests {
             MessageClass = "IPM.Note",
             Subject = "RE: Metadata",
             From = new EmailAddress("owner@example.com", "Owner") { AddressType = "SMTP" },
+            ReceivedBy = new EmailAddress("reader@example.com", "Reader") { AddressType = "SMTP" },
+            ReceivedRepresenting = new EmailAddress("team@example.com", "Team") { AddressType = "SMTP" },
             OutlookCodePage = 1250
         };
         source.MessageMetadata.SubjectPrefix = "RE: ";
@@ -27,6 +29,13 @@ public sealed class MsgMetadataRoundTripTests {
         source.MessageMetadata.IsDraft = true;
         source.MessageMetadata.IsRead = true;
         source.MessageMetadata.ReadReceiptRequested = true;
+        source.MessageMetadata.DeliveryReceiptRequested = true;
+        source.MessageMetadata.Sensitivity = 2;
+        source.MessageMetadata.OriginalSensitivity = 1;
+        source.MessageMetadata.LastModifierName = "Modifier";
+        source.MessageMetadata.LocaleId = 1045;
+        source.MessageMetadata.ConversationId = new byte[] { 9, 8, 7 };
+        source.MessageMetadata.EditorFormat = 2;
         source.MessageMetadata.CreatedDate = created;
         source.MessageMetadata.ModifiedDate = modified;
         source.MessageMetadata.Categories.Add("Customer");
@@ -72,6 +81,13 @@ public sealed class MsgMetadataRoundTripTests {
         Assert.True(parsed.MessageMetadata.IsDraft);
         Assert.True(parsed.MessageMetadata.IsRead);
         Assert.True(parsed.MessageMetadata.ReadReceiptRequested);
+        Assert.True(parsed.MessageMetadata.DeliveryReceiptRequested);
+        Assert.Equal(2, parsed.MessageMetadata.Sensitivity);
+        Assert.Equal(1, parsed.MessageMetadata.OriginalSensitivity);
+        Assert.Equal("Modifier", parsed.MessageMetadata.LastModifierName);
+        Assert.Equal(1045, parsed.MessageMetadata.LocaleId);
+        Assert.Equal(new byte[] { 9, 8, 7 }, parsed.MessageMetadata.ConversationId);
+        Assert.Equal(2, parsed.MessageMetadata.EditorFormat);
         Assert.Equal(created, parsed.MessageMetadata.CreatedDate);
         Assert.Equal(modified, parsed.MessageMetadata.ModifiedDate);
         Assert.Equal(new[] { "Customer", "Follow up" }, parsed.MessageMetadata.Categories);
@@ -82,6 +98,8 @@ public sealed class MsgMetadataRoundTripTests {
             recipient.Address.Address == "boardroom@example.com");
         Assert.Contains(parsed.Recipients, recipient => recipient.Kind == EmailRecipientKind.ReplyTo &&
             recipient.Address.Address == "replies@example.com");
+        Assert.Equal("reader@example.com", parsed.ReceivedBy!.Address);
+        Assert.Equal("team@example.com", parsed.ReceivedRepresenting!.Address);
 
         EmailAttachment attachment = Assert.Single(parsed.Attachments);
         Assert.True(attachment.IsInline);
@@ -97,6 +115,7 @@ public sealed class MsgMetadataRoundTripTests {
         Assert.Equal(3, oracle.Recipients!.Count);
         Assert.Contains(oracle.Recipients, recipient => recipient.Type == global::MsgReader.Outlook.RecipientType.Resource);
         Assert.Contains(oracle.Recipients, recipient => recipient.Type == global::MsgReader.Outlook.RecipientType.Room);
+        Assert.Equal("reader@example.com", oracle.ReceivedBy.Email);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
     }
 

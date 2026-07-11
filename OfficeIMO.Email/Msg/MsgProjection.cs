@@ -35,6 +35,10 @@ internal static class MsgProjection {
             properties, 0x0042, 0x5D02, 0x0065, 0x0064);
         document.Sender = MsgAddressProjection.ReadAddress(
             properties, 0x0C1A, 0x5D01, 0x0C1F, 0x0C1E);
+        document.ReceivedBy = MsgAddressProjection.ReadAddress(
+            properties, 0x0040, 0x0076, 0x0076, 0x0075);
+        document.ReceivedRepresenting = MsgAddressProjection.ReadAddress(
+            properties, 0x0044, 0x0078, 0x0078, 0x0077);
 
         string? transportHeaders = GetString(properties, 0x007D);
         if (!string.IsNullOrWhiteSpace(transportHeaders)) {
@@ -94,8 +98,16 @@ internal static class MsgProjection {
         metadata.IsDraft = (flags & 0x0008) != 0;
         metadata.IsRead = (flags & 0x0001) != 0;
         metadata.ReadReceiptRequested = GetBool(properties, 0x0029) ?? false;
+        metadata.DeliveryReceiptRequested = GetBool(properties, 0x0023) ?? false;
+        metadata.Sensitivity = GetInt(properties, 0x0036);
+        metadata.OriginalSensitivity = GetInt(properties, 0x002E);
         metadata.CreatedDate = GetDate(properties, 0x3007);
         metadata.ModifiedDate = GetDate(properties, 0x3008);
+        metadata.LastModifierName = GetString(properties, 0x3FFA);
+        metadata.LocaleId = GetInt(properties, 0x3FF1);
+        metadata.DeclaredSize = GetInt(properties, 0x0E08);
+        metadata.ConversationId = properties.FirstOrDefault(property => property.PropertyId == 0x3013)?.Value as byte[];
+        metadata.EditorFormat = GetInt(properties, 0x5909);
         foreach (string category in GetNamedStrings(properties, PsPublicStrings, "Keywords", 0x9000)) {
             metadata.Categories.Add(category);
         }

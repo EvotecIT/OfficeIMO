@@ -40,6 +40,30 @@ public sealed class EmailMessageMetadata {
     /// <summary>Whether a read receipt was requested.</summary>
     public bool ReadReceiptRequested { get; set; }
 
+    /// <summary>Whether a delivery receipt was requested.</summary>
+    public bool DeliveryReceiptRequested { get; set; }
+
+    /// <summary>MAPI sensitivity value.</summary>
+    public int? Sensitivity { get; set; }
+
+    /// <summary>Original MAPI sensitivity value before a change.</summary>
+    public int? OriginalSensitivity { get; set; }
+
+    /// <summary>Name stamped as the last modifier.</summary>
+    public string? LastModifierName { get; set; }
+
+    /// <summary>Windows locale identifier stamped on the message.</summary>
+    public int? LocaleId { get; set; }
+
+    /// <summary>Declared source message size.</summary>
+    public int? DeclaredSize { get; set; }
+
+    /// <summary>Binary conversation identifier.</summary>
+    public byte[]? ConversationId { get; set; }
+
+    /// <summary>Outlook editor-format numeric value.</summary>
+    public int? EditorFormat { get; set; }
+
     /// <summary>Message creation timestamp.</summary>
     public DateTimeOffset? CreatedDate { get; set; }
 

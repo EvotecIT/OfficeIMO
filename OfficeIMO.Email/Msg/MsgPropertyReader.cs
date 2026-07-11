@@ -31,8 +31,12 @@ internal static class MsgPropertyReader {
         }
         int remainder = propertyStream.Length - headerLength;
         if (remainder % 16 != 0) {
-            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTIES_MISALIGNED",
-                "The MSG property stream has a trailing partial entry.", EmailDiagnosticSeverity.Warning, propertyPath));
+            int completeLength = headerLength + remainder / 16 * 16;
+            bool hasNonZeroTail = propertyStream.Skip(completeLength).Any(value => value != 0);
+            if (hasNonZeroTail) {
+                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTIES_MISALIGNED",
+                    "The MSG property stream has a trailing nonzero partial entry.", EmailDiagnosticSeverity.Warning, propertyPath));
+            }
         }
 
         encoding = MapiStringEncodingContext.Resolve(propertyStream, headerLength, inheritedEncoding);

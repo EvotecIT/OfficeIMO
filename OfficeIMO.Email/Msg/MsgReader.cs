@@ -49,6 +49,8 @@ internal static class MsgReader {
             state.ThrowIfCancellationRequested();
             ReadAttachment(compound, attachmentPath, names, state, document, nestedDepth, encoding);
         }
+        EmailProtectionProjection.Apply(document, state.Diagnostics,
+            string.IsNullOrEmpty(prefix) ? "msg" : prefix);
         return document;
     }
 
@@ -129,6 +131,13 @@ internal static class MsgReader {
             long length = content?.LongLength ?? attachment.Length;
             state.CountAttachment(length);
             attachment.Content = state.Options.IncludeAttachmentContent && content != null ? (byte[])content.Clone() : null;
+            if (content != null && IsTnef(content) && nestedDepth < state.Options.MaxNestedMessageDepth) {
+                attachment.EmbeddedDocument = TnefReader.Read(content, state.Options, state.Diagnostics, state.CancellationToken);
+            } else if (content != null && IsTnef(content)) {
+                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_NESTED_MESSAGE_LIMIT",
+                    "The encapsulated TNEF attachment was retained but not projected because the nested-message limit was reached.",
+                    EmailDiagnosticSeverity.Warning, path));
+            }
         }
 
         if (!state.Options.IncludeAttachmentContent) {
@@ -154,4 +163,6 @@ internal static class MsgReader {
     private static string? TrimAngle(string? value) {
         return string.IsNullOrWhiteSpace(value) ? value : value!.Trim().Trim('<', '>');
     }
+
+    private static bool IsTnef(byte[] bytes) => bytes.Length >= 4 && MsgBinary.ReadUInt32(bytes, 0) == 0x223E9F78;
 }

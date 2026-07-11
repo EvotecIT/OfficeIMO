@@ -49,10 +49,11 @@ internal sealed class MsgNamedPropertyWriter {
                 }
 
                 WriteUInt32(entryStream, identifier);
-                uint propertyIndex = unchecked((uint)(entry.PropertyId - 0x8000));
-                uint indexAndKind = propertyIndex | (unchecked((uint)guidIndex) << 16);
-                if (stringNamed) indexAndKind |= 0x80000000U;
-                WriteUInt32(entryStream, indexAndKind);
+                ushort propertyIndex = unchecked((ushort)(entry.PropertyId - 0x8000));
+                ushort guidAndKind = checked((ushort)(guidIndex << 1));
+                if (stringNamed) guidAndKind |= 0x0001;
+                WriteUInt16(entryStream, guidAndKind);
+                WriteUInt16(entryStream, propertyIndex);
             }
 
             using (MemoryStream guidStream = new MemoryStream()) {
@@ -76,6 +77,12 @@ internal sealed class MsgNamedPropertyWriter {
     private static void WriteUInt32(Stream stream, uint value) {
         byte[] bytes = new byte[4];
         MsgBinary.WriteUInt32(bytes, 0, value);
+        stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static void WriteUInt16(Stream stream, ushort value) {
+        byte[] bytes = new byte[2];
+        MsgBinary.WriteUInt16(bytes, 0, value);
         stream.Write(bytes, 0, bytes.Length);
     }
 

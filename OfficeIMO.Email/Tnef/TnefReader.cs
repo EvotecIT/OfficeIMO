@@ -86,6 +86,7 @@ internal static class TnefReader {
             state.ThrowIfCancellationRequested();
             ProjectAttachment(attachment, data, state, nestedDepth, location);
         }
+        EmailProtectionProjection.Apply(document, state.Diagnostics, location);
         return document;
     }
 

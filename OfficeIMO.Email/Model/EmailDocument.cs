@@ -30,6 +30,12 @@ public sealed class EmailDocument {
     /// <summary>Actual sender address when different from From.</summary>
     public EmailAddress? Sender { get; set; }
 
+    /// <summary>Recipient stamped by the message store as having received the message.</summary>
+    public EmailAddress? ReceivedBy { get; set; }
+
+    /// <summary>Represented recipient stamped by the message store.</summary>
+    public EmailAddress? ReceivedRepresenting { get; set; }
+
     /// <summary>Message-ID value.</summary>
     public string? MessageId { get; set; }
 
@@ -44,6 +50,9 @@ public sealed class EmailDocument {
 
     /// <summary>Common Outlook/MAPI message metadata.</summary>
     public EmailMessageMetadata MessageMetadata { get; } = new EmailMessageMetadata();
+
+    /// <summary>Protected-message classification and cryptographic payload handoff.</summary>
+    public EmailProtectionInfo Protection { get; } = new EmailProtectionInfo();
 
     /// <summary>Ordered, duplicate-preserving headers.</summary>
     public IList<EmailHeader> Headers => _headers;

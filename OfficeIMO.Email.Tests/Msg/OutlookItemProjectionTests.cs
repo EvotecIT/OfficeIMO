@@ -5,6 +5,27 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class OutlookItemProjectionTests {
     [Fact]
+    public void ReadsMsgKitNamedPropertyLayoutWithoutMappingDiagnostics() {
+        var sender = new MsgKit.Sender("sender@example.com", "Sender");
+        using var contact = new MsgKit.Contact(sender, "MsgKit contact") {
+            GivenName = "Ada",
+            SurName = "Lovelace",
+            FileUnder = "Lovelace, Ada",
+            Email1 = new MsgKit.Address("ada@example.com", "Ada Lovelace")
+        };
+        using MemoryStream stream = new MemoryStream();
+        contact.Save(stream);
+
+        EmailReadResult result = new EmailDocumentReader().Read(stream.ToArray());
+
+        Assert.Equal("Ada", result.Document.Contact!.GivenName);
+        Assert.Equal("Lovelace, Ada", result.Document.Contact.FileAs);
+        Assert.Equal("ada@example.com", result.Document.Contact.Email1.Address);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_NAMEID_GUID_INVALID" ||
+            diagnostic.Code == "EMAIL_MSG_NAMEID_STRING_INVALID");
+    }
+
+    [Fact]
     public void RoundTripsAppointmentNamedPropertiesAndMsgReaderProjection() {
         DateTimeOffset start = new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero);
         var appointment = new OutlookAppointment {
