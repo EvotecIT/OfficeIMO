@@ -142,6 +142,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SharedChartUpdate_RebuildsRadarDataAndLegendMetadataWithoutLosingTitle() {
+            var initial = new OfficeChartData(new[] { "Q1", "Q2", "Q3" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 12D, 14D }),
+                new OfficeChartSeries("Target", new[] { 11D, 13D, 15D })
+            });
+            var updated = new OfficeChartData(new[] { "Q1", "Q2", "Q3" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 20D, 22D, 24D }, null, null, null,
+                    showMarkers: true, showInLegend: true),
+                new OfficeChartSeries("Target", new[] { 21D, 23D, 25D }, null, null, null,
+                    showMarkers: true, showInLegend: false)
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Radar, initial).SetTitle("Radar update");
+
+            chart.UpdateData(updated);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(OfficeChartKind.Radar, snapshot.ChartKind);
+            Assert.Equal("Radar update", snapshot.Title);
+            Assert.Equal(new[] { 20D, 22D, 24D }, snapshot.Data.Series[0].Values);
+            Assert.False(snapshot.Data.Series[1].ShowInLegend);
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Equal(2, Assert.Single(plotArea.Elements<C.RadarChart>())
+                .Elements<C.RadarChartSeries>().Count());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RebuildsEveryComboLayerAndSecondaryAxisSeries() {
+            var updated = new OfficeChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] {
+                new OfficeChartSeries("Revenue", new[] { 210D, 230D, 250D, 280D }, null,
+                    OfficeColor.Parse("#0B7FAB"), null, showMarkers: false,
+                    renderKind: OfficeChartKind.ColumnClustered),
+                new OfficeChartSeries("Margin", new[] { 31D, 34D, 37D, 40D }, null,
+                    OfficeColor.Parse("#E85D04"), null, showMarkers: true, showInLegend: false,
+                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, CreateComboData());
+
+            chart.UpdateData(updated);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(new[] { 210D, 230D, 250D, 280D }, snapshot.Data.Series[0].Values);
+            Assert.Equal(new[] { 31D, 34D, 37D, 40D }, snapshot.Data.Series[1].Values);
+            Assert.Equal(OfficeChartKind.Line, snapshot.Data.Series[1].RenderKind);
+            Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
+            Assert.False(snapshot.Data.Series[1].ShowInLegend);
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Single(plotArea.Elements<C.BarChart>());
+            Assert.Single(plotArea.Elements<C.LineChart>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void SharedChartSnapshot_ClassifiesTopValueAxisAsSecondaryForHorizontalBars() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             var data = new OfficeChartData(new[] { "North", "South" }, new[] {

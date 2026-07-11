@@ -18,9 +18,16 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckPlan resolvedPlan = options.ExpandContinuations
                 ? plan.WithContinuations(options.Continuation)
                 : plan;
+            if (options.ValidatePlan) {
+                IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = resolvedPlan.ValidateSlides();
+                if (diagnostics.Any(diagnostic =>
+                        diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error)) {
+                    throw new PowerPointDeckPlanValidationException(diagnostics);
+                }
+            }
             PowerPointDeckDesign design = options.ResolveDesign(resolvedPlan);
             var composer = new PowerPointDeckComposer(this, design, options.ApplyTheme, options.TemplateLayouts);
-            IReadOnlyList<PowerPointSlide> slides = composer.AddSlides(resolvedPlan, options.ValidatePlan);
+            IReadOnlyList<PowerPointSlide> slides = composer.AddSlides(resolvedPlan, validate: false);
             PowerPointDeckPreflightReport preflight = InspectPreflight(options.Preflight);
             return new PowerPointCompositionResult(resolvedPlan, design, slides.ToList(), preflight);
         }

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -17,12 +18,17 @@ namespace OfficeIMO.PowerPoint {
                 : OfficeChartKind.ColumnClustered;
             PowerPointUtils.ValidateSharedChartData(data, chartKind);
 
-            if (chartKind == OfficeChartKind.Scatter) {
-                UpdateData(PowerPointUtils.ToPowerPointScatterChartData(data));
-            } else {
-                UpdateData(PowerPointUtils.ToPowerPointChartData(data));
+            ChartPart chartPart = GetChartPart();
+            PowerPointUtils.UpdateSharedChartData(chartPart, data, chartKind);
+
+            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
+            if (embedded != null) {
+                byte[] workbookBytes = chartKind == OfficeChartKind.Scatter
+                    ? PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointScatterChartData(data))
+                    : PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointChartData(data));
+                using var stream = new MemoryStream(workbookBytes);
+                embedded.FeedData(stream);
             }
-            PowerPointUtils.ApplySharedChartSeriesStyle(GetChartPart(), data, chartKind);
             Save();
             return this;
         }

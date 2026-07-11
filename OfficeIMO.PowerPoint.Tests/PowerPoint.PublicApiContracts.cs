@@ -89,5 +89,26 @@ namespace OfficeIMO.Tests {
                 new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
             Assert.Equal("Stream lifecycle", reopened.Slides[0].TextBoxes.First().Text);
         }
+
+        [Fact]
+        public void CompositionValidatesBeforeApplyingThemeOrAddingSlides() {
+            var missingImage = new PowerPointImageAsset(
+                Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png"), "Missing screenshot");
+            PowerPointDeckPlan invalidPlan = new PowerPointDeckPlan()
+                .AddScreenshotStory("Invalid proof", null, missingImage);
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#D93025", "invalid-plan-theme");
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            string originalThemeName = presentation.ThemeName;
+            string? originalAccent = presentation.GetThemeColor(PowerPointThemeColor.Accent1);
+
+            Assert.Throws<PowerPointDeckPlanValidationException>(() =>
+                presentation.Compose(invalidPlan, PowerPointCompositionOptions.FromDesign(design)));
+
+            Assert.Equal(originalThemeName, presentation.ThemeName);
+            Assert.Equal(originalAccent, presentation.GetThemeColor(PowerPointThemeColor.Accent1));
+            Assert.Empty(presentation.Slides);
+        }
     }
 }
