@@ -9,7 +9,7 @@ public static partial class PdfPageEditor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         PdfReadDocument document = PdfReadDocument.Load(pdf);

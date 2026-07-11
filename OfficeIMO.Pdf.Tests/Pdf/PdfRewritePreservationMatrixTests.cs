@@ -67,7 +67,7 @@ public class PdfRewritePreservationMatrixTests {
 
         PdfRewritePreservationMatrixEntry blockedEntry = Assert.Single(report.Entries, entry => entry.Id == "signed-full-rewrite-blocked");
         Assert.Equal(PdfRewritePreservationMatrixClassification.Blocked, blockedEntry.ActualClassification);
-        Assert.Equal("NotSupportedException", blockedEntry.FailureType);
+        Assert.Equal("PdfMutationBlockedException", blockedEntry.FailureType);
         Assert.Contains("Signed PDF files are not supported for rewriting", blockedEntry.FailureMessage, StringComparison.Ordinal);
         Assert.Contains("signature", blockedEntry.SourceFeatures);
 

@@ -50,8 +50,8 @@ public static class PdfMerger {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
-        PdfSyntax.ThrowIfUnsafeForRewrite(primaryPdf);
-        PdfSyntax.ThrowIfUnsafeForRewrite(insertedPdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(primaryPdf, PdfMutationOperation.ModifyPageTree);
+        _ = PdfMutationPlanner.RequireFullRewrite(insertedPdf, PdfMutationOperation.ExtractPages);
 
         var primaryDocument = PdfReadDocument.Load(primaryPdf);
         if (primaryDocument.Pages.Count == 0) {
@@ -388,7 +388,7 @@ public static class PdfMerger {
         int[]? knownPageObjectNumbers,
         int mergedPageOffset,
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber) {
-        PdfSyntax.ThrowIfUnsafeForRewrite(source);
+        _ = PdfMutationPlanner.RequireFullRewrite(source, PdfMutationOperation.ExtractPages);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
         var document = PdfReadDocument.Load(source);

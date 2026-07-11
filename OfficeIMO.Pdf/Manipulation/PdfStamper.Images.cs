@@ -60,7 +60,7 @@ public static partial class PdfStamper {
     private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
         if (imageBytes.Length == 0) {
             throw new ArgumentException("Image bytes cannot be empty.", nameof(imageBytes));
         }

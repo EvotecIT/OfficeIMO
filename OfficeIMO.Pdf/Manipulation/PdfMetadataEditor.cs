@@ -14,7 +14,7 @@ public static class PdfMetadataEditor {
         string? subject = null,
         string? keywords = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata);
 
         var document = PdfReadDocument.Load(pdf);
         var metadata = new PdfMetadata {
@@ -119,7 +119,7 @@ public static class PdfMetadataEditor {
     public static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(metadata, nameof(metadata));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata);
 
         return RewriteWithMetadata(pdf, metadata);
     }

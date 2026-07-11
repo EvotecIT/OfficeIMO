@@ -63,6 +63,55 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void RequireFullRewrite_ThrowsTypedExceptionWithCompleteBlockedPlan() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfMutationPlanner.RequireFullRewrite(source, PdfMutationOperation.ModifyPageTree));
+
+        Assert.StartsWith(exception.Plan.Summary, exception.Message, StringComparison.Ordinal);
+        Assert.Equal(PdfMutationOperation.ModifyPageTree, exception.Plan.Operation);
+        Assert.Equal(PdfMutationExecutionPreference.RequireFullRewrite, exception.Plan.ExecutionPreference);
+        Assert.Equal(PdfMutationExecutionMode.Blocked, exception.Plan.ExecutionMode);
+        Assert.Contains(PdfMutationStructure.PageTree, exception.Plan.AffectedStructures);
+        Assert.Contains(PdfMutationStructure.Catalog, exception.Plan.AffectedStructures);
+        Assert.Contains(PdfMutationPermissionCheck.AssembleDocument, exception.Plan.PermissionChecks);
+        Assert.Contains("FullRewrite.AppendOnlyRequired", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
+    public void StaticPageEditor_ExposesPlannerDecisionWhenFullRewriteIsBlocked() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfPageEditor.DeletePages(source, 1));
+
+        Assert.Equal(PdfMutationOperation.ModifyPageTree, exception.Plan.Operation);
+        Assert.Equal(PdfMutationExecutionMode.Blocked, exception.Plan.ExecutionMode);
+        PdfMutationCapabilityRecord pageTree = Assert.Single(
+            exception.Plan.CapabilityRecords,
+            record => record.Kind == PdfMutationCapabilityKind.PageTreeChanges);
+        Assert.True(pageTree.FullRewriteImplemented);
+        Assert.False(pageTree.FullRewriteAllowed);
+        Assert.Contains("FullRewrite.AppendOnlyRequired", pageTree.BlockerCodes);
+    }
+
+    [Fact]
+    public void StaticMetadataEditor_RequiresFullRewriteEvenWhenAppendOnlyIsAvailable() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildTaggedPreservationProofPdf();
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfMetadataEditor.UpdateMetadata(source, title: "Blocked full rewrite"));
+
+        Assert.Equal(PdfMutationOperation.UpdateMetadata, exception.Plan.Operation);
+        Assert.Equal(PdfMutationExecutionPreference.RequireFullRewrite, exception.Plan.ExecutionPreference);
+        Assert.True(exception.Plan.AppendOnlyAvailable);
+        Assert.False(exception.Plan.FullRewriteAvailable);
+        Assert.Contains(PdfMutationStructure.InfoDictionary, exception.Plan.AffectedStructures);
+        Assert.Contains("FullRewrite.TaggedContent", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
     public void Plan_BlocksEncryptedMutationEvenWithValidPassword() {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted planner source"))

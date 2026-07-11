@@ -142,9 +142,10 @@ public class PdfEncryptedWriteTests {
         Assert.Contains(
             "Encrypted PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.",
             preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
-        Assert.Throws<NotSupportedException>(() => PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
         }));
+        Assert.Contains("FullRewrite.Encryption", exception.Plan.BlockerCodes);
     }
 
     [Fact]

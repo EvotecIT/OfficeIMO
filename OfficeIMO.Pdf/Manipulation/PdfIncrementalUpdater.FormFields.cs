@@ -75,9 +75,12 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
         PdfIncrementalFormFieldUpdateOptions effectiveOptions = options ?? new PdfIncrementalFormFieldUpdateOptions();
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            pdf,
+            PdfMutationOperation.FillFormFields,
+            fieldNames: fieldValues.Keys);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateAppendOnlyFormInput(security, fieldValues.Keys);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         if (!security.RootObjectNumber.HasValue ||
@@ -196,18 +199,6 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         File.WriteAllBytes(outputPath, UpdateFormFields(File.ReadAllBytes(inputPath), fieldValues, options));
-    }
-
-    private static void ValidateAppendOnlyFormInput(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {
-        string? lockedFieldName = GetFirstLockedFormFieldName(security, fieldNames);
-        if (lockedFieldName is not null) {
-            throw new NotSupportedException("Incremental form field updates are not supported for field " + lockedFieldName + " because it is locked by a signature field lock.");
-        }
-
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames);
-        if (!report.SupportedActions.Contains("FormFill", StringComparer.Ordinal)) {
-            throw new NotSupportedException("Incremental form field updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
-        }
     }
 
     private static Dictionary<string, PdfFormFieldValue> ToIncrementalFormFieldValues(IReadOnlyDictionary<string, string> fieldValues) {

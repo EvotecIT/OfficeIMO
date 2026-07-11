@@ -475,12 +475,13 @@ public class PdfITextInspiredCoverageTests {
 
         Assert.False(plan.CanAppendFormFields);
         Assert.Contains("DocMDP", plan.Blockers);
-        Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
         }, new PdfIncrementalFormFieldUpdateOptions {
             GenerateAppearanceStreams = true,
             KeepNeedAppearances = false
         }));
+        Assert.Contains("AppendOnly.DocMDP", exception.Plan.BlockerCodes);
     }
 
     [Fact]
@@ -489,11 +490,11 @@ public class PdfITextInspiredCoverageTests {
             permissionLevel: 2,
             lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Name)] >>");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
         }));
 
-        Assert.Contains("locked by a signature field lock", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AppendOnly.SignatureFieldLock", exception.Plan.BlockerCodes);
     }
 
     [Fact]

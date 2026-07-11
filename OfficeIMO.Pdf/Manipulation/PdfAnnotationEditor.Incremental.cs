@@ -162,12 +162,6 @@ public static partial class PdfAnnotationEditor {
         return proof;
     }
 
-    private static void EnsureMutationCanExecute(PdfMutationPlan mutationPlan) {
-        if (!mutationPlan.CanExecute) {
-            throw new NotSupportedException("Annotation mutation is not supported for this PDF: " + string.Join(", ", mutationPlan.BlockerCodes));
-        }
-    }
-
     private static PdfAnnotationEditResult CreateFullRewriteResult(
         byte[] source,
         byte[] rewritten,

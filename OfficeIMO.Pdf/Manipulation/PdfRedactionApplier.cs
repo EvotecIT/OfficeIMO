@@ -22,7 +22,7 @@ public static partial class PdfRedactionApplier {
         PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Redact, readOptions);
 
         PdfRedactionArea[] areaArray = areas.ToArray();
         if (areaArray.Length == 0) {

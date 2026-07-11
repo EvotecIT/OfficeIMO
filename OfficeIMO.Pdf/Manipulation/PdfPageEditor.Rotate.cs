@@ -7,7 +7,7 @@ public static partial class PdfPageEditor {
     public static byte[] RotatePages(byte[] pdf, int rotationDegrees, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);

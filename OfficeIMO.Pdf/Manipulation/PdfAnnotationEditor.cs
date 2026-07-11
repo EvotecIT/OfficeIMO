@@ -37,16 +37,14 @@ public static partial class PdfAnnotationEditor {
 
         PdfAnnotationRemovalOptions effectiveOptions = options ?? new PdfAnnotationRemovalOptions();
         ValidateRemovalOptions(effectiveOptions);
-        PdfMutationPlan mutationPlan = PdfMutationPlanner.Plan(
+        PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             executionPreference: effectiveOptions.ExecutionPreference);
-        EnsureMutationCanExecute(mutationPlan);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             return RemoveAnnotationsIncrementally(pdf, effectiveOptions, mutationPlan);
         }
 
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
@@ -130,16 +128,13 @@ public static partial class PdfAnnotationEditor {
         }
 
         ValidateUpdateOptions(options);
-        PdfMutationPlan mutationPlan = PdfMutationPlanner.Plan(
+        PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             executionPreference: options.ExecutionPreference);
-        EnsureMutationCanExecute(mutationPlan);
         if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             return UpdateAnnotationIncrementally(pdf, objectNumber, options, mutationPlan);
         }
-
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);

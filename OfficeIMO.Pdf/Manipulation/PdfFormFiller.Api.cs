@@ -28,18 +28,10 @@ public static partial class PdfFormFiller {
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
-
-        if (PdfSyntax.HasSignatureMarkers(pdf)) {
-            throw new NotSupportedException("Signed PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
-        }
-
-        if (PdfSyntax.HasEncryptionMarkers(pdf)) {
-            throw new NotSupportedException("Encrypted PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
-        }
-
-        if (PdfSyntax.HasActiveContentMarkers(pdf)) {
-            throw new NotSupportedException("PDF active content is not supported for form filling by OfficeIMO.Pdf yet.");
-        }
+        _ = PdfMutationPlanner.RequireFullRewrite(
+            pdf,
+            PdfMutationOperation.FillFormFields,
+            fieldNames: fieldValues.Keys);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
@@ -269,14 +261,7 @@ public static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
-
-        if (PdfSyntax.HasSignatureMarkers(pdf)) {
-            throw new NotSupportedException("Signed PDF files are not supported for form flattening by OfficeIMO.Pdf yet.");
-        }
-
-        if (PdfSyntax.HasActiveContentMarkers(pdf)) {
-            throw new NotSupportedException("PDF active content is not supported for form flattening by OfficeIMO.Pdf yet.");
-        }
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);

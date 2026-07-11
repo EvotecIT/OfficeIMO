@@ -19,10 +19,10 @@ public static class PdfLongTermValidationEnricher {
 
         PdfSignatureValidationReport before = PdfSignatureValidator.Validate(pdf, cryptographyProvider, readOptions);
         PdfSignatureValidationResult target = FindVerifiedTarget(before, evidence.SignatureObjectNumber);
-        PdfMutationPlan plan = PdfMutationPlanner.Plan(pdf, PdfMutationOperation.EnrichLongTermValidation, readOptions);
-        if (!plan.CanExecute) {
-            throw new NotSupportedException("DSS/VRI enrichment is not supported for this PDF: " + string.Join(", ", plan.BlockerCodes));
-        }
+        PdfMutationPlan plan = PdfMutationPlanner.RequireAppendOnly(
+            pdf,
+            PdfMutationOperation.EnrichLongTermValidation,
+            readOptions);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         PdfDocumentSecurityInfo security = before.Security;

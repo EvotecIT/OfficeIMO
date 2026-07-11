@@ -21,7 +21,7 @@ public static class PdfOptimizer {
             throw new NotSupportedException("XRef stream PDFs are not supported for lossless optimization by OfficeIMO.Pdf yet.");
         }
 
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Optimize);
 
         PdfOptimizationReport reportBefore = PdfDiagnostics.AnalyzeOptimization(pdf);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);

@@ -77,7 +77,7 @@ public partial class PdfExternalDocumentCompatibilityTests {
         Assert.False(preflight.CanRewrite);
         Assert.True(preflight.HasRewriteBlocker(PdfRewriteBlockerKind.Forms));
 
-        var exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.SplitPages(pdf));
-        Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.SplitPages(pdf));
+        Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
     }
 }

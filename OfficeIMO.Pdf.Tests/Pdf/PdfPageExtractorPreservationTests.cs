@@ -133,10 +133,11 @@ public partial class PdfPageExtractorTests {
     public void ExtractPages_RejectsWrongGenerationReferencesBeforeRewrite() {
         byte[] source = BuildSinglePagePdfWithGenerationOneContent(contentObjectGeneration: 0, contentReferenceGeneration: 1);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => PdfPageExtractor.ExtractPages(source, 1));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(source, 1));
 
-        Assert.Contains("PDF object 4 1 R", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("active object generation is 0", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("FullRewrite.InvalidObjectReferences", exception.Plan.BlockerCodes);
+        Assert.Contains(exception.Plan.Diagnostics, diagnostic => diagnostic.Contains("PDF object 4 1 R", StringComparison.Ordinal));
+        Assert.Contains(exception.Plan.Diagnostics, diagnostic => diagnostic.Contains("active object generation is 0", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public static partial class PdfPageEditor {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         ValidateResizeOptions(options);
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);

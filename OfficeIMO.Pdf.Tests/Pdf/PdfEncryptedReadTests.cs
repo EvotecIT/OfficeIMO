@@ -138,9 +138,9 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
 
-        Assert.Contains("PDF form fields are not supported", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
     }
 
 

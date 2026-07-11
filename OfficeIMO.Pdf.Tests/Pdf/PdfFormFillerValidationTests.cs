@@ -33,17 +33,19 @@ public partial class PdfFormFillerTests {
 
     [Fact]
     public void FillFields_RejectsSignedPdfs() {
-        var ex = Assert.Throws<NotSupportedException>(() => PdfFormFiller.FillFields(BuildSignedFormPdf(), new Dictionary<string, string> {
+        PdfMutationBlockedException ex = Assert.Throws<PdfMutationBlockedException>(() => PdfFormFiller.FillFields(BuildSignedFormPdf(), new Dictionary<string, string> {
             ["Name"] = "Value"
         }));
 
-        Assert.Equal("Signed PDF files are not supported for form filling by OfficeIMO.Pdf yet.", ex.Message);
+        Assert.Equal(PdfMutationOperation.FillFormFields, ex.Plan.Operation);
+        Assert.Contains("FullRewrite.Signatures", ex.Plan.BlockerCodes);
     }
 
     [Fact]
     public void FlattenFields_RejectsSignedPdfs() {
-        var ex = Assert.Throws<NotSupportedException>(() => PdfFormFiller.FlattenFields(BuildSignedFormPdf()));
+        PdfMutationBlockedException ex = Assert.Throws<PdfMutationBlockedException>(() => PdfFormFiller.FlattenFields(BuildSignedFormPdf()));
 
-        Assert.Equal("Signed PDF files are not supported for form flattening by OfficeIMO.Pdf yet.", ex.Message);
+        Assert.Equal(PdfMutationOperation.FlattenFormFields, ex.Plan.Operation);
+        Assert.Contains("FullRewrite.Signatures", ex.Plan.BlockerCodes);
     }
 }

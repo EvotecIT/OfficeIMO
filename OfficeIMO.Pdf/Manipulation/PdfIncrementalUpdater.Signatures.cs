@@ -15,9 +15,9 @@ public static partial class PdfIncrementalUpdater {
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         ValidateExternalSignatureOptions(effectiveOptions);
         PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateExternalSignatureInput(security);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         if (!security.RootObjectNumber.HasValue ||
@@ -148,37 +148,6 @@ public static partial class PdfIncrementalUpdater {
 
         ResolveSignatureProfile(options);
         ResolveSignatureSubFilter(options);
-    }
-
-    private static void ValidateExternalSignatureInput(PdfDocumentSecurityInfo security) {
-        var blockers = new List<string>();
-        if (security.HasEncryption) {
-            blockers.Add("Encrypted");
-        }
-
-        if (security.HasXrefStreams) {
-            blockers.Add("XrefStream");
-        }
-
-        if (!security.RootObjectNumber.HasValue) {
-            blockers.Add("MissingRoot");
-        }
-
-        if (!security.LastStartXrefOffset.HasValue) {
-            blockers.Add("MissingStartXref");
-        }
-
-        if (security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange) {
-            blockers.Add("Signed");
-        }
-
-        if (security.HasDocMDPPermissions) {
-            blockers.Add("DocMDP");
-        }
-
-        if (blockers.Count > 0) {
-            throw new NotSupportedException("External signature preparation is not supported for this PDF: " + string.Join(", ", blockers));
-        }
     }
 
     private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName) {

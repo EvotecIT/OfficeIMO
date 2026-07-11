@@ -9,7 +9,7 @@ public static partial class PdfPageEditor {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         string normalizedBoxName = NormalizePageBoxName(boxName);
         ValidatePageBoxCoordinates(left, bottom, right, top);
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);

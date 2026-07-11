@@ -35,7 +35,7 @@ public partial class PdfReadStreamTests {
         byte[] optionalContentPdf = BuildComplexOptionalContentPdf();
 
         static void AssertOptionalContent(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF optional content layers are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
@@ -59,7 +59,7 @@ public partial class PdfReadStreamTests {
         AssertActiveContent(() => PdfStamper.StampText(activeContentPdf, "STAMP"));
 
         static void AssertActiveContent(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF active content is not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
     }

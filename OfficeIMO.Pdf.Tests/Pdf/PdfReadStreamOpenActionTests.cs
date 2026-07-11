@@ -93,7 +93,7 @@ public partial class PdfReadStreamTests {
         byte[] openActionPdf = BuildComplexOpenActionDictionaryPdf();
 
         static void AssertOpenActions(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF open actions are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 

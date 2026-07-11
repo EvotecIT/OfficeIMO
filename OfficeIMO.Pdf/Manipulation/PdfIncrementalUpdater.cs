@@ -48,9 +48,9 @@ public static partial class PdfIncrementalUpdater {
     /// </summary>
     public static byte[] UpdateMetadata(byte[] pdf, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
         Guard.NotNull(pdf, nameof(pdf));
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.UpdateMetadata);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateAppendOnlyMetadataInput(security);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         if (!security.RootObjectNumber.HasValue) {
@@ -97,13 +97,6 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords));
-    }
-
-    private static void ValidateAppendOnlyMetadataInput(PdfDocumentSecurityInfo security) {
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames: null);
-        if (!report.CanAppendMetadata) {
-            throw new NotSupportedException("Incremental metadata updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
-        }
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {

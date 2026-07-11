@@ -120,7 +120,7 @@ public partial class PdfReadStreamTests {
         AssertSigned(() => PdfStamper.StampText(signed, "STAMP"));
 
         static void AssertSigned(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
     }
@@ -137,7 +137,7 @@ public partial class PdfReadStreamTests {
         AssertForm(() => PdfStamper.StampText(form, "STAMP"));
 
         static void AssertForm(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
     }

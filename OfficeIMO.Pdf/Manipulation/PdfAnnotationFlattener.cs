@@ -11,7 +11,7 @@ public static partial class PdfAnnotationFlattener {
     /// </summary>
     public static byte[] FlattenVisualAnnotations(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);

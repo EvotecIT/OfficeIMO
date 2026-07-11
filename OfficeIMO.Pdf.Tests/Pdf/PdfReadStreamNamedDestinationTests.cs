@@ -247,7 +247,7 @@ public partial class PdfReadStreamTests {
         byte[] namedDestinationPdf = BuildComplexNamedDestinationNameTreePdf();
 
         static void AssertNamedDestinations(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 

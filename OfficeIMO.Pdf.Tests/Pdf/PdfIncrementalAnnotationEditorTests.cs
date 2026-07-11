@@ -42,16 +42,16 @@ public class PdfIncrementalAnnotationEditorTests {
         (byte[] signedPdf, int annotationObjectNumber) = BuildCertifiedAnnotatedPdf(
             PdfCertificationPermissionLevel.FormFillingAndSignatures);
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfAnnotationEditor.UpdateAnnotation(
                 signedPdf,
                 annotationObjectNumber,
                 new PdfAnnotationUpdateOptions { Contents = "Forbidden update" }));
-        PdfMutationPlan plan = PdfMutationPlanner.Plan(signedPdf, PdfMutationOperation.ModifyAnnotations);
+        PdfMutationPlan plan = exception.Plan;
 
         Assert.False(plan.CanExecute);
         Assert.Contains("AppendOnly.ActionBlocked.Annotations", plan.BlockerCodes);
-        Assert.Contains("DocMDP", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AppendOnly.ActionBlocked.Annotations", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

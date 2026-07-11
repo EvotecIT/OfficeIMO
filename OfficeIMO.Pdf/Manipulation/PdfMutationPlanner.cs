@@ -2,6 +2,37 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Chooses a proven full-rewrite, append-only, or blocked path for existing-document mutations.</summary>
 public static class PdfMutationPlanner {
+    /// <summary>Plans a mutation and throws a typed exception carrying the plan when no proven path exists.</summary>
+    public static PdfMutationPlan Require(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference);
+        if (!plan.CanExecute) {
+            throw new PdfMutationBlockedException(plan);
+        }
+
+        return plan;
+    }
+
+    /// <summary>Requires the shared planner to prove a full-rewrite path for an existing-document editor.</summary>
+    public static PdfMutationPlan RequireFullRewrite(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) =>
+        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
+
+    /// <summary>Requires the shared planner to prove an append-only path for an existing-document editor.</summary>
+    public static PdfMutationPlan RequireAppendOnly(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) =>
+        Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireAppendOnly);
+
     /// <summary>Plans a mutation for a PDF byte array.</summary>
     public static PdfMutationPlan Plan(
         byte[] pdf,
@@ -58,12 +89,13 @@ public static class PdfMutationPlanner {
         bool appendOnlyImplemented = IsAppendOnlyImplemented(operation);
         bool fullRewriteCapability = CanFullRewrite(preflight, operation);
         bool securityRewrite = operation == PdfMutationOperation.ChangeEncryption && fullRewriteCapability;
+        bool requiresAppendOnly = RequiresAppendOnlyForOperation(security, operation);
         bool fullRewriteAvailable =
             fullRewriteImplemented &&
             fullRewriteCapability &&
             (securityRewrite ||
-                (!security.RequiresAppendOnlyMutation &&
-                (!security.BlocksOfficeIMOFullRewriteMutation || CanExtractEncryptedPages(preflight, operation))));
+                (!requiresAppendOnly &&
+                (!security.BlocksOfficeIMOFullRewriteMutation || CanExtractPagesViaNormalization(preflight, operation))));
         bool appendOnlyAvailable = appendOnlyImplemented && CanAppend(appendOnly, operation);
 
         PdfMutationExecutionMode mode;
@@ -130,7 +162,7 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.ChangeEncryption:
                 return CanChangeEncryption(preflight);
             case PdfMutationOperation.ExtractPages:
-                return preflight.CanRewrite || CanExtractEncryptedPages(preflight, operation);
+                return preflight.CanRewrite || CanExtractPagesViaNormalization(preflight, operation);
             default:
                 return preflight.CanRewrite;
         }
@@ -170,6 +202,17 @@ public static class PdfMutationPlanner {
     private static bool RequiresAppendOnlyByDefinition(PdfMutationOperation operation) =>
         operation == PdfMutationOperation.PrepareExternalSignature ||
         operation == PdfMutationOperation.EnrichLongTermValidation;
+
+    private static bool RequiresAppendOnlyForOperation(PdfDocumentSecurityInfo security, PdfMutationOperation operation) {
+        if (security.HasSignatures ||
+            security.AcroFormAppendOnly ||
+            security.HasDocMDPPermissions ||
+            security.HasUsageRights) {
+            return true;
+        }
+
+        return security.HasIncrementalUpdates && IsAppendOnlyImplemented(operation);
+    }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfMutationStructure> GetAffectedStructures(PdfMutationOperation operation) {
         switch (operation) {
@@ -357,7 +400,7 @@ public static class PdfMutationPlanner {
                 Add(blockers, "FullRewrite.ObjectStreamPreservation");
             }
 
-            if (security.RequiresAppendOnlyMutation) {
+            if (RequiresAppendOnlyForOperation(security, operation)) {
                 Add(blockers, "FullRewrite.AppendOnlyRequired");
             }
         }
@@ -426,7 +469,7 @@ public static class PdfMutationPlanner {
         if (mode == PdfMutationExecutionMode.FullRewrite) {
             Add(diagnostics, operation + " can use a full rewrite for this PDF; rewrite-preservation proof is required.");
         } else if (mode == PdfMutationExecutionMode.AppendOnly) {
-            string reason = security.RequiresAppendOnlyMutation
+            string reason = RequiresAppendOnlyForOperation(security, operation)
                 ? "the input requires prior bytes and revisions to be preserved"
                 : fullRewriteCapability
                     ? "append-only mutation is the safer available path"
@@ -486,10 +529,8 @@ public static class PdfMutationPlanner {
             .ToArray();
     }
 
-    private static bool CanExtractEncryptedPages(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
-        if (operation != PdfMutationOperation.ExtractPages ||
-            !preflight.CanRead ||
-            !preflight.Probe.HasEncryption) {
+    private static bool CanExtractPagesViaNormalization(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
+        if (operation != PdfMutationOperation.ExtractPages || !preflight.CanRead) {
             return false;
         }
 

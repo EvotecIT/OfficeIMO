@@ -7,7 +7,7 @@ public static partial class PdfStamper {
     public static byte[] StampText(byte[] pdf, string text, PdfTextStampOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
         if (text.Length == 0) {
             throw new ArgumentException("Stamp text cannot be empty.", nameof(text));
         }
@@ -121,7 +121,7 @@ public static partial class PdfStamper {
     public static byte[] WatermarkText(byte[] pdf, string text, PdfTextStampOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent);
         if (text.Length == 0) {
             throw new ArgumentException("Watermark text cannot be empty.", nameof(text));
         }

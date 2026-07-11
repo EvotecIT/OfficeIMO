@@ -66,14 +66,10 @@ public static class PdfSecurityEditor {
         PdfReadOptions? sourceReadOptions,
         PdfStandardEncryptionOptions? outputEncryption,
         PdfSecurityMutationKind kind) {
-        PdfMutationPlan plan = PdfMutationPlanner.Plan(
+        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(
             sourcePdf,
             PdfMutationOperation.ChangeEncryption,
-            sourceReadOptions,
-            executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
-        if (!plan.CanExecute) {
-            throw new InvalidOperationException(string.Join(" ", plan.Diagnostics));
-        }
+            sourceReadOptions);
 
         PdfDocumentSecurityInfo sourceSecurity = plan.Preflight.Probe.Security;
         ValidateSourceSecurity(kind, sourceSecurity);
