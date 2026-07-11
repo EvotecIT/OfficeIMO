@@ -64,6 +64,21 @@ public sealed class EmailMessageMetadata {
     /// <summary>Outlook editor-format numeric value.</summary>
     public int? EditorFormat { get; set; }
 
+    /// <summary>Raw current-reactions summary blob retained for Outlook-compatible consumers.</summary>
+    public byte[]? ReactionsSummary { get; set; }
+
+    /// <summary>Raw owner-reaction history blob retained for Outlook-compatible consumers.</summary>
+    public byte[]? OwnerReactionHistory { get; set; }
+
+    /// <summary>Owner's current reaction type when present.</summary>
+    public string? OwnerReactionType { get; set; }
+
+    /// <summary>Time of the owner's current reaction.</summary>
+    public DateTimeOffset? OwnerReactionTime { get; set; }
+
+    /// <summary>Declared current reaction count.</summary>
+    public int? ReactionsCount { get; set; }
+
     /// <summary>Message creation timestamp.</summary>
     public DateTimeOffset? CreatedDate { get; set; }
 

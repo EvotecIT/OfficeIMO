@@ -10,6 +10,7 @@ internal static class MsgProjection {
     internal static readonly Guid PsPublicStrings = new Guid("00020329-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidCalendarAssistant = new Guid("11000E07-B51B-40D6-AF21-CAA85EDAB1D0");
     internal static readonly Guid PsetidSharing = new Guid("00062041-0000-0000-C000-000000000046");
+    internal static readonly Guid PsetidReactions = new Guid("41F28F13-83F4-4114-A584-EEDB5A6B0BFF");
 
     internal static void Apply(EmailDocument document, MsgParserState state, string location,
         MapiStringEncodingContext encoding) {
@@ -108,6 +109,11 @@ internal static class MsgProjection {
         metadata.DeclaredSize = GetInt(properties, 0x0E08);
         metadata.ConversationId = properties.FirstOrDefault(property => property.PropertyId == 0x3013)?.Value as byte[];
         metadata.EditorFormat = GetInt(properties, 0x5909);
+        metadata.ReactionsSummary = GetNamedByName(properties, "ReactionsSummary")?.Value as byte[];
+        metadata.OwnerReactionHistory = GetNamedByName(properties, "OwnerReactionHistory")?.Value as byte[];
+        metadata.OwnerReactionType = GetNamedByName(properties, "OwnerReactionType")?.Value as string;
+        metadata.OwnerReactionTime = ConvertDate(GetNamedByName(properties, "OwnerReactionTime")?.Value);
+        metadata.ReactionsCount = ConvertInt(GetNamedByName(properties, "ReactionsCount")?.Value);
         foreach (string category in GetNamedStrings(properties, PsPublicStrings, "Keywords", 0x9000)) {
             metadata.Categories.Add(category);
         }
@@ -154,6 +160,11 @@ internal static class MsgProjection {
 
     internal static MapiProperty? GetNamed(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
         return properties.FirstOrDefault(property => property.Name?.PropertySet == set && property.Name.LocalId == localId);
+    }
+
+    private static MapiProperty? GetNamedByName(IEnumerable<MapiProperty> properties, string name) {
+        return properties.FirstOrDefault(property =>
+            string.Equals(property.Name?.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
     private static IEnumerable<string> GetNamedStrings(IEnumerable<MapiProperty> properties, Guid set,

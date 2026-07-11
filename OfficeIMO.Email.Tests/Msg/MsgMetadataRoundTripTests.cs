@@ -36,6 +36,11 @@ public sealed class MsgMetadataRoundTripTests {
         source.MessageMetadata.LocaleId = 1045;
         source.MessageMetadata.ConversationId = new byte[] { 9, 8, 7 };
         source.MessageMetadata.EditorFormat = 2;
+        source.MessageMetadata.ReactionsSummary = new byte[] { 0x76, 0x01, 0x00 };
+        source.MessageMetadata.OwnerReactionHistory = Encoding.UTF8.GetBytes("[]");
+        source.MessageMetadata.OwnerReactionType = "like";
+        source.MessageMetadata.OwnerReactionTime = created;
+        source.MessageMetadata.ReactionsCount = 1;
         source.MessageMetadata.CreatedDate = created;
         source.MessageMetadata.ModifiedDate = modified;
         source.MessageMetadata.Categories.Add("Customer");
@@ -88,6 +93,11 @@ public sealed class MsgMetadataRoundTripTests {
         Assert.Equal(1045, parsed.MessageMetadata.LocaleId);
         Assert.Equal(new byte[] { 9, 8, 7 }, parsed.MessageMetadata.ConversationId);
         Assert.Equal(2, parsed.MessageMetadata.EditorFormat);
+        Assert.Equal(new byte[] { 0x76, 0x01, 0x00 }, parsed.MessageMetadata.ReactionsSummary);
+        Assert.Equal("[]", Encoding.UTF8.GetString(parsed.MessageMetadata.OwnerReactionHistory!));
+        Assert.Equal("like", parsed.MessageMetadata.OwnerReactionType);
+        Assert.Equal(created, parsed.MessageMetadata.OwnerReactionTime);
+        Assert.Equal(1, parsed.MessageMetadata.ReactionsCount);
         Assert.Equal(created, parsed.MessageMetadata.CreatedDate);
         Assert.Equal(modified, parsed.MessageMetadata.ModifiedDate);
         Assert.Equal(new[] { "Customer", "Follow up" }, parsed.MessageMetadata.Categories);
@@ -116,6 +126,7 @@ public sealed class MsgMetadataRoundTripTests {
         Assert.Contains(oracle.Recipients, recipient => recipient.Type == global::MsgReader.Outlook.RecipientType.Resource);
         Assert.Contains(oracle.Recipients, recipient => recipient.Type == global::MsgReader.Outlook.RecipientType.Room);
         Assert.Equal("reader@example.com", oracle.ReceivedBy.Email);
+        Assert.Equal(new[] { "Customer", "Follow up" }, oracle.Categories);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
     }
 

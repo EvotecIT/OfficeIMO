@@ -18,6 +18,23 @@ public sealed class EmailReaderContractTests {
     }
 
     [Fact]
+    public void PublicMapiLookupSupportsStandardNumericAndStringNamedProperties() {
+        Guid set = Guid.NewGuid();
+        var properties = new[] {
+            new MapiProperty(0x3001, MapiPropertyType.Unicode, "display"),
+            new MapiProperty(0x8000, MapiPropertyType.Integer32, 42,
+                name: new MapiNamedProperty(set, 0x1234)),
+            new MapiProperty(0x8001, MapiPropertyType.Binary, new byte[] { 1, 2 },
+                name: new MapiNamedProperty(set, "Custom"))
+        };
+
+        Assert.Equal("display", properties.GetMapiValue<string>(0x3001));
+        Assert.Equal(42, properties.GetMapiValue<int>(set, 0x1234));
+        Assert.Equal(new byte[] { 1, 2 }, properties.GetMapiValue<byte[]>(set, "custom"));
+        Assert.Null(properties.GetMapiValue<string>(0x9999));
+    }
+
+    [Fact]
     public void DetectsTnefAndRequiresMsgDirectoryContractForCompoundFiles() {
         Assert.Equal(EmailFileFormat.Tnef, EmailDocumentReader.DetectFormat(new byte[] { 0x78, 0x9F, 0x3E, 0x22 }));
         Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(

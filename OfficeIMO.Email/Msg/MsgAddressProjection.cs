@@ -20,8 +20,8 @@ internal static class MsgAddressProjection {
         string? address = string.Equals(addressType, "EX", StringComparison.OrdinalIgnoreCase)
             ? FirstNonEmpty(smtp, native)
             : FirstNonEmpty(native, smtp);
-        if ((string.IsNullOrEmpty(address) || address.IndexOf('@') < 0) &&
-            !string.IsNullOrEmpty(original) && original.IndexOf('@') >= 0) {
+        if ((string.IsNullOrEmpty(address) || (address?.IndexOf('@') ?? -1) < 0) &&
+            !string.IsNullOrEmpty(original) && (original?.IndexOf('@') ?? -1) >= 0) {
             address = original;
         }
 

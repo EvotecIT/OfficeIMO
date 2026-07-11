@@ -120,6 +120,16 @@ internal static class MsgWriter {
         properties.Set(0x3FFA, MapiPropertyType.Unicode, metadata.LastModifierName);
         properties.Set(0x3013, MapiPropertyType.Binary, metadata.ConversationId);
         properties.Set(0x5909, MapiPropertyType.Integer32, metadata.EditorFormat);
+        properties.SetNamed(MsgProjection.PsetidReactions, "ReactionsSummary", MapiPropertyType.Binary,
+            metadata.ReactionsSummary);
+        properties.SetNamed(MsgProjection.PsetidReactions, "OwnerReactionHistory", MapiPropertyType.Binary,
+            metadata.OwnerReactionHistory);
+        properties.SetNamed(MsgProjection.PsetidReactions, "OwnerReactionType", MapiPropertyType.Unicode,
+            metadata.OwnerReactionType);
+        properties.SetNamed(MsgProjection.PsetidReactions, "OwnerReactionTime", MapiPropertyType.Time,
+            metadata.OwnerReactionTime);
+        properties.SetNamed(MsgProjection.PsetidReactions, "ReactionsCount", MapiPropertyType.Integer32,
+            metadata.ReactionsCount);
         properties.Set(0x0042, MapiPropertyType.Unicode, document.From?.DisplayName);
         properties.Set(0x0065, MapiPropertyType.Unicode, document.From?.Address);
         properties.Set(0x0064, MapiPropertyType.Unicode, document.From?.AddressType ?? "SMTP");
