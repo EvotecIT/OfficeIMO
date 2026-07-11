@@ -46,20 +46,20 @@ public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one HTML surface to dependency-free PNG bytes.</summary>
     /// <example><code>byte[] png = html.ToPng();</code></example>
     public static byte[] ToPng(this string html, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        html.ExportImage(OfficeImageExportFormat.Png, options, pageIndex).Bytes;
+        html.ToPngResult(options, pageIndex).Bytes;
 
     /// <summary>Renders one HTML surface to SVG text.</summary>
     /// <example><code>string svg = html.ToSvg();</code></example>
     public static string ToSvg(this string html, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options, pageIndex).Bytes);
+        Encoding.UTF8.GetString(html.ToSvgResult(options, pageIndex).Bytes);
 
     /// <summary>Asynchronously resolves resources and renders one HTML surface to PNG bytes.</summary>
     public static async Task<byte[]> ToPngAsync(this string html, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        (await html.ExportImageAsync(OfficeImageExportFormat.Png, options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes;
+        (await html.ToPngResultAsync(options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes;
 
     /// <summary>Asynchronously resolves resources and renders one HTML surface to SVG text.</summary>
     public static async Task<string> ToSvgAsync(this string html, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        Encoding.UTF8.GetString((await html.ExportImageAsync(OfficeImageExportFormat.Svg, options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes);
+        Encoding.UTF8.GetString((await html.ToSvgResultAsync(options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes);
 
     /// <summary>Saves one HTML surface as a PNG file.</summary>
     public static void SaveAsPng(this string html, string path, HtmlRenderOptions? options = null, int pageIndex = 0) => WriteFile(path, html.ToPng(options, pageIndex));

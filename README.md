@@ -234,6 +234,10 @@ byte[] pdf = html.ToPdf(options);
 byte[] png = html.ToPng(options);
 string svg = html.ToSvg(options);
 
+var pdfResult = html.ToPdfResult(options);
+var pngResult = html.ToPngResult(options);
+var svgResult = html.ToSvgResult(options);
+
 html.SaveAsPdf("status.pdf", options);
 html.SaveAsPng("status.png", options);
 html.SaveAsSvg("status.svg", options);

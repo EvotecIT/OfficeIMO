@@ -34,7 +34,7 @@ html.SaveAsPng("status.png", options);
 html.SaveAsSvg("status.svg", options);
 ```
 
-`ToPng()` and `ToSvg()` return in-memory output. `SaveAsPng()` and `SaveAsSvg()` accept only a file or stream destination. Use `ExportImage()` when dimensions, diagnostics, and other artifact metadata are needed.
+`ToPng()` and `ToSvg()` return in-memory output. `ToPngResult()` and `ToSvgResult()` return encoded output plus dimensions and diagnostics; their plural counterparts return every paged surface. `SaveAsPng()` and `SaveAsSvg()` accept only a file or stream destination. Use `ExportImage()` only when the image format is selected at runtime.
 
 Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlPdfSaveOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF, PNG, and SVG.
 
