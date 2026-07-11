@@ -16,8 +16,12 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Chooses a full-rewrite, append-only, or blocked path for an existing-document mutation.</summary>
-    public PdfMutationPlan PlanMutation(PdfMutationOperation operation, IEnumerable<string>? fieldNames = null, PdfReadOptions? options = null) {
-        return PdfMutationPlanner.Plan(Preflight(options), operation, fieldNames);
+    public PdfMutationPlan PlanMutation(
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames = null,
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        return PdfMutationPlanner.Plan(Preflight(options), operation, fieldNames, executionPreference);
     }
 
     /// <summary>
@@ -67,7 +71,12 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(areas, nameof(areas));
-        return TryOperation("Apply redactions", PdfPreflightCapability.ManipulatePages, () => ApplyRedactions(areas, applyOptions, layoutOptions, options), options ?? ReadOptions);
+        return TryMutationOperation(
+            "Apply redactions",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.Redact,
+            _ => ApplyRedactions(areas, applyOptions, layoutOptions, options),
+            options: options ?? ReadOptions);
     }
 
     internal PdfOperationResult<T> TryOperation<T>(
@@ -96,11 +105,12 @@ public sealed partial class PdfDocument {
         PdfMutationOperation mutationOperation,
         Func<PdfMutationExecutionMode, T> operation,
         IEnumerable<string>? fieldNames = null,
-        PdfReadOptions? options = null) where T : class {
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
         Guard.NotNullOrWhiteSpace(operationName, nameof(operationName));
         Guard.NotNull(operation, nameof(operation));
 
-        PdfMutationPlan plan = PlanMutation(mutationOperation, fieldNames, options);
+        PdfMutationPlan plan = PlanMutation(mutationOperation, fieldNames, options, executionPreference);
         if (!plan.CanExecute) {
             return PdfOperationResult<T>.MutationBlocked(operationName, capability, plan);
         }
@@ -110,6 +120,23 @@ public sealed partial class PdfDocument {
         } catch (Exception ex) {
             return PdfOperationResult<T>.MutationFailed(operationName, capability, plan, ex);
         }
+    }
+
+    internal PdfOperationResult<T> TryMutationOperation<T>(
+        string operationName,
+        PdfPreflightCapability capability,
+        PdfMutationOperation mutationOperation,
+        Func<T> operation,
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
+        Guard.NotNull(operation, nameof(operation));
+        return TryMutationOperation(
+            operationName,
+            capability,
+            mutationOperation,
+            _ => operation(),
+            options: options,
+            executionPreference: executionPreference);
     }
 
     /// <summary>
@@ -125,7 +152,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(PdfDocument document, PdfReadOptions? options = null) {
         Guard.NotNull(document, nameof(document));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(document), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(document), options: options);
     }
 
     /// <summary>
@@ -141,7 +168,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(pdf), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(pdf), options: options);
     }
 
     /// <summary>
@@ -157,7 +184,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(string path, PdfReadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(path), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(path), options: options);
     }
 
     /// <summary>
@@ -179,7 +206,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(Stream stream, PdfReadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(stream), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(stream), options: options);
     }
 
     /// <summary>
@@ -193,7 +220,7 @@ public sealed partial class PdfDocument {
     /// Attempts to flatten visual annotation appearance streams, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFlattenVisualAnnotations(PdfReadOptions? options = null) {
-        return TryOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, FlattenVisualAnnotations, options);
+        return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations, _ => FlattenVisualAnnotations(), options: options);
     }
 
     /// <summary>
@@ -207,7 +234,13 @@ public sealed partial class PdfDocument {
     /// Attempts to append a metadata-only incremental revision, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {
-        return TryOperation("Append metadata revision", PdfPreflightCapability.AppendMetadataRevision, () => AppendMetadataRevision(title, author, subject, keywords), options);
+        return TryMutationOperation(
+            "Append metadata revision",
+            PdfPreflightCapability.AppendMetadataRevision,
+            PdfMutationOperation.UpdateMetadata,
+            _ => AppendMetadataRevision(title, author, subject, keywords),
+            options: options,
+            executionPreference: PdfMutationExecutionPreference.RequireAppendOnly);
     }
 
     /// <summary>
@@ -263,6 +296,12 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryReplaceMetadata(PdfMetadata metadata, PdfReadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
-        return TryOperation("Replace metadata", PdfPreflightCapability.ManipulatePages, () => ReplaceMetadata(metadata), options);
+        return TryMutationOperation(
+            "Replace metadata",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.UpdateMetadata,
+            _ => ReplaceMetadata(metadata),
+            options: options,
+            executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
     }
 }

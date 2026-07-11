@@ -17,6 +17,9 @@ public enum PdfMutationOperation {
     /// <summary>Append an external-signature placeholder revision.</summary>
     PrepareExternalSignature,
 
+    /// <summary>Create one or more independent output PDFs from selected source pages.</summary>
+    ExtractPages,
+
     /// <summary>Change page membership or order, including delete, move, duplicate, merge, or import.</summary>
     ModifyPageTree,
 

@@ -4,24 +4,28 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfMutationPlan {
     internal PdfMutationPlan(
         PdfMutationOperation operation,
+        PdfMutationExecutionPreference executionPreference,
         PdfMutationExecutionMode executionMode,
         PdfDocumentPreflight preflight,
         PdfAppendOnlyMutationReport appendOnlyReport,
         bool fullRewriteAvailable,
         bool appendOnlyAvailable,
         IReadOnlyList<PdfMutationStructure> affectedStructures,
+        IReadOnlyList<PdfMutationCapabilityRecord> capabilityRecords,
         IReadOnlyList<PdfMutationPermissionCheck> permissionChecks,
         IReadOnlyList<PdfMutationProof> requiredProofs,
         IReadOnlyList<string> blockerCodes,
         IReadOnlyList<string> warnings,
         IReadOnlyList<string> diagnostics) {
         Operation = operation;
+        ExecutionPreference = executionPreference;
         ExecutionMode = executionMode;
         Preflight = preflight;
         AppendOnlyReport = appendOnlyReport;
         FullRewriteAvailable = fullRewriteAvailable;
         AppendOnlyAvailable = appendOnlyAvailable;
         AffectedStructures = affectedStructures;
+        CapabilityRecords = capabilityRecords;
         PermissionChecks = permissionChecks;
         RequiredProofs = requiredProofs;
         BlockerCodes = blockerCodes;
@@ -31,6 +35,9 @@ public sealed class PdfMutationPlan {
 
     /// <summary>Requested mutation family.</summary>
     public PdfMutationOperation Operation { get; }
+
+    /// <summary>Caller constraint used when selecting the execution mode.</summary>
+    public PdfMutationExecutionPreference ExecutionPreference { get; }
 
     /// <summary>Selected execution mode.</summary>
     public PdfMutationExecutionMode ExecutionMode { get; }
@@ -52,6 +59,9 @@ public sealed class PdfMutationPlan {
 
     /// <summary>PDF structures the requested operation can affect.</summary>
     public IReadOnlyList<PdfMutationStructure> AffectedStructures { get; }
+
+    /// <summary>Input-specific shared capability records that contributed to this decision.</summary>
+    public IReadOnlyList<PdfMutationCapabilityRecord> CapabilityRecords { get; }
 
     /// <summary>Permission and authorization rules that must be evaluated for this operation.</summary>
     public IReadOnlyList<PdfMutationPermissionCheck> PermissionChecks { get; }

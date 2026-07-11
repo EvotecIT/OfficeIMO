@@ -7,9 +7,10 @@ public static class PdfMutationPlanner {
         byte[] pdf,
         PdfMutationOperation operation,
         PdfReadOptions? options = null,
-        IEnumerable<string>? fieldNames = null) {
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(pdf, nameof(pdf));
-        return Plan(PdfInspector.Preflight(pdf, options), operation, fieldNames);
+        return Plan(PdfInspector.Preflight(pdf, options), operation, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation for a readable PDF stream.</summary>
@@ -17,7 +18,8 @@ public static class PdfMutationPlanner {
         Stream input,
         PdfMutationOperation operation,
         PdfReadOptions? options = null,
-        IEnumerable<string>? fieldNames = null) {
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
@@ -25,7 +27,7 @@ public static class PdfMutationPlanner {
 
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
-        return Plan(buffer.ToArray(), operation, options, fieldNames);
+        return Plan(buffer.ToArray(), operation, options, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation for a PDF file.</summary>
@@ -33,18 +35,21 @@ public static class PdfMutationPlanner {
         string inputPath,
         PdfMutationOperation operation,
         PdfReadOptions? options = null,
-        IEnumerable<string>? fieldNames = null) {
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return Plan(File.ReadAllBytes(inputPath), operation, options, fieldNames);
+        return Plan(File.ReadAllBytes(inputPath), operation, options, fieldNames, executionPreference);
     }
 
     /// <summary>Plans a mutation from an existing general preflight report.</summary>
     public static PdfMutationPlan Plan(
         PdfDocumentPreflight preflight,
         PdfMutationOperation operation,
-        IEnumerable<string>? fieldNames = null) {
+        IEnumerable<string>? fieldNames = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(preflight, nameof(preflight));
         ValidateOperation(operation);
+        ValidateExecutionPreference(executionPreference);
 
         string[] requestedFields = NormalizeFieldNames(fieldNames);
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
@@ -56,11 +61,13 @@ public static class PdfMutationPlanner {
             fullRewriteImplemented &&
             fullRewriteCapability &&
             !security.RequiresAppendOnlyMutation &&
-            !security.BlocksOfficeIMOFullRewriteMutation;
+            (!security.BlocksOfficeIMOFullRewriteMutation || CanExtractEncryptedPages(preflight, operation));
         bool appendOnlyAvailable = appendOnlyImplemented && CanAppend(appendOnly, operation);
 
         PdfMutationExecutionMode mode;
-        if (RequiresAppendOnlyByDefinition(operation)) {
+        if (executionPreference == PdfMutationExecutionPreference.RequireFullRewrite) {
+            mode = fullRewriteAvailable ? PdfMutationExecutionMode.FullRewrite : PdfMutationExecutionMode.Blocked;
+        } else if (executionPreference == PdfMutationExecutionPreference.RequireAppendOnly || RequiresAppendOnlyByDefinition(operation)) {
             mode = appendOnlyAvailable ? PdfMutationExecutionMode.AppendOnly : PdfMutationExecutionMode.Blocked;
         } else if (fullRewriteAvailable) {
             mode = PdfMutationExecutionMode.FullRewrite;
@@ -76,17 +83,29 @@ public static class PdfMutationPlanner {
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
             ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security)
             : Array.Empty<string>();
+        IReadOnlyList<PdfMutationCapabilityRecord> capabilityRecords = BuildCapabilityRecords(
+            operation,
+            structures,
+            fullRewriteImplemented,
+            appendOnlyImplemented,
+            fullRewriteAvailable,
+            appendOnlyAvailable,
+            permissions,
+            proofs,
+            blockers);
         IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, mode, security);
         IReadOnlyList<string> diagnostics = GetDiagnostics(preflight, appendOnly, operation, mode, blockers, fullRewriteCapability, appendOnlyAvailable, security);
 
         return new PdfMutationPlan(
             operation,
+            executionPreference,
             mode,
             preflight,
             appendOnly,
             fullRewriteAvailable,
             appendOnlyAvailable,
             structures,
+            capabilityRecords,
             permissions,
             proofs,
             blockers,
@@ -106,6 +125,8 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyAttachments:
             case PdfMutationOperation.ChangeEncryption:
                 return false;
+            case PdfMutationOperation.ExtractPages:
+                return preflight.CanRewrite || CanExtractEncryptedPages(preflight, operation);
             default:
                 return preflight.CanRewrite;
         }
@@ -151,6 +172,7 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.PrepareExternalSignature:
                 return ReadOnly(PdfMutationStructure.Signatures, PdfMutationStructure.AcroForm, PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph);
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.ExtractPages:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog);
             case PdfMutationOperation.ModifyPageContent:
                 return ReadOnly(PdfMutationStructure.PageContent, PdfMutationStructure.PageResources);
@@ -182,6 +204,7 @@ public static class PdfMutationPlanner {
                 Add(permissions, PdfMutationPermissionCheck.FieldMdp);
                 break;
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.ExtractPages:
                 Add(permissions, PdfMutationPermissionCheck.ModifyDocument);
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
@@ -246,6 +269,7 @@ public static class PdfMutationPlanner {
                 Add(proofs, PdfMutationProof.SignaturePermissions);
                 break;
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.ExtractPages:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
                 break;
             case PdfMutationOperation.ModifyPageContent:
@@ -418,6 +442,99 @@ public static class PdfMutationPlanner {
             .ToArray();
     }
 
+    private static bool CanExtractEncryptedPages(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
+        if (operation != PdfMutationOperation.ExtractPages ||
+            !preflight.CanRead ||
+            !preflight.Probe.HasEncryption) {
+            return false;
+        }
+
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            if (preflight.RewriteBlockers[i].Kind != PdfRewriteBlockerKind.Encryption) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfMutationCapabilityRecord> BuildCapabilityRecords(
+        PdfMutationOperation operation,
+        IReadOnlyList<PdfMutationStructure> structures,
+        bool fullRewriteImplemented,
+        bool appendOnlyImplemented,
+        bool fullRewriteAvailable,
+        bool appendOnlyAvailable,
+        IReadOnlyList<PdfMutationPermissionCheck> permissions,
+        IReadOnlyList<PdfMutationProof> proofs,
+        IReadOnlyList<string> blockers) {
+        var grouped = new Dictionary<PdfMutationCapabilityKind, List<PdfMutationStructure>>();
+        for (int i = 0; i < structures.Count; i++) {
+            PdfMutationCapabilityKind kind = GetCapabilityKind(operation, structures[i]);
+            if (!grouped.TryGetValue(kind, out List<PdfMutationStructure>? values)) {
+                values = new List<PdfMutationStructure>();
+                grouped.Add(kind, values);
+            }
+
+            Add(values, structures[i]);
+        }
+
+        var records = new List<PdfMutationCapabilityRecord>();
+        foreach (KeyValuePair<PdfMutationCapabilityKind, List<PdfMutationStructure>> group in grouped.OrderBy(static item => item.Key)) {
+            records.Add(new PdfMutationCapabilityRecord(
+                group.Key,
+                group.Value.AsReadOnly(),
+                fullRewriteImplemented,
+                appendOnlyImplemented,
+                fullRewriteAvailable,
+                appendOnlyAvailable,
+                permissions,
+                proofs,
+                blockers));
+        }
+
+        return records.AsReadOnly();
+    }
+
+    private static PdfMutationCapabilityKind GetCapabilityKind(PdfMutationOperation operation, PdfMutationStructure structure) {
+        switch (structure) {
+            case PdfMutationStructure.PageTree:
+                return PdfMutationCapabilityKind.PageTreeChanges;
+            case PdfMutationStructure.PageContent:
+            case PdfMutationStructure.PageResources:
+            case PdfMutationStructure.TaggedContent:
+                return PdfMutationCapabilityKind.ContentChanges;
+            case PdfMutationStructure.Catalog:
+            case PdfMutationStructure.Navigation:
+                return PdfMutationCapabilityKind.CatalogChanges;
+            case PdfMutationStructure.AcroForm:
+            case PdfMutationStructure.AppearanceStreams when operation != PdfMutationOperation.ModifyAnnotations:
+                return PdfMutationCapabilityKind.FormChanges;
+            case PdfMutationStructure.AppearanceStreams:
+            case PdfMutationStructure.Annotations:
+                return PdfMutationCapabilityKind.AnnotationChanges;
+            case PdfMutationStructure.InfoDictionary:
+            case PdfMutationStructure.XmpMetadata:
+                return PdfMutationCapabilityKind.MetadataChanges;
+            case PdfMutationStructure.Attachments:
+                return PdfMutationCapabilityKind.AttachmentChanges;
+            case PdfMutationStructure.Encryption:
+                return PdfMutationCapabilityKind.EncryptionChanges;
+            case PdfMutationStructure.Signatures:
+                return PdfMutationCapabilityKind.SignatureChanges;
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature:
+                return PdfMutationCapabilityKind.SignatureChanges;
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyAttachments:
+                return PdfMutationCapabilityKind.AttachmentChanges;
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ChangeEncryption:
+                return PdfMutationCapabilityKind.EncryptionChanges;
+            case PdfMutationStructure.ObjectGraph:
+                return PdfMutationCapabilityKind.ContentChanges;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(structure), structure, "Unsupported PDF mutation structure.");
+        }
+    }
+
     private static System.Collections.ObjectModel.ReadOnlyCollection<T> ReadOnly<T>(params T[] values) => Array.AsReadOnly(values);
 
     private static void Add<T>(List<T> values, T value) where T : notnull {
@@ -430,6 +547,13 @@ public static class PdfMutationPlanner {
         int value = (int)operation;
         if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.Redact) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
+        }
+    }
+
+    private static void ValidateExecutionPreference(PdfMutationExecutionPreference executionPreference) {
+        int value = (int)executionPreference;
+        if (value < (int)PdfMutationExecutionPreference.Automatic || value > (int)PdfMutationExecutionPreference.RequireAppendOnly) {
+            throw new ArgumentOutOfRangeException(nameof(executionPreference), executionPreference, "Unsupported PDF mutation execution preference.");
         }
     }
 }

@@ -21,7 +21,7 @@ public sealed class PdfDocumentStamper {
     /// Attempts to create a new PDF with text stamped above existing content, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryText(string text, PdfTextStampOptions? stampOptions = null, PdfReadOptions? options = null) {
-        return _document.TryOperation("Stamp text", PdfPreflightCapability.ManipulatePages, () => Text(text, stampOptions), options);
+        return _document.TryMutationOperation("Stamp text", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => Text(text, stampOptions), options: options);
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ public sealed class PdfDocumentStamper {
     /// Attempts to create a new PDF with text watermarked behind existing content, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryTextWatermark(string text, PdfTextStampOptions? stampOptions = null, PdfReadOptions? options = null) {
-        return _document.TryOperation("Watermark text", PdfPreflightCapability.ManipulatePages, () => TextWatermark(text, stampOptions), options);
+        return _document.TryMutationOperation("Watermark text", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => TextWatermark(text, stampOptions), options: options);
     }
 
     /// <summary>
@@ -51,7 +51,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryImage(byte[] imageBytes, PdfImageStampOptions? stampOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        return _document.TryOperation("Stamp image", PdfPreflightCapability.ManipulatePages, () => Image(imageBytes, stampOptions), options);
+        return _document.TryMutationOperation("Stamp image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => Image(imageBytes, stampOptions), options: options);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryImage(Stream imageStream, PdfImageStampOptions? stampOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(imageStream, nameof(imageStream));
-        return _document.TryOperation("Stamp image", PdfPreflightCapability.ManipulatePages, () => Image(imageStream, stampOptions), options);
+        return _document.TryMutationOperation("Stamp image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => Image(imageStream, stampOptions), options: options);
     }
 
     /// <summary>
@@ -83,7 +83,7 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryImageWatermark(byte[] imageBytes, PdfImageStampOptions? stampOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        return _document.TryOperation("Watermark image", PdfPreflightCapability.ManipulatePages, () => ImageWatermark(imageBytes, stampOptions), options);
+        return _document.TryMutationOperation("Watermark image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => ImageWatermark(imageBytes, stampOptions), options: options);
     }
 
     /// <summary>
@@ -99,6 +99,6 @@ public sealed class PdfDocumentStamper {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryImageWatermark(Stream imageStream, PdfImageStampOptions? stampOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(imageStream, nameof(imageStream));
-        return _document.TryOperation("Watermark image", PdfPreflightCapability.ManipulatePages, () => ImageWatermark(imageStream, stampOptions), options);
+        return _document.TryMutationOperation("Watermark image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => ImageWatermark(imageStream, stampOptions), options: options);
     }
 }

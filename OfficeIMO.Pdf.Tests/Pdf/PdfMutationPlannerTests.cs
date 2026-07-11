@@ -143,4 +143,82 @@ public class PdfMutationPlannerTests {
         Assert.Contains(PdfMutationProof.BytePrefixPreservation, plan.RequiredProofs);
         Assert.Contains(PdfMutationProof.SignatureByteRanges, plan.RequiredProofs);
     }
+
+    [Fact]
+    public void Plan_ExposesSharedCapabilityRecordsForAffectedStructures() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Capability record source"))
+            .ToBytes();
+
+        PdfMutationPlan pagePlan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ModifyPageTree);
+        PdfMutationCapabilityRecord pageTree = Assert.Single(
+            pagePlan.CapabilityRecords,
+            record => record.Kind == PdfMutationCapabilityKind.PageTreeChanges);
+        PdfMutationCapabilityRecord catalog = Assert.Single(
+            pagePlan.CapabilityRecords,
+            record => record.Kind == PdfMutationCapabilityKind.CatalogChanges);
+
+        Assert.Contains(PdfMutationStructure.PageTree, pageTree.AffectedStructures);
+        Assert.True(pageTree.FullRewriteImplemented);
+        Assert.True(pageTree.FullRewriteAllowed);
+        Assert.False(pageTree.AppendOnlyImplemented);
+        Assert.Contains(PdfMutationStructure.Catalog, catalog.AffectedStructures);
+        Assert.Contains(PdfMutationPermissionCheck.AssembleDocument, pageTree.PermissionChecks);
+        Assert.Contains(PdfMutationProof.PageStructureReadback, pageTree.RequiredProofs);
+    }
+
+    [Fact]
+    public void ExplicitAppendWorkflowRequiresAppendOnlyEvenForOrdinaryInput() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Explicit append source"))
+            .ToBytes();
+
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(source)
+            .TryAppendMetadataRevision(title: "Explicit append title");
+
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
+        Assert.Equal(PdfMutationExecutionPreference.RequireAppendOnly, plan.ExecutionPreference);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+        Assert.True(result.RequireValue().ToBytes().AsSpan(0, source.Length).SequenceEqual(source));
+    }
+
+    [Fact]
+    public void PageEditingWorkflowUsesPlannerAndBlocksSignedIncrementalInput() {
+        byte[] ordinary = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second"))
+            .ToBytes();
+
+        PdfOperationResult<PdfDocument> ordinaryResult = PdfDocument.Open(ordinary)
+            .Pages.TryDelete(PdfPageSelection.Parse("2"));
+        PdfOperationResult<PdfDocument> signedResult = PdfDocument.Open(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
+            .Pages.TryDelete(PdfPageSelection.Parse("1"));
+
+        Assert.True(ordinaryResult.Succeeded, string.Join(" ", ordinaryResult.Diagnostics));
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, ordinaryResult.MutationPlan!.ExecutionMode);
+        Assert.Equal(1, ordinaryResult.RequireValue().Inspect().PageCount);
+        Assert.False(signedResult.CanAttempt);
+        Assert.False(signedResult.Succeeded);
+        Assert.Equal(PdfMutationExecutionMode.Blocked, signedResult.MutationPlan!.ExecutionMode);
+        Assert.Contains("FullRewrite.AppendOnlyRequired", signedResult.MutationPlan.BlockerCodes);
+    }
+
+    [Fact]
+    public void EncryptedPageExtractionUsesExplicitPlannerExceptionAndReturnsUnencryptedOutput() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted extraction"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions { Password = "open" };
+
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(source, readOptions)
+            .Pages.TryExtract(PdfPageSelection.Parse("1"));
+
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        PdfMutationPlan plan = Assert.IsType<PdfMutationPlan>(result.MutationPlan);
+        Assert.Equal(PdfMutationOperation.ExtractPages, plan.Operation);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
+        Assert.False(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
+    }
 }
