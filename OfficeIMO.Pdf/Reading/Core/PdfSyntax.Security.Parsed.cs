@@ -138,6 +138,7 @@ internal static partial class PdfSyntax {
             encryptionLengthBits,
             encryptionPermissions,
             encryptMetadata,
+            fallback.PasswordAuthenticationRole,
             fallback.HasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
             signatureFieldObjectNumbers.Count == 0 ? Array.Empty<int>() : signatureFieldObjectNumbers.AsReadOnly(),
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),

@@ -41,6 +41,7 @@ internal static partial class PdfSyntax {
         int? encryptionLengthBits = null;
         int? encryptionPermissions = null;
         bool? encryptMetadata = null;
+        PdfPasswordAuthenticationRole passwordAuthenticationRole = PdfPasswordAuthenticationRole.None;
 
         if (encryptObjectNumber.HasValue &&
             TryReadObjectDictionary(text, encryptObjectNumber.Value, out PdfDictionary? encryptionDictionary) &&
@@ -104,6 +105,10 @@ internal static partial class PdfSyntax {
                 encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
                 encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
                 encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+                if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler) &&
+                    authenticatedHandler is not null) {
+                    passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
+                }
             }
 
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
@@ -195,6 +200,7 @@ internal static partial class PdfSyntax {
             encryptionLengthBits,
             encryptionPermissions,
             encryptMetadata,
+            passwordAuthenticationRole,
             hasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
             signatureFieldObjectNumbers.Count == 0 ? Array.Empty<int>() : signatureFieldObjectNumbers.AsReadOnly(),
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),

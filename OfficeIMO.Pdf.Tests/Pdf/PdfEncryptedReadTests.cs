@@ -156,7 +156,7 @@ public class PdfEncryptedReadTests {
         Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Encryption);
         Assert.Contains(
-            "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.",
+            "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.",
             preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
     }
 

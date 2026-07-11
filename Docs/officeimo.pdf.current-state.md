@@ -45,7 +45,7 @@ PDF primitive exists somewhere in the codebase.
 | Stamp and watermark | Ready for the supported rewrite subset | Text and image stamps/watermarks can target selected pages through fluent or static APIs. | Rich text, reusable appearance templates, optional append-only stamping when signature permissions allow it, and wider resource-preservation proof. |
 | Bookmarks and outlines | Partial | Generated documents can create nested outlines and named destinations; existing outlines can be read, preserved when supported, and used to split a document. | Add an existing-document outline editor: add, remove, rename, move, nest, retarget, rebuild from headings, and validate broken destinations. |
 | Annotations | Partial | Generated PDFs can create text, free-text, highlight, and link annotations. Existing annotations can be read, filtered, flattened for supported appearances, updated in a small metadata/style subset, or removed. | Add annotations to existing pages; move/resize them; edit subtype-specific geometry and appearance; reply/thread support; selective flattening; incremental edits; broader markup, ink, stamp, file-attachment, and redaction annotation behavior. |
-| Password protection | Partial | Generated PDFs support Standard security with user/owner passwords and a raw permissions mask. Password-backed reading supports Standard security revisions 2-4. | Replace legacy RC4-only output with modern AES security, typed permissions, Unicode password rules, encrypt/decrypt existing files, encrypted rewrites, revision 5/6 reading, and optional certificate security outside the dependency-free core. |
+| Password protection | Ready for supported Standard-security workflows | Generated and rewritten PDFs default to AES-256 revision 6, with AES-128 interoperability and explicit legacy RC4 modes, typed permissions, Unicode password handling, revision 2-6 reading, authenticated user/owner roles, and owner-authorized encrypt/decrypt/re-encrypt workflows with preservation reports. | Expand encrypted mutation coverage beyond the dedicated security rewrite, keep signed/security-sensitive inputs fail-closed, and add optional certificate security outside the dependency-free core. |
 | Metadata | Partial | Info-dictionary title, author, subject, and keywords can be replaced or updated by full rewrite or append-only revision. Generated PDFs can emit XMP and profile metadata; existing XMP is readable. | Edit and synchronize Info plus XMP, preserve custom schemas, manage dates/producer/creator deliberately, and report conflicts instead of silently choosing one source. |
 | Forms | Partial | Generated simple AcroForms are supported. Existing text, choice, check box, and radio fields can be read, filled, regenerated, flattened, or updated append-only in the supported subset. XFA is detected. | Create/edit fields on existing pages, selected-field flattening, calculation/order/default-value handling, richer appearance regeneration, import/export values, signature fields, and an explicit XFA non-execution/routing contract. |
 | Incremental updates | Partial but real | Metadata, supported form values/appearances, and external-signature preparation can be appended without replacing prior bytes. Mutation policy checks signature and DocMDP/FieldMDP markers. | Build one general append-only object writer and mutation planner, then add only operations that can prove signature and revision preservation. |
@@ -128,12 +128,12 @@ valid revision chain, and retains the expected signature/permission state.
 
 ### P0 - Modern Security And Signature Validation
 
-- [ ] Add typed standard-security algorithms and permissions. Make AES-256
+- [x] Add typed standard-security algorithms and permissions. Make AES-256
   revision 6 the normal modern output, support AES-128 where interoperability
   requires it, and keep RC4 only behind an explicit legacy option.
-- [ ] Support reading revision 5/6 password security with correct Unicode
+- [x] Support reading revision 5/6 password security with correct Unicode
   password processing and metadata-encryption behavior.
-- [ ] Add encrypt, change-password/permissions, and owner-authorized decrypt
+- [x] Add encrypt, change-password/permissions, and owner-authorized decrypt
   workflows for existing PDFs, with full preservation reports.
 - [ ] Put CMS signature verification behind a small cryptography seam so the
   dependency-free PDF parser owns byte ranges and signed attributes while a BCL

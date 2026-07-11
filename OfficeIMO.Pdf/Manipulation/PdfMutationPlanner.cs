@@ -57,11 +57,13 @@ public static class PdfMutationPlanner {
         bool fullRewriteImplemented = IsFullRewriteImplemented(operation);
         bool appendOnlyImplemented = IsAppendOnlyImplemented(operation);
         bool fullRewriteCapability = CanFullRewrite(preflight, operation);
+        bool securityRewrite = operation == PdfMutationOperation.ChangeEncryption && fullRewriteCapability;
         bool fullRewriteAvailable =
             fullRewriteImplemented &&
             fullRewriteCapability &&
-            !security.RequiresAppendOnlyMutation &&
-            (!security.BlocksOfficeIMOFullRewriteMutation || CanExtractEncryptedPages(preflight, operation));
+            (securityRewrite ||
+                (!security.RequiresAppendOnlyMutation &&
+                (!security.BlocksOfficeIMOFullRewriteMutation || CanExtractEncryptedPages(preflight, operation))));
         bool appendOnlyAvailable = appendOnlyImplemented && CanAppend(appendOnly, operation);
 
         PdfMutationExecutionMode mode;
@@ -123,8 +125,9 @@ public static class PdfMutationPlanner {
                 return preflight.CanFillAndFlattenSimpleFormFields;
             case PdfMutationOperation.PrepareExternalSignature:
             case PdfMutationOperation.ModifyAttachments:
-            case PdfMutationOperation.ChangeEncryption:
                 return false;
+            case PdfMutationOperation.ChangeEncryption:
+                return CanChangeEncryption(preflight);
             case PdfMutationOperation.ExtractPages:
                 return preflight.CanRewrite || CanExtractEncryptedPages(preflight, operation);
             default:
@@ -147,8 +150,7 @@ public static class PdfMutationPlanner {
 
     private static bool IsFullRewriteImplemented(PdfMutationOperation operation) {
         return operation != PdfMutationOperation.PrepareExternalSignature &&
-            operation != PdfMutationOperation.ModifyAttachments &&
-            operation != PdfMutationOperation.ChangeEncryption;
+            operation != PdfMutationOperation.ModifyAttachments;
     }
 
     private static bool IsAppendOnlyImplemented(PdfMutationOperation operation) {
@@ -310,6 +312,22 @@ public static class PdfMutationPlanner {
 
         if (!fullRewriteImplemented) {
             Add(blockers, "FullRewrite.NotImplemented." + operation);
+        } else if (operation == PdfMutationOperation.ChangeEncryption) {
+            if (security.HasEncryption && !security.HasOwnerAuthorization) {
+                Add(blockers, "FullRewrite.Encryption.OwnerAuthorizationRequired");
+            }
+
+            if (security.HasSignatures) {
+                Add(blockers, "FullRewrite.SignaturePreservation");
+            }
+
+            if (security.HasDocMDPPermissions) {
+                Add(blockers, "FullRewrite.DocMdpPreservation");
+            }
+
+            if (security.HasUsageRights) {
+                Add(blockers, "FullRewrite.UsageRightsPreservation");
+            }
         } else {
             for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
                 Add(blockers, "FullRewrite." + preflight.RewriteBlockers[i].Kind);
@@ -366,6 +384,10 @@ public static class PdfMutationPlanner {
 
         if (security.HasDocumentSecurityStore) {
             Add(warnings, "Input.DocumentSecurityStorePresent");
+        }
+
+        if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {
+            Add(warnings, "Input.RevisionHistoryWillBeNormalized");
         }
 
         return warnings.Count == 0 ? Array.Empty<string>() : warnings.AsReadOnly();
@@ -456,6 +478,19 @@ public static class PdfMutationPlanner {
         }
 
         return true;
+    }
+
+    private static bool CanChangeEncryption(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) {
+            return false;
+        }
+
+        PdfDocumentSecurityInfo security = preflight.Probe.Security;
+        if (security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) {
+            return false;
+        }
+
+        return !security.HasEncryption || security.HasOwnerAuthorization;
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfMutationCapabilityRecord> BuildCapabilityRecords(

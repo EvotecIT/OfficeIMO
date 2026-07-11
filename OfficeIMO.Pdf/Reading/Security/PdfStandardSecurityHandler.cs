@@ -17,6 +17,7 @@ internal sealed partial class PdfStandardSecurityHandler {
     private readonly PdfCryptMethod _streamMethod;
     private readonly PdfCryptMethod _stringMethod;
     private readonly bool _encryptMetadata;
+    private readonly PdfPasswordAuthenticationRole _authenticationRole;
 
     private PdfStandardSecurityHandler(
         byte[] fileKey,
@@ -24,14 +25,18 @@ internal sealed partial class PdfStandardSecurityHandler {
         int keyLengthBytes,
         PdfCryptMethod streamMethod,
         PdfCryptMethod stringMethod,
-        bool encryptMetadata) {
+        bool encryptMetadata,
+        PdfPasswordAuthenticationRole authenticationRole) {
         _fileKey = fileKey;
         _revision = revision;
         _keyLengthBytes = keyLengthBytes;
         _streamMethod = streamMethod;
         _stringMethod = stringMethod;
         _encryptMetadata = encryptMetadata;
+        _authenticationRole = authenticationRole;
     }
+
+    internal PdfPasswordAuthenticationRole AuthenticationRole => _authenticationRole;
 
     public static PdfStandardSecurityHandler Create(PdfDictionary encryptionDictionary, byte[] fileId, string? password, bool passwordWasSupplied) {
         string filter = encryptionDictionary.Get<PdfName>("Filter")?.Name ?? string.Empty;
@@ -59,9 +64,12 @@ internal sealed partial class PdfStandardSecurityHandler {
         PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version);
 
         string passwordCandidate = passwordWasSupplied ? password ?? string.Empty : string.Empty;
-        if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey) ||
-            TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey)) {
-            return new PdfStandardSecurityHandler(fileKey, revision, keyLengthBytes, streamMethod, stringMethod, encryptMetadata);
+        if (TryAuthenticateOwnerPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out byte[] fileKey)) {
+            return new PdfStandardSecurityHandler(fileKey, revision, keyLengthBytes, streamMethod, stringMethod, encryptMetadata, PdfPasswordAuthenticationRole.Owner);
+        }
+
+        if (TryAuthenticateUserPassword(passwordCandidate, revision, keyLengthBytes, ownerEntry, userEntry, permissions, fileId, encryptMetadata, out fileKey)) {
+            return new PdfStandardSecurityHandler(fileKey, revision, keyLengthBytes, streamMethod, stringMethod, encryptMetadata, PdfPasswordAuthenticationRole.User);
         }
 
         if (!passwordWasSupplied) {

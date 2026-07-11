@@ -19,9 +19,11 @@ internal sealed partial class PdfStandardSecurityHandler {
         ValidateModernEntries(ownerEntry, userEntry, ownerEncryptedFileKey, userEncryptedFileKey, encryptedPermissions);
         byte[] passwordBytes = NormalizeModernPassword(passwordWasSupplied ? password ?? string.Empty : string.Empty);
 
-        byte[]? fileKey = TryAuthenticateModernUser(passwordBytes, userEntry, userEncryptedFileKey, revision);
+        byte[]? fileKey = TryAuthenticateModernOwner(passwordBytes, ownerEntry, ownerEncryptedFileKey, userEntry, revision);
+        PdfPasswordAuthenticationRole authenticationRole = PdfPasswordAuthenticationRole.Owner;
         if (fileKey is null) {
-            fileKey = TryAuthenticateModernOwner(passwordBytes, ownerEntry, ownerEncryptedFileKey, userEntry, revision);
+            fileKey = TryAuthenticateModernUser(passwordBytes, userEntry, userEncryptedFileKey, revision);
+            authenticationRole = PdfPasswordAuthenticationRole.User;
         }
 
         if (fileKey is null) {
@@ -35,7 +37,7 @@ internal sealed partial class PdfStandardSecurityHandler {
         ValidateModernPermissions(fileKey, encryptedPermissions, permissions, encryptMetadata);
         PdfCryptMethod streamMethod = ResolveCryptMethod(encryptionDictionary, "StmF", version: 5);
         PdfCryptMethod stringMethod = ResolveCryptMethod(encryptionDictionary, "StrF", version: 5);
-        return new PdfStandardSecurityHandler(fileKey, revision, 32, streamMethod, stringMethod, encryptMetadata);
+        return new PdfStandardSecurityHandler(fileKey, revision, 32, streamMethod, stringMethod, encryptMetadata, authenticationRole);
     }
 
     private static byte[]? TryAuthenticateModernUser(byte[] password, byte[] userEntry, byte[] encryptedFileKey, int revision) {

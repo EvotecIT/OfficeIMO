@@ -35,7 +35,10 @@ internal static class PdfFileAssembler {
         }
 
         writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) + BuildTrailerSecurityEntries(encryptionAssembly) + " >>");
+        writer.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) +
+            " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) +
+            (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty) +
+            BuildTrailerSecurityEntries(encryptionAssembly) + " >>");
         writer.WriteLine("startxref");
         writer.WriteLine(xrefPos.ToString(CultureInfo.InvariantCulture));
         writer.WriteLine("%%EOF");

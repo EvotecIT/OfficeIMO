@@ -15,7 +15,7 @@ public partial class PdfInspectorTests {
         Assert.Null(report.DocumentInfo);
         Assert.True(report.HasSecurityDiagnostics);
         AssertReadBlocker(report, PdfReadBlockerKind.Encryption, "PDF encryption dictionary is missing /O.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Encryption, "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.");
 
         PdfDocumentSecurityInfo security = report.Probe.Security;
         Assert.True(security.HasEncryption);

@@ -21,8 +21,8 @@ public static partial class PdfRewritePreservation {
         Guard.NotNull(rewrittenPdf, nameof(rewrittenPdf));
 
         options ??= new PdfRewritePreservationOptions();
-        PdfDocumentInfo original = PdfInspector.Inspect(originalPdf);
-        PdfDocumentInfo rewritten = PdfInspector.Inspect(rewrittenPdf);
+        PdfDocumentInfo original = PdfInspector.Inspect(originalPdf, options.OriginalReadOptions);
+        PdfDocumentInfo rewritten = PdfInspector.Inspect(rewrittenPdf, options.RewrittenReadOptions);
         var issues = new List<PdfRewritePreservationIssue>();
 
         CompareCounts(issues, "PageCount", original.PageCount, rewritten.PageCount, options.PreservePageCount);
@@ -52,7 +52,7 @@ public static partial class PdfRewritePreservation {
         CompareSourceStructure(issues, original, rewritten, options);
         CompareSecurityState(issues, original.Security, rewritten.Security, options);
         CompareCatalogViewSettings(issues, original, rewritten, options);
-        CompareTextMarkers(issues, rewrittenPdf, options.RequiredTextMarkers);
+        CompareTextMarkers(issues, rewrittenPdf, options.RequiredTextMarkers, options.RewrittenReadOptions);
 
         return new PdfRewritePreservationReport(original, rewritten, issues.AsReadOnly());
     }
@@ -452,7 +452,11 @@ public static partial class PdfRewritePreservation {
         CompareBooleanMarker(issues, "ViewerPreferences", original.HasViewerPreferences, rewritten.HasViewerPreferences, options.PreserveViewerPreferences);
     }
 
-    private static void CompareTextMarkers(List<PdfRewritePreservationIssue> issues, byte[] rewrittenPdf, IEnumerable<string> requiredTextMarkers) {
+    private static void CompareTextMarkers(
+        List<PdfRewritePreservationIssue> issues,
+        byte[] rewrittenPdf,
+        IEnumerable<string> requiredTextMarkers,
+        PdfReadOptions? readOptions) {
         string text = string.Empty;
         bool loaded = false;
 
@@ -462,7 +466,7 @@ public static partial class PdfRewritePreservation {
             }
 
             if (!loaded) {
-                text = PdfReadDocument.Load(rewrittenPdf).ExtractText();
+                text = PdfReadDocument.Load(rewrittenPdf, readOptions).ExtractText();
                 loaded = true;
             }
 
