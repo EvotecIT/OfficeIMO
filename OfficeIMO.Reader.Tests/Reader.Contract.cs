@@ -65,6 +65,12 @@ public sealed class ReaderContractTests {
 
     [Fact]
     public void OfficeDocumentReadResultJson_RoundTripsCurrentTransportShape() {
+        var chunkLocation = new ReaderLocation {
+            Path = "report.pdf",
+            Page = 1,
+            HeadingPath = "Q1 > Q2"
+        };
+        ReaderHeadingPath.SetHierarchyPath(chunkLocation, ReaderHeadingPath.Combine(new[] { "Q1 > Q2" }));
         var original = new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Pdf,
             Source = new OfficeDocumentSource {
@@ -79,7 +85,7 @@ public sealed class ReaderContractTests {
                     Id = "chunk-1",
                     Kind = ReaderInputKind.Pdf,
                     Text = "Report body",
-                    Location = new ReaderLocation { Path = "report.pdf", Page = 1 }
+                    Location = chunkLocation
                 }
             },
             Tables = new[] {
@@ -111,7 +117,14 @@ public sealed class ReaderContractTests {
         Assert.Equal(ReaderInputKind.Pdf, restored.Kind);
         Assert.Equal("report.pdf", restored.Source.Path);
         Assert.Equal("officeimo.reader.pdf", Assert.Single(restored.CapabilitiesUsed));
-        Assert.Equal("Report body", Assert.Single(restored.Chunks).Text);
+        ReaderChunk restoredChunk = Assert.Single(restored.Chunks);
+        Assert.Equal("Report body", restoredChunk.Text);
+        Assert.Equal("Q1 > Q2", restoredChunk.Location.HeadingPath);
+        Assert.Equal(@"Q1 \> Q2", restoredChunk.Location.HierarchyHeadingPath);
+        ReaderChunkHierarchyNode restoredHeading = Assert.Single(
+            ReaderHierarchicalChunker.Chunk(restored).Nodes,
+            node => node.Kind == ReaderChunkHierarchyNodeKind.Heading);
+        Assert.Equal("Q1 > Q2", restoredHeading.Title);
         Assert.Equal("2", Assert.Single(Assert.Single(restored.Tables).Rows)[1]);
         OfficeDocumentDiagnostic diagnostic = Assert.Single(restored.Diagnostics);
         Assert.Equal(OfficeDocumentDiagnosticCategory.Content, diagnostic.Category);

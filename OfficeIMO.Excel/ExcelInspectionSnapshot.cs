@@ -11,6 +11,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? Title { get; internal set; }
 
+        /// <summary>Workbook creator, when present in package properties.</summary>
+        public string? Author { get; internal set; }
+
+        /// <summary>Workbook subject, when present in package properties.</summary>
+        public string? Subject { get; internal set; }
+
+        /// <summary>Workbook keywords, when present in package properties.</summary>
+        public string? Keywords { get; internal set; }
+
         /// <summary>
         /// File path associated with the workbook, when the document was created from a path.
         /// </summary>

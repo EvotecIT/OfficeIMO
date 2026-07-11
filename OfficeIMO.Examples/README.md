@@ -1,6 +1,6 @@
 # OfficeIMO.Examples - runnable samples
 
-`OfficeIMO.Examples` contains focused samples for Word, Excel, PowerPoint, PDF, Visio, Markdown, Markup, Reader, and conversion packages. It is executable documentation, not a runtime package.
+`OfficeIMO.Examples` contains focused samples for Word, Excel, PowerPoint, OpenDocument, PDF, Visio, Markdown, Markup, Reader, and conversion packages. It is executable documentation, not a runtime package.
 
 ## Run
 
@@ -14,6 +14,7 @@ Run a focused group when you are checking one package:
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --pdf-showcase
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --visio-showcase
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --opendocument
 ```
 
 ## Useful switches
@@ -23,6 +24,7 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 - `--pdf-table-styles`: generate the Word-like table style gallery.
 - `--pdf-showcase`: generate richer statement, dashboard, and manipulation PDF samples.
 - `--powerpoint`: run PowerPoint examples.
+- `--opendocument`: generate native ODT/ODS/ODP, flat XML, formula, tracked-change, animation, and explicit conversion examples.
 - `--modern-powerpoint`: generate the modern PowerPoint validation deck.
 - `--powerpoint-design-brief`: generate PowerPoint design-brief recommendations.
 - `--powerpoint-deck-plan`: generate a semantic deck-plan sample.

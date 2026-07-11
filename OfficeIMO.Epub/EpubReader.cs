@@ -49,7 +49,7 @@ public static class EpubReader {
             }
 
             var text = ExtractVisibleText(chapterDocument);
-            if (text.Length == 0) {
+            if (text.Length == 0 && (!effective.IncludeRawHtml || !HasStructuredChapterContent(chapterDocument))) {
                 continue;
             }
 
@@ -70,6 +70,8 @@ public static class EpubReader {
             });
         }
 
+        IReadOnlyList<EpubResource> resources = BuildResources(entryIndex, package, effective, warnings);
+
         return new EpubDocument {
             Title = ResolveDocumentTitle(package, chapters),
             Identifier = package?.Identifier,
@@ -77,8 +79,70 @@ public static class EpubReader {
             Creator = package?.Creator,
             OpfPath = package?.OpfPath,
             Chapters = chapters,
+            Resources = resources,
             Warnings = warnings
         };
+    }
+
+    private static bool HasStructuredChapterContent(XDocument document) {
+        return document.Descendants().Any(static element => {
+            string name = element.Name.LocalName;
+            return name.Equals("img", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("picture", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("svg", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("table", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("form", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("input", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("select", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("textarea", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("audio", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("video", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("object", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("canvas", StringComparison.OrdinalIgnoreCase);
+        });
+    }
+
+    private static IReadOnlyList<EpubResource> BuildResources(
+        IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
+        EpubPackage? package,
+        EpubReadOptions options,
+        List<string> warnings) {
+        if (package == null || package.Manifest.Count == 0) return Array.Empty<EpubResource>();
+        var resources = new List<EpubResource>(Math.Min(package.Manifest.Count, options.MaxResources));
+        long totalPayloadBytes = 0;
+        IEnumerable<ManifestItem> items = package.Manifest.Values;
+        if (options.DeterministicOrder) items = items.OrderBy(static item => item.FullPath, StringComparer.Ordinal);
+        foreach (ManifestItem item in items) {
+            if (resources.Count >= options.MaxResources) {
+                warnings.Add($"EPUB manifest resources were truncated at MaxResources ({options.MaxResources}).");
+                break;
+            }
+            if (!entryIndex.TryGetValue(item.FullPath, out ZipArchiveEntry? entry)) {
+                warnings.Add($"EPUB manifest resource '{item.FullPath}' was not found in archive.");
+                continue;
+            }
+
+            byte[]? data = null;
+            if (options.IncludeResourceData) {
+                if (entry.Length > options.MaxResourceBytes) {
+                    warnings.Add($"Skipped payload for EPUB resource '{item.FullPath}' because size {entry.Length} exceeds MaxResourceBytes ({options.MaxResourceBytes}).");
+                } else if (entry.Length > options.MaxTotalResourceBytes - totalPayloadBytes) {
+                    warnings.Add($"Skipped payload for EPUB resource '{item.FullPath}' because MaxTotalResourceBytes ({options.MaxTotalResourceBytes}) was reached.");
+                } else {
+                    data = ReadEntryBytes(entry);
+                    totalPayloadBytes += data.LongLength;
+                }
+            }
+            resources.Add(new EpubResource {
+                Id = item.Id,
+                Path = item.FullPath,
+                MediaType = item.MediaType,
+                Properties = item.Properties,
+                LengthBytes = entry.Length,
+                Data = data
+            });
+        }
+        return resources;
     }
 
     private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(ZipArchive archive) {
@@ -407,6 +471,15 @@ public static class EpubReader {
         return reader.ReadToEnd();
     }
 
+    private static byte[] ReadEntryBytes(ZipArchiveEntry entry) {
+        using Stream entryStream = entry.Open();
+        using var memory = entry.Length > 0 && entry.Length <= int.MaxValue
+            ? new MemoryStream((int)entry.Length)
+            : new MemoryStream();
+        entryStream.CopyTo(memory);
+        return memory.ToArray();
+    }
+
     private static bool TryParseXml(string content, out XDocument? document) {
         document = null;
         if (string.IsNullOrWhiteSpace(content)) return false;
@@ -616,6 +689,10 @@ public static class EpubReader {
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
             IncludeRawHtml = source.IncludeRawHtml,
+            IncludeResourceData = source.IncludeResourceData,
+            MaxResources = source.MaxResources,
+            MaxResourceBytes = source.MaxResourceBytes,
+            MaxTotalResourceBytes = source.MaxTotalResourceBytes,
             DeterministicOrder = source.DeterministicOrder,
             PreferSpineOrder = source.PreferSpineOrder,
             IncludeNonLinearSpineItems = source.IncludeNonLinearSpineItems,
@@ -626,6 +703,9 @@ public static class EpubReader {
         if (normalized.MaxChapterBytes.HasValue && normalized.MaxChapterBytes.Value < 1) {
             normalized.MaxChapterBytes = 1;
         }
+        if (normalized.MaxResources < 1) normalized.MaxResources = 1;
+        if (normalized.MaxResourceBytes < 1) normalized.MaxResourceBytes = 1;
+        if (normalized.MaxTotalResourceBytes < 1) normalized.MaxTotalResourceBytes = 1;
 
         return normalized;
     }

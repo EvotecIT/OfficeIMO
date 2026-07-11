@@ -23,6 +23,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | Generate `.pptx` presentations programmatically. |
 | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | Create, inspect, validate, and export `.vsdx` diagrams without Visio automation. |
 | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | Dependency-free PDF creation, reading, inspection, page operations, and converter engine support. |
+| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | Dependency-free native ODT, ODS, and ODP creation, editing, inspection, and preservation. |
 | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | Bounded RTF parser, lossless syntax tree, editable semantic model, writer, and conversion reports. |
 | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | Typed Markdown AST, builder API, reader, and HTML renderer. |
 | [OfficeIMO.Reader](OfficeIMO.Reader/README.md) | Unified read-only extraction facade with modular adapters. |
@@ -34,9 +35,12 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Word.Html](OfficeIMO.Word.Html/README.md) | Word to/from HTML conversion. |
 | [OfficeIMO.Word.Markdown](OfficeIMO.Word.Markdown/README.md) | Word to/from Markdown conversion. |
 | [OfficeIMO.Word.Pdf](OfficeIMO.Word.Pdf/README.md) | Word to PDF through `OfficeIMO.Pdf`. |
+| [OfficeIMO.Word.OpenDocument](OfficeIMO.Word.OpenDocument/README.md) | Explicit Word/ODT conversion with feature-mapping reports. |
 | [OfficeIMO.Word.Rtf](OfficeIMO.Word.Rtf/README.md) | Result-bearing Word/RTF conversion, mail merge, fields, merge, and comparison workflows. |
 | [OfficeIMO.Excel.Pdf](OfficeIMO.Excel.Pdf/README.md) | Excel workbook to PDF through `OfficeIMO.Pdf`. |
+| [OfficeIMO.Excel.OpenDocument](OfficeIMO.Excel.OpenDocument/README.md) | Explicit Excel/ODS conversion with bounded sparse expansion and feature-mapping reports. |
 | [OfficeIMO.PowerPoint.Pdf](OfficeIMO.PowerPoint.Pdf/README.md) | PowerPoint presentation to PDF through `OfficeIMO.Pdf`. |
+| [OfficeIMO.PowerPoint.OpenDocument](OfficeIMO.PowerPoint.OpenDocument/README.md) | Explicit PowerPoint/ODP conversion with feature-mapping reports. |
 | [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md) | HTML to Markdown document conversion. |
 | [OfficeIMO.Markdown.Pdf](OfficeIMO.Markdown.Pdf/README.md) | Markdown to PDF through `OfficeIMO.Pdf`. |
 | [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md) | HTML to PDF and PDF to HTML through OfficeIMO document models. |
@@ -66,6 +70,9 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Reader.Epub](OfficeIMO.Reader.Epub/README.md) | EPUB reader adapter. |
 | [OfficeIMO.Reader.Html](OfficeIMO.Reader.Html/README.md) | HTML reader adapter. |
 | [OfficeIMO.Reader.Json](OfficeIMO.Reader.Json/README.md) | JSON reader adapter. |
+| [OfficeIMO.Reader.OpenDocument](OfficeIMO.Reader.OpenDocument/README.md) | Native ODT, ODS, and ODP reader adapter. |
+| [OfficeIMO.Reader.Ocr.Process](OfficeIMO.Reader.Ocr.Process/README.md) | Optional versioned external-process OCR provider. |
+| [OfficeIMO.Reader.Ocr.Tesseract](OfficeIMO.Reader.Ocr.Tesseract/README.md) | Optional Tesseract CLI OCR provider. |
 | [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md) | PDF reader adapter. |
 | [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md) | Bounded RTF chunks, tables, visuals, warnings, and provenance. |
 | [OfficeIMO.Reader.Text](OfficeIMO.Reader.Text/README.md) | Structured text compatibility adapter. |
@@ -94,6 +101,7 @@ Install only the packages you need:
 dotnet add package OfficeIMO.Word
 dotnet add package OfficeIMO.Excel
 dotnet add package OfficeIMO.PowerPoint
+dotnet add package OfficeIMO.OpenDocument
 dotnet add package OfficeIMO.Pdf
 ```
 
@@ -101,7 +109,10 @@ Converter packages are intentionally separate so applications can opt into the e
 
 ```powershell
 dotnet add package OfficeIMO.Word.Pdf
+dotnet add package OfficeIMO.Word.OpenDocument
 dotnet add package OfficeIMO.Excel.Pdf
+dotnet add package OfficeIMO.Excel.OpenDocument
+dotnet add package OfficeIMO.PowerPoint.OpenDocument
 dotnet add package OfficeIMO.Markdown.Pdf
 ```
 

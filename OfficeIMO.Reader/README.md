@@ -53,7 +53,7 @@ Built-in and modular adapters can extract:
 - Excel (`.xlsx`, `.xlsm`, `.xls`) as table chunks and optional Markdown previews.
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
-- PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
+- OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
 
 ## Modular adapters
 
@@ -64,6 +64,7 @@ using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Visio;
@@ -76,6 +77,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddEpubHandler()
     .AddHtmlHandler()
     .AddJsonHandler()
+    .AddOpenDocumentHandler()
     .AddPdfHandler()
     .AddRtfHandler()
     .AddVisioHandler()
@@ -165,6 +167,36 @@ string json = extracted.ToJson(indented: true);
 
 The extractor recognizes metadata, forms, two-column key/value tables, Path/Type/Value tables, Visio Shape Data, chart summaries, table and visual quality, chunk readiness, and security/OCR/limit diagnostics. Each collection and section body has an explicit positive limit; reaching a bound adds a structured limit diagnostic instead of silently growing output. The non-generic schema-friendly shape is versioned independently from the stable `OfficeDocumentReadResult` transport. It is currently a serialization and host-integration contract; a generic `ExtractStructured<T>()` mapper and model-assisted extraction are intentionally outside the core package.
 
+## Token-aware hierarchical chunks
+
+`ReadHierarchical(...)` keeps `ReaderChunk` as the embedding leaf while adding document, page/slide/sheet, and heading nodes around it:
+
+```csharp
+ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
+    @"C:\Docs\Policy.docx",
+    chunkingOptions: new ReaderHierarchicalChunkingOptions {
+        MaxTokens = 800,
+        OverlapTokens = 80,
+        MaxInputChunks = 10_000,
+        MaxOutputChunks = 50_000,
+        MaxHierarchyDepth = 32,
+        MaxContextCharacters = 4_096,
+        IncludeContextInText = true
+    });
+
+foreach (ReaderChunk chunk in hierarchy.Chunks) {
+    StoreEmbedding(chunk.Id, chunk.Text, chunk.TokenEstimate ?? 0);
+}
+
+string sidecarJson = hierarchy.ToJson(indented: true);
+```
+
+The result records the selected token counter, original/output/overlap/context token totals, exact source character spans, deterministic leaf IDs and hashes, and a flattened hierarchy with explicit parent/child IDs. Splits prefer paragraph, line, sentence, and whitespace boundaries but enforce the token maximum even when a source block is larger. Structured tables, visuals, forms, actions, diagnostics, and warnings stay on the first segment so overlap does not duplicate sidecars.
+
+The dependency-free default uses the existing four-characters-per-token heuristic. Supply a deterministic, thread-safe `IReaderTokenCounter` when the embedding model needs its exact tokenizer. A hierarchy represents one source document and rejects mixed-source chunk collections. Context and input/output/depth bounds emit structured diagnostics; invalid token budgets or counters fail explicitly.
+
+This is an opt-in projection with its own schema id/version. It does not add fields to `ReaderChunk`, change normal reads, or alter the stable `OfficeDocumentReadResult` v5 transport. Static and instance sync/async file, stream, and byte overloads are available; instance reads apply configured processors before chunking.
+
 ## Stable document transport
 
 `OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Versions 1 through 4 were experimental and are deliberately rejected when reading transport payloads.
@@ -179,7 +211,7 @@ Console.WriteLine(restored.SchemaVersion); // 5
 string jsonSchema = OfficeDocumentReadResultSchema.GetJsonSchema();
 ```
 
-The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Every pack of the core and modular Reader packages runs NuGet package validation against the currently published package version, so accidental public API breaks fail packaging.
+The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Published core and modular Reader packages run NuGet package validation against their current public versions, so accidental API breaks fail packaging. A brand-new package opts out only until its first public baseline exists.
 
 ## Content detection and structured diagnostics
 
@@ -203,6 +235,58 @@ OfficeDocumentReadResult result = reader.ReadDocument(
 ```
 
 Seekable stream probes restore the original position. Prefix probing is capped at 4 MiB, and ZIP-based Office/Visio/EPUB inspection walks at most 4,096 local entries without decompressing archive payloads. Detection mismatches, detected unknown inputs, parser failures, limits, truncation, unsupported content, read failures, and OCR readiness are exposed through `OfficeDocumentDiagnostic` with stable `Category`, `Code`, `Source`, `IsRecoverable`, and `Attributes` fields.
+
+## Rich built-in document mappings
+
+Word, Excel, and PowerPoint rich reads use the format packages' public inspection models instead of reparsing Open XML in the Reader facade:
+
+```csharp
+OfficeDocumentReadResult word = DocumentReader.ReadDocument("policy.docx");
+OfficeDocumentReadResult workbook = DocumentReader.ReadDocument("forecast.xlsx");
+OfficeDocumentReadResult deck = DocumentReader.ReadDocument("briefing.pptx");
+
+Console.WriteLine($"{word.Blocks.Count} semantic Word blocks");
+Console.WriteLine($"{workbook.Tables.Count} named Excel tables");
+Console.WriteLine($"{deck.Visuals.Count} PowerPoint chart snapshots");
+```
+
+The Word mapping preserves headings, lists, links, tables, and header/footer content. Excel exposes worksheet locations, formal tables, cell links, formula/comment/named-range counts, and workbook properties. PowerPoint exposes slide-local blocks and tables, run and shape links, chart snapshots, and point-based geometry. Modular HTML, EPUB, RTF, and Visio adapters register the same native v5 result surface when their packages are installed.
+
+## Optional OCR execution
+
+The core defines `IOfficeOcrEngine` and runs caller-supplied engines without taking an OCR or cloud SDK dependency. Execution resolves candidate assets, validates payload hashes and media types, and bounds candidate count, per-candidate and total bytes, concurrency, duration, recognized characters, and detailed spans:
+
+```csharp
+var engine = new DelegateOfficeOcrEngine(
+    "host-vision-service",
+    async (request, cancellationToken) => {
+        HostVisionResponse response = await visionClient.RecognizeAsync(
+            request.Payload,
+            request.Language,
+            cancellationToken);
+
+        return new OfficeOcrEngineResult {
+            Text = response.Text,
+            Confidence = response.Confidence,
+            Language = response.Language,
+            Provider = "host-vision-service"
+        };
+    });
+
+OfficeDocumentReadResult source = DocumentReader.ReadDocument("scanned.pdf");
+OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(
+    engine,
+    new OfficeDocumentOcrExecutionOptions {
+        MaxCandidates = 25,
+        MaxDegreeOfParallelism = 2
+    });
+```
+
+To run the same frozen configuration automatically for every rich read, register `new OfficeDocumentOcrProcessor(engine, executionOptions)` with `OfficeDocumentReaderBuilder.AddProcessor(...)`. Engines that do not advertise concurrent-request support are serialized per engine instance even when several reader operations run concurrently.
+
+`execution.Document` contains merged `ocr-text` blocks/chunks while unresolved candidates and diagnostics remain intact. `execution.Recognitions` carries optional line, word, and character spans with confidence, language, bounding boxes, and coordinate units. Detailed provider spans intentionally stay outside the stable v5 transport; the merged text and trace metadata use the existing schema.
+
+Use `OfficeIMO.Reader.Ocr.Process` for a versioned local executable/service bridge or `OfficeIMO.Reader.Ocr.Tesseract` for an installed Tesseract CLI. Neither package is pulled transitively by `OfficeIMO.Reader`.
 
 ## Host examples
 
@@ -263,6 +347,8 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 `reader.ReadDocument(...)` dispatches directly to these delegates. Existing `reader.Read(...)` calls remain usable by projecting the returned result's `Chunks` collection. A handler may continue to register `ReadPath` and `ReadStream` when chunk production is its native contract.
 
+Adapter authors can call `DocumentReader.CreateDocumentResult(...)` to create the common v5 source, chunks, assets, diagnostics, and baseline collections, then replace or enrich format-owned blocks, pages, tables, links, forms, visuals, and metadata.
+
 ## Host contracts
 
 - `ReaderOptions` controls chunk size, table row limits, footnotes/notes, Excel ranges, Markdown heading chunking, hashes, and input budgets.
@@ -275,6 +361,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
 - `OfficeDocumentProcessorPipeline` freezes ordered processors and reports each completed, failed, or skipped step.
 - `OfficeDocumentStructuredExtractor` produces bounded non-generic records, sections, named tables, forms, and diagnostics without AI dependencies.
+- `ReaderHierarchicalChunker` produces token-bounded `ReaderChunk` leaves, exact overlap spans, and document/container/heading hierarchy nodes.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 
@@ -302,7 +389,10 @@ The benchmark corpus is generated deterministically before measurement. Benchmar
 - [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
 - [OfficeIMO.Reader.Html](../OfficeIMO.Reader.Html/README.md)
 - [OfficeIMO.Reader.Csv](../OfficeIMO.Reader.Csv/README.md)
+- [OfficeIMO.Reader.Ocr.Process](../OfficeIMO.Reader.Ocr.Process/README.md)
+- [OfficeIMO.Reader.Ocr.Tesseract](../OfficeIMO.Reader.Ocr.Tesseract/README.md)
 - [OfficeIMO.Reader.Json](../OfficeIMO.Reader.Json/README.md)
+- [OfficeIMO.Reader.OpenDocument](../OfficeIMO.Reader.OpenDocument/README.md)
 - [OfficeIMO.Reader.Xml](../OfficeIMO.Reader.Xml/README.md)
 - [OfficeIMO.Reader.Yaml](../OfficeIMO.Reader.Yaml/README.md)
 - [OfficeIMO.Reader.Epub](../OfficeIMO.Reader.Epub/README.md)

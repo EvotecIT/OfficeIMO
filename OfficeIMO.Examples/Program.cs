@@ -142,6 +142,11 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
+            if (HasArgument(args, "--opendocument")) {
+                OpenDocument.OpenDocumentMilestones.Example(folderPath);
+                return;
+            }
+
             if (HasArgument(args, "--modern-powerpoint")) {
                 PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
                 return;

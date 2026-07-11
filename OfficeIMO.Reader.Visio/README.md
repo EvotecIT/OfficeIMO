@@ -65,11 +65,29 @@ var chunks = DocumentReader.ReadFolder("Architecture",
     }).ToList();
 ```
 
+### Read topology and geometry
+
+```csharp
+OfficeDocumentReadResult document =
+    DocumentReaderVisioExtensions.ReadVisioDocument("network.vsdx");
+
+foreach (ReaderVisual topology in document.Visuals) {
+    Console.WriteLine($"Page {topology.Location.Page}: {topology.Content}");
+}
+
+foreach (OfficeDocumentPage page in document.Pages) {
+    Console.WriteLine($"{page.Name}: {page.Width} x {page.Height} points");
+}
+```
+
+The topology visual is deterministic JSON describing page shapes and connector edges. Shared regions and page dimensions are expressed in points. After registration, `DocumentReader.ReadDocument("network.vsdx")` uses this native mapping.
+
 ## What it emits
 
 - Page-aware chunks for `.vsdx`, `.vsdm`, `.vstx`, and `.vstm` files.
 - Shape Data as `ReaderTable` rows.
 - Pages, shapes, connectors, hyperlinks, and optional preview asset metadata in the shared read result envelope.
+- Point-based geometry and one topology `ReaderVisual` per page for graph-aware consumers.
 
 ## Boundaries
 
