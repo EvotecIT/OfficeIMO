@@ -266,7 +266,7 @@ Exit gate: the continuous renderer can place the full target corpus without pagi
 
 ### Phase 5 - Pagination and fragmentation
 
-- [x] A single oversized vertical flex item or isolated non-spanning grid item now projects its nested safe block/line boundaries into the container flow, allowing page fragmentation without forced visual slicing; multi-line and overlapping flex/grid fragmentation remain advanced work.
+- [x] A single oversized vertical flex item, isolated non-spanning grid item, or lone non-spanning body table cell now projects nested safe block/line boundaries into its container flow, allowing page fragmentation without forced visual slicing; multi-line, overlapping flex/grid, and coordinated multi-cell row fragmentation remain advanced work.
 
 - [ ] Complete page construction and page masters. Generic `@page` size/margins, print media selection, named page assignment, and generic/named first/left/right margin-content selection are implemented; named and pseudo-page body-geometry reflow remains.
 - [ ] Complete break rules and continuation state. Stable nested text/child/table-row continuation, CSS `widows`/`orphans`, parity-correct left/right/recto/verso breaks, repeated leading `<thead>` and trailing `<tfoot>` groups, and row-span-safe boundaries are implemented; advanced fragmentation remains.

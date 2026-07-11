@@ -143,6 +143,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 AddBoxOutlinePaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
             }
 
+            if (!row.IsHeader && !row.IsFooter && row.Cells.Count == 1 && row.Cells[0].RowSpan == 1) {
+                TableCellLayout cell = row.Cells[0];
+                double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
+                breakOffsets.AddRange(cell.Inline.BreakOffsets
+                    .Where(offset => offset <= cell.Inline.Height - cell.Style.LineHeight + 0.0001D)
+                    .Select(offset => textY + offset));
+            }
+
             if (collectingLeadingHeaders && row.IsHeader) {
                 for (int visualIndex = rowVisualStart; visualIndex < visuals.Count; visualIndex++) {
                     continuationVisuals.Add(visuals[visualIndex].Translate(0D, -headerStart, continuationVisuals.Count));
