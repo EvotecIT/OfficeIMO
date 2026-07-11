@@ -339,7 +339,13 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("Stream must support reading, writing, and seeking.", nameof(outputStream));
             }
 
-            Save(outputStream, format, options);
+            Stream originalStream = OriginalStream;
+            try {
+                Save(outputStream, format, options);
+            } finally {
+                OriginalStream = originalStream;
+            }
+
             outputStream.Seek(0, SeekOrigin.Begin);
             return WordDocument.Load(outputStream);
         }

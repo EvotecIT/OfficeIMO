@@ -1,0 +1,50 @@
+using OfficeIMO.Word;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public partial class Word {
+        [Fact]
+        public async Task LoadAsync_StreamAutoSaveCopiesEditsBackOnAsyncDispose() {
+            using var source = new MemoryStream();
+            using (WordDocument created = WordDocument.Create(source)) {
+                created.AddParagraph("Before");
+                created.Save();
+            }
+
+            source.Position = 0;
+            await using (WordDocument loaded = await WordDocument.LoadAsync(source, autoSave: true)) {
+                Assert.Single(loaded.Paragraphs).SetText("After");
+            }
+
+            Assert.True(source.CanRead);
+            source.Position = 0;
+            using WordDocument reopened = WordDocument.Load(source, readOnly: true);
+            Assert.Equal("After", Assert.Single(reopened.Paragraphs).Text);
+        }
+
+        [Fact]
+        public void SaveCopy_StreamDoesNotRedirectLaterSourceSavesToTheCopy() {
+            using var source = new MemoryStream();
+            using var document = WordDocument.Create(source);
+            document.AddParagraph("Shared");
+            document.Save();
+
+            using var copyStream = new MemoryStream();
+            using (WordDocument copy = document.SaveCopy(copyStream)) {
+                Assert.Equal("Shared", Assert.Single(copy.Paragraphs).Text);
+            }
+
+            document.AddParagraph("Source only");
+            document.Save();
+
+            copyStream.Position = 0;
+            using WordDocument reopenedCopy = WordDocument.Load(copyStream, readOnly: true);
+            Assert.Single(reopenedCopy.Paragraphs);
+            Assert.Equal("Shared", reopenedCopy.Paragraphs[0].Text);
+
+            source.Position = 0;
+            using WordDocument reopenedSource = WordDocument.Load(source, readOnly: true);
+            Assert.Equal(new[] { "Shared", "Source only" }, reopenedSource.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
+        }
+    }
+}

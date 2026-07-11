@@ -89,7 +89,11 @@ namespace OfficeIMO.Word {
             if (wordProcessingDocument != null) {
                 if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                     try {
-                        await SaveAsync().ConfigureAwait(false);
+                        if (string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
+                            await SaveAsync(OriginalStream).ConfigureAwait(false);
+                        } else {
+                            await SaveAsync().ConfigureAwait(false);
+                        }
                     } catch (WordSignatureSavePolicyException) {
                         DisablePackageAutoSave(wordProcessingDocument);
                     } catch {
