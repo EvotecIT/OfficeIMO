@@ -206,7 +206,7 @@ visual-only operation is allowed to claim secure redaction.
 
 ### P2 - Make Rendering And Viewing Broadly Useful
 
-- [ ] Turn the current managed page renderer's supported subset into a generated
+- [x] Turn the current managed page renderer's supported subset into a generated
   capability manifest with stable diagnostics for every skipped or simplified
   operator/resource.
 - [ ] Extend static rendering in corpus-driven order: stream filters and image

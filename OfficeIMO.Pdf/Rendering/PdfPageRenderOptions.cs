@@ -53,14 +53,26 @@ public sealed class PdfPageRenderOptions {
 
 /// <summary>Per-page managed render result.</summary>
 public sealed class PdfPageRenderResult {
-    internal PdfPageRenderResult(int pageNumber, PdfPageRenderFormat format, byte[]? bytes, int width, int height, TimeSpan elapsed, IReadOnlyList<string> diagnostics) {
+    internal PdfPageRenderResult(
+        int pageNumber,
+        PdfPageRenderFormat format,
+        byte[]? bytes,
+        int width,
+        int height,
+        TimeSpan elapsed,
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics,
+        IReadOnlyList<string>? errors = null) {
         PageNumber = pageNumber;
         Format = format;
         Bytes = bytes;
         Width = width;
         Height = height;
         Elapsed = elapsed;
-        Diagnostics = diagnostics;
+        CapabilityDiagnostics = capabilityDiagnostics;
+        var diagnostics = new List<string>(capabilityDiagnostics.Count + (errors?.Count ?? 0));
+        for (int i = 0; i < capabilityDiagnostics.Count; i++) diagnostics.Add(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
+        if (errors != null) diagnostics.AddRange(errors);
+        Diagnostics = diagnostics.Count == 0 ? Array.Empty<string>() : diagnostics.AsReadOnly();
     }
 
     /// <summary>One-based source page number.</summary>
@@ -77,6 +89,8 @@ public sealed class PdfPageRenderResult {
     public TimeSpan Elapsed { get; }
     /// <summary>Stable per-page diagnostics.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+    /// <summary>Typed skipped or simplified operator/resource diagnostics backed by the generated capability manifest.</summary>
+    public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics { get; }
     /// <summary>True when output bytes were produced.</summary>
     public bool Succeeded => Bytes is not null;
 }

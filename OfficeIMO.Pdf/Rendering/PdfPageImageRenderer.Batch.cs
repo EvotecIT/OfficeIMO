@@ -42,8 +42,10 @@ public static partial class PdfPageImageRenderer {
 
     private static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken) {
         var timer = Stopwatch.StartNew();
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
+            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
             OfficeDrawing drawing = RenderPage(document, pageNumber);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));
@@ -58,12 +60,12 @@ public static partial class PdfPageImageRenderer {
                 ? RenderDrawingAsPng(drawing, scale, options.Background)
                 : OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale);
             timer.Stop();
-            return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed, Array.Empty<string>());
+            return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed, capabilityDiagnostics);
         } catch (OperationCanceledException) {
             throw;
         } catch (Exception ex) when (options.ContinueOnError && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             timer.Stop();
-            return new PdfPageRenderResult(pageNumber, options.Format, null, 0, 0, timer.Elapsed, new[] { ex.GetType().Name + ": " + ex.Message });
+            return new PdfPageRenderResult(pageNumber, options.Format, null, 0, 0, timer.Elapsed, capabilityDiagnostics, new[] { ex.GetType().Name + ": " + ex.Message });
         }
     }
 }
