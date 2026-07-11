@@ -75,6 +75,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RemovingFinalSlideClearsSectionMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide();
+                    presentation.AddSection("Intro", startSlideIndex: 0);
+
+                    presentation.RemoveSlide(0);
+
+                    Assert.Empty(presentation.Slides);
+                    Assert.Empty(presentation.GetSections());
+                    Assert.Empty(presentation.ValidateDocument());
+                    presentation.Save();
+                }
+
+                using PresentationDocument document = PresentationDocument.Open(filePath, false);
+                Assert.Empty(document.PresentationPart!.Presentation.Descendants<Section>());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void MovingSlideReordersSectionsByCurrentSlideOrder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

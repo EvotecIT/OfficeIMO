@@ -368,6 +368,12 @@ namespace OfficeIMO.PowerPoint {
                 .Elements<SlideId>()
                 .ToList() ?? new List<SlideId>();
             if (slideIds.Count == 0) {
+                PresentationExtension? sectionExtension = sectionList.Parent as PresentationExtension;
+                PresentationExtensionList? extensionList = sectionExtension?.Parent as PresentationExtensionList;
+                sectionExtension?.Remove();
+                if (extensionList != null && !extensionList.Elements<PresentationExtension>().Any()) {
+                    extensionList.Remove();
+                }
                 return;
             }
 

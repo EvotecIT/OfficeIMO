@@ -17,6 +17,7 @@ namespace OfficeIMO.PowerPoint {
             _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             _design = design ?? throw new ArgumentNullException(nameof(design));
             _templateLayoutMap = templateLayoutMap;
+            _slideIndex = presentation.Slides.Count;
 
             if (applyTheme) {
                 _design.ApplyTo(_presentation);

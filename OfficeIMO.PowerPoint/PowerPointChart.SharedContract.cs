@@ -13,9 +13,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Updates the native chart from the shared OfficeIMO chart contract.</summary>
         public PowerPointChart UpdateData(OfficeChartData data) {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            OfficeChartKind chartKind = TryGetOfficeSnapshot(out OfficeChartSnapshot current)
-                ? current.ChartKind
-                : OfficeChartKind.ColumnClustered;
+            if (!TryGetOfficeSnapshot(out OfficeChartSnapshot current)) {
+                throw new NotSupportedException(
+                    "The current chart kind cannot be updated through the shared OfficeIMO chart contract.");
+            }
+            OfficeChartKind chartKind = current.ChartKind;
             PowerPointUtils.ValidateSharedChartData(data, chartKind);
 
             ChartPart chartPart = GetChartPart();

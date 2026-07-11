@@ -11,6 +11,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
@@ -202,6 +203,56 @@ namespace OfficeIMO.Tests {
             Assert.Single(plotArea.Elements<C.BarChart>());
             Assert.Single(plotArea.Elements<C.LineChart>());
             Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_PreservesAxisCustomization() {
+            OfficeChartData initial = CreateData(OfficeChartKind.ColumnClustered);
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Revenue", new[] { 40D, 45D, 52D, 61D }),
+                new OfficeChartSeries("Margin", new[] { 20D, 23D, 27D, 31D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, initial)
+                .SetCategoryAxisTitle("Quarter")
+                .SetValueAxisTitle("Revenue")
+                .SetValueAxisNumberFormat("$#,##0")
+                .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "D9E2F3");
+
+            chart.UpdateData(updated);
+
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            C.CategoryAxis categoryAxis = Assert.Single(plotArea.Elements<C.CategoryAxis>());
+            C.ValueAxis valueAxis = Assert.Single(plotArea.Elements<C.ValueAxis>());
+            Assert.Equal("Quarter", string.Concat(categoryAxis.Descendants<A.Text>().Select(text => text.Text)));
+            Assert.Equal("Revenue", string.Concat(valueAxis.Descendants<A.Text>().Select(text => text.Text)));
+            Assert.Equal("$#,##0", valueAxis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+            Assert.NotNull(valueAxis.GetFirstChild<C.MajorGridlines>());
+            Assert.NotNull(valueAxis.GetFirstChild<C.MinorGridlines>());
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RejectsUnsupportedNativeChartWithoutMutation() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+                CreateData(OfficeChartKind.ColumnClustered));
+            C.PlotArea plotArea = slide.SlidePart.ChartParts.Single().ChartSpace!
+                .GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            plotArea.ReplaceChild(new C.BubbleChart(), Assert.Single(plotArea.Elements<C.BarChart>()));
+            string originalPlotArea = plotArea.OuterXml;
+
+            Assert.Throws<NotSupportedException>(() => chart.UpdateData(
+                CreateData(OfficeChartKind.ColumnClustered)));
+
+            Assert.Equal(originalPlotArea, plotArea.OuterXml);
         }
 
         [Fact]

@@ -110,5 +110,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(originalAccent, presentation.GetThemeColor(PowerPointThemeColor.Accent1));
             Assert.Empty(presentation.Slides);
         }
+
+        [Fact]
+        public void CompositionUsesExistingSlideCountForPreviewAndRenderedFallbackSeeds() {
+            string? renderedDesignSeed = null;
+            PowerPointDeckPlan plan = new PowerPointDeckPlan().AddSection("Appended section", seed: " ",
+                configure: options => renderedDesignSeed = options.DesignIntent.Seed);
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "append-seed");
+            PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(design);
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            presentation.AddSlide().AddTitle("Existing slide");
+
+            PowerPointDeckPlanSlideRenderSummary preview = Assert.Single(
+                presentation.PreviewComposition(plan, options));
+            presentation.Compose(plan, options);
+
+            Assert.Equal("slide-2", preview.ResolvedSeed);
+            Assert.Equal(preview.DesignSeed, renderedDesignSeed);
+        }
     }
 }
