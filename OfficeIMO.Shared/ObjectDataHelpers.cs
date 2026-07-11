@@ -182,8 +182,14 @@ internal static class ObjectDataHelpers
         return GetPropertyPlan(item.GetType()).TryCreateTextProjector(columns, out projector);
     }
 
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
+#endif
     private static ObjectPropertyPlan GetPropertyPlan(Type type) => PropertyPlans.GetOrAdd(type, CreatePropertyPlan);
 
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
+#endif
     private static ObjectPropertyPlan CreatePropertyPlan(Type type)
     {
         var properties = type
@@ -426,7 +432,10 @@ internal static class ObjectDataHelpers
             {
                 expressions.Add(Expression.Assign(
                     Expression.ArrayAccess(values, Expression.Constant(i)),
-                    CreateFormatExpression(Expression.Property(typedItem, properties[i]), culture)));
+                    Expression.Call(
+                        typeof(ObjectPropertyPlan).GetMethod(nameof(FormatProjectedValue), BindingFlags.NonPublic | BindingFlags.Static)!,
+                        Expression.Convert(Expression.Property(typedItem, properties[i]), typeof(object)),
+                        culture)));
             }
 
             expressions.Add(Expression.Return(returnTarget, Expression.Constant(true)));
@@ -521,58 +530,6 @@ internal static class ObjectDataHelpers
             var accessor = CreateAccessor(property);
             return (item, culture) => FormatProjectedValue(accessor(item), culture);
         }
-
-#if NET5_0_OR_GREATER
-        private static Expression CreateFormatExpression(Expression value, Expression culture)
-        {
-            if (value.Type == typeof(string))
-            {
-                return value;
-            }
-
-            if (!value.Type.IsValueType)
-            {
-                return Expression.Call(
-                    typeof(ObjectPropertyPlan).GetMethod(nameof(FormatProjectedValue), BindingFlags.NonPublic | BindingFlags.Static)!,
-                    Expression.Convert(value, typeof(object)),
-                    culture);
-            }
-
-            var nullableType = Nullable.GetUnderlyingType(value.Type);
-            if (nullableType != null)
-            {
-                var hasValue = Expression.Property(value, nameof(Nullable<int>.HasValue));
-                var nullableValue = Expression.Property(value, nameof(Nullable<int>.Value));
-                return Expression.Condition(
-                    hasValue,
-                    CreateFormatExpression(nullableValue, culture),
-                    Expression.Constant(null, typeof(string)));
-            }
-
-            if (typeof(IFormattable).IsAssignableFrom(value.Type))
-            {
-                var toStringWithProvider = value.Type.GetMethod(
-                    nameof(ToString),
-                    new[] { typeof(string), typeof(IFormatProvider) });
-                if (toStringWithProvider != null)
-                {
-                    return Expression.Call(
-                        value,
-                        toStringWithProvider,
-                        Expression.Constant(null, typeof(string)),
-                        culture);
-                }
-
-                return Expression.Call(
-                    Expression.Convert(value, typeof(IFormattable)),
-                    typeof(IFormattable).GetMethod(nameof(IFormattable.ToString), new[] { typeof(string), typeof(IFormatProvider) })!,
-                    Expression.Constant(null, typeof(string)),
-                    culture);
-            }
-
-            return Expression.Call(value, value.Type.GetMethod(nameof(ToString), Type.EmptyTypes)!);
-        }
-#endif
 
         private static string? FormatProjectedValue(object? value, CultureInfo culture)
         {

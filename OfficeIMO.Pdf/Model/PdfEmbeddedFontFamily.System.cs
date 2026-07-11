@@ -3,6 +3,10 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontFilesToInspect = 8192;
     internal const long MaxSystemFontFileBytes = 128L * 1024L * 1024L;
+    internal const int MaxSystemFontFamilyCacheEntries = 32;
+    private static readonly System.Collections.Generic.Dictionary<string, System.Lazy<SystemFontFamilyCacheEntry>> SystemFontFamilyCache =
+        new(System.StringComparer.Ordinal);
+    private static readonly object SystemFontFamilyCacheLock = new();
 
     /// <summary>
     /// Loads an installed TrueType font family from common operating-system font folders.
@@ -29,7 +33,34 @@ public sealed partial class PdfEmbeddedFontFamily {
     /// <param name="pdfFamilyName">Optional family name to expose in generated PDF font resource names.</param>
     /// <returns><c>true</c> when an embeddable regular TrueType face was found; otherwise <c>false</c>.</returns>
     public static bool TryFromSystem(string familyName, out PdfEmbeddedFontFamily? fontFamily, string? pdfFamilyName = null) {
-        return TryFromSystemFontFiles(familyName, EnumerateSystemTrueTypeFontFiles(), out fontFamily, pdfFamilyName);
+        Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
+        string requestedFamily = familyName.Trim();
+        string exposedFamily = string.IsNullOrWhiteSpace(pdfFamilyName) ? requestedFamily : pdfFamilyName!.Trim();
+        string cacheKey = NormalizeFamilyKey(requestedFamily) + "\0" + exposedFamily;
+        System.Lazy<SystemFontFamilyCacheEntry> lazyEntry;
+        lock (SystemFontFamilyCacheLock) {
+            if (!SystemFontFamilyCache.TryGetValue(cacheKey, out lazyEntry!)) {
+                lazyEntry = new System.Lazy<SystemFontFamilyCacheEntry>(
+                    () => ResolveSystemFontFamily(requestedFamily, exposedFamily),
+                    System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+                if (SystemFontFamilyCache.Count < MaxSystemFontFamilyCacheEntries) {
+                    SystemFontFamilyCache[cacheKey] = lazyEntry;
+                }
+            }
+        }
+
+        SystemFontFamilyCacheEntry entry = lazyEntry.Value;
+        fontFamily = entry.FontFamily;
+        return fontFamily != null;
+    }
+
+    private static SystemFontFamilyCacheEntry ResolveSystemFontFamily(string requestedFamily, string exposedFamily) {
+        bool found = TryFromSystemFontFiles(
+            requestedFamily,
+            EnumerateSystemTrueTypeFontFiles(),
+            out PdfEmbeddedFontFamily? fontFamily,
+            exposedFamily);
+        return new SystemFontFamilyCacheEntry(found ? fontFamily : null);
     }
 
     internal static bool TryFromSystemFontFiles(
@@ -556,6 +587,14 @@ public sealed partial class PdfEmbeddedFontFamily {
         public int Score { get; }
 
         public byte[] Data { get; }
+    }
+
+    private sealed class SystemFontFamilyCacheEntry {
+        public SystemFontFamilyCacheEntry(PdfEmbeddedFontFamily? fontFamily) {
+            FontFamily = fontFamily;
+        }
+
+        public PdfEmbeddedFontFamily? FontFamily { get; }
     }
 
     private sealed class TrueTypeNameMetadata {

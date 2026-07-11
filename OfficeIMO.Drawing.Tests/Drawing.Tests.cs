@@ -1041,6 +1041,49 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingClippedGroup_AppliesIndependentContentOffset() {
+        var child = new OfficeDrawing(100, 20);
+        OfficeShape blue = OfficeShape.Rectangle(20, 20);
+        blue.FillColor = OfficeColor.Blue;
+        child.AddShape(blue, 0, 0);
+        OfficeShape red = OfficeShape.Rectangle(40, 20);
+        red.FillColor = OfficeColor.Red;
+        child.AddShape(red, 20, 0);
+
+        var drawing = new OfficeDrawing(100, 50);
+        drawing.AddClippedDrawing(child, 20, 10, OfficeClipPath.Rectangle(40, 20), -20D, 0D);
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(-20D, group.ContentOffsetX);
+        Assert.Equal(0D, group.ContentOffsetY);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("transform=\"translate(-20 0)\"", svg, StringComparison.Ordinal);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, image.GetPixel(15, 15));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(25, 15));
+        Assert.Equal(OfficeColor.White, image.GetPixel(65, 15));
+    }
+
+    [Fact]
+    public void OfficeDrawingClippedGroup_AllowsContentToContinueBeforeTheParentOrigin() {
+        var child = new OfficeDrawing(20D, 90D);
+        OfficeShape red = OfficeShape.Rectangle(20D, 90D);
+        red.FillColor = OfficeColor.Red;
+        child.AddShape(red, 0D, 0D);
+        var drawing = new OfficeDrawing(20D, 40D);
+
+        drawing.AddClippedDrawing(child, 0D, 0D, OfficeClipPath.Rectangle(20D, 40D), 0D, -40D);
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(-40D, group.ContentOffsetY);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Contains("transform=\"translate(0 -40)\"", svg, StringComparison.Ordinal);
+        Assert.Equal(OfficeColor.Red, image.GetPixel(10, 5));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(10, 35));
+    }
+
+    [Fact]
     public void OfficeDrawingComposesTransformedClippedNestedDrawingThroughSharedSvgAndRaster() {
         var child = new OfficeDrawing(100, 40);
         var shape = OfficeShape.Rectangle(100, 40);
@@ -1627,7 +1670,9 @@ public partial class DrawingTests {
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 0, 0, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0.25, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0.75, OfficeColor.White)));
-        Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new[] { new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0, OfficeColor.White), new OfficeGradientStop(1, OfficeColor.Red) }));
+        OfficeLinearGradient hardStop = new OfficeLinearGradient(0, 0, 1, 1, new[] { new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0, OfficeColor.White), new OfficeGradientStop(1, OfficeColor.Red) });
+        Assert.Equal(0D, hardStop.Stops[0].Offset);
+        Assert.Equal(0D, hardStop.Stops[1].Offset);
     }
 
     [Theory]
@@ -3138,6 +3183,28 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTextMeasurerMeasuresUnicodeTextElementsWithoutDoubleCountingMarksOrSurrogates() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        OfficeTextMeasurementStyle style = measurer.CreateStyle(new OfficeFontInfo("Arial", 12));
+        string composed = "e\u0301";
+        string smile = char.ConvertFromUtf32(0x1F600);
+
+        Assert.Equal(measurer.MeasureWidth("e", style), measurer.MeasureWidth(composed, style), 6);
+        Assert.Equal(measurer.MeasureWidth("漢", style), measurer.MeasureWidth(smile, style), 6);
+        Assert.Equal(new[] { "A", composed, smile, "B" }, OfficeTextElements.Split("A" + composed + smile + "B"));
+    }
+
+    [Fact]
+    public void OfficeTextElementsDetectsRightToLeftScriptScalars() {
+        Assert.False(OfficeTextElements.ContainsRightToLeft(null));
+        Assert.False(OfficeTextElements.ContainsRightToLeft("OfficeIMO 123"));
+        Assert.True(OfficeTextElements.ContainsRightToLeft("Hebrew שלום"));
+        Assert.True(OfficeTextElements.ContainsRightToLeft("Arabic العربية"));
+        Assert.True(OfficeTextElements.IsRightToLeftScalar(0x1E900));
+        Assert.False(OfficeTextElements.IsRightToLeftScalar(0x1F600));
+    }
+
+    [Fact]
     public void OfficeTextMeasurerNormalizesFallbackFontInfo() {
         var measurer = OfficeTextMeasurer.Create(new OfficeFontInfo(null, 0));
 
@@ -3173,6 +3240,15 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTrueTypeFontMapsNonBmpScalarsThroughFormat12Cmap() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(fontData);
+
+        Assert.NotNull(font);
+        Assert.Equal(500D, font!.Measure(char.ConvertFromUtf32(0x1F600), 1000D));
+    }
+
+    [Fact]
     public void OfficeTrueTypeFontReadsDefaultFontOutlinesWhenAvailable() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? path);
         if (font == null) {
@@ -3199,6 +3275,65 @@ public partial class DrawingTests {
         Assert.True(font.Measure("OfficeIMO", 18) > 0);
     }
 
+    [Fact]
+    public void OfficeFontFaceCollectionScopesValidationMeasurementAndSvgEmbedding() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAdd("Broken", new byte[] { 1, 2, 3 }));
+        Assert.True(fonts.TryAdd("Scoped Demo", fontData));
+        Assert.Single(fonts.Faces);
+        Assert.NotSame(fontData, fonts.Faces[0].Data);
+
+        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(16, 16), fonts: fonts);
+        Assert.Equal(500D, canvas.MeasureText(char.ConvertFromUtf32(0x1F600), 1000D, "\"Scoped Demo\", sans-serif"));
+
+        var drawing = new OfficeDrawing(120D, 30D);
+        drawing.Fonts.AddRange(fonts);
+        drawing.AddText("Scoped", 0D, 0D, 120D, 30D, new OfficeFontInfo("Scoped Demo", 12D));
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("@font-face{font-family:\"Scoped Demo\"", svg, StringComparison.Ordinal);
+        Assert.Contains(Convert.ToBase64String(fontData), svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollectionPlansGraphemeSafeFallbackRunsByGlyphCoverage() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Emoji Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))
+            .Add("Hebrew Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x05D0)));
+
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns(
+            char.ConvertFromUtf32(0x1F600) + "\u05D0 " + char.ConvertFromUtf32(0x1F600),
+            "'Emoji Demo', 'Hebrew Demo', sans-serif");
+
+        Assert.Collection(
+            runs,
+            run => {
+                Assert.Equal(char.ConvertFromUtf32(0x1F600), run.Text);
+                Assert.Equal("Emoji Demo", run.FamilyName);
+            },
+            run => {
+                Assert.Equal("\u05D0 ", run.Text);
+                Assert.Equal("Hebrew Demo", run.FamilyName);
+            },
+            run => {
+                Assert.Equal(char.ConvertFromUtf32(0x1F600), run.Text);
+                Assert.Equal("Emoji Demo", run.FamilyName);
+            });
+    }
+
+    [Fact]
+    public void OfficeDrawingCarriesScopedFontsAcrossNestedDrawings() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600));
+        var nested = new OfficeDrawing(20D, 20D).AddFont("Nested Demo", fontData, OfficeFontStyle.Bold);
+        var drawing = new OfficeDrawing(40D, 40D).AddDrawing(nested, 0D, 0D);
+
+        OfficeFontFace face = Assert.Single(drawing.Fonts.Faces);
+        Assert.Equal("Nested Demo", face.FamilyName);
+        Assert.Equal(OfficeFontStyle.Bold, face.Style);
+    }
+
     private static byte[] CreateTruncatedFormat12Cmap() {
         var data = new byte[28];
         WriteUInt16(data, 2, 1);
@@ -3208,6 +3343,21 @@ public partial class DrawingTests {
         WriteUInt16(data, 12, 12);
         WriteUInt32(data, 16, 16);
         WriteUInt32(data, 24, 2);
+        return data;
+    }
+
+    private static byte[] CreateFormat12Cmap(int scalar) {
+        var data = new byte[40];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, 28);
+        WriteUInt32(data, 24, 1);
+        WriteUInt32(data, 28, (uint)scalar);
+        WriteUInt32(data, 32, (uint)scalar);
+        WriteUInt32(data, 36, 1);
         return data;
     }
 
@@ -3480,6 +3630,73 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageFormat.Svg, image.Format);
         Assert.Equal(96, image.Width);
         Assert.Equal(48, image.Height);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsEllipticalRadialGradientTransform() {
+        OfficeShape shape = OfficeShape.Rectangle(100D, 60D);
+        shape.FillRadialGradient = new OfficeRadialGradient(
+            0.25D,
+            0.5D,
+            0D,
+            0D,
+            0.25D,
+            0.5D,
+            0.75D,
+            0.5D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Blue)
+            });
+        OfficeDrawing drawing = new OfficeDrawing(100D, 60D).AddShape(shape, 0D, 0D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<radialGradient", svg, StringComparison.Ordinal);
+        Assert.Contains("gradientTransform=\"matrix(0.75 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        Assert.Contains("cx=\"0%\" cy=\"0%\" r=\"100%\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeRadialGradient_RejectsChangingEllipseAspectRatio() {
+        Assert.Throws<ArgumentException>(() => new OfficeRadialGradient(
+            0.5D,
+            0.5D,
+            0.1D,
+            0.1D,
+            0.5D,
+            0.5D,
+            0.5D,
+            0.25D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(1D, OfficeColor.Blue)
+            }));
+    }
+
+    [Theory]
+    [InlineData("width=\"200\" viewBox=\"0 0 100 50\"", 200, 100)]
+    [InlineData("height=\"75\" viewBox=\"-10 -20 100 50\"", 150, 75)]
+    [InlineData("width=\"100%\" height=\"2em\" viewBox=\"0,0,320,180\"", 320, 180)]
+    public void OfficeImageReaderResolvesPartialSvgDimensionsFromViewBoxRatio(string attributes, int expectedWidth, int expectedHeight) {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" " + attributes + "></svg>");
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "partial.svg", out OfficeImageInfo image));
+
+        Assert.Equal(expectedWidth, image.Width);
+        Assert.Equal(expectedHeight, image.Height);
+        Assert.Equal((double)expectedWidth / expectedHeight, image.AspectRatio!.Value, 3);
+    }
+
+    [Fact]
+    public void OfficeImageReaderReadsSvgPicaAndQuarterMillimeterUnits() {
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"6pc\" height=\"101.6q\"></svg>");
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "absolute-units.svg", out OfficeImageInfo image));
+
+        Assert.Equal(96, image.Width);
+        Assert.Equal(96, image.Height);
+        Assert.Equal(1D, image.AspectRatio!.Value, 3);
     }
 
     [Fact]

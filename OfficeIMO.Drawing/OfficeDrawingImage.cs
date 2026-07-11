@@ -16,7 +16,11 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     /// <param name="projection">Destination placement, crop, rotation, and flip settings.</param>
     /// <param name="alternativeText">Optional semantic label used by adapters and diagnostics.</param>
     /// <param name="opacity">Element opacity from 0 transparent to 1 opaque.</param>
-    public OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D) {
+    public OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D)
+        : this(bytes, contentType, projection, alternativeText, opacity, useDataSnapshot: false) {
+    }
+
+    internal OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool useDataSnapshot) {
         if (bytes == null) {
             throw new ArgumentNullException(nameof(bytes));
         }
@@ -29,7 +33,7 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between 0 and 1.");
         }
 
-        _bytes = (byte[])bytes.Clone();
+        _bytes = useDataSnapshot ? bytes : (byte[])bytes.Clone();
         ContentType = OfficeImageInfo.TryNormalizeImageContentType(contentType, out string normalizedContentType)
             ? normalizedContentType
             : OfficeImageInfo.NormalizeMimeType(contentType);
@@ -53,6 +57,8 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     /// <summary>Element opacity from 0 transparent to 1 opaque.</summary>
     public double Opacity { get; }
 
+    internal byte[] EncodedBytes => _bytes;
+
     internal override OfficeDrawingElement CloneElement() =>
-        new OfficeDrawingImage(_bytes, ContentType, Projection, AlternativeText, Opacity);
+        new OfficeDrawingImage(_bytes, ContentType, Projection, AlternativeText, Opacity, useDataSnapshot: true);
 }

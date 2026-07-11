@@ -154,6 +154,43 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
+    private static void ResolveShadowGeometry(OfficeIMO.Drawing.OfficeShape shape, out bool hasFill, out bool hasStroke) {
+        hasStroke = shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line
+            || shape.StrokeWidth > 0D && (shape.StrokeColor.HasValue || shape.StrokeGradient != null || shape.StrokeRadialGradient != null);
+        hasFill = shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line
+            && (shape.FillColor.HasValue && shape.FillColor.Value.A > 0 || shape.FillGradient != null || shape.FillRadialGradient != null);
+        if (!hasFill && !hasStroke && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line) hasFill = true;
+    }
+
+    private static void DrawShapeShadowLayer(
+        StringBuilder sb,
+        OfficeIMO.Drawing.OfficeShape source,
+        PdfColor color,
+        double x,
+        double bottomY,
+        double strokeWidth,
+        bool hasFill,
+        bool hasStroke) {
+        OfficeIMO.Drawing.OfficeShape shape = source;
+        if (source.Transform.HasValue) {
+            shape = source.Clone();
+            shape.StrokeWidth = strokeWidth;
+            DrawTransformedShape(sb, shape, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, null, x, bottomY);
+        } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) {
+            DrawLine(sb, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height);
+        } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.RoundedRectangle) {
+            DrawRoundedRectangle(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height, shape.CornerRadius);
+        } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Rectangle) {
+            DrawRectangle(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height);
+        } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Ellipse) {
+            DrawEllipse(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height);
+        } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Polygon) {
+            DrawPolygon(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height);
+        } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Path) {
+            DrawPath(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, x, bottomY, shape.Height);
+        }
+    }
+
     private static void DrawEllipse(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h) {
         if (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0)) {
             return;
@@ -404,8 +441,12 @@ internal static partial class PdfWriter {
         new ContentStreamBuilder(sb)
             .SaveState();
         AppendShapeClipPath(sb, shape, x, y);
-        new ContentStreamBuilder(sb)
-            .Shading(shadingName)
+        var content = new ContentStreamBuilder(sb);
+        if (shape.FillRadialGradient != null) {
+            ApplyRadialGradientTransform(content, shape, x, y);
+        }
+
+        content.Shading(shadingName)
             .RestoreState();
     }
 
@@ -427,8 +468,12 @@ internal static partial class PdfWriter {
             new ContentStreamBuilder(sb)
                 .SaveState();
             AppendLocalShapeClipPath(sb, shape);
-            new ContentStreamBuilder(sb)
-                .Shading(shadingName!)
+            var gradientContent = new ContentStreamBuilder(sb);
+            if (shape.FillRadialGradient != null) {
+                ApplyRadialGradientTransform(gradientContent, shape, 0D, 0D);
+            }
+
+            gradientContent.Shading(shadingName!)
                 .RestoreState();
         }
 

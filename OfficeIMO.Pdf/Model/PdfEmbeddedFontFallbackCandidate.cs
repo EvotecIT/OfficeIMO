@@ -25,5 +25,5 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
     /// <summary>Display name used in fallback segments and diagnostics.</summary>
     public string FontName { get; }
 
-    internal byte[] DataSnapshot => _fontData.ToArray();
+    internal byte[] DataSnapshot => _fontData;
 }

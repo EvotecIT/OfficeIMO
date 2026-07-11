@@ -194,6 +194,9 @@ public sealed partial class PdfDocument {
                 case PdfCanvasClipItem clip:
                     AnalyzeCanvasItems(clip.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasClip[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
+                case PdfCanvasEffectItem effect:
+                    AnalyzeCanvasItems(effect.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasEffect[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    break;
                 case PdfCanvasDrawingItem drawing:
                     AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;

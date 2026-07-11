@@ -30,5 +30,5 @@ public sealed class PdfEmbeddedFont {
 
     internal byte[] DataSnapshot => _data;
 
-    internal PdfEmbeddedFont Clone() => new PdfEmbeddedFont(Font, _data, FontName);
+    internal PdfEmbeddedFont Clone() => this;
 }

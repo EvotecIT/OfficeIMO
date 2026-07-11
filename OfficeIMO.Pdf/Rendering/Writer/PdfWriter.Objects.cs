@@ -99,6 +99,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageImage> Images { get; } = new();
             public System.Collections.Generic.List<PageGraphicsState> GraphicsStates { get; } = new();
             public System.Collections.Generic.List<PageShading> Shadings { get; } = new();
+            public System.Collections.Generic.List<PageEffectGroup> EffectGroups { get; } = new();
             public System.Collections.Generic.List<PageBookmark> Bookmarks { get; } = new();
             public System.Collections.Generic.List<PageNamedDestination> NamedDestinations { get; } = new();
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
@@ -246,12 +247,41 @@ internal static partial class PdfWriter {
 
     private sealed class PageShading {
         public string Name { get; set; } = string.Empty;
-        public OfficeColor StartColor { get; set; }
-        public OfficeColor EndColor { get; set; }
+        public bool IsRadial { get; set; }
+        public System.Collections.Generic.IReadOnlyList<OfficeGradientStop> Stops { get; set; } = System.Array.Empty<OfficeGradientStop>();
         public double X0 { get; set; }
         public double Y0 { get; set; }
+        public double R0 { get; set; }
         public double X1 { get; set; }
         public double Y1 { get; set; }
+        public double R1 { get; set; }
+
+        public bool MatchesAxial(double x0, double y0, double x1, double y1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) =>
+            !IsRadial && MatchesCoordinatesAndStops(x0, y0, 0D, x1, y1, 0D, stops);
+
+        public bool MatchesRadial(double x0, double y0, double r0, double x1, double y1, double r1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) =>
+            IsRadial && MatchesCoordinatesAndStops(x0, y0, r0, x1, y1, r1, stops);
+
+        private bool MatchesCoordinatesAndStops(double x0, double y0, double r0, double x1, double y1, double r1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) {
+            if (!X0.Equals(x0) || !Y0.Equals(y0) || !R0.Equals(r0) || !X1.Equals(x1) || !Y1.Equals(y1) || !R1.Equals(r1) || Stops.Count != stops.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < Stops.Count; index++) {
+                if (!Stops[index].Equals(stops[index])) return false;
+            }
+
+            return true;
+        }
+    }
+
+    private sealed class PageEffectGroup {
+        public string Content { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
+        public OfficeTransform Transform { get; set; } = OfficeTransform.Identity;
+        public string? GraphicsStateName { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int ObjectId { get; set; }
     }
 
     private sealed class OutlineNode {
@@ -283,6 +313,7 @@ internal static partial class PdfWriter {
         public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
+        public bool SuppressAccessibilityWrapper { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }

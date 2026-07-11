@@ -2427,7 +2427,7 @@ _Figure 3. Flow fallback_
 
         Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == MarkdownSemanticKinds.Mermaid);
         Assert.Contains("mermaid", text, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("graphTD", text, StringComparison.Ordinal);
+        Assert.Contains("graph TD", text, StringComparison.Ordinal);
         Assert.Contains("Figure 3. Flow fallback", text, StringComparison.Ordinal);
     }
 

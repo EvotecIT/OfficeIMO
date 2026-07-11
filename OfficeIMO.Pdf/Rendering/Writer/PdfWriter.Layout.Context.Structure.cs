@@ -83,7 +83,7 @@ internal static partial class PdfWriter {
             return markedContentId;
         }
 
-        private int? RegisterFigureStructureElement(string alternativeText) {
+        private int? RegisterFigureStructureElement(string alternativeText, int? parentElementIndex = null) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -92,7 +92,8 @@ internal static partial class PdfWriter {
             currentPage.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
-                AlternativeText = alternativeText
+                AlternativeText = alternativeText,
+                ParentElementIndex = parentElementIndex
             });
             return markedContentId;
         }

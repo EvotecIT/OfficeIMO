@@ -18,6 +18,30 @@ public sealed class HtmlPdfResourcePolicySummary {
     /// <summary>True when the profile uses the Word HTML importer and exposes its resource policy.</summary>
     public bool UsesWordHtmlPolicy { get; private set; }
 
+    /// <summary>True when the profile uses the shared OfficeIMO.Html render policy.</summary>
+    public bool UsesHtmlRenderPolicy { get; private set; }
+
+    /// <summary>True when an application-supplied asynchronous render resource resolver is configured.</summary>
+    public bool HasRenderResourceResolver { get; private set; }
+
+    /// <summary>Maximum duration allowed for one direct-render resource request.</summary>
+    public TimeSpan? RenderResourceTimeout { get; private set; }
+
+    /// <summary>Maximum bytes accepted from one direct-render resource.</summary>
+    public long? RenderMaxResourceBytes { get; private set; }
+
+    /// <summary>Maximum total bytes accepted by one direct-render operation.</summary>
+    public long? RenderMaxTotalResourceBytes { get; private set; }
+
+    /// <summary>Maximum external resource count accepted by one direct-render operation.</summary>
+    public int? RenderMaxResourceCount { get; private set; }
+
+    /// <summary>Maximum recursive stylesheet import depth accepted by direct rendering.</summary>
+    public int? RenderMaxStylesheetImportDepth { get; private set; }
+
+    /// <summary>Allowed URL schemes when the direct render URL policy restricts schemes.</summary>
+    public IReadOnlyList<string> RenderAllowedUrlSchemes { get; private set; } = Array.Empty<string>();
+
     /// <summary>True when stylesheet links declared inside the HTML document may be loaded.</summary>
     public bool AllowDocumentStylesheetLinks { get; private set; }
 
@@ -69,6 +93,22 @@ public sealed class HtmlPdfResourcePolicySummary {
         var summary = new HtmlPdfResourcePolicySummary {
             Profile = options.Profile
         };
+
+        if (options.Profile == HtmlPdfProfile.Rendered) {
+            HtmlRenderOptions renderOptions = options.RenderOptions ?? new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+            summary.UsesHtmlRenderPolicy = true;
+            summary.HasRenderResourceResolver = renderOptions.ResourceResolver != null;
+            summary.RenderResourceTimeout = renderOptions.ResourceTimeout;
+            summary.RenderMaxResourceBytes = renderOptions.MaxResourceBytes;
+            summary.RenderMaxTotalResourceBytes = renderOptions.MaxTotalResourceBytes;
+            summary.RenderMaxResourceCount = renderOptions.MaxResourceCount;
+            summary.RenderMaxStylesheetImportDepth = renderOptions.MaxStylesheetImportDepth;
+            HtmlUrlPolicy renderUrlPolicy = renderOptions.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+            summary.RenderAllowedUrlSchemes = renderUrlPolicy.RestrictUrlSchemes
+                ? CopySorted(renderUrlPolicy.AllowedUrlSchemes)
+                : Array.Empty<string>();
+            return summary;
+        }
 
         if (options.Profile != HtmlPdfProfile.Document) {
             return summary;

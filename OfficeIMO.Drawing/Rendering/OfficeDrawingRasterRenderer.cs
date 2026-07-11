@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free raster renderer for <see cref="OfficeDrawing"/> scenes.
 /// </summary>
-public static class OfficeDrawingRasterRenderer {
+public static partial class OfficeDrawingRasterRenderer {
     /// <summary>
     /// Renders a drawing to an RGBA raster image.
     /// </summary>
@@ -22,7 +22,7 @@ public static class OfficeDrawingRasterRenderer {
         int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
         OfficeRasterImage image = new OfficeRasterImage(width, height, background);
-        OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+        OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: drawing.Fonts);
         RenderElements(canvas, drawing.Elements, scale);
 
         return image;
@@ -38,8 +38,12 @@ public static class OfficeDrawingRasterRenderer {
                 RenderRichText(canvas, richText, scale);
             } else if (element is OfficeDrawingImage drawingImage) {
                 RenderImage(canvas, drawingImage, scale);
+            } else if (element is OfficeDrawingImagePattern imagePattern) {
+                RenderImagePattern(canvas, imagePattern, scale);
             } else if (element is OfficeDrawingGroup drawingGroup) {
                 RenderGroup(canvas, drawingGroup, scale);
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                RenderEffectGroup(canvas, effectGroup, scale);
             }
         }
     }
@@ -55,10 +59,12 @@ public static class OfficeDrawingRasterRenderer {
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
                 Math.Max(1D, canvas.Height / scale));
+            double contentX = drawingGroup.X + drawingGroup.ContentOffsetX;
+            double contentY = drawingGroup.Y + drawingGroup.ContentOffsetY;
             if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
-                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, drawingGroup.FrameTransform.Value);
+                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, drawingGroup.FrameTransform.Value);
             } else {
-                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, drawingGroup.X, drawingGroup.Y, null);
+                translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, null);
             }
 
             RenderElements(canvas, translated.Elements, scale);
@@ -355,13 +361,27 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderImage(OfficeRasterCanvas canvas, OfficeDrawingImage drawingImage, double scale) {
-        if (OfficeRasterImageDecoder.TryDecode(drawingImage.Bytes, out OfficeRasterImage? image) && image != null) {
+        if (OfficeRasterImageDecoder.TryDecode(drawingImage.EncodedBytes, out OfficeRasterImage? image) && image != null) {
             if (drawingImage.Opacity < 1D) {
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
 
             canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
         }
+    }
+
+    private static void RenderEffectGroup(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effectGroup, double scale) {
+        if (effectGroup.Opacity <= 0D) return;
+        OfficeRasterImage layer = Render(effectGroup.InnerDrawing, scale);
+        OfficeTransform transform = effectGroup.Transform;
+        OfficeTransform pixelTransform = new OfficeTransform(
+            transform.M11,
+            transform.M12,
+            transform.M21,
+            transform.M22,
+            transform.OffsetX * scale,
+            transform.OffsetY * scale);
+        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity);
     }
 
     private static OfficeRasterImage ApplyImageOpacity(OfficeRasterImage image, double opacity) {
@@ -1093,7 +1113,7 @@ public static class OfficeDrawingRasterRenderer {
                 ApplyOpacity(stop.Color, opacity) ?? stop.Color));
         }
 
-        return new OfficeLinearGradient(
+        return OfficeLinearGradient.CreateImported(
             gradient.StartX,
             gradient.StartY,
             gradient.EndX,
@@ -1117,10 +1137,12 @@ public static class OfficeDrawingRasterRenderer {
         return new OfficeRadialGradient(
             gradient.StartX,
             gradient.StartY,
-            gradient.StartRadius,
+            gradient.StartRadiusX,
+            gradient.StartRadiusY,
             gradient.EndX,
             gradient.EndY,
-            gradient.EndRadius,
+            gradient.EndRadiusX,
+            gradient.EndRadiusY,
             stops);
     }
 

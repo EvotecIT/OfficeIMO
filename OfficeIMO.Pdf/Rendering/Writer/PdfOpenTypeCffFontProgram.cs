@@ -60,6 +60,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public int CffTableLength { get; }
     public int FontDataLength => _data.Length;
     internal byte[] FontDataSnapshot => _data.ToArray();
+    internal byte[] FontDataForInspection => _data;
 
     public static PdfOpenTypeCffFontProgram Parse(byte[] data, string? fontNameOverride = null) {
         Guard.NotNull(data, nameof(data));

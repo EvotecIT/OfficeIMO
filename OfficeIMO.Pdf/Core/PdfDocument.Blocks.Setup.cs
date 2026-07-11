@@ -602,6 +602,13 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Configures dependency-free generated-text shaping and an optional host-provided shaping seam.</summary>
+    public PdfDocument UseTextShaping(PdfTextShapingMode mode, IPdfTextShapingProvider? provider = null) {
+        _options.SetTextShapingMode(mode);
+        _options.SetTextShapingProvider(provider);
+        return this;
+    }
+
     /// <summary>Registers generated-text fallback fonts from installed system font families without requiring callers to choose PDF font slots.</summary>
     public PdfDocument UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
         _options.UseEmbeddedFontFallbacksFromSystem(familyNames, maxFallbackFonts);

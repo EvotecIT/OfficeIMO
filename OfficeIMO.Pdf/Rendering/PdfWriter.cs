@@ -225,13 +225,22 @@ internal static partial class PdfWriter {
             var shadings = new List<(string Name, int Id)>();
             if (page.Shadings.Count > 0) {
                 foreach (var shading in page.Shadings) {
-                    int shadingId = AddObject(objects, PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
-                        shading.X0,
-                        shading.Y0,
-                        shading.X1,
-                        shading.Y1,
-                        shading.StartColor,
-                        shading.EndColor));
+                    string shadingObject = shading.IsRadial
+                        ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
+                            shading.X0,
+                            shading.Y0,
+                            shading.R0,
+                            shading.X1,
+                            shading.Y1,
+                            shading.R1,
+                            shading.Stops)
+                        : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                            shading.X0,
+                            shading.Y0,
+                            shading.X1,
+                            shading.Y1,
+                            shading.Stops);
+                    int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                 }
             }
@@ -264,13 +273,35 @@ internal static partial class PdfWriter {
                 }
             }
 
+            if (page.EffectGroups.Count > 0) {
+                for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
+                    PageEffectGroup effect = page.EffectGroups[effectIndex];
+                    string effectContent = ReplaceInlineImageDrawTokens(effect.Content, page.Images);
+                    effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
+                    byte[] effectBytes = PdfEncoding.Latin1GetBytes(effectContent);
+                    string dictionary = PdfTransparencyGroupDictionaryBuilder.BuildStreamDictionary(
+                        pageOpts.PageWidth,
+                        pageOpts.PageHeight,
+                        effectBytes.Length,
+                        FilterPdfResources(effectContent, fontResources),
+                        FilterPdfResources(effectContent, xobjects),
+                        FilterPdfResources(effectContent, graphicsStates),
+                        FilterPdfResources(effectContent, shadings));
+                    int effectId = AddStreamObject(objects, dictionary, effectBytes);
+                    effect.Name = "/Fx" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
+                    effect.ObjectId = effectId;
+                    xobjects.Add((effect.Name, effectId));
+                }
+            }
+
             string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo);
             string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
             if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
                 string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources);
                 contentStr += WrapArtifactContent(headerContent, markInfo);
             }
-            contentStr += ReplaceInlineImageDrawTokens(page.Content, page.Images);
+            string pageContent = ReplaceInlineImageDrawTokens(page.Content, page.Images);
+            contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
                 foreach (var img in page.Images) {
@@ -516,10 +547,10 @@ internal static partial class PdfWriter {
                     pageOpts.PageWidth,
                     pageOpts.PageHeight,
                     contentId,
-                    fontResources,
-                    xobjects,
-                    graphicsStates,
-                    shadings,
+                    FilterPdfResources(contentStr, fontResources),
+                    FilterPdfResources(contentStr, xobjects),
+                    FilterPdfResources(contentStr, graphicsStates),
+                    FilterPdfResources(contentStr, shadings),
                     pageAnnotIds,
                     page.StructParentIndex,
                     useStructureTabOrder: markInfo));
@@ -668,6 +699,47 @@ internal static partial class PdfWriter {
         return result;
     }
 
+    private static string ReplaceInlineEffectGroupTokens(string content, IReadOnlyList<PageEffectGroup> effects, int availableCount) {
+        if (string.IsNullOrEmpty(content) || effects.Count == 0 || availableCount <= 0) return content;
+        string result = content;
+        int count = Math.Min(availableCount, effects.Count);
+        for (int index = 0; index < count; index++) {
+            PageEffectGroup effect = effects[index];
+            if (effect.ObjectId <= 0 || string.IsNullOrEmpty(effect.Name) || string.IsNullOrEmpty(effect.Token)) continue;
+            var invocation = new StringBuilder();
+            var stream = new ContentStreamBuilder(invocation).SaveState();
+            if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);
+            stream.TransformMatrix(effect.Transform)
+                .XObject(effect.Name)
+                .RestoreState();
+            result = result.Replace(effect.Token, invocation.ToString());
+        }
+        return result;
+    }
+
+    private static List<(string Name, int Id)> FilterPdfResources(
+        string content,
+        List<(string Name, int Id)> resources) {
+        var used = new List<(string Name, int Id)>();
+        if (string.IsNullOrEmpty(content) || resources.Count == 0) return used;
+        for (int index = 0; index < resources.Count; index++) {
+            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+        }
+        return used;
+    }
+
+    private static bool UsesPdfResource(string content, string name) {
+        int searchIndex = 0;
+        while (searchIndex < content.Length) {
+            int index = content.IndexOf(name, searchIndex, StringComparison.Ordinal);
+            if (index < 0) return false;
+            int next = index + name.Length;
+            if (next >= content.Length || char.IsWhiteSpace(content[next])) return true;
+            searchIndex = next;
+        }
+        return false;
+    }
+
     private static string BuildPageBackground(LayoutResult.Page page, PdfOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {
         var sb = new StringBuilder();
         if (options.BackgroundColor.HasValue) {
@@ -714,7 +786,7 @@ internal static partial class PdfWriter {
 
     private static void AssignFigureMarkedContentIds(LayoutResult.Page page) {
         foreach (PageImage image in page.Images) {
-            if (image.IsBackgroundDecoration || string.IsNullOrWhiteSpace(image.AlternativeText) || image.MarkedContentId.HasValue || image.StructElementIndex.HasValue) {
+            if (image.SuppressAccessibilityWrapper || image.IsBackgroundDecoration || string.IsNullOrWhiteSpace(image.AlternativeText) || image.MarkedContentId.HasValue || image.StructElementIndex.HasValue) {
                 continue;
             }
 
@@ -1009,7 +1081,7 @@ internal static partial class PdfWriter {
             AppendClipPath(sb, img.ClipPath, img.ClipX, img.ClipY, img.ClipHeight);
         }
 
-        bool hasAlternativeText = !string.IsNullOrWhiteSpace(img.AlternativeText);
+        bool hasAlternativeText = !img.SuppressAccessibilityWrapper && !string.IsNullOrWhiteSpace(img.AlternativeText);
         if (hasAlternativeText) {
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(img.AlternativeText!));
@@ -1019,7 +1091,7 @@ internal static partial class PdfWriter {
             }
 
             sb.Append(" >> BDC\n");
-        } else if (img.IsBackgroundDecoration) {
+        } else if (!img.SuppressAccessibilityWrapper && img.IsBackgroundDecoration) {
             sb.Append("/Artifact BMC\n");
         }
 
@@ -1049,7 +1121,7 @@ internal static partial class PdfWriter {
         content.XObject(img.Name)
             .RestoreState();
 
-        if (hasAlternativeText || img.IsBackgroundDecoration) {
+        if (hasAlternativeText || !img.SuppressAccessibilityWrapper && img.IsBackgroundDecoration) {
             sb.Append("EMC\n");
         }
 

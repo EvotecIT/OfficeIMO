@@ -49,7 +49,7 @@ public sealed partial class PdfOptions {
             CatalogUriBase = CatalogUriBase,
             Encryption = _encryption?.Clone(),
             AcroFormDefaultTextAlignment = AcroFormDefaultTextAlignment,
-            EmbeddedFontFallbacks = _embeddedFontFallbacks?.Clone(),
+            _embeddedFontFallbacks = _embeddedFontFallbacks?.Clone(),
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,
