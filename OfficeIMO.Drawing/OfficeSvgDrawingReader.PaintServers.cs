@@ -10,10 +10,13 @@ public static partial class OfficeSvgDrawingReader {
     private const int MaximumGradientReferenceDepth = 16;
     private const int MaximumGradientStops = 256;
 
-    private static bool TryPaint(string value, SvgPaintServerRegistry paintServers, out SvgResolvedPaint paint) {
+    private static bool TryPaint(string value, SvgPaintServerRegistry paintServers, OfficeColor currentColor, out SvgResolvedPaint paint) {
         paint = default;
         if (value.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
-        if (value.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) return false;
+        if (value.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) {
+            paint = new SvgResolvedPaint(currentColor);
+            return true;
+        }
         if (value.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
             return paintServers.TryResolve(value, out paint);
         }

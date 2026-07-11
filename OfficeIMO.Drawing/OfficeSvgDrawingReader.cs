@@ -332,6 +332,14 @@ public static partial class OfficeSvgDrawingReader {
 
     private static SvgPaintContext ResolvePaintContext(XElement element, SvgPaintContext inherited, SvgPaintServerRegistry paintServers, ref int unsupported) {
         SvgPaintContext result = inherited;
+        ApplyProperty("color", element.Attribute("color")?.Value, paintServers, ref result, ref unsupported);
+        string? styleText = element.Attribute("style")?.Value;
+        string[] declarations = string.IsNullOrWhiteSpace(styleText) ? Array.Empty<string>() : styleText!.Split(';');
+        foreach (string declaration in declarations) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
+            ApplyProperty("color", declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
+        }
         ApplyProperty("fill", element.Attribute("fill")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke", element.Attribute("stroke")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("stroke-width", element.Attribute("stroke-width")?.Value, paintServers, ref result, ref unsupported);
@@ -349,13 +357,12 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
-        string? declarations = element.Attribute("style")?.Value;
-        if (!string.IsNullOrWhiteSpace(declarations)) {
-            foreach (string declaration in declarations!.Split(';')) {
-                int colon = declaration.IndexOf(':');
-                if (colon <= 0) continue;
-                ApplyProperty(declaration.Substring(0, colon).Trim(), declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
-            }
+        foreach (string declaration in declarations) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0) continue;
+            string name = declaration.Substring(0, colon).Trim();
+            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
+            ApplyProperty(name, declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
         }
         return result;
     }
@@ -364,15 +371,20 @@ public static partial class OfficeSvgDrawingReader {
         if (string.IsNullOrWhiteSpace(value)) return;
         string normalized = value!.Trim();
         switch (name.Trim().ToLowerInvariant()) {
+            case "color":
+                if (normalized.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) break;
+                if (!OfficeColor.TryParse(normalized, out OfficeColor currentColor)) unsupported++;
+                else style.Color = currentColor;
+                break;
             case "fill":
-                if (!TryPaint(normalized, paintServers, out SvgResolvedPaint fill)) {
+                if (!TryPaint(normalized, paintServers, style.Color, out SvgResolvedPaint fill)) {
                     unsupported++;
                     if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetFill(default);
                 }
                 else style.SetFill(fill);
                 break;
             case "stroke":
-                if (!TryPaint(normalized, paintServers, out SvgResolvedPaint stroke)) {
+                if (!TryPaint(normalized, paintServers, style.Color, out SvgResolvedPaint stroke)) {
                     unsupported++;
                     if (normalized.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) style.SetStroke(default);
                 }
@@ -548,6 +560,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private struct SvgPaintContext {
+        internal OfficeColor Color;
         internal OfficeColor? Fill;
         internal OfficeLinearGradient? FillGradient;
         internal OfficeRadialGradient? FillRadialGradient;
@@ -585,6 +598,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal static SvgPaintContext Default => new SvgPaintContext {
+            Color = OfficeColor.Black,
             Fill = OfficeColor.Black,
             Stroke = null,
             StrokeWidth = 1D,

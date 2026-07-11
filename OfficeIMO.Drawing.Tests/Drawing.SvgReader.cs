@@ -168,6 +168,22 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderResolvesInheritedCurrentColorForShapePaint() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 10'>"
+            + "<g color='purple'><rect width='10' height='10' fill='currentColor'/>"
+            + "<line x1='10' y1='5' x2='20' y2='5' stroke='currentColor' stroke-width='2'/></g>"
+            + "<rect x='20' width='10' height='10' style='fill:currentColor;color:lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(3, drawing!.Shapes.Count);
+        Assert.Equal(OfficeColor.Purple, drawing.Shapes[0].Shape.FillColor);
+        Assert.Equal(OfficeColor.Purple, drawing.Shapes[1].Shape.StrokeColor);
+        Assert.Equal(OfficeColor.Lime, drawing.Shapes[2].Shape.FillColor);
+    }
+
+    [Fact]
     public void SvgReaderExpandsBoundedLocalUseReferencesWithInheritedPaintAndPlacement() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 40 20'>"
             + "<defs><g id='badge'><rect width='10' height='10'/><circle cx='5' cy='5' r='3' fill='white'/></g></defs>"
