@@ -43,20 +43,8 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         return sb.Length == 0 ? "None" : sb.ToString();
     }
 
-    private static string ToPowerPointChartKind(string chartType) {
-        var normalized = NormalizeToken(chartType);
-        return normalized switch {
-            "line" => "Line",
-            "bar" => "BarClustered",
-            "stackedbar" => "BarStacked",
-            "stackedcolumn" => "ColumnStacked",
-            "pie" => "Pie",
-            "doughnut" or "donut" => "Doughnut",
-            "scatter" => "Scatter",
-            "area" => "Area",
-            _ => "ColumnClustered"
-        };
-    }
+    private static string ToPowerPointChartKind(string chartType) =>
+        OfficeMarkupChartKindResolver.Resolve(chartType).ToString();
 
     private static string ToExcelChartType(string chartType) {
         var normalized = NormalizeToken(chartType);

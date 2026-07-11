@@ -316,14 +316,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         string chartType,
         OfficeChartData data,
         LayoutCursor box) {
-        string normalized = Normalize(chartType);
-        OfficeChartKind kind = normalized switch {
-            "line" => OfficeChartKind.Line,
-            "pie" => OfficeChartKind.Pie,
-            "donut" or "doughnut" => OfficeChartKind.Doughnut,
-            "bar" or "clusteredbar" => OfficeChartKind.BarClustered,
-            _ => OfficeChartKind.ColumnClustered
-        };
+        OfficeChartKind kind = OfficeMarkupChartKindResolver.Resolve(chartType);
         OfficeChartData resolved = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut
             ? FirstSeriesOnly(data)
             : data;
