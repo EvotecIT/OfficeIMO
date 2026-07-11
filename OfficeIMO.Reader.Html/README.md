@@ -67,6 +67,23 @@ foreach (var table in tables) {
 }
 ```
 
+### Read the rich document result
+
+```csharp
+OfficeDocumentReadResult document =
+    DocumentReaderHtmlExtensions.ReadHtmlDocument("application.html");
+
+foreach (OfficeDocumentFormField field in document.Forms) {
+    Console.WriteLine($"{field.Name}: {field.Value}");
+}
+
+foreach (OfficeDocumentLink link in document.Links) {
+    Console.WriteLine(link.Uri ?? link.DestinationName);
+}
+```
+
+After registration, `DocumentReader.ReadDocument("application.html")` dispatches to this native rich mapping as well.
+
 ## What it emits
 
 - HTML converted to Markdown through `OfficeIMO.Markdown.Html`.
@@ -74,6 +91,7 @@ foreach (var table in tables) {
 - Table extraction with `ReaderTable.ColumnProfiles`.
 - Heading-aware chunk metadata when `ReaderOptions.MarkdownChunkByHeadings` is enabled.
 - HTML-to-Markdown profile, transform, converter, and visual round-trip option pass-through.
+- A schema-v5 rich result containing semantic blocks, figures, tables, links, form controls, media visuals, metadata, and bounded data-URI image assets.
 
 ## Boundaries
 

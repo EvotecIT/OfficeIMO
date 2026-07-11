@@ -48,10 +48,14 @@ public sealed class ReaderVisioModularTests {
         Assert.Equal("topology.vsdx", result.Source.Path);
         Assert.Equal("Topology", result.Source.Title);
         Assert.Contains("officeimo.reader.visio", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.reader.visio.rich-v5", result.CapabilitiesUsed);
         Assert.Contains("officeimo.visio.inspection-snapshot", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.visio.topology-visual", result.CapabilitiesUsed);
         Assert.Contains("officeimo.visio.svg-preview", result.CapabilitiesUsed);
         OfficeDocumentPage page = Assert.Single(result.Pages);
         Assert.Equal("Topology", page.Name);
+        Assert.Equal(576D, page.Width);
+        Assert.Equal(360D, page.Height);
         Assert.Contains(result.Blocks, block => block.Kind == "shape" && block.Text.Contains("Gateway", StringComparison.Ordinal));
         Assert.Contains(result.Blocks, block => block.Kind == "connector" && block.Text.Contains("TLS", StringComparison.Ordinal));
         Assert.Same(Assert.Single(result.Tables), Assert.Single(page.Tables));
@@ -65,6 +69,13 @@ public sealed class ReaderVisioModularTests {
         Assert.False(string.IsNullOrWhiteSpace(asset.PayloadHash));
         Assert.NotNull(asset.PayloadBytes);
         Assert.Same(asset, Assert.Single(page.Assets));
+        ReaderVisual visual = Assert.Single(result.Visuals);
+        Assert.Equal("network", visual.Kind);
+        Assert.Equal("officeimo-visio-topology", visual.Language);
+        Assert.Contains("Gateway", visual.Content, StringComparison.Ordinal);
+        Assert.Contains("Service", visual.Content, StringComparison.Ordinal);
+        using JsonDocument topology = JsonDocument.Parse(visual.Content);
+        Assert.Equal("Gateway -> Service", topology.RootElement.GetProperty("edges")[0].GetProperty("label").GetString());
     }
 
     [Fact]
@@ -172,7 +183,8 @@ public sealed class ReaderVisioModularTests {
     [Fact]
     public void DocumentReaderVisio_Registration_DispatchesVisioStream() {
         try {
-            DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+            DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler(
+                new ReaderVisioOptions { IncludeSvgPreviewAssets = true });
             using MemoryStream stream = BuildSampleVisio();
 
             List<ReaderChunk> chunks = DocumentReader.Read(stream, "registered.vsdx").ToList();
@@ -180,6 +192,18 @@ public sealed class ReaderVisioModularTests {
             ReaderChunk chunk = Assert.Single(chunks);
             Assert.Equal(ReaderInputKind.Visio, chunk.Kind);
             Assert.Contains("Gateway", chunk.Markdown, StringComparison.Ordinal);
+
+            stream.Position = 0;
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "registered.vsdx");
+            Assert.Contains("officeimo.visio.inspection-snapshot", result.CapabilitiesUsed);
+            Assert.NotEmpty(result.Links);
+            Assert.Equal("preview-svg", Assert.Single(result.Assets).Kind);
+
+            ReaderHandlerCapability capability = Assert.Single(
+                DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true),
+                item => item.Id == DocumentReaderVisioRegistrationExtensions.HandlerId);
+            Assert.True(capability.SupportsDocumentPath);
+            Assert.True(capability.SupportsDocumentStream);
         } finally {
             DocumentReaderVisioRegistrationExtensions.UnregisterVisioHandler();
         }

@@ -20,6 +20,7 @@ public static partial class WordRtfConverterExtensions {
         CopyCustomMetadata(document, rtf);
         CopyDefaultLanguage(document, rtf);
         CopyDocumentSettings(document, rtf);
+        CopyWordStylesAndNumbering(document, rtf);
         var revisionAuthorIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
         CopyHeaderFooters(document, rtf, revisionAuthorIndexes);
         if (ShouldExportSections(document)) {
@@ -41,6 +42,7 @@ public static partial class WordRtfConverterExtensions {
         ApplyCustomMetadata(rtfDocument, document);
         ApplyDefaultLanguage(rtfDocument, document);
         ApplyDocumentSettings(rtfDocument, document);
+        ApplyRtfStylesAndNumbering(rtfDocument, document);
         ApplyHeaderFooters(rtfDocument, document);
         if (rtfDocument.Sections.Count > 0) {
             ApplySections(rtfDocument, document);

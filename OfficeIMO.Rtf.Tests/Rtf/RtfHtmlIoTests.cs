@@ -15,7 +15,7 @@ public class RtfHtmlIoTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical ż");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
         byte[] bytes = document.ToHtmlBytes();
 
         Assert.Equal(html, Encoding.UTF8.GetString(bytes));
@@ -57,7 +57,7 @@ public class RtfHtmlIoTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Fluent ż");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
         byte[] htmlBytes = document.ToHtmlBytes();
 
         Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));

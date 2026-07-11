@@ -22,14 +22,31 @@ public static partial class DocumentReader {
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
         ReaderOptions opt = NormalizeOptions(options);
-        ReaderInputKind kind = DetectKind(path);
-        bool customPathReaderOwnsExtension = TryResolveCustomHandlerByPath(path, out CustomReaderHandler customPathHandler) && customPathHandler.ReadPath != null;
+        EnforceFileSize(path, opt.MaxInputBytes);
+        bool hasCustomPathHandler = TryResolvePathHandler(
+            path,
+            opt,
+            out ReaderHandlerDescriptor customPathHandler,
+            out ReaderDetectionResult detection);
+        ReaderInputKind kind = detection.Kind;
+        if (hasCustomPathHandler && customPathHandler.ReadDocumentPath != null) {
+            return ApplyDetectionDiagnostics(
+                ValidateDocumentResult(
+                    customPathHandler.ReadDocumentPath(path, opt, cancellationToken),
+                    customPathHandler.Id),
+                detection);
+        }
+
+        bool customPathReaderOwnsExtension = hasCustomPathHandler && customPathHandler.ReadPath != null;
         ReaderChunk[] chunks = Read(path, opt, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = customPathReaderOwnsExtension
             ? Array.Empty<OfficeDocumentAsset>()
             : ReadOpenXmlImageAssets(path, kind, opt, cancellationToken);
         ReaderInputKind fallbackKind = customPathReaderOwnsExtension ? customPathHandler.Kind : kind;
-        return BuildChunkDocumentResult(chunks, path, fallbackKind, BuildPathDocumentSource(path, chunks), assets);
+        OfficeDocumentReadResult result = BuildChunkDocumentResult(chunks, path, fallbackKind, BuildPathDocumentSource(path, chunks), assets, detection);
+        return customPathReaderOwnsExtension
+            ? result
+            : EnrichBuiltInDocumentResult(path, kind, opt, result, cancellationToken);
     }
 
     /// <summary>
@@ -45,20 +62,69 @@ public static partial class DocumentReader {
 
         ReaderOptions opt = NormalizeOptions(options);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
-        ReaderInputKind kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName);
-        bool customStreamReaderOwnsExtension = TryResolveCustomHandlerBySourceName(logicalSourceName, out CustomReaderHandler customStreamHandler) && customStreamHandler.ReadStream != null;
-        if (stream.CanSeek) {
-            ReaderInputLimits.EnforceSeekableStreamRemainingSize(stream, opt.MaxInputBytes);
+        Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
+            stream,
+            opt.MaxInputBytes,
+            cancellationToken,
+            out bool ownsReadStream);
+        try {
+            bool hasCustomStreamHandler = TryResolveStreamHandler(
+                readStream,
+                logicalSourceName,
+                opt,
+                out ReaderHandlerDescriptor customStreamHandler,
+                out ReaderDetectionResult detection);
+            ReaderInputKind kind = detection.Kind;
+
+            if (hasCustomStreamHandler && customStreamHandler.ReadDocumentStream != null) {
+                return ApplyDetectionDiagnostics(
+                    ValidateDocumentResult(
+                        customStreamHandler.ReadDocumentStream(readStream, logicalSourceName, opt, cancellationToken),
+                        customStreamHandler.Id),
+                    detection);
+            }
+
+            using MemoryStream snapshot = ownsReadStream && readStream is MemoryStream bufferedInput
+                ? bufferedInput
+                : CopyToMemory(readStream, cancellationToken, opt.MaxInputBytes);
+            snapshot.Position = 0;
+            ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
+            snapshot.Position = 0;
+            bool customStreamReaderOwnsExtension = hasCustomStreamHandler && customStreamHandler.ReadStream != null;
+            IReadOnlyList<OfficeDocumentAsset> assets = customStreamReaderOwnsExtension
+                ? Array.Empty<OfficeDocumentAsset>()
+                : ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);
+            ReaderInputKind fallbackKind = customStreamReaderOwnsExtension ? customStreamHandler.Kind : kind;
+            OfficeDocumentReadResult result = BuildChunkDocumentResult(
+                chunks,
+                logicalSourceName,
+                fallbackKind,
+                BuildStreamDocumentSource(snapshot, logicalSourceName, chunks),
+                assets,
+                detection);
+            if (customStreamReaderOwnsExtension) {
+                return result;
+            }
+
+            snapshot.Position = 0;
+            return EnrichBuiltInDocumentResult(snapshot, logicalSourceName, kind, opt, result, cancellationToken);
+        } finally {
+            if (ownsReadStream) {
+                readStream.Dispose();
+            }
+        }
+    }
+
+    private static IReadOnlyList<ReaderChunk> GetDocumentResultChunks(OfficeDocumentReadResult? result, string handlerId) {
+        return ValidateDocumentResult(result, handlerId).Chunks ?? Array.Empty<ReaderChunk>();
+    }
+
+    private static OfficeDocumentReadResult ValidateDocumentResult(OfficeDocumentReadResult? result, string handlerId) {
+        if (result == null) {
+            throw new InvalidOperationException($"Reader handler '{handlerId}' returned a null document result.");
         }
 
-        using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
-        ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
-        snapshot.Position = 0;
-        IReadOnlyList<OfficeDocumentAsset> assets = customStreamReaderOwnsExtension
-            ? Array.Empty<OfficeDocumentAsset>()
-            : ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);
-        ReaderInputKind fallbackKind = customStreamReaderOwnsExtension ? customStreamHandler.Kind : kind;
-        return BuildChunkDocumentResult(chunks, logicalSourceName, fallbackKind, BuildStreamDocumentSource(snapshot, logicalSourceName, chunks), assets);
+        return result;
     }
 
     /// <summary>
@@ -100,7 +166,8 @@ public static partial class DocumentReader {
         string sourceName,
         ReaderInputKind fallbackKind,
         OfficeDocumentSource source,
-        IReadOnlyList<OfficeDocumentAsset>? assets = null) {
+        IReadOnlyList<OfficeDocumentAsset>? assets = null,
+        ReaderDetectionResult? detection = null) {
         ReaderInputKind kind = chunks.Count > 0 ? chunks[0].Kind : fallbackKind;
         ReaderTable[] tables = ExtractTables(chunks).ToArray();
         ReaderVisual[] visuals = ExtractVisuals(chunks).ToArray();
@@ -120,7 +187,7 @@ public static partial class DocumentReader {
             Blocks = blocks,
             Tables = tables,
             Visuals = visuals,
-            Diagnostics = BuildChunkDocumentDiagnostics(chunks, ocrCandidates),
+            Diagnostics = BuildChunkDocumentDiagnostics(chunks, ocrCandidates, detection),
             Assets = assetArray,
             Links = Array.Empty<OfficeDocumentLink>(),
             Forms = Array.Empty<OfficeDocumentFormField>(),
@@ -252,12 +319,14 @@ public static partial class DocumentReader {
         var slideNumbers = chunks
             .Where(static chunk => chunk.Location.Slide.HasValue)
             .Select(static chunk => chunk.Location.Slide!.Value)
+            .Concat(tables.Where(static table => table.Location?.Slide != null).Select(static table => table.Location!.Slide!.Value))
             .Concat(assets.Where(static asset => asset.Location.Slide.HasValue).Select(static asset => asset.Location.Slide!.Value))
             .Concat(ocrCandidates.Where(static candidate => candidate.Location.Slide.HasValue).Select(static candidate => candidate.Location.Slide!.Value))
             .Distinct()
             .OrderBy(static slide => slide);
         foreach (int slideNumber in slideNumbers) {
             ReaderLocation location = chunks.FirstOrDefault(chunk => chunk.Location.Slide == slideNumber)?.Location
+                ?? tables.FirstOrDefault(table => table.Location?.Slide == slideNumber)?.Location
                 ?? assets.FirstOrDefault(asset => asset.Location.Slide == slideNumber)?.Location
                 ?? ocrCandidates.First(candidate => candidate.Location.Slide == slideNumber).Location;
             pages.Add(BuildChunkPage(
@@ -265,7 +334,7 @@ public static partial class DocumentReader {
                 name: null,
                 location: BuildContainerLocation(location, "slide"),
                 blocks: blocks.Where(block => block.Location.Slide == slideNumber).ToArray(),
-                tables: Array.Empty<ReaderTable>(),
+                tables: tables.Where(table => table.Location?.Slide == slideNumber).ToArray(),
                 assets: assets.Where(asset => asset.Location.Slide == slideNumber).ToArray(),
                 ocrCandidates: ocrCandidates.Where(candidate => candidate.Location.Slide == slideNumber).ToArray()));
         }
@@ -376,8 +445,12 @@ public static partial class DocumentReader {
         return true;
     }
 
-    private static IReadOnlyList<OfficeDocumentDiagnostic> BuildChunkDocumentDiagnostics(IReadOnlyList<ReaderChunk> chunks, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates) {
+    private static IReadOnlyList<OfficeDocumentDiagnostic> BuildChunkDocumentDiagnostics(
+        IReadOnlyList<ReaderChunk> chunks,
+        IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates,
+        ReaderDetectionResult? detection) {
         var diagnostics = new List<OfficeDocumentDiagnostic>();
+        AddDetectionDiagnostic(diagnostics, detection);
         for (int i = 0; i < chunks.Count; i++) {
             ReaderChunk chunk = chunks[i];
             if (chunk.Warnings == null) {
@@ -385,12 +458,7 @@ public static partial class DocumentReader {
             }
 
             for (int warningIndex = 0; warningIndex < chunk.Warnings.Count; warningIndex++) {
-                diagnostics.Add(new OfficeDocumentDiagnostic {
-                    Severity = OfficeDocumentDiagnosticSeverity.Warning,
-                    Code = "reader-warning",
-                    Message = chunk.Warnings[warningIndex],
-                    Location = chunk.Location
-                });
+                diagnostics.Add(BuildWarningDiagnostic(chunk.Warnings[warningIndex], chunk.Location));
             }
         }
 
@@ -398,13 +466,103 @@ public static partial class DocumentReader {
             OfficeDocumentOcrCandidate candidate = ocrCandidates[i];
             diagnostics.Add(new OfficeDocumentDiagnostic {
                 Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                Category = OfficeDocumentDiagnosticCategory.Ocr,
                 Code = "ocr-needed",
                 Message = candidate.Reason ?? "OCR may be needed before text extraction is complete.",
+                Source = "officeimo.reader",
+                IsRecoverable = true,
                 Location = candidate.Location
             });
         }
 
         return diagnostics.Count == 0 ? Array.Empty<OfficeDocumentDiagnostic>() : diagnostics;
+    }
+
+    private static OfficeDocumentDiagnostic BuildWarningDiagnostic(string warning, ReaderLocation location) {
+        string message = warning ?? string.Empty;
+        string lower = message.ToLowerInvariant();
+        string code = "reader-warning";
+        OfficeDocumentDiagnosticCategory category = OfficeDocumentDiagnosticCategory.Adapter;
+
+        if (lower.Contains("maxinputbytes") || lower.Contains("maxtotalbytes")) {
+            code = "input-limit-exceeded";
+            category = OfficeDocumentDiagnosticCategory.Limit;
+        } else if (lower.Contains("maxreturnedchunks")) {
+            code = "output-limit-reached";
+            category = OfficeDocumentDiagnosticCategory.Limit;
+        } else if (lower.Contains("parse error") || lower.Contains("malformed")) {
+            code = "parse-failed";
+            category = OfficeDocumentDiagnosticCategory.Parsing;
+        } else if (lower.Contains("unsupported")) {
+            code = "unsupported-content";
+            category = OfficeDocumentDiagnosticCategory.Content;
+        } else if (lower.Contains("truncat") || lower.Contains("split due to maxchars")) {
+            code = "content-truncated";
+            category = OfficeDocumentDiagnosticCategory.Content;
+        } else if (lower.Contains("read error") || lower.Contains("i/o") || lower.Contains("could not be read")) {
+            code = "read-failed";
+            category = OfficeDocumentDiagnosticCategory.Input;
+        }
+
+        return new OfficeDocumentDiagnostic {
+            Severity = OfficeDocumentDiagnosticSeverity.Warning,
+            Category = category,
+            Code = code,
+            Message = message,
+            Source = "officeimo.reader",
+            IsRecoverable = true,
+            Location = location
+        };
+    }
+
+    private static void AddDetectionDiagnostic(
+        List<OfficeDocumentDiagnostic> diagnostics,
+        ReaderDetectionResult? detection) {
+        if (detection == null || !detection.ContentInspected) return;
+
+        if (detection.IsMismatch) {
+            diagnostics.Add(new OfficeDocumentDiagnostic {
+                Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                Category = OfficeDocumentDiagnosticCategory.Detection,
+                Code = "input-kind-mismatch",
+                Message = $"Content was detected as {detection.ContentKind} but the source extension indicates {detection.ExtensionKind}.",
+                Source = "officeimo.reader.detection",
+                IsRecoverable = true,
+                Location = new ReaderLocation { Path = detection.SourceName },
+                Attributes = BuildDetectionAttributes(detection)
+            });
+        } else if (detection.ExtensionKind == ReaderInputKind.Unknown && detection.ContentKind != ReaderInputKind.Unknown) {
+            diagnostics.Add(new OfficeDocumentDiagnostic {
+                Severity = OfficeDocumentDiagnosticSeverity.Information,
+                Category = OfficeDocumentDiagnosticCategory.Detection,
+                Code = "input-kind-detected",
+                Message = $"Input kind {detection.ContentKind} was selected from content evidence.",
+                Source = "officeimo.reader.detection",
+                IsRecoverable = true,
+                Location = new ReaderLocation { Path = detection.SourceName },
+                Attributes = BuildDetectionAttributes(detection)
+            });
+        }
+    }
+
+    private static IReadOnlyDictionary<string, string> BuildDetectionAttributes(ReaderDetectionResult detection) {
+        return new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["extensionKind"] = detection.ExtensionKind.ToString(),
+            ["contentKind"] = detection.ContentKind.ToString(),
+            ["effectiveKind"] = detection.Kind.ToString(),
+            ["contentConfidence"] = detection.ContentConfidence.ToString(),
+            ["mediaType"] = detection.MediaType ?? string.Empty,
+            ["evidence"] = string.Join(",", detection.Evidence)
+        };
+    }
+
+    private static OfficeDocumentReadResult ApplyDetectionDiagnostics(
+        OfficeDocumentReadResult result,
+        ReaderDetectionResult detection) {
+        var diagnostics = new List<OfficeDocumentDiagnostic>(result.Diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>());
+        AddDetectionDiagnostic(diagnostics, detection);
+        result.Diagnostics = diagnostics.Count == 0 ? Array.Empty<OfficeDocumentDiagnostic>() : diagnostics.ToArray();
+        return result;
     }
 
     private static string NormalizeLogicalSourceName(string? sourceName, string fallback) {

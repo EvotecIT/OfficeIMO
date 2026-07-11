@@ -21,8 +21,14 @@ namespace OfficeIMO.Excel {
 
             try {
                 snapshot.Title = _spreadSheetDocument.PackageProperties.Title;
+                snapshot.Author = _spreadSheetDocument.PackageProperties.Creator;
+                snapshot.Subject = _spreadSheetDocument.PackageProperties.Subject;
+                snapshot.Keywords = _spreadSheetDocument.PackageProperties.Keywords;
             } catch {
                 snapshot.Title = null;
+                snapshot.Author = null;
+                snapshot.Subject = null;
+                snapshot.Keywords = null;
             }
 
             using (var reader = CreateReader(effectiveOptions)) {

@@ -14,9 +14,30 @@ public static class DocumentReaderRtfRegistrationExtensions {
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterRtfHandler(ReaderRtfOptions? rtfOptions = null, bool replaceExisting = true) {
-        var registeredOptions = ReaderRtfOptionsCloner.CloneNullable(rtfOptions);
+        DocumentReader.RegisterHandler(CreateRegistration(rtfOptions), replaceExisting);
+    }
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+    /// <summary>
+    /// Adds RTF ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddRtfHandler(
+        this OfficeDocumentReaderBuilder builder,
+        ReaderRtfOptions? rtfOptions = null,
+        bool replaceExisting = true) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        return builder.AddHandler(CreateRegistration(rtfOptions), replaceExisting);
+    }
+
+    /// <summary>
+    /// Unregisters RTF ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterRtfHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(ReaderRtfOptions? rtfOptions) {
+        ReaderRtfOptions? registeredOptions = ReaderRtfOptionsCloner.CloneNullable(rtfOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "RTF Reader Adapter",
             Description = "Modular RTF adapter using OfficeIMO.Rtf semantic read model.",
@@ -32,14 +53,18 @@ public static class DocumentReaderRtfRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+                rtfPath: path,
+                readerOptions: readerOptions,
+                rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+                rtfStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
-        }, replaceExisting);
-    }
-
-    /// <summary>
-    /// Unregisters RTF ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterRtfHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
+        };
     }
 }

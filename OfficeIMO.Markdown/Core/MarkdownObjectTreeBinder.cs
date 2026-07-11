@@ -11,6 +11,8 @@ internal static class MarkdownObjectTreeBinder {
         if (syntaxTree != null) {
             MapSourceSpans(syntaxTree);
         }
+
+        document.MarkObjectTreeBound();
     }
 
     internal static void BindSourceSpans(MarkdownSyntaxNode syntaxNode) {

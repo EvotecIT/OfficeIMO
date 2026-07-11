@@ -4,6 +4,7 @@
     <AssemblyName>OfficeIMO.Reader.Epub</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Epub</AssemblyTitle>
     <VersionPrefix>0.0.33</VersionPrefix>
+    <PackageValidationBaselineVersion>0.0.33</PackageValidationBaselineVersion>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -26,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
   </ItemGroup>
 

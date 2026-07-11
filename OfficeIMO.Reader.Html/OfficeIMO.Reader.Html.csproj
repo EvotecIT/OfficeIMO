@@ -4,6 +4,7 @@
     <AssemblyName>OfficeIMO.Reader.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Html</AssemblyTitle>
     <VersionPrefix>0.0.33</VersionPrefix>
+    <PackageValidationBaselineVersion>0.0.33</PackageValidationBaselineVersion>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -27,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

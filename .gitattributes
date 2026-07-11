@@ -3,6 +3,10 @@
 ###############################################################################
 * text=auto
 
+# RTF interoperability fixtures are byte-level evidence. Do not normalize their
+# producer line endings, because corpus SHA-256 checks must match on every OS.
+OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

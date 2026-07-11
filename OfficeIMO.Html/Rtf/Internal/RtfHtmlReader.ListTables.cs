@@ -78,6 +78,7 @@ internal static partial class RtfHtmlReader {
 
         private static void AddListLevelOverride(RtfListOverride listOverride, Dictionary<string, string> values, string prefix) {
             RtfListLevelOverride levelOverride = listOverride.AddLevelOverride();
+            levelOverride.LevelIndex = ReadInt(values, prefix + ".levelIndex") ?? levelOverride.LevelIndex;
             levelOverride.OverrideFormat = ReadBool(values, prefix + ".overrideFormat");
             levelOverride.OverrideStartAt = ReadBool(values, prefix + ".overrideStartAt");
             levelOverride.StartAt = ReadInt(values, prefix + ".startAt");

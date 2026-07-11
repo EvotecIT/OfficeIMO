@@ -70,6 +70,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     External click hyperlink assigned to the shape, when present.
+        /// </summary>
+        public Uri? Hyperlink {
+            get {
+                if (OwnerSlide == null) return null;
+                string? relationshipId = GetNonVisualDrawingProperties(create: false)?
+                    .GetFirstChild<A.HyperlinkOnClick>()?
+                    .Id;
+                if (string.IsNullOrWhiteSpace(relationshipId)) return null;
+                return OwnerSlide.SlidePart.HyperlinkRelationships
+                    .FirstOrDefault(relationship => string.Equals(relationship.Id, relationshipId, StringComparison.Ordinal))?
+                    .Uri;
+            }
+        }
+
+        /// <summary>
         ///     Placeholder type associated with the shape, if any.
         /// </summary>
         public PlaceholderValues? ShapePlaceholderType => GetPlaceholderShape()?.Type?.Value;

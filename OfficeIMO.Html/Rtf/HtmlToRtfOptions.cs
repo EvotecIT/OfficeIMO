@@ -55,6 +55,9 @@ public sealed partial class HtmlToRtfOptions {
     /// </summary>
     public List<HtmlRtfConversionDiagnostic> Diagnostics { get; } = new List<HtmlRtfConversionDiagnostic>();
 
+    /// <summary>Shared cross-adapter fidelity and policy report for this conversion.</summary>
+    public RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
+
     /// <summary>
     /// Optional callback invoked whenever a conversion diagnostic is produced.
     /// </summary>

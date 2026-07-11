@@ -30,60 +30,6 @@ public static partial class DocumentReader {
         public ReaderHandlerRegistrarDescriptor Descriptor { get; }
     }
 
-    private sealed class CustomReaderHandler {
-        public CustomReaderHandler(
-            string id,
-            string displayName,
-            string? description,
-            ReaderInputKind kind,
-            IReadOnlyList<string> extensions,
-            long? defaultMaxInputBytes,
-            ReaderWarningBehavior warningBehavior,
-            bool deterministicOutput,
-            Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
-            Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream) {
-            Id = id;
-            DisplayName = displayName;
-            Description = description;
-            Kind = kind;
-            Extensions = extensions;
-            DefaultMaxInputBytes = defaultMaxInputBytes;
-            WarningBehavior = warningBehavior;
-            DeterministicOutput = deterministicOutput;
-            ReadPath = readPath;
-            ReadStream = readStream;
-        }
-
-        public string Id { get; }
-        public string DisplayName { get; }
-        public string? Description { get; }
-        public ReaderInputKind Kind { get; }
-        public IReadOnlyList<string> Extensions { get; }
-        public long? DefaultMaxInputBytes { get; }
-        public ReaderWarningBehavior WarningBehavior { get; }
-        public bool DeterministicOutput { get; }
-        public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
-        public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
-
-        public ReaderHandlerCapability ToCapability() {
-            return new ReaderHandlerCapability {
-                Id = Id,
-                DisplayName = DisplayName,
-                Description = Description,
-                Kind = Kind,
-                Extensions = Extensions.ToArray(),
-                IsBuiltIn = false,
-                SupportsPath = ReadPath != null,
-                SupportsStream = ReadStream != null,
-                SchemaId = ReaderCapabilitySchema.Id,
-                SchemaVersion = ReaderCapabilitySchema.Version,
-                DefaultMaxInputBytes = DefaultMaxInputBytes,
-                WarningBehavior = WarningBehavior,
-                DeterministicOutput = DeterministicOutput
-            };
-        }
-    }
-
     private sealed class FolderIngestState {
         public int FilesScanned { get; set; }
         public int FilesParsed { get; set; }
@@ -93,13 +39,14 @@ public static partial class DocumentReader {
     }
 
     private sealed class MarkdownChunkBlock {
-        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables, IReadOnlyList<ReaderVisual> visuals) {
+        public MarkdownChunkBlock(int blockIndex, int startLine, int endLine, int sourceStartLine, int sourceEndLine, string? headingPath, string? hierarchyHeadingPath, string? headingSlug, string blockKind, string blockAnchor, string markdown, bool startsHeading, IReadOnlyList<ReaderTable> tables, IReadOnlyList<ReaderVisual> visuals) {
             BlockIndex = blockIndex;
             StartLine = startLine;
             EndLine = endLine;
             SourceStartLine = sourceStartLine;
             SourceEndLine = sourceEndLine;
             HeadingPath = headingPath;
+            HierarchyHeadingPath = hierarchyHeadingPath;
             HeadingSlug = headingSlug;
             BlockKind = string.IsNullOrWhiteSpace(blockKind) ? "unknown" : blockKind;
             BlockAnchor = string.IsNullOrWhiteSpace(blockAnchor) ? "block-" + blockIndex.ToString(CultureInfo.InvariantCulture) : blockAnchor;
@@ -115,6 +62,7 @@ public static partial class DocumentReader {
         public int SourceStartLine { get; }
         public int SourceEndLine { get; }
         public string? HeadingPath { get; }
+        public string? HierarchyHeadingPath { get; }
         public string? HeadingSlug { get; }
         public string BlockKind { get; }
         public string BlockAnchor { get; }

@@ -137,6 +137,36 @@ Lead[^1]
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(document);
     }
 
+    [Fact]
+    public void ReaderDocumentTransforms_ObserveCurrentTreeBindings() {
+        var probe = new CaptureTreeBindingTransform();
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new AppendParagraphTransform());
+        options.DocumentTransforms.Add(probe);
+
+        MarkdownReader.Parse("First paragraph", options);
+
+        Assert.True(probe.ObservedCurrentBindings);
+    }
+
+    private sealed class AppendParagraphTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            document.Add(new ParagraphBlock(new InlineSequence().Text("Appended")));
+            return document;
+        }
+    }
+
+    private sealed class CaptureTreeBindingTransform : IMarkdownDocumentTransform {
+        public bool ObservedCurrentBindings { get; private set; }
+
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            ObservedCurrentBindings = document.Blocks
+                .Select((block, index) => (Block: block as MarkdownObject, Index: index))
+                .All(item => item.Block?.Parent == document && item.Block.IndexInParent == item.Index);
+            return document;
+        }
+    }
+
     private sealed class MergeFirstTwoParagraphsInNestedBlockListsTransform(string text) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             MarkdownDocumentBlockListExpander.RewriteDocument(document, context, (blocks, _) => {

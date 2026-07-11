@@ -21,9 +21,43 @@ public static class DocumentReaderHtmlRegistrationExtensions {
     /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c>, <c>.htm</c>, and <c>.xhtml</c>.
     /// </summary>
     public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        var registeredOptions = ReaderHtmlOptionsCloner.CloneNullable(htmlOptions);
+        ReaderHandlerRegistration registration = CreateRegistration(htmlOptions);
 
-        var registration = new ReaderHandlerRegistration {
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
+    }
+
+    /// <summary>
+    /// Adds HTML ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddHtmlHandler(
+        this OfficeDocumentReaderBuilder builder,
+        ReaderHtmlOptions? htmlOptions = null,
+        bool replaceExisting = false,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration(htmlOptions);
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Unregisters HTML ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterHtmlHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(ReaderHtmlOptions? htmlOptions) {
+        ReaderHtmlOptions? registeredOptions = ReaderHtmlOptionsCloner.CloneNullable(htmlOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "HTML Reader Adapter",
             Description = "Modular HTML adapter using OfficeIMO.Markdown.Html.",
@@ -39,20 +73,18 @@ public static class DocumentReaderHtmlRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlDocument(
+                htmlPath: path,
+                readerOptions: readerOptions,
+                htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlDocument(
+                htmlStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
         };
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters HTML ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterHtmlHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 }

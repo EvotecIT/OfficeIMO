@@ -8,7 +8,50 @@ namespace OfficeIMO.Reader;
 /// <summary>
 /// JSON serialization helpers for the shared OfficeIMO document read result envelope.
 /// </summary>
-public static class OfficeDocumentReadResultJson {
+public static partial class OfficeDocumentReadResultJson {
+    private static readonly string[] RequiredTopLevelProperties = {
+        "schemaId",
+        "schemaVersion",
+        "kind",
+        "source",
+        "capabilitiesUsed",
+        "chunks",
+        "metadata",
+        "pages",
+        "blocks",
+        "tables",
+        "assets",
+        "links",
+        "forms",
+        "ocrCandidates",
+        "visuals",
+        "diagnostics"
+    };
+
+    private static readonly HashSet<string> AllowedTopLevelProperties = new HashSet<string>(
+        new[] {
+            "schemaId",
+            "schemaVersion",
+            "kind",
+            "source",
+            "capabilitiesUsed",
+            "markdown",
+            "html",
+            "json",
+            "chunks",
+            "metadata",
+            "pages",
+            "blocks",
+            "tables",
+            "assets",
+            "links",
+            "forms",
+            "ocrCandidates",
+            "visuals",
+            "diagnostics"
+        },
+        StringComparer.Ordinal);
+
     /// <summary>
     /// Serializes a document read result into the stable OfficeIMO transport shape.
     /// </summary>
@@ -16,6 +59,15 @@ public static class OfficeDocumentReadResultJson {
     /// <param name="indented">When true, writes indented JSON for diagnostics and fixtures.</param>
     public static string Serialize(OfficeDocumentReadResult result, bool indented = false) {
         if (result == null) throw new ArgumentNullException(nameof(result));
+        string schemaId = string.IsNullOrWhiteSpace(result.SchemaId)
+            ? OfficeDocumentReadResultSchema.Id
+            : result.SchemaId;
+        int schemaVersion = result.SchemaVersion == 0
+            ? OfficeDocumentReadResultSchema.CurrentVersion
+            : result.SchemaVersion;
+        OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
+        EnsureStringCollection(result.CapabilitiesUsed, "capabilitiesUsed");
+        EnsureDiagnosticContracts(result.Diagnostics);
 
         return JsonSerializer.Serialize(ProjectResult(result), CreateOptions(indented));
     }
@@ -29,11 +81,128 @@ public static class OfficeDocumentReadResultJson {
         return Serialize(result, indented);
     }
 
+    /// <summary>
+    /// Deserializes a current, supported document read result transport payload.
+    /// </summary>
+    /// <param name="json">UTF-16 JSON text containing one complete result envelope.</param>
+    /// <exception cref="JsonException">The payload is not valid JSON or cannot be mapped to the transport model.</exception>
+    /// <exception cref="OfficeDocumentReadResultSchemaException">The schema identifier or version is not supported.</exception>
+    public static OfficeDocumentReadResult Deserialize(string json) {
+        if (json == null) throw new ArgumentNullException(nameof(json));
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object) {
+            throw new JsonException("The document read result payload must be a JSON object.");
+        }
+
+        string? schemaId = TryReadSchemaId(root);
+        int schemaVersion = TryReadSchemaVersion(root);
+        OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
+        EnsureRequiredTopLevelProperties(root);
+        EnsureKnownTopLevelProperties(root);
+        EnsureNestedTransportContracts(root);
+
+        OfficeDocumentReadResult? result = JsonSerializer.Deserialize<OfficeDocumentReadResult>(json, CreateReadOptions());
+        if (result == null) {
+            throw new JsonException("The document read result payload produced a null result.");
+        }
+        result = NormalizeDeserializedResult(result);
+        EnsureDiagnosticContracts(result.Diagnostics);
+        return result;
+    }
+
     private static JsonSerializerOptions CreateOptions(bool indented) {
         return new JsonSerializerOptions {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             WriteIndented = indented
         };
+    }
+
+    private static JsonSerializerOptions CreateReadOptions() {
+        var options = new JsonSerializerOptions {
+            PropertyNameCaseInsensitive = true
+        };
+        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
+        return options;
+    }
+
+    private static void EnsureRequiredTopLevelProperties(JsonElement root) {
+        for (int index = 0; index < RequiredTopLevelProperties.Length; index++) {
+            string propertyName = RequiredTopLevelProperties[index];
+            if (!root.TryGetProperty(propertyName, out JsonElement property)) {
+                throw new JsonException($"Required document read result property '{propertyName}' is missing.");
+            }
+            if (property.ValueKind == JsonValueKind.Null) {
+                throw new JsonException($"Required document read result property '{propertyName}' cannot be null.");
+            }
+        }
+    }
+
+    private static void EnsureKnownTopLevelProperties(JsonElement root) {
+        foreach (JsonProperty property in root.EnumerateObject()) {
+            if (!AllowedTopLevelProperties.Contains(property.Name)) {
+                throw new JsonException($"Unknown document read result property '{property.Name}'.");
+            }
+        }
+    }
+
+    private static void EnsureDiagnosticContracts(IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics) {
+        if (diagnostics == null) return;
+
+        for (int index = 0; index < diagnostics.Count; index++) {
+            OfficeDocumentDiagnostic? diagnostic = diagnostics[index];
+            if (diagnostic == null || string.IsNullOrWhiteSpace(diagnostic.Code)) {
+                throw new JsonException($"Document diagnostic at index {index} must have a non-empty code.");
+            }
+            if (diagnostic.Message == null) {
+                throw new JsonException($"Document diagnostic at index {index} must have a message string.");
+            }
+            if (diagnostic.Attributes == null) {
+                throw new JsonException($"Document diagnostic at index {index} must have an attributes object.");
+            }
+            foreach (KeyValuePair<string, string> attribute in diagnostic.Attributes) {
+                if (attribute.Value == null) {
+                    throw new JsonException($"Document diagnostic at index {index} has a null attribute value for '{attribute.Key}'.");
+                }
+            }
+        }
+    }
+
+    private static string? TryReadSchemaId(JsonElement root) {
+        if (!root.TryGetProperty("schemaId", out JsonElement property) ||
+            property.ValueKind != JsonValueKind.String) {
+            return null;
+        }
+        return property.GetString();
+    }
+
+    private static int TryReadSchemaVersion(JsonElement root) {
+        if (!root.TryGetProperty("schemaVersion", out JsonElement property) ||
+            property.ValueKind != JsonValueKind.Number ||
+            !property.TryGetInt32(out int version)) {
+            return 0;
+        }
+        return version;
+    }
+
+    private static OfficeDocumentReadResult NormalizeDeserializedResult(OfficeDocumentReadResult result) {
+        result.SchemaId = OfficeDocumentReadResultSchema.Id;
+        result.SchemaVersion = OfficeDocumentReadResultSchema.CurrentVersion;
+        result.Source ??= new OfficeDocumentSource();
+        result.CapabilitiesUsed ??= Array.Empty<string>();
+        result.Chunks ??= Array.Empty<ReaderChunk>();
+        result.Metadata ??= Array.Empty<OfficeDocumentMetadataEntry>();
+        result.Pages ??= Array.Empty<OfficeDocumentPage>();
+        result.Blocks ??= Array.Empty<OfficeDocumentBlock>();
+        result.Tables ??= Array.Empty<ReaderTable>();
+        result.Assets ??= Array.Empty<OfficeDocumentAsset>();
+        result.Links ??= Array.Empty<OfficeDocumentLink>();
+        result.Forms ??= Array.Empty<OfficeDocumentFormField>();
+        result.OcrCandidates ??= Array.Empty<OfficeDocumentOcrCandidate>();
+        result.Visuals ??= Array.Empty<ReaderVisual>();
+        result.Diagnostics ??= Array.Empty<OfficeDocumentDiagnostic>();
+        return result;
     }
 
     private static object ProjectResult(OfficeDocumentReadResult result) {
@@ -414,9 +583,13 @@ public static class OfficeDocumentReadResultJson {
     private static object ProjectDiagnostic(OfficeDocumentDiagnostic diagnostic) {
         return new {
             severity = diagnostic.Severity.ToString(),
+            category = diagnostic.Category.ToString(),
             code = diagnostic.Code,
             message = diagnostic.Message,
-            location = ProjectLocation(diagnostic.Location)
+            source = diagnostic.Source,
+            isRecoverable = diagnostic.IsRecoverable,
+            location = ProjectLocation(diagnostic.Location),
+            attributes = ProjectAttributes(diagnostic.Attributes)
         };
     }
 
@@ -432,6 +605,7 @@ public static class OfficeDocumentReadResultJson {
             normalizedStartLine = location.NormalizedStartLine,
             normalizedEndLine = location.NormalizedEndLine,
             headingPath = location.HeadingPath,
+            hierarchyHeadingPath = location.HierarchyHeadingPath,
             headingSlug = location.HeadingSlug,
             sourceBlockKind = location.SourceBlockKind,
             blockAnchor = location.BlockAnchor,
@@ -478,6 +652,9 @@ public static class OfficeDocumentReadResultJson {
 
         var projected = new object[values.Count];
         for (int i = 0; i < values.Count; i++) {
+            if (ReferenceEquals(values[i], null)) {
+                throw new JsonException($"Document transport collection contains a null item at index {i}.");
+            }
             projected[i] = projector(values[i]);
         }
 

@@ -1,8 +1,16 @@
+using OfficeIMO.Rtf.Syntax;
+
 namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private void BeginTableRow() {
+            if (_currentRow != null) {
+                _currentCellDefinitionIndex = 0;
+                _pendingCellProperties = new PendingTableCellProperties();
+                return;
+            }
+
             if (_currentTable == null) {
                 _currentTable = new RtfTable();
                 AddDocumentBlock(_currentTable);
@@ -10,6 +18,7 @@ internal static partial class RtfSemanticReader {
 
             _currentRow = _currentTable.AddRow();
             _currentCellIndex = 0;
+            _currentCellDefinitionIndex = 0;
             _currentParagraphIsInTable = false;
             _pendingCellProperties = new PendingTableCellProperties();
             _currentRowBorderSide = null;
@@ -22,9 +31,17 @@ internal static partial class RtfSemanticReader {
                 BeginTableRow();
             }
 
-            RtfTableCell cell = _currentRow!.AddCell(boundaryTwips);
+            RtfTableCell cell;
+            if (_currentRow!.Cells.Count > _currentCellDefinitionIndex) {
+                cell = _currentRow.Cells[_currentCellDefinitionIndex];
+                cell.RightBoundaryTwips = boundaryTwips;
+            } else {
+                cell = _currentRow.AddCell(boundaryTwips);
+            }
+
             _pendingCellProperties.ApplyTo(cell);
             _pendingCellProperties = new PendingTableCellProperties();
+            _currentCellDefinitionIndex++;
         }
 
         private void FlushTableCell(CharacterState state) {
@@ -42,7 +59,167 @@ internal static partial class RtfSemanticReader {
 
             _currentRow = null;
             _currentCellIndex = 0;
+            _currentCellDefinitionIndex = 0;
             _currentParagraphIsInTable = false;
+        }
+
+        private void BeginNestedTable(int level, CharacterState state) {
+            if (level < 2) return;
+            if (_nestedTableContexts.Count > 0 && _nestedTableContexts[_nestedTableContexts.Count - 1].Level >= level) return;
+            if (_currentParagraph.Inlines.Count > 0) {
+                ApplyParagraphState(_currentParagraph, state);
+                if (_nestedTableContexts.Count > 0) {
+                    _nestedTableContexts[_nestedTableContexts.Count - 1].CurrentCellBlocks.Add(_currentParagraph);
+                } else {
+                    AddParagraphToCurrentCell(_currentParagraph);
+                }
+                _currentParagraph = new RtfParagraph();
+            }
+
+            if (_currentRow == null) BeginTableRow();
+            _nestedTableContexts.Add(new NestedTableContext(level));
+            _currentParagraphIsInTable = true;
+        }
+
+        private void FlushNestedTableCell(CharacterState state) {
+            if (_nestedTableContexts.Count == 0) return;
+            NestedTableContext context = _nestedTableContexts[_nestedTableContexts.Count - 1];
+            if (_currentParagraph.Inlines.Count > 0 || context.CurrentCellBlocks.Count == 0) {
+                ApplyParagraphState(_currentParagraph, state);
+                context.CurrentCellBlocks.Add(_currentParagraph);
+            }
+            _currentParagraph = new RtfParagraph();
+            context.StartNextCell();
+        }
+
+        private void ReadNestedTableProperties(RtfGroup group, CharacterState state) {
+            if (_nestedTableContexts.Count == 0) return;
+            NestedTableContext context = _nestedTableContexts[_nestedTableContexts.Count - 1];
+            _nestedTableContexts.RemoveAt(_nestedTableContexts.Count - 1);
+            context.RemoveTrailingEmptyCell();
+            bool startsNewNestedTable = _nestedTableBoundaryLevels.Remove(context.Level);
+
+            RtfTable? outerTable = _currentTable;
+            RtfTableRow? outerRow = _currentRow;
+            int outerCellIndex = _currentCellIndex;
+            int outerDefinitionIndex = _currentCellDefinitionIndex;
+            PendingTableCellProperties outerPending = _pendingCellProperties;
+            RtfTableRowBorderSide? outerBorder = _currentRowBorderSide;
+            RowBoxMeasurements outerPadding = _currentRowPadding;
+            RowBoxMeasurements outerSpacing = _currentRowSpacing;
+            bool outerInTable = _currentParagraphIsInTable;
+            RtfParagraph outerParagraph = _currentParagraph;
+
+            RtfTableCell? outerCell = null;
+            List<IRtfBlock>? parentBlocks = null;
+            RtfTable? existingNested;
+            if (_nestedTableContexts.Count > 0) {
+                parentBlocks = _nestedTableContexts[_nestedTableContexts.Count - 1].CurrentCellBlocks;
+                existingNested = startsNewNestedTable ? null : FindTrailingNestedTable(parentBlocks);
+            } else {
+                if (_currentRow == null) BeginTableRow();
+                while (_currentRow!.Cells.Count <= _currentCellIndex) _currentRow.AddCell();
+                outerCell = _currentRow.Cells[_currentCellIndex];
+                existingNested = startsNewNestedTable ? null : FindTrailingNestedTable(outerCell.Blocks);
+            }
+
+            var nested = existingNested ?? new RtfTable();
+            _currentTable = nested;
+            _currentRow = nested.AddRow();
+            _currentCellIndex = 0;
+            _currentCellDefinitionIndex = 0;
+            _pendingCellProperties = new PendingTableCellProperties();
+            _currentRowBorderSide = null;
+            _currentRowPadding = new RowBoxMeasurements();
+            _currentRowSpacing = new RowBoxMeasurements();
+            _currentParagraph = new RtfParagraph();
+            _currentParagraphIsInTable = true;
+
+            foreach (RtfControlWord control in group.Children.OfType<RtfControlWord>()) {
+                if (control.Name != "trowd" && control.Name != "nestrow") TryApplyTableControl(control, state);
+            }
+
+            while (_currentRow.Cells.Count < context.Cells.Count) _currentRow.AddCell();
+            for (int cellIndex = 0; cellIndex < context.Cells.Count; cellIndex++) {
+                foreach (IRtfBlock block in context.Cells[cellIndex]) {
+                    AddNestedCellBlock(_currentRow.Cells[cellIndex], block);
+                }
+            }
+
+            _currentTable = outerTable;
+            _currentRow = outerRow;
+            _currentCellIndex = outerCellIndex;
+            _currentCellDefinitionIndex = outerDefinitionIndex;
+            _pendingCellProperties = outerPending;
+            _currentRowBorderSide = outerBorder;
+            _currentRowPadding = outerPadding;
+            _currentRowSpacing = outerSpacing;
+            _currentParagraphIsInTable = outerInTable;
+            _currentParagraph = outerParagraph;
+            if (existingNested == null) {
+                CountSemanticBlock();
+                if (parentBlocks != null) {
+                    parentBlocks.Add(nested);
+                } else {
+                    outerCell!.AddParsedTable(nested);
+                }
+            }
+        }
+
+        private void ReadNestedTableBoundary(RtfGroup group) {
+            RtfControlWord? control = group.Children
+                .OfType<RtfControlWord>()
+                .FirstOrDefault(item => item.Name == "officeimonestedtableboundary");
+            if (control?.Parameter is int level && level >= 2) {
+                _nestedTableBoundaryLevels.Add(Math.Min(15, level));
+            }
+        }
+
+        private static void AddNestedCellBlock(RtfTableCell cell, IRtfBlock block) {
+            if (block is RtfParagraph paragraph) {
+                cell.AddParsedParagraph(paragraph);
+            } else if (block is RtfTable table) {
+                cell.AddParsedTable(table);
+            }
+        }
+
+        private static RtfTable? FindTrailingNestedTable(IReadOnlyList<IRtfBlock> blocks) {
+            for (int index = blocks.Count - 1; index >= 0; index--) {
+                if (blocks[index] is RtfTable table) {
+                    for (int trailingIndex = index + 1; trailingIndex < blocks.Count; trailingIndex++) {
+                        if (!(blocks[trailingIndex] is RtfParagraph paragraph) || paragraph.Inlines.Count > 0) {
+                            return null;
+                        }
+                    }
+
+                    return table;
+                }
+
+                if (!(blocks[index] is RtfParagraph trailingParagraph) || trailingParagraph.Inlines.Count > 0) {
+                    break;
+                }
+            }
+
+            return null;
+        }
+
+        private sealed class NestedTableContext {
+            public NestedTableContext(int level) {
+                Level = level;
+                Cells.Add(new List<IRtfBlock>());
+            }
+
+            public int Level { get; }
+
+            public List<List<IRtfBlock>> Cells { get; } = new List<List<IRtfBlock>>();
+
+            public List<IRtfBlock> CurrentCellBlocks => Cells[Cells.Count - 1];
+
+            public void StartNextCell() => Cells.Add(new List<IRtfBlock>());
+
+            public void RemoveTrailingEmptyCell() {
+                if (Cells.Count > 1 && CurrentCellBlocks.Count == 0) Cells.RemoveAt(Cells.Count - 1);
+            }
         }
 
         private void AddParagraphToCurrentCell(RtfParagraph paragraph) {
@@ -54,6 +231,7 @@ internal static partial class RtfSemanticReader {
                 _currentRow.AddCell();
             }
 
+            CountSemanticBlock();
             _currentRow.Cells[_currentCellIndex].AddParsedParagraph(paragraph);
         }
 

@@ -4,18 +4,18 @@ using System.Collections.Generic;
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Stable schema values for the experimental OfficeIMO document read result.
+/// Stable schema values for the OfficeIMO document read result transport contract.
 /// </summary>
-public static class OfficeDocumentReadResultSchema {
+public static partial class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Stable schema identifier for shared document readback results.
     /// </summary>
     public const string Id = "officeimo.document.read-result";
 
     /// <summary>
-    /// Current schema version.
+    /// Current schema version. Retained as the original compatibility name for <see cref="CurrentVersion"/>.
     /// </summary>
-    public const int Version = 4;
+    public const int Version = CurrentVersion;
 }
 
 /// <summary>
@@ -635,6 +635,11 @@ public sealed class OfficeDocumentDiagnostic {
     public OfficeDocumentDiagnosticSeverity Severity { get; set; } = OfficeDocumentDiagnosticSeverity.Warning;
 
     /// <summary>
+    /// Stable diagnostic category for host filtering.
+    /// </summary>
+    public OfficeDocumentDiagnosticCategory Category { get; set; } = OfficeDocumentDiagnosticCategory.General;
+
+    /// <summary>
     /// Stable diagnostic code.
     /// </summary>
     public string Code { get; set; } = string.Empty;
@@ -645,9 +650,48 @@ public sealed class OfficeDocumentDiagnostic {
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional component or adapter that emitted the diagnostic.
+    /// </summary>
+    public string? Source { get; set; }
+
+    /// <summary>
+    /// Whether processing can continue without caller intervention, when known.
+    /// </summary>
+    public bool? IsRecoverable { get; set; }
+
+    /// <summary>
     /// Optional source location for the diagnostic.
     /// </summary>
     public ReaderLocation? Location { get; set; }
+
+    /// <summary>
+    /// Stable machine-readable diagnostic details.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
+}
+
+/// <summary>
+/// Stable categories for document diagnostics.
+/// </summary>
+public enum OfficeDocumentDiagnosticCategory {
+    /// <summary>Unclassified diagnostic.</summary>
+    General = 0,
+    /// <summary>Input kind or content detection.</summary>
+    Detection,
+    /// <summary>Input access, size, or integrity.</summary>
+    Input,
+    /// <summary>Parsing or format interpretation.</summary>
+    Parsing,
+    /// <summary>Content loss, truncation, or unsupported content.</summary>
+    Content,
+    /// <summary>Security, active content, encryption, or signatures.</summary>
+    Security,
+    /// <summary>Optical character recognition readiness.</summary>
+    Ocr,
+    /// <summary>Configured execution or output limit.</summary>
+    Limit,
+    /// <summary>Format adapter-specific diagnostic.</summary>
+    Adapter
 }
 
 /// <summary>

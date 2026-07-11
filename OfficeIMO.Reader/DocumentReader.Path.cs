@@ -48,25 +48,46 @@ public static partial class DocumentReader {
         SourceInfo source,
         CancellationToken cancellationToken) {
         IEnumerable<ReaderChunk> raw;
-        if (TryResolveCustomHandlerByPath(path, out var customPathHandler) && customPathHandler.ReadPath != null) {
-            raw = customPathHandler.ReadPath(path, opt, cancellationToken);
+        bool hasCustomPathHandler = TryResolvePathHandler(
+            path,
+            opt,
+            out ReaderHandlerDescriptor customPathHandler,
+            out ReaderDetectionResult detection);
+        if (hasCustomPathHandler) {
+            if (customPathHandler.ReadPath != null || customPathHandler.ReadDocumentPath != null) {
+                raw = customPathHandler.ReadPath != null
+                    ? customPathHandler.ReadPath(path, opt, cancellationToken)
+                    : GetDocumentResultChunks(customPathHandler.ReadDocumentPath!(path, opt, cancellationToken), customPathHandler.Id);
+            } else if (customPathHandler.ReadDocumentPathAsync != null) {
+                throw CreateAsyncOnlyHandlerException(customPathHandler.Id, "path");
+            } else {
+                raw = ReadBuiltInPath(path, opt, cancellationToken, detection.Kind);
+            }
         } else {
-            var kind = DetectKind(path);
-            raw = kind switch {
-                ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
-                ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
-                ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
-                ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
-                ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
-                ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
-                _ => ReadUnknown(path, opt, cancellationToken)
-            };
+            raw = ReadBuiltInPath(path, opt, cancellationToken, detection.Kind);
         }
 
         foreach (var chunk in raw) {
             cancellationToken.ThrowIfCancellationRequested();
             yield return EnrichChunk(chunk, source, opt.ComputeHashes);
         }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadBuiltInPath(
+        string path,
+        ReaderOptions opt,
+        CancellationToken cancellationToken,
+        ReaderInputKind detectedKind) {
+        ReaderInputKind kind = NormalizeBuiltInDispatchKind(detectedKind);
+        return kind switch {
+            ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
+            ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
+            ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
+            ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
+            ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
+            ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
+            _ => ReadUnknown(path, opt, cancellationToken)
+        };
     }
 
     /// <summary>

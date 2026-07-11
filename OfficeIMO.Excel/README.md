@@ -249,7 +249,7 @@ if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
 
 Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, slicers, timelines, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
 
-### CSV and JSON exchange
+### DataTable and JSON exchange
 
 ```csharp
 using System.Data;
@@ -258,10 +258,8 @@ using var document = ExcelDocument.Load("data.xlsx");
 var sheet = document["Data"];
 
 DataTable table = sheet.ToDataTable("A1:C100");
-string csv = sheet.ToCsv("A1:C100");
 string json = sheet.ToJson("A1:C100");
 
-sheet.FromCsv("Name,Amount\nAlpha,10\nBeta,20", startRow: 5, startColumn: 1);
 sheet.FromJson("[{\"Name\":\"Gamma\",\"Amount\":30}]", startRow: 8, startColumn: 1);
 ```
 
@@ -310,6 +308,28 @@ document.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
 document.Execution.SaveWorksheetAfterAutoFit = false;
 ```
 
+For a new workbook that only contains tabular data, write the XLSX package
+directly without building an editable workbook model:
+
+```csharp
+using var output = File.Create("large-export.xlsx");
+
+ExcelDocument.WriteRows(
+    output,
+    rows,
+    new[] { "Id", "Name", "Created", "Active" },
+    static (writer, row) => writer
+        .Write(row.Id)
+        .Write(row.Name)
+        .Write(row.Created)
+        .Write(row.Active),
+    new ExcelTabularWriteOptions {
+        SheetName = "Data",
+        IncludeCellReferences = false,
+        UseSharedStrings = false
+    });
+```
+
 ### Fluent compose
 
 ```csharp
@@ -350,13 +370,6 @@ document.Save();
 | [OfficeIMO.Excel.Pdf](../OfficeIMO.Excel.Pdf/README.md) | Excel to PDF export through `OfficeIMO.Pdf`, plus PDF table import to Excel. |
 | [OfficeIMO.Excel.GoogleSheets](../OfficeIMO.Excel.GoogleSheets/README.md) | Planning and exporting Excel content to Google Sheets. |
 | [OfficeIMO.Excel.Benchmarks](../OfficeIMO.Excel.Benchmarks/README.md) | Benchmark harness for Excel workloads. |
-
-## Boundaries
-
-- `OfficeIMO.Excel` owns workbook modeling and Open XML read/write behavior.
-- PDF layout belongs in `OfficeIMO.Excel.Pdf` and `OfficeIMO.Pdf`.
-- Google Sheets export orchestration belongs in `OfficeIMO.Excel.GoogleSheets`.
-- Long benchmark results and compatibility matrices belong in `Docs/`, not this README.
 
 ## Deeper docs
 

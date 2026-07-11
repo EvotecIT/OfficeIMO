@@ -23,7 +23,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | Generate `.pptx` presentations programmatically. |
 | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | Create, inspect, validate, and export `.vsdx` diagrams without Visio automation. |
 | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | Dependency-free PDF creation, reading, inspection, page operations, and converter engine support. |
-| [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | Dependency-free RTF parser, syntax tree, fluent document model, and writer. |
+| [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | Bounded RTF parser, lossless syntax tree, editable semantic model, writer, and conversion reports. |
 | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | Typed Markdown AST, builder API, reader, and HTML renderer. |
 | [OfficeIMO.Reader](OfficeIMO.Reader/README.md) | Unified read-only extraction facade with modular adapters. |
 
@@ -34,14 +34,14 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Word.Html](OfficeIMO.Word.Html/README.md) | Word to/from HTML conversion. |
 | [OfficeIMO.Word.Markdown](OfficeIMO.Word.Markdown/README.md) | Word to/from Markdown conversion. |
 | [OfficeIMO.Word.Pdf](OfficeIMO.Word.Pdf/README.md) | Word to PDF through `OfficeIMO.Pdf`. |
-| [OfficeIMO.Word.Rtf](OfficeIMO.Word.Rtf/README.md) | Word to/from RTF through `OfficeIMO.Rtf`. |
+| [OfficeIMO.Word.Rtf](OfficeIMO.Word.Rtf/README.md) | Result-bearing Word/RTF conversion, mail merge, fields, merge, and comparison workflows. |
 | [OfficeIMO.Excel.Pdf](OfficeIMO.Excel.Pdf/README.md) | Excel workbook to PDF through `OfficeIMO.Pdf`. |
 | [OfficeIMO.PowerPoint.Pdf](OfficeIMO.PowerPoint.Pdf/README.md) | PowerPoint presentation to PDF through `OfficeIMO.Pdf`. |
 | [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md) | HTML to Markdown document conversion. |
 | [OfficeIMO.Markdown.Pdf](OfficeIMO.Markdown.Pdf/README.md) | Markdown to PDF through `OfficeIMO.Pdf`. |
 | [OfficeIMO.Html.Pdf](OfficeIMO.Html.Pdf/README.md) | HTML to PDF and PDF to HTML through OfficeIMO document models. |
 | [OfficeIMO.Html](OfficeIMO.Html/README.md) | Shared HTML ingestion plus HTML to/from RTF through `OfficeIMO.Rtf`. |
-| [OfficeIMO.Rtf.Pdf](OfficeIMO.Rtf.Pdf/README.md) | RTF to/from PDF through the dependency-free `OfficeIMO.Pdf` engine. |
+| [OfficeIMO.Rtf.Pdf](OfficeIMO.Rtf.Pdf/README.md) | Visual RTF-to-PDF export and extractive PDF-to-RTF import. |
 
 ## Markdown, markup, and rendering
 
@@ -67,7 +67,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Reader.Html](OfficeIMO.Reader.Html/README.md) | HTML reader adapter. |
 | [OfficeIMO.Reader.Json](OfficeIMO.Reader.Json/README.md) | JSON reader adapter. |
 | [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md) | PDF reader adapter. |
-| [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md) | RTF reader adapter. |
+| [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md) | Bounded RTF chunks, tables, visuals, warnings, and provenance. |
 | [OfficeIMO.Reader.Text](OfficeIMO.Reader.Text/README.md) | Structured text compatibility adapter. |
 | [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md) | Visio inspection snapshot adapter. |
 | [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md) | XML reader adapter. |
@@ -223,10 +223,12 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Zip;
 
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .AddZipHandler()
+    .Build();
 
-var chunks = DocumentReader.ReadFolder("KnowledgeBase",
+var chunks = reader.ReadFolder("KnowledgeBase",
     new ReaderFolderOptions {
         Recurse = true,
         MaxFiles = 500,

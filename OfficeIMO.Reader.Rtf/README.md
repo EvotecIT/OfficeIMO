@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Rtf)](https://www.nuget.org/packages/OfficeIMO.Reader.Rtf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Rtf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Rtf)
 
-`OfficeIMO.Reader.Rtf` registers an RTF adapter for `OfficeIMO.Reader` using the dependency-free `OfficeIMO.Rtf` semantic model.
+`OfficeIMO.Reader.Rtf` registers a bounded RTF adapter for `OfficeIMO.Reader` using the shared `OfficeIMO.Rtf` semantic model.
 
 ## Install
 
@@ -49,11 +49,31 @@ using OfficeIMO.Reader.Rtf;
 DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
 
 using var stream = File.OpenRead("large-note.rtf");
-var chunks = DocumentReader.Read(stream, "large-note.rtf", new ReaderOptions {
+var rtfOptions = new ReaderRtfOptions(); // bounded core profile by default
+var chunks = DocumentReaderRtfExtensions.ReadRtf(stream, "large-note.rtf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
-}).ToList();
+}, rtfOptions).ToList();
+
+rtfOptions.ConversionReport.RequireNoLoss();
 ```
+
+### Read the semantic RTF envelope
+
+```csharp
+OfficeDocumentReadResult document =
+    DocumentReaderRtfExtensions.ReadRtfDocumentResult("form.rtf");
+
+foreach (OfficeDocumentFormField field in document.Forms) {
+    Console.WriteLine($"{field.Name}: {field.Value}");
+}
+
+foreach (OfficeDocumentAsset asset in document.Assets) {
+    Console.WriteLine($"{asset.Kind}: {asset.FileName}");
+}
+```
+
+After registration, `DocumentReader.ReadDocument("form.rtf")` uses the same native rich mapping.
 
 ## What it emits
 
@@ -61,6 +81,8 @@ var chunks = DocumentReader.Read(stream, "large-note.rtf", new ReaderOptions {
 - Paragraph, list, table, note, header/footer, object, shape, and image placeholder chunks from the semantic RTF model.
 - Markdown-friendly table output plus `ReaderTable` payloads for parsed RTF tables.
 - Parser and binder diagnostics as reader warnings when requested.
+- A shared conversion report for flattened, omitted, and blocked features.
+- A schema-v5 rich result containing semantic blocks, tables, hyperlinks, form fields, image visuals and payloads, embedded-object assets, metadata, and structured diagnostics.
 
 ## Boundaries
 

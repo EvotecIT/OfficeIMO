@@ -195,6 +195,18 @@ internal static class CsvValueConverter
                 return true;
             }
 
+            if (targetType == typeof(Guid))
+            {
+                if (Guid.TryParse(text, out var guid))
+                {
+                    result = guid;
+                    return true;
+                }
+
+                error = $"Cannot parse '{text}' as Guid.";
+                return false;
+            }
+
             if (targetType.IsEnum)
             {
                 result = Enum.Parse(targetType, text, ignoreCase: true);

@@ -30,9 +30,13 @@ public sealed class MarkdownToRtfOptions {
     /// </summary>
     public IReadOnlyList<RtfMarkdownConversionDiagnostic> Diagnostics => _diagnostics;
 
+    /// <summary>Shared cross-adapter fidelity report for this conversion.</summary>
+    public RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
+
     internal void Report(string code, RtfMarkdownDiagnosticSeverity severity, string message, string? source = null) {
         var diagnostic = new RtfMarkdownConversionDiagnostic(code, severity, message, source);
         _diagnostics.Add(diagnostic);
+        RtfMarkdownConversionReportMapper.Add(ConversionReport, diagnostic);
         DiagnosticHandler?.Invoke(diagnostic);
     }
 }

@@ -8,34 +8,32 @@ public sealed partial class RtfDocument {
     public static Task<RtfReadResult> ReadAsync(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Read(rtf, options));
+        return Task.FromResult(Read(rtf, options, cancellationToken));
     }
 
     /// <summary>Loads RTF from a file.</summary>
     public static async Task<RtfReadResult> LoadAsync(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        string rtf = encoding == null
-            ? await RtfBytePreservingEncoding.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)
-            : await ReadEncodedFileAsync(path, encoding, cancellationToken).ConfigureAwait(false);
-
-        return Read(rtf, options);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
+        return await LoadAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
     public static Task<RtfReadResult> LoadAsync(byte[] bytes, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Load(bytes, options));
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        new RtfReadLimitGuard(readOptions, cancellationToken).CheckInputBytes(bytes.LongLength);
+        return Task.FromResult(Read(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken));
     }
 
     /// <summary>Loads RTF from a stream.</summary>
     public static async Task<RtfReadResult> LoadAsync(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        string rtf = encoding == null
-            ? await RtfBytePreservingEncoding.ReadToEndAsync(stream, cancellationToken).ConfigureAwait(false)
-            : await ReadEncodedStreamAsync(stream, encoding, cancellationToken).ConfigureAwait(false);
-
-        return Read(rtf, options);
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        byte[] bytes = await RtfBytePreservingEncoding.ReadBytesToEndAsync(stream, readOptions.MaxInputBytes, cancellationToken).ConfigureAwait(false);
+        string rtf = DecodeInput(bytes, encoding);
+        return Read(rtf, readOptions, cancellationToken);
     }
 
     /// <summary>Serializes the document to RTF.</summary>
@@ -47,7 +45,7 @@ public sealed partial class RtfDocument {
     /// <summary>Serializes the document to encoded RTF bytes.</summary>
     public async Task<byte[]> ToBytesAsync(RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         string rtf = await ToRtfAsync(options, cancellationToken).ConfigureAwait(false);
-        return (encoding ?? Encoding.UTF8).GetBytes(rtf);
+        return (encoding ?? CreateDefaultOutputEncoding()).GetBytes(rtf);
     }
 
     /// <summary>Serializes the document to an encoded RTF memory stream.</summary>
@@ -59,7 +57,7 @@ public sealed partial class RtfDocument {
     /// <summary>Saves the document to an RTF file.</summary>
     public async Task SaveAsync(string path, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        await WriteEncodedFileAsync(path, ToRtf(options), encoding ?? Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        await WriteEncodedFileAsync(path, ToRtf(options), encoding ?? CreateDefaultOutputEncoding(), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
@@ -67,23 +65,6 @@ public sealed partial class RtfDocument {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         byte[] bytes = await ToBytesAsync(options, encoding, cancellationToken).ConfigureAwait(false);
         await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async Task<string> ReadEncodedFileAsync(string path, Encoding encoding, CancellationToken cancellationToken) {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
-        return await ReadEncodedStreamAsync(stream, encoding, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async Task<string> ReadEncodedStreamAsync(Stream stream, Encoding encoding, CancellationToken cancellationToken) {
-        using var reader = new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-#if NET8_0_OR_GREATER
-        return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-#else
-        cancellationToken.ThrowIfCancellationRequested();
-        string value = await reader.ReadToEndAsync().ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return value;
-#endif
     }
 
     private static async Task WriteEncodedFileAsync(string path, string rtf, Encoding encoding, CancellationToken cancellationToken) {

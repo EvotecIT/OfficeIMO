@@ -11,6 +11,10 @@ namespace OfficeIMO.Reader;
 /// </summary>
 public sealed class ReaderOptions {
     internal const long DefaultOpenXmlMaxCharactersInPart = 10_000_000L;
+    internal const int DefaultDetectionMaxProbeBytes = 64 * 1024;
+    internal const int DefaultDetectionMaxContainerEntries = 512;
+    internal const int MaximumDetectionProbeBytes = 4 * 1024 * 1024;
+    internal const int MaximumDetectionContainerEntries = 4096;
     internal const int DefaultMaxOpenXmlImageAssets = 512;
     internal const int DefaultMaxOpenXmlImagePlacementsPerRelationship = 256;
     internal const long DefaultMaxOpenXmlImageAssetBytes = 32L * 1024L * 1024L;
@@ -113,6 +117,21 @@ public sealed class ReaderOptions {
     /// When true, computes source/chunk hashes for incremental indexing workflows. Default: true.
     /// </summary>
     public bool ComputeHashes { get; set; } = true;
+
+    /// <summary>
+    /// Controls extension/content detection during reads. The default inspects content only when the extension is unknown.
+    /// </summary>
+    public ReaderDetectionMode DetectionMode { get; set; } = ReaderDetectionMode.ContentWhenUnknown;
+
+    /// <summary>
+    /// Maximum prefix bytes inspected when content detection runs. Default: 64 KiB.
+    /// </summary>
+    public int DetectionMaxProbeBytes { get; set; } = DefaultDetectionMaxProbeBytes;
+
+    /// <summary>
+    /// Maximum ZIP entries inspected when classifying Office, Visio, EPUB, and ZIP containers. Default: 512.
+    /// </summary>
+    public int DetectionMaxContainerEntries { get; set; } = DefaultDetectionMaxContainerEntries;
 }
 
 /// <summary>

@@ -230,6 +230,10 @@ public class CsvDbatoolsLibraryParityBenchmarks
     [BenchmarkCategory("QuickTest")]
     public int OfficeIMO_DataReader_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValuesByOrdinal(_quickTestCsvPath);
 
+    [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-GetValues")]
+    [BenchmarkCategory("QuickTest")]
+    public int OfficeIMO_DataReader_QuickTest_GetValues() => OfficeIMO_DataReaderReadAllValues(_quickTestCsvPath);
+
     [Benchmark(Description = "Sep-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
     public int Sep_QuickTest_SingleColumn() => Sep_ReadFirstColumn(_quickTestCsvPath);
@@ -298,8 +302,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         var count = 0;
         long fieldLength = 0;
-        var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
-        using var reader = document.CreateDataReader();
+        using var reader = CsvDocument.CreateDataReader(
+            path,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
         while (reader.Read())
         {
             count++;
@@ -313,8 +318,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         var count = 0;
         long fieldLength = 0;
-        var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
-        using var reader = document.CreateDataReader();
+        using var reader = CsvDocument.CreateDataReader(
+            path,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
         var values = new object[reader.FieldCount];
         while (reader.Read())
         {
@@ -330,8 +336,9 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         var count = 0;
         long fieldLength = 0;
-        var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
-        using var reader = document.CreateDataReader();
+        using var reader = CsvDocument.CreateDataReader(
+            path,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
         while (reader.Read())
         {
             count++;

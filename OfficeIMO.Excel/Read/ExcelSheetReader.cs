@@ -24,8 +24,11 @@ namespace OfficeIMO.Excel {
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
         private string? _lastDateStyleAttribute;
+        private char[]? _xmlValueTextBuffer;
         private bool _lastDateStyleAttributeResult;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
+        private static readonly object BoxedTrue = true;
+        private static readonly object BoxedFalse = false;
 
         internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCacheProvider styles, ExcelReadOptions opt, ExcelDateSystem dateSystem, bool canStreamWorksheetPart) {
             _sheetName = sheetName;
@@ -40,6 +43,8 @@ namespace OfficeIMO.Excel {
         private DateTime FromExcelSerialDate(double serial) => ExcelDateSystemConverter.FromSerial(serial, _dateSystem);
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
+
+        private static object BoxBoolean(bool value) => value ? BoxedTrue : BoxedFalse;
 
         private string? GetSharedString(int index) {
             var items = _sharedStringItems ??= _sst.GetItems();
@@ -481,7 +486,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (type == CellValues.Boolean && rawText != null) {
-                value = rawText == "1";
+                value = BoxBoolean(rawText == "1");
                 return true;
             }
 
@@ -545,16 +550,25 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string text = rawText!;
+            return TryParseSharedStringIndex(rawText.AsSpan(), out index)
+                || int.TryParse(rawText, NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
+        }
+
+        private static bool TryParseSharedStringIndex(ReadOnlySpan<char> text, out int index) {
+            index = 0;
+            if (text.Length == 0) {
+                return false;
+            }
+
             int parsed = 0;
             for (int i = 0; i < text.Length; i++) {
                 int digit = text[i] - '0';
                 if ((uint)digit > 9U) {
-                    return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
+                    return false;
                 }
 
                 if (parsed > (int.MaxValue - digit) / 10) {
-                    return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
+                    return false;
                 }
 
                 parsed = (parsed * 10) + digit;
@@ -570,7 +584,15 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string text = rawText!;
+            return TryParseInvariantDoubleFast(rawText.AsSpan(), out value);
+        }
+
+        private static bool TryParseInvariantDoubleFast(ReadOnlySpan<char> text, out double value) {
+            value = 0;
+            if (text.Length == 0) {
+                return false;
+            }
+
             int length = text.Length;
             int index = 0;
             bool negative = false;
@@ -840,7 +862,7 @@ namespace OfficeIMO.Excel {
                 return GetSharedString(sstIndex);
 
             if (type == CellValues.Boolean && rawText != null)
-                return rawText == "1";
+                return BoxBoolean(rawText == "1");
 
             if (type == CellValues.Number && rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {

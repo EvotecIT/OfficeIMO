@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -121,6 +122,43 @@ public class RtfPdfConverterTests {
         Assert.DoesNotContain("Skipped note", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Skipped table", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Skipped header", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Converts_Dib_Through_Shared_Drawing() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddImage(RtfImageFormat.Dib, CreateDib24(OfficeColor.FromRgb(18, 52, 86)));
+        var options = new RtfPdfSaveOptions();
+
+        byte[] pdf = document.SaveAsPdf(options);
+
+        Assert.NotEmpty(pdf);
+        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic =>
+            diagnostic.Code == "ImageConverted" && diagnostic.Action == RtfConversionAction.Substituted);
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "UnsupportedImage");
+        options.RtfConversionReport.RequireNoLoss();
+    }
+
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Uses_Configured_Vector_Image_Converter() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddImage(RtfImageFormat.Emf, new byte[] { 1, 2, 3 });
+        int conversionCount = 0;
+        var options = new RtfPdfSaveOptions {
+            ImageConverter = _ => {
+                conversionCount++;
+                return OfficePngWriter.EncodeRgba(1, 1, new byte[] { 255, 0, 0, 255 });
+            }
+        };
+
+        byte[] pdf = document.SaveAsPdf(options);
+
+        Assert.NotEmpty(pdf);
+        Assert.Equal(1, conversionCount);
+        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic =>
+            diagnostic.Code == "ImageConverted" && diagnostic.Action == RtfConversionAction.Substituted);
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "UnsupportedImage");
+        options.RtfConversionReport.RequireNoLoss();
     }
 
     [Fact]
@@ -574,6 +612,26 @@ public class RtfPdfConverterTests {
         Assert.DoesNotContain("Hidden footer", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RtfDocument_ToPdfDocument_Reports_Object_And_Shape_Text_Fallback() {
+        RtfDocument document = RtfDocument.Create();
+        RtfObject rtfObject = document.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
+        rtfObject.Result.AddText("Object result");
+        document.AddShape().AddTextBoxParagraph("Shape result");
+        var options = new RtfPdfSaveOptions();
+
+        byte[] pdf = document.SaveAsPdf(options);
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Object result", text, StringComparison.Ordinal);
+        Assert.Contains("Shape result", text, StringComparison.Ordinal);
+        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "ObjectFlattened");
+        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "ShapeFlattened");
+        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Throws<RtfConversionLossException>(() => options.RtfConversionReport.RequireNoLoss());
+    }
+
     private static string ExtractPdfContentStreams(byte[] pdf) {
         string raw = Encoding.GetEncoding("ISO-8859-1").GetString(pdf);
         StringBuilder streams = new StringBuilder();
@@ -598,6 +656,27 @@ public class RtfPdfConverterTests {
             streams.AppendLine(inflated);
             searchIndex = dataEnd + "endstream".Length;
         }
+    }
+
+    private static byte[] CreateDib24(OfficeColor color) {
+        byte[] dib = new byte[44];
+        WriteInt32LittleEndian(dib, 0, 40);
+        WriteInt32LittleEndian(dib, 4, 1);
+        WriteInt32LittleEndian(dib, 8, 1);
+        dib[12] = 1;
+        dib[14] = 24;
+        WriteInt32LittleEndian(dib, 20, 4);
+        dib[40] = color.B;
+        dib[41] = color.G;
+        dib[42] = color.R;
+        return dib;
+    }
+
+    private static void WriteInt32LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     private static int GetPdfStreamDataStart(string raw, int index) {

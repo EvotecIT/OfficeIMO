@@ -171,6 +171,32 @@ namespace OfficeIMO.PowerPoint {
             return text.Length > 0;
         }
 
+        /// <summary>
+        /// Tries to read speaker notes that already exist without creating a notes part.
+        /// </summary>
+        /// <param name="text">The existing speaker-notes text, or an empty string when none exists.</param>
+        /// <returns><see langword="true"/> when non-empty speaker notes were found.</returns>
+        public bool TryGetExistingText(out string text) {
+            text = string.Empty;
+            try {
+                NotesSlide? notesSlide = _slidePart.NotesSlidePart?.NotesSlide;
+                ShapeTree? shapeTree = notesSlide?.CommonSlideData?.ShapeTree;
+                if (shapeTree == null) {
+                    return false;
+                }
+
+                text = string.Join(
+                    Environment.NewLine + Environment.NewLine,
+                    shapeTree.Elements<Shape>()
+                        .Select(ReadShapeText)
+                        .Where(static value => !string.IsNullOrWhiteSpace(value))).Trim();
+                return text.Length > 0;
+            } catch {
+                text = string.Empty;
+                return false;
+            }
+        }
+
         internal void Save() {
             _slidePart.NotesSlidePart?.NotesSlide?.Save();
         }
@@ -276,6 +302,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return builder.ToString();
+        }
+
+        private static string ReadShapeText(Shape shape) {
+            return string.Join(
+                Environment.NewLine,
+                shape.TextBody?.Elements<A.Paragraph>()
+                    .Select(ReadParagraphText)
+                    .Where(static value => !string.IsNullOrWhiteSpace(value))
+                ?? Enumerable.Empty<string>());
         }
 
         private HashSet<string> GetRelationshipIds() {

@@ -14,6 +14,7 @@ internal static partial class RtfDocumentWriter {
         WritePageSetup(builder, document.PageSetup, isSection: false);
         WriteNoteSettings(builder, document.NoteSettings);
         WriteDocumentSettings(builder, document.Settings);
+        WriteHtmlEncapsulation(builder, document, options, unicodeSkipCount);
         if (options.IncludeGenerator) {
             builder.Append(@"{\*\generator ");
             builder.Append(EscapeText(string.IsNullOrWhiteSpace(document.Info.Generator) ? "OfficeIMO.Rtf" : document.Info.Generator!.Trim(), unicodeSkipCount));
@@ -32,7 +33,7 @@ internal static partial class RtfDocumentWriter {
         WriteUserProperties(builder, document, unicodeSkipCount);
         WriteDocumentVariables(builder, document, unicodeSkipCount);
         WriteHeaderFooters(builder, document, unicodeSkipCount);
-        HashSet<RtfNote> referencedNotes = CollectReferencedNotes(document);
+        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
         WriteDetachedNotes(builder, document, referencedNotes, document.Settings.DefaultLanguageId, unicodeSkipCount);
         builder.AppendLine();
 
@@ -51,6 +52,17 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static int GetUnicodeSkipCount(RtfDocumentSettings settings) => settings.UnicodeSkipCount ?? 1;
+
+    private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfWriteOptions options, int unicodeSkipCount) {
+        RtfHtmlEncapsulation? encapsulation = document.HtmlEncapsulation;
+        if (!options.IncludeHtmlEncapsulation || encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;
+
+        builder.Append(@"\fromhtml");
+        builder.Append(encapsulation.Version.ToString(CultureInfo.InvariantCulture));
+        builder.Append(@"{\*\htmltag ");
+        builder.Append(EscapeText(encapsulation.Html, unicodeSkipCount));
+        builder.Append('}');
+    }
 
     private static void WriteDocumentCharacterSet(StringBuilder builder, RtfDocumentSettings settings) {
         builder.Append(settings.CharacterSet switch {

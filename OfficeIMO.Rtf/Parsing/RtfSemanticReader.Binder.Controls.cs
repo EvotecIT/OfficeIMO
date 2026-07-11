@@ -6,7 +6,8 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private static void ApplyCharacterSetDefaultCodePage(CharacterState state, RtfDocumentCharacterSet characterSet) {
             if (!state.HasExplicitAnsiCodePage) {
-                state.AnsiCodePage = RtfAnsiCodePage.GetDefaultCodePage(characterSet);
+                state.DocumentAnsiCodePage = RtfAnsiCodePage.GetDefaultCodePage(characterSet);
+                state.AnsiCodePage = state.DocumentAnsiCodePage;
             }
         }
 
@@ -40,6 +41,7 @@ internal static partial class RtfSemanticReader {
                     return;
                 case "deff":
                     _document.Settings.DefaultFontId = control.Parameter;
+                    if (!state.FontId.HasValue) state.AnsiCodePage = ResolveFontCodePage(control.Parameter, state.DocumentAnsiCodePage);
                     return;
                 case "deflang":
                     if (control.Parameter.HasValue) {
@@ -69,6 +71,7 @@ internal static partial class RtfSemanticReader {
                 case "ansicpg":
                     if (control.Parameter.HasValue) {
                         _document.Settings.AnsiCodePage = control.Parameter;
+                        state.DocumentAnsiCodePage = control.Parameter.Value;
                         state.AnsiCodePage = control.Parameter.Value;
                         state.HasExplicitAnsiCodePage = true;
                     }
@@ -82,6 +85,7 @@ internal static partial class RtfSemanticReader {
 
                     RtfParagraph? pendingListText = state.PendingListTextAfterReset;
                     state.ResetParagraph();
+                    state.AnsiCodePage = ResolveFontCodePage(_document.Settings.DefaultFontId, state.DocumentAnsiCodePage);
                     if (pendingLegacyNumbering != null) {
                         ApplyLegacyNumberingToState(state, pendingLegacyNumbering);
                     }
@@ -94,6 +98,7 @@ internal static partial class RtfSemanticReader {
                     return;
                 case "plain":
                     state.ResetCharacter();
+                    state.AnsiCodePage = ResolveFontCodePage(_document.Settings.DefaultFontId, state.DocumentAnsiCodePage);
                     return;
                 case "par":
                     FlushParagraphIfNeeded(force: true, state);
@@ -335,6 +340,7 @@ internal static partial class RtfSemanticReader {
                     return;
                 case "f":
                     state.FontId = control.Parameter;
+                    state.AnsiCodePage = ResolveFontCodePage(control.Parameter, state.DocumentAnsiCodePage);
                     return;
                 case "cf":
                     state.ForegroundColorIndex = control.Parameter.GetValueOrDefault() == 0 ? null : control.Parameter;

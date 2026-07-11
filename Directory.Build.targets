@@ -16,4 +16,21 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <!-- Reader packages with an explicit published baseline are checked for source/binary compatibility.
+       New packages omit the baseline until their first public release. -->
+  <PropertyGroup Condition="
+      $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO.Reader'))
+      And '$(IsPackable)' != 'false'
+      And '$(PackageValidationBaselineVersion)' != ''">
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup Condition="
+      $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO.Reader'))
+      And '$(IsPackable)' != 'false'
+      And '$(PackageValidationBaselineVersion)' != ''
+      And !$([MSBuild]::IsOsPlatform('Windows'))">
+    <PackageValidationBaselineFrameworkToIgnore Include="net472" />
+  </ItemGroup>
 </Project>

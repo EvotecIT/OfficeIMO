@@ -1,6 +1,7 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -20,6 +21,17 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Contains(paragraph.Runs, run => run.Text == "bold" && run.Bold);
         Assert.Contains(paragraph.Runs, run => run.Text == "italic" && run.Italic);
         Assert.Contains(paragraph.Runs, run => run.Text.Contains("red", StringComparison.Ordinal) && run.ForegroundColorIndex == 1);
+    }
+
+    [Fact]
+    public void Read_Uses_Font_Charset_CodePage_For_Ansi_Bytes() {
+        const string rtf = @"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0\fcharset0 Arial;}{\f1\fcharset238 Arial CE;}}\f1 Za\'bf\'f3\'b3\'e6 g\'ea\'9cl\'b9 ja\'9f\'f1\f0  \'bf\par}";
+
+        RtfDocument document = RtfDocument.Read(rtf).Document;
+        string text = Assert.Single(document.Paragraphs).ToPlainText();
+
+        Assert.StartsWith("Zażółć gęślą jaźń", text, StringComparison.Ordinal);
+        Assert.EndsWith("¿", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -64,6 +76,31 @@ public partial class RtfDocumentReadWriteTests {
 
         RtfReadResult read = RtfDocument.Load(bytes);
         Assert.Equal("Generated ż", Assert.Single(read.Document.Paragraphs).ToPlainText());
+    }
+
+    [Fact]
+    public async Task Save_File_Defaults_To_Word_Compatible_Bomless_Utf8() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Word-compatible ż");
+        string syncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
+        string asyncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
+
+        try {
+            document.Save(syncPath);
+            await document.SaveAsync(asyncPath);
+
+            byte[] syncBytes = File.ReadAllBytes(syncPath);
+            byte[] asyncBytes = File.ReadAllBytes(asyncPath);
+            Assert.Equal((byte)'{', syncBytes[0]);
+            Assert.Equal((byte)'{', asyncBytes[0]);
+            Assert.False(syncBytes.Take(3).SequenceEqual(Encoding.UTF8.GetPreamble()));
+            Assert.False(asyncBytes.Take(3).SequenceEqual(Encoding.UTF8.GetPreamble()));
+            Assert.Equal("Word-compatible ż", Assert.Single(RtfDocument.Load(syncBytes).Document.Paragraphs).ToPlainText());
+            Assert.Equal("Word-compatible ż", Assert.Single(RtfDocument.Load(asyncBytes).Document.Paragraphs).ToPlainText());
+        } finally {
+            File.Delete(syncPath);
+            File.Delete(asyncPath);
+        }
     }
 
     [Fact]

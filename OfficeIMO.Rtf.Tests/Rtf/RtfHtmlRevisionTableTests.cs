@@ -25,6 +25,8 @@ public class RtfHtmlRevisionTableTests {
             .SetRevisionSaveIds(deletion: 50);
 
         string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true,
             FragmentOnly = false,
             NewLine = "\n"
         });

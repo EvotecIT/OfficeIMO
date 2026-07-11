@@ -61,6 +61,9 @@
         <InternalsVisibleTo Include="OfficeIMO.MarkdownRenderer" />
         <InternalsVisibleTo Include="OfficeIMO.Rtf.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
+        <InternalsVisibleTo Include="OfficeIMO.AsciiDoc.Markdown" />
+        <InternalsVisibleTo Include="OfficeIMO.Latex.Markdown" />
+        <InternalsVisibleTo Include="OfficeIMO.Reader.Latex" />
     </ItemGroup>
 
 </Project>
