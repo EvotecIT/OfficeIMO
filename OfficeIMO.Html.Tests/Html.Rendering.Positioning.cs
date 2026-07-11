@@ -178,7 +178,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = html.SaveAsPdf(pdfOptions);
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
-        Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 15));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(85, 45));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("<rect x=\"10\" y=\"10\" width=\"80\" height=\"40\"", svg, StringComparison.Ordinal);
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));

@@ -22,7 +22,30 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         string? semanticRole = null,
         double? layoutY = null,
         int? semanticNodeId = null)
+        : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder, linkUri, source, semanticRole, layoutY, semanticNodeId, null) {
+    }
+
+    internal HtmlRenderText(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        OfficeFontInfo font,
+        OfficeColor color,
+        OfficeTextAlignment alignment,
+        double lineHeight,
+        int paintOrder,
+        string? linkUri,
+        string? source,
+        string? semanticRole,
+        double? layoutY,
+        int? semanticNodeId,
+        double? textAdvanceWidth)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
+        if (textAdvanceWidth.HasValue && (textAdvanceWidth.Value <= 0D || double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
+            throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
+        }
         Text = text ?? throw new ArgumentNullException(nameof(text));
         Font = font;
         Color = color;
@@ -30,6 +53,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         LineHeight = lineHeight;
         SemanticRole = semanticRole;
         SemanticNodeId = semanticNodeId;
+        TextAdvanceWidth = textAdvanceWidth;
     }
 
     /// <summary>Text content represented by this visual segment.</summary>
@@ -53,9 +77,12 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Stable operation-scoped semantic node identifier shared by fragments from the same source element.</summary>
     public int? SemanticNodeId { get; }
 
+    /// <summary>Resolved glyph advance for positioned inline text, distinct from its tolerant clipping frame.</summary>
+    public double? TextAdvanceWidth { get; }
+
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth);
 }

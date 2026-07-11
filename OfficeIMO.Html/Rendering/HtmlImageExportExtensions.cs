@@ -103,7 +103,7 @@ public static class HtmlImageExportExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
         byte[] bytes = format == OfficeImageExportFormat.Svg
-            ? OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale)
+            ? OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale, OfficeSvgSizeUnit.Pixel)
             : OfficeDrawingRasterRenderer.ToPng(drawing, options.Scale, options.BackgroundColor);
         cancellationToken.ThrowIfCancellationRequested();
         int width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
