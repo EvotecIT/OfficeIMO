@@ -22,11 +22,12 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
         Mode = HtmlRenderMode.Paged;
     }
 
-    /// <summary>Creates PDF options from shared HTML rendering settings.</summary>
+    /// <summary>
+    /// Creates PDF-capable options from shared HTML rendering settings without changing their layout mode.
+    /// PDF conversion enforces paged layout on its own conversion snapshot.
+    /// </summary>
     /// <param name="renderOptions">Shared settings used by PNG, SVG, and PDF rendering.</param>
-    public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
-        Mode = HtmlRenderMode.Paged;
-    }
+    public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) { }
 
     /// <summary>OfficeIMO-managed font fallback groups used by generated PDF text.</summary>
     public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
@@ -43,7 +44,6 @@ public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
     /// <summary>Creates an independent options snapshot for one PDF conversion.</summary>
     public HtmlPdfSaveOptions ClonePdf() {
         HtmlPdfSaveOptions clone = CopyTo(new HtmlPdfSaveOptions());
-        clone.Mode = HtmlRenderMode.Paged;
         clone.TextFallbacks = TextFallbacks;
         clone.TextShapingMode = TextShapingMode;
         clone.FontFamily = FontFamily;

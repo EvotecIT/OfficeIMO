@@ -57,6 +57,26 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
+    public void SharedPdfOptions_PreserveImageModeWhilePdfRemainsPaged() {
+        const string html = "<div style='height:1800px;background:#336699'></div>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlPdfSaveOptions clone = options.ClonePdf();
+        HtmlPdfSaveOptions copied = new HtmlPdfSaveOptions(options);
+
+        Assert.Equal(HtmlRenderMode.Continuous, clone.Mode);
+        Assert.Equal(HtmlRenderMode.Continuous, copied.Mode);
+        Assert.Single(HtmlRenderEngine.Render(html, options).Pages);
+        Assert.Single(html.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options));
+        Assert.Single(html.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options));
+        Assert.True(OfficeIMO.Pdf.PdfInspector.Inspect(html.ToPdf(options)).PageCount > 1);
+    }
+
+    [Fact]
     public void RawTextConverters_UseSourceExplicitPdfNames() {
         Assert.DoesNotContain(typeof(MarkdownPdfConverterExtensions).GetMethods(), method =>
             method.Name == "ToPdf" && method.GetParameters()[0].ParameterType == typeof(string));
