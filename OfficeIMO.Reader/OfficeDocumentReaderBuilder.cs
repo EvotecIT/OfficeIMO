@@ -9,7 +9,7 @@ namespace OfficeIMO.Reader;
 /// A builder may be reused or changed after <see cref="Build"/>. Each built reader retains its own
 /// immutable snapshot and is unaffected by later builder or static <see cref="DocumentReader"/> registrations.
 /// </remarks>
-public sealed class OfficeDocumentReaderBuilder {
+public sealed partial class OfficeDocumentReaderBuilder {
     private readonly ReaderHandlerRegistry _handlers = new ReaderHandlerRegistry(DocumentReader.BuiltInExtensions);
     private int _maxConcurrentReads = DocumentReader.DefaultMaxConcurrentReads;
 
@@ -57,6 +57,10 @@ public sealed class OfficeDocumentReaderBuilder {
     /// Creates an immutable, thread-safe reader from the current configuration.
     /// </summary>
     public OfficeDocumentReader Build() {
-        return new OfficeDocumentReader(_handlers.CaptureSnapshot(), _maxConcurrentReads);
+        return new OfficeDocumentReader(
+            _handlers.CaptureSnapshot(),
+            _maxConcurrentReads,
+            _processorPipelineBuilder.Build(),
+            _processingOptions.Clone());
     }
 }

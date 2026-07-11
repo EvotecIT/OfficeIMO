@@ -58,6 +58,26 @@ public partial class MarkdownDoc : MarkdownObject {
         return this;
     }
 
+    /// <summary>Adds multiple blocks and binds the resulting object tree once after the batch is complete.</summary>
+    /// <param name="blocks">Blocks to append in source order.</param>
+    /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
+    public MarkdownDoc AddRange(IEnumerable<IMarkdownBlock> blocks) {
+        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        foreach (IMarkdownBlock block in blocks) {
+            if (block == null) throw new ArgumentException("Markdown blocks cannot contain null entries.", nameof(blocks));
+            if (block is IFrontMatterMarkdownBlock frontMatter) {
+                _frontMatter = frontMatter;
+            } else {
+                _blocks.Add(block);
+                _lastBlock = block;
+            }
+        }
+
+        _parseResult = null;
+        MarkdownObjectTreeBinder.BindDocument(this);
+        return this;
+    }
+
     /// <summary>Rewrites the document using the provided rewriter.</summary>
     public MarkdownDoc Rewrite(MarkdownRewriter rewriter) {
         if (rewriter == null) {

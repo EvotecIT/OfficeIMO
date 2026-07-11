@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphFormatting(WordParagraph source, RtfParagraph destination, RtfDocument document) {
+        CopyParagraphStyleAndNumbering(source, destination, document);
         CopyParagraphLayout(source, destination);
 
         string shading = source.ShadingFillColorHex;
@@ -43,6 +44,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyParagraphFormatting(WordParagraph destination, RtfParagraph source, RtfDocument document) {
+        ApplyParagraphStyleAndNumbering(destination, source, document);
         ApplyParagraphLayout(destination, source);
 
         if (source.BackgroundColorIndex.HasValue) {

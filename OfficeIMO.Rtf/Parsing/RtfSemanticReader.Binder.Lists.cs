@@ -249,6 +249,7 @@ internal static partial class RtfSemanticReader {
                         OverrideCount = overrideCount
                     };
                     foreach (RtfListLevelOverride levelOverride in levelOverrides) {
+                        levelOverride.LevelIndex = listOverride.LevelOverrides.Count;
                         listOverride.AddParsedLevelOverride(levelOverride);
                     }
 

@@ -117,6 +117,56 @@ IReadOnlyList<OfficeDocumentReadResult> documents = await reader.ReadDocumentsAs
 
 `ReadDocumentsAsync(...)` starts no more than the configured degree of parallelism, rejects input beyond `MaxDocuments`, cancels sibling workers after a failure, and returns results in the same order as the input paths. Handlers can provide `ReadDocumentPathAsync` or `ReadDocumentStreamAsync` for native asynchronous work. Existing synchronous format engines remain compatible and are scheduled through the instance's bounded worker gate.
 
+## Ordered document processors
+
+Processors are opt-in transformations over `OfficeDocumentReadResult`. The builder freezes their order with the handler configuration, and the reader applies them to `Read(...)`, `ReadAsync(...)`, rich document reads, JSON reads, structured reads, and `ReadDocumentsAsync(...)`:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddProcessor(new OfficeDocumentBlockNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentTableNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentLinkNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentArtifactClassificationProcessor())
+    .AddProcessor(new OfficeDocumentAssetFilterProcessor(
+        asset => asset.LengthBytes <= 5 * 1024 * 1024))
+    .WithProcessorFailureBehavior(
+        OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic)
+    .Build();
+
+OfficeDocumentReadResult document = reader.ReadDocument(@"C:\Docs\Policy.docx");
+```
+
+The built-ins normalize shared blocks, list and heading levels, tables, and links; classify repeated page-boundary text; and filter assets together with dependent OCR candidates. They do not run unless registered, so an unconfigured reader preserves existing output. Add host behavior with `OfficeDocumentProcessorBase`, `IOfficeDocumentProcessor`, or `DelegateOfficeDocumentProcessor`.
+
+The default failure policy is `Throw`. `ContinueWithDiagnostic` records `processor-failed` and runs later steps, while `StopWithDiagnostic` records the failure and marks later steps as skipped. Call `ProcessDocument(...)` or `ProcessDocumentAsync(...)` directly when the host needs the per-step `OfficeDocumentProcessingResult`. Processor instances attached to a shared reader must be safe for concurrent calls and should avoid retaining per-document state.
+
+Folder enumeration remains a chunk/source traversal surface and does not run rich-document processors automatically. Use `ReadDocumentsAsync(...)` when every file must pass through the configured document pipeline.
+
+## Bounded structured extraction
+
+Structured extraction projects the shared document model into deterministic scalar records, heading sections, named tables, typed forms, and diagnostics without adding an AI client or format-specific dependency:
+
+```csharp
+OfficeDocumentStructuredExtractionResult extracted = reader.ReadStructured(
+    @"C:\Docs\Policy.docx",
+    structuredOptions: new OfficeDocumentStructuredExtractionOptions {
+        MaxRecords = 5_000,
+        MaxSections = 500,
+        MaxSectionCharacters = 50_000,
+        MaxTables = 250,
+        MaxForms = 1_000,
+        MaxDiagnostics = 500
+    });
+
+foreach (OfficeDocumentStructuredRecord record in extracted.Records) {
+    Console.WriteLine($"{record.Category}: {record.Name} = {record.Value}");
+}
+
+string json = extracted.ToJson(indented: true);
+```
+
+The extractor recognizes metadata, forms, two-column key/value tables, Path/Type/Value tables, Visio Shape Data, chart summaries, table and visual quality, chunk readiness, and security/OCR/limit diagnostics. Each collection and section body has an explicit positive limit; reaching a bound adds a structured limit diagnostic instead of silently growing output. The non-generic schema-friendly shape is versioned independently from the stable `OfficeDocumentReadResult` transport. It is currently a serialization and host-integration contract; a generic `ExtractStructured<T>()` mapper and model-assisted extraction are intentionally outside the core package.
+
 ## Stable document transport
 
 `OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Versions 1 through 4 were experimental and are deliberately rejected when reading transport payloads.
@@ -225,6 +275,8 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `DocumentReader.Detect(...)` / `DetectAsync(...)` and `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
 - `OfficeDocumentDiagnostic` carries stable categories, codes, sources, recoverability, and attributes so hosts do not need to parse warning text.
 - `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
+- `OfficeDocumentProcessorPipeline` freezes ordered processors and reports each completed, failed, or skipped step.
+- `OfficeDocumentStructuredExtractor` produces bounded non-generic records, sections, named tables, forms, and diagnostics without AI dependencies.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 

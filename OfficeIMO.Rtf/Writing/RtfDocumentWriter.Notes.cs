@@ -79,44 +79,6 @@ internal static partial class RtfDocumentWriter {
         });
     }
 
-    private static HashSet<RtfNote> CollectReferencedNotes(RtfDocument document) {
-        var notes = new HashSet<RtfNote>();
-        foreach (IRtfBlock block in document.Blocks) {
-            if (block is RtfParagraph paragraph) {
-                AddReferencedNotes(paragraph, notes);
-            } else if (block is RtfTable table) {
-                foreach (RtfTableRow row in table.Rows) {
-                    foreach (RtfTableCell cell in row.Cells) {
-                        foreach (RtfParagraph cellParagraph in cell.Paragraphs) {
-                            AddReferencedNotes(cellParagraph, notes);
-                        }
-                    }
-                }
-            }
-        }
-
-        foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
-            foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                AddReferencedNotes(paragraph, notes);
-            }
-        }
-
-        return notes;
-    }
-
-    private static void AddReferencedNotes(RtfParagraph paragraph, HashSet<RtfNote> notes) {
-        foreach (IRtfInline inline in paragraph.Inlines) {
-            switch (inline) {
-                case RtfRun run when run.Note != null:
-                    notes.Add(run.Note);
-                    break;
-                case RtfGeneratedText generatedText when generatedText.Note != null:
-                    notes.Add(generatedText.Note);
-                    break;
-            }
-        }
-    }
-
     private static void WriteDetachedNotes(StringBuilder builder, RtfDocument document, HashSet<RtfNote> referencedNotes, int? defaultLanguageId, int unicodeSkipCount) {
         foreach (RtfNote note in document.Notes) {
             if (!referencedNotes.Contains(note)) {

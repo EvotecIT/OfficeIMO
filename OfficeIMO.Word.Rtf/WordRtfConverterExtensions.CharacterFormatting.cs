@@ -8,6 +8,10 @@ namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void ApplyWordRunFormatting(WordParagraph wordRun, RtfRun run, RtfDocument rtfDocument) {
+        if (!string.IsNullOrWhiteSpace(wordRun.CharacterStyleId)) {
+            run.StyleId = FindRtfStyleId(rtfDocument, wordRun.CharacterStyleId!, RtfStyleKind.Character);
+        }
+
         run.Bold = wordRun.Bold;
         run.Italic = wordRun.Italic;
         run.UnderlineStyle = ToRtfUnderlineStyle(wordRun.Underline);
@@ -52,6 +56,10 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyRtfRunFormatting(RtfRun run, WordParagraph wordRun, RtfDocument? rtfDocument) {
+        if (run.StyleId.HasValue && rtfDocument != null && HasRtfStyle(rtfDocument, run.StyleId.Value, RtfStyleKind.Character)) {
+            wordRun.CharacterStyleId = GetWordStyleId(run.StyleId.Value, RtfStyleKind.Character);
+        }
+
         wordRun.Bold = run.Bold;
         wordRun.Italic = run.Italic;
         if (run.UnderlineStyle != RtfUnderlineStyle.None) {

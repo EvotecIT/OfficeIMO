@@ -54,6 +54,8 @@
 
   <ItemGroup>
     <None Update="Documents\**" CopyToOutputDirectory="Always" />
+    <None Include="..\Docs\officeimo.rtf-capabilities.json" Link="Documents\RtfCapabilities\officeimo.rtf-capabilities.json" CopyToOutputDirectory="Always" />
+    <None Include="..\Docs\officeimo.rtf-support-matrix.md" Link="Documents\RtfCapabilities\officeimo.rtf-support-matrix.md" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">

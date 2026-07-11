@@ -36,6 +36,26 @@ public partial class RtfDocumentRichFeatureTests {
     }
 
     [Fact]
+    public void Writer_Synthesizes_List_Tables_For_Paragraphs_Inside_Nested_Tables() {
+        RtfDocument document = RtfDocument.Create();
+        RtfTable outer = document.AddTable(1, 1);
+        RtfTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+        nested.Rows[0].Cells[0].AddParagraph("Nested item").SetList(listId: 7, level: 1, kind: RtfListKind.Bullet);
+
+        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+
+        Assert.Contains(@"{\*\listtable", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\ls7", rtf, StringComparison.Ordinal);
+        RtfTable roundTripOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
+        RtfTable roundTripNested = Assert.Single(Assert.Single(Assert.Single(roundTripOuter.Rows).Cells).Blocks.OfType<RtfTable>());
+        RtfParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(roundTripNested.Rows).Cells).Paragraphs);
+        Assert.Equal(7, paragraph.ListId);
+        Assert.Equal(1, paragraph.ListLevel);
+        Assert.Equal(RtfListKind.Bullet, paragraph.ListKind);
+    }
+
+    [Fact]
     public void Write_And_Read_Rich_List_Level_Metadata() {
         RtfDocument document = RtfDocument.Create();
         RtfListDefinition definition = document.AddListDefinition(100, "Rich");

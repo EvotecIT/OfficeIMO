@@ -64,6 +64,7 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AddListLevelOverride(Dictionary<string, string> values, string prefix, RtfListLevelOverride levelOverride) {
+        AddNullableInt(values, prefix + ".levelIndex", levelOverride.LevelIndex);
         AddNullableBool(values, prefix + ".overrideFormat", levelOverride.OverrideFormat);
         AddNullableBool(values, prefix + ".overrideStartAt", levelOverride.OverrideStartAt);
         AddNullableInt(values, prefix + ".startAt", levelOverride.StartAt);

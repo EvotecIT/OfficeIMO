@@ -30,7 +30,7 @@ internal static partial class RtfSemanticReader {
                         WalkGroup(childGroup, childState.Clone(), depth + 1, allowDestinationSkip: true);
                         break;
                     case RtfText text:
-                        AppendText(ApplySkip(childState, RtfAnsiCodePage.DecodeText(childState.AnsiCodePage, text.Text)), childState);
+                        AppendAnsiText(text.Text, childState);
                         break;
                     case RtfControlWord control:
                         ApplyControlWord(control, childState);
