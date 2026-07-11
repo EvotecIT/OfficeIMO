@@ -21,6 +21,21 @@ internal sealed class MsgPropertyBuilder {
         _properties.Add(new MapiProperty(0x8000, type, value, name: new MapiNamedProperty(propertySet, localId)));
     }
 
+    internal void SetNamedDefault(Guid propertySet, uint localId, MapiPropertyType type, object value) {
+        if (_properties.Any(property => property.Name?.PropertySet == propertySet && property.Name.LocalId == localId)) {
+            return;
+        }
+        _properties.Add(new MapiProperty(0x8000, type, value, name: new MapiNamedProperty(propertySet, localId)));
+    }
+
+    internal void SetNamedDefault(Guid propertySet, string name, MapiPropertyType type, object value) {
+        if (_properties.Any(property => property.Name?.PropertySet == propertySet &&
+            string.Equals(property.Name.Name, name, StringComparison.OrdinalIgnoreCase))) {
+            return;
+        }
+        _properties.Add(new MapiProperty(0x8000, type, value, name: new MapiNamedProperty(propertySet, name)));
+    }
+
     internal void SetNamed(Guid propertySet, string name, MapiPropertyType type, object? value) {
         if (value == null) return;
         _properties.RemoveAll(property => property.Name?.PropertySet == propertySet &&

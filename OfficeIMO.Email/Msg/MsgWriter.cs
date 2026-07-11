@@ -3,12 +3,16 @@ using OfficeIMO.Shared;
 namespace OfficeIMO.Email;
 
 internal static class MsgWriter {
+    private static readonly Guid MessageStorageClassId = new Guid("00020D0B-0000-0000-C000-000000000046");
+    private static readonly DateTimeOffset FallbackCreationTime =
+        new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
         var streams = new List<OfficeCompoundStream>();
         var names = new MsgNamedPropertyWriter();
         BuildMessage(document, string.Empty, MsgPropertyStreamKind.TopLevel, names, streams, diagnostics, options, 0);
         names.WriteStreams(streams);
-        return OfficeCompoundFileWriter.Write(streams);
+        return OfficeCompoundFileWriter.Write(streams, MessageStorageClassId);
     }
 
     private static void BuildMessage(EmailDocument document, string prefix, MsgPropertyStreamKind kind,
@@ -60,18 +64,11 @@ internal static class MsgWriter {
         EmailMessageMetadata metadata = document.MessageMetadata;
         string messageClass = document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind);
         properties.Set(0x001A, MapiPropertyType.Unicode, messageClass);
-        properties.Set(0x0FFF, MapiPropertyType.Binary,
-            MsgIdentity.CreateStableBytes("message-entry", 16, document.MessageId, document.Subject));
-        properties.Set(0x0FF6, MapiPropertyType.Binary,
-            MsgIdentity.CreateStableBytes("message-instance", 4, document.MessageId, document.Subject));
-        properties.Set(0x0FF9, MapiPropertyType.Binary,
-            MsgIdentity.CreateStableBytes("message-record", 16, document.MessageId, document.Subject));
-        properties.Set(0x340D, MapiPropertyType.Integer32, 0x00040000);
-        properties.Set(0x340F, MapiPropertyType.Integer32, 0x00040000);
+        properties.SetNamedDefault(MsgProjection.PsetidCommon, 0x8510, MapiPropertyType.Integer32, 0);
+        properties.SetNamedDefault(MsgProjection.PsInternetHeaders, "acceptlanguage",
+            MapiPropertyType.Unicode, ResolveAcceptLanguage(document));
+        properties.Set(0x340D, MapiPropertyType.Integer32, 0x00040E79);
         properties.Set(0x0002, MapiPropertyType.Boolean, true);
-        properties.Set(0x0FF4, MapiPropertyType.Integer32, 0x00000007);
-        properties.Set(0x0FF7, MapiPropertyType.Integer32, 0x00000001);
-        properties.Set(0x0FFE, MapiPropertyType.Integer32, 5);
         int messageFlags = 0x0002;
         if (document.Attachments.Count > 0) messageFlags |= 0x0010;
         if (metadata.IsDraft) messageFlags |= 0x0008;
@@ -112,8 +109,9 @@ internal static class MsgWriter {
         properties.Set(0x0023, MapiPropertyType.Boolean, metadata.DeliveryReceiptRequested);
         properties.Set(0x0036, MapiPropertyType.Integer32, metadata.Sensitivity);
         properties.Set(0x002E, MapiPropertyType.Integer32, metadata.OriginalSensitivity);
-        properties.Set(0x3007, MapiPropertyType.Time, metadata.CreatedDate ?? document.Date);
-        properties.Set(0x3008, MapiPropertyType.Time, metadata.ModifiedDate ?? metadata.CreatedDate ?? document.Date);
+        DateTimeOffset created = metadata.CreatedDate ?? document.Date ?? document.ReceivedDate ?? FallbackCreationTime;
+        properties.Set(0x3007, MapiPropertyType.Time, created);
+        properties.Set(0x3008, MapiPropertyType.Time, metadata.ModifiedDate ?? created);
         properties.Set(0x3FDE, MapiPropertyType.Integer32, document.OutlookCodePage ?? 65001);
         properties.Set(0x3FFD, MapiPropertyType.Integer32, document.OutlookCodePage ?? 65001);
         properties.Set(0x3FF1, MapiPropertyType.Integer32, metadata.LocaleId ?? 1033);
@@ -159,6 +157,20 @@ internal static class MsgWriter {
         return properties;
     }
 
+    private static string ResolveAcceptLanguage(EmailDocument document) {
+        EmailHeader? header = document.Headers.FirstOrDefault(item =>
+            string.Equals(item.Name, "Accept-Language", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.Name, "X-Accept-Language", StringComparison.OrdinalIgnoreCase));
+        string? value = header?.Value;
+        if (!string.IsNullOrWhiteSpace(value)) return value!;
+        int localeId = document.MessageMetadata.LocaleId ?? 1033;
+        try {
+            return CultureInfo.GetCultureInfo(localeId).Name;
+        } catch (CultureNotFoundException) {
+            return "en-US";
+        }
+    }
+
     private static void SetReceivedAddress(MsgPropertyBuilder properties, EmailAddress? address,
         ushort displayNameId, ushort addressTypeId, ushort addressId, ushort entryId) {
         properties.Set(displayNameId, MapiPropertyType.Unicode, address?.DisplayName);
@@ -192,8 +204,6 @@ internal static class MsgWriter {
         string? address = recipient.Address.Address;
         properties.Set(0x3000, MapiPropertyType.Integer32, recipient.MapiRowId ?? index);
         properties.Set(0x0FFF, MapiPropertyType.Binary, MsgIdentity.CreateOneOffEntryId(recipient.Address));
-        properties.Set(0x0FF6, MapiPropertyType.Binary,
-            MsgIdentity.CreateStableBytes("recipient-instance", 4, index.ToString(CultureInfo.InvariantCulture), address));
         properties.Set(0x0C15, MapiPropertyType.Integer32, type);
         properties.Set(0x3001, MapiPropertyType.Unicode, recipient.Address.DisplayName ?? recipient.Address.Address);
         properties.Set(0x3002, MapiPropertyType.Unicode, addressType);
@@ -210,10 +220,6 @@ internal static class MsgWriter {
     internal static MsgPropertyBuilder CreateAttachmentProperties(EmailAttachment attachment, int index, int method,
         IList<EmailDiagnostic> diagnostics, string location) {
         var properties = new MsgPropertyBuilder(attachment.MapiProperties);
-        properties.Set(0x0FF6, MapiPropertyType.Binary,
-            MsgIdentity.CreateStableBytes("attachment-instance", 4, index.ToString(CultureInfo.InvariantCulture), attachment.FileName));
-        properties.Set(0x0FF9, MapiPropertyType.Binary,
-            MsgIdentity.CreateStableBytes("attachment-record", 16, index.ToString(CultureInfo.InvariantCulture), attachment.FileName));
         properties.Set(0x0FFE, MapiPropertyType.Integer32, 7);
         properties.Set(0x3705, MapiPropertyType.Integer32, method);
         properties.Set(0x0E21, MapiPropertyType.Integer32, index);

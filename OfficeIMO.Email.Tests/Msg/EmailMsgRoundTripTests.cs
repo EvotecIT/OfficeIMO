@@ -96,6 +96,80 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void OutputContainsRequiredMsgRootAndNamedPropertyMappingStorage() {
+        EmailDocument source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            Subject = "MSG structure"
+        };
+        source.Body.Text = "MSG body";
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+
+        using MemoryStream stream = new MemoryStream(bytes);
+        using var oracle = OpenMcdf.RootStorage.Open(stream, OpenMcdf.StorageModeFlags.LeaveOpen);
+        Assert.Equal(new Guid("00020D0B-0000-0000-C000-000000000046"), oracle.EntryInfo.CLSID);
+        OpenMcdf.Storage namedProperties = oracle.OpenStorage("__nameid_version1.0");
+        using OpenMcdf.CfbStream guidStream = namedProperties.OpenStream("__substg1.0_00020102");
+        using OpenMcdf.CfbStream entryStream = namedProperties.OpenStream("__substg1.0_00030102");
+        using OpenMcdf.CfbStream stringStream = namedProperties.OpenStream("__substg1.0_00040102");
+        Assert.Equal(32, guidStream.Length);
+        Assert.Equal(16, entryStream.Length);
+        Assert.Equal(32, stringStream.Length);
+        string[] lookupNames = namedProperties.EnumerateEntries()
+            .Select(entry => entry.Name)
+            .Where(name => name != "__substg1.0_00020102" && name != "__substg1.0_00030102" &&
+                name != "__substg1.0_00040102")
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(2, lookupNames.Length);
+        Assert.Contains("__substg1.0_10010102", lookupNames);
+        Assert.Contains("__substg1.0_101D0102", lookupNames);
+        foreach (string lookupName in lookupNames) {
+            using OpenMcdf.CfbStream lookup = namedProperties.OpenStream(lookupName);
+            Assert.Equal(8, lookup.Length);
+        }
+        using (OpenMcdf.CfbStream acceptLanguageLookup = namedProperties.OpenStream("__substg1.0_101D0102")) {
+            byte[] entry = new byte[8];
+            acceptLanguageLookup.ReadExactly(entry);
+            Assert.Equal(new byte[] { 0x9E, 0x53, 0xE9, 0x83, 0x09, 0x00, 0x01, 0x00 }, entry);
+        }
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        Assert.Equal(new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            roundTrip.MessageMetadata.CreatedDate);
+        Assert.Equal(1, roundTrip.MapiProperties.Single(property => property.PropertyId == 0x1016).Value);
+        MapiProperty sideEffects = Assert.Single(roundTrip.MapiProperties, property =>
+            property.Name?.PropertySet == MsgProjection.PsetidCommon && property.Name.LocalId == 0x8510);
+        Assert.Equal(0, sideEffects.Value);
+        MapiProperty acceptLanguage = Assert.Single(roundTrip.MapiProperties, property =>
+            property.Name?.PropertySet == MsgProjection.PsInternetHeaders &&
+            string.Equals(property.Name.Name, "acceptlanguage", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("en-US", acceptLanguage.Value);
+    }
+
+    [Fact]
+    public void NamedPropertyLookupStreamsGroupHashCollisions() {
+        EmailDocument source = new EmailDocument { Subject = "NameID collisions" };
+        source.MapiProperties.Add(new MapiProperty(0x8000, MapiPropertyType.Integer32, 1,
+            name: new MapiNamedProperty(MsgProjection.PsetidTask, 0x8006)));
+        source.MapiProperties.Add(new MapiProperty(0x8001, MapiPropertyType.Integer32, 2,
+            name: new MapiNamedProperty(MsgProjection.PsetidTask, 0x8019)));
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+
+        using MemoryStream stream = new MemoryStream(bytes);
+        using var oracle = OpenMcdf.RootStorage.Open(stream, OpenMcdf.StorageModeFlags.LeaveOpen);
+        OpenMcdf.Storage namedProperties = oracle.OpenStorage("__nameid_version1.0");
+        using OpenMcdf.CfbStream lookup = namedProperties.OpenStream("__substg1.0_10010102");
+        byte[] entries = new byte[lookup.Length];
+        lookup.ReadExactly(entries);
+
+        uint[] identifiers = Enumerable.Range(0, entries.Length / 8)
+            .Select(index => BitConverter.ToUInt32(entries, index * 8))
+            .ToArray();
+        Assert.Contains(0x8006U, identifiers);
+        Assert.Contains(0x8019U, identifiers);
+    }
+
+    [Fact]
     public void ReaderCanSkipMsgAttachmentBytes() {
         EmailDocument source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "skip" };
         source.Attachments.Add(new EmailAttachment { FileName = "a.bin", Content = new byte[] { 1, 2, 3 }, Length = 3 });

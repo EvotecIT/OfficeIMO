@@ -18,9 +18,9 @@ internal sealed class MsgNamedPropertyWriter {
     }
 
     internal void WriteStreams(IList<OfficeCompoundStream> streams) {
-        if (_entries.Count == 0) return;
         var guidIndexes = new Dictionary<Guid, int>();
         var guidOrder = new List<Guid>();
+        var lookupStreams = new Dictionary<string, MemoryStream>(StringComparer.Ordinal);
         using (MemoryStream entryStream = new MemoryStream())
         using (MemoryStream stringStream = new MemoryStream()) {
             foreach (Entry entry in _entries) {
@@ -54,6 +54,23 @@ internal sealed class MsgNamedPropertyWriter {
                 if (stringNamed) guidAndKind |= 0x0001;
                 WriteUInt16(entryStream, guidAndKind);
                 WriteUInt16(entryStream, propertyIndex);
+
+                uint lookupIdentifier = stringNamed
+                    ? ComputeNameCrc(name.PropertySet == MsgProjection.PsInternetHeaders
+                        ? name.Name!.ToLowerInvariant()
+                        : name.Name!)
+                    : identifier;
+                uint kind = stringNamed ? 1U : 0U;
+                uint streamId = checked(0x1000U + ((lookupIdentifier ^ ((uint)guidIndex << 1 | kind)) % 0x1fU));
+                string lookupName = string.Concat("__nameid_version1.0/__substg1.0_",
+                    ((streamId << 16) | 0x0102U).ToString("X8", CultureInfo.InvariantCulture));
+                if (!lookupStreams.TryGetValue(lookupName, out MemoryStream? lookupStream)) {
+                    lookupStream = new MemoryStream();
+                    lookupStreams[lookupName] = lookupStream;
+                }
+                WriteUInt32(lookupStream, lookupIdentifier);
+                WriteUInt16(lookupStream, guidAndKind);
+                WriteUInt16(lookupStream, propertyIndex);
             }
 
             using (MemoryStream guidStream = new MemoryStream()) {
@@ -65,7 +82,23 @@ internal sealed class MsgNamedPropertyWriter {
             }
             streams.Add(new OfficeCompoundStream("__nameid_version1.0/__substg1.0_00030102", entryStream.ToArray()));
             streams.Add(new OfficeCompoundStream("__nameid_version1.0/__substg1.0_00040102", stringStream.ToArray()));
+            foreach (KeyValuePair<string, MemoryStream> lookup in lookupStreams.OrderBy(item => item.Key, StringComparer.Ordinal)) {
+                streams.Add(new OfficeCompoundStream(lookup.Key, lookup.Value.ToArray()));
+                lookup.Value.Dispose();
+            }
         }
+    }
+
+    private static uint ComputeNameCrc(string name) {
+        byte[] bytes = Encoding.Unicode.GetBytes(name);
+        uint crc = 0;
+        for (int index = 0; index < bytes.Length; index++) {
+            crc ^= bytes[index];
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320U : crc >> 1;
+            }
+        }
+        return crc;
     }
 
     private static string CreateKey(MapiNamedProperty name) {

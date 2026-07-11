@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Dependency-free EML, Outlook MSG, TNEF, and mailbox artifact engine for .NET.</Description>
+    <Description>Managed EML, Outlook MSG, TNEF, and mailbox artifact engine with no third-party runtime dependency forest.</Description>
     <AssemblyName>OfficeIMO.Email</AssemblyName>
     <AssemblyTitle>OfficeIMO.Email</AssemblyTitle>
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Email</PackageId>
-    <PackageTags>email;eml;mime;outlook;msg;tnef;mbox;reader;writer;dependency-free</PackageTags>
+    <PackageTags>email;eml;mime;outlook;msg;tnef;mbox;reader;writer;managed</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

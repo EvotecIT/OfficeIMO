@@ -8,6 +8,7 @@ internal static class MsgProjection {
     internal static readonly Guid PsetidLog = new Guid("0006200A-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidNote = new Guid("0006200E-0000-0000-C000-000000000046");
     internal static readonly Guid PsPublicStrings = new Guid("00020329-0000-0000-C000-000000000046");
+    internal static readonly Guid PsInternetHeaders = new Guid("00020386-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidCalendarAssistant = new Guid("11000E07-B51B-40D6-AF21-CAA85EDAB1D0");
     internal static readonly Guid PsetidSharing = new Guid("00062041-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidReactions = new Guid("41F28F13-83F4-4114-A584-EEDB5A6B0BFF");

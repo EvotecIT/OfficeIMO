@@ -17,7 +17,7 @@ namespace OfficeIMO.Shared {
         private const uint FatSect = 0xfffffffd;
         private const uint DifSect = 0xfffffffc;
 
-        internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams) {
+        internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams, Guid? rootClassId = null) {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Shared {
             int firstDifatSector = firstFatSector + fatSectorCount;
 
             byte[] directory = BuildDirectory(directoryLayout, paddedStreams, directorySectorCount,
-                miniStreamStartSector, miniStreamLayout.StreamLength);
+                miniStreamStartSector, miniStreamLayout.StreamLength, rootClassId);
             byte[] fat = BuildFat(
                 paddedStreams,
                 miniStreamStartSector,
@@ -143,7 +143,7 @@ namespace OfficeIMO.Shared {
         }
 
         private static byte[] BuildDirectory(OfficeCompoundWriterLayout layout, IReadOnlyList<PaddedStream> streams,
-            int directorySectorCount, uint miniStreamStartSector, int miniStreamLength) {
+            int directorySectorCount, uint miniStreamStartSector, int miniStreamLength, Guid? rootClassId) {
             byte[] directory = new byte[checked(directorySectorCount * SectorSize)];
             var paddedByEntry = streams.ToDictionary(stream => stream.Entry);
             foreach (OfficeCompoundWriterEntry entry in layout.Entries) {
@@ -166,7 +166,8 @@ namespace OfficeIMO.Shared {
                     entry.RightSiblingId,
                     entry.ChildId,
                     startSector,
-                    size);
+                    size,
+                    entry.ObjectType == 5 ? rootClassId : null);
             }
 
             return directory;
@@ -245,7 +246,8 @@ namespace OfficeIMO.Shared {
             }
         }
 
-        private static void WriteDirectoryEntry(byte[] buffer, int offset, string name, byte type, uint left, uint right, uint child, uint startSector, ulong size) {
+        private static void WriteDirectoryEntry(byte[] buffer, int offset, string name, byte type, uint left, uint right,
+            uint child, uint startSector, ulong size, Guid? classId) {
             byte[] nameBytes = Encoding.Unicode.GetBytes(name + '\0');
             Buffer.BlockCopy(nameBytes, 0, buffer, offset, nameBytes.Length);
             WriteUInt16(buffer, offset + 64, checked((ushort)nameBytes.Length));
@@ -254,6 +256,10 @@ namespace OfficeIMO.Shared {
             WriteUInt32(buffer, offset + 68, left);
             WriteUInt32(buffer, offset + 72, right);
             WriteUInt32(buffer, offset + 76, child);
+            if (classId.HasValue) {
+                byte[] classIdBytes = classId.Value.ToByteArray();
+                Buffer.BlockCopy(classIdBytes, 0, buffer, offset + 80, classIdBytes.Length);
+            }
             WriteUInt32(buffer, offset + 116, startSector);
             WriteUInt64(buffer, offset + 120, size);
         }

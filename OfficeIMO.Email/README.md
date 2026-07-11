@@ -1,19 +1,21 @@
 # OfficeIMO.Email
 
-`OfficeIMO.Email` reads and writes persisted email and Outlook artifacts without adding third-party runtime dependencies.
+`OfficeIMO.Email` reads and writes persisted email and Outlook artifacts without MsgKit, MsgReader, OpenMcdf, RtfPipe, MimeKit, MailKit, or platform UI packages.
 
 The package supports:
 
 - EML and MIME messages, including multipart bodies, encoded headers, inline resources, attachments, and embedded messages
-- Outlook MSG files with typed MAPI properties, named properties, recipients, embedded messages, and OLE/custom-storage attachments
+- Outlook MSG files with standard and named MAPI properties, legacy code pages, recipients, embedded messages, linked attachments, and OLE/custom-storage attachments
 - MS-OXRTFCP compressed and uncompressed RTF bodies, including bounded expansion and checksum validation
-- Outlook messages, appointments, contacts, tasks, journals, and sticky notes
+- Outlook messages, appointments, contacts, tasks, journals, and sticky notes with typed read/write models
 - TNEF payloads such as `winmail.dat`
 - mboxo and mboxrd mailbox archives
 - bounded synchronous and asynchronous reads, immutable reader configuration, cancellation, and structured diagnostics
 - deterministic EML, MSG, TNEF, and mbox writing
 
-The product assembly has no NuGet package dependencies. Its compound-file implementation is shared OfficeIMO source compiled into the package; it is not a separate public CFB package.
+MSG output includes the root storage identity, complete named-property forward and reverse mappings, and the compatibility metadata required by native Outlook. A document without an explicit date receives a deterministic creation-time fallback; set `Date` or `MessageMetadata.CreatedDate` when the real timestamp matters.
+
+The package depends on `OfficeIMO.Rtf`, which owns RTF syntax and semantic conversion, and that package uses Microsoft's code-page compatibility library. MSG compound storage is shared OfficeIMO source compiled into `OfficeIMO.Email`; it is not a public general-purpose CFB package. This keeps the product graph small without copying RTF or CFB logic into the facade.
 
 ## Read and write a message
 
@@ -77,11 +79,33 @@ if (item.OutlookItemKind == OutlookItemKind.Appointment && item.Appointment is n
 
 Equivalent projections are available through `Contact`, `Task`, `Journal`, and `Note`.
 
+Properties that do not have a convenience field remain available through `MapiProperties`. Standard, numeric named, and string named properties have public lookup helpers:
+
+```csharp
+string? displayName = item.MapiProperties.GetMapiValue<string>(0x3001);
+MapiProperty? custom = item.MapiProperties.GetMapiProperty(
+    new Guid("00062008-0000-0000-C000-000000000046"),
+    "CustomName");
+```
+
 ## RTF bodies
 
 `EmailBody.Rtf` contains the byte-preserving RTF source decoded from `PidTagRtfCompressed`. The MSG and TNEF writers serialize an assigned RTF body with the MS-OXRTFCP compression format, and the reader accepts both the `LZFu` and `MELA` forms.
 
 RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate RTF through that package when the source contains characters that need RTF escapes. `OfficeIMO.Reader` will route an RTF-only email body through the registered `OfficeIMO.Reader.Rtf` handler; without that optional adapter, it preserves the RTF source and reports the fallback explicitly.
+
+## Protected Outlook messages
+
+`EmailDocument.Protection` detects opaque and clear-signed S/MIME Outlook message classes and points to the original `.p7m` or `.p7s` attachment. It does not validate or decrypt that payload. Applications can pass `Protection.PayloadAttachment.Content` to MimeKit or another cryptographic owner when attachment content was retained.
+
+```csharp
+EmailDocument protectedMessage = new EmailDocumentReader().Read("signed.msg").Document;
+
+if (protectedMessage.Protection.IsProtected) {
+    byte[]? cms = protectedMessage.Protection.PayloadAttachment?.Content;
+    // Mailozaurr or another host can process cms with its configured MimeKit context.
+}
+```
 
 ## Resource limits
 
@@ -106,6 +130,8 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 
 ## Scope boundary
 
-`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the right owners for those operations.
+`OfficeIMO.Email` owns offline artifact parsing, serialization, and format-neutral Outlook data. It does not connect to mail servers, authenticate users, resolve certificates or keys, verify DKIM/ARC/PGP/S/MIME signatures, or decrypt protected messages. MailKit, MimeKit, and applications such as Mailozaurr remain the owners for those operations.
+
+The package does not expose general-purpose CFB transactions and does not read PST or OST mailbox stores. Its compound implementation serves MSG and structured attachments only. Use `EmailMailboxReader` for mbox aggregates and a dedicated store API for PST/OST workflows.
 
 For an exact pass-through of a signed or encrypted artifact, read with `preserveRawSource: true` and write with `usePreservedRawSource: true`. A structured rewrite can change MIME canonicalization and must not be treated as signature-preserving.

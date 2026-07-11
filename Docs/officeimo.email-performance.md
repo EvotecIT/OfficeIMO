@@ -16,13 +16,13 @@ The tests measure allocations on the parsing thread after constructing the fixtu
 
 ## Current baseline
 
-Measured on 2026-07-10 with an Apple M4, 24 GB memory, macOS 26.5, .NET 8.0.23 runtime, and .NET SDK 10.0.102:
+Measured on 2026-07-11 with an Apple M4, 24 GB memory, macOS 26.5, .NET 8.0.23 runtime, and .NET SDK 10.0.102:
 
 | Workload | Source bytes | Parsing-thread allocations | Elapsed |
 | --- | ---: | ---: | ---: |
-| One 1 MiB decoded plain-text MIME body | 1,435,016 | 13,123,072 | 4.8 ms |
-| One MSG with a 1 MiB attachment | 1,060,864 | 5,426,256 | 6.7 ms |
-| 500-message mbox archive | 120,850 | 4,558,648 | 9.8 ms |
+| One 1 MiB decoded plain-text MIME body | 1,435,016 | 13,123,448 | 3.7 ms |
+| One MSG with a 1 MiB attachment | 1,063,936 | 5,477,024 | 10.2 ms |
+| 500-message mbox archive | 120,850 | 4,750,648 | 9.9 ms |
 
 These numbers are a local regression baseline, not a cross-machine throughput promise. The committed contracts enforce allocation ceilings proportional to source size plus fixed headroom and a ten-second hang ceiling. Returned strings, message models, and requested attachment payloads are intentionally included in the allocation measurement.
 

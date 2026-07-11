@@ -37,6 +37,19 @@ public sealed class OfficeCompoundFileContractTests {
     }
 
     [Fact]
+    public void WriterPersistsAnExplicitRootStorageClassId() {
+        var classId = new Guid("00020D0B-0000-0000-C000-000000000046");
+
+        byte[] compound = OfficeCompoundFileWriter.Write(
+            new[] { new OfficeCompoundStream("Payload", new byte[] { 1, 2, 3 }) },
+            classId);
+
+        using MemoryStream source = new MemoryStream(compound);
+        using RootStorage oracle = RootStorage.Open(source, StorageModeFlags.LeaveOpen);
+        Assert.Equal(classId, oracle.EntryInfo.CLSID);
+    }
+
+    [Fact]
     public void WriterEmitsDifatForLargeCompoundFiles() {
         byte[] content = new byte[8 * 1024 * 1024];
         for (int i = 0; i < content.Length; i += 4096) content[i] = (byte)(i / 4096 % 251);
