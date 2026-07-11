@@ -1670,7 +1670,9 @@ public partial class DrawingTests {
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 0, 0, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0.25, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0.75, OfficeColor.White)));
-        Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new[] { new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0, OfficeColor.White), new OfficeGradientStop(1, OfficeColor.Red) }));
+        OfficeLinearGradient hardStop = new OfficeLinearGradient(0, 0, 1, 1, new[] { new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0, OfficeColor.White), new OfficeGradientStop(1, OfficeColor.Red) });
+        Assert.Equal(0D, hardStop.Stops[0].Offset);
+        Assert.Equal(0D, hardStop.Stops[1].Offset);
     }
 
     [Theory]

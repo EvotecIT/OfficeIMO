@@ -164,7 +164,8 @@ public static partial class OfficeSvgDrawingReader {
             var parsed = new List<OfficeGradientStop>(elements.Length + 2);
             double previous = -1D;
             foreach (XElement element in elements) {
-                if (!TryStopOffset(element.Attribute("offset")?.Value, out double offset) || offset <= previous) return false;
+                if (!TryStopOffset(element.Attribute("offset")?.Value, out double offset)) return false;
+                offset = Math.Max(previous, offset);
                 if (!TryStopColor(element, out OfficeColor color)) return false;
                 parsed.Add(new OfficeGradientStop(offset, color));
                 previous = offset;

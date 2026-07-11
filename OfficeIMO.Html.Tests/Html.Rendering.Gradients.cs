@@ -42,6 +42,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlLinearGradient_PreservesHardStopsAcrossPngSvgAndSearchablePdf() {
+        const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,red 0%,red 50%,blue 50%,blue 100%)'></div><p>HardStopPdf</p>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 130D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfSource = Encoding.ASCII.GetString(pdf);
+
+        Assert.Equal(new[] { 0D, 0.5D, 0.5D, 1D }, gradient.Stops.Select(stop => stop.Offset));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(55, 15));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(61, 15));
+        Assert.Equal(2, CountBackgroundOccurrences(svg, "offset=\"50%\""));
+        Assert.Contains("/Bounds [0.4999999 0.5000001]", pdfSource, StringComparison.Ordinal);
+        Assert.Contains("HardStopPdf", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
     public void HtmlRadialGradient_FlowsAsMultiStopVectorPaintAcrossPngSvgAndSearchablePdf() {
         const string html = "<div style=\"width:160px;height:60px;background-image:radial-gradient(ellipse at center,#ff0000 0%,#00ff00 50%,#0000ff 100%)\">RadialMarker</div>";
         var imageOptions = new HtmlImageExportOptions {
@@ -306,6 +336,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, gradient.Stops[1].Color);
         Assert.Equal(OfficeColor.Blue, gradient.Stops[3].Color);
         Assert.Equal(OfficeColor.Blue, gradient.Stops[4].Color);
+    }
+
+    [Fact]
+    public void HtmlLinearGradient_ClampsBackwardStopPositionsIntoAHardEdge() {
+        const string html = "<div style='width:40px;height:20px;background:linear-gradient(red 60%,blue 40%,lime 100%)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        Assert.Equal(new[] { 0D, 0.6D, 0.6D, 1D }, gradient.Stops.Select(stop => stop.Offset));
+        Assert.Equal(OfficeColor.Red, gradient.Stops[1].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[2].Color);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]

@@ -188,7 +188,7 @@ public class DrawingSvgReaderTests {
     [Fact]
     public void SvgReaderResolvesInheritedLinearPaintServersWithoutRasterFallback() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
-            + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='80%' stop-color='blue'/></linearGradient>"
+            + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='50%' stop-color='red'/><stop offset='50%' stop-color='blue'/><stop offset='80%' stop-color='blue'/></linearGradient>"
             + "<linearGradient id='fill' href='#base' x1='0' y1='0.5' x2='1' y2='0.5'/></defs>"
             + "<rect width='40' height='20' fill='url(#fill)'/></svg>";
 
@@ -198,9 +198,11 @@ public class DrawingSvgReaderTests {
         OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
         OfficeLinearGradient gradient = Assert.IsType<OfficeLinearGradient>(shape.FillGradient);
         Assert.Null(shape.FillColor);
-        Assert.Equal(4, gradient.Stops.Count);
+        Assert.Equal(6, gradient.Stops.Count);
         Assert.Equal(0D, gradient.Stops[0].Offset);
-        Assert.Equal(1D, gradient.Stops[3].Offset);
+        Assert.Equal(0.5D, gradient.Stops[2].Offset);
+        Assert.Equal(0.5D, gradient.Stops[3].Offset);
+        Assert.Equal(1D, gradient.Stops[5].Offset);
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         OfficeColor left = raster.GetPixel(2, 10);

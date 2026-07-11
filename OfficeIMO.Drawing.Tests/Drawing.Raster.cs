@@ -238,6 +238,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_PreservesDuplicateOffsetHardStops() {
+            OfficeRasterImage image = new OfficeRasterImage(100, 10, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            var gradient = new OfficeLinearGradient(
+                0D,
+                0.5D,
+                1D,
+                0.5D,
+                new[] {
+                    new OfficeGradientStop(0D, OfficeColor.Red),
+                    new OfficeGradientStop(0.5D, OfficeColor.Red),
+                    new OfficeGradientStop(0.5D, OfficeColor.Blue),
+                    new OfficeGradientStop(1D, OfficeColor.Blue)
+                });
+
+            canvas.FillLinearGradientRectangle(0D, 0D, image.Width, image.Height, gradient);
+
+            Assert.Equal(OfficeColor.Red, image.GetPixel(48, 5));
+            Assert.Equal(OfficeColor.Blue, image.GetPixel(52, 5));
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_FillsOffCenterEllipticalRadialGradient() {
             OfficeRasterImage image = new OfficeRasterImage(100, 100, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

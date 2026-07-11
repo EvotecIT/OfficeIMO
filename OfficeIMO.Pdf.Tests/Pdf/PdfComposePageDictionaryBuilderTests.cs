@@ -743,6 +743,20 @@ namespace OfficeIMO.Tests.Pdf {
                     }));
 
             Assert.Contains(
+                "/Bounds [0.4999999 0.5000001]",
+                PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                    0,
+                    0,
+                    1,
+                    0,
+                    new[] {
+                        new OfficeGradientStop(0D, OfficeColor.Red),
+                        new OfficeGradientStop(0.5D, OfficeColor.Red),
+                        new OfficeGradientStop(0.5D, OfficeColor.Blue),
+                        new OfficeGradientStop(1D, OfficeColor.Blue)
+                    }));
+
+            Assert.Contains(
                 "<< /ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.25 0.75 0 0.5 0.5 0.75] /Function << /FunctionType 2",
                 PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
                     0.25D,

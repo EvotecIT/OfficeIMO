@@ -73,27 +73,61 @@ internal static class PdfVisualResourceDictionaryBuilder {
     }
 
     private static string BuildGradientFunction(IReadOnlyList<OfficeGradientStop> stops) {
-        if (stops.Count == 2) return BuildInterpolationFunction(stops[0].Color, stops[1].Color);
+        IReadOnlyList<OfficeGradientStop> normalized = HasDuplicateOffsets(stops)
+            ? NormalizeGradientStops(stops)
+            : stops;
+        if (normalized.Count == 2) return BuildInterpolationFunction(normalized[0].Color, normalized[1].Color);
 
         var builder = new System.Text.StringBuilder("<< /FunctionType 3 /Domain [0 1] /Functions [");
-        for (int index = 1; index < stops.Count; index++) {
+        for (int index = 1; index < normalized.Count; index++) {
             if (index > 1) builder.Append(' ');
-            builder.Append(BuildInterpolationFunction(stops[index - 1].Color, stops[index].Color));
+            builder.Append(BuildInterpolationFunction(normalized[index - 1].Color, normalized[index].Color));
         }
 
         builder.Append("] /Bounds [");
-        for (int index = 1; index < stops.Count - 1; index++) {
+        for (int index = 1; index < normalized.Count - 1; index++) {
             if (index > 1) builder.Append(' ');
-            builder.Append(FormatNumber(stops[index].Offset));
+            builder.Append(FormatGradientOffset(normalized[index].Offset));
         }
 
         builder.Append("] /Encode [");
-        for (int index = 1; index < stops.Count; index++) {
+        for (int index = 1; index < normalized.Count; index++) {
             if (index > 1) builder.Append(' ');
             builder.Append("0 1");
         }
 
         return builder.Append("] >>").ToString();
+    }
+
+    private static bool HasDuplicateOffsets(IReadOnlyList<OfficeGradientStop> stops) {
+        for (int index = 1; index < stops.Count; index++) {
+            if (stops[index].Offset.Equals(stops[index - 1].Offset)) return true;
+        }
+        return false;
+    }
+
+    private static List<OfficeGradientStop> NormalizeGradientStops(IReadOnlyList<OfficeGradientStop> stops) {
+        var normalized = new List<OfficeGradientStop>(stops.Count);
+        int index = 0;
+        while (index < stops.Count) {
+            int end = index + 1;
+            while (end < stops.Count && stops[end].Offset.Equals(stops[index].Offset)) end++;
+            if (end - index == 1) {
+                normalized.Add(stops[index]);
+            } else if (stops[index].Offset <= 0D) {
+                normalized.Add(new OfficeGradientStop(0D, stops[end - 1].Color));
+            } else if (stops[index].Offset >= 1D) {
+                normalized.Add(new OfficeGradientStop(1D, stops[index].Color));
+            } else {
+                double previousOffset = stops[index - 1].Offset;
+                double nextOffset = stops[end].Offset;
+                double epsilon = Math.Min(0.0000001D, Math.Min(stops[index].Offset - previousOffset, nextOffset - stops[index].Offset) / 4D);
+                normalized.Add(new OfficeGradientStop(stops[index].Offset - epsilon, stops[index].Color));
+                normalized.Add(new OfficeGradientStop(stops[index].Offset + epsilon, stops[end - 1].Color));
+            }
+            index = end;
+        }
+        return normalized;
     }
 
     private static string BuildInterpolationFunction(OfficeColor startColor, OfficeColor endColor) =>
@@ -112,8 +146,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
         double previous = -1D;
         for (int index = 0; index < stops.Count; index++) {
             double offset = stops[index].Offset;
-            if (double.IsNaN(offset) || double.IsInfinity(offset) || offset <= previous) {
-                throw new ArgumentException("PDF shading stops must use strictly increasing finite offsets.", nameof(stops));
+            if (double.IsNaN(offset) || double.IsInfinity(offset) || offset < previous) {
+                throw new ArgumentException("PDF shading stops must use non-decreasing finite offsets.", nameof(stops));
             }
 
             previous = offset;
@@ -122,6 +156,9 @@ internal static class PdfVisualResourceDictionaryBuilder {
 
     private static string FormatColorComponent(byte value) =>
         FormatNumber(value / 255D);
+
+    private static string FormatGradientOffset(double value) =>
+        value.ToString("0.########", CultureInfo.InvariantCulture);
 
     private static string FormatNumber(double value) =>
         value.ToString("0.###", CultureInfo.InvariantCulture);

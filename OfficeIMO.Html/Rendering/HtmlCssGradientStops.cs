@@ -71,8 +71,8 @@ internal static class HtmlCssGradientStops {
         for (int index = 1; index < offsets.Length; index++) {
             if (!offsets[index].HasValue) continue;
             double previous = offsets[previousSpecified]!.Value;
-            double current = offsets[index]!.Value;
-            if (current <= previous) return false;
+            double current = Math.Max(previous, offsets[index]!.Value);
+            offsets[index] = current;
             int gap = index - previousSpecified;
             for (int fill = 1; fill < gap; fill++) {
                 offsets[previousSpecified + fill] = previous + ((current - previous) * fill / gap);

@@ -131,8 +131,8 @@ public sealed class OfficeLinearGradient {
         double previous = -1D;
         for (int i = 0; i < stops.Count; i++) {
             OfficeGradientStop stop = stops[i];
-            if (stop.Offset <= previous) {
-                throw new ArgumentException("Linear gradient stops must be in strictly increasing offset order.", nameof(stops));
+            if (stop.Offset < previous) {
+                throw new ArgumentException("Linear gradient stops must be in non-decreasing offset order.", nameof(stops));
             }
 
             copy.Add(stop);
