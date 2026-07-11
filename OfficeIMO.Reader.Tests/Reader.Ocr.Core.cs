@@ -86,6 +86,19 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
+    public async Task ApplyOcrAsync_RejectsUnknownMediaTypeForRestrictedEngine() {
+        OfficeDocumentReadResult source = CreateDocument(1);
+        source.Assets[0].MediaType = null;
+        var engine = new RecordingOcrEngine();
+
+        OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(engine);
+
+        Assert.Empty(engine.CandidateIds);
+        Assert.Equal(0, execution.Report.AttemptedCandidateCount);
+        Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-media-type-unsupported");
+    }
+
+    [Fact]
     public async Task ApplyOcrAsync_BoundsProviderTextSpansAndConfidenceDiagnostics() {
         OfficeDocumentReadResult source = CreateDocument(1);
         var engine = new DelegateOfficeOcrEngine("bounded-fixture", (request, cancellationToken) => new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult {
@@ -272,6 +285,23 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
+    public async Task ApplyOcrAsync_DoesNotStartQueuedCandidatesAfterFailFastFailure() {
+        var engine = new FailFastConcurrentOcrEngine();
+        Task<OfficeDocumentOcrExecutionResult> execution = CreateDocument(5).ApplyOcrAsync(
+            engine,
+            new OfficeDocumentOcrExecutionOptions {
+                ContinueOnError = false,
+                MaxDegreeOfParallelism = 2
+            });
+
+        await engine.SecondCallStarted;
+        engine.FailFirstCall();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
+        Assert.Equal(2, engine.CallCount);
+    }
+
+    [Fact]
     public async Task OfficeDocumentOcrProcessor_FreezesOptionsForReaderPipeline() {
         var options = new OfficeDocumentOcrExecutionOptions { MaxCandidates = 1 };
         var processor = new OfficeDocumentOcrProcessor(new RecordingOcrEngine(), options);
@@ -409,6 +439,38 @@ public sealed class ReaderOcrCoreTests {
             } finally {
                 Interlocked.Decrement(ref _activeCalls);
             }
+        }
+    }
+
+    private sealed class FailFastConcurrentOcrEngine : IOfficeOcrEngine {
+        private readonly TaskCompletionSource<object?> _failFirstCall = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _secondCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _callCount;
+
+        public string Id => "fail-fast-concurrent-fixture";
+
+        public OfficeOcrEngineCapabilities Capabilities { get; } = new OfficeOcrEngineCapabilities {
+            SupportedMediaTypes = new[] { "image/*" },
+            SupportsConcurrentRequests = true
+        };
+
+        internal int CallCount => _callCount;
+
+        internal Task SecondCallStarted => _secondCallStarted.Task;
+
+        internal void FailFirstCall() {
+            _failFirstCall.TrySetResult(null);
+        }
+
+        public async ValueTask<OfficeOcrEngineResult> RecognizeAsync(OfficeOcrEngineRequest request, CancellationToken cancellationToken = default) {
+            int call = Interlocked.Increment(ref _callCount);
+            if (call == 1) {
+                await _failFirstCall.Task.ConfigureAwait(false);
+                throw new InvalidOperationException("Provider failure.");
+            }
+            _secondCallStarted.TrySetResult(null);
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+            return new OfficeOcrEngineResult { Text = "recognized" };
         }
     }
 

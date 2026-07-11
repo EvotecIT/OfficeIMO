@@ -46,4 +46,16 @@ public sealed class ReaderOcrTesseractTests {
         Assert.Equal("quiet", arguments[arguments.Count - 2]);
         Assert.Equal("tsv", arguments[arguments.Count - 1]);
     }
+
+    [Fact]
+    public void TesseractOcrEngine_AdvertisesRasterFormatsOnly() {
+        var engine = new TesseractOcrEngine();
+
+        Assert.Contains("image/png", engine.Capabilities.SupportedMediaTypes);
+        Assert.Contains("image/jpeg", engine.Capabilities.SupportedMediaTypes);
+        Assert.DoesNotContain("image/*", engine.Capabilities.SupportedMediaTypes);
+        Assert.DoesNotContain("image/svg+xml", engine.Capabilities.SupportedMediaTypes);
+        Assert.DoesNotContain("image/x-emf", engine.Capabilities.SupportedMediaTypes);
+        Assert.DoesNotContain("image/x-wmf", engine.Capabilities.SupportedMediaTypes);
+    }
 }

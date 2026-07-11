@@ -5,6 +5,21 @@ namespace OfficeIMO.Reader.Ocr.Tesseract;
 
 /// <summary>Optional cross-platform OCR engine backed by an installed Tesseract command-line executable.</summary>
 public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
+    private static readonly string[] TesseractMediaTypes = {
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/tiff",
+        "image/jp2",
+        "image/gif",
+        "image/webp",
+        "image/bmp",
+        "image/x-portable-anymap",
+        "image/x-portable-bitmap",
+        "image/x-portable-graymap",
+        "image/x-portable-pixmap"
+    };
+
     private readonly OptionsSnapshot _options;
     private readonly OfficeOcrEngineCapabilities _capabilities;
 
@@ -12,7 +27,7 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
     public TesseractOcrEngine(TesseractOcrEngineOptions? options = null) {
         _options = OptionsSnapshot.Create(options);
         _capabilities = new OfficeOcrEngineCapabilities {
-            SupportedMediaTypes = new[] { "image/*" },
+            SupportedMediaTypes = TesseractMediaTypes,
             SupportsLineSpans = true,
             SupportsWordSpans = true,
             SupportsCharacterSpans = false,
@@ -32,7 +47,10 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (request.Payload == null || request.Payload.Length == 0) throw new ArgumentException("OCR request payload cannot be empty.", nameof(request));
         if (request.Payload.LongLength > _options.MaxInputBytes) throw new IOException("OCR request payload exceeds MaxInputBytes (" + _options.MaxInputBytes + ").");
-        if (!string.IsNullOrWhiteSpace(request.Asset.MediaType) && !request.Asset.MediaType!.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) throw new NotSupportedException("Tesseract provider accepts image assets only.");
+        if (string.IsNullOrWhiteSpace(request.Asset.MediaType) ||
+            !TesseractMediaTypes.Contains(request.Asset.MediaType!, StringComparer.OrdinalIgnoreCase)) {
+            throw new NotSupportedException("Tesseract provider accepts supported raster image assets only.");
+        }
         cancellationToken.ThrowIfCancellationRequested();
         string temporaryRoot = Path.GetFullPath(_options.TemporaryDirectory ?? Path.GetTempPath());
         string requestDirectory = OfficeOcrTemporaryStorage.CreateRequestDirectory(temporaryRoot, "officeimo-tesseract-");
