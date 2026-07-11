@@ -42,28 +42,47 @@ public sealed class HtmlRenderDocument {
     /// <summary>Source headings retained in document order for navigation-capable backends.</summary>
     public IReadOnlyList<HtmlRenderHeading> Headings => _headings;
 
-    /// <summary>Concatenated searchable text retained by the shared render model.</summary>
-    public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateVisuals(page.Scene)).OfType<HtmlRenderText>().Select(text => text.Text));
+    /// <summary>Concatenated logical searchable text retained by the shared render model.</summary>
+    public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateLogicalText(page.Scene)));
+
+    private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+                yield return logicalTextGroup.Text;
+                continue;
+            }
+            if (visual is HtmlRenderText text) {
+                yield return text.Text;
+                continue;
+            }
+
+            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            if (children == null) continue;
+            foreach (string textValue in EnumerateLogicalText(children)) yield return textValue;
+        }
+    }
 
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;
-            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
-                ? clipGroup.Visuals
-                : visual is HtmlRenderPathClipGroup pathClipGroup
-                    ? pathClipGroup.Visuals
-                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
-                : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
-                : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals : null;
+            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
     }
 
+    private static IEnumerable<HtmlRenderVisual>? ChildVisuals(HtmlRenderVisual visual) => visual is HtmlRenderClipGroup clipGroup
+        ? clipGroup.Visuals
+        : visual is HtmlRenderPathClipGroup pathClipGroup
+            ? pathClipGroup.Visuals
+        : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
+        : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
+        : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals : null;
+
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)>();
         foreach (HtmlRenderPage page in pages) {
-            foreach (HtmlRenderText text in EnumerateVisuals(page.Scene).OfType<HtmlRenderText>()) {
+            foreach (HtmlRenderTextFragment text in EnumerateTextFragments(page.Scene)) {
                 if (!text.SemanticNodeId.HasValue || !HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level)) continue;
                 fragments.Add((text.SemanticNodeId.Value, level, text.Text, page.PageNumber, text.X, text.Y, text.PaintOrder));
             }
@@ -82,5 +101,49 @@ public sealed class HtmlRenderDocument {
         }
 
         return headings;
+    }
+
+    private static IEnumerable<HtmlRenderTextFragment> EnumerateTextFragments(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+                HtmlRenderText? representative = EnumerateVisuals(logicalTextGroup.Visuals).OfType<HtmlRenderText>().FirstOrDefault();
+                if (representative != null) {
+                    yield return new HtmlRenderTextFragment(
+                        logicalTextGroup.Text,
+                        representative.SemanticRole,
+                        representative.SemanticNodeId,
+                        logicalTextGroup.X,
+                        logicalTextGroup.Y,
+                        logicalTextGroup.PaintOrder);
+                }
+                continue;
+            }
+            if (visual is HtmlRenderText text) {
+                yield return new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, text.X, text.Y, text.PaintOrder);
+                continue;
+            }
+
+            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            if (children == null) continue;
+            foreach (HtmlRenderTextFragment fragment in EnumerateTextFragments(children)) yield return fragment;
+        }
+    }
+
+    private readonly struct HtmlRenderTextFragment {
+        internal HtmlRenderTextFragment(string text, string? semanticRole, int? semanticNodeId, double x, double y, int paintOrder) {
+            Text = text;
+            SemanticRole = semanticRole;
+            SemanticNodeId = semanticNodeId;
+            X = x;
+            Y = y;
+            PaintOrder = paintOrder;
+        }
+
+        internal string Text { get; }
+        internal string? SemanticRole { get; }
+        internal int? SemanticNodeId { get; }
+        internal double X { get; }
+        internal double Y { get; }
+        internal int PaintOrder { get; }
     }
 }
