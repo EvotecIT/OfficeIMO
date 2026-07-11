@@ -1,8 +1,8 @@
 # OfficeIMO HTML to PDF and Image Implementation Plan
 
-Date: 2026-07-10
+Date: 2026-07-11
 
-Status: active implementation; initial end-to-end renderer slice complete
+Status: end-to-end architecture and prioritized implementation checkpoint complete; advanced fidelity roadmap active
 
 ## Goal
 
@@ -38,7 +38,7 @@ The renderer should ultimately cover the full business-document HTML/CSS surface
 
 ## Current State
 
-OfficeIMO has the shared foundation and an initial end-to-end vertical slice:
+OfficeIMO has the shared foundation and a broad end-to-end implementation checkpoint:
 
 - `OfficeIMO.Html` parses HTML with AngleSharp, evaluates CSS media, resolves custom properties, discovers resources, applies policy-approved external stylesheets and recursive imports in document order, enforces URL and document limits, and reports diagnostics.
 - `OfficeIMO.Drawing` supplies the PNG/SVG rendering path used by Excel, Word, PowerPoint, and Visio, plus scoped caller-supplied TrueType faces shared by measurement, rasterization, and portable SVG embedding.
@@ -90,7 +90,7 @@ The current renderer deliberately starts with normal flow, block-level horizonta
 - [x] Public diagnostic-code catalog for implemented fallbacks and unsupported renderer behavior.
 - [x] Contract tests for PNG, SVG, searchable PDF text, links, page geometry, media rules, custom properties, generated content and counters, floats and clearance, sibling/parent/empty positive-and-negative block-margin collapse and collapse boundaries, per-axis overflow clipping, visual-box clip margins, and static scroll snapshots, relative/absolute/fixed/sticky positioning, block/flex/grid/wrapped-inline containing rectangles and static anchors, positioned grid areas, nested numeric and transform/opacity stacking contexts, isolated descendant and gradient opacity, affine scale/rotation, uniform/asymmetric/elliptical rounded color/border/gradient/URL/replaced-image boxes, uniform and side-specific solid/dashed/dotted/double borders, offset outlines, layered outer/inset alpha/blur/spread shadows, intrinsic/aspect/min-max image sizing, all five object-fit modes, object-position placement/cropping, oversized raster/SVG page continuation, table captions, spans, intrinsic columns, border spacing, and collapsed-border conflict origins, fixed page repetition, horizontal/vertical/inline flex, block/inline grid, row/column and dense grid flow, named areas/lines, wrapping, multicolumn balancing/fill/spanners/rules, reverse wrapping, anonymous/generated items, `display: contents`, auto margins, effect-group pagination, resources, timeout, cancellation, limits, and diagnostics.
 
-This checkpoint establishes the architecture and usable basic output. It does not close the remaining phases or justify full HTML/CSS fidelity claims.
+This checkpoint establishes the architecture and usable business-document output. It does not close the advanced-fidelity roadmap or justify full browser-equivalent HTML/CSS claims.
 
 ## End-to-End Pipeline
 
@@ -343,11 +343,8 @@ These are part of the roadmap, but they should not distort the dependency order 
 | Legacy PDF encryption output | Add a modern standard-security writer, prefer AES-256, make modern encryption the default, and keep RC4 only as an explicit legacy option if required | Before calling direct HTML-to-PDF production-ready for sensitive documents; can be implemented in parallel with layout |
 | Incomplete first-party complex text shaping | Extend the managed core-Arabic contextual-form path to explicit bidi controls, broader joining alphabets, mark positioning, and required OpenType behavior without native or external packages | Before Phase 3 exits and before broad multilingual fidelity claims |
 | Buffered HTML-to-PDF orchestration | Async resource resolution and cancellation are implemented; keep final serialization explicitly documented as buffered until incremental PDF writing exists | Before claiming streaming output |
-| Oversized HTML resource/style files | Split by semantic responsibility and retain one shared CSS/resource engine | Before substantial renderer code is added |
 | Incomplete computed-style surface | Extend the existing style engine with typed computed values and diagnostics | Before layout phases can be correct |
 | Partial end-to-end visual proof | The ten-case market corpus now proves paged/continuous geometry, logical text, links, diagnostics, PNG/SVG production, and searchable PDF readback; commit approved pixel/byte baselines next | Before premium fidelity claims or release |
-| AOT/trimming proof is analyzer-heavy | Add executable NativeAOT smoke coverage where the actual dependency graph permits it | Before publishing AOT guarantees |
-| Support information is scattered | Generate the public matrix from profile contracts, diagnostics, and passing corpus cases | Before declaring the feature generally available |
 
 ## Guardrails
 
