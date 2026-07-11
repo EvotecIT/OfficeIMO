@@ -218,8 +218,8 @@ Text shaping must be implemented with first-party managed code and existing Offi
 - [x] Define the paged and continuous render-option contracts.
 - [x] Define the initial shared rendered-document, page, shape, image, text-run, and link contracts.
 - [ ] Add semantic-node, glyph, clipping, transform, and advanced paint contracts as their formatting phases land.
-- [ ] Build a representative corpus: invoices, statements, reports, letters, certificates, catalog pages, dashboards, multilingual documents, and hostile-resource cases.
-- [ ] Record expected geometry, page counts, extracted text, links, diagnostics, and visual baselines.
+- [x] Build a representative corpus: invoices, statements, reports, letters, certificates, catalog pages, dashboards, multilingual documents, and hostile-resource cases. The test-owned corpus covers every published `HtmlMarketScenarioCatalog` id so public examples cannot drift away from end-to-end evidence.
+- [ ] Record expected geometry, page counts, extracted text, links, diagnostics, and visual baselines. The corpus now records mode, surface width, page count, minimum scene/headings, logical text, links, diagnostics, PNG signature, SVG text, and searchable-PDF readback for ten cases; approved pixel/byte visual baselines remain.
 - [ ] Define performance and memory budgets by document class.
 
 Exit gate: the public behavior and proof corpus exist before implementation details become permanent APIs.
@@ -337,7 +337,7 @@ These are part of the roadmap, but they should not distort the dependency order 
 | Buffered HTML-to-PDF orchestration | Async resource resolution and cancellation are implemented; keep final serialization explicitly documented as buffered until incremental PDF writing exists | Before claiming streaming output |
 | Oversized HTML resource/style files | Split by semantic responsibility and retain one shared CSS/resource engine | Before substantial renderer code is added |
 | Incomplete computed-style surface | Extend the existing style engine with typed computed values and diagnostics | Before layout phases can be correct |
-| No active end-to-end visual proof | Commit real paged and continuous baselines plus geometry/text assertions | Before fidelity claims or release |
+| Partial end-to-end visual proof | The ten-case market corpus now proves paged/continuous geometry, logical text, links, diagnostics, PNG/SVG production, and searchable PDF readback; commit approved pixel/byte baselines next | Before premium fidelity claims or release |
 | AOT/trimming proof is analyzer-heavy | Add executable NativeAOT smoke coverage where the actual dependency graph permits it | Before publishing AOT guarantees |
 | Support information is scattered | Generate the public matrix from profile contracts, diagnostics, and passing corpus cases | Before declaring the feature generally available |
 
