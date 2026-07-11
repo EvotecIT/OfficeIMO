@@ -101,6 +101,8 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal("Logical Heading", heading.Text);
         Assert.Equal(1, heading.Level);
         Assert.Equal(PdfLogicalElementKind.Heading, heading.Line.Kind);
+        Assert.InRange(heading.Confidence, 0D, 1D);
+        Assert.NotEmpty(heading.Evidence);
         Assert.Same(heading, Assert.Single(logical.Headings));
         Assert.Contains(page.TextBlocks, block => Normalize(block.Text).Contains("Logicalreadbackmarker", StringComparison.Ordinal));
         Assert.Contains(logical.TextBlocks, block => Normalize(block.Text).Contains("Logicalreadbackmarker", StringComparison.Ordinal));
@@ -112,12 +114,16 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(1, listItem.Level);
         Assert.NotEmpty(listItem.Marker);
         Assert.Equal(PdfLogicalElementKind.ListItem, listItem.Line.Kind);
+        Assert.InRange(listItem.Confidence, 0D, 1D);
+        Assert.NotEmpty(listItem.Evidence);
         Assert.Same(listItem, Assert.Single(logical.ListItems));
         Assert.Contains(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Logicalreadbackmarker", StringComparison.Ordinal));
         Assert.Contains(logical.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Logicalreadbackmarker", StringComparison.Ordinal));
         Assert.DoesNotContain(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("A-100", StringComparison.Ordinal));
 
         PdfLogicalTable table = Assert.Single(page.Tables, item => item.Rows.Count >= 3 && item.Columns.Count >= 3);
+        Assert.InRange(table.Confidence, 0D, 1D);
+        Assert.NotEmpty(table.Evidence);
         Assert.Same(table, Assert.Single(logical.Tables, item => item.Rows.Count >= 3 && item.Columns.Count >= 3));
         Assert.Contains(table.Rows, row => row.Count >= 3 &&
             Normalize(row[0]) == "A-100" &&

@@ -42,6 +42,15 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         Columns = columns;
         Rows = rows;
         Cells = cells;
+        int expectedCells = rows.Count * columns.Count;
+        int filledCells = rows.Sum(static row => row.Count(static cell => !string.IsNullOrWhiteSpace(cell)));
+        double completeness = expectedCells == 0 ? 0D : (double)filledCells / expectedCells;
+        Confidence = PdfInference.Clamp((columns.Count > 1 ? 0.45D : 0.2D) + (completeness * 0.45D) + (yTop > yBottom ? 0.1D : 0D));
+        Evidence = new[] {
+            new PdfInferenceEvidence("table.detection-kind", "The table was produced by the " + kind + " detector.", 0.5D),
+            new PdfInferenceEvidence("table.cell-completeness", "Filled-cell completeness is " + completeness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (completeness * 2D) - 1D),
+            new PdfInferenceEvidence("table.column-geometry", columns.Count > 1 ? "Multiple column boundaries were detected." : "Fewer than two column boundaries were detected.", columns.Count > 1 ? 0.7D : -0.5D)
+        };
     }
 
     /// <inheritdoc />
@@ -67,6 +76,10 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
 
     /// <summary>Extracted table cells with row and column indexes.</summary>
     public IReadOnlyList<PdfLogicalTableCell> Cells { get; }
+    /// <summary>Normalized table-detection confidence.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting the table detection.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
     internal static PdfLogicalTable From(int pageNumber, StructuredTable table) {
         var columns = new List<PdfLogicalTableColumn>(table.Columns.Count);

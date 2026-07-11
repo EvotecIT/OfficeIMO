@@ -32,6 +32,7 @@ public sealed class PdfLogicalTableDiagnostics {
         YTop = yTop;
         YBottom = yBottom;
         HasGeometry = hasGeometry;
+        Evidence = BuildEvidence(DetectionKind, schemaConfidence, cellCompleteness, columnGeometryConfidence);
     }
 
     /// <summary>Detection heuristic that produced the source logical table.</summary>
@@ -81,6 +82,8 @@ public sealed class PdfLogicalTableDiagnostics {
 
     /// <summary>True when table and column coordinates were available.</summary>
     public bool HasGeometry { get; }
+    /// <summary>Stable diagnostic evidence behind the component confidence scores.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
     internal static PdfLogicalTableDiagnostics Create(PdfLogicalTable table, PdfLogicalTableStructure structure) {
         int sourceRowCount = table.Rows.Count;
@@ -182,4 +185,11 @@ public sealed class PdfLogicalTableDiagnostics {
 
         return value >= 1D ? 1D : value;
     }
+
+    private static PdfInferenceEvidence[] BuildEvidence(string detectionKind, double schemaConfidence, double cellCompleteness, double geometryConfidence) => new[] {
+        new PdfInferenceEvidence("table.detection-kind", "The table was produced by the " + detectionKind + " detector.", 0.5D),
+        new PdfInferenceEvidence("table.schema-confidence", "Schema confidence is " + schemaConfidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (schemaConfidence * 2D) - 1D),
+        new PdfInferenceEvidence("table.cell-completeness", "Cell completeness is " + cellCompleteness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (cellCompleteness * 2D) - 1D),
+        new PdfInferenceEvidence("table.geometry-confidence", "Column geometry confidence is " + geometryConfidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (geometryConfidence * 2D) - 1D)
+    };
 }

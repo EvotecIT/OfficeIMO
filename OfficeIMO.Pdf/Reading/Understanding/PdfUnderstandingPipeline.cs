@@ -74,9 +74,24 @@ public sealed class PdfUnderstandingPipeline {
         trace.Add(new PdfUnderstandingStageTrace("page-segmentation", _pageSegmentation.GetType(), lines.Count, regions.Count));
         IReadOnlyList<PdfUnderstandingRegion> ordered = NotNull(_readingOrder.Order(context, regions), nameof(IPdfReadingOrderStage));
         trace.Add(new PdfUnderstandingStageTrace("reading-order", _readingOrder.GetType(), regions.Count, ordered.Count));
+        IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = BuildReadingOrderEvidence(ordered, _readingOrder.GetType());
         IReadOnlyList<PdfUnderstandingSemanticElement> elements = NotNull(_semanticClassification.Classify(context, ordered), nameof(IPdfSemanticClassificationStage));
         trace.Add(new PdfUnderstandingStageTrace("semantic-classification", _semanticClassification.GetType(), ordered.Count, elements.Count));
-        return new PdfUnderstandingPageResult(pageNumber, runs, words, lines, regions, ordered, elements, trace.AsReadOnly());
+        return new PdfUnderstandingPageResult(pageNumber, runs, words, lines, regions, ordered, readingOrderEvidence, elements, trace.AsReadOnly());
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {
+        var result = new PdfReadingOrderEvidence[ordered.Count];
+        for (int i = 0; i < ordered.Count; i++) {
+            bool geometryConsistent = i == 0 || ordered[i - 1].YTop >= ordered[i].YTop || ordered[i - 1].XStart <= ordered[i].XStart;
+            double confidence = PdfInference.Clamp((ordered[i].Confidence * 0.8D) + (geometryConsistent ? 0.2D : 0D));
+            var evidence = new[] {
+                new PdfInferenceEvidence("reading-order.provider", "Reading order was produced by " + providerType.FullName + ".", 0.5D),
+                new PdfInferenceEvidence(geometryConsistent ? "reading-order.geometry-consistent" : "reading-order.geometry-conflict", geometryConsistent ? "The position is consistent with top-to-bottom, left-to-right geometry." : "The position conflicts with simple top-to-bottom, left-to-right geometry.", geometryConsistent ? 0.5D : -0.5D)
+            };
+            result[i] = new PdfReadingOrderEvidence(i, ordered[i], confidence, evidence);
+        }
+        return Array.AsReadOnly(result);
     }
 
     private static IReadOnlyList<T> NotNull<T>(IReadOnlyList<T>? value, string stage) => value ?? throw new InvalidOperationException(stage + " returned null.");
@@ -109,7 +124,11 @@ internal static class PdfFastUnderstandingStages {
                     double perCharacter = run.Advance > 0D && text.Length > 0 ? run.Advance / text.Length : run.FontSize * 0.55D;
                     double xStart = run.X + (start * perCharacter);
                     double xEnd = xStart + ((cursor - start) * perCharacter);
-                    words.Add(new PdfUnderstandingWord(text.Substring(start, cursor - start), xStart, xEnd, run.Y, run.FontSize, run.RotationDegrees, new[] { run }));
+                    bool splitRun = start > 0 || cursor < text.Length;
+                    words.Add(new PdfUnderstandingWord(
+                        text.Substring(start, cursor - start), xStart, xEnd, run.Y, run.FontSize, run.RotationDegrees, new[] { run },
+                        splitRun ? 0.85D : 0.97D,
+                        new[] { new PdfInferenceEvidence(splitRun ? "word.whitespace-split" : "word.single-run", splitRun ? "The word was split from a decoded run at whitespace." : "The decoded run maps directly to one word.", splitRun ? 0.6D : 0.9D) }));
                 }
             }
             return words.Count == 0 ? Array.Empty<PdfUnderstandingWord>() : words.AsReadOnly();
@@ -132,9 +151,20 @@ internal static class PdfFastUnderstandingStages {
                 if (match == null) { match = new List<PdfUnderstandingWord>(); groups.Add(match); }
                 match.Add(word);
             }
-            var lines = groups.Select(static group => new PdfUnderstandingLine(group.OrderBy(static word => word.XStart).ToArray())).ToList();
+            var lines = groups.Select(CreateLine).ToList();
             lines.Sort(static (left, right) => { int y = right.BaselineY.CompareTo(left.BaselineY); return y != 0 ? y : left.XStart.CompareTo(right.XStart); });
             return lines.Count == 0 ? Array.Empty<PdfUnderstandingLine>() : lines.AsReadOnly();
+        }
+
+        private static PdfUnderstandingLine CreateLine(List<PdfUnderstandingWord> group) {
+            PdfUnderstandingWord[] words = group.OrderBy(static word => word.XStart).ToArray();
+            double baselineSpread = words.Max(static word => word.BaselineY) - words.Min(static word => word.BaselineY);
+            double rotationSpread = words.Max(static word => word.RotationDegrees) - words.Min(static word => word.RotationDegrees);
+            double confidence = PdfInference.Clamp(words.Average(static word => word.Confidence) - Math.Min(0.35D, baselineSpread * 0.05D) - Math.Min(0.35D, rotationSpread * 0.05D));
+            return new PdfUnderstandingLine(words, confidence, new[] {
+                new PdfInferenceEvidence("line.baseline-spread", "Grouped-word baseline spread is " + baselineSpread.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " points.", baselineSpread <= 1D ? 0.8D : -Math.Min(1D, baselineSpread / 10D)),
+                new PdfInferenceEvidence("line.rotation-spread", "Grouped-word rotation spread is " + rotationSpread.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " degrees.", rotationSpread <= 1D ? 0.8D : -Math.Min(1D, rotationSpread / 10D))
+            });
         }
     }
 
@@ -152,13 +182,23 @@ internal static class PdfFastUnderstandingStages {
                     double smallerFont = Math.Min(previous.FontSize, line.FontSize);
                     double fontRatio = smallerFont > 0D ? Math.Max(previous.FontSize, line.FontSize) / smallerFont : 1D;
                     if (gap < 0D || gap > maximumGap || !overlaps || fontRatio > 1.15D || Math.Abs(previous.RotationDegrees - line.RotationDegrees) > 2D) {
-                        regions.Add(new PdfUnderstandingRegion(current.ToArray())); current.Clear();
+                        regions.Add(CreateRegion(current)); current.Clear();
                     }
                 }
                 current.Add(line);
             }
-            if (current.Count > 0) regions.Add(new PdfUnderstandingRegion(current.ToArray()));
+            if (current.Count > 0) regions.Add(CreateRegion(current));
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
+        }
+
+        private static PdfUnderstandingRegion CreateRegion(List<PdfUnderstandingLine> lines) {
+            double largestGap = 0D;
+            for (int i = 1; i < lines.Count; i++) largestGap = Math.Max(largestGap, lines[i - 1].BaselineY - lines[i].BaselineY);
+            double confidence = PdfInference.Clamp(lines.Average(static line => line.Confidence) - Math.Min(0.25D, largestGap / 100D));
+            return new PdfUnderstandingRegion(lines.ToArray(), confidence, new[] {
+                new PdfInferenceEvidence("region.vertical-continuity", "Largest adjacent baseline gap is " + largestGap.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " points.", largestGap <= 24D ? 0.7D : -Math.Min(1D, largestGap / 100D)),
+                new PdfInferenceEvidence("region.line-count", "The region contains " + lines.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " line(s).", lines.Count > 1 ? 0.6D : 0.2D)
+            });
         }
     }
 
@@ -176,19 +216,20 @@ internal static class PdfFastUnderstandingStages {
             var result = new List<PdfUnderstandingSemanticElement>(orderedRegions.Count);
             for (int i = 0; i < orderedRegions.Count; i++) {
                 PdfUnderstandingRegion region = orderedRegions[i];
-                PdfUnderstandingSemanticKind kind = ClassifyRegion(context, region, median);
-                result.Add(new PdfUnderstandingSemanticElement(region, kind));
+                (PdfUnderstandingSemanticKind kind, double confidence, PdfInferenceEvidence evidence) = ClassifyRegion(context, region, median);
+                result.Add(new PdfUnderstandingSemanticElement(region, kind, confidence, new[] { evidence }));
             }
             return result.AsReadOnly();
         }
 
-        private static PdfUnderstandingSemanticKind ClassifyRegion(PdfUnderstandingPageContext context, PdfUnderstandingRegion region, double median) {
-            if (context.LayoutOptions.IgnoreHeaderHeight > 0D && region.YTop >= context.Height - context.LayoutOptions.IgnoreHeaderHeight) return PdfUnderstandingSemanticKind.Header;
-            if (context.LayoutOptions.IgnoreFooterHeight > 0D && region.YBottom <= context.LayoutOptions.IgnoreFooterHeight) return PdfUnderstandingSemanticKind.Footer;
+        private static (PdfUnderstandingSemanticKind Kind, double Confidence, PdfInferenceEvidence Evidence) ClassifyRegion(PdfUnderstandingPageContext context, PdfUnderstandingRegion region, double median) {
+            if (context.LayoutOptions.IgnoreHeaderHeight > 0D && region.YTop >= context.Height - context.LayoutOptions.IgnoreHeaderHeight) return (PdfUnderstandingSemanticKind.Header, 0.9D, new PdfInferenceEvidence("semantic.header-band", "The region falls inside the configured header band.", 0.9D));
+            if (context.LayoutOptions.IgnoreFooterHeight > 0D && region.YBottom <= context.LayoutOptions.IgnoreFooterHeight) return (PdfUnderstandingSemanticKind.Footer, 0.9D, new PdfInferenceEvidence("semantic.footer-band", "The region falls inside the configured footer band.", 0.9D));
             string text = region.Text.TrimStart();
-            if ((text.Length > 0 && (text[0] == '-' || text[0] == '*' || text[0] == '•')) || StartsWithNumberedMarker(text)) return PdfUnderstandingSemanticKind.ListItem;
+            if ((text.Length > 0 && (text[0] == '-' || text[0] == '*' || text[0] == '•')) || StartsWithNumberedMarker(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, new PdfInferenceEvidence("semantic.list-marker", "The region begins with a recognized bullet or numbered marker.", 0.9D));
             double largest = region.Lines.Count == 0 ? 0D : region.Lines.Max(static line => line.FontSize);
-            return median > 0D && largest >= median * 1.2D ? PdfUnderstandingSemanticKind.Heading : PdfUnderstandingSemanticKind.Paragraph;
+            if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, PdfInference.Clamp(0.65D + Math.Min(0.3D, (largest / median - 1.2D) * 0.5D)), new PdfInferenceEvidence("semantic.font-size-heading", "The largest font is materially larger than the page median.", 0.8D));
+            return (PdfUnderstandingSemanticKind.Paragraph, 0.7D, new PdfInferenceEvidence("semantic.body-font", "The region uses the page's body-font range and has no stronger semantic marker.", 0.5D));
         }
 
         private static bool StartsWithNumberedMarker(string text) {

@@ -239,7 +239,7 @@ second parser or renderer.
   L-shaped regions, tables, captions, headers/footers, footnotes, and mixed
   drawing/text layouts. Keep the current lightweight heuristic as the fast
   default.
-- [ ] Add confidence and diagnostic evidence to words, lines, regions, tables,
+- [x] Add confidence and diagnostic evidence to words, lines, regions, tables,
   headings, lists, and inferred reading order.
 - [x] Export the same structured model to stable JSON, Markdown, ALTO XML, hOCR,
   and PAGE XML without duplicating extraction algorithms in each exporter.

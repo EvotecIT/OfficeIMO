@@ -46,9 +46,9 @@ public sealed class PdfUnderstandingPageContext {
 /// <summary>One decoded word candidate with source-run traceability.</summary>
 public sealed class PdfUnderstandingWord {
     /// <summary>Creates a positioned word artifact for a custom grouping stage.</summary>
-    public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns) {
+    public PdfUnderstandingWord(string text, double xStart, double xEnd, double baselineY, double fontSize, double rotationDegrees, IReadOnlyList<PdfTextSpan> sourceRuns, double confidence = 1D, IEnumerable<PdfInferenceEvidence>? evidence = null) {
         Guard.NotNull(text, nameof(text)); Guard.NotNull(sourceRuns, nameof(sourceRuns));
-        Text = text; XStart = xStart; XEnd = xEnd; BaselineY = baselineY; FontSize = fontSize; RotationDegrees = rotationDegrees; SourceRuns = sourceRuns;
+        Text = text; XStart = xStart; XEnd = xEnd; BaselineY = baselineY; FontSize = fontSize; RotationDegrees = rotationDegrees; SourceRuns = sourceRuns; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence);
     }
     /// <summary>Decoded word text.</summary>
     public string Text { get; }
@@ -64,12 +64,16 @@ public sealed class PdfUnderstandingWord {
     public double RotationDegrees { get; }
     /// <summary>Decoded source runs that produced this word.</summary>
     public IReadOnlyList<PdfTextSpan> SourceRuns { get; }
+    /// <summary>Normalized grouping confidence from 0 to 1.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting this word grouping.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 }
 
 /// <summary>One grouped text line.</summary>
 public sealed class PdfUnderstandingLine {
     /// <summary>Creates a line from words in local reading order.</summary>
-    public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words) {
+    public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null) {
         Guard.NotNull(words, nameof(words));
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
         Words = words;
@@ -79,6 +83,8 @@ public sealed class PdfUnderstandingLine {
         BaselineY = words.Average(static word => word.BaselineY);
         FontSize = words.Max(static word => word.FontSize);
         RotationDegrees = words.Average(static word => word.RotationDegrees);
+        Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
+        Evidence = PdfInference.Snapshot(evidence);
     }
     /// <summary>Words in line order.</summary>
     public IReadOnlyList<PdfUnderstandingWord> Words { get; }
@@ -94,12 +100,16 @@ public sealed class PdfUnderstandingLine {
     public double FontSize { get; }
     /// <summary>Representative baseline rotation.</summary>
     public double RotationDegrees { get; }
+    /// <summary>Normalized line-grouping confidence from 0 to 1.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting this line grouping.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 }
 
 /// <summary>One page-segmentation region containing related lines.</summary>
 public sealed class PdfUnderstandingRegion {
     /// <summary>Creates a segmented region from lines in local reading order.</summary>
-    public PdfUnderstandingRegion(IReadOnlyList<PdfUnderstandingLine> lines) {
+    public PdfUnderstandingRegion(IReadOnlyList<PdfUnderstandingLine> lines, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null) {
         Guard.NotNull(lines, nameof(lines));
         if (lines.Count == 0) throw new ArgumentException("A region requires at least one line.", nameof(lines));
         Lines = lines;
@@ -108,6 +118,8 @@ public sealed class PdfUnderstandingRegion {
         XEnd = lines.Max(static line => line.XEnd);
         YTop = lines.Max(static line => line.BaselineY);
         YBottom = lines.Min(static line => line.BaselineY);
+        Confidence = PdfInference.Clamp(confidence ?? lines.Average(static line => line.Confidence));
+        Evidence = PdfInference.Snapshot(evidence);
     }
     /// <summary>Lines in local region order.</summary>
     public IReadOnlyList<PdfUnderstandingLine> Lines { get; }
@@ -121,16 +133,24 @@ public sealed class PdfUnderstandingRegion {
     public double YTop { get; }
     /// <summary>Bottom baseline.</summary>
     public double YBottom { get; }
+    /// <summary>Normalized segmentation confidence from 0 to 1.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting this region segmentation.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 }
 
 /// <summary>Semantic classification of one ordered region.</summary>
 public sealed class PdfUnderstandingSemanticElement {
     /// <summary>Creates a semantic classification for a region.</summary>
-    public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind) { Guard.NotNull(region, nameof(region)); Region = region; Kind = kind; }
+    public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind, double confidence = 0.5D, IEnumerable<PdfInferenceEvidence>? evidence = null) { Guard.NotNull(region, nameof(region)); Region = region; Kind = kind; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); }
     /// <summary>Classified region.</summary>
     public PdfUnderstandingRegion Region { get; }
     /// <summary>Semantic kind selected by the active stage.</summary>
     public PdfUnderstandingSemanticKind Kind { get; }
+    /// <summary>Normalized classification confidence from 0 to 1.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting the semantic classification.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 }
 
 /// <summary>Trace record proving which stage implementation produced an artifact set.</summary>
@@ -148,8 +168,8 @@ public sealed class PdfUnderstandingStageTrace {
 
 /// <summary>All intermediate and final artifacts for one page.</summary>
 public sealed class PdfUnderstandingPageResult {
-    internal PdfUnderstandingPageResult(int pageNumber, IReadOnlyList<PdfTextSpan> runs, IReadOnlyList<PdfUnderstandingWord> words, IReadOnlyList<PdfUnderstandingLine> lines, IReadOnlyList<PdfUnderstandingRegion> regions, IReadOnlyList<PdfUnderstandingRegion> readingOrder, IReadOnlyList<PdfUnderstandingSemanticElement> elements, IReadOnlyList<PdfUnderstandingStageTrace> trace) {
-        PageNumber = pageNumber; DecodedRuns = runs; Words = words; Lines = lines; Regions = regions; ReadingOrder = readingOrder; Elements = elements; Trace = trace;
+    internal PdfUnderstandingPageResult(int pageNumber, IReadOnlyList<PdfTextSpan> runs, IReadOnlyList<PdfUnderstandingWord> words, IReadOnlyList<PdfUnderstandingLine> lines, IReadOnlyList<PdfUnderstandingRegion> regions, IReadOnlyList<PdfUnderstandingRegion> readingOrder, IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence, IReadOnlyList<PdfUnderstandingSemanticElement> elements, IReadOnlyList<PdfUnderstandingStageTrace> trace) {
+        PageNumber = pageNumber; DecodedRuns = runs; Words = words; Lines = lines; Regions = regions; ReadingOrder = readingOrder; ReadingOrderEvidence = readingOrderEvidence; Elements = elements; Trace = trace;
     }
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
@@ -163,6 +183,8 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingRegion> Regions { get; }
     /// <summary>Regions in inferred reading order.</summary>
     public IReadOnlyList<PdfUnderstandingRegion> ReadingOrder { get; }
+    /// <summary>Confidence and evidence for every inferred reading-order position.</summary>
+    public IReadOnlyList<PdfReadingOrderEvidence> ReadingOrderEvidence { get; }
     /// <summary>Semantically classified ordered regions.</summary>
     public IReadOnlyList<PdfUnderstandingSemanticElement> Elements { get; }
     /// <summary>Stage execution trace.</summary>
