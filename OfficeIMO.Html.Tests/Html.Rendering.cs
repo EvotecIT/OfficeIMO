@@ -856,6 +856,34 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderedOutputs_AreDeterministicForIdenticalResolvedInput() {
+        const string html = "<style>body{margin:0}.card{width:180px;padding:8px;border:2px solid #123456;background:linear-gradient(90deg,#ffffff,#ddeeff)}</style>"
+            + "<div class='card'><h2>StableMarker</h2><a href='https://example.test/report'>Report link</a></div>";
+        static HtmlImageExportOptions ImageOptions() => new HtmlImageExportOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(10D)
+        };
+        static HtmlPdfSaveOptions PdfOptions() {
+            HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+            options.RenderOptions!.PageSize = new OfficePageSize(4D, 3D);
+            options.RenderOptions.Margins = HtmlRenderMargins.All(12D);
+            return options;
+        }
+
+        byte[] firstPng = html.ToPng(ImageOptions());
+        byte[] secondPng = html.ToPng(ImageOptions());
+        string firstSvg = html.ToSvg(ImageOptions());
+        string secondSvg = html.ToSvg(ImageOptions());
+        byte[] firstPdf = html.SaveAsPdf(PdfOptions());
+        byte[] secondPdf = html.SaveAsPdf(PdfOptions());
+
+        Assert.Equal(firstPng, secondPng);
+        Assert.Equal(firstSvg, secondSvg);
+        Assert.Equal(firstPdf, secondPdf);
+        Assert.Contains("StableMarker", PdfCore.PdfReadDocument.Load(firstPdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_RenderedProfile_UsesSharedPagedLayoutAndPreservesTextAndLink() {
         const string linkUri = "https://example.test/direct-pdf";
         string html = """

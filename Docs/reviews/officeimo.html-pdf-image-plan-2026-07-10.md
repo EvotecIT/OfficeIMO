@@ -318,7 +318,7 @@ Exit gate: every accepted feature has corpus proof and every unimplemented featu
 
 ### Phase 10 - Hardening and release readiness
 
-- [ ] Add fuzz/hostile-input, resource-budget, timeout, cancellation, and deterministic-output tests.
+- [ ] Add fuzz/hostile-input, resource-budget, timeout, cancellation, and deterministic-output tests. Byte-identical PNG, SVG, and rendered-PDF output for identical fully resolved input/options is now protected across supported target frameworks; broader hostile corpus and fuzz coverage remain.
 - [x] Add an executable NativeAOT/trimming smoke that parses and lays out HTML, emits dependency-free SVG and PNG, creates rendered searchable PDF, reads the PDF marker back, and runs in the existing AOT/trim CI lane. The smoke has no package references; it consumes only the repository projects.
 - [ ] Benchmark parse, style, layout, paint, image export, and PDF export independently.
 - [ ] Publish a generated support matrix from profile contracts and diagnostic catalogs.
