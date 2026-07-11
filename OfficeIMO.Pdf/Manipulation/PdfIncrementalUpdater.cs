@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -72,36 +70,14 @@ public static partial class PdfIncrementalUpdater {
         };
 
         int newInfoObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        int size = newInfoObjectNumber + 1;
         byte[] infoObject = PdfObjectBytes.WrapIndirectObject(newInfoObjectNumber, PdfInfoDictionaryBuilder.Build(updated));
-
-        using var output = new MemoryStream(pdf.Length + infoObject.Length + 256);
-        output.Write(pdf, 0, pdf.Length);
-        if (pdf.Length == 0 || (pdf[pdf.Length - 1] != (byte)'\n' && pdf[pdf.Length - 1] != (byte)'\r')) {
-            output.WriteByte((byte)'\n');
-        }
-
-        long objectOffset = output.Position;
-        output.Write(infoObject, 0, infoObject.Length);
-        long xrefOffset = output.Position;
-
-        using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
-        writer.WriteLine("xref");
-        writer.WriteLine(newInfoObjectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-        writer.WriteLine(objectOffset.ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
-        writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
-            " /Info " + PdfSyntaxEscaper.IndirectReference(newInfoObjectNumber) +
-            " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
-            ReadTrailerIdEntry(trailerRaw) +
-            " >>");
-        writer.WriteLine("startxref");
-        writer.WriteLine(xrefOffset.ToString(CultureInfo.InvariantCulture));
-        writer.WriteLine("%%EOF");
-        writer.Flush();
-
-        return output.ToArray();
+        return PdfIncrementalObjectWriter.Append(
+            pdf,
+            objects,
+            security,
+            trailerRaw,
+            rawObjects: new[] { (newInfoObjectNumber, infoObject) },
+            infoObjectNumberOverride: newInfoObjectNumber);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF stream.</summary>
@@ -142,10 +118,6 @@ public static partial class PdfIncrementalUpdater {
         bool hasSignatureContent = security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange;
         if (security.HasUsageRights) {
             commonBlockers.Add("UsageRights");
-        }
-
-        if (security.HasXrefStreams) {
-            commonBlockers.Add("XrefStream");
         }
 
         if (!security.RootObjectNumber.HasValue) {
@@ -340,66 +312,4 @@ public static partial class PdfIncrementalUpdater {
             (fieldLock.LocksAllExceptListedFields && fieldLock.Fields.Count == 0));
     }
 
-    private static string ReadTrailerIdEntry(string trailerRaw) {
-        int nameIndex = IndexOfName(trailerRaw, "ID");
-        if (nameIndex < 0) {
-            return string.Empty;
-        }
-
-        int start = trailerRaw.IndexOf('[', nameIndex);
-        if (start < 0) {
-            return string.Empty;
-        }
-
-        int depth = 0;
-        for (int i = start; i < trailerRaw.Length; i++) {
-            if (trailerRaw[i] == '[') {
-                depth++;
-            } else if (trailerRaw[i] == ']') {
-                depth--;
-                if (depth == 0) {
-                    return " /ID " + trailerRaw.Substring(start, i - start + 1).Trim();
-                }
-            }
-        }
-
-        return string.Empty;
-    }
-
-    private static string BuildExistingTrailerReference(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
-        int generation = objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)
-            ? indirect.Generation
-            : 0;
-        return PdfSyntaxEscaper.IndirectReference(objectNumber, generation);
-    }
-
-    private static int IndexOfName(string value, string name) {
-        string token = "/" + name;
-        int index = 0;
-        while (index < value.Length) {
-            int found = value.IndexOf(token, index, StringComparison.Ordinal);
-            if (found < 0) {
-                return -1;
-            }
-
-            int after = found + token.Length;
-            if (after >= value.Length || IsDelimiter(value[after])) {
-                return found;
-            }
-
-            index = after;
-        }
-
-        return -1;
-    }
-
-    private static bool IsDelimiter(char value) =>
-        char.IsWhiteSpace(value) ||
-        value == '/' ||
-        value == '<' ||
-        value == '>' ||
-        value == '[' ||
-        value == ']' ||
-        value == '(' ||
-        value == ')';
 }

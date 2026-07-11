@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfExternalDocumentCompatibilityTests {
 
-    private static byte[] BuildXrefStreamPdfWithTrailingStaleDuplicatePage() {
+    internal static byte[] BuildXrefStreamPdfWithTrailingStaleDuplicatePage() {
         using var stream = new MemoryStream();
         var offsets = new Dictionary<int, int>();
 

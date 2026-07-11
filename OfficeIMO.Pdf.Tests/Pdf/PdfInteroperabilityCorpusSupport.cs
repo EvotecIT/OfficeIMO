@@ -47,13 +47,13 @@ internal static class PdfInteroperabilityCorpusSupport {
             new PdfInteroperabilityCorpusCase(
                 "xref-and-object-streams",
                 PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf(),
-                PdfMutationExecutionMode.Blocked,
+                PdfMutationExecutionMode.AppendOnly,
                 null,
                 "xref-stream", "object-stream", "incremental"),
             new PdfInteroperabilityCorpusCase(
                 "hybrid-reference",
                 PdfExternalDocumentCompatibilityTests.BuildHybridClassicXrefPdfWithXRefStmAndTrailingStaleDuplicatePage(),
-                PdfMutationExecutionMode.Blocked,
+                PdfMutationExecutionMode.AppendOnly,
                 null,
                 "classic-xref", "xref-stream", "hybrid-reference"),
             new PdfInteroperabilityCorpusCase(

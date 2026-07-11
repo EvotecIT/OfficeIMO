@@ -283,8 +283,7 @@ public sealed class PdfDocumentSecurityInfo {
         HasEncryption ||
         HasSignatures ||
         HasDocMDPPermissions ||
-        HasUsageRights ||
-        HasXrefStreams;
+        HasUsageRights;
 
     /// <summary>True when OfficeIMO.Pdf should avoid safe full-rewrite mutation for this input.</summary>
     public bool BlocksOfficeIMOFullRewriteMutation =>

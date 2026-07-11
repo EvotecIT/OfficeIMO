@@ -1098,62 +1098,12 @@ public static partial class PdfIncrementalUpdater {
         PdfDocumentSecurityInfo security,
         string trailerRaw,
         HashSet<int> changedObjectNumbers) {
-        if (!security.RootObjectNumber.HasValue) {
-            throw new InvalidOperationException("PDF root catalog reference is required for an incremental update.");
-        }
-
-        if (!security.LastStartXrefOffset.HasValue) {
-            throw new InvalidOperationException("PDF startxref offset is required for an incremental update.");
-        }
-
-        var identityMap = objects.Keys.ToDictionary(static objectNumber => objectNumber, static objectNumber => objectNumber);
-        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects, preserveReferenceGenerations: true);
-        int[] objectNumbers = changedObjectNumbers.OrderBy(static objectNumber => objectNumber).ToArray();
-        var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
-        foreach (int objectNumber in objectNumbers) {
-            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)) {
-                throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was changed but could not be found.");
-            }
-
-            serialized.Add((objectNumber, indirect.Generation, PdfObjectBytes.WrapIndirectObject(objectNumber, indirect.Generation, PdfPageExtractor.SerializeObject(indirect.Value, context))));
-        }
-
-        using var output = new MemoryStream(pdf.Length + serialized.Sum(static item => item.Bytes.Length) + (serialized.Count * 32) + 256);
-        output.Write(pdf, 0, pdf.Length);
-        if (pdf.Length == 0 || (pdf[pdf.Length - 1] != (byte)'\n' && pdf[pdf.Length - 1] != (byte)'\r')) {
-            output.WriteByte((byte)'\n');
-        }
-
-        var offsets = new Dictionary<int, long>();
-        foreach (var item in serialized) {
-            offsets[item.ObjectNumber] = output.Position;
-            output.Write(item.Bytes, 0, item.Bytes.Length);
-        }
-
-        long xrefOffset = output.Position;
-        int size = Math.Max(objects.Keys.Max(), objectNumbers.Max()) + 1;
-
-        using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
-        writer.WriteLine("xref");
-        foreach (int objectNumber in objectNumbers) {
-            int generation = serialized.First(item => item.ObjectNumber == objectNumber).Generation;
-            writer.WriteLine(objectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " " + generation.ToString("00000", CultureInfo.InvariantCulture) + " n ");
-        }
-
-        writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
-            (security.InfoObjectNumber.HasValue ? " /Info " + BuildExistingTrailerReference(objects, security.InfoObjectNumber.Value) : string.Empty) +
-            " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
-            ReadTrailerIdEntry(trailerRaw) +
-            " >>");
-        writer.WriteLine("startxref");
-        writer.WriteLine(xrefOffset.ToString(CultureInfo.InvariantCulture));
-        writer.WriteLine("%%EOF");
-        writer.Flush();
-
-        return output.ToArray();
+        return PdfIncrementalObjectWriter.Append(
+            pdf,
+            objects,
+            security,
+            trailerRaw,
+            changedObjectNumbers);
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) =>
