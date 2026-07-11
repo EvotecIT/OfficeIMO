@@ -27,7 +27,20 @@ public sealed class PdfPageCanvas {
 
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+        return AddText(runs, PdfCanvasTextStructureRole.Paragraph, x, y, width, height, defaultColor, align, fontSize, lineHeight);
+    }
+
+    /// <summary>Adds tagged rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
+    public PdfPageCanvas Text(IEnumerable<TextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+        return AddText(runs, structureRole, x, y, width, height, defaultColor, align, fontSize, lineHeight);
+    }
+
+    private PdfPageCanvas AddText(IEnumerable<TextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
         Guard.NotNull(runs, nameof(runs));
+        if ((int)structureRole < (int)PdfCanvasTextStructureRole.Paragraph
+            || (int)structureRole > (int)PdfCanvasTextStructureRole.Span) {
+            throw new ArgumentOutOfRangeException(nameof(structureRole));
+        }
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
@@ -46,7 +59,7 @@ public sealed class PdfPageCanvas {
             throw new ArgumentException("Canvas text requires at least one text run.", nameof(runs));
         }
 
-        _items.Add(new PdfCanvasTextItem(snapshot, x, y, width, height, defaultColor, align, fontSize, lineHeight));
+        _items.Add(new PdfCanvasTextItem(snapshot, x, y, width, height, defaultColor, align, fontSize, lineHeight, structureRole));
         return this;
     }
 
@@ -386,7 +399,7 @@ internal abstract class PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTextItem : PdfCanvasItem {
-    public PdfCanvasTextItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight)
+    public PdfCanvasTextItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight, PdfCanvasTextStructureRole structureRole)
         : base(x, y) {
         Runs = runs;
         Width = width;
@@ -395,6 +408,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
         Align = align;
         FontSize = fontSize;
         LineHeight = lineHeight;
+        StructureRole = structureRole;
     }
 
     public IReadOnlyList<TextRun> Runs { get; }
@@ -404,6 +418,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public PdfAlign Align { get; }
     public double? FontSize { get; }
     public double? LineHeight { get; }
+    public PdfCanvasTextStructureRole StructureRole { get; }
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {

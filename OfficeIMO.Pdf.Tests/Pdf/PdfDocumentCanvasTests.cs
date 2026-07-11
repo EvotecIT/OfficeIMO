@@ -38,6 +38,33 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasText_EmitsTypedHeadingStructureWhenTagged() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Text(
+                new[] { TextRun.Normal("Canvas semantic heading") },
+                PdfCanvasTextStructureRole.Heading2,
+                24,
+                20,
+                180,
+                24,
+                fontSize: 12))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.Contains("Document", tagged.StructureTypes);
+        Assert.Contains("H2", tagged.StructureTypes);
+        Assert.True(tagged.MarkedContentReferenceCount >= 1);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Text(
+            new[] { TextRun.Normal("Invalid") },
+            (PdfCanvasTextStructureRole)99,
+            0,
+            0,
+            10,
+            10));
+    }
+
+    [Fact]
     public void CanvasShape_RendersRectangleAtFixedTopLeftCoordinates() {
         var shape = OfficeShape.Rectangle(60, 20);
         shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();

@@ -884,6 +884,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_RenderedProfile_MapsHeadingsAndParagraphsToTaggedStructure() {
+        byte[] pdf = "<h1>SemanticHeading</h1><p>Semantic paragraph.</p>"
+            .SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.Contains("Document", tagged.StructureTypes);
+        Assert.Contains("H1", tagged.StructureTypes);
+        Assert.Contains("P", tagged.StructureTypes);
+        Assert.True(tagged.MarkedContentReferenceCount >= 2);
+        Assert.Contains("SemanticHeading", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_RenderedProfile_UsesSharedPagedLayoutAndPreservesTextAndLink() {
         const string linkUri = "https://example.test/direct-pdf";
         string html = """

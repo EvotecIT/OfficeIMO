@@ -58,7 +58,8 @@ internal static partial class PdfWriter {
 
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
-            int? markedContentId = RegisterTextStructureElement("P");
+            string structureType = MapCanvasTextStructureType(item.StructureRole);
+            int? markedContentId = RegisterTextStructureElement(structureType);
             WriteClippedRichParagraph(
                 sb,
                 block,
@@ -75,12 +76,23 @@ internal static partial class PdfWriter {
                 item.Height,
                 item.X,
                 item.Width,
-                structureType: "P",
+                structureType: structureType,
                 markedContentId: markedContentId,
                 structurePage: currentPage);
             MarkRichFonts(item.Runs);
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
+        }
+
+        private static string MapCanvasTextStructureType(PdfCanvasTextStructureRole role) {
+            if (role == PdfCanvasTextStructureRole.Heading1) return "H1";
+            if (role == PdfCanvasTextStructureRole.Heading2) return "H2";
+            if (role == PdfCanvasTextStructureRole.Heading3) return "H3";
+            if (role == PdfCanvasTextStructureRole.Heading4) return "H4";
+            if (role == PdfCanvasTextStructureRole.Heading5) return "H5";
+            if (role == PdfCanvasTextStructureRole.Heading6) return "H6";
+            if (role == PdfCanvasTextStructureRole.Span) return "Span";
+            return "P";
         }
 
         private void RenderCanvasTextBox(PdfCanvasTextBoxItem item) {

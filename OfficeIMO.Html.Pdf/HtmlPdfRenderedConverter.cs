@@ -33,7 +33,8 @@ internal static class HtmlPdfRenderedConverter {
         cancellationToken.ThrowIfCancellationRequested();
         options.RenderDiagnostics = rendered.Diagnostics.Clone();
 
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create();
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create()
+            .TaggedPdfCatalogMarkers();
         if (options.RenderedFontFamily != null) {
             pdf.UseFontFamily(options.RenderedFontFamily);
         }
@@ -185,6 +186,7 @@ internal static class HtmlPdfRenderedConverter {
             linkContents: link == null ? null : visual.Text);
         canvas.Text(
             new[] { run },
+            MapStructureRole(visual.SemanticRole),
             visual.X * PointsPerCssPixel,
             visual.Y * PointsPerCssPixel,
             visual.Width * PointsPerCssPixel,
@@ -193,6 +195,16 @@ internal static class HtmlPdfRenderedConverter {
             MapAlignment(visual.Alignment),
             visual.Font.Size * PointsPerCssPixel,
             visual.LineHeight * PointsPerCssPixel);
+    }
+
+    private static PdfCore.PdfCanvasTextStructureRole MapStructureRole(string? semanticRole) {
+        if (semanticRole == "heading-1") return PdfCore.PdfCanvasTextStructureRole.Heading1;
+        if (semanticRole == "heading-2") return PdfCore.PdfCanvasTextStructureRole.Heading2;
+        if (semanticRole == "heading-3") return PdfCore.PdfCanvasTextStructureRole.Heading3;
+        if (semanticRole == "heading-4") return PdfCore.PdfCanvasTextStructureRole.Heading4;
+        if (semanticRole == "heading-5") return PdfCore.PdfCanvasTextStructureRole.Heading5;
+        if (semanticRole == "heading-6") return PdfCore.PdfCanvasTextStructureRole.Heading6;
+        return semanticRole == "span" ? PdfCore.PdfCanvasTextStructureRole.Span : PdfCore.PdfCanvasTextStructureRole.Paragraph;
     }
 
     private static void AddImage(PdfCore.PdfPageCanvas canvas, HtmlRenderImage visual) {
