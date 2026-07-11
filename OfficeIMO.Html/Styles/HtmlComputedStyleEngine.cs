@@ -20,6 +20,8 @@ public static partial class HtmlComputedStyleEngine {
         "font-style",
         "font-weight",
         "line-height",
+        "list-style",
+        "list-style-type",
         "orphans",
         "page",
         "text-align",

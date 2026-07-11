@@ -23,6 +23,7 @@ internal static class HtmlCssPageSettingsResolver {
 
     private static void ApplyRule(ICssRule rule, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
         if (rule is ICssMediaRule mediaRule && !IsApplicablePrintMedia(mediaRule.ConditionText, options)) return;
+        if (rule is ICssSupportsRule supportsRule && !HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) return;
         if (rule is ICssPageRule pageRule) {
             string selector = (pageRule.SelectorText ?? string.Empty).Trim();
             if (selector.Length > 0) {

@@ -125,6 +125,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedReplacedElementLayout = string.Empty;
     internal bool BorderBox;
     internal bool PreserveWhitespace;
+    internal string ListStyleType = string.Empty;
     internal string TextTransform = "none";
     internal string Direction = "ltr";
     internal string OverflowX = "visible";

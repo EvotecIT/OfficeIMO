@@ -33,6 +33,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (childStyle.Display == "none") {
                     continue;
                 }
+                if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle)) {
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    flowHeight += inlineHeight;
+                    foreach (HtmlRenderFlowBlock flattenedBlock in BuildChildBlocks(element, width, childStyle, depth + 1)) {
+                        blocks.Add(flattenedBlock);
+                        flowHeight += flattenedBlock.Height;
+                    }
+
+                    adjoiningMargins.Clear();
+                    allocatedAdjoiningMargins = 0D;
+                    continue;
+                }
                 if (ShouldExtractOutOfFlow(childStyle)) {
                     if (UsesInlineStaticPosition(element, childStyle)) {
                         inlineNodes.Add(node);
@@ -222,7 +234,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
-            string? prefix = tag == "li" ? ResolveListPrefix(element) : null;
+            string? prefix = tag == "li" ? ResolveListPrefix(element, style) : null;
             HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element);
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
@@ -380,6 +392,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
             if (style.FloatSide != "none") return true;
+            if (style.Display == "contents" && HasBlockChildren(child, width, style)) return true;
             if (style.Display != "none" && ShouldExtractOutOfFlow(style) && !UsesInlineStaticPosition(child, style)) return true;
             if (style.Display != "none" && HtmlRenderStyleResolver.IsBlockElement(child, style)) return true;
             if (style.Display != "none" && ContainsFloatingDescendant(child, width, style)) return true;
@@ -447,7 +460,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _options.MaxLayoutDepth);
     }
 
-    private static string? ResolveListPrefix(IElement element) {
+    private static string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
+        if (string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
         IElement? parent = element.ParentElement;
         if (parent == null) return "• ";
         if (!string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase)) return "• ";

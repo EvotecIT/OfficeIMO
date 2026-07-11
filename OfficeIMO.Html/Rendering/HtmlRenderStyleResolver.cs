@@ -66,6 +66,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            ListStyleType = ResolveListStyleType(computed),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
             Direction = direction,
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
@@ -210,7 +211,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {
         string display = style.Display;
-        if (display == "none") return false;
+        if (display == "none" || display == "contents") return false;
         if (display == "block" || display == "table" || display == "list-item" || display == "flex" || display == "grid" || display == "flow-root") return true;
         if (display == "inline" || display == "inline-block" || display == "inline-flex" || display == "inline-grid") return false;
         return IsDefaultBlockTag(element.TagName);
@@ -288,6 +289,16 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private static string ResolvePseudoDisplay(string value) =>
         string.IsNullOrWhiteSpace(value) ? "inline" : value.Trim().ToLowerInvariant();
+
+    private static string ResolveListStyleType(HtmlComputedStyle computed) {
+        string type = computed.GetValue("list-style-type").Trim().ToLowerInvariant();
+        if (type.Length > 0) return type;
+        foreach (string token in HtmlRenderCssValues.SplitWhitespace(computed.GetValue("list-style"))) {
+            if (string.Equals(token, "none", StringComparison.OrdinalIgnoreCase)) return "none";
+        }
+
+        return string.Empty;
+    }
 
     private static bool IsDefaultBlockTag(string tagName) {
         string tag = tagName.ToLowerInvariant();

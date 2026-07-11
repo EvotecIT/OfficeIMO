@@ -2,6 +2,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
+using System.Text;
 using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
@@ -130,5 +131,128 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<HtmlRenderShape> shapes = rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().ToList();
         Assert.Contains(shapes, shape => shape.Source == "tbody#group" && shape.Shape.FillColor == OfficeColor.Blue);
         Assert.Contains(shapes, shape => shape.Source == "tr#row" && shape.Shape.FillColor == OfficeColor.Red);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_UsesRenderDimensionsWhenExpandingStylesheetImports() {
+        var requested = new List<string>();
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D),
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+            ResourceResolver = (request, _) => {
+                requested.Add(request.Uri.AbsoluteUri);
+                string css = request.Uri.AbsolutePath.EndsWith("site.css", StringComparison.Ordinal)
+                    ? "@import 'mobile.css' (max-width:500px);"
+                    : ".target{color:#ff0000}";
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/site.css'><p class='target'>ImportedMarker</p>",
+            options);
+
+        Assert.Contains("https://assets.example.test/mobile.css", requested);
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("ImportedMarker", StringComparison.Ordinal));
+        Assert.Equal(OfficeColor.Red, text.Color);
+    }
+
+    [Fact]
+    public void HtmlTable_SkipsRowsWithDisplayNone() {
+        const string html = "<table><tr style='display:none'><td>HiddenRowMarker</td></tr><tr><td>VisibleRowMarker</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        string text = string.Concat(rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(visual => visual.Text));
+        Assert.DoesNotContain("HiddenRowMarker", text, StringComparison.Ordinal);
+        Assert.Contains("VisibleRowMarker", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_RenderedProfile_MapsSansSerifToHelvetica() {
+        const string html = "<p style='font-family:sans-serif'>SansSerifMarker</p>";
+
+        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/BaseFont /Helvetica", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /Times-Roman", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_ExtractsColorFromBackgroundShorthandWithImage() {
+        const string html = "<div id='target' style=\"width:40px;height:20px;background:#fee url('missing.png') no-repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Contains(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#target" && shape.Shape.FillColor == OfficeColor.FromRgb(255, 238, 238));
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_IgnoresPageRulesInsideInactiveSupports() {
+        const string html = "<style>@supports (not-a-real-prop:value){@page{margin:0}}</style><p>SupportedPageMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("SupportedPageMarker", StringComparison.Ordinal));
+        Assert.InRange(text.X, 19.9D, 20.1D);
+    }
+
+    [Fact]
+    public void HtmlRender_DisplayContentsSuppressesTheElementBox() {
+        const string html = "<div id='contents' style='display:contents;background:#ff0000;padding:20px'><div id='child' style='background:#0000ff'>ContentsMarker</div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#contents");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#child" && shape.Shape.FillColor == OfficeColor.Blue);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("ContentsMarker", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlRender_ListStyleNoneSuppressesListMarkers() {
+        const string html = "<ul style='list-style:none'><li>MarkerlessItem</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Source == "list-marker");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("MarkerlessItem", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlRender_PictureIgnoresInactiveInlineSource() {
+        byte[] inactive = PdfPngTestImages.CreateRgbPng(2, 2);
+        byte[] fallback = PdfPngTestImages.CreateRgbPng(3, 3);
+        string html = "<picture><source media='(max-width:1px)' src='data:image/png;base64," + Convert.ToBase64String(inactive)
+            + "'><img src='data:image/png;base64," + Convert.ToBase64String(fallback) + "' width='30' height='30'></picture>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 400D,
+            ViewportHeight = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(fallback, image.Bytes);
     }
 }

@@ -452,19 +452,9 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static PdfCore.PdfStandardFont MapStandardFont(string familyName) {
-        string normalized = familyName ?? string.Empty;
-        if (normalized.IndexOf("times", StringComparison.OrdinalIgnoreCase) >= 0
-            || normalized.IndexOf("serif", StringComparison.OrdinalIgnoreCase) >= 0) {
-            return PdfCore.PdfStandardFont.TimesRoman;
-        }
-
-        if (normalized.IndexOf("courier", StringComparison.OrdinalIgnoreCase) >= 0
-            || normalized.IndexOf("consolas", StringComparison.OrdinalIgnoreCase) >= 0
-            || normalized.IndexOf("mono", StringComparison.OrdinalIgnoreCase) >= 0) {
-            return PdfCore.PdfStandardFont.Courier;
-        }
-
-        return PdfCore.PdfStandardFont.Helvetica;
+        return PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont font)
+            ? font
+            : PdfCore.PdfStandardFont.Helvetica;
     }
 
     private static IReadOnlyDictionary<string, PdfCore.PdfStandardFont> RegisterWebFonts(

@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
-        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(element, _baseUri, _resourceUrlPolicy);
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;
         string contentType = string.Empty;

@@ -15,9 +15,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double tableY = style.MarginTop + topCaptionHeight;
         ReportUnsupportedTableValues(table, style);
         IReadOnlyList<IElement> sourceRows = table.QuerySelectorAll("tr").Where(row => BelongsToTable(row, table)).ToList();
-        IReadOnlyList<IElement> rows = sourceRows.Where(row => IsHeaderRow(row, table))
-            .Concat(sourceRows.Where(row => !IsHeaderRow(row, table) && !IsFooterRow(row, table)))
-            .Concat(sourceRows.Where(row => IsFooterRow(row, table)))
+        var rowGroupStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
+        var rowStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
+        var renderableRows = new List<IElement>();
+        foreach (IElement row in sourceRows) {
+            IElement rowGroup = GetRowGroup(row, table);
+            HtmlRenderBoxStyle rowParentStyle = style;
+            if (!ReferenceEquals(rowGroup, table)) {
+                if (!rowGroupStyles.TryGetValue(rowGroup, out HtmlRenderBoxStyle? rowGroupStyle)) {
+                    rowGroupStyle = _styleResolver.Resolve(rowGroup, contentWidth, style);
+                    rowGroupStyles[rowGroup] = rowGroupStyle;
+                    _layoutStyles[rowGroup] = rowGroupStyle.Clone();
+                }
+
+                if (rowGroupStyle.Display == "none") continue;
+                rowParentStyle = rowGroupStyle;
+            }
+
+            HtmlRenderBoxStyle rowStyle = _styleResolver.Resolve(row, contentWidth, rowParentStyle);
+            rowStyles[row] = rowStyle;
+            _layoutStyles[row] = rowStyle.Clone();
+            if (rowStyle.Display != "none") renderableRows.Add(row);
+        }
+
+        IReadOnlyList<IElement> rows = renderableRows.Where(row => IsHeaderRow(row, table))
+            .Concat(renderableRows.Where(row => !IsHeaderRow(row, table) && !IsFooterRow(row, table)))
+            .Concat(renderableRows.Where(row => IsFooterRow(row, table)))
             .ToList();
         int rowColumnCount = DetermineColumnCount(rows, table);
         if (rowColumnCount == 0) {
@@ -50,26 +73,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style);
         double[] columnOffsets = CreateColumnOffsets(columnWidths);
         var rowLayouts = new List<TableRowLayout>();
-        var rowGroupStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
         var occupiedColumns = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             CheckCancellation();
             IElement row = rows[rowIndex];
             IElement rowGroup = GetRowGroup(row, table);
-            HtmlRenderBoxStyle rowParentStyle = style;
             IElement? rowGroupElement = null;
             HtmlRenderBoxStyle? rowGroupStyle = null;
             if (!ReferenceEquals(rowGroup, table)) {
                 rowGroupElement = rowGroup;
-                if (!rowGroupStyles.TryGetValue(rowGroup, out rowGroupStyle)) {
-                    rowGroupStyle = _styleResolver.Resolve(rowGroup, contentWidth, style);
-                    rowGroupStyles[rowGroup] = rowGroupStyle;
-                    _layoutStyles[rowGroup] = rowGroupStyle.Clone();
-                }
-                rowParentStyle = rowGroupStyle;
+                rowGroupStyle = rowGroupStyles[rowGroup];
             }
-            HtmlRenderBoxStyle rowStyle = _styleResolver.Resolve(row, contentWidth, rowParentStyle);
-            _layoutStyles[row] = rowStyle.Clone();
+            HtmlRenderBoxStyle rowStyle = rowStyles[row];
             var cells = row.Children.Where(IsTableCell).ToList();
             var cellLayouts = new List<TableCellLayout>();
             int column = 0;

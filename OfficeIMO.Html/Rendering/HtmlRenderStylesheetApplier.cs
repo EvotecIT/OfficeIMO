@@ -89,7 +89,9 @@ internal static class HtmlRenderStylesheetApplier {
 
         var resourceOptions = new HtmlResourcePipelineOptions {
             UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
-            MediaContext = options.MediaContext
+            MediaContext = options.MediaContext,
+            MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
+            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
         };
         HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
         var builder = new System.Text.StringBuilder(analysis.Css);
