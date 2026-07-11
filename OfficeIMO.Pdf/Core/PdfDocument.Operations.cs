@@ -31,6 +31,14 @@ public sealed partial class PdfDocument {
         return PdfSignatureValidator.Validate(Snapshot(), options ?? ReadOptions);
     }
 
+    /// <summary>Validates signature structure and delegates CMS, trust, timestamp, and revocation policy to an optional provider.</summary>
+    public PdfSignatureValidationReport ValidateSignatures(
+        IPdfSignatureCryptographyProvider cryptographyProvider,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        return PdfSignatureValidator.Validate(Snapshot(), cryptographyProvider, options ?? ReadOptions);
+    }
+
     /// <summary>
     /// Analyzes which append-only mutation actions OfficeIMO.Pdf can safely attempt for this PDF.
     /// </summary>

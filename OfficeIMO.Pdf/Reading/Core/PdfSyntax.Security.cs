@@ -307,6 +307,7 @@ internal static partial class PdfSyntax {
             byteRangeValues,
             byteRangeValues.Count,
             hasContents,
+            TryReadContentsBytes(objects, dictionary),
             contentsSizeBytes,
             contentsEncodedSizeBytes,
             referenceCount);
@@ -688,6 +689,13 @@ internal static partial class PdfSyntax {
         return dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
             ResolveObject(objects, contentsObject) is PdfStringObj contents
             ? contents.RawBytes.Length
+            : null;
+    }
+
+    private static byte[]? TryReadContentsBytes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
+        return dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
+            ResolveObject(objects, contentsObject) is PdfStringObj contents
+            ? (byte[])contents.RawBytes.Clone()
             : null;
     }
 

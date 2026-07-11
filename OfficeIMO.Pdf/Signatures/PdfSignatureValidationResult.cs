@@ -12,6 +12,7 @@ public sealed class PdfSignatureValidationResult {
         long? byteRangeGapLength,
         long? unsignedByteCount,
         double? byteRangeCoverageRatio,
+        PdfSignatureCryptographicResult? cryptographicResult,
         IReadOnlyList<PdfSignatureValidationFinding> findings) {
         Signature = signature;
         HasCompleteByteRangeShape = hasCompleteByteRangeShape;
@@ -22,6 +23,7 @@ public sealed class PdfSignatureValidationResult {
         ByteRangeGapLength = byteRangeGapLength;
         UnsignedByteCount = unsignedByteCount;
         ByteRangeCoverageRatio = byteRangeCoverageRatio;
+        CryptographicResult = cryptographicResult;
         Findings = findings;
     }
 
@@ -52,6 +54,12 @@ public sealed class PdfSignatureValidationResult {
     /// <summary>Fraction of input bytes covered by the parsed /ByteRange values, when readable.</summary>
     public double? ByteRangeCoverageRatio { get; }
 
+    /// <summary>Provider-owned CMS, digest, trust, timestamp, and revocation result, when requested.</summary>
+    public PdfSignatureCryptographicResult? CryptographicResult { get; }
+
+    /// <summary>True when an optional provider performed cryptographic validation for this signature.</summary>
+    public bool HasCryptographicResult => CryptographicResult is not null;
+
     /// <summary>True when the unsigned /ByteRange gap length matches the full /Contents token span, when both are readable.</summary>
     public bool? ByteRangeGapMatchesContents =>
         ByteRangeGapLength.HasValue && Signature.ContentsEncodedSizeBytes.HasValue
@@ -62,5 +70,6 @@ public sealed class PdfSignatureValidationResult {
     public IReadOnlyList<PdfSignatureValidationFinding> Findings { get; }
 
     /// <summary>True when this signature has no structural validation errors.</summary>
-    public bool IsStructurallyValid => Findings.All(static finding => finding.Severity != PdfDiagnosticSeverity.Error);
+    public bool IsStructurallyValid => Findings.All(static finding =>
+        finding.IsCryptographic || finding.Severity != PdfDiagnosticSeverity.Error);
 }

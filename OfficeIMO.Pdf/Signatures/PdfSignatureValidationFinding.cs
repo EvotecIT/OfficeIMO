@@ -7,12 +7,14 @@ public sealed class PdfSignatureValidationFinding {
         string code,
         string message,
         int? signatureObjectNumber = null,
-        int? fieldObjectNumber = null) {
+        int? fieldObjectNumber = null,
+        bool isCryptographic = false) {
         Severity = severity;
         Code = code;
         Message = message;
         SignatureObjectNumber = signatureObjectNumber;
         FieldObjectNumber = fieldObjectNumber;
+        IsCryptographic = isCryptographic;
     }
 
     /// <summary>Finding severity.</summary>
@@ -29,4 +31,7 @@ public sealed class PdfSignatureValidationFinding {
 
     /// <summary>Owning AcroForm signature field object number, when known.</summary>
     public int? FieldObjectNumber { get; }
+
+    /// <summary>True when the finding came from an optional cryptography provider rather than PDF structure analysis.</summary>
+    public bool IsCryptographic { get; }
 }

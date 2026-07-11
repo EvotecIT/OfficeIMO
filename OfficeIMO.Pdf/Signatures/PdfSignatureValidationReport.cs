@@ -15,11 +15,6 @@ public sealed class PdfSignatureValidationReport {
         Findings = findings;
         ObjectGraphParsed = objectGraphParsed;
         ObjectGraphError = objectGraphError;
-        CryptographicTrustVerified = false;
-        DigestVerified = false;
-        CertificateChainVerified = false;
-        RevocationChecked = false;
-        TimestampValidationPerformed = false;
     }
 
     /// <summary>Security, signature, and revision markers read from the PDF.</summary>
@@ -53,7 +48,9 @@ public sealed class PdfSignatureValidationReport {
     public bool HasWarnings => Findings.Any(static finding => finding.Severity == PdfDiagnosticSeverity.Warning);
 
     /// <summary>True when no structural validation errors were found.</summary>
-    public bool IsStructurallyValid => !HasErrors;
+    public bool IsStructurallyValid =>
+        ObjectGraphParsed &&
+        Findings.All(static finding => finding.IsCryptographic || finding.Severity != PdfDiagnosticSeverity.Error);
 
     /// <summary>True when the file exposes DSS/VRI evidence used by long-term validation workflows.</summary>
     public bool HasLongTermValidationEvidence => Security.HasLongTermValidationEvidence;
@@ -61,20 +58,52 @@ public sealed class PdfSignatureValidationReport {
     /// <summary>True when mutation should preserve the original PDF by appending revisions.</summary>
     public bool RequiresAppendOnlyMutation => Security.RequiresAppendOnlyMutation;
 
-    /// <summary>False because OfficeIMO.Pdf does not perform certificate-chain or cryptographic signature verification.</summary>
-    public bool CryptographicTrustVerified { get; }
+    /// <summary>True when every readable signature has a provider result.</summary>
+    public bool CryptographicValidationPerformed =>
+        Signatures.Count > 0 && Signatures.All(static signature => signature.CryptographicResult is not null);
 
-    /// <summary>False because OfficeIMO.Pdf does not recompute signed byte-range digests.</summary>
-    public bool DigestVerified { get; }
+    /// <summary>True when every readable signature passed signature math, digest, and certificate-chain validation.</summary>
+    public bool CryptographicTrustVerified =>
+        CryptographicValidationPerformed &&
+        Signatures.All(static signature =>
+            signature.CryptographicResult!.IsMathematicallyValid &&
+            signature.CryptographicResult.CertificateChainStatus == PdfCryptographicValidationStatus.Valid);
 
-    /// <summary>False because OfficeIMO.Pdf does not build certificate chains.</summary>
-    public bool CertificateChainVerified { get; }
+    /// <summary>True when every provider verified its signature's signed-content digest.</summary>
+    public bool DigestVerified =>
+        CryptographicValidationPerformed &&
+        Signatures.All(static signature => signature.CryptographicResult!.MessageDigestStatus == PdfCryptographicValidationStatus.Valid);
 
-    /// <summary>False because OfficeIMO.Pdf does not perform OCSP/CRL revocation checks.</summary>
-    public bool RevocationChecked { get; }
+    /// <summary>True when every provider reported a valid signer or TSA certificate chain.</summary>
+    public bool CertificateChainVerified =>
+        CryptographicValidationPerformed &&
+        Signatures.All(static signature => signature.CryptographicResult!.CertificateChainStatus == PdfCryptographicValidationStatus.Valid);
 
-    /// <summary>False because OfficeIMO.Pdf does not validate RFC 3161 timestamps cryptographically.</summary>
-    public bool TimestampValidationPerformed { get; }
+    /// <summary>True when every provider performed a definitive revocation check, whether valid or revoked.</summary>
+    public bool RevocationChecked =>
+        CryptographicValidationPerformed &&
+        Signatures.All(static signature =>
+            signature.CryptographicResult!.RevocationStatus == PdfCryptographicValidationStatus.Valid ||
+            signature.CryptographicResult.RevocationStatus == PdfCryptographicValidationStatus.Invalid);
+
+    /// <summary>True when each timestamp-bearing signature received a definitive timestamp result.</summary>
+    public bool TimestampValidationPerformed =>
+        CryptographicValidationPerformed &&
+        Signatures.Any(static signature =>
+            signature.Signature.IsDocumentTimestamp ||
+            signature.CryptographicResult!.TimestampStatus != PdfCryptographicValidationStatus.NotPerformed) &&
+        Signatures
+            .Where(static signature =>
+                signature.Signature.IsDocumentTimestamp ||
+                signature.CryptographicResult!.TimestampStatus != PdfCryptographicValidationStatus.NotPerformed)
+            .All(static signature =>
+                signature.CryptographicResult!.TimestampStatus == PdfCryptographicValidationStatus.Valid ||
+                signature.CryptographicResult.TimestampStatus == PdfCryptographicValidationStatus.Invalid);
+
+    /// <summary>True when every provider validated public-key signature math and signed-content digest.</summary>
+    public bool MathematicalSignaturesVerified =>
+        CryptographicValidationPerformed &&
+        Signatures.All(static signature => signature.CryptographicResult!.IsMathematicallyValid);
 
     /// <summary>True when any readable signature declares an RFC 3161 document timestamp subfilter.</summary>
     public bool HasDocumentTimestampSignature => Signatures.Any(static signature => signature.Signature.IsDocumentTimestamp);
@@ -94,6 +123,16 @@ public sealed class PdfSignatureValidationReport {
 
             if (!IsStructurallyValid) {
                 return "StructuralIssues";
+            }
+
+            if (CryptographicValidationPerformed) {
+                if (!MathematicalSignaturesVerified) {
+                    return "CryptographicInvalid";
+                }
+
+                return CryptographicTrustVerified
+                    ? "CryptographicallyValidAndTrusted"
+                    : "CryptographicallyValidTrustIndeterminate";
             }
 
             if (HasOfflineLongTermValidationReadiness) {
