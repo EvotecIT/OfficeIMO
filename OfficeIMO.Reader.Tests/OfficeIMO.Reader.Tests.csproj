@@ -36,6 +36,8 @@
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.AsciiDoc\OfficeIMO.Reader.AsciiDoc.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />

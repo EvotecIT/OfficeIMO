@@ -435,6 +435,19 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
+    [InlineData("OfficeIMO.Reader.Ocr.Process")]
+    [InlineData("OfficeIMO.Reader.Ocr.Tesseract")]
+    public void ReaderOcrPackages_AreIncludedInProjectBuildVersionMap(string packageId) {
+        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
+        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
+        JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
+
+        Assert.Equal("0.0.X", expectedVersionMap.GetProperty(packageId).GetString());
+    }
+
+    [Theory]
     [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
     [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
     [InlineData("OfficeIMO.Visio/OfficeIMO.Visio.csproj")]
