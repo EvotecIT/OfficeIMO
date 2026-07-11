@@ -337,6 +337,7 @@ internal sealed class HtmlInlineRun {
         PaintOffsetY = paintOffsetY;
         OwnerElement = ownerElement;
         PositionedMarkerElement = positionedMarkerElement;
+        SemanticRole = style.SemanticRole;
     }
 
     internal HtmlInlineRun(
@@ -357,6 +358,7 @@ internal sealed class HtmlInlineRun {
         PaintOffsetY = paintOffsetY;
         OwnerElement = ownerElement;
         IsReplacedImage = isReplacedImage;
+        SemanticRole = style.SemanticRole;
     }
 
     internal HtmlInlineRun(
@@ -375,6 +377,7 @@ internal sealed class HtmlInlineRun {
         FloatSide = floatSide;
         ClearSide = clearSide;
         OwnerElement = ownerElement;
+        SemanticRole = style.SemanticRole;
     }
 
     internal string Text { get; }
@@ -388,8 +391,17 @@ internal sealed class HtmlInlineRun {
     internal IElement? OwnerElement { get; }
     internal IElement? PositionedMarkerElement { get; }
     internal bool IsReplacedImage { get; }
+    internal string SemanticRole { get; private set; }
+    internal int? SemanticNodeId { get; private set; }
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
+
+    internal void AssignSemanticNode(string role, int nodeId) {
+        SemanticNodeId = nodeId;
+        if (!SemanticRole.StartsWith("generated-", StringComparison.Ordinal)) {
+            SemanticRole = role;
+        }
+    }
 }
 
 internal sealed class HtmlInlineLayout {

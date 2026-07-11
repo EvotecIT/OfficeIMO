@@ -19,6 +19,25 @@ public sealed class PdfPageCanvas {
 
     internal IReadOnlyList<PdfCanvasItem> Items => _items;
 
+    /// <summary>Adds a document outline entry targeting an absolute top-left page coordinate.</summary>
+    /// <param name="title">Visible outline title.</param>
+    /// <param name="level">One-based outline hierarchy level.</param>
+    /// <param name="y">Top coordinate in page points.</param>
+    public PdfPageCanvas Outline(string title, int level, double y) {
+        Guard.NotNull(title, nameof(title));
+        if (string.IsNullOrWhiteSpace(title)) {
+            throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
+        }
+
+        if (level <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(level), "Canvas outline levels must be positive.");
+        }
+
+        ValidateCanvasCoordinate(y, nameof(y));
+        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y));
+        return this;
+    }
+
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, PdfColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
@@ -396,6 +415,17 @@ internal abstract class PdfCanvasItem {
 
     public double X { get; }
     public double Y { get; }
+}
+
+internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
+    public PdfCanvasOutlineItem(string title, int level, double y)
+        : base(0D, y) {
+        Title = title;
+        Level = level;
+    }
+
+    public string Title { get; }
+    public int Level { get; }
 }
 
 internal sealed class PdfCanvasTextItem : PdfCanvasItem {

@@ -44,6 +44,7 @@ internal static class HtmlPdfRenderedConverter {
         pdf.UseTextFallbacks(options.RenderedTextFallbacks)
             .UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(pdf, rendered, options.RenderDiagnostics, cancellationToken);
+        ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
             double pageWidth = renderedPage.Width * PointsPerCssPixel;
@@ -51,11 +52,21 @@ internal static class HtmlPdfRenderedConverter {
             pdf.Page(page => page
                 .Size(pageWidth, pageHeight)
                 .Margin(0D)
-                .Canvas(canvas => AddPageVisuals(canvas, renderedPage, webFonts, cancellationToken)));
+                .Canvas(canvas => {
+                    AddPageVisuals(canvas, renderedPage, webFonts, cancellationToken);
+                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], cancellationToken);
+                }));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         return pdf;
+    }
+
+    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, CancellationToken cancellationToken) {
+        foreach (HtmlRenderHeading heading in headings) {
+            cancellationToken.ThrowIfCancellationRequested();
+            canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel);
+        }
     }
 
     private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, CancellationToken cancellationToken) {

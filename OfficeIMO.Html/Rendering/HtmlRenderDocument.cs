@@ -9,6 +9,7 @@ namespace OfficeIMO.Html;
 public sealed class HtmlRenderDocument {
     private readonly ReadOnlyCollection<HtmlRenderPage> _pages;
     private readonly OfficeFontFaceCollection _fonts;
+    private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
 
     internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null) {
         Mode = mode;
@@ -20,6 +21,7 @@ public sealed class HtmlRenderDocument {
         Diagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
+        _headings = BuildHeadings(_pages).AsReadOnly();
     }
 
     /// <summary>Layout mode used to produce the result.</summary>
@@ -37,6 +39,9 @@ public sealed class HtmlRenderDocument {
     /// <summary>Source document metadata retained for image and PDF adapters.</summary>
     public HtmlRenderMetadata Metadata { get; }
 
+    /// <summary>Source headings retained in document order for navigation-capable backends.</summary>
+    public IReadOnlyList<HtmlRenderHeading> Headings => _headings;
+
     /// <summary>Concatenated searchable text retained by the shared render model.</summary>
     public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateVisuals(page.Visuals)).OfType<HtmlRenderText>().Select(text => text.Text));
 
@@ -51,5 +56,29 @@ public sealed class HtmlRenderDocument {
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
+    }
+
+    private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages) {
+        var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)>();
+        foreach (HtmlRenderPage page in pages) {
+            foreach (HtmlRenderText text in EnumerateVisuals(page.Visuals).OfType<HtmlRenderText>()) {
+                if (!text.SemanticNodeId.HasValue || !HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level)) continue;
+                fragments.Add((text.SemanticNodeId.Value, level, text.Text, page.PageNumber, text.X, text.Y, text.PaintOrder));
+            }
+        }
+
+        var headings = new List<HtmlRenderHeading>();
+        foreach (IGrouping<int, (int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)> group in fragments
+            .OrderBy(item => item.PageNumber)
+            .ThenBy(item => item.Order)
+            .GroupBy(item => item.NodeId)) {
+            var ordered = group.OrderBy(item => item.PageNumber).ThenBy(item => item.Order).ToList();
+            var first = ordered[0];
+            string headingText = string.Concat(ordered.Select(item => item.Text)).Trim();
+            if (headingText.Length == 0) continue;
+            headings.Add(new HtmlRenderHeading(first.NodeId, first.Level, headingText, first.PageNumber, first.X, first.Y));
+        }
+
+        return headings;
     }
 }

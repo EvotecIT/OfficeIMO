@@ -20,7 +20,8 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         string? linkUri = null,
         string? source = null,
         string? semanticRole = null,
-        double? layoutY = null)
+        double? layoutY = null,
+        int? semanticNodeId = null)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         Font = font;
@@ -28,6 +29,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         Alignment = alignment;
         LineHeight = lineHeight;
         SemanticRole = semanticRole;
+        SemanticNodeId = semanticNodeId;
     }
 
     /// <summary>Text content represented by this visual segment.</summary>
@@ -48,9 +50,12 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Optional semantic role such as heading, paragraph, or list item.</summary>
     public string? SemanticRole { get; }
 
+    /// <summary>Stable operation-scoped semantic node identifier shared by fragments from the same source element.</summary>
+    public int? SemanticNodeId { get; }
+
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId);
 }

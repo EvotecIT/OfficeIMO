@@ -24,6 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderBoxStyle? _viewportOverflowStyle;
     private int _paintOrder;
     private int _positionedSourceOrder;
+    private int _nextSemanticNodeId;
     private long _backgroundImageTileCount;
     private readonly List<PositionedElementRequest> _fixedPositionedElements = new List<PositionedElementRequest>();
     private readonly List<PositionedElementRequest> _rootPositionedElements = new List<PositionedElementRequest>();
@@ -37,6 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, bool> _containsInFlowFloatCache = new Dictionary<IElement, bool>();
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
@@ -102,6 +104,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void CheckCancellation() => _cancellationToken.ThrowIfCancellationRequested();
+
+    private int GetSemanticNodeId(IElement element) {
+        if (_semanticNodeIds.TryGetValue(element, out int nodeId)) return nodeId;
+        nodeId = ++_nextSemanticNodeId;
+        _semanticNodeIds[element] = nodeId;
+        return nodeId;
+    }
 
     private HtmlRenderDocument RenderContinuous(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
         double width = _options.ViewportWidth;

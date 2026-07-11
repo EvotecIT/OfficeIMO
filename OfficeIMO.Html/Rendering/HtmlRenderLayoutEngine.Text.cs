@@ -25,6 +25,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
         }
 
+        if (formattingContainer != null && HtmlRenderHeading.TryGetLevel(parentStyle.SemanticRole, out _)) {
+            int semanticNodeId = GetSemanticNodeId(formattingContainer);
+            foreach (HtmlInlineRun run in runs) run.AssignSemanticNode(parentStyle.SemanticRole, semanticNodeId);
+        }
+
         return LayoutInlineRuns(runs, width, parentStyle, formattingContainer);
     }
 

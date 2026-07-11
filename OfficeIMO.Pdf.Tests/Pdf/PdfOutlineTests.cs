@@ -7,6 +7,41 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOutlineTests {
     [Fact]
+    public void CanvasOutline_WritesNestedBookmarksAtAbsolutePageCoordinates() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page
+                .Size(400D, 600D)
+                .Margin(0D)
+                .Canvas(canvas => canvas
+                    .Outline("Canvas chapter", 1, 72D)
+                    .Outline("Canvas detail", 2, 144D)
+                    .Text("Visible content", 36D, 72D, 200D, 24D)))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfOutlineItem chapter = Assert.Single(info.Outlines);
+        Assert.Equal("Canvas chapter", chapter.Title);
+        Assert.Equal(1, chapter.Level);
+        Assert.Equal(1, chapter.PageNumber);
+        Assert.Equal(528D, chapter.DestinationTop);
+
+        PdfOutlineItem detail = Assert.Single(chapter.Children);
+        Assert.Equal("Canvas detail", detail.Title);
+        Assert.Equal(2, detail.Level);
+        Assert.Equal(456D, detail.DestinationTop);
+    }
+
+    [Fact]
+    public void CanvasOutline_RejectsInvalidArguments() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentNullException>(() => canvas.Outline(null!, 1, 0D));
+        Assert.Throws<ArgumentException>(() => canvas.Outline(" ", 1, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 0, 0D));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 1, double.NaN));
+    }
+
+    [Fact]
     public void CreateOutlineFromHeadings_WritesNestedBookmarksAndInspectorReadsThem() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CreateOutlineFromHeadings = true,

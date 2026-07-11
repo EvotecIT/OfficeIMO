@@ -287,7 +287,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         visuals.Count,
                         segment.Run.LinkUri,
                         segment.Run.Source,
-                        segment.Run.Style.SemanticRole);
+                        segment.Run.SemanticRole,
+                        semanticNodeId: segment.Run.SemanticNodeId);
                     AddInlineOwnedVisual(
                         visuals,
                         ownedVisuals,

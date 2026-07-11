@@ -9,6 +9,9 @@ internal static partial class PdfWriter {
             EnsurePage();
             foreach (PdfCanvasItem item in canvas.Items) {
                 switch (item) {
+                    case PdfCanvasOutlineItem outline:
+                        RenderCanvasOutline(outline);
+                        break;
                     case PdfCanvasTextItem text:
                         RenderCanvasText(text);
                         break;
@@ -44,6 +47,15 @@ internal static partial class PdfWriter {
                         break;
                 }
             }
+        }
+
+        private void RenderCanvasOutline(PdfCanvasOutlineItem item) {
+            EnsurePage();
+            currentPage!.Bookmarks.Add(new PageBookmark {
+                Level = item.Level,
+                Title = item.Title,
+                Y = currentOpts.PageHeight - item.Y
+            });
         }
 
         private void RenderCanvasText(PdfCanvasTextItem item) {

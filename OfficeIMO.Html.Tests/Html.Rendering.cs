@@ -885,7 +885,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_RenderedProfile_MapsHeadingsAndParagraphsToTaggedStructure() {
-        const string html = "<!doctype html><html lang='pl-PL'><head><title>Semantic document</title></head><body><h1>SemanticHeading</h1><p>Semantic paragraph.</p></body></html>";
+        const string html = "<!doctype html><html lang='pl-PL'><head><title>Semantic document</title></head><body><h1>Semantic <em>heading</em></h1><p>Semantic paragraph.</p><h2>Nested detail</h2></body></html>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
         byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
 
@@ -895,11 +895,28 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("pl-PL", rendered.Metadata.Language);
         Assert.Equal("Semantic document", info.Metadata.Title);
         Assert.Equal("pl-PL", info.CatalogLanguage);
+        Assert.Collection(
+            rendered.Headings,
+            heading => {
+                Assert.Equal(1, heading.Level);
+                Assert.Equal("Semantic heading", heading.Text);
+                Assert.Equal(1, heading.PageNumber);
+            },
+            heading => {
+                Assert.Equal(2, heading.Level);
+                Assert.Equal("Nested detail", heading.Text);
+                Assert.Equal(1, heading.PageNumber);
+            });
         Assert.Contains("Document", tagged.StructureTypes);
         Assert.Contains("H1", tagged.StructureTypes);
+        Assert.Contains("H2", tagged.StructureTypes);
         Assert.Contains("P", tagged.StructureTypes);
         Assert.True(tagged.MarkedContentReferenceCount >= 2);
-        Assert.Contains("SemanticHeading", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        PdfCore.PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal("Semantic heading", outline.Title);
+        Assert.Equal(1, outline.Level);
+        Assert.Equal("Nested detail", Assert.Single(outline.Children).Title);
+        Assert.Contains("Semantic heading", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
