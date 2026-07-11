@@ -129,13 +129,77 @@ public sealed class EmailTnefTests {
     [Fact]
     public void DecodesAndEncodesTnefString8UsingTheNumericCodePage() {
         var source = new[] { new MapiProperty(0x66AB, MapiPropertyType.String8, "日本") };
-        byte[] bytes = TnefMapiCodec.WriteProperties(source, 932);
         var diagnostics = new List<EmailDiagnostic>();
+        byte[] bytes = TnefMapiCodec.WriteProperties(source, 932, diagnostics, "tnef/mapi");
         var state = new MsgParserState(EmailReaderOptions.Default, diagnostics, CancellationToken.None);
 
         MapiProperty property = Assert.Single(TnefMapiCodec.ReadProperties(bytes, 932, state, "tnef/mapi"));
 
         Assert.Equal("日本", property.Value);
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void DecodesTopLevelTnefAttributesUsingTheNumericCodePage() {
+        byte[] codePage = new byte[8];
+        MsgBinary.WriteUInt32(codePage, 0, 932);
+        byte[] subject = MsgValueWriter.EncodeString8("日本\0", 932);
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(TnefConstants.Signature);
+            writer.Write((ushort)1);
+            WriteAttribute(writer, TnefAttributeLevel.Message, TnefConstants.OemCodePage, codePage);
+            WriteAttribute(writer, TnefAttributeLevel.Message, TnefConstants.Subject, subject);
+        }
+
+        EmailReadResult result = new EmailDocumentReader().Read(stream.ToArray());
+
+        Assert.Equal("日本", result.Document.Subject);
+        Assert.DoesNotContain(result.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void SkipsNamedRangePropertiesWithoutDescriptorsAndReportsDataLoss() {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "named properties" };
+        source.MapiProperties.Add(new MapiProperty(0x8001, MapiPropertyType.Unicode, "invalid"));
+        source.MapiProperties.Add(new MapiProperty(0x66AA, MapiPropertyType.Integer32, 42));
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+            source, EmailFileFormat.Tnef, out EmailWriteResult writeResult);
+        EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
+
+        Assert.True(writeResult.HasErrors);
+        Assert.Contains(writeResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_TNEF_NAMED_PROPERTY_DESCRIPTOR_MISSING");
+        Assert.DoesNotContain(readResult.Document.MapiProperties, property => property.PropertyId == 0x8001);
+        Assert.Equal(42, readResult.Document.MapiProperties
+            .Single(property => property.PropertyId == 0x66AA).Value);
+    }
+
+    [Fact]
+    public void AppliesEmailCompoundLimitsToTnefOleAttachments() {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "bounded OLE" };
+        var attachment = new EmailAttachment { FileName = "object.ole", MapiAttachMethod = 6 };
+        attachment.StructuredStorageStreams["Contents"] = new byte[] { 1, 2, 3 };
+        source.Attachments.Add(attachment);
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+
+        EmailReadResult result = new EmailDocumentReader(
+            new EmailReaderOptions(maxCompoundDirectoryEntries: 1)).Read(bytes);
+
+        EmailAttachment parsed = Assert.Single(result.Document.Attachments);
+        Assert.Empty(parsed.StructuredStorageStreams);
+        Assert.NotNull(parsed.Content);
+        Assert.Contains(result.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID");
+    }
+
+    private static void WriteAttribute(BinaryWriter writer, TnefAttributeLevel level, uint tag, byte[] data) {
+        writer.Write((byte)level);
+        writer.Write(tag);
+        writer.Write(unchecked((uint)data.Length));
+        writer.Write(data);
+        writer.Write(unchecked((ushort)data.Sum(value => value)));
     }
 }

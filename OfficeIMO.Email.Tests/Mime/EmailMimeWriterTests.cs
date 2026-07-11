@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;
@@ -111,5 +112,52 @@ public sealed class EmailMimeWriterTests {
         Assert.DoesNotContain("\r\nX-Attachment-Injected:", eml, StringComparison.Ordinal);
         Assert.Equal("Doe, John", roundTrip.From!.DisplayName);
         Assert.Equal("Doe, Jane", Assert.Single(roundTrip.Recipients).Address.DisplayName);
+    }
+
+    [Fact]
+    public void FoldsLongInternationalHeadersIntoCompliantEncodedWords() {
+        string subject = string.Concat(Enumerable.Repeat("日本語の長い件名", 12));
+        var document = new EmailDocument { Subject = subject };
+        document.Body.Text = "body";
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        MatchCollection words = Regex.Matches(eml, @"=\?utf-8\?B\?[^?]*\?=",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+
+        Assert.True(words.Count > 1);
+        Assert.All(words.Cast<Match>(), word => Assert.InRange(word.Value.Length, 1, 75));
+        Assert.Contains("\r\n =?utf-8?B?", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(subject, result.Document.Subject);
+    }
+
+    [Fact]
+    public void WritesRtfOnlyBodyAsAPreservedMimeAlternative() {
+        const string rtf = "{\\rtf1\\ansi RTF-only body \\'e9\\par}";
+        var document = new EmailDocument { Subject = "RTF body" };
+        document.Body.Rtf = rtf;
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+            document, EmailFileFormat.Eml, out EmailWriteResult writeResult);
+        EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
+
+        Assert.Contains("Content-Type: text/rtf; charset=utf-8\r\n", Encoding.ASCII.GetString(bytes),
+            StringComparison.Ordinal);
+        Assert.False(writeResult.HasErrors);
+        Assert.Equal(rtf, readResult.Document.Body.Rtf);
+    }
+
+    [Fact]
+    public void WritesDateHeadersWithRfcNumericTimeZones() {
+        var document = new EmailDocument {
+            Date = new DateTimeOffset(2026, 7, 10, 15, 0, 0, TimeSpan.FromMinutes(150))
+        };
+        document.Body.Text = "body";
+
+        string eml = Encoding.ASCII.GetString(new EmailDocumentWriter().WriteToBytes(document));
+
+        Assert.Contains("Date: Fri, 10 Jul 2026 15:00:00 +0230\r\n", eml, StringComparison.Ordinal);
+        Assert.DoesNotContain("+02:30", eml, StringComparison.Ordinal);
     }
 }

@@ -30,8 +30,9 @@ internal static class TnefMapiCodec {
         return rows;
     }
 
-    internal static byte[] WriteProperties(IEnumerable<MapiProperty> properties, int codePage) {
-        MapiProperty[] values = properties.ToArray();
+    internal static byte[] WriteProperties(IEnumerable<MapiProperty> properties, int codePage,
+        IList<EmailDiagnostic> diagnostics, string location) {
+        MapiProperty[] values = PrepareProperties(properties, diagnostics, location);
         using (MemoryStream output = new MemoryStream()) {
             WriteUInt32(output, unchecked((uint)values.Length));
             foreach (MapiProperty property in values) WriteProperty(output, property, codePage);
@@ -39,8 +40,10 @@ internal static class TnefMapiCodec {
         }
     }
 
-    internal static byte[] WriteRecipientTable(IEnumerable<IReadOnlyList<MapiProperty>> rows, int codePage) {
-        IReadOnlyList<MapiProperty>[] values = rows.ToArray();
+    internal static byte[] WriteRecipientTable(IEnumerable<IReadOnlyList<MapiProperty>> rows, int codePage,
+        IList<EmailDiagnostic> diagnostics, string location) {
+        MapiProperty[][] values = rows.Select((row, index) => PrepareProperties(row, diagnostics,
+            string.Concat(location, "/row[", index.ToString(CultureInfo.InvariantCulture), "]"))).ToArray();
         using (MemoryStream output = new MemoryStream()) {
             WriteUInt32(output, unchecked((uint)values.Length));
             foreach (IReadOnlyList<MapiProperty> row in values) {
@@ -49,6 +52,23 @@ internal static class TnefMapiCodec {
             }
             return output.ToArray();
         }
+    }
+
+    private static MapiProperty[] PrepareProperties(IEnumerable<MapiProperty> properties,
+        IList<EmailDiagnostic> diagnostics, string location) {
+        var values = new List<MapiProperty>();
+        foreach (MapiProperty property in properties) {
+            if (property.PropertyId >= 0x8000 && property.Name == null) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_NAMED_PROPERTY_DESCRIPTOR_MISSING",
+                    string.Concat("TNEF named property 0x",
+                        property.PropertyId.ToString("X4", CultureInfo.InvariantCulture),
+                        " has no property-set descriptor and was not written."),
+                    EmailDiagnosticSeverity.Error, location));
+                continue;
+            }
+            values.Add(property);
+        }
+        return values.ToArray();
     }
 
     private static List<MapiProperty> ReadPropertyArray(Cursor cursor, int codePage, MsgParserState state, string location) {

@@ -66,12 +66,15 @@ internal static class MimeParser {
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
         bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase));
+             string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
 
         if (isBody) {
             string? charset = contentType.GetParameter("charset");
             string text = MimeTextCodec.DecodeText(decoded, charset, state.Diagnostics, location);
-            if (string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase)) {
+                if (document.Body.Rtf == null) document.Body.Rtf = text;
+            } else if (string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
                 if (document.Body.Html == null) {
                     document.Body.Html = text;
                     document.Body.HtmlCharset = charset;

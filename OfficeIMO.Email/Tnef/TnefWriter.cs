@@ -44,14 +44,14 @@ internal static class TnefWriter {
                 .ToArray();
             if (rows.Length > 0) {
                 WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.RecipientTable,
-                    TnefMapiCodec.WriteRecipientTable(rows, codePage));
+                    TnefMapiCodec.WriteRecipientTable(rows, codePage, diagnostics, "tnef/recipients"));
             }
 
             MapiProperty[] messageProperties = MsgWriter.CreateMessageProperties(document, diagnostics, "tnef").Properties
                 .Where(property => !IsMessageAttributeProperty(property.PropertyId)).ToArray();
             if (messageProperties.Length > 0) {
                 WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageProperties,
-                    TnefMapiCodec.WriteProperties(messageProperties, codePage));
+                    TnefMapiCodec.WriteProperties(messageProperties, codePage, diagnostics, "tnef/mapi"));
             }
             foreach (TnefAttribute attribute in document.TnefAttributes.Where(attribute => !ManagedMessageAttributes.Contains(attribute.Tag))) {
                 WriteAttribute(output, TnefAttributeLevel.Message, attribute.Tag, attribute.Data);
@@ -95,7 +95,8 @@ internal static class TnefWriter {
         }
         if (properties.Count > 0) {
             WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties,
-                TnefMapiCodec.WriteProperties(properties, codePage));
+                TnefMapiCodec.WriteProperties(properties, codePage, diagnostics,
+                    string.Concat("tnef/attachment[", index.ToString(CultureInfo.InvariantCulture), "]/mapi")));
         }
         foreach (TnefAttribute attribute in attachment.TnefAttributes.Where(attribute => !ManagedAttachmentAttributes.Contains(attribute.Tag))) {
             WriteAttribute(output, TnefAttributeLevel.Attachment, attribute.Tag, attribute.Data);

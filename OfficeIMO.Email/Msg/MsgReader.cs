@@ -6,11 +6,7 @@ internal static class MsgReader {
     internal static bool TryRead(byte[] data, EmailReaderOptions options, IList<EmailDiagnostic> diagnostics,
         CancellationToken cancellationToken, out EmailDocument document) {
         cancellationToken.ThrowIfCancellationRequested();
-        var compoundOptions = new OfficeCompoundReadOptions(
-            options.MaxCompoundDirectoryEntries,
-            options.MaxCompoundDirectoryEntries,
-            Math.Min(options.MaxInputBytes, int.MaxValue),
-            options.MaxDecodedPropertyBytes);
+        OfficeCompoundReadOptions compoundOptions = EmailCompoundReadPolicy.Create(options);
         if (!OfficeCompoundFileReader.TryRead(data, compoundOptions, out OfficeCompoundFile? compound, out string? error) || compound == null) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_COMPOUND_INVALID", error ?? "The MSG compound file is invalid.",
                 EmailDiagnosticSeverity.Error));

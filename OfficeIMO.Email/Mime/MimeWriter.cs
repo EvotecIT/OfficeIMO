@@ -34,7 +34,9 @@ internal static class MimeWriter {
         if (options.IncludeBccHeader) WriteRecipientHeader(output, document, EmailRecipientKind.Bcc, "Bcc");
         WriteRecipientHeader(output, document, EmailRecipientKind.ReplyTo, "Reply-To");
         if (document.Date.HasValue) {
-            WriteLine(output, string.Concat("Date: ", document.Date.Value.ToString("ddd, dd MMM yyyy HH:mm:ss zzz", CultureInfo.InvariantCulture)));
+            WriteLine(output, string.Concat("Date: ",
+                document.Date.Value.ToString("ddd, dd MMM yyyy HH:mm:ss ", CultureInfo.InvariantCulture),
+                FormatTimeZoneOffset(document.Date.Value.Offset)));
         }
         if (!string.IsNullOrWhiteSpace(document.MessageId)) {
             WriteLine(output, string.Concat("Message-ID: <", SanitizeMessageId(document.MessageId!), ">"));
@@ -52,7 +54,7 @@ internal static class MimeWriter {
 
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
         bool hasAttachments = document.Attachments.Count > 0;
-        bool hasAlternative = document.Body.Text != null && document.Body.Html != null;
+        bool hasAlternative = CountBodyAlternatives(document.Body) > 1;
         if (hasAttachments) {
             string boundary = CreateBoundary(document, depth, "mixed");
             WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
@@ -75,16 +77,30 @@ internal static class MimeWriter {
             string boundary = CreateBoundary(document, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
-            WriteLine(output, string.Concat("--", boundary));
-            WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength);
-            WriteLine(output, string.Concat("--", boundary));
-            WriteTextPart(output, "text/html", document.Body.Html!, state.Options.Base64LineLength);
+            if (document.Body.Text != null) {
+                WriteLine(output, string.Concat("--", boundary));
+                WriteTextPart(output, "text/plain", document.Body.Text, state.Options.Base64LineLength);
+            }
+            if (document.Body.Html != null) {
+                WriteLine(output, string.Concat("--", boundary));
+                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
+            }
+            if (document.Body.Rtf != null) {
+                WriteLine(output, string.Concat("--", boundary));
+                WriteRtfPart(output, document.Body.Rtf, state.Options.Base64LineLength);
+            }
             WriteLine(output, string.Concat("--", boundary, "--"));
         } else if (document.Body.Html != null) {
             WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
+        } else if (document.Body.Rtf != null) {
+            WriteRtfPart(output, document.Body.Rtf, state.Options.Base64LineLength);
         } else {
             WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength);
         }
+    }
+
+    private static int CountBodyAlternatives(EmailBody body) {
+        return (body.Text == null ? 0 : 1) + (body.Html == null ? 0 : 1) + (body.Rtf == null ? 0 : 1);
     }
 
     private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength) {
@@ -92,6 +108,13 @@ internal static class MimeWriter {
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
         WriteBase64(output, Encoding.UTF8.GetBytes(text), base64LineLength);
+    }
+
+    private static void WriteRtfPart(Stream output, string rtf, int base64LineLength) {
+        WriteLine(output, "Content-Type: text/rtf; charset=utf-8");
+        WriteLine(output, "Content-Transfer-Encoding: base64");
+        WriteLine(output, string.Empty);
+        WriteBase64(output, Encoding.UTF8.GetBytes(rtf), base64LineLength);
     }
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, MimeWriterState state, int depth, int index) {
@@ -146,6 +169,7 @@ internal static class MimeWriter {
         Hash(ref hash, document.MessageId);
         Hash(ref hash, document.Body.Text);
         Hash(ref hash, document.Body.Html);
+        Hash(ref hash, document.Body.Rtf);
         Hash(ref hash, document.Attachments.Count.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, depth.ToString(CultureInfo.InvariantCulture));
         Hash(ref hash, kind);
@@ -184,7 +208,37 @@ internal static class MimeWriter {
         string sanitized = value.Replace("\r", string.Empty).Replace("\n", " ");
         bool ascii = sanitized.All(character => character >= 32 && character <= 126);
         if (ascii) return sanitized;
-        return string.Concat("=?utf-8?B?", Convert.ToBase64String(Encoding.UTF8.GetBytes(sanitized)), "?=");
+        const int maxEncodedBytes = 45;
+        var words = new List<string>();
+        var chunk = new StringBuilder();
+        int chunkBytes = 0;
+        for (int index = 0; index < sanitized.Length;) {
+            int characterLength = char.IsHighSurrogate(sanitized[index]) && index + 1 < sanitized.Length &&
+                char.IsLowSurrogate(sanitized[index + 1]) ? 2 : 1;
+            int characterBytes = Encoding.UTF8.GetByteCount(sanitized.Substring(index, characterLength));
+            if (chunkBytes > 0 && chunkBytes + characterBytes > maxEncodedBytes) {
+                words.Add(EncodeWord(chunk.ToString()));
+                chunk.Clear();
+                chunkBytes = 0;
+            }
+            chunk.Append(sanitized, index, characterLength);
+            chunkBytes += characterBytes;
+            index += characterLength;
+        }
+        if (chunk.Length > 0) words.Add(EncodeWord(chunk.ToString()));
+        return string.Join("\r\n ", words);
+    }
+
+    private static string EncodeWord(string value) {
+        return string.Concat("=?utf-8?B?", Convert.ToBase64String(Encoding.UTF8.GetBytes(value)), "?=");
+    }
+
+    private static string FormatTimeZoneOffset(TimeSpan offset) {
+        int totalMinutes = checked((int)offset.TotalMinutes);
+        char sign = totalMinutes < 0 ? '-' : '+';
+        int absoluteMinutes = Math.Abs(totalMinutes);
+        return string.Concat(sign.ToString(), (absoluteMinutes / 60).ToString("00", CultureInfo.InvariantCulture),
+            (absoluteMinutes % 60).ToString("00", CultureInfo.InvariantCulture));
     }
 
     private static string FormatFileNameParameter(string name, string? value) {

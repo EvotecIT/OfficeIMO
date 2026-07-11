@@ -244,7 +244,11 @@ internal static class MsgWriter {
         properties.Set(0x370D, MapiPropertyType.Unicode, attachment.LinkedPath);
         if (method == 5 || method == 6) {
             properties.Set(0x3701, MapiPropertyType.Object, null);
-            if (method == 6 && attachment.StructuredStorageStreams.Count == 0 && attachment.Length > 0) {
+            if (method == 5 && attachment.EmbeddedDocument == null) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
+                    "An embedded MSG attachment has no retained embedded document.",
+                    EmailDiagnosticSeverity.Error, location));
+            } else if (method == 6 && attachment.StructuredStorageStreams.Count == 0 && attachment.Length > 0) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
                     "A structured MSG attachment has a declared length but no retained storage streams.",
                     EmailDiagnosticSeverity.Error, location));

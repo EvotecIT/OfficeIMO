@@ -187,7 +187,9 @@ internal static class TnefReader {
             }
         } else if (method == 6 && objectBytes != null && objectBytes.Length > 16 && new Guid(MsgBinary.Slice(objectBytes, 0, 16)) == IidStorage) {
             byte[] compoundBytes = MsgBinary.Slice(objectBytes, 16, objectBytes.Length - 16);
-            if (OfficeCompoundFileReader.TryRead(compoundBytes, out OfficeCompoundFile? compound, out _) && compound != null) {
+            if (OfficeCompoundFileReader.TryRead(compoundBytes,
+                EmailCompoundReadPolicy.Create(state.Options), out OfficeCompoundFile? compound,
+                out string? compoundError) && compound != null) {
                 long total = 0;
                 foreach (KeyValuePair<string, byte[]> stream in compound.Streams) {
                     state.ThrowIfCancellationRequested();
@@ -199,6 +201,9 @@ internal static class TnefReader {
                 attachment.Length = total;
                 state.CountAttachment(total);
             } else {
+                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID",
+                    compoundError ?? "The TNEF compound attachment could not be read.",
+                    EmailDiagnosticSeverity.Warning, location));
                 state.CountAttachment(compoundBytes.LongLength);
                 attachment.Content = state.Options.IncludeAttachmentContent ? compoundBytes : null;
             }
@@ -244,9 +249,7 @@ internal static class TnefReader {
     }
 
     private static string DecodeString(byte[] bytes, int codePage, MsgParserState state, string location) {
-        string charset = codePage == 65001 ? "utf-8" : codePage == 20127 ? "us-ascii" :
-            string.Concat("windows-", codePage.ToString(CultureInfo.InvariantCulture));
-        return MimeTextCodec.DecodeText(bytes, charset, state.Diagnostics, location).TrimEnd('\0');
+        return MimeTextCodec.DecodeText(bytes, codePage, state.Diagnostics, location).TrimEnd('\0');
     }
 
     private static DateTimeOffset? DecodeDate(byte[] bytes, IList<EmailDiagnostic> diagnostics, string location) {

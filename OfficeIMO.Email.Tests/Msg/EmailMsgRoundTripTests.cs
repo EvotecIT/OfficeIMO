@@ -256,6 +256,23 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void MissingEmbeddedMsgDocumentProducesDataLossDiagnostics() {
+        var source = new EmailDocument { Subject = "missing embedded payload" };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "embedded.msg",
+            MapiAttachMethod = 5
+        });
+
+        new EmailDocumentWriter().WriteToBytes(
+            source, EmailFileFormat.OutlookMsg, out EmailWriteResult result);
+
+        Assert.True(result.HasErrors);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE" &&
+            diagnostic.Message.Contains("embedded MSG", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void NestedMsgChildrenAreNotProjectedAsParentFallbackAttachments() {
         var embedded = new EmailDocument { Subject = "embedded" };
         embedded.Attachments.Add(new EmailAttachment { FileName = "one.bin", Content = new byte[] { 1 }, Length = 1 });
