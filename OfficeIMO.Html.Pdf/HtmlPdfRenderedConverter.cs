@@ -49,6 +49,10 @@ internal static class HtmlPdfRenderedConverter {
 
         var reservedFontSlots = new HashSet<PdfCore.PdfStandardFont>();
         if (options.RenderedFontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
+        var activeWebFontFamilies = new HashSet<string>(
+            rendered.Fonts.Faces.Select(face => face.FamilyName),
+            StringComparer.OrdinalIgnoreCase);
+        ReserveUsedStandardFontSlots(rendered, activeWebFontFamilies, reservedFontSlots);
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(
             pdf,
             rendered,
@@ -58,7 +62,6 @@ internal static class HtmlPdfRenderedConverter {
         foreach (PdfCore.PdfStandardFont slot in webFonts.Values) {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
-        ReserveUsedStandardFontSlots(rendered, webFonts, reservedFontSlots);
         PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.RenderedTextFallbacks);
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
             pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, allowSystemFontEmbedding: true);
@@ -310,6 +313,7 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static void AddImage(PdfCore.PdfPageCanvas canvas, HtmlRenderImage visual) {
+        if (!TryPreparePdfImageBytes(visual.Bytes, visual.ContentType, out byte[] imageBytes)) return;
         PdfCore.PdfImageStyle? style = visual.SourceCrop.HasCrop
             ? new PdfCore.PdfImageStyle {
                 SourceCrop = new PdfCore.PdfImageSourceCrop(
@@ -320,7 +324,7 @@ internal static class HtmlPdfRenderedConverter {
             }
             : null;
         canvas.Image(
-            visual.Bytes,
+            imageBytes,
             visual.X * PointsPerCssPixel,
             visual.Y * PointsPerCssPixel,
             visual.Width * PointsPerCssPixel,
@@ -414,9 +418,10 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual, CancellationToken cancellationToken) {
+        if (!TryPreparePdfImageBytes(visual.Bytes, visual.ContentType, out byte[] imageBytes)) return;
         OfficeImagePatternLayout pattern = visual.Pattern.Scale(PointsPerCssPixel);
         OfficeImagePlacement area = pattern.Area;
-        PdfCore.PdfCanvasImageResource imageResource = PdfCore.PdfCanvasImageResource.Create(visual.Bytes);
+        PdfCore.PdfCanvasImageResource imageResource = PdfCore.PdfCanvasImageResource.Create(imageBytes);
         canvas.Clip(area.X, area.Y, area.Width, area.Height, clipped => {
             foreach (OfficeImagePlacement tile in pattern.GetTilePlacements(visual.MaximumTileCount)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -432,6 +437,10 @@ internal static class HtmlPdfRenderedConverter {
             }
         }
 
+        return MapStandardFont(familyName);
+    }
+
+    private static PdfCore.PdfStandardFont MapStandardFont(string familyName) {
         string normalized = familyName ?? string.Empty;
         if (normalized.IndexOf("times", StringComparison.OrdinalIgnoreCase) >= 0
             || normalized.IndexOf("serif", StringComparison.OrdinalIgnoreCase) >= 0) {
@@ -506,12 +515,27 @@ internal static class HtmlPdfRenderedConverter {
 
     private static void ReserveUsedStandardFontSlots(
         HtmlRenderDocument rendered,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        ISet<string> activeWebFontFamilies,
         ISet<PdfCore.PdfStandardFont> reservedFontSlots) {
         foreach (string familyNames in EnumerateUsedFontFamilyLists(rendered.Pages.SelectMany(page => page.Visuals))) {
-            PdfCore.PdfStandardFont family = PdfCore.PdfStandardFontMapper.GetFontFamily(MapFont(familyNames, webFonts));
-            if (family != PdfCore.PdfStandardFont.Helvetica) reservedFontSlots.Add(family);
+            if (EnumerateFamilies(familyNames).Any(activeWebFontFamilies.Contains)) continue;
+            reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(MapStandardFont(familyNames)));
         }
+    }
+
+    private static bool TryPreparePdfImageBytes(byte[] bytes, string contentType, out byte[] pdfBytes) {
+        OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
+        string extension = OfficeImageInfo.GetDefaultExtension(format);
+        if (OfficeImageReader.TryIdentify(bytes, extension, out OfficeImageInfo identified)) {
+            format = identified.Format;
+        }
+
+        if (format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg) {
+            pdfBytes = bytes;
+            return true;
+        }
+
+        return OfficeImagePngConverter.TryConvertToPng(bytes, out pdfBytes);
     }
 
     private static IEnumerable<string> EnumerateUsedFontFamilyLists(IEnumerable<HtmlRenderVisual> visuals) {

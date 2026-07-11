@@ -185,18 +185,24 @@ public static partial class HtmlComputedStyleEngine {
     /// Computes styles for every element in the supplied document using style tags and inline style attributes.
     /// </summary>
     public static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
-        return ComputeStyleSet(document, mediaContext, false).Elements;
+        return ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false).Elements;
     }
 
-    internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
-        ComputeStyleSet(document, mediaContext, true);
+    internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlRenderOptions options) =>
+        ComputeStyleSet(
+            document,
+            new MediaEnvironment(
+                options.MediaContext,
+                options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
+                options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D),
+            true);
 
-    private static HtmlComputedStyleSet ComputeStyleSet(IHtmlDocument document, HtmlCssMediaContext mediaContext, bool includePseudoElements) {
+    private static HtmlComputedStyleSet ComputeStyleSet(IHtmlDocument document, MediaEnvironment environment, bool includePseudoElements) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
-        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, mediaContext);
+        IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
         var pseudoElements = new Dictionary<IElement, HtmlPseudoElementStylePair>();
         IElement? root = document.DocumentElement ?? document.Body;

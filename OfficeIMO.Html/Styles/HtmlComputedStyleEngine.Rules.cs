@@ -5,7 +5,7 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
-    private static IReadOnlyList<StyleRule> ParseStyleRules(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
+    private static IReadOnlyList<StyleRule> ParseStyleRules(IHtmlDocument document, MediaEnvironment environment) {
         var rules = new List<StyleRule>();
         var parser = new CssParser(new CssParserOptions {
             IsIncludingUnknownDeclarations = true
@@ -15,7 +15,7 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            if (!IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+            if (!IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, environment)) {
                 continue;
             }
 
@@ -26,7 +26,7 @@ public static partial class HtmlComputedStyleEngine {
 
             var stylesheet = parser.ParseStyleSheet(css);
             foreach (var rule in stylesheet.Rules) {
-                AddStyleRules(rule, rules, mediaContext);
+                AddStyleRules(rule, rules, environment);
             }
         }
 
@@ -57,7 +57,7 @@ public static partial class HtmlComputedStyleEngine {
         return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules, HtmlCssMediaContext mediaContext) {
+    private static void AddStyleRules(AngleSharp.Css.Dom.ICssRule rule, ICollection<StyleRule> rules, MediaEnvironment environment) {
         var styleRule = rule as AngleSharp.Css.Dom.ICssStyleRule;
         if (styleRule != null) {
             AddStyleRule(styleRule, rules);
@@ -65,7 +65,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         var mediaRule = rule as AngleSharp.Css.Dom.ICssMediaRule;
-        if (mediaRule != null && !IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
+        if (mediaRule != null && !IsApplicableMedia(mediaRule.ConditionText, environment)) {
             return;
         }
 
@@ -79,7 +79,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         foreach (var childRule in groupingRule.Rules) {
-            AddStyleRules(childRule, rules, mediaContext);
+            AddStyleRules(childRule, rules, environment);
         }
     }
 

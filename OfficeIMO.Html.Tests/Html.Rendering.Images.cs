@@ -223,6 +223,63 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_SvgCoverPreservesPositionedSourceCropAcrossSharedScene() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'><rect width='10' height='10' fill='red'/><rect x='10' width='10' height='10' fill='blue'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<img id='covered-svg' src='data:image/svg+xml;base64," + data + "' style='display:block;width:10px;height:10px;object-fit:cover;object-position:right center'>";
+        var options = new HtmlImageExportOptions {
+            ViewportWidth = 12D,
+            ViewportHeight = 12D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<HtmlRenderVisual> visuals = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToList();
+        HtmlRenderClipGroup clip = Assert.Single(visuals.OfType<HtmlRenderClipGroup>(), item => item.Source == "img#covered-svg:object-fit-clip");
+        HtmlRenderDrawing drawing = Assert.Single(clip.Visuals.OfType<HtmlRenderDrawing>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+
+        Assert.Equal(10D, clip.Width, 3);
+        Assert.Equal(20D, drawing.Width, 3);
+        Assert.Equal(-10D, drawing.X, 3);
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(5, 5));
+    }
+
+    [Theory]
+    [InlineData("image/gif")]
+    [InlineData("image/bmp")]
+    public void HtmlPdf_RenderedProfile_ConvertsDependencyFreeRasterFormatsToPng(string contentType) {
+        byte[] bytes = contentType == "image/gif"
+            ? Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+            : CreateSinglePixelBmp(0x12, 0x34, 0x56);
+        string html = "<img src='data:" + contentType + ";base64," + Convert.ToBase64String(bytes) + "' style='width:10px;height:10px'>";
+
+        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
+
+        Assert.Contains(images, image => image.IsImageFile && image.MimeType == "image/png");
+    }
+
+    private static byte[] CreateSinglePixelBmp(byte red, byte green, byte blue) {
+        var bytes = new byte[58];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        BitConverter.GetBytes(bytes.Length).CopyTo(bytes, 2);
+        BitConverter.GetBytes(54).CopyTo(bytes, 10);
+        BitConverter.GetBytes(40).CopyTo(bytes, 14);
+        BitConverter.GetBytes(1).CopyTo(bytes, 18);
+        BitConverter.GetBytes(1).CopyTo(bytes, 22);
+        BitConverter.GetBytes((short)1).CopyTo(bytes, 26);
+        BitConverter.GetBytes((short)24).CopyTo(bytes, 28);
+        BitConverter.GetBytes(4).CopyTo(bytes, 34);
+        bytes[54] = blue;
+        bytes[55] = green;
+        bytes[56] = red;
+        return bytes;
+    }
+
+    [Fact]
     public void HtmlImages_NoneScaleDownAspectRatioAndConstraintsUseIntrinsicGeometry() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='none-fit' src='data:image/png;base64,{data}' style='display:block;width:40px;height:40px;object-fit:none;object-position:right bottom'>"

@@ -16,8 +16,6 @@ internal static class HtmlRenderFontFaceLoader {
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
         var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        long dataUriBytes = resources.AcceptedResourceBytes;
-        int dataUriCount = resources.AcceptedResourceCount;
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)
@@ -34,9 +32,7 @@ internal static class HtmlRenderFontFaceLoader {
                     options,
                     diagnostics,
                     fonts,
-                    reported,
-                    ref dataUriBytes,
-                    ref dataUriCount);
+                    reported);
             }
         }
 
@@ -51,9 +47,7 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         OfficeFontFaceCollection fonts,
-        HashSet<string> reported,
-        ref long dataUriBytes,
-        ref int dataUriCount) {
+        HashSet<string> reported) {
         if (definition.FamilyName.Length == 0) {
             ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontFaceInvalid, "An @font-face rule has no usable font-family descriptor.", definition.Source);
             return;
@@ -73,7 +67,10 @@ internal static class HtmlRenderFontFaceLoader {
 
             byte[]? bytes = null;
             string contentType = string.Empty;
-            if (resolved.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
+            if (resources.TryGet(source, resolved, out HtmlResolvedResource cached)) {
+                bytes = cached.Bytes;
+                contentType = cached.ContentType;
+            } else if (resolved.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
                 if (!HtmlDataUri.TryParse(resolved, out HtmlDataUri dataUri)) {
                     ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
                     continue;
@@ -89,19 +86,9 @@ internal static class HtmlRenderFontFaceLoader {
 
                 contentType = dataUri.MediaType;
 
-                if (estimatedBytes > options.MaxResourceBytes) {
-                    ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded, "A font data URI exceeded the configured per-resource byte limit.", source);
+                if (!resources.CanAcceptInlineResource(estimatedBytes, options, out string diagnosticCode, out string diagnosticDetail)) {
+                    ReportOnce(diagnostics, reported, diagnosticCode, "A font data URI exceeded the configured operation-wide resource budget.", source, diagnosticDetail);
                     continue;
-                }
-
-                if (dataUriCount >= options.MaxResourceCount) {
-                    ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Font data URIs exceeded the configured operation-wide resource count.", source);
-                    break;
-                }
-
-                if (dataUriBytes + estimatedBytes > options.MaxTotalResourceBytes) {
-                    ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded, "Font data URIs exceeded the configured operation-wide byte budget.", source);
-                    break;
                 }
 
                 if (!dataUri.TryDecodeBytes(out bytes)) {
@@ -109,11 +96,8 @@ internal static class HtmlRenderFontFaceLoader {
                     continue;
                 }
 
-                dataUriCount++;
-                dataUriBytes += bytes.LongLength;
-            } else if (resources.TryGet(source, resolved, out HtmlResolvedResource resource)) {
-                bytes = resource.Bytes;
-                contentType = resource.ContentType;
+                var inlineResource = new HtmlResolvedResource(bytes, contentType);
+                resources.AddInline(resolved, inlineResource);
             }
 
             if (bytes == null) {

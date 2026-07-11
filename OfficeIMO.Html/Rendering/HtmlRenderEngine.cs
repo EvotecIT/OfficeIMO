@@ -32,7 +32,7 @@ public static class HtmlRenderEngine {
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
-        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved.MediaContext);
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved);
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts).Render();
     }
 
@@ -63,7 +63,7 @@ public static class HtmlRenderEngine {
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
         resolved.Validate();
-        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved.MediaContext);
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved);
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
     }

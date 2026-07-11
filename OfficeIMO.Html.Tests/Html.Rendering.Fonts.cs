@@ -204,6 +204,33 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
+    [Fact]
+    public void HtmlPdf_RenderedProfile_ReservesStandardFontSlotsBeforeEmbeddingWebFonts() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null
+            || string.IsNullOrWhiteSpace(fontPath)
+            || !string.Equals(Path.GetExtension(fontPath), ".ttf", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        if (fontData.LongLength > 10L * 1024L * 1024L) return;
+        string encoded = Convert.ToBase64String(fontData);
+        string html = "<style>"
+            + "@font-face{font-family:WebOne;src:url('data:font/ttf;base64," + encoded + "')}"
+            + "@font-face{font-family:WebTwo;src:url('data:font/ttf;base64," + encoded + "')}"
+            + ".one{font-family:WebOne}.two{font-family:WebTwo}.serif{font-family:'Times New Roman'}.mono{font-family:Courier}"
+            + "</style><p class='one'>Web one</p><p class='two'>Web two</p><p class='serif'>Standard serif</p><p class='mono'>Standard mono</p>";
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+
+        byte[] pdf = html.SaveAsPdf(options);
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/BaseFont /Times-Roman", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
+    }
+
     private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {
         byte[] cmap = CreateHtmlRenderFormat12Cmap(scalar);
         var tables = new List<(string Tag, byte[] Data)> {

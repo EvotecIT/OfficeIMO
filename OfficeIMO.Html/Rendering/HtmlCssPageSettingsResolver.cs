@@ -12,7 +12,7 @@ internal static class HtmlCssPageSettingsResolver {
         if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
         var parser = new CssParser();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            if (!IsCssStyleElement(styleElement) || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, HtmlCssMediaContext.Print)) continue;
+            if (!IsCssStyleElement(styleElement) || !IsApplicablePrintMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
             ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules);
             var sheet = parser.ParseStyleSheet(styleElement.TextContent);
             foreach (ICssRule rule in sheet.Rules) ApplyRule(rule, options, diagnostics);
@@ -22,7 +22,7 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static void ApplyRule(ICssRule rule, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        if (rule is ICssMediaRule mediaRule && !HtmlComputedStyleEngine.IsApplicableMedia(mediaRule.ConditionText, HtmlCssMediaContext.Print)) return;
+        if (rule is ICssMediaRule mediaRule && !IsApplicablePrintMedia(mediaRule.ConditionText, options)) return;
         if (rule is ICssPageRule pageRule) {
             string selector = (pageRule.SelectorText ?? string.Empty).Trim();
             if (selector.Length > 0) {
@@ -109,6 +109,9 @@ internal static class HtmlCssPageSettingsResolver {
         return type.Length == 0 || string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsApplicablePrintMedia(string mediaText, HtmlRenderOptions options) =>
+        HtmlComputedStyleEngine.IsApplicableMedia(mediaText, HtmlCssMediaContext.Print, options.PageWidth, options.PageHeight);
+
     private static void ApplyRawPageRules(string css, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) =>
         ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules);
 
@@ -151,7 +154,7 @@ internal static class HtmlCssPageSettingsResolver {
             if (closeBrace < 0 || closeBrace >= end) return;
             string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
             if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
-                if (HtmlComputedStyleEngine.IsApplicableMedia(prelude, HtmlCssMediaContext.Print)) {
+                if (IsApplicablePrintMedia(prelude, options)) {
                     ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules);
                 }
             } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
