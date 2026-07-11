@@ -187,6 +187,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Convert_DisablesOpenSettingsAutoSaveForSourceIsolation() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Source must remain untouched");
+                document.Save();
+            }
+            File.SetLastWriteTimeUtc(sourcePath, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            byte[] sourceBytes = File.ReadAllBytes(sourcePath);
+            DateTime sourceWriteTime = File.GetLastWriteTimeUtc(sourcePath);
+
+            ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
+                ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
+                    OpenSettings = new OpenSettings { AutoSave = true }
+                }));
+
+            Assert.Equal(ExcelDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.Equal(sourceBytes, File.ReadAllBytes(sourcePath));
+            Assert.Equal(sourceWriteTime, File.GetLastWriteTimeUtc(sourcePath));
+            Assert.False(File.Exists(destinationPath));
+        }
+
+        [Fact]
         public void LegacyXls_Convert_BlocksCompoundFeatureMetadataUnlessLossIsAllowed() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithOleObjectStorage(workbookStream);

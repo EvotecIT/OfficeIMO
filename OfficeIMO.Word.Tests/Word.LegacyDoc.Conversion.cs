@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using Xunit;
@@ -160,6 +161,29 @@ namespace OfficeIMO.Tests {
                 WordDocument.Convert(sourcePath, destinationPath));
 
             Assert.Equal(WordDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.False(File.Exists(destinationPath));
+        }
+
+        [Fact]
+        public void LegacyDoc_Convert_DisablesOpenSettingsAutoSaveForSourceIsolation() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Source must remain untouched");
+                document.Save(sourcePath);
+            }
+            File.SetLastWriteTimeUtc(sourcePath, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            byte[] sourceBytes = File.ReadAllBytes(sourcePath);
+            DateTime sourceWriteTime = File.GetLastWriteTimeUtc(sourcePath);
+
+            WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() =>
+                WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
+                    OpenSettings = new OpenSettings { AutoSave = true }
+                }));
+
+            Assert.Equal(WordDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.Equal(sourceBytes, File.ReadAllBytes(sourcePath));
+            Assert.Equal(sourceWriteTime, File.GetLastWriteTimeUtc(sourcePath));
             Assert.False(File.Exists(destinationPath));
         }
 

@@ -167,7 +167,10 @@ namespace OfficeIMO.Word {
         /// <summary>Gets or sets whether OfficeIMO should override styles while loading DOCX sources.</summary>
         public bool OverrideStyles { get; set; }
 
-        /// <summary>Gets or sets optional Open XML load settings for DOCX sources.</summary>
+        /// <summary>
+        /// Gets or sets optional Open XML load settings for DOCX sources. Conversion always disables
+        /// <see cref="OpenSettings.AutoSave"/> so source files are never modified as a load side effect.
+        /// </summary>
         public OpenSettings? OpenSettings { get; set; }
 
         /// <summary>

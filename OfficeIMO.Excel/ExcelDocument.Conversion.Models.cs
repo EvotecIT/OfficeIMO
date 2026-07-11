@@ -164,7 +164,10 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets whether to open the destination after a successful commit.</summary>
         public bool OpenAfterSave { get; set; }
 
-        /// <summary>Gets or sets optional Open XML load settings for XLSX sources.</summary>
+        /// <summary>
+        /// Gets or sets optional Open XML load settings for XLSX sources. Conversion always disables
+        /// <see cref="OpenSettings.AutoSave"/> so source files are never modified as a load side effect.
+        /// </summary>
         public OpenSettings? OpenSettings { get; set; }
 
         /// <summary>

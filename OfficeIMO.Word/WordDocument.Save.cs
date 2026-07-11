@@ -565,7 +565,11 @@ namespace OfficeIMO.Word {
             await outputStream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
 #endif
             try { await outputStream.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-            OriginalStream = outputStream;
+            // A pathless Save() targets OriginalStream as DOCX. Do not bind a legacy
+            // DOC stream here or a later Save()/auto-save could replace it with OOXML.
+            if (format == WordFileFormat.Docx) {
+                OriginalStream = outputStream;
+            }
             if (outputStream.CanSeek) outputStream.Seek(0, SeekOrigin.Begin);
         }
 

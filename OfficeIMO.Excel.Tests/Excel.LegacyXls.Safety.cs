@@ -1,5 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Model;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -53,6 +54,27 @@ namespace OfficeIMO.Tests {
             Assert.True(result.Summary.HasConversionLoss);
             Assert.Throws<InvalidOperationException>(() => result.EnsureNoUnsupportedFeatures());
             Assert.Throws<InvalidOperationException>(() => result.EnsureNoConversionLoss());
+        }
+
+        [Fact]
+        public void LegacyXls_FeatureReport_IncludesPreservedOnlyRecords() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
+            ExcelDocument document = result.Document;
+            Assert.NotEmpty(document.LegacyXlsPreservedFeatures);
+
+            typeof(ExcelDocument)
+                .GetField("_legacyXlsUnsupportedFeatures", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(document, Array.Empty<LegacyXlsUnsupportedFeature>());
+
+            ExcelFeatureReport report = document.InspectFeatures();
+            ExcelFeatureFinding finding = Assert.Single(
+                report.PreservedFeatures,
+                feature => feature.Name == "Legacy XLS preserved records");
+            Assert.Equal(document.LegacyXlsPreservedFeatures.Count, finding.Count);
+            Assert.All(document.LegacyXlsPreservedFeatures, preserved =>
+                Assert.Contains(finding.Details, detail => detail.Contains(preserved.Code, StringComparison.Ordinal)));
         }
 
         [Fact]

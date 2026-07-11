@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Shared;
@@ -145,8 +146,21 @@ namespace OfficeIMO.Excel {
                 sourcePath,
                 readOnly: false,
                 autoSave: false,
-                openSettings: options.OpenSettings,
+                openSettings: CreateConversionOpenSettings(options.OpenSettings),
                 cancellationToken).ConfigureAwait(false);
+        }
+
+        private static OpenSettings? CreateConversionOpenSettings(OpenSettings? openSettings) {
+            if (openSettings == null) {
+                return null;
+            }
+
+            return new OpenSettings {
+                AutoSave = false,
+                CompatibilityLevel = openSettings.CompatibilityLevel,
+                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
+                MaxCharactersInPart = openSettings.MaxCharactersInPart,
+            };
         }
 
         private static LegacyXlsImportOptions CreateConversionImportOptions(LegacyXlsImportOptions options) {
