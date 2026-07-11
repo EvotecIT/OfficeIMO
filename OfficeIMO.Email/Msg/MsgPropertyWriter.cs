@@ -38,11 +38,11 @@ internal static class MsgPropertyWriter {
                         MsgBinary.WriteUInt32(propertyStream, offset + 12, objectReserved);
                     } else {
                         byte[] value = MsgValueWriter.EncodeScalar(property);
+                        if (property.PropertyType == MapiPropertyType.Unicode) value = AppendTerminator(value, 2);
+                        if (property.PropertyType == MapiPropertyType.String8) value = AppendTerminator(value, 1);
                         streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(prefix,
                             string.Concat("__substg1.0_", resolvedProperty.Tag.ToString("X8", CultureInfo.InvariantCulture))), value));
                         uint size = unchecked((uint)value.Length);
-                        if (property.PropertyType == MapiPropertyType.Unicode) size = checked(size + 2);
-                        if (property.PropertyType == MapiPropertyType.String8) size = checked(size + 1);
                         MsgBinary.WriteUInt32(propertyStream, offset + 8, size);
                     }
                 } else {

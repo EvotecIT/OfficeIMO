@@ -192,6 +192,24 @@ public sealed class ReaderEmailTests {
         }
     }
 
+    [Fact]
+    public void AttachmentNamesRemainLogicalWhenInvalidAsWindowsPaths() {
+        var document = new EmailDocument { Subject = "Logical attachment name" };
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "report|draft.txt",
+            ContentType = "text/plain",
+            Content = Encoding.UTF8.GetBytes("content"),
+            Length = 7
+        });
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+
+        OfficeDocumentReadResult result = DocumentReader.ReadDocument(bytes, "sample.eml");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("report|draft.txt", asset.FileName);
+        Assert.Equal("content", Encoding.UTF8.GetString(Assert.IsType<byte[]>(asset.PayloadBytes)));
+    }
+
     private static byte[] BuildEmlWithAttachment() {
         var document = new EmailDocument {
             Format = EmailFileFormat.Eml,

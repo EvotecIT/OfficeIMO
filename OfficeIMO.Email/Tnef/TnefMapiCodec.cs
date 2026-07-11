@@ -70,7 +70,7 @@ internal static class TnefMapiCodec {
                 MapiPropertyType type = (MapiPropertyType)unchecked((ushort)tag);
                 MapiNamedProperty? name = propertyId >= 0x8000 ? ReadNamedProperty(cursor) : null;
                 bool multiple = MsgValueWriter.IsMultiple(type);
-                bool variable = MsgValueWriter.IsVariable(type) || multiple;
+                bool variable = IsVariableValue(type) || multiple;
                 object? value;
                 byte[]? raw;
                 if (variable) {
@@ -85,7 +85,7 @@ internal static class TnefMapiCodec {
                         for (int valueIndex = 0; valueIndex < valueCount; valueIndex++) {
                             state.ThrowIfCancellationRequested();
                             byte[] itemBytes;
-                            if (MsgValueWriter.IsVariable(itemType)) {
+                            if (IsVariableValue(itemType)) {
                                 uint rawLength = cursor.ReadUInt32();
                                 if (rawLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
                                 itemBytes = cursor.ReadBytes((int)rawLength);
@@ -169,7 +169,7 @@ internal static class TnefMapiCodec {
         WriteUInt32(output, tag);
         if (property.Name != null) WriteNamedProperty(output, property.Name);
         bool multiple = MsgValueWriter.IsMultiple(property.PropertyType);
-        bool variable = MsgValueWriter.IsVariable(property.PropertyType) || multiple;
+        bool variable = IsVariableValue(property.PropertyType) || multiple;
         if (variable) {
             object[] values = multiple ? MsgValueWriter.GetMultipleValues(property) : new[] { property.Value ?? property.RawData ?? Array.Empty<byte>() };
             WriteUInt32(output, unchecked((uint)values.Length));
@@ -177,7 +177,7 @@ internal static class TnefMapiCodec {
             foreach (object value in values) {
                 var item = new MapiProperty(propertyId, itemType, value) { RawData = property.RawData };
                 byte[] bytes = EncodeValue(item, codePage);
-                if (MsgValueWriter.IsVariable(itemType)) WriteUInt32(output, unchecked((uint)bytes.Length));
+                if (IsVariableValue(itemType)) WriteUInt32(output, unchecked((uint)bytes.Length));
                 output.Write(bytes, 0, bytes.Length);
                 Pad4(output);
             }
@@ -227,6 +227,10 @@ internal static class TnefMapiCodec {
             case MapiPropertyType.Guid: return 16;
             default: return 8;
         }
+    }
+
+    private static bool IsVariableValue(MapiPropertyType type) {
+        return type != MapiPropertyType.Guid && MsgValueWriter.IsVariable(type);
     }
 
     private static string CodePageName(int codePage) {

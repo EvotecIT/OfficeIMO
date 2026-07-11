@@ -96,4 +96,32 @@ public sealed class EmailMimeReaderTests {
 
         Assert.Equal("Zażółć", result.Document.Subject);
     }
+
+    [Fact]
+    public void ReadsRawUtf8HeadersAndUsesTopmostReceivedTimestamp() {
+        const string eml = "From: José <jose@example.com>\r\n" +
+            "Subject: Café\r\n" +
+            "Received: from final.example; Fri, 10 Jul 2026 12:30:00 +0000\r\n" +
+            "Received: from origin.example; Fri, 10 Jul 2026 10:00:00 +0000\r\n\r\nbody";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml)).Document;
+
+        Assert.Equal("Café", document.Subject);
+        Assert.Equal("José", document.From!.DisplayName);
+        Assert.Equal(new DateTimeOffset(2026, 7, 10, 12, 30, 0, TimeSpan.Zero), document.ReceivedDate);
+    }
+
+    [Fact]
+    public void DecodesRfc2231ContinuationAfterJoiningEncodedSegments() {
+        const string eml = "Subject: continuation\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain\r\n\r\nbody\r\n" +
+            "--x\r\nContent-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename*0*=utf-8''price-%E2%82; filename*1*=%AC.txt\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nAQ==\r\n--x--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("price-€.txt", Assert.Single(document.Attachments).FileName);
+    }
 }

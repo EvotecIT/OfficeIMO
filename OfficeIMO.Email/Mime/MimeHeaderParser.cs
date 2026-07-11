@@ -10,7 +10,7 @@ internal static class MimeHeaderParser {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxHeaderBytes), headerBytes, options.MaxHeaderBytes);
         }
 
-        string block = Encoding.ASCII.GetString(data, offset, headerBytes);
+        string block = Encoding.UTF8.GetString(data, offset, headerBytes);
         string normalized = block.Replace("\r\n", "\n").Replace('\r', '\n');
         string[] lines = normalized.Split('\n');
         string? currentName = null;

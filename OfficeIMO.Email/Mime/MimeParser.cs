@@ -129,7 +129,7 @@ internal static class MimeParser {
         AddRecipients(document, headers, "Bcc", EmailRecipientKind.Bcc);
         AddRecipients(document, headers, "Reply-To", EmailRecipientKind.ReplyTo);
 
-        string? received = MimeHeaderParser.GetValues(headers, "Received").LastOrDefault();
+        string? received = MimeHeaderParser.GetValues(headers, "Received").FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(received)) {
             int separator = received!.LastIndexOf(';');
             if (separator >= 0) {

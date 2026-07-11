@@ -58,7 +58,7 @@ internal static class MsgPropertyReader {
                     if (type == MapiPropertyType.Object) {
                         raw = null;
                     } else if (compound.Streams.TryGetValue(valuePath, out byte[]? streamBytes)) {
-                        raw = streamBytes;
+                        raw = IsMultiple(type) ? streamBytes : TrimStringTerminator(type, streamBytes);
                         value = IsMultiple(type)
                             ? DecodeMultiple(type, streamBytes, compound, prefix, valueName, encoding, state, valuePath)
                             : DecodeScalar(type, streamBytes, encoding, state, valuePath);
@@ -81,6 +81,16 @@ internal static class MsgPropertyReader {
             result.Add(new MapiProperty(propertyId, type, value, flags, names.Get(propertyId)) { RawData = raw });
         }
         return result;
+    }
+
+    private static byte[] TrimStringTerminator(MapiPropertyType type, byte[] value) {
+        int terminatorLength = type == MapiPropertyType.Unicode ? 2 :
+            type == MapiPropertyType.String8 ? 1 : 0;
+        if (terminatorLength == 0 || value.Length < terminatorLength) return value;
+        for (int index = value.Length - terminatorLength; index < value.Length; index++) {
+            if (value[index] != 0) return value;
+        }
+        return MsgBinary.Slice(value, 0, value.Length - terminatorLength);
     }
 
     private static object? DecodeScalar(MapiPropertyType type, byte[] bytes, MapiStringEncodingContext encoding,

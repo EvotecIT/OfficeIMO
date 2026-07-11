@@ -287,7 +287,7 @@ public static partial class DocumentReader {
         int attachmentIndex,
         string attachmentPath,
         ReaderLocation location) {
-        string fileName = Path.GetFileName(attachmentPath);
+        string fileName = GetLogicalFileName(attachmentPath);
         byte[]? payload = attachment.Content;
         string kind = attachment.EmbeddedDocument != null
             ? "embedded-message"
@@ -317,6 +317,11 @@ public static partial class DocumentReader {
             SourceObjectId = attachmentPath,
             Location = location
         });
+    }
+
+    private static string GetLogicalFileName(string path) {
+        int separator = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+        return separator < 0 ? path : path.Substring(separator + 1);
     }
 
     private static bool CanReadEmailAttachmentContent(string fileName) {

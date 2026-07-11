@@ -147,6 +147,34 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void StringPropertyStreamsContainAdvertisedTerminators() {
+        var source = new EmailDocument { Subject = "Terminated subject" };
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+
+        using MemoryStream stream = new MemoryStream(bytes);
+        using var oracle = OpenMcdf.RootStorage.Open(stream, OpenMcdf.StorageModeFlags.LeaveOpen);
+        using OpenMcdf.CfbStream subjectStream = oracle.OpenStream("__substg1.0_0037001F");
+        byte[] subject = new byte[subjectStream.Length];
+        ReadFully(subjectStream, subject);
+        using OpenMcdf.CfbStream propertiesStream = oracle.OpenStream("__properties_version1.0");
+        byte[] properties = new byte[propertiesStream.Length];
+        ReadFully(propertiesStream, properties);
+
+        uint advertisedLength = 0;
+        for (int offset = 32; offset + 16 <= properties.Length; offset += 16) {
+            if (BitConverter.ToUInt32(properties, offset) == 0x0037001FU) {
+                advertisedLength = BitConverter.ToUInt32(properties, offset + 8);
+                break;
+            }
+        }
+
+        Assert.Equal(unchecked((uint)subject.Length), advertisedLength);
+        Assert.True(subject.Length >= 2);
+        Assert.Equal(0, subject[subject.Length - 2]);
+        Assert.Equal(0, subject[subject.Length - 1]);
+    }
+
+    [Fact]
     public void NamedPropertyLookupStreamsGroupHashCollisions() {
         EmailDocument source = new EmailDocument { Subject = "NameID collisions" };
         source.MapiProperties.Add(new MapiProperty(0x8000, MapiPropertyType.Integer32, 1,

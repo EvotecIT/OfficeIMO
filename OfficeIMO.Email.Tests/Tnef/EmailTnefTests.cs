@@ -8,6 +8,7 @@ public sealed class EmailTnefTests {
     [Fact]
     public void RoundTripsMessageMapiRecipientsAndAttachmentKinds() {
         DateTimeOffset start = new DateTimeOffset(2026, 10, 3, 9, 0, 0, TimeSpan.Zero);
+        Guid classId = new Guid("6F9619FF-8B86-D011-B42D-00C04FC964FF");
         EmailDocument child = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "child" };
         child.Body.Text = "nested";
         EmailDocument source = new EmailDocument {
@@ -21,6 +22,8 @@ public sealed class EmailTnefTests {
         source.Body.Text = "TNEF body";
         source.Recipients.Add(new EmailRecipient(EmailRecipientKind.To, new EmailAddress("to@example.com", "To")));
         source.MapiProperties.Add(new MapiProperty(0x66AA, MapiPropertyType.MultipleUnicode, new object[] { "one", "two" }));
+        source.MapiProperties.Add(new MapiProperty(0x66AB, MapiPropertyType.Guid, classId));
+        source.MapiProperties.Add(new MapiProperty(0x66AC, MapiPropertyType.Integer32, 42));
         source.TnefAttributes.Add(new TnefAttribute(TnefAttributeLevel.Message, 0x0006F001, new byte[] { 7, 8 }));
         source.Attachments.Add(new EmailAttachment {
             FileName = "data.bin", ContentType = "application/octet-stream", Content = new byte[] { 1, 2, 3 }, Length = 3
@@ -46,6 +49,8 @@ public sealed class EmailTnefTests {
         Assert.Equal("child", result.Document.Attachments[1].EmbeddedDocument!.Subject);
         Assert.Equal(new byte[] { 9, 8, 7 }, result.Document.Attachments[2].StructuredStorageStreams["Contents"]);
         Assert.Contains(result.Document.TnefAttributes, attribute => attribute.Tag == 0x0006F001);
+        Assert.Equal(classId, result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AB).Value);
+        Assert.Equal(42, result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AC).Value);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
     }
 

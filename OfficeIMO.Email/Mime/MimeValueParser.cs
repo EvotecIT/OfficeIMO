@@ -5,7 +5,8 @@ internal static class MimeValueParser {
         if (string.IsNullOrWhiteSpace(input)) return new MimeValue(defaultValue);
         List<string> segments = Split(input!);
         MimeValue result = new MimeValue(segments[0].Trim().ToLowerInvariant());
-        Dictionary<string, SortedDictionary<int, string>> continuations = new Dictionary<string, SortedDictionary<int, string>>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, SortedDictionary<int, ContinuationPart>> continuations =
+            new Dictionary<string, SortedDictionary<int, ContinuationPart>>(StringComparer.OrdinalIgnoreCase);
 
         for (int i = 1; i < segments.Count; i++) {
             int equals = segments[i].IndexOf('=');
@@ -18,31 +19,36 @@ internal static class MimeValueParser {
             int star = baseName.LastIndexOf('*');
             if (star > 0 && int.TryParse(baseName.Substring(star + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int part)) {
                 string continuationName = baseName.Substring(0, star);
-                SortedDictionary<int, string> values;
+                SortedDictionary<int, ContinuationPart> values;
                 if (!continuations.TryGetValue(continuationName, out values!)) {
-                    values = new SortedDictionary<int, string>();
+                    values = new SortedDictionary<int, ContinuationPart>();
                     continuations[continuationName] = values;
                 }
-                values[part] = encoded ? DecodeExtended(value, diagnostics, location) : value;
+                values[part] = new ContinuationPart(value, encoded);
             } else {
                 result.Parameters[baseName] = encoded ? DecodeExtended(value, diagnostics, location) : value;
             }
         }
 
-        foreach (KeyValuePair<string, SortedDictionary<int, string>> continuation in continuations) {
+        foreach (KeyValuePair<string, SortedDictionary<int, ContinuationPart>> continuation in continuations) {
             StringBuilder builder = new StringBuilder();
             int expected = 0;
-            foreach (KeyValuePair<int, string> part in continuation.Value) {
+            bool encoded = false;
+            foreach (KeyValuePair<int, ContinuationPart> part in continuation.Value) {
                 if (part.Key != expected) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_PARAMETER_CONTINUATION_GAP",
                         string.Concat("Parameter '", continuation.Key, "' has a missing continuation segment."),
                         EmailDiagnosticSeverity.Warning, location));
                     expected = part.Key;
                 }
-                builder.Append(part.Value);
+                builder.Append(part.Value.Value);
+                encoded |= part.Value.Encoded;
                 expected++;
             }
-            result.Parameters[continuation.Key] = builder.ToString();
+            string combined = builder.ToString();
+            result.Parameters[continuation.Key] = encoded
+                ? DecodeExtended(combined, diagnostics, location)
+                : combined;
         }
         return result;
     }
@@ -102,5 +108,16 @@ internal static class MimeValueParser {
             return value.Substring(1, value.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
         }
         return value;
+    }
+
+    private sealed class ContinuationPart {
+        internal ContinuationPart(string value, bool encoded) {
+            Value = value;
+            Encoded = encoded;
+        }
+
+        internal string Value { get; }
+
+        internal bool Encoded { get; }
     }
 }

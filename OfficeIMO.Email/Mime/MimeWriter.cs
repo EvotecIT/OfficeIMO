@@ -37,7 +37,7 @@ internal static class MimeWriter {
             WriteLine(output, string.Concat("Date: ", document.Date.Value.ToString("ddd, dd MMM yyyy HH:mm:ss zzz", CultureInfo.InvariantCulture)));
         }
         if (!string.IsNullOrWhiteSpace(document.MessageId)) {
-            WriteLine(output, string.Concat("Message-ID: <", document.MessageId!.Trim().Trim('<', '>'), ">"));
+            WriteLine(output, string.Concat("Message-ID: <", SanitizeMessageId(document.MessageId!), ">"));
         }
         foreach (EmailHeader header in document.Headers) {
             if (ManagedHeaders.Contains(header.Name)) continue;
@@ -164,7 +164,20 @@ internal static class MimeWriter {
     private static string FormatAddress(EmailAddress address) {
         string value = SanitizeAddress(address.Address ?? address.RawValue ?? string.Empty);
         if (string.IsNullOrWhiteSpace(address.DisplayName)) return value;
-        return string.Concat(EncodeHeaderText(address.DisplayName!), " <", value.Trim('<', '>'), ">");
+        return string.Concat(FormatDisplayName(address.DisplayName!), " <", value.Trim('<', '>'), ">");
+    }
+
+    private static string FormatDisplayName(string value) {
+        string sanitized = value.Replace("\r", string.Empty).Replace("\n", " ");
+        if (sanitized.Any(character => character < 32 || character > 126)) return EncodeHeaderText(sanitized);
+        if (sanitized.All(IsAddressPhraseCharacter)) return sanitized;
+        return string.Concat("\"", sanitized.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"");
+    }
+
+    private static bool IsAddressPhraseCharacter(char character) {
+        return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') ||
+            (character >= '0' && character <= '9') || character == ' ' || character == '\t' ||
+            "!#$%&'*+-/=?^_`{|}~".IndexOf(character) >= 0;
     }
 
     private static string EncodeHeaderText(string value) {
@@ -205,6 +218,10 @@ internal static class MimeWriter {
 
     private static string SanitizeAddress(string value) {
         return value.Replace("\r", string.Empty).Replace("\n", string.Empty).Trim();
+    }
+
+    private static string SanitizeMessageId(string value) {
+        return value.Replace("\r", string.Empty).Replace("\n", string.Empty).Trim().Trim('<', '>');
     }
 
     private static string SanitizeToken(string value) {
