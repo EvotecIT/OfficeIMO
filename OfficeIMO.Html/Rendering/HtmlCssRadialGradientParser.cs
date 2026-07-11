@@ -21,7 +21,7 @@ internal static class HtmlCssRadialGradientParser {
         IReadOnlyList<string> arguments = HtmlRenderCssValues.SplitTopLevelCommas(text.Substring(open + 1, text.Length - open - 2));
         if (arguments.Count < 2) return false;
         int stopStart = HtmlCssGradientStops.IsColorStop(arguments[0]) ? 0 : 1;
-        if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded)
+        if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded)
             || stops == null
             || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], stops, out definition)) {
             return false;
@@ -32,7 +32,7 @@ internal static class HtmlCssRadialGradientParser {
 
     private static bool TryParseDescriptor(
         string descriptor,
-        IReadOnlyList<OfficeGradientStop> stops,
+        HtmlCssGradientStops stops,
         out HtmlCssRadialGradientDefinition? definition) {
         definition = null;
         List<string> parts = HtmlRenderCssValues.SplitWhitespace(descriptor)

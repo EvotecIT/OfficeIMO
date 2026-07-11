@@ -4,8 +4,8 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static class HtmlCssLinearGradientParser {
-    internal static bool TryParse(string? value, int maximumStops, out OfficeLinearGradient? gradient, out bool stopLimitExceeded) {
-        gradient = null;
+    internal static bool TryParse(string? value, int maximumStops, out HtmlCssLinearGradientDefinition? definition, out bool stopLimitExceeded) {
+        definition = null;
         stopLimitExceeded = false;
         if (string.IsNullOrWhiteSpace(value) || maximumStops < 2) return false;
 
@@ -25,8 +25,8 @@ internal static class HtmlCssLinearGradientParser {
             stopStart = 1;
         }
 
-        if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded) || stops == null) return false;
-        gradient = OfficeLinearGradient.FromAngle(stops, officeAngle);
+        if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded) || stops == null) return false;
+        definition = new HtmlCssLinearGradientDefinition(officeAngle, stops);
         return true;
     }
 

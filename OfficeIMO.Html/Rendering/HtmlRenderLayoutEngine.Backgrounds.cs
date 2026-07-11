@@ -306,7 +306,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         OfficeShape fill = CreateBoxShape(areaWidth, areaHeight, radii);
         fill.FillColor = null;
-        fill.FillGradient = layer.LinearGradient?.Clone();
+        OfficeLinearGradient? linearGradient = null;
+        if (layer.LinearGradient != null
+            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out linearGradient)) {
+            AddUnsupported(
+                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "A CSS linear gradient could not be resolved against its paint area and was omitted.",
+                source);
+            return;
+        }
+        fill.FillGradient = linearGradient;
         OfficeRadialGradient? radialGradient = null;
         if (layer.RadialGradient != null
             && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out radialGradient)) {

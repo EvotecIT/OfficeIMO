@@ -13,7 +13,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
         string centerY,
         string? radiusX,
         string? radiusY,
-        IReadOnlyList<OfficeGradientStop> stops) {
+        HtmlCssGradientStops stops) {
         Shape = shape;
         Size = size;
         CenterX = centerX;
@@ -29,7 +29,7 @@ internal sealed class HtmlCssRadialGradientDefinition {
     private string CenterY { get; }
     private string? RadiusX { get; }
     private string? RadiusY { get; }
-    private IReadOnlyList<OfficeGradientStop> Stops { get; }
+    private HtmlCssGradientStops Stops { get; }
 
     internal bool TryResolve(
         double width,
@@ -68,7 +68,9 @@ internal sealed class HtmlCssRadialGradientDefinition {
         double centerY = centerYPixels / height;
         double radiusX = Math.Max(MinimumRadius, radiusXPixels) / width;
         double radiusY = Math.Max(MinimumRadius, radiusYPixels) / height;
-        gradient = new OfficeRadialGradient(centerX, centerY, 0D, 0D, centerX, centerY, radiusX, radiusY, Stops);
+        if (!Stops.TryResolve(Math.Max(MinimumRadius, radiusXPixels), fontSize, rootFontSize, out IReadOnlyList<OfficeGradientStop>? stops)
+            || stops == null) return false;
+        gradient = new OfficeRadialGradient(centerX, centerY, 0D, 0D, centerX, centerY, radiusX, radiusY, stops);
         return true;
     }
 
