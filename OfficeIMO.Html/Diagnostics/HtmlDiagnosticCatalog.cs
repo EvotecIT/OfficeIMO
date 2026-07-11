@@ -126,6 +126,15 @@ public static class HtmlDiagnosticCatalog {
         [HtmlRenderDiagnosticCodes.VisualFragmentUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.VisualFragmentUnsupported, "PagedMedia", HtmlDiagnosticSeverity.Warning, "A visual could not cross a forced page boundary safely.", "Resize the visual or add a safe break before it.")
     };
 
+    private static readonly IReadOnlyList<HtmlDiagnosticDefinition> OrderedDefinitions = Definitions.Values
+        .OrderBy(definition => definition.Category, StringComparer.Ordinal)
+        .ThenBy(definition => definition.Code, StringComparer.Ordinal)
+        .ToList()
+        .AsReadOnly();
+
+    /// <summary>All stable diagnostic definitions in deterministic category/code order.</summary>
+    public static IReadOnlyList<HtmlDiagnosticDefinition> Ordered => OrderedDefinitions;
+
     /// <summary>
     /// Gets all known diagnostic definitions.
     /// </summary>
