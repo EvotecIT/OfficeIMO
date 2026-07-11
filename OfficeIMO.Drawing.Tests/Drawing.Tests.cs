@@ -1062,8 +1062,25 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.White, image.GetPixel(15, 15));
         Assert.Equal(OfficeColor.Red, image.GetPixel(25, 15));
         Assert.Equal(OfficeColor.White, image.GetPixel(65, 15));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            drawing.AddClippedDrawing(child, 20, 10, OfficeClipPath.Rectangle(40, 20), -21D, 0D));
+    }
+
+    [Fact]
+    public void OfficeDrawingClippedGroup_AllowsContentToContinueBeforeTheParentOrigin() {
+        var child = new OfficeDrawing(20D, 90D);
+        OfficeShape red = OfficeShape.Rectangle(20D, 90D);
+        red.FillColor = OfficeColor.Red;
+        child.AddShape(red, 0D, 0D);
+        var drawing = new OfficeDrawing(20D, 40D);
+
+        drawing.AddClippedDrawing(child, 0D, 0D, OfficeClipPath.Rectangle(20D, 40D), 0D, -40D);
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(-40D, group.ContentOffsetY);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+        Assert.Contains("transform=\"translate(0 -40)\"", svg, StringComparison.Ordinal);
+        Assert.Equal(OfficeColor.Red, image.GetPixel(10, 5));
+        Assert.Equal(OfficeColor.Red, image.GetPixel(10, 35));
     }
 
     [Fact]

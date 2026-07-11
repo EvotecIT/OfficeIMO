@@ -4,6 +4,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>
 /// Clipped nested drawing element inside an <see cref="OfficeDrawing"/> canvas.
+/// Finite negative coordinates are retained for clipped intermediate scenes; drawing insertion APIs still validate the visible clip against their canvas.
 /// </summary>
 public sealed class OfficeDrawingGroup : OfficeDrawingElement {
     private readonly OfficeDrawing _drawing;
@@ -33,16 +34,10 @@ public sealed class OfficeDrawingGroup : OfficeDrawingElement {
             throw new ArgumentNullException(nameof(clipPath));
         }
 
-        ValidateFiniteNonNegative(x, nameof(x));
-        ValidateFiniteNonNegative(y, nameof(y));
+        ValidateFinite(x, nameof(x));
+        ValidateFinite(y, nameof(y));
         ValidateFinite(contentOffsetX, nameof(contentOffsetX));
         ValidateFinite(contentOffsetY, nameof(contentOffsetY));
-        if (x + contentOffsetX < 0D) {
-            throw new ArgumentOutOfRangeException(nameof(contentOffsetX), "Drawing group content offsets cannot move the nested drawing origin before the parent origin.");
-        }
-        if (y + contentOffsetY < 0D) {
-            throw new ArgumentOutOfRangeException(nameof(contentOffsetY), "Drawing group content offsets cannot move the nested drawing origin before the parent origin.");
-        }
         _drawing = drawing.Clone();
         X = x;
         Y = y;
@@ -85,9 +80,4 @@ public sealed class OfficeDrawingGroup : OfficeDrawingElement {
         }
     }
 
-    private static void ValidateFiniteNonNegative(double value, string paramName) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) {
-            throw new ArgumentOutOfRangeException(paramName, "Drawing group coordinates must be finite non-negative numbers.");
-        }
-    }
 }

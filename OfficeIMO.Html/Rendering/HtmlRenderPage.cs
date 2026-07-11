@@ -120,18 +120,22 @@ public sealed class HtmlRenderPage {
         double bottom = group.ClipVertical ? Math.Min(surfaceHeight, group.ClipY + group.ClipHeight) : surfaceHeight;
         if (right <= left + 0.0001D || bottom <= top + 0.0001D) return;
 
-        double nestedWidth = Math.Max(surfaceWidth, MaximumRight(group.Visuals));
-        double nestedHeight = Math.Max(surfaceHeight, MaximumBottom(group.Visuals));
+        double minimumLeft = Math.Min(0D, MinimumLeft(group.Visuals));
+        double minimumTop = Math.Min(0D, MinimumTop(group.Visuals));
+        double shiftX = -minimumLeft;
+        double shiftY = -minimumTop;
+        double nestedWidth = Math.Max(surfaceWidth, MaximumRight(group.Visuals)) - minimumLeft;
+        double nestedHeight = Math.Max(surfaceHeight, MaximumBottom(group.Visuals)) - minimumTop;
         var nested = new OfficeDrawing(Math.Max(0.01D, nestedWidth), Math.Max(0.01D, nestedHeight));
         nested.Fonts.AddRange(fonts);
-        foreach (HtmlRenderVisual child in group.Visuals) AddVisual(nested, child, nested.Width, nested.Height, fonts);
+        foreach (HtmlRenderVisual child in group.Visuals) AddVisual(nested, child.Translate(shiftX, shiftY, child.PaintOrder), nested.Width, nested.Height, fonts);
         drawing.AddClippedDrawing(
             nested,
             left,
             top,
             OfficeClipPath.Rectangle(right - left, bottom - top),
-            -left,
-            -top);
+            -left - shiftX,
+            -top - shiftY);
     }
 
     private static void AddPathClipGroup(
@@ -169,4 +173,26 @@ public sealed class HtmlRenderPage {
                 : visual.Y + visual.Height)
         .DefaultIfEmpty(0.01D)
         .Max();
+
+    private static double MinimumLeft(IEnumerable<HtmlRenderVisual> visuals) => visuals
+        .Select(visual => visual is HtmlRenderClipGroup clipGroup
+            ? Math.Min(visual.X, MinimumLeft(clipGroup.Visuals))
+            : visual is HtmlRenderPathClipGroup pathClipGroup
+                ? Math.Min(visual.X, MinimumLeft(pathClipGroup.Visuals))
+                : visual is HtmlRenderEffectGroup effectGroup
+                    ? Math.Min(visual.X, MinimumLeft(effectGroup.Visuals))
+                    : visual.X)
+        .DefaultIfEmpty(0D)
+        .Min();
+
+    private static double MinimumTop(IEnumerable<HtmlRenderVisual> visuals) => visuals
+        .Select(visual => visual is HtmlRenderClipGroup clipGroup
+            ? Math.Min(visual.Y, MinimumTop(clipGroup.Visuals))
+            : visual is HtmlRenderPathClipGroup pathClipGroup
+                ? Math.Min(visual.Y, MinimumTop(pathClipGroup.Visuals))
+                : visual is HtmlRenderEffectGroup effectGroup
+                    ? Math.Min(visual.Y, MinimumTop(effectGroup.Visuals))
+                    : visual.Y)
+        .DefaultIfEmpty(0D)
+        .Min();
 }

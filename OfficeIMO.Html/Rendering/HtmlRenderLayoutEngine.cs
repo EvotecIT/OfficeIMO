@@ -505,10 +505,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            if (visual is HtmlRenderImage
+                || visual is HtmlRenderDrawing
+                || visual is HtmlRenderImagePattern
+                || visual is HtmlRenderPathClipGroup) {
+                fragment.Add(CreateVerticallyClippedVisualFragment(visual, start, intersectionTop, intersectionBottom, fragment.Count));
+                continue;
+            }
+
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.VisualFragmentUnsupported, "A visual crossing a forced page boundary could not be represented safely in the current fragment.", HtmlDiagnosticSeverity.Warning, visual.Source, visual.Kind.ToString());
         }
 
         return fragment;
+    }
+
+    private static HtmlRenderClipGroup CreateVerticallyClippedVisualFragment(
+        HtmlRenderVisual visual,
+        double fragmentStart,
+        double intersectionTop,
+        double intersectionBottom,
+        int paintOrder) {
+        double clipY = intersectionTop - fragmentStart;
+        return new HtmlRenderClipGroup(
+            visual.X,
+            clipY,
+            visual.Width,
+            Math.Max(0.01D, intersectionBottom - intersectionTop),
+            clipHorizontal: false,
+            clipVertical: true,
+            new[] { visual.Translate(0D, -fragmentStart, 0) },
+            paintOrder,
+            visual.Source,
+            clipY);
     }
 
     private static OfficeShape CreateVerticalLineFragment(OfficeShape source, double height) {

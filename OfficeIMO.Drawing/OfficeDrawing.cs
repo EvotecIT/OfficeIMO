@@ -53,7 +53,7 @@ public sealed partial class OfficeDrawing {
     /// <summary>Adds a shape at a local top-left coordinate and returns this drawing.</summary>
     public OfficeDrawing AddShape(OfficeShape shape, double x, double y) {
         var item = new OfficeDrawingShape(shape, x, y);
-        if (item.X + item.Shape.Width > Width || item.Y + item.Shape.Height > Height) {
+        if (item.X < 0D || item.Y < 0D || item.X + item.Shape.Width > Width || item.Y + item.Shape.Height > Height) {
             throw new ArgumentOutOfRangeException(nameof(shape), "Drawing shapes must fit inside the drawing bounds.");
         }
 
@@ -65,7 +65,7 @@ public sealed partial class OfficeDrawing {
     /// <summary>Adds a shape behind existing foreground content while keeping an initial page background underneath it.</summary>
     public OfficeDrawing AddShapeBehindContent(OfficeShape shape, double x, double y) {
         var item = new OfficeDrawingShape(shape, x, y);
-        if (item.X + item.Shape.Width > Width || item.Y + item.Shape.Height > Height) {
+        if (item.X < 0D || item.Y < 0D || item.X + item.Shape.Width > Width || item.Y + item.Shape.Height > Height) {
             throw new ArgumentOutOfRangeException(nameof(shape), "Drawing shapes must fit inside the drawing bounds.");
         }
 
@@ -282,8 +282,13 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentNullException(nameof(drawing));
         }
 
-        ValidateFiniteNonNegative(x, nameof(x));
-        ValidateFiniteNonNegative(y, nameof(y));
+        if (allowOverflow) {
+            ValidateFinite(x, nameof(x));
+            ValidateFinite(y, nameof(y));
+        } else {
+            ValidateFiniteNonNegative(x, nameof(x));
+            ValidateFiniteNonNegative(y, nameof(y));
+        }
         if (!allowOverflow && (x + drawing.Width > Width || y + drawing.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(drawing), "Nested drawing content must fit inside the drawing bounds.");
         }
@@ -568,6 +573,12 @@ public sealed partial class OfficeDrawing {
     private static void ValidateFiniteNonNegative(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0) {
             throw new ArgumentOutOfRangeException(paramName, "Drawing coordinates must be finite non-negative numbers.");
+        }
+    }
+
+    private static void ValidateFinite(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(paramName, "Drawing coordinates must be finite numbers.");
         }
     }
 }

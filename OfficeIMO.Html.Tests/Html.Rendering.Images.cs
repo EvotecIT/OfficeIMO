@@ -270,6 +270,115 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_OversizedRasterContinuesThroughClippedPageFragments() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<html style='margin:0'><body style='margin:0'><img id='tall' src='data:image/png;base64," + data
+            + "' style='display:block;width:40px;height:90px'></body></html>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => {
+            HtmlRenderClipGroup fragment = Assert.Single(page.Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "img#tall");
+            Assert.Single(fragment.Visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#tall");
+        });
+        Assert.Equal(3, pngPages.Count);
+        Assert.Equal(3, svgPages.Count);
+        for (int index = 0; index < 3; index++) {
+            Assert.True(OfficePngReader.TryDecode(pngPages[index].Bytes, out OfficeRasterImage? raster));
+            Assert.True(raster!.GetPixel(20, index < 2 ? 20 : 5).R > 240);
+            string svg = Encoding.UTF8.GetString(svgPages[index].Bytes);
+            Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+            Assert.Contains("<image", svg, StringComparison.Ordinal);
+        }
+        Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlImages_OversizedSvgContinuesAsVectorsThroughClippedPageFragments() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 90'><rect width='40' height='90' fill='red'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<html style='margin:0'><body style='margin:0'><img id='tall-vector' src='data:image/svg+xml;base64," + data
+            + "' style='display:block;width:40px;height:90px'></body></html>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => {
+            HtmlRenderClipGroup fragment = Assert.Single(page.Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "img#tall-vector");
+            Assert.Single(fragment.Visuals.OfType<HtmlRenderDrawing>(), image => image.Source == "img#tall-vector");
+        });
+        for (int index = 0; index < 3; index++) {
+            Assert.True(OfficePngReader.TryDecode(pngPages[index].Bytes, out OfficeRasterImage? raster));
+            Assert.True(raster!.GetPixel(20, index < 2 ? 20 : 5).R > 240);
+            string svg = Encoding.UTF8.GetString(svgPages[index].Bytes);
+            Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+            Assert.Contains("<rect", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("data:image/svg+xml", svg, StringComparison.Ordinal);
+        }
+        Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlImages_OversizedRoundedImageRetainsItsAuthoredPathClipAcrossFragments() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
+        string html = "<html style='margin:0'><body style='margin:0'><img id='rounded-tall' src='data:image/png;base64," + data
+            + "' style='display:block;width:40px;height:90px;border-radius:8px'></body></html>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => {
+            HtmlRenderClipGroup fragment = Assert.Single(page.Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "img#rounded-tall:content-clip");
+            Assert.Single(fragment.Visuals.OfType<HtmlRenderPathClipGroup>());
+        });
+        for (int index = 0; index < 3; index++) {
+            Assert.True(OfficePngReader.TryDecode(pngPages[index].Bytes, out OfficeRasterImage? raster));
+            Assert.True(raster!.GetPixel(20, index < 2 ? 20 : 5).R > 240);
+            Assert.True(CountBackgroundOccurrences(Encoding.UTF8.GetString(svgPages[index].Bytes), "<clipPath") >= 2);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
     public void HtmlImages_InvalidValuesAndRoundedClipUseSharedPathAndCatalogedDiagnostics() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<img id='invalid-image' src='data:image/png;base64,{data}' style='display:block;width:30px;height:20px;object-fit:stretch;object-position:sideways;aspect-ratio:0/1'>"
