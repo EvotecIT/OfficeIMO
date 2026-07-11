@@ -346,6 +346,36 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderMaterializesBoundedLinearRepeatAndReflectPaintServers() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 20'><defs>"
+            + "<linearGradient id='repeat' spreadMethod='repeat' x2='.25'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<linearGradient id='reflect' href='#repeat' spreadMethod='reflect'/>"
+            + "<radialGradient id='radial-repeat' spreadMethod='repeat'><stop stop-color='white'/><stop offset='1' stop-color='black'/></radialGradient>"
+            + "</defs><rect width='20' height='20' fill='url(#repeat)'/><rect x='20' width='20' height='20' fill='url(#reflect)'/>"
+            + "<rect x='40' width='20' height='20' fill='url(#radial-repeat)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Equal(3, drawing!.Shapes.Count);
+        OfficeLinearGradient repeat = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[0].Shape.FillGradient);
+        OfficeLinearGradient reflect = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[1].Shape.FillGradient);
+        Assert.True(repeat.Stops.Count > 4);
+        Assert.True(reflect.Stops.Count > 4);
+        Assert.Null(drawing.Shapes[2].Shape.FillRadialGradient);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(1, 10).R > raster.GetPixel(1, 10).B);
+        Assert.True(raster.GetPixel(4, 10).B > raster.GetPixel(4, 10).R);
+        Assert.True(raster.GetPixel(6, 10).R > raster.GetPixel(6, 10).B);
+        Assert.True(raster.GetPixel(21, 10).R > raster.GetPixel(21, 10).B);
+        Assert.True(raster.GetPixel(26, 10).B > raster.GetPixel(26, 10).R);
+        Assert.True(raster.GetPixel(31, 10).R > raster.GetPixel(31, 10).B);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.DoesNotContain("spreadMethod", exported, StringComparison.Ordinal);
+        Assert.True(exported.Split(new[] { "<stop " }, StringSplitOptions.None).Length > 10);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"

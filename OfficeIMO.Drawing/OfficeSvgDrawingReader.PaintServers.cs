@@ -74,7 +74,7 @@ public static partial class OfficeSvgDrawingReader {
             var resolving = new HashSet<string>(StringComparer.Ordinal);
             if (!TryResolveDefinition(id, element, resolving, 0, out SvgGradientDefinition? definition)) return false;
             try {
-                if (definition!.UserSpaceOnUse || definition.GradientTransform != OfficeTransform.Identity) {
+                if (definition!.UserSpaceOnUse || definition.GradientTransform != OfficeTransform.Identity || definition.SpreadMode != SvgGradientSpreadMode.Pad) {
                     paint = new SvgResolvedPaint(definition);
                 } else if (definition.Kind == SvgGradientKind.Linear) {
                     paint = new SvgResolvedPaint(new OfficeLinearGradient(
@@ -124,6 +124,7 @@ public static partial class OfficeSvgDrawingReader {
                 if (!UsesSupportedGradientOptions(element)) return false;
                 if (!TryResolveGradientUnits(element, inherited, out bool userSpaceOnUse)) return false;
                 if (!TryResolveGradientTransform(element, inherited, out OfficeTransform gradientTransform)) return false;
+                if (!TryResolveSpreadMode(element, inherited, out SvgGradientSpreadMode spreadMode)) return false;
                 IReadOnlyList<OfficeGradientStop>? stops = null;
                 if (element.Elements().Any(child => child.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))) {
                     if (!TryReadStops(element, out stops)) return false;
@@ -142,7 +143,7 @@ public static partial class OfficeSvgDrawingReader {
                         || !TryCoordinate(element, "x2", defaultX2, allowOutsideUnit: false, userSpaceOnUse, out SvgGradientCoordinate x2)
                         || !TryCoordinate(element, "y2", defaultY2, allowOutsideUnit: false, userSpaceOnUse, out SvgGradientCoordinate y2)
                         || (x1.Equals(x2) && y1.Equals(y2))) return false;
-                    definition = SvgGradientDefinition.Linear(x1, y1, x2, y2, stops, userSpaceOnUse, gradientTransform);
+                    definition = SvgGradientDefinition.Linear(x1, y1, x2, y2, stops, userSpaceOnUse, gradientTransform, spreadMode);
                     return true;
                 }
 
@@ -159,7 +160,7 @@ public static partial class OfficeSvgDrawingReader {
                     || focalRadius.Value < 0D
                     || (focalX.Equals(centerX) && focalY.Equals(centerY) && focalRadius.Equals(radius))) return false;
                 if (!userSpaceOnUse && focalRadius.Value > radius.Value) return false;
-                definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform);
+                definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform, spreadMode);
                 return true;
             } finally {
                 resolving.Remove(id);
@@ -167,8 +168,25 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         private static bool UsesSupportedGradientOptions(XElement element) {
-            string? spread = element.Attribute("spreadMethod")?.Value.Trim();
-            if (!string.IsNullOrEmpty(spread) && !spread!.Equals("pad", StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
+        private static bool TryResolveSpreadMode(
+            XElement element,
+            SvgGradientDefinition? inherited,
+            out SvgGradientSpreadMode spreadMode) {
+            string? value = element.Attribute("spreadMethod")?.Value.Trim();
+            if (string.IsNullOrEmpty(value)) {
+                spreadMode = inherited?.SpreadMode ?? SvgGradientSpreadMode.Pad;
+                return true;
+            }
+            if (value!.Equals("pad", StringComparison.OrdinalIgnoreCase)) spreadMode = SvgGradientSpreadMode.Pad;
+            else if (value.Equals("repeat", StringComparison.OrdinalIgnoreCase)) spreadMode = SvgGradientSpreadMode.Repeat;
+            else if (value.Equals("reflect", StringComparison.OrdinalIgnoreCase)) spreadMode = SvgGradientSpreadMode.Reflect;
+            else {
+                spreadMode = default;
+                return false;
+            }
             return true;
         }
 
@@ -321,7 +339,13 @@ public static partial class OfficeSvgDrawingReader {
         Radial
     }
 
-    private sealed class SvgGradientDefinition {
+    private enum SvgGradientSpreadMode {
+        Pad,
+        Repeat,
+        Reflect
+    }
+
+    private sealed partial class SvgGradientDefinition {
         internal SvgGradientKind Kind { get; private set; }
         internal SvgGradientCoordinate X1 { get; private set; }
         internal SvgGradientCoordinate Y1 { get; private set; }
@@ -331,6 +355,7 @@ public static partial class OfficeSvgDrawingReader {
         internal SvgGradientCoordinate Radius2 { get; private set; }
         internal bool UserSpaceOnUse { get; private set; }
         internal OfficeTransform GradientTransform { get; private set; }
+        internal SvgGradientSpreadMode SpreadMode { get; private set; }
         internal IReadOnlyList<OfficeGradientStop> Stops { get; private set; } = Array.Empty<OfficeGradientStop>();
 
         internal static SvgGradientDefinition Linear(
@@ -340,8 +365,9 @@ public static partial class OfficeSvgDrawingReader {
             SvgGradientCoordinate y2,
             IReadOnlyList<OfficeGradientStop> stops,
             bool userSpaceOnUse,
-            OfficeTransform gradientTransform) =>
-            new SvgGradientDefinition { Kind = SvgGradientKind.Linear, X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stops = stops, UserSpaceOnUse = userSpaceOnUse, GradientTransform = gradientTransform };
+            OfficeTransform gradientTransform,
+            SvgGradientSpreadMode spreadMode) =>
+            new SvgGradientDefinition { Kind = SvgGradientKind.Linear, X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stops = stops, UserSpaceOnUse = userSpaceOnUse, GradientTransform = gradientTransform, SpreadMode = spreadMode };
 
         internal static SvgGradientDefinition Radial(
             SvgGradientCoordinate x1,
@@ -352,8 +378,9 @@ public static partial class OfficeSvgDrawingReader {
             SvgGradientCoordinate radius2,
             IReadOnlyList<OfficeGradientStop> stops,
             bool userSpaceOnUse,
-            OfficeTransform gradientTransform) =>
-            new SvgGradientDefinition { Kind = SvgGradientKind.Radial, X1 = x1, Y1 = y1, Radius1 = radius1, X2 = x2, Y2 = y2, Radius2 = radius2, Stops = stops, UserSpaceOnUse = userSpaceOnUse, GradientTransform = gradientTransform };
+            OfficeTransform gradientTransform,
+            SvgGradientSpreadMode spreadMode) =>
+            new SvgGradientDefinition { Kind = SvgGradientKind.Radial, X1 = x1, Y1 = y1, Radius1 = radius1, X2 = x2, Y2 = y2, Radius2 = radius2, Stops = stops, UserSpaceOnUse = userSpaceOnUse, GradientTransform = gradientTransform, SpreadMode = spreadMode };
 
         internal bool TryCreateForShape(
             OfficeShape shape,
@@ -378,10 +405,10 @@ public static partial class OfficeSvgDrawingReader {
                 double x2 = NormalizeAxis(second.X, shapeX, shape.Width, viewX);
                 double y2 = NormalizeAxis(second.Y, shapeY, shape.Height, viewY);
                 if (Kind == SvgGradientKind.Linear) {
-                    linear = OfficeLinearGradient.CreateImported(x1, y1, x2, y2, Stops);
-                    return true;
+                    return TryCreateLinearSpread(x1, y1, x2, y2, out linear);
                 }
 
+                if (SpreadMode != SvgGradientSpreadMode.Pad) return false;
                 if (Math.Abs(GradientTransform.M12) > 0.0000001D || Math.Abs(GradientTransform.M21) > 0.0000001D) return false;
                 double diagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
                 double radius1 = ResolveRadius(Radius1, diagonal, UserSpaceOnUse);
@@ -428,6 +455,7 @@ public static partial class OfficeSvgDrawingReader {
 
         private static double NormalizeRadius(double radius, double shapeSize, bool userSpaceOnUse) =>
             userSpaceOnUse ? radius / shapeSize : radius;
+
     }
 
     private readonly struct SvgGradientCoordinate : IEquatable<SvgGradientCoordinate> {

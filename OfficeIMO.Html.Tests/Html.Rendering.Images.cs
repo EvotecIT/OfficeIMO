@@ -84,7 +84,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlImages_SvgPaintServersStayNativeAcrossPngSvgAndSearchablePdf() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
-            + "<linearGradient id='linear' gradientUnits='userSpaceOnUse' gradientTransform='translate(2 0)' x1='0' y1='0' x2='50%' y2='0'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<linearGradient id='linear' gradientUnits='userSpaceOnUse' spreadMethod='repeat' x1='0' y1='0' x2='12.5%' y2='0'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
             + "<radialGradient id='radial' gradientUnits='userSpaceOnUse' gradientTransform='matrix(.5 0 0 1 15 0)' cx='30' cy='10' r='8' fx='28' fy='10'><stop offset='0' stop-color='white'/><stop offset='1' stop-color='navy'/></radialGradient>"
             + "</defs><rect width='10' height='20' fill='url(#linear)'/><rect x='10' width='10' height='20' fill='url(#linear)'/><rect x='20' width='20' height='20' fill='url(#radial)'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
@@ -114,13 +114,19 @@ public sealed partial class HtmlRenderingTests {
 
         OfficeLinearGradient first = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[0].Shape.FillGradient);
         OfficeLinearGradient second = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[1].Shape.FillGradient);
-        Assert.Equal(2.2D, first.EndX, 8);
-        Assert.Equal(-0.8D, second.StartX, 8);
+        Assert.Equal(0D, first.StartX, 8);
+        Assert.Equal(1D, first.EndX, 8);
+        Assert.Equal(0D, second.StartX, 8);
+        Assert.Equal(1D, second.EndX, 8);
+        Assert.True(first.Stops.Count > 2);
+        Assert.True(second.Stops.Count > 2);
         OfficeRadialGradient radial = Assert.IsType<OfficeRadialGradient>(visual.Drawing.Shapes[2].Shape.FillRadialGradient);
         Assert.Equal(0.2D, radial.EndRadiusX);
         Assert.Equal(0.4D, radial.EndRadiusY);
-        Assert.True(raster.GetPixel(3, 20).R > raster.GetPixel(3, 20).B);
-        Assert.True(raster.GetPixel(37, 20).B > raster.GetPixel(37, 20).R);
+        OfficeColor repeatStart = raster.GetPixel(3, 20);
+        OfficeColor repeatEnd = raster.GetPixel(37, 20);
+        Assert.True(repeatStart.R > repeatStart.B, $"Expected the repeated gradient start to be red-dominant, got {repeatStart}.");
+        Assert.True(repeatEnd.B > repeatEnd.R, $"Expected the repeated gradient end to be blue-dominant, got {repeatEnd}.");
         Assert.Contains("<linearGradient", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("<radialGradient", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
