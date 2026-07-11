@@ -241,7 +241,7 @@ second parser or renderer.
   default.
 - [ ] Add confidence and diagnostic evidence to words, lines, regions, tables,
   headings, lists, and inferred reading order.
-- [ ] Export the same structured model to stable JSON, Markdown, ALTO XML, hOCR,
+- [x] Export the same structured model to stable JSON, Markdown, ALTO XML, hOCR,
   and PAGE XML without duplicating extraction algorithms in each exporter.
 - [x] Add a debug overlay that renders word/line/region boxes and reading order
   through the shared Drawing/PDF annotation primitives.

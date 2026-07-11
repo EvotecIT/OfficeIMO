@@ -26,4 +26,11 @@ public sealed partial class PdfDocumentReader {
             layoutOptions,
             ResolveReadOptions(readOptions));
     }
+
+    /// <summary>Exports the first-party logical model to JSON, Markdown, ALTO XML, hOCR, or PAGE XML.</summary>
+    public string ExportStructured(
+        PdfStructuredExportFormat format,
+        PdfTextLayoutOptions? layoutOptions = null) {
+        return PdfStructuredExporter.Export(_document.Snapshot(), format, layoutOptions);
+    }
 }
