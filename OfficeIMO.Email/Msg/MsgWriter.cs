@@ -42,14 +42,17 @@ internal static class MsgWriter {
                 string.Concat("__attach_version1.0_#", index.ToString("X8", CultureInfo.InvariantCulture)));
             int method = attachment.MapiAttachMethod ?? (attachment.EmbeddedDocument != null ? 5 :
                 attachment.StructuredStorageStreams.Count > 0 ? 6 : 1);
-            MsgPropertyBuilder properties = CreateAttachmentProperties(attachment, index, method, diagnostics, storage);
+            EmailDocument? embeddedDocument = attachment.EmbeddedDocument ??
+                TryReadOpaqueEmbeddedTnef(attachment, diagnostics, storage);
+            MsgPropertyBuilder properties = CreateAttachmentProperties(attachment, index, method, diagnostics, storage,
+                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0);
             MsgPropertyWriter.Write(storage, MsgPropertyStreamKind.ChildObject, properties.Properties,
                 0, 0, names, streams, diagnostics, codePage,
                 method == 5 ? 1U : method == 6 ? 4U : 0U);
 
             string objectStorage = MsgBinary.CombinePath(storage, "__substg1.0_3701000D");
-            if (method == 5 && attachment.EmbeddedDocument != null) {
-                BuildMessage(attachment.EmbeddedDocument, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,
+            if (method == 5 && embeddedDocument != null) {
+                BuildMessage(embeddedDocument, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,
                     names, streams, diagnostics, options, depth + 1);
             } else if (method == 5 && attachment.StructuredStorageStreams.Count > 0) {
                 foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
@@ -231,7 +234,7 @@ internal static class MsgWriter {
     }
 
     internal static MsgPropertyBuilder CreateAttachmentProperties(EmailAttachment attachment, int index, int method,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, bool hasRetainedEmbeddedContent = false) {
         var properties = new MsgPropertyBuilder(attachment.MapiProperties);
         properties.Set(0x0FFE, MapiPropertyType.Integer32, 7);
         properties.Set(0x3705, MapiPropertyType.Integer32, method);
@@ -253,7 +256,7 @@ internal static class MsgWriter {
         properties.Set(0x370D, MapiPropertyType.Unicode, attachment.LinkedPath);
         if (method == 5 || method == 6) {
             properties.Set(0x3701, MapiPropertyType.Object, null);
-            if (method == 5 && attachment.EmbeddedDocument == null && attachment.StructuredStorageStreams.Count == 0) {
+            if (method == 5 && attachment.EmbeddedDocument == null && !hasRetainedEmbeddedContent) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
                     "An embedded MSG attachment has no retained embedded document.",
                     EmailDiagnosticSeverity.Error, location));
@@ -275,6 +278,21 @@ internal static class MsgWriter {
             }
         }
         return properties;
+    }
+
+    private static EmailDocument? TryReadOpaqueEmbeddedTnef(EmailAttachment attachment,
+        IList<EmailDiagnostic> diagnostics, string location) {
+        byte[]? content = attachment.Content;
+        if (attachment.MapiAttachMethod != 5 || content == null || content.Length < 20 ||
+            new Guid(MsgBinary.Slice(content, 0, 16)) != new Guid("00020307-0000-0000-C000-000000000046")) {
+            return null;
+        }
+        byte[] nested = MsgBinary.Slice(content, 16, content.Length - 16);
+        if (MsgBinary.ReadUInt32(nested, 0) != TnefConstants.Signature) return null;
+        diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_EMBEDDED_MESSAGE_REPROJECTED",
+            "Opaque embedded TNEF content was projected while writing MSG storage.",
+            EmailDiagnosticSeverity.Warning, location));
+        return TnefReader.Read(nested, EmailReaderOptions.Default, diagnostics, CancellationToken.None);
     }
 
     private static string GetLogicalExtension(string? fileName) {

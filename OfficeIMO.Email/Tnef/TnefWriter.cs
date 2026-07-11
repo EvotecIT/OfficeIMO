@@ -31,12 +31,15 @@ internal static class TnefWriter {
             MsgBinary.WriteUInt32(codePageBytes, 0, unchecked((uint)codePage));
             WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.OemCodePage, codePageBytes);
             WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageClass, codePage,
-                document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind));
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Subject, codePage, document.Subject);
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Body, codePage, document.Body.Text);
+                document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind), diagnostics, "tnef/message-class");
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Subject, codePage, document.Subject,
+                diagnostics, "tnef/subject");
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Body, codePage, document.Body.Text,
+                diagnostics, "tnef/body");
             if (document.Date.HasValue) WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.DateSent, EncodeDate(document.Date.Value));
             if (document.ReceivedDate.HasValue) WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.DateReceived, EncodeDate(document.ReceivedDate.Value));
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageId, codePage, document.MessageId);
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageId, codePage, document.MessageId,
+                diagnostics, "tnef/message-id");
 
             IReadOnlyList<MapiProperty>[] rows = document.Recipients
                 .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
@@ -72,20 +75,30 @@ internal static class TnefWriter {
         MsgBinary.WriteUInt16(rendition, 0, method == 6 ? (ushort)2 : (ushort)1);
         MsgBinary.WriteUInt32(rendition, 2, attachment.IsInline ? 0U : 0xffffffffU);
         WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, rendition);
-        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTitle, codePage, attachment.FileName);
-        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTransportFilename, codePage, attachment.FileName);
+        string attachmentLocation = string.Concat("tnef/attachment[", index.ToString(CultureInfo.InvariantCulture), "]");
+        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTitle, codePage,
+            attachment.FileName, diagnostics, string.Concat(attachmentLocation, "/title"));
+        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTransportFilename, codePage,
+            attachment.FileName, diagnostics, string.Concat(attachmentLocation, "/transport-filename"));
         if (method == 1 && attachment.Content != null) {
             WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachData, attachment.Content);
         }
 
         MsgPropertyBuilder builder = MsgWriter.CreateAttachmentProperties(attachment, index, method, diagnostics,
-            string.Concat("tnef/attachment[", index.ToString(CultureInfo.InvariantCulture), "]"));
+            attachmentLocation, attachment.EmbeddedDocument != null || attachment.Content != null);
         var properties = builder.Properties.Where(property => !IsAttachmentAttributeProperty(property.PropertyId)).
             Select(Clone).ToList();
         if (method == 5 && attachment.EmbeddedDocument != null) {
             byte[] nested = WriteMessage(attachment.EmbeddedDocument, options, diagnostics, depth + 1);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidMessage.ToByteArray(), nested)));
+        } else if (method == 5 && attachment.Content != null) {
+            byte[] opaque = attachment.Content.Length >= 16 &&
+                new Guid(MsgBinary.Slice(attachment.Content, 0, 16)) == IidMessage
+                    ? (byte[])attachment.Content.Clone()
+                    : Combine(IidMessage.ToByteArray(), attachment.Content);
+            properties.RemoveAll(property => property.PropertyId == 0x3701);
+            properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, opaque));
         } else if (method == 6 && attachment.StructuredStorageStreams.Count > 0) {
             OfficeCompoundStream[] compoundStreams = attachment.StructuredStorageStreams
                 .Select(stream => new OfficeCompoundStream(stream.Key, stream.Value)).ToArray();
@@ -118,9 +131,19 @@ internal static class TnefWriter {
     }
 
     private static void WriteStringAttribute(Stream output, TnefAttributeLevel level, uint tag, int codePage,
-        string? value) {
+        string? value, IList<EmailDiagnostic> diagnostics, string location) {
         if (value == null) return;
-        WriteAttribute(output, level, tag, MsgValueWriter.EncodeString8(string.Concat(value, "\0"), codePage));
+        byte[] bytes;
+        try {
+            bytes = MsgValueWriter.EncodeString8(string.Concat(value, "\0"), codePage);
+        } catch (EncoderFallbackException) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_STRING8_CHARACTER_UNENCODABLE",
+                string.Concat("Text contains characters that code page ", codePage.ToString(CultureInfo.InvariantCulture),
+                    " cannot represent; replacement encoding was used."),
+                EmailDiagnosticSeverity.Warning, location));
+            bytes = MsgValueWriter.EncodeString8WithReplacement(string.Concat(value, "\0"), codePage);
+        }
+        WriteAttribute(output, level, tag, bytes);
     }
 
     private static void WriteAttribute(Stream output, TnefAttributeLevel level, uint tag, byte[] data) {

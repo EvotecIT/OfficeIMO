@@ -267,4 +267,39 @@ public sealed class EmailMimeReaderTests {
         Assert.False(attachment.ContentTypeParameters.ContainsKey("name"));
         Assert.Equal(attachment.ContentTypeParameters, roundTrip.ContentTypeParameters);
     }
+
+    [Fact]
+    public void PreservesCidMultipartResourcesAsInlineAttachments() {
+        const string eml = "Subject: related multipart\r\nContent-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html\r\n\r\n<p>body</p>\r\n" +
+            "--outer\r\nContent-Type: multipart/alternative; boundary=resource\r\nContent-ID: <resource>\r\n\r\n" +
+            "--resource\r\nContent-Type: text/plain\r\n\r\nresource text\r\n" +
+            "--resource\r\nContent-Type: text/html\r\n\r\n<p>resource</p>\r\n" +
+            "--resource--\r\n--outer--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("<p>body</p>", document.Body.Html!.Trim());
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Equal("multipart/alternative", attachment.ContentType);
+        Assert.Equal("resource", attachment.ContentId);
+        Assert.True(attachment.IsInline);
+        Assert.Contains("resource text", Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UsesMultipartRelatedStartCidAsTheMessageBody() {
+        const string eml = "Subject: related start\r\n" +
+            "Content-Type: multipart/related; boundary=outer; start=\"<root>\"\r\n\r\n" +
+            "--outer\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\n\r\npng\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <root>\r\n\r\n<p>root body</p>\r\n" +
+            "--outer--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("<p>root body</p>", document.Body.Html!.Trim());
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Equal("logo", attachment.ContentId);
+    }
 }

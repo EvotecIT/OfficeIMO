@@ -1,4 +1,5 @@
 using OfficeIMO.Email;
+using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Rtf;
@@ -234,6 +235,33 @@ public sealed class ReaderEmailTests {
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
         Assert.Equal("report|draft.txt", asset.FileName);
         Assert.Equal("content", Encoding.UTF8.GetString(Assert.IsType<byte[]>(asset.PayloadBytes)));
+    }
+
+    [Fact]
+    public void ExtensionlessPdfAttachmentProducesSearchableChildChunks() {
+        string pdfPath = Path.Combine(Path.GetTempPath(), string.Concat(Guid.NewGuid().ToString("N"), ".pdf"));
+        try {
+            PdfDocument pdf = PdfDocument.Create();
+            pdf.Paragraph(paragraph => paragraph.Text("Searchable invoice content"));
+            pdf.Save(pdfPath);
+            byte[] payload = File.ReadAllBytes(pdfPath);
+            var document = new EmailDocument { Subject = "invoice" };
+            document.Attachments.Add(new EmailAttachment {
+                FileName = "invoice",
+                ContentType = "application/pdf",
+                Content = payload,
+                Length = payload.Length
+            });
+
+            ReaderChunk[] chunks = DocumentReader.Read(
+                new EmailDocumentWriter().WriteToBytes(document), "invoice.eml").ToArray();
+
+            Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Pdf &&
+                chunk.Location.Path != null && chunk.Location.Path.EndsWith("!/invoice", StringComparison.Ordinal) &&
+                chunk.Text.Contains("Searchable invoice content", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(pdfPath)) File.Delete(pdfPath);
+        }
     }
 
     private static byte[] BuildEmlWithAttachment() {

@@ -62,6 +62,12 @@ internal static class MsgValueWriter {
         return encoding.GetBytes(value);
     }
 
+    internal static byte[] EncodeString8WithReplacement(string value, int codePage) {
+        Encoding encoding = Encoding.GetEncoding(codePage,
+            EncoderFallback.ReplacementFallback, DecoderFallback.ReplacementFallback);
+        return encoding.GetBytes(value);
+    }
+
     internal static object[] GetMultipleValues(MapiProperty property) {
         if (property.Value is object[] values) return values;
         if (property.Value is System.Collections.IEnumerable enumerable && !(property.Value is string) && !(property.Value is byte[])) {

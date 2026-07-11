@@ -154,6 +154,51 @@ public sealed class EmailTnefTests {
     }
 
     [Fact]
+    public void RetainsDepthLimitedEmbeddedTnefForTnefAndMsgWriting() {
+        var child = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "opaque TNEF child" };
+        child.Body.Text = "inside";
+        var parent = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "parent" };
+        parent.Attachments.Add(new EmailAttachment { FileName = "child.dat", EmbeddedDocument = child });
+        byte[] source = new EmailDocumentWriter().WriteToBytes(parent, EmailFileFormat.Tnef);
+
+        EmailReadResult limited = new EmailDocumentReader(new EmailReaderOptions(maxNestedMessageDepth: 0)).Read(source);
+        EmailAttachment opaque = Assert.Single(limited.Document.Attachments);
+        Assert.Null(opaque.EmbeddedDocument);
+        Assert.NotNull(opaque.Content);
+        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_NESTED_MESSAGE_LIMIT");
+
+        byte[] rewrittenTnef = new EmailDocumentWriter().WriteToBytes(limited.Document, EmailFileFormat.Tnef);
+        EmailAttachment tnefRoundTrip = Assert.Single(new EmailDocumentReader().Read(rewrittenTnef).Document.Attachments);
+        Assert.Equal("opaque TNEF child", tnefRoundTrip.EmbeddedDocument!.Subject);
+
+        byte[] rewrittenMsg = new EmailDocumentWriter().WriteToBytes(
+            limited.Document, EmailFileFormat.OutlookMsg, out EmailWriteResult msgWriteResult);
+        EmailAttachment msgRoundTrip = Assert.Single(new EmailDocumentReader().Read(rewrittenMsg).Document.Attachments);
+        Assert.DoesNotContain(msgWriteResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+        Assert.Equal("opaque TNEF child", msgRoundTrip.EmbeddedDocument!.Subject);
+    }
+
+    [Fact]
+    public void ReplacesUnencodableLegacyStringsWithDiagnosticsInsteadOfThrowing() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.Tnef,
+            OutlookCodePage = 1252,
+            Subject = "emoji 😀"
+        };
+        source.Attachments.Add(new EmailAttachment { FileName = "資料.txt", Content = new byte[] { 1 }, Length = 1 });
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+            source, EmailFileFormat.Tnef, out EmailWriteResult writeResult);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Contains(writeResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_TNEF_STRING8_CHARACTER_UNENCODABLE");
+        Assert.Contains("?", roundTrip.Subject, StringComparison.Ordinal);
+        Assert.NotEmpty(bytes);
+    }
+
+    [Fact]
     public void WritesFixedWidthNullPropertiesWithoutDesynchronizingFollowingValues() {
         var source = new[] {
             new MapiProperty(0x66AA, MapiPropertyType.Null, null),

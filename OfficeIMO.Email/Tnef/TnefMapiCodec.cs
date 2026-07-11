@@ -1,50 +1,72 @@
 namespace OfficeIMO.Email;
 
 internal static class TnefMapiCodec {
-    internal static long GetAttachmentPayloadLength(byte[] data, int offset, int count, MsgParserState state) {
+    internal static long PreflightProperties(byte[] data, int offset, int count, MsgParserState state,
+        bool recipientTable, out long attachmentPayloadLength) {
+        attachmentPayloadLength = 0;
         try {
             var cursor = new PreflightCursor(data, offset, count);
-            uint propertyCount = cursor.ReadUInt32();
-            if (propertyCount > state.Options.MaxMapiPropertyCount) {
-                throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
-                    propertyCount, state.Options.MaxMapiPropertyCount);
+            long decodedPropertyBytes = 0;
+            if (recipientTable) {
+                uint rowCount = cursor.ReadUInt32();
+                if (rowCount > state.Options.MaxPartCount) {
+                    throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount),
+                        rowCount, state.Options.MaxPartCount);
+                }
+                for (uint rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                    PreflightPropertyArray(cursor, state, ref decodedPropertyBytes, ref attachmentPayloadLength);
+                }
+            } else {
+                PreflightPropertyArray(cursor, state, ref decodedPropertyBytes, ref attachmentPayloadLength);
             }
-
-            long maximumPayloadLength = 0;
-            for (uint propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++) {
-                uint tag = cursor.ReadUInt32();
-                ushort propertyId = unchecked((ushort)(tag >> 16));
-                MapiPropertyType type = (MapiPropertyType)unchecked((ushort)tag);
-                if (propertyId >= 0x8000) SkipNamedProperty(cursor);
-
-                bool multiple = MsgValueWriter.IsMultiple(type);
-                bool variable = IsVariableValue(type) || multiple;
-                if (!variable) {
-                    cursor.Skip(GetFixedSize(type));
-                    cursor.Align4();
-                    continue;
-                }
-
-                uint valueCount = cursor.ReadUInt32();
-                if (valueCount > state.Options.MaxMapiPropertyCount) {
-                    throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
-                        valueCount, state.Options.MaxMapiPropertyCount);
-                }
-                MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(type) : type;
-                for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
-                    long itemLength = IsVariableValue(itemType) ? cursor.ReadUInt32() : GetFixedSize(itemType);
-                    if (propertyId == 0x3701 && itemLength > maximumPayloadLength) {
-                        maximumPayloadLength = itemLength;
-                    }
-                    if (itemLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
-                    cursor.Skip((int)itemLength);
-                    cursor.Align4();
-                }
-            }
-            return maximumPayloadLength;
+            return decodedPropertyBytes;
         } catch (Exception exception) when (exception is InvalidDataException || exception is ArgumentOutOfRangeException ||
             exception is OverflowException || exception is IndexOutOfRangeException) {
+            attachmentPayloadLength = 0;
             return 0;
+        }
+    }
+
+    private static void PreflightPropertyArray(PreflightCursor cursor, MsgParserState state,
+        ref long decodedPropertyBytes, ref long attachmentPayloadLength) {
+        uint propertyCount = cursor.ReadUInt32();
+        if (propertyCount > state.Options.MaxMapiPropertyCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
+                propertyCount, state.Options.MaxMapiPropertyCount);
+        }
+
+        for (uint propertyIndex = 0; propertyIndex < propertyCount; propertyIndex++) {
+            uint tag = cursor.ReadUInt32();
+            ushort propertyId = unchecked((ushort)(tag >> 16));
+            MapiPropertyType type = (MapiPropertyType)unchecked((ushort)tag);
+            if (propertyId >= 0x8000) SkipNamedProperty(cursor);
+
+            bool multiple = MsgValueWriter.IsMultiple(type);
+            bool variable = IsVariableValue(type) || multiple;
+            if (!variable) {
+                int fixedSize = GetFixedSize(type);
+                decodedPropertyBytes = checked(decodedPropertyBytes + fixedSize);
+                cursor.Skip(fixedSize);
+                cursor.Align4();
+                continue;
+            }
+
+            uint valueCount = cursor.ReadUInt32();
+            if (valueCount > state.Options.MaxMapiPropertyCount) {
+                throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMapiPropertyCount),
+                    valueCount, state.Options.MaxMapiPropertyCount);
+            }
+            MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(type) : type;
+            for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
+                long itemLength = IsVariableValue(itemType) ? cursor.ReadUInt32() : GetFixedSize(itemType);
+                if (propertyId == 0x3701 && itemLength > attachmentPayloadLength) {
+                    attachmentPayloadLength = itemLength;
+                }
+                if (itemLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
+                decodedPropertyBytes = checked(decodedPropertyBytes + itemLength);
+                cursor.Skip((int)itemLength);
+                cursor.Align4();
+            }
         }
     }
 

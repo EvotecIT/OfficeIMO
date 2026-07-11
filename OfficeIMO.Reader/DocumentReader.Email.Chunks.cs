@@ -249,13 +249,14 @@ public static partial class DocumentReader {
         }
 
         if (attachment.Content == null || attachment.Content.Length == 0 ||
-            !CanReadEmailAttachmentContent(fileName)) {
+            !TryResolveEmailAttachmentSourceName(attachment, fileName, out string attachmentSourceName)) {
             return;
         }
 
         try {
             ReaderOptions attachmentOptions = CloneOptions(context.Options, computeHashes: false);
-            ReaderChunk[] childChunks = Read(attachment.Content, fileName, attachmentOptions, context.CancellationToken).ToArray();
+            ReaderChunk[] childChunks = Read(attachment.Content, attachmentSourceName, attachmentOptions,
+                context.CancellationToken).ToArray();
             for (int childIndex = 0; childIndex < childChunks.Length; childIndex++) {
                 ReaderChunk child = childChunks[childIndex];
                 int childBlockIndex = context.NextBlockIndex++;
@@ -319,13 +320,40 @@ public static partial class DocumentReader {
         });
     }
 
-    private static bool CanReadEmailAttachmentContent(string fileName) {
+    private static bool TryResolveEmailAttachmentSourceName(EmailAttachment attachment, string fileName,
+        out string sourceName) {
+        sourceName = fileName;
         ReaderInputKind kind = DetectKind(fileName);
-        if (kind != ReaderInputKind.Unknown) {
-            return true;
-        }
-        return TryResolveCustomHandlerBySourceName(fileName, out ReaderHandlerDescriptor handler) &&
-            (handler.ReadStream != null || handler.ReadDocumentStream != null);
+        if (kind != ReaderInputKind.Unknown) return true;
+        if (TryResolveCustomHandlerBySourceName(fileName, out ReaderHandlerDescriptor handler) &&
+            (handler.ReadStream != null || handler.ReadDocumentStream != null)) return true;
+        if (attachment.Content != null && Detect(attachment.Content, fileName).Kind != ReaderInputKind.Unknown) return true;
+
+        string? extension = GetEmailAttachmentMediaTypeExtension(attachment.ContentType);
+        if (extension == null) return false;
+        sourceName = string.Concat(fileName, extension);
+        return true;
+    }
+
+    private static string? GetEmailAttachmentMediaTypeExtension(string? contentType) {
+        return contentType?.Trim().ToLowerInvariant() switch {
+            "application/pdf" => ".pdf",
+            "text/plain" => ".txt",
+            "text/html" => ".html",
+            "text/rtf" or "application/rtf" => ".rtf",
+            "text/csv" => ".csv",
+            "text/markdown" => ".md",
+            "application/epub+zip" => ".epub",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => ".docx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => ".xlsx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation" => ".pptx",
+            "application/vnd.oasis.opendocument.text" => ".odt",
+            "application/vnd.oasis.opendocument.spreadsheet" => ".ods",
+            "application/vnd.oasis.opendocument.presentation" => ".odp",
+            "message/rfc822" => ".eml",
+            "application/vnd.ms-outlook" => ".msg",
+            _ => null
+        };
     }
 
     private static ReaderLocation CloneEmailAttachmentLocation(ReaderLocation source, string path, string? parentHeading, int blockIndex) {

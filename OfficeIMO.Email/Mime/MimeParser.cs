@@ -24,7 +24,7 @@ internal static class MimeParser {
 
     private static void ParseEntity(IReadOnlyList<EmailHeader> headers, byte[] data, int offset, int count,
         EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location,
-        string defaultContentType = "text/plain") {
+        string defaultContentType = "text/plain", string? preferredBodyContentId = null) {
         if (mimeDepth > state.Options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
@@ -37,11 +37,15 @@ internal static class MimeParser {
         string? transferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
+        bool isPreferredRelatedBody = !string.IsNullOrWhiteSpace(preferredBodyContentId) &&
+            string.Equals(TrimAngleBrackets(contentId), TrimAngleBrackets(preferredBodyContentId),
+                StringComparison.OrdinalIgnoreCase);
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
-            !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)) {
+            !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
+            (string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody)) {
             string? boundary = contentType.GetParameter("boundary");
             if (string.IsNullOrEmpty(boundary)) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_MISSING",
@@ -54,6 +58,9 @@ internal static class MimeParser {
             string childDefaultContentType = string.Equals(contentType.Value, "multipart/digest", StringComparison.OrdinalIgnoreCase)
                 ? "message/rfc822"
                 : "text/plain";
+            string? childPreferredBodyContentId = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase)
+                ? TrimAngleBrackets(contentType.GetParameter("start"))
+                : preferredBodyContentId;
             for (int i = 0; i < parts.Count; i++) {
                 state.ThrowIfCancellationRequested();
                 string partLocation = string.Concat(location, "/part[", i.ToString(CultureInfo.InvariantCulture), "]");
@@ -63,13 +70,14 @@ internal static class MimeParser {
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
-                    document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType);
+                    document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
+                    childPreferredBodyContentId);
             }
             return;
         }
 
         bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            string.IsNullOrWhiteSpace(contentId) &&
+            (string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
