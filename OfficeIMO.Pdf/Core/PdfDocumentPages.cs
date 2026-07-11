@@ -490,6 +490,14 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument SetCropBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
         SetPageBox(PdfPageBoundaryBox.CropBox, left, bottom, right, top, pageNumbers);
 
+    /// <summary>
+    /// Non-destructively crops selected pages and translates the chosen source rectangle to a zero-based page origin.
+    /// Content outside the rectangle remains in source streams but is clipped from display.
+    /// </summary>
+    public PdfDocument CropAndTranslate(double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        PdfDocument.FromBytes(PdfPageEditor.CropAndTranslatePages(
+            _document.Snapshot(), left, bottom, right, top, pageNumbers));
+
     /// <summary>Sets the bleed box for selected pages.</summary>
     public PdfDocument SetBleedBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
         SetPageBox(PdfPageBoundaryBox.BleedBox, left, bottom, right, top, pageNumbers);
