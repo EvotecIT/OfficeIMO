@@ -7,24 +7,26 @@ namespace OfficeIMO.Excel.Html;
 /// <summary>
 /// Extension methods for importing semantic OfficeIMO Excel HTML.
 /// </summary>
-public static class ExcelHtmlLoadExtensions {
+public static class HtmlExcelConverterExtensions {
     /// <summary>
     /// Imports semantic OfficeIMO Excel HTML into a native workbook.
     /// </summary>
-    public static ExcelDocument LoadExcelFromHtml(this string html, ExcelHtmlLoadOptions? options = null) =>
-        LoadExcelFromHtmlWithResult(html, options).Workbook;
+    /// <example><code>using ExcelDocument workbook = html.ToExcelDocument();</code></example>
+    public static ExcelDocument ToExcelDocument(this string html, HtmlToExcelOptions? options = null) =>
+        ToExcelDocumentResult(html, options).Workbook;
 
     /// <summary>
     /// Imports semantic OfficeIMO Excel HTML into a native workbook and returns import evidence.
     /// </summary>
-    public static ExcelHtmlLoadResult LoadExcelFromHtmlWithResult(this string html, ExcelHtmlLoadOptions? options = null) {
+    /// <example><code>HtmlToExcelResult result = html.ToExcelDocumentResult();</code></example>
+    public static HtmlToExcelResult ToExcelDocumentResult(this string html, HtmlToExcelOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        options ??= new ExcelHtmlLoadOptions();
+        options ??= new HtmlToExcelOptions();
 
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var stream = new MemoryStream();
         ExcelDocument workbook = ExcelDocument.Create(stream);
-        var result = new ExcelHtmlLoadResult(workbook);
+        var result = new HtmlToExcelResult(workbook);
 
         List<IElement> sheetSections = document.QuerySelectorAll("section.officeimo-sheet").ToList();
         if (sheetSections.Count == 0) {
@@ -69,7 +71,7 @@ public static class ExcelHtmlLoadExtensions {
         }
     }
 
-    private static void ImportTable(IElement section, ExcelSheet sheet, ExcelHtmlLoadResult result) {
+    private static void ImportTable(IElement section, ExcelSheet sheet, HtmlToExcelResult result) {
         IElement? table = section.Children.FirstOrDefault(child => IsElement(child, "table"));
         if (table == null) {
             result.Diagnostics.Add("Sheet '" + sheet.Name + "' did not contain a direct semantic table.");
@@ -108,7 +110,7 @@ public static class ExcelHtmlLoadExtensions {
         }
     }
 
-    private static void ImportFormulas(IElement section, ExcelSheet sheet, ExcelHtmlLoadResult result) {
+    private static void ImportFormulas(IElement section, ExcelSheet sheet, HtmlToExcelResult result) {
         foreach (IElement item in section.QuerySelectorAll("section.officeimo-formulas li[data-officeimo-cell]")) {
             if (!TryParseCellReference(item.GetAttribute("data-officeimo-cell"), out int row, out int column)) {
                 continue;
@@ -124,7 +126,7 @@ public static class ExcelHtmlLoadExtensions {
         }
     }
 
-    private static void SetCellValue(ExcelSheet sheet, int row, int column, IElement cell, string fallbackText, ExcelHtmlLoadResult result) {
+    private static void SetCellValue(ExcelSheet sheet, int row, int column, IElement cell, string fallbackText, HtmlToExcelResult result) {
         string? kind = cell.GetAttribute("data-officeimo-value-kind");
         string? rawValue = cell.GetAttribute("data-officeimo-value");
         if (string.IsNullOrWhiteSpace(kind) || rawValue == null) {
@@ -168,7 +170,7 @@ public static class ExcelHtmlLoadExtensions {
     private static bool IsSemanticEmptyCell(IElement cell) =>
         string.Equals(cell.GetAttribute("data-officeimo-empty"), "true", StringComparison.OrdinalIgnoreCase);
 
-    private static void ImportComments(IElement section, ExcelSheet sheet, ExcelHtmlLoadResult result) {
+    private static void ImportComments(IElement section, ExcelSheet sheet, HtmlToExcelResult result) {
         foreach (IElement item in section.QuerySelectorAll("section.officeimo-comments li[data-officeimo-cell]")) {
             if (!TryParseCellReference(item.GetAttribute("data-officeimo-cell"), out int row, out int column)) {
                 continue;
@@ -184,7 +186,7 @@ public static class ExcelHtmlLoadExtensions {
         }
     }
 
-    private static void ImportDrawings(IElement section, ExcelSheet sheet, ExcelHtmlLoadOptions options, ExcelHtmlLoadResult result) {
+    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlToExcelOptions options, HtmlToExcelResult result) {
         var drawings = new List<ExcelDrawingImportItem>();
         int fallbackOrder = 0;
         if (options.ImportImages) {
@@ -210,7 +212,7 @@ public static class ExcelHtmlLoadExtensions {
         }
     }
 
-    private static void ImportImage(IElement item, ExcelSheet sheet, ExcelHtmlLoadResult result) {
+    private static void ImportImage(IElement item, ExcelSheet sheet, HtmlToExcelResult result) {
         IElement? image = item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
@@ -247,7 +249,7 @@ public static class ExcelHtmlLoadExtensions {
     private static ExcelImage AddTwoCellImage(
         IElement item,
         ExcelSheet sheet,
-        ExcelHtmlLoadResult result,
+        HtmlToExcelResult result,
         byte[] bytes,
         string contentType,
         int row,
@@ -285,7 +287,7 @@ public static class ExcelHtmlLoadExtensions {
         return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
     }
 
-    private static void ImportChart(IElement item, ExcelSheet sheet, ExcelHtmlLoadResult result, string range, ref int chartIndex) {
+    private static void ImportChart(IElement item, ExcelSheet sheet, HtmlToExcelResult result, string range, ref int chartIndex) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         ExcelChartType type = ReadExcelChartType(item);
         ReadChartPlacement(item, chartIndex, out int row, out int column, out int width, out int height);

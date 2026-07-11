@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [InlineData("capitalize", "hello world", "Hello World")]
         public void HtmlToWord_TextTransform(string transform, string input, string expected) {
             string html = $"<p style=\"text-transform:{transform}\">{input}</p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs.First();
             Assert.Equal(expected, run.Text);
         }

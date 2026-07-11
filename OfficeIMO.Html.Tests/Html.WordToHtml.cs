@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_RunLanguage_RoundTripsLangAttributes() {
             const string sourceHtml = "<html lang=\"en-US\"><body><p>Hello <span lang=\"pl-PL\">Czesc</span></p></body></html>";
 
-            using var doc = sourceHtml.LoadFromHtml();
+            using var doc = sourceHtml.ToWordDocument();
 
             Assert.Equal("en-US", doc.Settings.Language);
             Assert.Contains(doc.Paragraphs[0].GetRuns(), run => string.Equals(run.Text, "Czesc", StringComparison.Ordinal) && string.Equals(run.Language, "pl-PL", StringComparison.OrdinalIgnoreCase));
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<span lang=\"pl-PL\">Czesc</span>", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("lang=\"en-US\">Hello", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Contains(roundTrip.Paragraphs[0].GetRuns(), run => string.Equals(run.Text, "Czesc", StringComparison.Ordinal) && string.Equals(run.Language, "pl-PL", StringComparison.OrdinalIgnoreCase));
         }
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             var roundTripTable = roundTrip.Tables[0];
             Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<p>Total</p>", html, StringComparison.OrdinalIgnoreCase);
             Assert.True(html.IndexOf("<tbody>", StringComparison.OrdinalIgnoreCase) < html.IndexOf("<tfoot>", StringComparison.OrdinalIgnoreCase));
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.True(roundTrip.Tables[0].ConditionalFormattingLastRow);
         }
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCaption_ExportsCaptionElementAndRoundTrips() {
             const string sourceHtml = "<table><caption>Score summary</caption><tr><td>Ada</td><td>42</td></tr></table>";
 
-            using var doc = sourceHtml.LoadFromHtml();
+            using var doc = sourceHtml.ToWordDocument();
 
             Assert.Contains(doc.Paragraphs, paragraph =>
                 string.Equals(paragraph.StyleId, "Caption", StringComparison.OrdinalIgnoreCase) &&
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<caption>Score summary</caption>", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("<p>Score summary</p><table", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Single(roundTrip.Tables);
             Assert.Contains(roundTrip.Paragraphs, paragraph =>
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
                 TableCaptionPosition = TableCaptionPosition.Below
             };
 
-            using var doc = sourceHtml.LoadFromHtml(options);
+            using var doc = sourceHtml.ToWordDocument(options);
 
             string html = doc.ToHtml();
 
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TopLevelTable_DoesNotExportPlaceholderParagraph() {
             const string sourceHtml = "<table><tr><td>42</td></tr></table>";
 
-            using var doc = sourceHtml.LoadFromHtml();
+            using var doc = sourceHtml.ToWordDocument();
 
             string html = doc.ToHtml();
 
@@ -345,7 +345,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Body text", StringComparison.Ordinal));
             Assert.DoesNotContain(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Header text", StringComparison.Ordinal));
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.True(roundTrip.Sections.Count >= 2);
             Assert.DoesNotContain(roundTrip.Sections[0].Header.Default?.Paragraphs ?? new List<WordParagraph>(),
@@ -477,7 +477,7 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.LoadFromHtml(options);
+            using var roundTrip = html.ToWordDocument(options);
 
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Intro", StringComparison.Ordinal));
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.LoadFromHtml(options);
+            using var roundTrip = html.ToWordDocument(options);
 
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Normal paragraph", StringComparison.Ordinal));
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddStructuredDocumentTag("Line one\nLine two", "Review notes", "notes");
 
             string html = doc.ToHtml();
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             var control = Assert.Single(roundTrip.StructuredDocumentTags);
             Assert.Equal("Line one\nLine two", control.Text);
@@ -777,7 +777,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("border-spacing:12pt", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("border-collapse:separate", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Equal((short)240, roundTrip.Tables[0].StyleDetails!.CellSpacing);
         }
@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("vertical-align:middle", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Equal(TableVerticalAlignmentValues.Center, roundTrip.Tables[0].Rows[0].Cells[0].VerticalAlignment);
         }
@@ -904,7 +904,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { IncludeCustomProperties = true });
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Equal("Approved", roundTrip.CustomDocumentProperties["ReviewStatus"].Text);
             Assert.True(roundTrip.CustomDocumentProperties["IsFinal"].Bool);
@@ -924,7 +924,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.Equal("Round Trip Title", roundTrip.BuiltinDocumentProperties.Title);
             Assert.Equal("Ada", roundTrip.BuiltinDocumentProperties.Creator);
@@ -937,7 +937,7 @@ namespace OfficeIMO.Tests {
         public void Test_HtmlToWord_HeadStyles_AreParsedBeforeBodyImport() {
             string html = "<html><head><style>.title{font-weight:bold;font-size:24pt}</style></head><body><p class=\"title\">Title</p></body></html>";
 
-            using var doc = html.LoadFromHtml();
+            using var doc = html.ToWordDocument();
 
             var paragraph = Assert.Single(doc.Paragraphs, paragraph => string.Equals(paragraph.Text, "Title", StringComparison.Ordinal));
             Assert.Equal(WordParagraphStyles.Heading2, paragraph.Style);
@@ -1064,7 +1064,7 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.LoadFromHtml(options);
+            using var roundTrip = html.ToWordDocument(options);
 
             Assert.Single(roundTrip.Sections);
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Only section", StringComparison.Ordinal));
@@ -1090,7 +1090,7 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.LoadFromHtml(options);
+            using var roundTrip = html.ToWordDocument(options);
 
             Assert.Equal(2, roundTrip.Sections.Count);
             var roundTripSecond = roundTrip.Sections[1];

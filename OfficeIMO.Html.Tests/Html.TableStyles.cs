@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_BorderAndShading() {
             string html = "<table style=\"border:2px solid #ff0000\"><tr style=\"background-color:#00ff00\"><td style=\"border:1px dashed #0000ff\">Cell</td></tr></table>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(BorderValues.Single, style);
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_MapsSideBorders() {
             string html = "<table style=\"border-left:3px double #112233\"><tr style=\"border-bottom:2px dotted #445566\"><td style=\"border-right:1px dashed #778899\">Cell</td></tr></table>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var table = doc.Tables[0];
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Left);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_TextAlign() {
             string html = "<table><tr><td style=\"text-align:center\">One</td><td style=\"text-align:right\">Two</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var cell1 = table.Rows[0].Cells[0];
             var cell2 = table.Rows[0].Cells[1];
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_TextAlign_LeftAndJustify() {
             string html = "<table><tr><td style=\"text-align:left\">L</td><td style=\"text-align:justify\">J</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var cellLeft = table.Rows[0].Cells[0];
             var cellJustify = table.Rows[0].Cells[1];
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_WidthAuto() {
             string html = "<table style=\"width:auto\"><tr><td>Cell</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             Assert.Equal(TableWidthUnitValues.Auto, table.WidthType);
             Assert.Equal(0, table.Width);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_MarginAutoCentersTable() {
             string html = "<table style=\"width:50%;margin:0 auto\"><tr><td>Cell</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_AutoLeftMarginAlignsRight() {
             string html = "<table style=\"margin-left:auto;margin-right:0\"><tr><td>Cell</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal(TableRowAlignmentValues.Right, table.Alignment);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_AlignAttributeSetsTableAlignment() {
             string html = "<table align=\"center\"><tr><td>Cell</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_CellSpacingAttributeSetsTableSpacing() {
             string html = "<table cellspacing=\"6\"><tr><td>One</td><td>Two</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal((short)90, table.StyleDetails!.CellSpacing);
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_BorderSpacingSetsTableSpacing() {
             string html = "<table cellspacing=\"2\" style=\"border-spacing:5pt 10pt\"><tr><td>One</td><td>Two</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal((short)100, table.StyleDetails!.CellSpacing);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableStyles_VerticalAlignSetsCellVerticalAlignment() {
             string html = "<table><tr><td style=\"vertical-align:middle\">Middle</td><td valign=\"bottom\">Bottom</td></tr></table>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal(TableVerticalAlignmentValues.Center, table.Rows[0].Cells[0].VerticalAlignment);

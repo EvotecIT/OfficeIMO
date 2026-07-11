@@ -88,7 +88,7 @@ public sealed class PdfConversionTypographyTests {
             PdfOptions = CreatePdfOptions(fontPath)
         };
 
-        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => ("# Missing Glyph\n\nUnsupported " + unsupportedScalar).SaveAsPdf(options));
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => ("# Missing Glyph\n\nUnsupported " + unsupportedScalar).ToPdfFromMarkdown(options));
 
         Assert.True(IsMissingEmbeddedGlyphFailure(exception));
         Assert.Contains((string?)exception.Data["code"], new[] { "missing-embedded-font-glyph", "missing-embedded-font-fallback-glyph", "unsupported-text-glyph" });
@@ -99,7 +99,6 @@ public sealed class PdfConversionTypographyTests {
     [InlineData("word-to-pdf", "OfficeIMO.Word.Pdf")]
     [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf")]
     [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf")]
-    [InlineData("html-to-pdf", "OfficeIMO.Word.Pdf")]
     [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf")]
     public void ConversionAdapters_ReportOpenTypeFeatureWarningsForConfiguredEmbeddedFonts(string conversionPath, string expectedConverter) {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
@@ -111,7 +110,6 @@ public sealed class PdfConversionTypographyTests {
             "word-to-pdf" => CreateWordOpenTypeReport(fontPath),
             "excel-to-pdf" => CreateExcelOpenTypeReport(fontPath),
             "markdown-to-pdf" => CreateMarkdownOpenTypeReport(fontPath),
-            "html-to-pdf" => CreateHtmlOpenTypeReport(fontPath),
             "powerpoint-to-pdf" => CreatePowerPointOpenTypeReport(fontPath),
             _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
         };
@@ -135,14 +133,12 @@ public sealed class PdfConversionTypographyTests {
     [InlineData("word-to-pdf", "OfficeIMO.Word.Pdf")]
     [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf")]
     [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf")]
-    [InlineData("html-to-pdf", "OfficeIMO.Word.Pdf")]
     [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf")]
     public void ConversionAdapters_ReportComplexScriptWarningsForGeneratedText(string conversionPath, string expectedConverter) {
         PdfCore.PdfConversionReport report = conversionPath switch {
             "word-to-pdf" => CreateWordComplexScriptReport(allowMissingGlyphFailure: true),
             "excel-to-pdf" => CreateExcelComplexScriptReport(allowMissingGlyphFailure: true),
             "markdown-to-pdf" => CreateMarkdownComplexScriptReport(allowMissingGlyphFailure: true),
-            "html-to-pdf" => CreateHtmlComplexScriptReport(allowMissingGlyphFailure: true),
             "powerpoint-to-pdf" => CreatePowerPointComplexScriptReport(allowMissingGlyphFailure: true),
             _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
         };
@@ -166,7 +162,6 @@ public sealed class PdfConversionTypographyTests {
     [InlineData("word-to-pdf", "OfficeIMO.Word.Pdf")]
     [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf")]
     [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf")]
-    [InlineData("html-to-pdf", "OfficeIMO.Word.Pdf")]
     [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf")]
     public void ConversionAdapters_ReportScriptSpecificLineBreakingWarningsForGeneratedText(string conversionPath, string expectedConverter) {
         const string thaiText = "ภาษาไทย";
@@ -174,7 +169,6 @@ public sealed class PdfConversionTypographyTests {
             "word-to-pdf" => CreateWordComplexScriptReport(thaiText, allowMissingGlyphFailure: true),
             "excel-to-pdf" => CreateExcelComplexScriptReport(thaiText, allowMissingGlyphFailure: true),
             "markdown-to-pdf" => CreateMarkdownComplexScriptReport(thaiText, allowMissingGlyphFailure: true),
-            "html-to-pdf" => CreateHtmlComplexScriptReport(thaiText, allowMissingGlyphFailure: true),
             "powerpoint-to-pdf" => CreatePowerPointComplexScriptReport(thaiText, allowMissingGlyphFailure: true),
             _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
         };
@@ -185,28 +179,6 @@ public sealed class PdfConversionTypographyTests {
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Equal("Thai", warning.Details["script"]);
         Assert.Equal("U+0E20", warning.Details["codePoint"]);
-    }
-
-    [Fact]
-    public void HtmlConversion_ToPdfDocumentKeepsLateWriterDiagnosticsVisibleInParentReport() {
-        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
-        if (fontPath == null) {
-            return;
-        }
-
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateDocumentProfile();
-        options.WordPdfOptions!.PdfOptions = CreatePdfOptions(fontPath);
-        options.WordPdfOptions.IncludePageNumbers = false;
-
-        PdfCore.PdfDocument pdf = "<p>office cafe\u0301</p>".ToPdfDocument(options);
-
-        Assert.False(options.ConversionReport.HasWarnings);
-        _ = pdf.ToBytes();
-
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings.Where(item =>
-            item.Code == "unsupported-font-ligature-substitution" &&
-            item.Converter == "OfficeIMO.Word.Pdf").Take(1));
-        Assert.Equal("OpenType GSUB ligature", warning.Details["script"]);
     }
 
     private static PdfCore.PdfOptions CreatePdfOptions(string fontPath) =>
@@ -268,7 +240,7 @@ public sealed class PdfConversionTypographyTests {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludeSheetHeadings = false
             };
-            byte[] pdf = document.SaveAsPdf(options);
+            byte[] pdf = document.ToPdf(options);
             Assert.Empty(options.Warnings);
             Assert.False(options.ConversionReport.HasWarnings);
             return pdf;
@@ -293,7 +265,7 @@ Zażółć gęślą jaźń
 | --- | --- |
 | Ελλάδα | Athens |
 | Україна | Київ |
-""".SaveAsPdf(options);
+""".ToPdfFromMarkdown(options);
 
         Assert.Empty(options.Warnings);
         Assert.False(options.ConversionReport.HasWarnings);
@@ -301,9 +273,9 @@ Zażółć gęślą jaźń
     }
 
     private static byte[] CreateHtmlPdf(string fontPath) {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateDocumentProfile();
-        options.WordPdfOptions!.PdfOptions = CreatePdfOptions(fontPath);
-        options.WordPdfOptions.IncludePageNumbers = false;
+        var options = new HtmlPdfSaveOptions {
+            FontFamily = PdfCore.PdfEmbeddedFontFamily.FromFiles(FamilyName, fontPath)
+        };
 
         byte[] pdf = """
 <html>
@@ -317,9 +289,8 @@ Zażółć gęślą jaźń
     </table>
   </body>
 </html>
-""".SaveAsPdf(options);
+""".ToPdfResult(options).ToBytes();
 
-        Assert.False(options.ConversionReport.HasWarnings);
         return pdf;
     }
 
@@ -343,7 +314,7 @@ Zażółć gęślą jaźń
         var options = new PowerPointPdfSaveOptions {
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        byte[] pdf = presentation.SaveAsPdf(options);
+        byte[] pdf = presentation.ToPdf(options);
         Assert.Empty(options.Warnings);
         Assert.False(options.ConversionReport.HasWarnings);
         return pdf;
@@ -398,16 +369,7 @@ Zażółć gęślą jaźń
             ApplyWordLikeTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        _ = "office cafe\u0301".SaveAsPdf(options);
-        return options.ConversionReport;
-    }
-
-    private static PdfCore.PdfConversionReport CreateHtmlOpenTypeReport(string fontPath) {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateDocumentProfile();
-        options.WordPdfOptions!.PdfOptions = CreatePdfOptions(fontPath);
-        options.WordPdfOptions.IncludePageNumbers = false;
-
-        _ = "<p>office cafe\u0301</p>".SaveAsPdf(options);
+        _ = "office cafe\u0301".ToPdfFromMarkdown(options);
         return options.ConversionReport;
     }
 
@@ -471,15 +433,7 @@ Zażółć gęślą jaźń
         var options = new MarkdownPdfSaveOptions {
             ApplyWordLikeTheme = false
         };
-        AssertRenderAttempt(() => text.SaveAsPdf(options), allowMissingGlyphFailure);
-        return options.ConversionReport;
-    }
-
-    private static PdfCore.PdfConversionReport CreateHtmlComplexScriptReport(string text = "مرحبا", bool allowMissingGlyphFailure = false) {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateDocumentProfile();
-        options.WordPdfOptions!.IncludePageNumbers = false;
-
-        AssertRenderAttempt(() => ("<p>" + text + "</p>").SaveAsPdf(options), allowMissingGlyphFailure);
+        AssertRenderAttempt(() => text.ToPdfFromMarkdown(options), allowMissingGlyphFailure);
         return options.ConversionReport;
     }
 

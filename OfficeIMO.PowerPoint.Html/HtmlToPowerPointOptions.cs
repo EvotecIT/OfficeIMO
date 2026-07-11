@@ -3,7 +3,7 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Options for importing semantic OfficeIMO PowerPoint HTML into a presentation.
 /// </summary>
-public sealed class PowerPointHtmlLoadOptions {
+public sealed class HtmlToPowerPointOptions {
     /// <summary>
     /// Imports semantic slide tables as native PowerPoint tables.
     /// </summary>

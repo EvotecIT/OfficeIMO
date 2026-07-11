@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlRenderAsync_UsesCallerResolverForPolicyApprovedExternalImages() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(10, 6);
         int calls = 0;
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(8D),
             ResourceResolver = (request, cancellationToken) => {
@@ -245,67 +245,67 @@ public sealed partial class HtmlRenderingTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             "<p>Image cancellation marker</p>".ExportImagesAsync(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            "<p>PDF cancellation marker</p>".SaveAsPdfAsync(HtmlPdfSaveOptions.CreateRenderedProfile(), cancellation.Token));
+            "<p>PDF cancellation marker</p>".ToPdfAsync(new HtmlPdfSaveOptions(), cancellation.Token));
     }
 
     [Fact]
-    public async Task HtmlPdf_RenderedProfileAsync_ResolvesExternalImageAndWritesSearchablePdf() {
+    public async Task HtmlPdf_DirectRendererAsync_ResolvesExternalImageAndWritesSearchablePdf() {
+        const string html = "<h1>AsyncPdfMarker</h1><img src='https://assets.example.test/async.png' width='40' height='25' alt='async image'>";
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-        options.RenderOptions!.PageSize = new OfficePageSize(4D, 3D);
-        options.RenderOptions.Margins = HtmlRenderMargins.All(16D);
-        options.RenderOptions.ResourceResolver = (request, cancellationToken) =>
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        options.PageSize = new OfficePageSize(4D, 3D);
+        options.Margins = HtmlRenderMargins.All(16D);
+        options.ResourceResolver = (request, cancellationToken) =>
             Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(imageBytes, "image/png"));
 
-        byte[] pdf = await "<h1>AsyncPdfMarker</h1><img src='https://assets.example.test/async.png' width='40' height='25' alt='async image'>".SaveAsPdfAsync(options);
+        PdfCore.PdfDocumentConversionResult result = await html.ToPdfResultAsync(options);
+        byte[] pdf = result.ToBytes();
 
         Assert.Contains("AsyncPdfMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
 
     [Fact]
-    public async Task HtmlPdf_RenderedProfileAsync_AppliesExternalStylesheetPageRules() {
+    public async Task HtmlPdf_DirectRendererAsync_AppliesExternalStylesheetPageRules() {
         const string html = "<link rel='stylesheet' href='https://assets.example.test/print.css'><p>ExternalCssPdfMarker</p>";
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-        options.RenderOptions!.ResourceResolver = (request, cancellationToken) =>
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        options.ResourceResolver = (request, cancellationToken) =>
             Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
                 System.Text.Encoding.UTF8.GetBytes("@page { size:4in 3in; margin:12px; } p { color:#123456; }"),
                 "text/css"));
 
-        byte[] pdf = await html.SaveAsPdfAsync(options);
+        PdfCore.PdfDocumentConversionResult result = await html.ToPdfResultAsync(options);
+        byte[] pdf = result.ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
         (double width, double height) = read.Pages[0].GetPageSize();
 
         Assert.Equal(288D, width, 2);
         Assert.Equal(216D, height, 2);
         Assert.Contains("ExternalCssPdfMarker", read.ExtractText(), StringComparison.Ordinal);
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_ExposesSharedRenderResourcePolicy() {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-        options.RenderOptions!.ResourceTimeout = TimeSpan.FromSeconds(5D);
-        options.RenderOptions.MaxResourceBytes = 1024L;
-        options.RenderOptions.MaxTotalResourceBytes = 4096L;
-        options.RenderOptions.MaxResourceCount = 12;
-        options.RenderOptions.MaxStylesheetImportDepth = 4;
-        options.RenderOptions.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
-        options.RenderOptions.ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null);
+    public void HtmlPdf_DirectRenderer_ExposesSharedRenderResourcePolicy() {
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        options.ResourceTimeout = TimeSpan.FromSeconds(5D);
+        options.MaxResourceBytes = 1024L;
+        options.MaxTotalResourceBytes = 4096L;
+        options.MaxResourceCount = 12;
+        options.MaxStylesheetImportDepth = 4;
+        options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
+        options.ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null);
 
         HtmlPdfResourcePolicySummary summary = options.GetResourcePolicySummary();
 
-        Assert.Equal(HtmlPdfProfile.Rendered, summary.Profile);
-        Assert.True(summary.UsesHtmlRenderPolicy);
-        Assert.False(summary.UsesWordHtmlPolicy);
-        Assert.True(summary.HasRenderResourceResolver);
-        Assert.Equal(TimeSpan.FromSeconds(5D), summary.RenderResourceTimeout);
-        Assert.Equal(1024L, summary.RenderMaxResourceBytes);
-        Assert.Equal(4096L, summary.RenderMaxTotalResourceBytes);
-        Assert.Equal(12, summary.RenderMaxResourceCount);
-        Assert.Equal(4, summary.RenderMaxStylesheetImportDepth);
-        Assert.Contains("https", summary.RenderAllowedUrlSchemes);
+        Assert.True(summary.HasResourceResolver);
+        Assert.Equal(TimeSpan.FromSeconds(5D), summary.ResourceTimeout);
+        Assert.Equal(1024L, summary.MaxResourceBytes);
+        Assert.Equal(4096L, summary.MaxTotalResourceBytes);
+        Assert.Equal(12, summary.MaxResourceCount);
+        Assert.Equal(4, summary.MaxStylesheetImportDepth);
+        Assert.Contains("https", summary.AllowedUrlSchemes);
     }
 
     [Fact]
@@ -397,7 +397,7 @@ public sealed partial class HtmlRenderingTests {
             <p class="mode">First page marker</p>
             <section style="break-before:page"><p>Second page marker</p></section>
             """;
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 3D),
             Margins = HtmlRenderMargins.All(20D)
@@ -473,9 +473,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "HtmlRenderBlockExceedsPage");
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = renderOptions;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(renderOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         Assert.Contains("word089", pdfText, StringComparison.Ordinal);
         Assert.Contains("Row17", pdfText, StringComparison.Ordinal);
@@ -514,7 +514,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_Paged_RepeatsLeadingTableHeaderRowsInImagesAndSearchablePdf() {
         string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index => "<tr><td>Row" + index.ToString("D2") + "</td></tr>"));
         string html = "<div style='padding:2px'><table><thead><tr><th>HeaderMarker</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
-        var renderOptions = new HtmlImageExportOptions {
+        var renderOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(3D, 2D),
             Margins = HtmlRenderMargins.All(16D)
@@ -530,9 +530,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(rendered.Pages.Count, images.Count);
         Assert.All(images, image => Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.Bytes.Take(8)));
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = renderOptions;
-        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(renderOptions);
+        string pdfText = PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText();
         int repeatedHeaderCount = pdfText.Split(new[] { "HeaderMarker" }, StringSplitOptions.None).Length - 1;
         Assert.Equal(rendered.Pages.Count, repeatedHeaderCount);
     }
@@ -541,7 +541,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_Paged_RepeatsTableFooterRowsWithoutDuplicatingSourceRows() {
         string rows = string.Join(string.Empty, Enumerable.Range(0, 18).Select(index => "<tr><td>Row" + index.ToString("D2") + "</td></tr>"));
         string html = "<div style='padding:2px'><table><thead><tr><th>HeaderMarker</th></tr></thead><tfoot><tr><td>FooterMarker</td></tr></tfoot><tbody>" + rows + "</tbody></table></div>";
-        var renderOptions = new HtmlImageExportOptions {
+        var renderOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(3D, 2D),
             Margins = HtmlRenderMargins.All(16D)
@@ -566,9 +566,9 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<OfficeImageExportResult> images = html.ExportImages(OfficeImageExportFormat.Png, renderOptions);
         Assert.Equal(rendered.Pages.Count, images.Count);
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = renderOptions;
-        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(renderOptions);
+        string pdfText = PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText();
         int repeatedFooterCount = pdfText.Split(new[] { "FooterMarker" }, StringSplitOptions.None).Length - 1;
         Assert.Equal(rendered.Pages.Count, repeatedFooterCount);
 
@@ -610,9 +610,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        string pdfText = PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText();
         Assert.Contains("Group00", pdfText, StringComparison.Ordinal);
         Assert.Contains("Group09", pdfText, StringComparison.Ordinal);
         Assert.Contains("ZeroMarker", pdfText, StringComparison.Ordinal);
@@ -635,7 +635,7 @@ public sealed partial class HtmlRenderingTests {
             </style>
             <div><p style="margin:0">WORDS</p></div>
             """.Replace("WORDS", words);
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 4D),
             Margins = HtmlRenderMargins.All(10D)
@@ -657,9 +657,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("L2", Encoding.UTF8.GetString(svgPages[1].Bytes), StringComparison.Ordinal);
         Assert.Contains("R3", Encoding.UTF8.GetString(svgPages[2].Bytes), StringComparison.Ordinal);
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("FirstPage", pdfText, StringComparison.Ordinal);
@@ -715,7 +715,7 @@ public sealed partial class HtmlRenderingTests {
             <section style="page:invoice"><p style="margin:0">WORDS</p></section>
             <section style="page:report"><p style="margin:0">ReportBody</p></section>
             """.Replace("WORDS", words);
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 4D),
             Margins = HtmlRenderMargins.All(10D)
@@ -733,9 +733,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSelectorPending);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        string pdfText = PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText();
         Assert.Contains("Invoice", pdfText, StringComparison.Ordinal);
         Assert.Contains("IL", pdfText, StringComparison.Ordinal);
         Assert.Contains("Report", pdfText, StringComparison.Ordinal);
@@ -763,7 +763,7 @@ public sealed partial class HtmlRenderingTests {
             </style>
             <p>Body</p>
             """;
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 4D),
             Margins = HtmlRenderMargins.All(10D)
@@ -779,9 +779,9 @@ public sealed partial class HtmlRenderingTests {
         string svg = Encoding.UTF8.GetString(Assert.Single(html.ExportImages(OfficeImageExportFormat.Svg, options)).Bytes);
         foreach (string marker in markers) Assert.Contains(marker, svg, StringComparison.Ordinal);
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        string pdfText = PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText();
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        string pdfText = PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText();
         foreach (string marker in markers) Assert.Contains(marker, pdfText, StringComparison.Ordinal);
     }
 
@@ -796,7 +796,7 @@ public sealed partial class HtmlRenderingTests {
             <p>FirstBody</p>
             <div style="break-before:right">RightBody</div>
             """;
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 4D),
             Margins = HtmlRenderMargins.All(10D)
@@ -811,9 +811,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "RightBody");
         Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "R3" && text.SemanticRole == "page-margin");
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("FirstBody", pdfText, StringComparison.Ordinal);
@@ -832,7 +832,7 @@ public sealed partial class HtmlRenderingTests {
             </table>
             <img src="data:image/png;base64,{pngData}" width="60" height="40" alt="sample image">
             """;
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 320D,
             Margins = HtmlRenderMargins.All(10D)
@@ -859,14 +859,14 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRenderedOutputs_AreDeterministicForIdenticalResolvedInput() {
         const string html = "<style>body{margin:0}.card{width:180px;padding:8px;border:2px solid #123456;background:linear-gradient(90deg,#ffffff,#ddeeff)}</style>"
             + "<div class='card'><h2>StableMarker</h2><a href='https://example.test/report'>Report link</a></div>";
-        static HtmlImageExportOptions ImageOptions() => new HtmlImageExportOptions {
+        static HtmlRenderOptions ImageOptions() => new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(10D)
         };
         static HtmlPdfSaveOptions PdfOptions() {
-            HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-            options.RenderOptions!.PageSize = new OfficePageSize(4D, 3D);
-            options.RenderOptions.Margins = HtmlRenderMargins.All(12D);
+            HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+            options.PageSize = new OfficePageSize(4D, 3D);
+            options.Margins = HtmlRenderMargins.All(12D);
             return options;
         }
 
@@ -874,8 +874,8 @@ public sealed partial class HtmlRenderingTests {
         byte[] secondPng = html.ToPng(ImageOptions());
         string firstSvg = html.ToSvg(ImageOptions());
         string secondSvg = html.ToSvg(ImageOptions());
-        byte[] firstPdf = html.SaveAsPdf(PdfOptions());
-        byte[] secondPdf = html.SaveAsPdf(PdfOptions());
+        byte[] firstPdf = html.ToPdf(PdfOptions());
+        byte[] secondPdf = html.ToPdf(PdfOptions());
 
         Assert.Equal(firstPng, secondPng);
         Assert.Equal(firstSvg, secondSvg);
@@ -896,10 +896,10 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_MapsHeadingsAndParagraphsToTaggedStructure() {
+    public void HtmlPdf_DirectRenderer_MapsHeadingsAndParagraphsToTaggedStructure() {
         const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title></head><body><main><h1>Semantic <em>heading</em></h1><p>Semantic <strong>paragraph</strong>.</p><h2>Nested detail</h2></main></body></html>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
-        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
@@ -949,7 +949,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_UsesSharedPagedLayoutAndPreservesTextAndLink() {
+    public void HtmlPdf_DirectRenderer_UsesSharedPagedLayoutAndPreservesTextAndLink() {
         const string linkUri = "https://example.test/direct-pdf";
         string html = """
             <style>@media print { h1 { color:#224466; } }</style>
@@ -957,11 +957,12 @@ public sealed partial class HtmlRenderingTests {
             <p><a href="https://example.test/direct-pdf">RenderedLinkMarker</a></p>
             <div style="break-before:page"><p>SecondPageMarker</p></div>
             """;
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-        options.RenderOptions!.PageSize = new OfficePageSize(4D, 3D);
-        options.RenderOptions.Margins = HtmlRenderMargins.All(20D);
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        options.PageSize = new OfficePageSize(4D, 3D);
+        options.Margins = HtmlRenderMargins.All(20D);
 
-        byte[] pdf = html.SaveAsPdf(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
@@ -970,21 +971,20 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("RenderedLinkMarker", text, StringComparison.Ordinal);
         Assert.Contains("SecondPageMarker", text, StringComparison.Ordinal);
         Assert.Contains(linkUri, info.LinkUris);
-        Assert.Equal(HtmlPdfProfile.Rendered, options.Profile);
-        Assert.NotNull(options.RenderDiagnostics);
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.Equal(HtmlRenderMode.Paged, options.Mode);
+        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_UsesManagedFontFallbacksForUnicodeText() {
+    public void HtmlPdf_DirectRenderer_UsesManagedFontFallbacksForUnicodeText() {
         const string marker = "Café Ω Ж שלום سلام";
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        byte[] pdf = ("<p>" + marker + "</p>").SaveAsPdf(options);
+        byte[] pdf = ("<p>" + marker + "</p>").ToPdf(options);
         string extracted = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
-        Assert.Equal(PdfCore.PdfTextFallbackFeatures.Default, options.RenderedTextFallbacks);
-        Assert.Equal(PdfCore.PdfTextShapingMode.LatinLigatures, options.RenderedTextShapingMode);
+        Assert.Equal(PdfCore.PdfTextFallbackFeatures.Default, options.TextFallbacks);
+        Assert.Equal(PdfCore.PdfTextShapingMode.LatinLigatures, options.TextShapingMode);
         Assert.Contains(marker, extracted, StringComparison.Ordinal);
         var fallbackProbe = new PdfCore.PdfOptions();
         if (fallbackProbe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
@@ -993,22 +993,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_UsesRegularFallbackCoverageWhenBoldSystemFaceIsNarrower() {
+    public void HtmlPdf_DirectRenderer_UsesRegularFallbackCoverageWhenBoldSystemFaceIsNarrower() {
         const string marker = "Bold שלום سلام";
 
-        byte[] pdf = ("<h1>" + marker + "</h1>").SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = ("<h1>" + marker + "</h1>").ToPdf(new HtmlPdfSaveOptions());
 
         Assert.Contains(marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_PreservesCallerUnicodeFontWhenManagedFallbacksAreActive() {
+    public void HtmlPdf_DirectRenderer_PreservesCallerUnicodeFontWhenManagedFallbacksAreActive() {
         if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfCore.PdfEmbeddedFontFamily? installed) || installed == null) return;
         const string marker = "Caller שלום سلام";
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-        options.RenderedFontFamily = new PdfCore.PdfEmbeddedFontFamily("CallerUnicode", installed.Regular);
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        options.FontFamily = new PdfCore.PdfEmbeddedFontFamily("CallerUnicode", installed.Regular);
 
-        byte[] pdf = ("<h1>" + marker + "</h1>").SaveAsPdf(options);
+        byte[] pdf = ("<h1>" + marker + "</h1>").ToPdf(options);
         PdfCore.PdfDiagnosticReport report = PdfCore.PdfDiagnostics.Analyze(pdf);
 
         Assert.Contains(marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
@@ -1016,7 +1016,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_LoadsManagedFontFallbacksOnlyWhenSceneTextRequiresUnicode() {
+    public void HtmlPdf_DirectRenderer_LoadsManagedFontFallbacksOnlyWhenSceneTextRequiresUnicode() {
         HtmlRenderDocument winAnsi = HtmlRenderEngine.Render("<p>Invoice Café — paid</p>");
         HtmlRenderDocument unicode = HtmlRenderEngine.Render("<p>Invoice Ω Ж שלום سلام</p>");
 
@@ -1126,13 +1126,13 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_TagsRasterAndVectorImageAlternativeTextAsFigures() {
+    public void HtmlPdf_DirectRenderer_TagsRasterAndVectorImageAlternativeTextAsFigures() {
         string rasterData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         const string vectorData = "%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='2' height='2' fill='red'/%3E%3C/svg%3E";
         string html = "<img alt='Raster badge' width='24' height='24' src='data:image/png;base64," + rasterData + "'>"
             + "<img alt='Vector badge' width='24' height='24' src=\"data:image/svg+xml," + vectorData + "\">";
 
-        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         IReadOnlyList<PdfCore.PdfStructureElementInfo> figures = tagged.StructureElements
             .Where(element => element.StructureType == "Figure")
@@ -1145,7 +1145,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_PreservesListItemLabelAndBodySemantics() {
+    public void HtmlPdf_DirectRenderer_PreservesListItemLabelAndBodySemantics() {
         const string html = "<ol><li>First item</li><li>Second item</li></ol>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
@@ -1161,7 +1161,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(item.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.ListBody);
         });
 
-        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         PdfCore.PdfStructureElementInfo list = Assert.Single(tagged.StructureElements, element => element.StructureType == "L");
         IReadOnlyList<PdfCore.PdfStructureElementInfo> pdfItems = tagged.StructureElements.Where(element => element.StructureType == "LI").ToList();
@@ -1174,7 +1174,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_PreservesNestedTableCaptionRowAndCellSemantics() {
+    public void HtmlPdf_DirectRenderer_PreservesNestedTableCaptionRowAndCellSemantics() {
         const string html = "<table><caption>Quarterly status</caption><tr><th scope='row' rowspan='2'>Area</th><th colspan='2'>Status</th></tr><tr><td>Green</td><td>Ready</td></tr></table>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
@@ -1183,7 +1183,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(tableScene.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Caption);
         Assert.Equal(2, tableScene.Visuals.OfType<HtmlRenderSemanticGroup>().Count(group => group.Role == HtmlRenderSemanticGroupRole.TableRow));
 
-        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
         PdfCore.PdfStructureElementInfo table = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");

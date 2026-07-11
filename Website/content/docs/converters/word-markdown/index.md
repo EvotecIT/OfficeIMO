@@ -201,7 +201,7 @@ Convert HTML to Word by first converting to Markdown, then to Word:
 ```csharp
 string html = "<h1>Hello</h1><p>World</p>";
 
-using var document = html.LoadFromHtmlViaMarkdown();
+using var document = html.ToWordDocumentViaMarkdown();
 document.Save("from-html-via-md.docx");
 ```
 
@@ -209,7 +209,7 @@ From a stream:
 
 ```csharp
 using var htmlStream = File.OpenRead("page.html");
-using var document = htmlStream.LoadFromHtmlViaMarkdown();
+using var document = htmlStream.ToWordDocumentViaMarkdown();
 document.Save("output.docx");
 ```
 

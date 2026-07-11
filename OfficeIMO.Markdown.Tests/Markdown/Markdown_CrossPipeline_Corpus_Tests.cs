@@ -126,7 +126,7 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
                     "<sup>2</sup>",
                     "<u>important</u>"
                 },
-                createSourceDocument: () => "<p>Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.</p>".LoadFromHtml(),
+                createSourceDocument: () => "<p>Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.</p>".ToMarkdownDocument(),
                 createRendererOptions: () => new MarkdownRendererOptions {
                     ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile(),
                     HtmlOptions = new HtmlOptions {
@@ -167,7 +167,7 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
         };
         var renderedHtml = OmdRenderer.RenderBodyHtml(pipelineMarkdown, rendererOptions);
 
-        var htmlRoundTrip = sourceHtml.LoadFromHtml(new HtmlToMarkdownOptions());
+        var htmlRoundTrip = sourceHtml.ToMarkdownDocument(new HtmlToMarkdownOptions());
         var htmlRoundTripMarkdown = NormalizeMarkdown(htmlRoundTrip.ToMarkdown());
 
         using var wordDocument = pipelineMarkdown.LoadFromMarkdown(

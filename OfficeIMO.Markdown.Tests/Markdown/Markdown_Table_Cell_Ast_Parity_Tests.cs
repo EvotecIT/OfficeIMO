@@ -150,7 +150,7 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
 
     private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex, MarkdownReaderOptions? options = null) {
         var markdownDocument = MarkdownReader.Parse(markdown, options);
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownTable = Assert.IsType<TableBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlTable = Assert.IsType<TableBlock>(Assert.Single(htmlDocument.Blocks));

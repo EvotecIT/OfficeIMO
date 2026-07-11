@@ -100,7 +100,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            byte[] bytes = document.SaveAsPdf();
+            byte[] bytes = document.ToPdf();
             Assert.NotNull(bytes);
             Assert.True(bytes.Length > 100);
             string header = Encoding.ASCII.GetString(bytes, 0, 4);

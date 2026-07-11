@@ -96,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlEffects_FlowThroughPngSvgAndSearchablePdfWithLinks() {
         const string link = "https://example.com/effect";
         const string html = "<div style='width:90px;height:20px;margin:0;background:#ff0000;font-size:10px;line-height:10px;transform-origin:0 0;transform:translate(20px,5px);opacity:.75'><a href='https://example.com/effect'>EffectPdfMarker</a></div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 140D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -107,15 +107,15 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfLogicalDocument.Load(pdf).GetLinksByUri(link));
 
@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("EffectPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.True(pdfLink.SourceLink.X1 >= 15D - 0.01D);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -148,9 +148,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderEffectGroup outer = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#outer");
         HtmlRenderEffectGroup inner = Assert.Single(EnumerateRenderVisuals(outer.Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#inner");
         OfficeColor pixel = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(10, 10);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = renderOptions;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(renderOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("NestedEffectMarker", pdfText, StringComparison.Ordinal);
         Assert.True(rawPdf.Split(new[] { "/Group << /S /Transparency /I true /K false >>" }, StringSplitOptions.None).Length - 1 >= 2);
         Assert.DoesNotContain("OIMO_EFFECT_GROUP", rawPdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

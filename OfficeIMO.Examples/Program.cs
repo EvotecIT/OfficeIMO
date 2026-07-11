@@ -183,6 +183,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--html-direct")) {
+                Html.Html.Example_Html11_DirectOutputs(folderPath, HasArgument(args, "--open-pdf"));
+                return;
+            }
+
             if (HasArgument(args, "--pdf-professional")) {
                 Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
                 return;
@@ -442,6 +447,7 @@ namespace OfficeIMO.Examples {
             // Html.Html.Example_Html08_SemanticsAndCitations(folderPath, false);
             // Html.Html.Example_Html09_CodePreWhitespace(folderPath, false);
             // Html.Html.Example_Html10_OptionsAndAsync(folderPath, false).GetAwaiter().GetResult();
+            // Html.Html.Example_Html11_DirectOutputs(folderPath, false);
             // Html.Html.Example_Html00_AllInOne(folderPath, false);
             // // Markdown/Markdown
             // Markdown.Markdown.Example_MarkdownInterface(folderPath, false);

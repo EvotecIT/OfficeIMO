@@ -136,7 +136,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='width:100px;height:20px;margin:0;column-count:2;column-gap:20px;column-fill:auto'>"
             + "<div style='height:20px;background:#ff0000;font-size:10px;line-height:10px'>ColPdf</div>"
             + "<div style='height:20px;background:#0000ff;font-size:10px;line-height:10px'>Second</div></div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -146,14 +146,14 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(38, 18));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(98, 18));
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"0\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("<rect x=\"60\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("ColPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
 
                     var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
                     Assert.True(pdfOptions.UseSharedVisualSnapshot);
-                    byte[] pdf = presentation.SaveAsPdf(pdfOptions);
+                    byte[] pdf = presentation.ToPdf(pdfOptions);
                     Assert.True(pdf.Length > 100);
                     Assert.DoesNotContain(pdfOptions.Warnings,
                         warning => warning.Code == "snapshot-selective-fallback");

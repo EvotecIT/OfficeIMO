@@ -14,7 +14,7 @@ public class RtfPdfIoTests {
     public void RtfPdf_Converts_Source_Bytes_To_Pdf_Bytes_Stream_And_File() {
         byte[] rtfBytes = Encoding.ASCII.GetBytes(@"{\rtf1\ansi\pard Byte PDF\par}");
 
-        byte[] pdf = rtfBytes.SaveAsPdf();
+        byte[] pdf = rtfBytes.ToPdfFromRtf();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
@@ -22,7 +22,7 @@ public class RtfPdfIoTests {
 
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
-        rtfBytes.SaveAsPdf(output);
+        rtfBytes.SaveAsPdfFromRtf(output);
         byte[] streamed = output.ToArray();
 
         Assert.Equal(streamed.Length, output.Position);
@@ -31,7 +31,7 @@ public class RtfPdfIoTests {
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            rtfBytes.SaveAsPdf(path);
+            rtfBytes.SaveAsPdfFromRtf(path);
             Assert.Contains("Byte PDF", PdfCore.PdfReadDocument.Load(path).ExtractText(), StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) {
@@ -48,7 +48,7 @@ public class RtfPdfIoTests {
         source.Write(rtfBytes, 0, rtfBytes.Length);
         source.Position = 1;
 
-        byte[] pdf = source.SaveAsPdf();
+        byte[] pdf = source.ToPdfFromRtf();
 
         Assert.Equal(source.Length, source.Position);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));
@@ -61,7 +61,7 @@ public class RtfPdfIoTests {
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
 
-        secondSource.SaveAsPdf(output);
+        secondSource.SaveAsPdfFromRtf(output);
         byte[] streamed = output.ToArray();
 
         Assert.Equal(secondSource.Length, secondSource.Position);
@@ -123,8 +123,8 @@ public class RtfPdfIoTests {
         const string rtf = @"{\rtf1\ansi\pard Async PDF\par}";
         byte[] rtfBytes = Encoding.ASCII.GetBytes(rtf);
 
-        byte[] fromString = await rtf.SaveAsPdfAsync();
-        byte[] fromBytes = await rtfBytes.SaveAsPdfAsync();
+        byte[] fromString = await rtf.ToPdfFromRtfAsync();
+        byte[] fromBytes = await rtfBytes.ToPdfFromRtfAsync();
 
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromString, 0, 5));
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromBytes, 0, 5));
@@ -135,7 +135,7 @@ public class RtfPdfIoTests {
         source.WriteByte(0x2A);
         source.Write(rtfBytes, 0, rtfBytes.Length);
         source.Position = 1;
-        byte[] fromStream = await source.SaveAsPdfAsync(encoding: Encoding.ASCII);
+        byte[] fromStream = await source.ToPdfFromRtfAsync(encoding: Encoding.ASCII);
 
         Assert.Equal(source.Length, source.Position);
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromStream, 0, 5));
@@ -148,7 +148,7 @@ public class RtfPdfIoTests {
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
 
-        await secondSource.SaveAsPdfAsync(output, encoding: Encoding.ASCII);
+        await secondSource.SaveAsPdfFromRtfAsync(output, encoding: Encoding.ASCII);
         byte[] streamed = output.ToArray();
 
         Assert.Equal(secondSource.Length, secondSource.Position);
@@ -169,7 +169,7 @@ public class RtfPdfIoTests {
         byte[] rtfBytes = Encoding.ASCII.GetBytes(rtf);
         using var output = new MemoryStream();
 
-        PdfCore.PdfSaveResult streamResult = rtf.TrySaveAsPdf(output);
+        PdfCore.PdfSaveResult streamResult = rtf.TrySaveAsPdfFromRtf(output);
 
         Assert.True(streamResult.Succeeded);
         Assert.Equal(output.Length, streamResult.BytesWritten);
@@ -182,7 +182,7 @@ public class RtfPdfIoTests {
         source.Position = 1;
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            PdfCore.PdfSaveResult pathResult = source.TrySaveAsPdf(path, encoding: Encoding.ASCII);
+            PdfCore.PdfSaveResult pathResult = source.TrySaveAsPdfFromRtf(path, encoding: Encoding.ASCII);
 
             Assert.True(pathResult.Succeeded);
             Assert.Equal(Path.GetFullPath(path), pathResult.OutputPath);
@@ -195,14 +195,14 @@ public class RtfPdfIoTests {
         }
 
         using var asyncOutput = new MemoryStream();
-        PdfCore.PdfSaveResult asyncResult = await rtfBytes.TrySaveAsPdfAsync(asyncOutput);
+        PdfCore.PdfSaveResult asyncResult = await rtfBytes.TrySaveAsPdfFromRtfAsync(asyncOutput);
 
         Assert.True(asyncResult.Succeeded);
         Assert.Equal(asyncOutput.Length, asyncResult.BytesWritten);
         Assert.Contains("Try PDF", PdfCore.PdfReadDocument.Load(asyncOutput.ToArray()).ExtractText(), StringComparison.Ordinal);
 
         using var readOnlyStream = new MemoryStream(Array.Empty<byte>(), writable: false);
-        PdfCore.PdfSaveResult failure = rtf.TrySaveAsPdf(readOnlyStream);
+        PdfCore.PdfSaveResult failure = rtf.TrySaveAsPdfFromRtf(readOnlyStream);
 
         Assert.False(failure.Succeeded);
         Assert.NotEmpty(failure.Diagnostics);

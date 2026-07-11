@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableBorderAttribute_AndCellContent() {
             string html = "<table border=\"2\"><tr><td>A1</td><td style=\"border:1px solid #ff0000\">B1</td></tr></table>";
-            using WordDocument doc = html.LoadFromHtml();
+            using WordDocument doc = html.ToWordDocument();
             var table = doc.Tables[0];
 
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);

@@ -303,7 +303,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.LinkUri,
                             segment.Run.Source,
                             segment.Run.SemanticRole,
-                            semanticNodeId: segment.Run.SemanticNodeId));
+                            layoutY: null,
+                            semanticNodeId: segment.Run.SemanticNodeId,
+                            textAdvanceWidth: paintSegment.Width));
                     }
                     HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text)
                         ? new HtmlRenderLogicalTextGroup(

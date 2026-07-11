@@ -15,6 +15,13 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         Margins = HtmlRenderMargins.All(48D);
     }
 
+    /// <summary>Creates an independent copy of shared HTML rendering settings.</summary>
+    /// <param name="source">Settings to copy.</param>
+    protected HtmlRenderOptions(HtmlRenderOptions source) : this() {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        source.CopyTo(this);
+    }
+
     /// <summary>Continuous or paged layout mode.</summary>
     public HtmlRenderMode Mode { get; set; } = HtmlRenderMode.Continuous;
 
@@ -114,7 +121,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Creates an independent options snapshot.</summary>
     public virtual HtmlRenderOptions Clone() => CopyTo(new HtmlRenderOptions());
 
-    internal T CopyTo<T>(T target) where T : HtmlRenderOptions {
+    /// <summary>Copies shared layout and resource settings into a target-specific options instance.</summary>
+    protected internal T CopyTo<T>(T target) where T : HtmlRenderOptions {
         target.Scale = Scale;
         target.BackgroundColor = BackgroundColor;
         target.Mode = Mode;

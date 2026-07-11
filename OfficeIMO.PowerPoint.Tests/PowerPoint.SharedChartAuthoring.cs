@@ -558,7 +558,7 @@ namespace OfficeIMO.Tests {
             string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
-            byte[] pdf = presentation.SaveAsPdf();
+            byte[] pdf = presentation.ToPdf();
 
             Assert.Contains("StackedArea", html, StringComparison.Ordinal);
             Assert.Contains("Radar", html, StringComparison.Ordinal);

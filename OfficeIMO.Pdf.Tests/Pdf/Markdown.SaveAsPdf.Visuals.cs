@@ -125,7 +125,7 @@ public class MarkdownSaveAsPdfVisualTests {
             }
         };
 
-        PdfCore.PdfDocument pdf = "# Themed".ToPdfDocument(options);
+        PdfCore.PdfDocument pdf = "# Themed".ToPdfDocumentFromMarkdown(options);
 
         Assert.Equal(PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc), GetPdfOptions(pdf).BackgroundColor);
     }
@@ -138,7 +138,7 @@ public class MarkdownSaveAsPdfVisualTests {
         options.VisualTheme = null;
         options.Theme = sharedTheme;
 
-        byte[] bytes = "#### Lower heading".ToPdfDocument(options).ToBytes();
+        byte[] bytes = "#### Lower heading".ToPdfDocumentFromMarkdown(options).ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
@@ -189,7 +189,7 @@ public class MarkdownSaveAsPdfVisualTests {
         var options = CreateVisualOptions();
         options.VisualTheme = visualTheme;
 
-        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
@@ -234,7 +234,7 @@ public class MarkdownSaveAsPdfVisualTests {
         string dataUri = CreateDataUriPng();
         string markdown = "[![](" + dataUri + ")](https://example.test/report)\n";
 
-        byte[] bytes = markdown.ToPdfDocument(CreateVisualOptions()).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(CreateVisualOptions()).ToBytes();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(bytes), image => image.IsImageFile && image.MimeType == "image/png");
     }
@@ -262,7 +262,7 @@ _Figure 2. Revenue chart_
 """;
 
         var options = CreateVisualOptions();
-        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
@@ -2351,7 +2351,7 @@ _Figure 2. Revenue chart_
         var options = CreateVisualOptions();
         options.ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
 
-        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
@@ -2388,7 +2388,7 @@ _Figure 2. Revenue chart_
         var options = CreateVisualOptions();
         options.VisualTheme = theme;
 
-        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
@@ -2404,7 +2404,7 @@ _Figure 2. Revenue chart_
 """;
 
         var options = CreateVisualOptions();
-        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
@@ -2422,7 +2422,7 @@ _Figure 3. Flow fallback_
 """;
 
         var options = CreateVisualOptions();
-        byte[] bytes = markdown.ToPdfDocument(options).ToBytes();
+        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == MarkdownSemanticKinds.Mermaid);

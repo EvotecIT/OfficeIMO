@@ -219,6 +219,22 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         if (!text.WrapText && !text.ShrinkToFit && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
+            if (text.TextAdvanceWidth.HasValue) {
+                canvas.DrawPositionedText(
+                    text.Text,
+                    contentX,
+                    contentY,
+                    contentWidth,
+                    contentHeight,
+                    text.Color ?? OfficeColor.Black,
+                    text.Font.Size * scale,
+                    text.Alignment,
+                    text.Font.Style,
+                    text.Font.FamilyName,
+                    text.TextAdvanceWidth.Value * scale);
+                return;
+            }
+
             canvas.DrawText(
                 text.Text,
                 contentX,
@@ -269,7 +285,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 minimumFontSize,
                 measure,
                 wrap: text.WrapText,
+                forceSingleLine: false,
                 shrinkToFit: text.ShrinkToFit,
+                overflowBehavior: text.OverflowBehavior,
                 paragraphIndent: paragraphIndent);
         OfficeTextBlockRenderer.DrawRasterTextBlock(
             canvas,

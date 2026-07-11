@@ -16,10 +16,12 @@ using OfficeIMO.Rtf.Pdf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf").Document;
 var options = new RtfPdfSaveOptions();
-var result = rtf.ToPdfDocumentResult(options);
+var result = rtf.ToPdfResult(options);
 
 options.RtfConversionReport.RequireNoLoss();
 File.WriteAllBytes("output.pdf", result.Document.ToBytes());
 ```
+
+For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdf()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.
 
 PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfPdfSaveOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.

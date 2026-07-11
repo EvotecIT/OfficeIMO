@@ -11,7 +11,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlBorders_DashedBorderAndDottedOutlineFlowThroughAllBackends() {
         const string html = "<div id='styled-strokes' style='width:30px;height:16px;margin:5px;color:#ff0000;border:2px dashed currentColor;border-radius:4px;outline:2px dotted #0000ff;outline-offset:3px;background:#ffffff;font-size:6px;line-height:8px'>StrokePdf</div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 50D,
             ViewportHeight = 35D,
             Margins = HtmlRenderMargins.All(0D),
@@ -24,15 +24,15 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text == "StrokePdf");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeStrokeDashStyle.Dash, border.Shape.StrokeDashStyle);
         Assert.Equal(OfficeColor.Red, border.Shape.StrokeColor);
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("StrokePdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='mixed-border' style='width:32px;height:18px;border-width:2px 3px 4px 5px;border-style:solid dashed dotted double;border-color:red green blue black;border-radius:10px 3px / 4px 8px;background:#ffffff;font-size:6px;line-height:8px'>BorderPdf</div>"
             + "<div id='invalid-border' style='width:20px;height:10px;border-left:2px groove red'></div>"
             + "<div id='groove-outline' style='width:20px;height:10px;outline:2px groove blue'></div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 70D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D),
@@ -137,15 +137,15 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText mixedText = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "BorderPdf");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(70D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         HtmlDiagnostic borderDiagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported);
         HtmlDiagnostic outlineDiagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
 
@@ -183,13 +183,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border:2px groove red)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-left:2px groove red)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(outline-offset:20%)"));
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlBorders_UniformRadiusFlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div id='rounded' style='width:40px;height:20px;margin:0;border:2px solid #0000ff;border-radius:6px;background:#ff0000;font-size:6px;line-height:8px'>RoundedPdf</div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 50D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -202,15 +202,15 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(2, shapes.Count);
@@ -223,13 +223,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("rx=\"6\" ry=\"6\"", svg, StringComparison.Ordinal);
         Assert.Contains("RoundedPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlBorders_AsymmetricEllipticalRadiusFlowsThroughSharedPathBackends() {
         const string html = "<div id='asymmetric' style='width:40px;height:24px;margin:3px;border:2px dashed #0000ff;outline:2px dotted #008000;outline-offset:1px;border-radius:12px 3px 8px 5px / 4px 9px 2px 7px;background-color:#ffffff;background-image:linear-gradient(90deg,#ff0000,#00ff00);box-shadow:2px 1px 0 #000000;font-size:6px;line-height:8px'>PathPdf</div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 50D,
             ViewportHeight = 35D,
             Margins = HtmlRenderMargins.All(0D),
@@ -242,15 +242,15 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(shapes.Count >= 5);
         Assert.All(shapes, shape => Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind));
@@ -259,7 +259,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.Contains("PathPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px 2px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:12px / 4px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px 2px)"));
@@ -306,7 +306,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlBorders_OversizedAsymmetricPathContinuesThroughClippedPageFragments() {
         const string html = "<html style='margin:0'><body style='margin:0'><div id='tall-path' style='box-sizing:border-box;width:40px;height:90px;border-radius:12px 3px 8px 5px / 4px 9px 2px 7px;background:#ff0000'></div></body></html>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
@@ -317,9 +317,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
         IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
         IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(3, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => {
@@ -337,6 +337,6 @@ public sealed partial class HtmlRenderingTests {
         }
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

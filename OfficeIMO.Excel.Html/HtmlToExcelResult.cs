@@ -3,8 +3,8 @@ namespace OfficeIMO.Excel.Html;
 /// <summary>
 /// Summary of a semantic Excel HTML import.
 /// </summary>
-public sealed class ExcelHtmlLoadResult {
-    internal ExcelHtmlLoadResult(ExcelDocument workbook) {
+public sealed class HtmlToExcelResult {
+    internal HtmlToExcelResult(ExcelDocument workbook) {
         Workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
     }
 

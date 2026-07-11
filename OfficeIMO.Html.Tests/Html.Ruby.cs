@@ -14,7 +14,7 @@ public partial class Html {
     public void Test_Html_Ruby_ImportsAsWordRuby() {
         var html = "<p><ruby lang=\"ja-JP\"><rb>漢字</rb><rp>(</rp><rt>かんじ</rt><rp>)</rp></ruby></p>";
 
-        using var document = html.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
+        using var document = html.ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
 
         var paragraph = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
         var ruby = Assert.Single(paragraph.Descendants<Ruby>());
@@ -27,7 +27,7 @@ public partial class Html {
     public void Test_Html_Ruby_FallbackWithoutAnnotationKeepsText() {
         var html = "<p><ruby>漢字</ruby></p>";
 
-        using var document = html.LoadFromHtml(new HtmlToWordOptions());
+        using var document = html.ToWordDocument(new HtmlToWordOptions());
 
         var paragraph = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
         Assert.Empty(paragraph.Elements<Ruby>());
@@ -40,7 +40,7 @@ public partial class Html {
         var path = Path.Combine(Path.GetTempPath(), "officeimo-html-ruby-" + Guid.NewGuid().ToString("N") + ".docx");
 
         try {
-            using (var document = html.LoadFromHtml(new HtmlToWordOptions())) {
+            using (var document = html.ToWordDocument(new HtmlToWordOptions())) {
                 document.Save(path);
             }
 
@@ -59,7 +59,7 @@ public partial class Html {
     public void Test_Html_Ruby_RoundTripsToHtml() {
         var html = "<p>Word <ruby><rb>東</rb><rt>とう</rt></ruby> ruby</p>";
 
-        using var document = html.LoadFromHtml(new HtmlToWordOptions());
+        using var document = html.ToWordDocument(new HtmlToWordOptions());
 
         string roundTrip = document.ToHtml();
 

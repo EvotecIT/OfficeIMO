@@ -17,14 +17,14 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Converts an RTF document to PDF and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this RtfDocument document, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfResult(this RtfDocument document, RtfPdfSaveOptions? options = null) {
         RtfPdfSaveOptions exportOptions = options ?? new RtfPdfSaveOptions();
         PdfCore.PdfDocument pdf = document.ToPdfDocument(exportOptions);
         return new PdfCore.PdfDocumentConversionResult(pdf, exportOptions.ConversionReport);
     }
 
     /// <summary>Reads an RTF string and converts it to a first-party OfficeIMO PDF document model.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocument ToPdfDocumentFromRtf(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
@@ -33,7 +33,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads an RTF string, converts it to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtf(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
@@ -42,7 +42,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads source RTF bytes and converts them to a first-party OfficeIMO PDF document model.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocument ToPdfDocumentFromRtf(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
@@ -51,7 +51,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads source RTF bytes, converts them to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtf(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
@@ -60,7 +60,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads an RTF stream from the current position and converts it to a first-party OfficeIMO PDF document model.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static PdfCore.PdfDocument ToPdfDocumentFromRtf(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
@@ -69,7 +69,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads an RTF stream, converts it to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtf(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
@@ -87,30 +87,30 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Saves an RTF string as PDF at the specified path.</summary>
-    public static void SaveAsPdf(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static void SaveAsPdfFromRtf(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
 
-        rtf.ToPdfDocument(readOptions, options).Save(path);
+        rtf.ToPdfDocumentFromRtf(readOptions, options).Save(path);
     }
 
     /// <summary>Saves source RTF bytes as PDF at the specified path.</summary>
-    public static void SaveAsPdf(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static void SaveAsPdfFromRtf(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
 
-        rtfBytes.ToPdfDocument(readOptions, options).Save(path);
+        rtfBytes.ToPdfDocumentFromRtf(readOptions, options).Save(path);
     }
 
     /// <summary>Saves an RTF stream as PDF at the specified path.</summary>
-    public static void SaveAsPdf(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static void SaveAsPdfFromRtf(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
 
-        rtfStream.ToPdfDocument(readOptions, options, encoding).Save(path);
+        rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).Save(path);
     }
 
     /// <summary>Saves an RTF document as PDF to a writable stream.</summary>
@@ -127,7 +127,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Saves an RTF string as PDF to a writable stream.</summary>
-    public static void SaveAsPdf(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static void SaveAsPdfFromRtf(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
@@ -136,11 +136,11 @@ public static partial class RtfPdfConverterExtensions {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        rtf.ToPdfDocument(readOptions, options).Save(stream);
+        rtf.ToPdfDocumentFromRtf(readOptions, options).Save(stream);
     }
 
     /// <summary>Saves source RTF bytes as PDF to a writable stream.</summary>
-    public static void SaveAsPdf(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static void SaveAsPdfFromRtf(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
@@ -149,11 +149,11 @@ public static partial class RtfPdfConverterExtensions {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        rtfBytes.ToPdfDocument(readOptions, options).Save(stream);
+        rtfBytes.ToPdfDocumentFromRtf(readOptions, options).Save(stream);
     }
 
     /// <summary>Saves an RTF stream as PDF to a writable stream.</summary>
-    public static void SaveAsPdf(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static void SaveAsPdfFromRtf(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
@@ -162,11 +162,11 @@ public static partial class RtfPdfConverterExtensions {
             throw new ArgumentNullException(nameof(pdfStream));
         }
 
-        rtfStream.ToPdfDocument(readOptions, options, encoding).Save(pdfStream);
+        rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).Save(pdfStream);
     }
 
     /// <summary>Saves an RTF document as PDF and returns the generated bytes.</summary>
-    public static byte[] SaveAsPdf(this RtfDocument document, RtfPdfSaveOptions? options = null) {
+    public static byte[] ToPdf(this RtfDocument document, RtfPdfSaveOptions? options = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -174,31 +174,38 @@ public static partial class RtfPdfConverterExtensions {
         return document.ToPdfDocument(options).ToBytes();
     }
 
-    /// <summary>Saves an RTF string as PDF and returns the generated bytes.</summary>
-    public static byte[] SaveAsPdf(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(RtfDocument, RtfPdfSaveOptions?)"/>.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this RtfDocument document, RtfPdfSaveOptions? options = null) => document.ToPdfResult(options);
+
+    /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(RtfDocument, RtfPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
+    public static byte[] SaveAsPdf(this RtfDocument document, RtfPdfSaveOptions? options = null) => document.ToPdf(options);
+
+    /// <summary>Converts an RTF string to PDF bytes with a source-explicit name.</summary>
+    /// <example><code>byte[] pdf = rtf.ToPdfFromRtf();</code></example>
+    public static byte[] ToPdfFromRtf(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
 
-        return rtf.ToPdfDocument(readOptions, options).ToBytes();
+        return rtf.ToPdfDocumentFromRtf(readOptions, options).ToBytes();
     }
 
     /// <summary>Saves source RTF bytes as PDF and returns the generated bytes.</summary>
-    public static byte[] SaveAsPdf(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static byte[] ToPdfFromRtf(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
 
-        return rtfBytes.ToPdfDocument(readOptions, options).ToBytes();
+        return rtfBytes.ToPdfDocumentFromRtf(readOptions, options).ToBytes();
     }
 
     /// <summary>Saves an RTF stream as PDF and returns the generated bytes.</summary>
-    public static byte[] SaveAsPdf(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static byte[] ToPdfFromRtf(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
 
-        return rtfStream.ToPdfDocument(readOptions, options, encoding).ToBytes();
+        return rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).ToBytes();
     }
 
     /// <summary>Attempts to save an RTF document as PDF at the specified path and returns diagnostics instead of throwing.</summary>
@@ -229,85 +236,85 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Attempts to save an RTF string as PDF at the specified path and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtf(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         try {
             if (rtf == null) {
                 throw new ArgumentNullException(nameof(rtf));
             }
 
-            return rtf.ToPdfDocument(readOptions, options).TrySave(path);
+            return rtf.ToPdfDocumentFromRtf(readOptions, options).TrySave(path);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
 
     /// <summary>Attempts to save source RTF bytes as PDF at the specified path and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtf(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         try {
             if (rtfBytes == null) {
                 throw new ArgumentNullException(nameof(rtfBytes));
             }
 
-            return rtfBytes.ToPdfDocument(readOptions, options).TrySave(path);
+            return rtfBytes.ToPdfDocumentFromRtf(readOptions, options).TrySave(path);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
 
     /// <summary>Attempts to save an RTF stream as PDF at the specified path and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtf(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         try {
             if (rtfStream == null) {
                 throw new ArgumentNullException(nameof(rtfStream));
             }
 
-            return rtfStream.ToPdfDocument(readOptions, options, encoding).TrySave(path);
+            return rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).TrySave(path);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
 
     /// <summary>Attempts to save an RTF string as PDF to a stream and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtf(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         try {
             if (rtf == null) {
                 throw new ArgumentNullException(nameof(rtf));
             }
 
-            return rtf.ToPdfDocument(readOptions, options).TrySave(stream);
+            return rtf.ToPdfDocumentFromRtf(readOptions, options).TrySave(stream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
 
     /// <summary>Attempts to save source RTF bytes as PDF to a stream and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtf(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         try {
             if (rtfBytes == null) {
                 throw new ArgumentNullException(nameof(rtfBytes));
             }
 
-            return rtfBytes.ToPdfDocument(readOptions, options).TrySave(stream);
+            return rtfBytes.ToPdfDocumentFromRtf(readOptions, options).TrySave(stream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
 
     /// <summary>Attempts to save an RTF stream as PDF to a stream and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdf(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtf(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         try {
             if (rtfStream == null) {
                 throw new ArgumentNullException(nameof(rtfStream));
             }
 
-            return rtfStream.ToPdfDocument(readOptions, options, encoding).TrySave(pdfStream);
+            return rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).TrySave(pdfStream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
 
     /// <summary>Saves an RTF document as PDF and returns the generated bytes asynchronously.</summary>
-    public static async Task<byte[]> SaveAsPdfAsync(this RtfDocument document, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<byte[]> ToPdfAsync(this RtfDocument document, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -315,31 +322,35 @@ public static partial class RtfPdfConverterExtensions {
         return await SavePdfDocumentAsBytesAsync(document.ToPdfDocument(options), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Returns PDF bytes asynchronously. Prefer <see cref="ToPdfAsync(RtfDocument, RtfPdfSaveOptions?, CancellationToken)"/>.</summary>
+    public static Task<byte[]> SaveAsPdfAsync(this RtfDocument document, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        document.ToPdfAsync(options, cancellationToken);
+
     /// <summary>Saves an RTF string as PDF and returns the generated bytes asynchronously.</summary>
-    public static async Task<byte[]> SaveAsPdfAsync(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<byte[]> ToPdfFromRtfAsync(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
 
-        return await SavePdfDocumentAsBytesAsync(rtf.ToPdfDocument(readOptions, options), cancellationToken).ConfigureAwait(false);
+        return await SavePdfDocumentAsBytesAsync(rtf.ToPdfDocumentFromRtf(readOptions, options), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves source RTF bytes as PDF and returns the generated bytes asynchronously.</summary>
-    public static async Task<byte[]> SaveAsPdfAsync(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<byte[]> ToPdfFromRtfAsync(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
 
-        return await SavePdfDocumentAsBytesAsync(rtfBytes.ToPdfDocument(readOptions, options), cancellationToken).ConfigureAwait(false);
+        return await SavePdfDocumentAsBytesAsync(rtfBytes.ToPdfDocumentFromRtf(readOptions, options), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves an RTF stream as PDF and returns the generated bytes asynchronously.</summary>
-    public static async Task<byte[]> SaveAsPdfAsync(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<byte[]> ToPdfFromRtfAsync(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
 
-        return await SavePdfDocumentAsBytesAsync(rtfStream.ToPdfDocument(readOptions, options, encoding), cancellationToken).ConfigureAwait(false);
+        return await SavePdfDocumentAsBytesAsync(rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves an RTF document as PDF at the specified path asynchronously.</summary>
@@ -352,30 +363,30 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Saves an RTF string as PDF at the specified path asynchronously.</summary>
-    public static Task SaveAsPdfAsync(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task SaveAsPdfFromRtfAsync(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
 
-        return rtf.ToPdfDocument(readOptions, options).SaveAsync(path, cancellationToken);
+        return rtf.ToPdfDocumentFromRtf(readOptions, options).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Saves source RTF bytes as PDF at the specified path asynchronously.</summary>
-    public static Task SaveAsPdfAsync(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static Task SaveAsPdfFromRtfAsync(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
 
-        return rtfBytes.ToPdfDocument(readOptions, options).SaveAsync(path, cancellationToken);
+        return rtfBytes.ToPdfDocumentFromRtf(readOptions, options).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Saves an RTF stream as PDF at the specified path asynchronously.</summary>
-    public static Task SaveAsPdfAsync(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static Task SaveAsPdfFromRtfAsync(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
 
-        return rtfStream.ToPdfDocument(readOptions, options, encoding).SaveAsync(path, cancellationToken);
+        return rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).SaveAsync(path, cancellationToken);
     }
 
     /// <summary>Saves an RTF document as PDF to a writable stream asynchronously.</summary>
@@ -392,7 +403,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Saves an RTF string as PDF to a writable stream asynchronously.</summary>
-    public static async Task SaveAsPdfAsync(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsPdfFromRtfAsync(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
@@ -401,11 +412,11 @@ public static partial class RtfPdfConverterExtensions {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        await rtf.ToPdfDocument(readOptions, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        await rtf.ToPdfDocumentFromRtf(readOptions, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves source RTF bytes as PDF to a writable stream asynchronously.</summary>
-    public static async Task SaveAsPdfAsync(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsPdfFromRtfAsync(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
@@ -414,11 +425,11 @@ public static partial class RtfPdfConverterExtensions {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        await rtfBytes.ToPdfDocument(readOptions, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        await rtfBytes.ToPdfDocumentFromRtf(readOptions, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves an RTF stream as PDF to a writable stream asynchronously.</summary>
-    public static async Task SaveAsPdfAsync(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsPdfFromRtfAsync(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
@@ -427,7 +438,7 @@ public static partial class RtfPdfConverterExtensions {
             throw new ArgumentNullException(nameof(pdfStream));
         }
 
-        await rtfStream.ToPdfDocument(readOptions, options, encoding).SaveAsync(pdfStream, cancellationToken).ConfigureAwait(false);
+        await rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).SaveAsync(pdfStream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Attempts to save an RTF document as PDF at the specified path asynchronously and returns diagnostics instead of throwing.</summary>
@@ -444,39 +455,39 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Attempts to save an RTF string as PDF at the specified path asynchronously and returns diagnostics instead of throwing.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfAsync(this string rtf, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         try {
             if (rtf == null) {
                 throw new ArgumentNullException(nameof(rtf));
             }
 
-            return await rtf.ToPdfDocument(readOptions, options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+            return await rtf.ToPdfDocumentFromRtf(readOptions, options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
 
     /// <summary>Attempts to save source RTF bytes as PDF at the specified path asynchronously and returns diagnostics instead of throwing.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfAsync(this byte[] rtfBytes, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         try {
             if (rtfBytes == null) {
                 throw new ArgumentNullException(nameof(rtfBytes));
             }
 
-            return await rtfBytes.ToPdfDocument(readOptions, options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+            return await rtfBytes.ToPdfDocumentFromRtf(readOptions, options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
 
     /// <summary>Attempts to save an RTF stream as PDF at the specified path asynchronously and returns diagnostics instead of throwing.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfAsync(this Stream rtfStream, string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         try {
             if (rtfStream == null) {
                 throw new ArgumentNullException(nameof(rtfStream));
             }
 
-            return await rtfStream.ToPdfDocument(readOptions, options, encoding).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+            return await rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
@@ -496,39 +507,39 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Attempts to save an RTF string as PDF to a stream asynchronously and returns diagnostics instead of throwing.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfAsync(this string rtf, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         try {
             if (rtf == null) {
                 throw new ArgumentNullException(nameof(rtf));
             }
 
-            return await rtf.ToPdfDocument(readOptions, options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            return await rtf.ToPdfDocumentFromRtf(readOptions, options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
 
     /// <summary>Attempts to save source RTF bytes as PDF to a stream asynchronously and returns diagnostics instead of throwing.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfAsync(this byte[] rtfBytes, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         try {
             if (rtfBytes == null) {
                 throw new ArgumentNullException(nameof(rtfBytes));
             }
 
-            return await rtfBytes.ToPdfDocument(readOptions, options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            return await rtfBytes.ToPdfDocumentFromRtf(readOptions, options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
 
     /// <summary>Attempts to save an RTF stream as PDF to a stream asynchronously and returns diagnostics instead of throwing.</summary>
-    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfAsync(this Stream rtfStream, Stream pdfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         try {
             if (rtfStream == null) {
                 throw new ArgumentNullException(nameof(rtfStream));
             }
 
-            return await rtfStream.ToPdfDocument(readOptions, options, encoding).TrySaveAsync(pdfStream, cancellationToken).ConfigureAwait(false);
+            return await rtfStream.ToPdfDocumentFromRtf(readOptions, options, encoding).TrySaveAsync(pdfStream, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }

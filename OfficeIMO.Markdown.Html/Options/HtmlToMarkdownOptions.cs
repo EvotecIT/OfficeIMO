@@ -154,7 +154,7 @@ public sealed class HtmlToMarkdownOptions {
     /// options.DocumentTransforms.Add(
     ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
     ///
-    /// var document = html.LoadFromHtml(options);
+    /// var document = html.ToMarkdownDocument(options);
     /// </code>
     /// </example>
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();

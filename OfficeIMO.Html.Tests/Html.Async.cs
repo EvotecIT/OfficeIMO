@@ -20,10 +20,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task LoadFromHtmlAsync_EqualsSync() {
+        public async Task ToWordDocumentAsync_EqualsSync() {
             string html = "<p>Hello</p>";
-            using var syncDoc = html.LoadFromHtml();
-            using var asyncDoc = await html.LoadFromHtmlAsync();
+            using var syncDoc = html.ToWordDocument();
+            using var asyncDoc = await html.ToWordDocumentAsync();
             Assert.Equal(syncDoc.Paragraphs.Count, asyncDoc.Paragraphs.Count);
             Assert.Equal(syncDoc.Paragraphs.First().Text, asyncDoc.Paragraphs.First().Text);
         }
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             var cts = new CancellationTokenSource();
             cts.Cancel();
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.ToHtmlAsync(cancellationToken: cts.Token));
-            await Assert.ThrowsAsync<OperationCanceledException>(() => "<p>a</p>".LoadFromHtmlAsync(cancellationToken: cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => "<p>a</p>".ToWordDocumentAsync(cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.SaveAsHtmlAsync("foo.html", cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToHeaderAsync("<p>h</p>", cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToFooterAsync("<p>f</p>", cancellationToken: cts.Token));

@@ -5361,7 +5361,7 @@ _Caption_
 </figure>
 """;
 
-        var document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+        var document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5405,7 +5405,7 @@ _Caption_
 <p><a href="/docs/hero" title="Hero docs" target="_blank" rel="nofollow sponsored">Read more</a></p>
 """;
 
-        var document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+        var document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5453,7 +5453,7 @@ _Caption_
 </figure>
 """;
 
-        var document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+        var document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 

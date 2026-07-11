@@ -151,11 +151,11 @@ namespace OfficeIMO.Tests {
             }
             Assert.Null(presentation.Slides[2].SlidePart.NotesSlidePart);
 
-            byte[] notesPdf = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            byte[] notesPdf = presentation.ToPdf(new PowerPointPdfSaveOptions {
                 PageLayout = PowerPointPdfPageLayout.NotesPages,
                 IncludeSpeakerNotes = true
             });
-            byte[] handoutPdf = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            byte[] handoutPdf = presentation.ToPdf(new PowerPointPdfSaveOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true

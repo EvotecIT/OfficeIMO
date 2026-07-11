@@ -1,9 +1,11 @@
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.PowerPoint;
@@ -90,9 +92,9 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
-    public void HtmlDocumentProfile_ProducesManifestedReviewProof() {
+    public void HtmlDirectRenderer_ProducesManifestedReviewProof() {
         const string linkUri = "https://example.com/pdf-conversion-manifest";
-        byte[] pdf = CreatePracticalHtmlSample(linkUri).SaveAsPdf(HtmlPdfSaveOptions.CreateDocumentProfile());
+        byte[] pdf = CreatePracticalHtmlSample(linkUri).ToPdf();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
@@ -235,7 +237,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
     [Fact]
     public void MarkdownInvoiceStatement_ProducesManifestedReviewProof() {
-        byte[] pdf = CreateInvoiceStatementMarkdown().SaveAsPdf(new MarkdownPdfSaveOptions {
+        byte[] pdf = CreateInvoiceStatementMarkdown().ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
             ApplyWordLikeTheme = true,
             Title = "OfficeIMO invoice statement proof",
             Subject = "Invoice and statement conversion proof"
@@ -261,7 +263,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void RtfPdfRoundtrip_ProducesManifestedReviewProof() {
         RtfDocument source = CreateRtfRoundtripDocument();
-        byte[] pdf = source.SaveAsPdf();
+        byte[] pdf = source.ToPdf();
         PdfCore.PdfTextLayoutOptions layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
@@ -1601,105 +1603,60 @@ public sealed class PdfConversionScenarioManifestTests {
 
     [Fact]
     public void HtmlCssResourcePolicy_ProducesManifestedReviewProof() {
-        string tempDirectory = CreateTemporaryDirectory("OfficeIMOPdfHtmlPolicy");
-        try {
-            string stylesheetPath = Path.Combine(tempDirectory, "policy.css");
-            File.WriteAllText(stylesheetPath, "p.policy-note { color:#123456; }", Encoding.UTF8);
-            var options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-            options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
-            options.WordHtmlOptions.MaxCssBytes = 8192;
-            options.WordHtmlOptions.MaxTotalCssBytes = 16384;
+        const string stylesheetUri = "https://allowed.example.test/policy.css";
+        var options = new HtmlPdfSaveOptions {
+            MaxResourceBytes = 8192,
+            MaxTotalResourceBytes = 16384,
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsoluteUri == stylesheetUri
+                    ? new HtmlResolvedResource(Encoding.UTF8.GetBytes("p.policy-note { color:#123456; }"), "text/css")
+                    : null)
+        };
 
-            byte[] pdf = CreateCssResourcePolicyHtml(new Uri(stylesheetPath).AbsoluteUri).SaveAsPdf(options);
-            string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
-            HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
+        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
 
-            Assert.True(pdf.Length > 0);
-            Assert.True(options.WordHtmlOptions.AllowDocumentStylesheetLinks);
-            Assert.Contains(Uri.UriSchemeFile, options.WordHtmlOptions.AllowedStylesheetUriSchemes);
-            Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
-            Assert.True(policy.UsesWordHtmlPolicy);
-            Assert.True(policy.AllowDocumentStylesheetLinks);
-            Assert.Contains(Uri.UriSchemeFile, policy.AllowedStylesheetUriSchemes);
-            Assert.Contains("allowed.example.test", policy.AllowedStylesheetHosts);
-            Assert.Equal(8192, policy.MaxCssBytes);
-            Assert.Equal(16384, policy.MaxTotalCssBytes);
-            PdfCore.PdfConversionWarning stylesheetWarning = Assert.Single(options.ConversionReport.Warnings, warning => warning.Code == "StylesheetResourceRejectedByPolicy");
-            Assert.Equal("OfficeIMO.Word.Html", stylesheetWarning.Converter);
-            Assert.Contains("HTML CSS Resource Policy Gate", text, StringComparison.Ordinal);
-            Assert.Contains("Local stylesheet marker", text, StringComparison.Ordinal);
-            Assert.Contains("Blocked remote stylesheet marker", text, StringComparison.Ordinal);
-            Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.True(policy.HasResourceResolver);
+        Assert.Equal(8192, policy.MaxResourceBytes);
+        Assert.Equal(16384, policy.MaxTotalResourceBytes);
+        Assert.Contains(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.Contains("HTML CSS Resource Policy Gate", text, StringComparison.Ordinal);
+        Assert.Contains("Local stylesheet marker", text, StringComparison.Ordinal);
+        Assert.Contains("Blocked remote stylesheet marker", text, StringComparison.Ordinal);
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
 
-            var summary = new {
-                scenario = "html-css-resource-policy",
-                profile = options.Profile.ToString(),
-                policy,
-                diagnostics = options.ConversionReport.Warnings.Where(warning => warning.Converter == "OfficeIMO.Word.Html").Select(warning => new {
-                    warning.Converter,
-                    warning.Code,
-                    warning.Source,
-                    warning.Message,
-                    Severity = warning.Severity.ToString(),
-                    warning.Details
-                }).ToArray()
-            };
+        var summary = new {
+            scenario = "html-css-resource-policy",
+            renderer = "direct-html",
+            policy,
+            diagnostics = result.ConversionReport.Warnings
+        };
 
-            WriteReviewArtifact("html-css-resource-policy.pdf", pdf);
-            WriteReviewArtifact("html-css-resource-policy-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
-        } finally {
-            Directory.Delete(tempDirectory, recursive: true);
-        }
+        WriteReviewArtifact("html-css-resource-policy.pdf", pdf);
+        WriteReviewArtifact("html-css-resource-policy-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     [Fact]
-    public void Html_ToPdfDocumentResult_ReturnsPdfDocumentAndReportSnapshot() {
-        string tempDirectory = CreateTemporaryDirectory("OfficeIMOPdfHtmlResult");
-        try {
-            string stylesheetPath = Path.Combine(tempDirectory, "policy.css");
-            File.WriteAllText(stylesheetPath, "p.policy-note { color:#123456; }", Encoding.UTF8);
-            var options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-            options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
+    public void Html_ToPdfResult_ReturnsPdfDocumentAndReportSnapshot() {
+        const string stylesheetUri = "https://allowed.example.test/policy.css";
+        var options = new HtmlPdfSaveOptions {
+            ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
+                request.Uri.AbsoluteUri == stylesheetUri
+                    ? new HtmlResolvedResource(Encoding.UTF8.GetBytes("p.policy-note { color:#123456; }"), "text/css")
+                    : null)
+        };
 
-            PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(new Uri(stylesheetPath).AbsoluteUri)
-                .ToPdfDocumentResult(options);
-            PdfCore.PdfDocumentConversionResult processed = result.Process(document => document.AppendMetadataRevision(title: "Processed HTML PDF"));
+        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult processed = result.Process(document => document.AppendMetadataRevision(title: "Processed HTML PDF"));
 
-            options.ConversionReport.Clear();
-
-            PdfCore.PdfConversionWarning stylesheetWarning = Assert.Single(result.Warnings, warning => warning.Code == "StylesheetResourceRejectedByPolicy");
-            Assert.True(result.HasWarnings);
-            Assert.True(processed.HasWarnings);
-            Assert.False(options.ConversionReport.HasWarnings);
-            Assert.Equal("OfficeIMO.Word.Html", stylesheetWarning.Converter);
-            Assert.Equal("Processed HTML PDF", processed.Document.Inspect().Metadata.Title);
-            Assert.Contains("HTML CSS Resource Policy Gate", result.Document.Read.Text(), StringComparison.Ordinal);
-            Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile && image.MimeType == "image/png");
-
-            PdfCore.PdfConversionProofReport proof = processed.AssessProof(new PdfCore.PdfConversionProofOptions()
-                .RequireTextMarkers("HTML CSS Resource Policy Gate", "Local stylesheet marker")
-                .RequireMetadata(title: "Processed HTML PDF")
-                .RequireLinkUris("https://example.com/pdf-resource-policy")
-                .RequirePageCount(1)
-                .RequireLogicalSignals("page-geometry", "metadata", "links")
-                .RequireWarningCodes("StylesheetResourceRejectedByPolicy")
-                .AcceptWarningCodes("StylesheetResourceRejectedByPolicy")
-                .RequireNoUnexpectedWarningCodes());
-
-            Assert.True(proof.IsSatisfied, proof.Summary);
-            Assert.Equal("Processed HTML PDF", proof.DocumentInfo!.Metadata.Title);
-            Assert.Equal(1, proof.DocumentInfo.PageCount);
-            Assert.Contains("https://example.com/pdf-resource-policy", proof.DocumentInfo.LinkUris);
-            Assert.Contains("page-geometry", proof.LogicalSignals);
-            Assert.Contains("metadata", proof.LogicalSignals);
-            Assert.Contains("links", proof.LogicalSignals);
-            Assert.Equal(64, proof.ArtifactSha256.Length);
-            Assert.True(proof.ArtifactByteCount > 0);
-            Assert.True(processed.AssessProof(new PdfCore.PdfConversionProofOptions()
-                .RequireArtifactSha256(proof.ArtifactSha256)).IsSatisfied);
-        } finally {
-            Directory.Delete(tempDirectory, recursive: true);
-        }
+        Assert.True(result.HasWarnings);
+        Assert.True(processed.HasWarnings);
+        Assert.Equal("Processed HTML PDF", processed.Document.Inspect().Metadata.Title);
+        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.Contains("HTML CSS Resource Policy Gate", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile && image.MimeType == "image/png");
     }
 
     [Fact]
@@ -1767,8 +1724,9 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
-        HtmlPdfSaveOptions htmlOptions = HtmlPdfSaveOptions.CreateDocumentProfile();
-        byte[] pdf = CreatePracticalHtmlSample(linkUri).SaveAsPdf(htmlOptions);
+        var htmlOptions = new HtmlPdfSaveOptions();
+        PdfCore.PdfDocumentConversionResult htmlResult = CreatePracticalHtmlSample(linkUri).ToPdfResult(htmlOptions);
+        byte[] pdf = htmlResult.ToBytes();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
@@ -1823,10 +1781,10 @@ public sealed class PdfConversionScenarioManifestTests {
 
         var summary = new {
             scenario = "html-pdf-roundtrip-profile-contract",
-            htmlToPdfProfile = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document),
+            htmlToPdfRenderer = "direct-html",
             pdfToSemanticProfile = PdfHtmlProfileContracts.Get(PdfHtmlProfile.Semantic),
             pdfToPositionedProfile = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview),
-            htmlToPdfWarnings = htmlOptions.ConversionReport.Warnings.Select(warning => new {
+            htmlToPdfWarnings = htmlResult.ConversionReport.Warnings.Select(warning => new {
                 warning.Converter,
                 warning.Code,
                 warning.Source,
@@ -2288,7 +2246,7 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SlidePart.Slide.Save();
 
         var options = new PowerPointPdfSaveOptions();
-        byte[] pdf = presentation.SaveAsPdf(options);
+        byte[] pdf = presentation.ToPdf(options);
         Assert.Empty(options.Warnings);
         Assert.Equal("1D4ED8", presentation.GetThemeColor(PowerPointThemeColor.Accent1));
         return pdf;

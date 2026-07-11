@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
                 Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><img src=\"logo.png\" alt=\"Logo\" />";
-                var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
+                var doc = html.ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
                 Assert.Single(doc.Images);
                 Assert.Equal("Logo", doc.Images[0].Description);
             } finally {
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                 string html = "<img src=\"logo.png\" alt=\"Logo\" />";
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
                 options.BasePath = dir;
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
                 Assert.Single(doc.Images);
                 Assert.Equal("Logo", doc.Images[0].Description);
             } finally {
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<img src=\"{path}\" alt=\"Company logo\" title=\"Quarterly report logo\" width=\"32\" height=\"32\" />";
 
-            using var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            using var doc = html.ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
             var image = Assert.Single(doc.Images);
             Assert.Equal("Company logo", image.Description);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 DiagnosticHandler = diagnostic => callbackDiagnostics.Add(diagnostic)
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             string html = "<img src=\"http://localhost:1/missing.png\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Empty(doc.Paragraphs);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             };
             string html = "<img src=\"https://example.test/large.png\" alt=\"Too large\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             };
             string html = "<img src=\"https://example.test/not-image.png\" alt=\"Not image\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
             options.AllowedImageUriSchemes.Remove(Uri.UriSchemeHttps);
             string html = "<img src=\"https://example.test/scheme.png\" alt=\"Blocked scheme\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.False(fetched);
             Assert.Empty(doc.Images);
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
             options.HttpClient = httpClient;
             string html = "<img src=\"https://example.test/untrusted.png\" alt=\"Blocked by profile\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.False(fetched);
             Assert.Empty(doc.Images);
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
             options.AllowedImageHosts.Add("images.example.test");
             string html = "<img src=\"https://other.example.test/host.png\" alt=\"Blocked host\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.False(fetched);
             Assert.Empty(doc.Images);
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
 </picture>
 """;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             var request = Assert.Single(requested);
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
 </picture>
 """;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             var request = Assert.Single(requested);
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
             options.AllowedImageHosts.Add("images.example.test");
             string html = """<img src="https://images.example.test/fallback.png" srcset="https://images.example.test/hero.png 1x" alt="Responsive image" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             var request = Assert.Single(requested);
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
             };
             string html = $"<img srcset=\"https://cdn.example.test/one.png 1x, https://cdn.example.test/two.png 2x, https://cdn.example.test/three.png 3x\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new Uri("https://cdn.example.test/one.png"), Assert.Single(requested));
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
             };
             string html = $"<img srcset=\"https://cdn.example.test/one.png 1x, https://cdn.example.test/two.png 2x, https://cdn.example.test/three.png 3x\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new[] { "/one.png", "/two.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
             };
             string html = """<img srcset="https://cdn.example.test/missing.png 1x, https://cdn.example.test/missing.png 2x, https://cdn.example.test/good.png 3x" alt="Logo" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new[] { "/missing.png", "/good.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
@@ -439,7 +439,7 @@ namespace OfficeIMO.Tests {
             };
             string html = """<img data-src="https://cdn.example.test/missing.png" srcset="https://cdn.example.test/missing.png 1x, https://cdn.example.test/good.png 2x" alt="Logo" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new[] { "/missing.png", "/good.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
@@ -469,7 +469,7 @@ namespace OfficeIMO.Tests {
             options.AllowedImageHosts.Add("cdn.good.test");
             string html = """<img srcset="https://bad.example.test/one.png 1x, https://bad.example.test/two.png 2x, https://cdn.good.test/good.png 3x" alt="Logo" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             var request = Assert.Single(requested);
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests {
             options.AllowedImageHosts.Add("cdn.good.test");
             string html = """<img srcset="https://blocked.example.test/logo.png 1x" alt="Logo" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             var paragraph = Assert.Single(doc.Paragraphs);
@@ -522,7 +522,7 @@ namespace OfficeIMO.Tests {
 </picture>
 """;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             var request = Assert.Single(requested);
@@ -561,7 +561,7 @@ namespace OfficeIMO.Tests {
 </picture>
 """;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new[] { "/missing.png", "/fallback.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
@@ -593,7 +593,7 @@ namespace OfficeIMO.Tests {
             };
             string html = """<img srcset="https://cdn.example.test/one.png 1x, https://cdn.example.test/two.png 2x" alt="Logo" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new[] { "/one.png", "/two.png" }, requested.Select(uri => uri.AbsolutePath).ToArray());
@@ -613,7 +613,7 @@ namespace OfficeIMO.Tests {
             };
             string html = "<img src=\"https://example.test/budget.png\" alt=\"Budget\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -641,7 +641,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 80
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic =>
@@ -658,7 +658,7 @@ namespace OfficeIMO.Tests {
                 MaxImageBytes = 4
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -676,7 +676,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 4
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -694,7 +694,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 70
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageDataUriInvalid");
@@ -718,7 +718,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 70
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
                 options.MaxTotalImageBytes = 70;
 
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 Assert.Single(doc.Images);
                 Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
@@ -754,7 +754,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 100
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
@@ -771,7 +771,7 @@ namespace OfficeIMO.Tests {
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
                 options.MaxTotalImageBytes = 100;
 
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 Assert.Single(doc.Images);
                 Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 100
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic =>
@@ -815,7 +815,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 100
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "InlineSvgEmbedFailed");
@@ -827,7 +827,7 @@ namespace OfficeIMO.Tests {
             string html = "<img src=\"data:image/x-officeimo;base64,AAAA\" alt=\"Bad mime\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -846,7 +846,7 @@ namespace OfficeIMO.Tests {
                 MaxImageBytes = 4
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -865,7 +865,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = 4
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -880,7 +880,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             string html = $"<p>before<img src=\"data:image/png;base64,{base64}\">after</p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             Assert.Equal(3, doc.Paragraphs.Count);
             Assert.Equal("before", doc.Paragraphs[0].Text);
             Assert.NotNull(doc.Paragraphs[1].Image);
@@ -893,7 +893,7 @@ namespace OfficeIMO.Tests {
             var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             var dataUri = $"data:image/png;base64,{base64}";
             string html = $"<p><img src=\"{dataUri}\"/><img src=\"{dataUri}\"/></p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             Assert.Collection(doc.Images, _ => { }, _ => { });
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
             var wordDoc = doc._wordprocessingDocument;
@@ -910,7 +910,7 @@ namespace OfficeIMO.Tests {
             var dataUri = $"data:image/png;base64,{base64}";
             string html = $"<p><img src=\"{dataUri}\" alt=\"First logo\" title=\"First title\"/><img src=\"{dataUri}\" alt=\"Second logo\" title=\"Second title\"/></p>";
 
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
@@ -933,7 +933,7 @@ namespace OfficeIMO.Tests {
         public void DuplicateImageFileSrcSharesPart() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<p><img src=\"{path}\"/><img src=\"{path}\"/></p>";
-            var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            var doc = html.ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
             var wordDoc = doc._wordprocessingDocument;
@@ -948,7 +948,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"float:left\"/>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var img = Assert.Single(doc.Images);
             Assert.Equal(WrapTextImage.Square, img.WrapText);
             var hPos = img.horizontalPosition;
@@ -961,7 +961,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"float:right\"/>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var img = Assert.Single(doc.Images);
             Assert.Equal(WrapTextImage.Square, img.WrapText);
             var hPos = img.horizontalPosition;
@@ -975,7 +975,7 @@ namespace OfficeIMO.Tests {
             var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"width:50%\"/>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var img = Assert.Single(doc.Images);
             var section = doc.Sections.Last();
@@ -993,7 +993,7 @@ namespace OfficeIMO.Tests {
             var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
             string html = $"<img src=\"data:image/png;base64,{base64}\" width=\"64\"/>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var img = Assert.Single(doc.Images);
             Assert.NotNull(img.Width);
@@ -1007,7 +1007,7 @@ namespace OfficeIMO.Tests {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<img src=\"{path}\" width=\"64\" height=\"32\" alt=\"Logo\" />";
 
-            using var doc = html.LoadFromHtml(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            using var doc = html.ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
 
             var img = Assert.Single(doc.Images);
             Assert.Equal(64D, Math.Round(img.Width!.Value));
@@ -1031,7 +1031,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"{uri}\" width=\"64\" height=\"64\" alt=\"Logo\" />";
             var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
             options.ImageProcessing = ImageProcessingMode.LinkExternal;
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
             var img = Assert.Single(doc.Images);
             Assert.True(img.IsExternal);
             Assert.Equal(new Uri(uri), img.ExternalUri);
@@ -1046,7 +1046,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
             options.AllowedImageHosts.Add("images.example.test");
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -1063,7 +1063,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"data:image/png;base64,{base64}\" srcset=\"https://cdn.example.test/logo.png 1x\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var image = Assert.Single(doc.Images);
             Assert.False(image.IsExternal);
@@ -1077,7 +1077,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"data:image/png;base64,{base64}\" srcset=\"https://cdn.example.test/logo.png 1x\" style=\"width:32px;height:32px\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var image = Assert.Single(doc.Images);
             Assert.False(image.IsExternal);
@@ -1096,7 +1096,7 @@ namespace OfficeIMO.Tests {
 """;
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1114,7 +1114,7 @@ namespace OfficeIMO.Tests {
 """;
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1127,7 +1127,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1140,7 +1140,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"data:image/avif;base64,AQID\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1156,7 +1156,7 @@ namespace OfficeIMO.Tests {
                 MaxImageBytes = 4
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var image = Assert.Single(doc.Images);
             Assert.True(image.IsExternal);
@@ -1171,7 +1171,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"data:image/png;base64,not-valid\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1184,7 +1184,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"data:image/png;base64,AQID\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1198,7 +1198,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"data:image/svg+xml,{invalidSvg}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1211,7 +1211,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"data:image/svg+xml;base64,{base64}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1227,7 +1227,7 @@ namespace OfficeIMO.Tests {
             };
             options.AllowedImageContentTypes.Remove("image/svg+xml");
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var image = Assert.Single(doc.Images);
             Assert.True(image.IsExternal);
@@ -1242,7 +1242,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"data:text/plain,placeholder\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1263,7 +1263,7 @@ namespace OfficeIMO.Tests {
                 ImageProcessing = ImageProcessingMode.Embed
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             var request = Assert.Single(requested);
@@ -1278,7 +1278,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"missing.png\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);
@@ -1289,7 +1289,7 @@ namespace OfficeIMO.Tests {
             const string html = "<img src=\"missing.png\" alt=\"Missing\" />";
             var options = new HtmlToWordOptions();
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -1314,7 +1314,7 @@ namespace OfficeIMO.Tests {
             };
             string html = $"<img srcset=\"https://cdn.example.test/missing.png 1x\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new Uri("https://cdn.example.test/missing.png"), Assert.Single(requested));
@@ -1334,7 +1334,7 @@ namespace OfficeIMO.Tests {
             };
             string html = """<img src="https://cdn.example.test/missing.png" alt="Missing" />""";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Equal(new Uri("https://cdn.example.test/missing.png"), Assert.Single(requested));
@@ -1358,7 +1358,7 @@ namespace OfficeIMO.Tests {
             };
             string html = $"<img data-src=\"https://cdn.example.test/slow.png\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(new Uri("https://cdn.example.test/slow.png"), Assert.Single(requested));
@@ -1375,7 +1375,7 @@ namespace OfficeIMO.Tests {
                 string html = $"<img data-src=\"{new Uri(badPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
 
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 Assert.Single(doc.Images);
                 Assert.Empty(options.Diagnostics);
@@ -1396,7 +1396,7 @@ namespace OfficeIMO.Tests {
                 var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
                 options.MaxImageBytes = imageBytes.LongLength;
 
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 Assert.Single(doc.Images);
                 Assert.Empty(options.Diagnostics);
@@ -1415,7 +1415,7 @@ namespace OfficeIMO.Tests {
                 string html = $"<img data-src=\"{new Uri(localPath).AbsoluteUri}\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
                 var options = new HtmlToWordOptions();
 
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 Assert.Single(doc.Images);
                 Assert.Empty(options.Diagnostics);
@@ -1436,7 +1436,7 @@ namespace OfficeIMO.Tests {
                 MaxTotalImageBytes = bytes.LongLength
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Equal(2, doc.Images.Count);
             Assert.All(doc.Images, image => Assert.False(image.IsExternal));
@@ -1468,7 +1468,7 @@ namespace OfficeIMO.Tests {
 <img src="https://example.test/logo.png" style="float:left" alt="Two" />
 """;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Single(requested);
@@ -1540,7 +1540,7 @@ namespace OfficeIMO.Tests {
 <img src="https://cdn.example.test/logo.png" alt="Logo" />
 """;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Equal(2, requested.Count);
@@ -1558,7 +1558,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img src=\"{uri}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
@@ -1575,7 +1575,7 @@ namespace OfficeIMO.Tests {
             string html = $"<img data-src=\"https://cdn.example.test/logo.png\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Single(doc.Images);
             Assert.Empty(options.Diagnostics);

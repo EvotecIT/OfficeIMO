@@ -278,14 +278,14 @@ public sealed partial class HtmlRenderingTests {
             </div>
             <p style="margin:0">GridPdfMarker</p>
             """;
-        var options = new HtmlImageExportOptions { ViewportWidth = 80D, Margins = HtmlRenderMargins.All(8D) };
+        var options = new HtmlRenderOptions { ViewportWidth = 80D, Margins = HtmlRenderMargins.All(8D) };
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));

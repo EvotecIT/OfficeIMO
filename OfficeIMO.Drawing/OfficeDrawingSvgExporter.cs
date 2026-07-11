@@ -25,35 +25,7 @@ public static partial class OfficeDrawingSvgExporter {
     /// <param name="scale">Scale applied to the exported SVG width and height.</param>
     /// <returns>SVG markup representing the drawing.</returns>
     public static string ToSvg(OfficeDrawing drawing, double scale) {
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
-
-        if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
-        }
-
-        double width = drawing.Width * scale;
-        double height = drawing.Height * scale;
-        var sb = new StringBuilder();
-        sb.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
-            .Append(Format(width))
-            .Append("pt\" height=\"")
-            .Append(Format(height))
-            .Append("pt\" viewBox=\"0 0 ")
-            .Append(Format(drawing.Width))
-            .Append(' ')
-            .Append(Format(drawing.Height))
-            .Append("\" role=\"img\">");
-
-        AppendEmbeddedFonts(sb, drawing.Fonts);
-
-        int gradientId = 0;
-        int clipPathId = 0;
-        AppendElements(sb, drawing.Elements, ref gradientId, ref clipPathId);
-
-        sb.Append("</svg>");
-        return sb.ToString();
+        return ToSvg(drawing, scale, OfficeSvgSizeUnit.Point);
     }
 
     /// <summary>
@@ -503,22 +475,42 @@ public static partial class OfficeDrawingSvgExporter {
         double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
         double y = contentY + fontSize;
         double lineHeight = text.LineHeight ?? fontSize * 1.2D;
-        sb.AppendSvgTextElement(
-            text.Text,
-            x,
-            y,
-            lineHeight,
-            text.Color ?? OfficeColor.Black,
-            text.Font.FamilyName ?? "Arial",
-            fontSize,
-            text.Alignment,
-            text.Font.IsBold,
-            text.Font.IsItalic,
-            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
-            useFrameTransform ? 0D : text.RotationDegrees,
-            useFrameTransform ? 0D : text.RotationCenterX,
-            useFrameTransform ? 0D : text.RotationCenterY,
-            (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+        if (text.TextAdvanceWidth.HasValue) {
+            sb.AppendSvgPositionedTextElement(
+                text.Text,
+                x,
+                y,
+                lineHeight,
+                text.Color ?? OfficeColor.Black,
+                text.Font.FamilyName ?? "Arial",
+                fontSize,
+                text.Alignment,
+                text.Font.IsBold,
+                text.Font.IsItalic,
+                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+                useFrameTransform ? 0D : text.RotationDegrees,
+                useFrameTransform ? 0D : text.RotationCenterX,
+                useFrameTransform ? 0D : text.RotationCenterY,
+                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+                text.TextAdvanceWidth.Value);
+        } else {
+            sb.AppendSvgTextElement(
+                text.Text,
+                x,
+                y,
+                lineHeight,
+                text.Color ?? OfficeColor.Black,
+                text.Font.FamilyName ?? "Arial",
+                fontSize,
+                text.Alignment,
+                text.Font.IsBold,
+                text.Font.IsItalic,
+                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+                useFrameTransform ? 0D : text.RotationDegrees,
+                useFrameTransform ? 0D : text.RotationCenterX,
+                useFrameTransform ? 0D : text.RotationCenterY,
+                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+        }
 
         if (useFrameTransform) {
             sb.Append("</g>");

@@ -70,7 +70,7 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_Html_Ingestion_Preserves_Rich_Ast_Before_Serialization() {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
-        MarkdownDoc document = html.LoadFromHtml();
+        MarkdownDoc document = html.ToMarkdownDocument();
         string portableMarkdown = html.ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
         string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
 
@@ -100,7 +100,7 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_SharedVisualHosts_Html_Ingestion_Preserves_Generic_Semantic_Block_Recovery() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
         string markdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
@@ -135,7 +135,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = html.LoadFromHtml();
+        MarkdownDoc document = html.ToMarkdownDocument();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:30: 13)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
@@ -158,7 +158,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = html.LoadFromHtml();
+        MarkdownDoc document = html.ToMarkdownDocument();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:37: 49)");

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_StyleElement_AppliesToMultipleParagraphs() {
             string html = "<style>p { color:#ff0000; }</style><p>First</p><p>Second</p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run1 = doc.Paragraphs[0].GetRuns().First();
             var run2 = doc.Paragraphs[1].GetRuns().First();
             Assert.Equal("ff0000", run1.ColorHex);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(path, "p { color:#00ff00; }");
             string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>One</p><p>Two</p>";
             try {
-                var doc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var doc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var run1 = doc.Paragraphs[0].GetRuns().First();
                 var run2 = doc.Paragraphs[1].GetRuns().First();
                 Assert.Equal("00ff00", run1.ColorHex);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             string html = "<p>First</p><p>Second</p>";
             var options = new HtmlToWordOptions();
             options.StylesheetContents.Add("p { color:#0000ff; }");
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
             var run1 = doc.Paragraphs[0].GetRuns().First();
             var run2 = doc.Paragraphs[1].GetRuns().First();
             Assert.Equal("0000ff", run1.ColorHex);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             string html = "<link rel=\\\"stylesheet\\\" href=\\\"https://example.com/style.css\\\" /><p>Test</p>";
             var options = new HtmlToWordOptions();
             options.StylesheetContents.Add("p { color:#123456; }");
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("123456", run.ColorHex);
             string roundTrip = doc.ToHtml();
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("abcdef", run.ColorHex);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             var options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
             options.HttpClient = httpClient;
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.False(fetched);
             var run = doc.Paragraphs[0].GetRuns().First();
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
             };
             options.AllowedStylesheetHosts.Add("styles.example.test");
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("abcdef", run.ColorHex);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
                 MaxCssBytes = 8
             };
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
             Assert.Equal("CssSizeLimitExceeded", exception.Code);
             Assert.Equal("https://styles.example.test/max.css", exception.LimitSource);
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             };
             options.StylesheetContents.Add(seededCss);
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
             Assert.Equal("CssTotalSizeLimitExceeded", exception.Code);
             Assert.Equal("https://styles.example.test/total.css", exception.LimitSource);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("fedcba", run.ColorHex);
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
                 ValidateStylesheetContentTypes = false
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("112233", run.ColorHex);
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("445566", run.ColorHex);
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("778899", run.ColorHex);
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
                 ResourceTimeout = TimeSpan.FromMilliseconds(1)
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("aabbcc", run.ColorHex);
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            await Assert.ThrowsAsync<OperationCanceledException>(() => html.LoadFromHtmlAsync(options, cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => html.ToWordDocumentAsync(options, cts.Token));
 
             Assert.Empty(options.Diagnostics);
         }
@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
                 var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
                 Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><link rel=\"stylesheet\" href=\"style.css\" /><p>Test</p>";
-                var doc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var doc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var run = doc.Paragraphs[0].GetRuns().First();
                 Assert.Equal("654321", run.ColorHex);
             } finally {
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
                 var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
                 options.AllowedStylesheetUriSchemes.Remove(Uri.UriSchemeFile);
 
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 var run = doc.Paragraphs[0].GetRuns().First();
                 Assert.NotEqual("246810", run.ColorHex);
@@ -338,7 +338,7 @@ namespace OfficeIMO.Tests {
                     MaxCssBytes = 8
                 };
 
-                var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+                var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
                 Assert.Equal("CssSizeLimitExceeded", exception.Code);
                 Assert.Equal(path, exception.LimitSource);
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
                 };
                 options.StylesheetContents.Add(seededCss);
 
-                var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+                var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
                 Assert.Equal("CssTotalSizeLimitExceeded", exception.Code);
                 Assert.Equal(path, exception.LimitSource);
@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(path, "p { color:#456789; }");
             string html = $"<p>Before</p><link rel=\"stylesheet\" href=\"{path}\" /><p>After</p>";
             try {
-                var doc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var doc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
 
                 var beforeRun = doc.Paragraphs[0].GetRuns().First();
                 var afterRun = doc.Paragraphs[1].GetRuns().First();
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
             string html = $"<p>Before</p><link rel=\"stylesheet\" href=\"{path}\" /><p>After</p>";
             try {
                 var options = new HtmlToWordOptions();
-                var doc = html.LoadFromHtml(options);
+                var doc = html.ToWordDocument(options);
 
                 var afterRun = doc.Paragraphs[1].GetRuns().First();
                 Assert.NotEqual("765432", afterRun.ColorHex);
@@ -418,7 +418,7 @@ namespace OfficeIMO.Tests {
             string html = "<link rel=\"stylesheet\" /><p>Missing href</p>";
             var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             Assert.Equal("Missing href", doc.Paragraphs[0].Text);
             var diagnostic = Assert.Single(options.Diagnostics);
@@ -431,7 +431,7 @@ namespace OfficeIMO.Tests {
             string html = "<link rel=\"stylesheet\" href=\"data:text/css,p%7Bcolor:%23999999%7D\" /><p>Unsupported scheme</p>";
             var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("999999", run.ColorHex);

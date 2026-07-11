@@ -11,26 +11,26 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
-    public void HtmlPdf_RenderedProfile_SkipsEmptySemanticContainers() {
+    public void HtmlPdf_DirectRenderer_SkipsEmptySemanticContainers() {
         const string html = "<p></p><table><caption></caption><tr></tr></table><p>AfterEmptyMarkup</p>";
 
-        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
 
         Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_ForcesPagedModeForSuppliedRenderOptions() {
+    public void HtmlPdf_DirectRenderer_ForcesPagedModeForSuppliedRenderOptions() {
         string html = string.Concat(Enumerable.Range(0, 40).Select(index => "<div style='line-height:20px'>Line" + index + "</div>"));
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
-        options.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
+        options = new HtmlPdfSaveOptions {
             PageSize = new OfficePageSize(2D, 2D),
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        byte[] pdf = html.SaveAsPdf(options);
+        byte[] pdf = html.ToPdf(options);
 
-        Assert.Equal(HtmlRenderMode.Paged, options.RenderOptions.Mode);
+        Assert.Equal(HtmlRenderMode.Paged, options.Mode);
         Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount > 1);
     }
 
@@ -174,10 +174,10 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_MapsSansSerifToHelvetica() {
+    public void HtmlPdf_DirectRenderer_MapsSansSerifToHelvetica() {
         const string html = "<p style='font-family:sans-serif'>SansSerifMarker</p>";
 
-        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BaseFont /Helvetica", rawPdf, StringComparison.Ordinal);

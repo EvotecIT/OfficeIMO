@@ -94,7 +94,21 @@ public sealed class HtmlRenderPage {
         if (visual is HtmlRenderShape shape) {
             drawing.AddShape(shape.Shape.Clone(), shape.X, shape.Y);
         } else if (visual is HtmlRenderText text && text.Text.Length > 0) {
-            drawing.AddText(text.Text, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
+            if (text.TextAdvanceWidth.HasValue) {
+                drawing.AddPositionedText(
+                    text.Text,
+                    text.X,
+                    text.Y,
+                    text.Width,
+                    text.Height,
+                    text.Font,
+                    text.Color,
+                    text.Alignment,
+                    text.LineHeight,
+                    textAdvanceWidth: text.TextAdvanceWidth.Value);
+            } else {
+                drawing.AddText(text.Text, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
+            }
         } else if (visual is HtmlRenderImage image) {
             var placement = new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height);
             drawing.AddImage(image.EncodedBytes, image.ContentType, new OfficeImageProjection(placement, image.SourceCrop), image.AlternativeText);

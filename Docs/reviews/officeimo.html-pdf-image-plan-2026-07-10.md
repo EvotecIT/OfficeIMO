@@ -44,7 +44,7 @@ OfficeIMO has the shared foundation and a broad end-to-end implementation checkp
 - `OfficeIMO.Drawing` supplies the PNG/SVG rendering path used by Excel, Word, PowerPoint, and Visio, plus scoped caller-supplied TrueType faces shared by measurement, rasterization, and portable SVG embedding.
 - `OfficeIMO.Pdf` already supplies text, images, drawings, annotations, outlines, metadata, font embedding, extraction, security, and PDF inspection.
 - `OfficeIMO.Html` now exposes continuous and paged render contracts plus direct PNG/SVG output through `OfficeIMO.Drawing`.
-- `OfficeIMO.Html.Pdf` now has a `Rendered` profile that maps the shared render result directly to native PDF text, shapes, images, and link annotations. The existing semantic and document profiles remain available.
+- `OfficeIMO.Html.Pdf` now maps the shared render result directly to native PDF text, shapes, images, and link annotations. HTML-to-PDF has one direct path; Word and Markdown projections are explicit target conversions in their owning packages.
 
 The current renderer deliberately starts with normal flow, block-level horizontal and vertical flex layout with wrapping, atomic inline flex boxes, block and atomic inline grid with explicit/implicit and responsive auto-fit/auto-fill tracks, row/column auto-flow, and named areas/lines, bounded multicolumn layout with balanced or explicit-height fill, full-width direct block spanners, vector column rules, and safe shared page-break boundaries, left/right and direction-aware logical-side floats with line-band wrapping and clearance, per-axis `visible`/`hidden`/`clip`/`auto`/`scroll` overflow groups with document-root/body viewport propagation, paint-only relative positioning, out-of-flow absolute positioning against initial, block, flex, grid, and measured inline containing rectangles, block/flex/grid/inline static-position anchoring for automatic insets, grid-area containing rectangles, fixed overlays repeated at viewport coordinates, negative/auto/positive numeric stacking bands across absolute, fixed, relative, and sticky block/flex/grid/inline contexts, block and atomic inline 2D transform/opacity stacking contexts, stable static-document snapshots for sticky content, styled source text and `::before`/`::after` text with attributes and scoped counters, grapheme-safe token fragmentation, simple RTL/Hebrew positioning with logical shared-scene order and PDF `ActualText`, dependency-free contextual forms for the core Arabic alphabet, non-BMP font cmap lookup, policy-bound TrueType `@font-face` activation, managed PDF font fallback and Latin-ligature controls, exact explicit-whitespace extraction, policy-bound external stylesheet/import loading, preserved CSS font-family fallback lists, configurable source-character and DOM-node budgets before style/layout work, tables with row/column spans, intrinsic/aspect-sized block/flex/grid/float/normal-inline images with all five object-fit modes, positioned source crops, wrapping, baseline participation, and clipped authored-size continuation when an image or non-rectangular paint path is taller than a page, layered CSS URL backgrounds with clipped `cover` and all standard repeat modes, opaque multi-stop linear gradients with hard edges and length/percentage stops, centered and off-center opaque multi-stop radial circles and ellipses with keyword, length, or percentage geometry/stops, and root-canvas propagation, generic `@page` geometry, named page assignment, first/left/right and named pseudo-page margin content, all standard page-margin box positions, repeated table header/footer groups, span-safe line/row pagination, and bounded asynchronous resource resolution. It is not yet a complete browser layout engine. Interactive scrollbars, cross-block float intrusion, `shape-outside`, full inline flex/grid baseline synthesis, normal-inline transform/opacity grouping, 3D and perspective transforms, blend modes, inline background/border fragment synthesis, nested generated flex/grid formatting contexts, subgrid, masonry, nested descendant column spanners and advanced column-rule styles, generated images and quote-state tokens, conic, repeating, and alpha-varying gradients, other CSS URL paint assets, WOFF/WOFF2 and CFF decoding, per-master page geometry, pseudo-page body reflow, explicit bidi embedding/isolate controls, joining scripts outside the bounded Arabic shaper, full OpenType shaping, and other unfinished areas emit stable diagnostics or remain open below.
 
@@ -163,10 +163,11 @@ IReadOnlyList<OfficeImageExportResult> pages =
     html.ExportImages(OfficeImageExportFormat.Png, pagedOptions);
 
 PdfDocument pdf = html.ToPdfDocument(pdfOptions);
-byte[] pdfBytes = html.SaveAsPdf(pdfOptions);
+byte[] pdfBytes = html.ToPdf(pdfOptions);
+html.SaveAsPdf("report.pdf", pdfOptions);
 ```
 
-The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains in `OfficeIMO.Html.Pdf`. Async variants should be added for resource-loading and output workflows, with cancellation and timeout carried through the whole operation.
+The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains in `OfficeIMO.Html.Pdf`. `To...` returns in-memory output, `To...Document` returns a typed model, and `SaveAs...` requires a file or stream destination. Async variants use the same names with `Async`, with cancellation and timeout carried through the whole operation.
 
 ## Required Feature Contract
 
@@ -296,7 +297,7 @@ Exit gate: a single rendered result contains everything needed by both image and
 
 ### Phase 7 - HTML to PNG and SVG
 
-- [x] Add `OfficeIMO.Html` image-export options aligned with `OfficeImageExportOptions`.
+- [x] Use the shared `HtmlRenderOptions` contract for PNG and SVG output, aligned with `OfficeIMO.Drawing` export behavior without introducing a second HTML image-options type.
 - [x] Add continuous `ToPng`, `ToSvg`, file, stream, synchronous, and asynchronous APIs.
 - [x] Add paged `ExportImages` APIs with page numbering and diagnostics.
 - [x] Carry active TrueType web fonts into PNG rasterization and embed them as data-backed `@font-face` definitions in SVG output.
@@ -307,9 +308,9 @@ Exit gate: HTML image output uses only `OfficeIMO.Html` plus existing OfficeIMO 
 
 ### Phase 8 - Direct HTML to PDF
 
-- [x] Add a direct/paged `Rendered` profile in `OfficeIMO.Html.Pdf` that consumes the shared rendered-document model.
+- [x] Add direct paged `ToPdf`, `ToPdfDocument`, `ToPdfResult`, and destination-only `SaveAsPdf` APIs in `OfficeIMO.Html.Pdf` over the shared rendered-document model.
 - [ ] Complete mapping to PDF structures. Searchable Unicode HTML and positioned/affine SVG tspan text with managed fallback controls, exact explicit spaces, active TrueType web-font embedding, basic shapes, multi-stop axial/radial gradients through native PDF stitching functions, raster and grouped vector figures with alternative text, external links, affine effect transforms, isolated transparency Form XObjects, tagged document markers, shared Sect/Div plus single-owner multi-run H1-H6/P structure, nested native PDF outlines, shared L/LI/Lbl/LBody list hierarchy, and shared Table/Caption/TR/TH/TD hierarchy with scope and span attributes are implemented; more than three simultaneous distinct web-font families currently diagnose and fall back because the PDF writer exposes three semantic generated-font slots, while positioned shaped glyphs and more specialized reading-order semantics remain.
-- [x] Preserve existing semantic/document conversion profiles for users who want those contracts.
+- [x] Keep HTML-to-Word, HTML-to-Markdown, HTML-to-Excel, and HTML-to-PowerPoint as explicit target projections in their owning packages instead of hiding them behind PDF profiles.
 - [x] Add async/cancellable save APIs with explicitly buffered final PDF serialization.
 - [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure. Rendered PDF now carries retained HTML title and document language into PDF metadata/catalog, requests display of the document title, maps resolved RTL root direction to viewer page progression, preserves logical extraction for positioned RTL text through `ActualText`, emits typed H1-H6/P marked content, retains nested heading outlines with absolute page destinations, and proves raster plus multi-operation SVG image alt text through Figure structure; richer structure and encryption-profile coverage remain.
 

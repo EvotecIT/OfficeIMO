@@ -32,10 +32,10 @@ namespace OfficeIMO.Examples.Html {
 
             // Round-trip both sync and async html strings
             string htmlSync = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true, IncludeDefaultCss = true });
-            using var roundTripSync = htmlSync.LoadFromHtml(new HtmlToWordOptions { FontFamily = "Calibri" });
+            using var roundTripSync = htmlSync.ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
 
             string htmlAsync = await doc.ToHtmlAsync();
-            using var roundTripAsync = await htmlAsync.LoadFromHtmlAsync();
+            using var roundTripAsync = await htmlAsync.ToWordDocumentAsync();
 
             Console.WriteLine($"✓ Created: {syncPath}");
             Console.WriteLine($"✓ Created: {asyncPath}");

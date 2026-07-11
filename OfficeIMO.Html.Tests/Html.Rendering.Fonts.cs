@@ -148,7 +148,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_EmbedsAnActiveWebFontFaceWhenAPlatformTtfIsAvailable() {
+    public void HtmlPdf_DirectRenderer_EmbedsAnActiveWebFontFaceWhenAPlatformTtfIsAvailable() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null
             || string.IsNullOrWhiteSpace(fontPath)
@@ -164,17 +164,18 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@font-face{font-family:'Pdf Web Demo';src:url(\"data:font/ttf;base64,"
             + Convert.ToBase64String(fontData)
             + "\") format('truetype')}p{font-family:'Pdf Web Demo',sans-serif}</style><p>EmbeddedWebFontMarker</p>";
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        byte[] pdf = html.SaveAsPdf(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
 
         Assert.Contains("EmbeddedWebFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
-        Assert.DoesNotContain(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.DoesNotContain(result.ConversionReport.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_EmbedsWebFontUsedByPathClippedSvgText() {
+    public void HtmlPdf_DirectRenderer_EmbedsWebFontUsedByPathClippedSvgText() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null
             || string.IsNullOrWhiteSpace(fontPath)
@@ -194,18 +195,19 @@ public sealed partial class HtmlRenderingTests {
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
             + "' alt='clipped font sample'>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        byte[] pdf = html.SaveAsPdf(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
 
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderPathClipGroup);
         Assert.Contains("ClippedSvgFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
-        Assert.DoesNotContain(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.DoesNotContain(result.ConversionReport.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
     [Fact]
-    public void HtmlPdf_RenderedProfile_ReservesStandardFontSlotsBeforeEmbeddingWebFonts() {
+    public void HtmlPdf_DirectRenderer_ReservesStandardFontSlotsBeforeEmbeddingWebFonts() {
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
         if (font == null
             || string.IsNullOrWhiteSpace(fontPath)
@@ -221,14 +223,15 @@ public sealed partial class HtmlRenderingTests {
             + "@font-face{font-family:WebTwo;src:url('data:font/ttf;base64," + encoded + "')}"
             + ".one{font-family:WebOne}.two{font-family:WebTwo}.serif{font-family:'Times New Roman'}.mono{font-family:Courier}"
             + "</style><p class='one'>Web one</p><p class='two'>Web two</p><p class='serif'>Standard serif</p><p class='mono'>Standard mono</p>";
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+        HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        byte[] pdf = html.SaveAsPdf(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BaseFont /Times-Roman", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
+        Assert.Contains(result.ConversionReport.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
     private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {

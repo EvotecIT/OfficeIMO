@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public class HtmlAccessibility {
         [Fact]
         public void HtmlToWord_DocumentLanguage_UsesHtmlLangAttribute() {
-            using var document = "<html lang=\"pl-PL\"><body><p>Tekst</p></body></html>".LoadFromHtml();
+            using var document = "<html lang=\"pl-PL\"><body><p>Tekst</p></body></html>".ToWordDocument();
 
             Assert.Equal("pl-PL", document.Settings.Language);
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "Tekst", StringComparison.Ordinal));
@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_DocumentLanguage_FallsBackToBodyLangAttribute() {
-            using var document = "<body lang=\"fr-FR\"><p>Texte</p></body>".LoadFromHtml();
+            using var document = "<body lang=\"fr-FR\"><p>Texte</p></body>".ToWordDocument();
 
             Assert.Equal("fr-FR", document.Settings.Language);
         }
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ElementLanguage_MapsToRunLanguage() {
             using var document = """
                 <p>English <span lang="fr-FR">Bonjour</span> <span xml:lang="pl-PL">Czesc</span></p>
-                """.LoadFromHtml();
+                """.ToWordDocument();
 
             var runs = document.Paragraphs.Single(paragraph => paragraph.Text.Contains("Bonjour", StringComparison.Ordinal)).GetRuns().ToList();
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_ElementLanguage_InheritsFromContainer() {
-            using var document = "<div lang=\"de-DE\">Hallo</div>".LoadFromHtml();
+            using var document = "<div lang=\"de-DE\">Hallo</div>".ToWordDocument();
 
             var run = document.Paragraphs.Single(paragraph => paragraph.Text.Contains("Hallo", StringComparison.Ordinal)).GetRuns().Single(run => run.Text == "Hallo");
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_AccessibilityDiagnostics_AreOptIn() {
             var options = new HtmlToWordOptions();
 
-            using var document = "<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>".LoadFromHtml(options);
+            using var document = "<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>".ToWordDocument(options);
 
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
         }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                   <a href="https://example.com/empty"><img src="icon.png" alt=""></a>
                   <a href="https://example.com/named" aria-label="Quarterly report"></a>
                 </p>
-                """.LoadFromHtml(options);
+                """.ToWordDocument(options);
 
             var accessibilityDiagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityImageMissingAlt" && diagnostic.Source == "missing.png");
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                   <thead><tr><th>Name</th><th>Total</th></tr></thead>
                   <tbody><tr><td>Ada</td><td>42</td></tr></tbody>
                 </table>
-                """.LoadFromHtml(options);
+                """.ToWordDocument(options);
 
             var accessibilityDiagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityHeadingLevelSkipped" && diagnostic.Source == "h3");
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                     </main>
                   </body>
                 </html>
-                """.LoadFromHtml(options);
+                """.ToWordDocument(options);
 
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
 

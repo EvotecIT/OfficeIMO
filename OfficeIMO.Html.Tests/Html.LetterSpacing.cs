@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_LetterSpacing() {
             string html = "<p style=\"letter-spacing:2pt\">spaced</p>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs.First();
             Assert.Equal(40, run.Spacing);
         }
