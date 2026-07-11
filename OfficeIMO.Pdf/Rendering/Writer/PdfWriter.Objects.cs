@@ -313,6 +313,7 @@ internal static partial class PdfWriter {
         public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
+        public bool SuppressAccessibilityWrapper { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }

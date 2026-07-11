@@ -9,6 +9,9 @@ internal static partial class PdfWriter {
             EnsurePage();
             foreach (PdfCanvasItem item in canvas.Items) {
                 switch (item) {
+                    case PdfCanvasFigureItem figure:
+                        RenderCanvasFigure(figure);
+                        break;
                     case PdfCanvasOutlineItem outline:
                         RenderCanvasOutline(outline);
                         break;
@@ -49,6 +52,27 @@ internal static partial class PdfWriter {
             }
         }
 
+        private void RenderCanvasFigure(PdfCanvasFigureItem item) {
+            EnsurePage();
+            int? markedContentId = RegisterFigureStructureElement(item.AlternativeText);
+            sb.Append("/Figure << /Alt ")
+                .Append(PdfSyntaxEscaper.TextString(item.AlternativeText));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sb.Append(" >> BDC\n");
+            bool previous = _suppressCanvasAccessibilityWrappers;
+            _suppressCanvasAccessibilityWrappers = true;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previous;
+            }
+            sb.Append("EMC\n");
+        }
+
         private void RenderCanvasOutline(PdfCanvasOutlineItem item) {
             EnsurePage();
             currentPage!.Bookmarks.Add(new PageBookmark {
@@ -70,8 +94,8 @@ internal static partial class PdfWriter {
 
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
-            string structureType = MapCanvasTextStructureType(item.StructureRole);
-            int? markedContentId = RegisterTextStructureElement(structureType);
+            string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
+            int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType);
             WriteClippedRichParagraph(
                 sb,
                 block,
@@ -164,7 +188,7 @@ internal static partial class PdfWriter {
 
                 double verticalOffset = GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, textContentHeight);
                 var annotations = rotated ? new System.Collections.Generic.List<LinkAnnotation>() : currentPage!.Annotations;
-                int? markedContentId = RegisterTextStructureElement("P");
+                int? markedContentId = _suppressCanvasAccessibilityWrappers ? null : RegisterTextStructureElement("P");
                 WriteClippedRichParagraph(
                     sb,
                     blockText,
@@ -181,7 +205,7 @@ internal static partial class PdfWriter {
                     textHeight,
                     textX,
                     textWidth,
-                    structureType: "P",
+                    structureType: _suppressCanvasAccessibilityWrappers ? null : "P",
                     markedContentId: markedContentId,
                     structurePage: currentPage);
                 MarkRichFonts(item.Runs);
@@ -308,13 +332,14 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
+            pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.RotationAngle = item.RotationAngle;
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
             sb.Append(pageImage.InlineDrawToken);
-            if (!string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
+            if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
                 int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!);
                 pageImage.MarkedContentId = markedContentId;
                 pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");

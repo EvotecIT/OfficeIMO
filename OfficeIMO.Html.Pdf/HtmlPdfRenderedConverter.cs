@@ -323,7 +323,11 @@ internal static class HtmlPdfRenderedConverter {
             FlushShapes();
         }
 
-        AddElements(canvas, source.Elements);
+        if (string.IsNullOrWhiteSpace(visual.AlternativeText)) {
+            AddElements(canvas, source.Elements);
+        } else {
+            canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements));
+        }
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual, CancellationToken cancellationToken) {

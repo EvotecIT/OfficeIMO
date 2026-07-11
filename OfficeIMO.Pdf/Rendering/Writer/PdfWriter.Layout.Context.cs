@@ -23,6 +23,7 @@ internal static partial class PdfWriter {
         private bool usedItalic;
         private bool usedBoldItalic;
         private int _canvasClipDepth;
+        private bool _suppressCanvasAccessibilityWrappers;
 
         public LayoutContext(PdfOptions options) {
             currentOpts = options;

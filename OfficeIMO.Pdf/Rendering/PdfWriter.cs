@@ -786,7 +786,7 @@ internal static partial class PdfWriter {
 
     private static void AssignFigureMarkedContentIds(LayoutResult.Page page) {
         foreach (PageImage image in page.Images) {
-            if (image.IsBackgroundDecoration || string.IsNullOrWhiteSpace(image.AlternativeText) || image.MarkedContentId.HasValue || image.StructElementIndex.HasValue) {
+            if (image.SuppressAccessibilityWrapper || image.IsBackgroundDecoration || string.IsNullOrWhiteSpace(image.AlternativeText) || image.MarkedContentId.HasValue || image.StructElementIndex.HasValue) {
                 continue;
             }
 
@@ -1081,7 +1081,7 @@ internal static partial class PdfWriter {
             AppendClipPath(sb, img.ClipPath, img.ClipX, img.ClipY, img.ClipHeight);
         }
 
-        bool hasAlternativeText = !string.IsNullOrWhiteSpace(img.AlternativeText);
+        bool hasAlternativeText = !img.SuppressAccessibilityWrapper && !string.IsNullOrWhiteSpace(img.AlternativeText);
         if (hasAlternativeText) {
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(img.AlternativeText!));
@@ -1091,7 +1091,7 @@ internal static partial class PdfWriter {
             }
 
             sb.Append(" >> BDC\n");
-        } else if (img.IsBackgroundDecoration) {
+        } else if (!img.SuppressAccessibilityWrapper && img.IsBackgroundDecoration) {
             sb.Append("/Artifact BMC\n");
         }
 
@@ -1121,7 +1121,7 @@ internal static partial class PdfWriter {
         content.XObject(img.Name)
             .RestoreState();
 
-        if (hasAlternativeText || img.IsBackgroundDecoration) {
+        if (hasAlternativeText || !img.SuppressAccessibilityWrapper && img.IsBackgroundDecoration) {
             sb.Append("EMC\n");
         }
 

@@ -1015,6 +1015,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_RenderedProfile_TagsRasterAndVectorImageAlternativeTextAsFigures() {
+        string rasterData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        const string vectorData = "%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='2' height='2' fill='red'/%3E%3C/svg%3E";
+        string html = "<img alt='Raster badge' width='24' height='24' src='data:image/png;base64," + rasterData + "'>"
+            + "<img alt='Vector badge' width='24' height='24' src=\"data:image/svg+xml," + vectorData + "\">";
+
+        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+        IReadOnlyList<PdfCore.PdfStructureElementInfo> figures = tagged.StructureElements
+            .Where(element => element.StructureType == "Figure")
+            .ToList();
+
+        Assert.Equal(2, figures.Count);
+        Assert.Contains(figures, figure => figure.AlternateText == "Raster badge");
+        Assert.Contains(figures, figure => figure.AlternateText == "Vector badge");
+        Assert.True(tagged.FiguresHaveAlternateText);
+    }
+
+    [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));

@@ -257,6 +257,12 @@ internal static partial class PdfWriter {
 
         private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent) {
             EnsurePage();
+
+            if (_suppressCanvasAccessibilityWrappers) {
+                markedContent = false;
+                return null;
+            }
+
             currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
 
             if (style.Decorative) {

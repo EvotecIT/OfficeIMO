@@ -38,6 +38,19 @@ public sealed class PdfPageCanvas {
         return this;
     }
 
+    /// <summary>Groups absolute canvas content as one tagged figure with alternative text.</summary>
+    public PdfPageCanvas Figure(string alternativeText, Action<PdfPageCanvas> build) {
+        Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (nestedCanvas.Items.Count == 0) {
+            throw new ArgumentException("Canvas figures require at least one content item.", nameof(build));
+        }
+        _items.Add(new PdfCanvasFigureItem(alternativeText.Trim(), nestedCanvas.Items));
+        return this;
+    }
+
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, PdfColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
@@ -426,6 +439,17 @@ internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
 
     public string Title { get; }
     public int Level { get; }
+}
+
+internal sealed class PdfCanvasFigureItem : PdfCanvasItem {
+    public PdfCanvasFigureItem(string alternativeText, IReadOnlyList<PdfCanvasItem> items)
+        : base(0D, 0D) {
+        AlternativeText = alternativeText;
+        Items = items;
+    }
+
+    public string AlternativeText { get; }
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
 }
 
 internal sealed class PdfCanvasTextItem : PdfCanvasItem {

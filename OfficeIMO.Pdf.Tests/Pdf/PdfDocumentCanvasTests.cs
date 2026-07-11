@@ -12,6 +12,32 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentCanvasTests {
     [Fact]
+    public void CanvasFigure_GroupsMixedCanvasContentUnderOneTaggedFigure() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Figure("Composite diagram", figure => figure
+                .Shape(OfficeShape.Rectangle(20D, 10D), 12D, 12D)
+                .Text("Diagram label", 12D, 28D, 100D, 20D)
+                .Image(CreateMinimalRgbPng(), 120D, 12D, 20D, 20D, alternativeText: "Nested image alt")))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo figure = Assert.Single(tagged.StructureElements, element => element.StructureType == "Figure");
+        Assert.Equal("Composite diagram", figure.AlternateText);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "P");
+        Assert.Equal(1, CountOccurrences(Encoding.ASCII.GetString(bytes), "/Figure <<"));
+    }
+
+    [Fact]
+    public void CanvasFigure_RejectsMissingAlternativeTextOrBuilder() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.Figure(" ", _ => { }));
+        Assert.Throws<ArgumentNullException>(() => canvas.Figure("Figure", null!));
+        Assert.Throws<ArgumentException>(() => canvas.Figure("Figure", _ => { }));
+    }
+
+    [Fact]
     public void CanvasText_RendersAtFixedTopLeftCoordinatesWithoutMovingFlowContent() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,
@@ -1141,6 +1167,9 @@ public class PdfDocumentCanvasTests {
 
     private static void AssertClose(double expected, double actual) =>
         Assert.InRange(Math.Abs(expected - actual), 0D, 0.01D);
+
+    private static int CountOccurrences(string value, string marker) =>
+        value.Split(new[] { marker }, StringSplitOptions.None).Length - 1;
 
     private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(255, 0, 0);
 }
