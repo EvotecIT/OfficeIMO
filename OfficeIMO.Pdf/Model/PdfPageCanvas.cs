@@ -19,6 +19,79 @@ public sealed class PdfPageCanvas {
 
     internal IReadOnlyList<PdfCanvasItem> Items => _items;
 
+    /// <summary>Adds a document outline entry targeting an absolute top-left page coordinate.</summary>
+    /// <param name="title">Visible outline title.</param>
+    /// <param name="level">One-based outline hierarchy level.</param>
+    /// <param name="y">Top coordinate in page points.</param>
+    public PdfPageCanvas Outline(string title, int level, double y) {
+        Guard.NotNull(title, nameof(title));
+        if (string.IsNullOrWhiteSpace(title)) {
+            throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
+        }
+
+        if (level <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(level), "Canvas outline levels must be positive.");
+        }
+
+        ValidateCanvasCoordinate(y, nameof(y));
+        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y));
+        return this;
+    }
+
+    /// <summary>Groups absolute canvas content as one tagged figure with alternative text.</summary>
+    public PdfPageCanvas Figure(string alternativeText, Action<PdfPageCanvas> build) {
+        Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (nestedCanvas.Items.Count == 0) {
+            throw new ArgumentException("Canvas figures require at least one content item.", nameof(build));
+        }
+        _items.Add(new PdfCanvasFigureItem(alternativeText.Trim(), nestedCanvas.Items));
+        return this;
+    }
+
+    /// <summary>
+    /// Groups positioned text fragments under one logical replacement string for extraction and accessibility.
+    /// Child paint remains unchanged while readers that honor <c>ActualText</c> receive the supplied logical text once.
+    /// </summary>
+    public PdfPageCanvas ActualText(string text, Action<PdfPageCanvas> build) {
+        Guard.NotNull(text, nameof(text));
+        if (text.Length == 0) throw new ArgumentException("Canvas actual text cannot be empty.", nameof(text));
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (nestedCanvas.Items.Count == 0) {
+            throw new ArgumentException("Canvas actual-text groups require at least one content item.", nameof(build));
+        }
+        _items.Add(new PdfCanvasActualTextItem(text, nestedCanvas.Items));
+        return this;
+    }
+
+    /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
+    public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
+        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Caption) {
+            throw new ArgumentOutOfRangeException(nameof(role));
+        }
+        Guard.NotNull(build, nameof(build));
+        PdfCanvasStructureOptions snapshot = options?.Clone() ?? new PdfCanvasStructureOptions();
+        bool tableCell = role == PdfCanvasStructureRole.TableHeaderCell || role == PdfCanvasStructureRole.TableCell;
+        if (!tableCell && (snapshot.ColumnSpan != 1 || snapshot.RowSpan != 1)) {
+            throw new ArgumentException("Canvas structure spans are valid only for table cells.", nameof(options));
+        }
+        if (role != PdfCanvasStructureRole.TableHeaderCell && snapshot.HeaderScope.HasValue) {
+            throw new ArgumentException("Canvas table header scope is valid only for table-header cells.", nameof(options));
+        }
+
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (nestedCanvas.Items.Count == 0) {
+            throw new ArgumentException("Canvas structure containers require at least one content item.", nameof(build));
+        }
+        _items.Add(new PdfCanvasStructureItem(role, snapshot, nestedCanvas.Items));
+        return this;
+    }
+
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, PdfColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
@@ -27,7 +100,20 @@ public sealed class PdfPageCanvas {
 
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+        return AddText(runs, PdfCanvasTextStructureRole.Paragraph, x, y, width, height, defaultColor, align, fontSize, lineHeight);
+    }
+
+    /// <summary>Adds tagged rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
+    public PdfPageCanvas Text(IEnumerable<TextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+        return AddText(runs, structureRole, x, y, width, height, defaultColor, align, fontSize, lineHeight);
+    }
+
+    private PdfPageCanvas AddText(IEnumerable<TextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
         Guard.NotNull(runs, nameof(runs));
+        if ((int)structureRole < (int)PdfCanvasTextStructureRole.Paragraph
+            || (int)structureRole > (int)PdfCanvasTextStructureRole.Span) {
+            throw new ArgumentOutOfRangeException(nameof(structureRole));
+        }
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
@@ -46,7 +132,7 @@ public sealed class PdfPageCanvas {
             throw new ArgumentException("Canvas text requires at least one text run.", nameof(runs));
         }
 
-        _items.Add(new PdfCanvasTextItem(snapshot, x, y, width, height, defaultColor, align, fontSize, lineHeight));
+        _items.Add(new PdfCanvasTextItem(snapshot, x, y, width, height, defaultColor, align, fontSize, lineHeight, structureRole));
         return this;
     }
 
@@ -125,6 +211,23 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
     public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
         Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
+        return ImageShared(
+            PdfCanvasImageResource.Create(imageBytes),
+            x,
+            y,
+            width,
+            height,
+            style,
+            linkUri,
+            linkContents,
+            alternativeText,
+            rotationAngle,
+            horizontalFlip,
+            verticalFlip);
+    }
+
+    internal PdfPageCanvas ImageShared(PdfCanvasImageResource imageResource, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
+        Guard.NotNull(imageResource, nameof(imageResource));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
@@ -137,12 +240,12 @@ public sealed class PdfPageCanvas {
             PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
         }
 
-        OfficeImageInfo imageInfo = PdfDocument.ValidateImageBytes(imageBytes);
+        OfficeImageInfo imageInfo = imageResource.Info;
         if (imageStyle != null) {
             PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(style));
         }
 
-        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageBytes, width, height, imageInfo, imageStyle, linkUri, linkContents), x, y, rotationAngle, horizontalFlip, verticalFlip));
+        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageResource.Bytes, width, height, imageInfo, imageStyle, linkUri, linkContents, useDataSnapshot: true), x, y, rotationAngle, horizontalFlip, verticalFlip));
         return this;
     }
 
@@ -233,16 +336,31 @@ public sealed class PdfPageCanvas {
     }
 
     /// <summary>Adds a clipped fixed-position canvas frame using top-left page coordinates.</summary>
-    public PdfPageCanvas Clip(double x, double y, double width, double height, Action<PdfPageCanvas> build) {
+    public PdfPageCanvas Clip(double x, double y, double width, double height, Action<PdfPageCanvas> build) =>
+        Clip(x, y, OfficeClipPath.Rectangle(width, height), build);
+
+    /// <summary>Adds a path-clipped fixed-position canvas frame using top-left page coordinates.</summary>
+    public PdfPageCanvas Clip(double x, double y, OfficeClipPath clipPath, Action<PdfPageCanvas> build) {
         Guard.NonNegative(x, nameof(x));
         Guard.NonNegative(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        Guard.NotNull(clipPath, nameof(clipPath));
         Guard.NotNull(build, nameof(build));
 
         var clippedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
         build(clippedCanvas);
-        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x, y, width, height));
+        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x, y, clipPath));
+        return this;
+    }
+
+    /// <summary>Adds nested canvas content through one top-left-coordinate affine transform and opacity state.</summary>
+    public PdfPageCanvas Effect(OfficeTransform transform, double opacity, Action<PdfPageCanvas> build) {
+        if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
+            throw new ArgumentOutOfRangeException(nameof(opacity), "Canvas effect opacity must be between zero and one.");
+        }
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, transform, opacity));
         return this;
     }
 
@@ -318,6 +436,22 @@ public sealed class PdfPageCanvas {
     }
 }
 
+internal sealed class PdfCanvasImageResource {
+    private PdfCanvasImageResource(byte[] bytes, OfficeImageInfo info) {
+        Bytes = bytes;
+        Info = info;
+    }
+
+    internal byte[] Bytes { get; }
+    internal OfficeImageInfo Info { get; }
+
+    internal static PdfCanvasImageResource Create(byte[] bytes) {
+        Guard.NotNullOrEmpty(bytes, nameof(bytes));
+        byte[] snapshot = (byte[])bytes.Clone();
+        return new PdfCanvasImageResource(snapshot, PdfDocument.ValidateImageBytes(snapshot));
+    }
+}
+
 internal sealed class PdfCanvasBlock : IPdfBlock {
     public PdfCanvasBlock(IEnumerable<PdfCanvasItem> items) {
         Guard.NotNull(items, nameof(items));
@@ -337,8 +471,54 @@ internal abstract class PdfCanvasItem {
     public double Y { get; }
 }
 
+internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
+    public PdfCanvasOutlineItem(string title, int level, double y)
+        : base(0D, y) {
+        Title = title;
+        Level = level;
+    }
+
+    public string Title { get; }
+    public int Level { get; }
+}
+
+internal sealed class PdfCanvasFigureItem : PdfCanvasItem {
+    public PdfCanvasFigureItem(string alternativeText, IReadOnlyList<PdfCanvasItem> items)
+        : base(0D, 0D) {
+        AlternativeText = alternativeText;
+        Items = items;
+    }
+
+    public string AlternativeText { get; }
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+}
+
+internal sealed class PdfCanvasStructureItem : PdfCanvasItem {
+    public PdfCanvasStructureItem(PdfCanvasStructureRole role, PdfCanvasStructureOptions options, IReadOnlyList<PdfCanvasItem> items)
+        : base(0D, 0D) {
+        Role = role;
+        Options = options;
+        Items = items;
+    }
+
+    public PdfCanvasStructureRole Role { get; }
+    public PdfCanvasStructureOptions Options { get; }
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+}
+
+internal sealed class PdfCanvasActualTextItem : PdfCanvasItem {
+    public PdfCanvasActualTextItem(string text, IReadOnlyList<PdfCanvasItem> items)
+        : base(0D, 0D) {
+        Text = text;
+        Items = items;
+    }
+
+    public string Text { get; }
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+}
+
 internal sealed class PdfCanvasTextItem : PdfCanvasItem {
-    public PdfCanvasTextItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight)
+    public PdfCanvasTextItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight, PdfCanvasTextStructureRole structureRole)
         : base(x, y) {
         Runs = runs;
         Width = width;
@@ -347,6 +527,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
         Align = align;
         FontSize = fontSize;
         LineHeight = lineHeight;
+        StructureRole = structureRole;
     }
 
     public IReadOnlyList<TextRun> Runs { get; }
@@ -356,6 +537,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public PdfAlign Align { get; }
     public double? FontSize { get; }
     public double? LineHeight { get; }
+    public PdfCanvasTextStructureRole StructureRole { get; }
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {
@@ -499,14 +681,27 @@ internal sealed class PdfCanvasTableItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasClipItem : PdfCanvasItem {
-    public PdfCanvasClipItem(IReadOnlyList<PdfCanvasItem> items, double x, double y, double width, double height)
+    public PdfCanvasClipItem(IReadOnlyList<PdfCanvasItem> items, double x, double y, OfficeClipPath clipPath)
         : base(x, y) {
         Items = items;
-        Width = width;
-        Height = height;
+        ClipPath = clipPath.Clone();
     }
 
     public IReadOnlyList<PdfCanvasItem> Items { get; }
-    public double Width { get; }
-    public double Height { get; }
+    public OfficeClipPath ClipPath { get; }
+    public double Width => ClipPath.Width;
+    public double Height => ClipPath.Height;
+}
+
+internal sealed class PdfCanvasEffectItem : PdfCanvasItem {
+    public PdfCanvasEffectItem(IReadOnlyList<PdfCanvasItem> items, OfficeTransform transform, double opacity)
+        : base(0D, 0D) {
+        Items = items;
+        Transform = transform;
+        Opacity = opacity;
+    }
+
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+    public OfficeTransform Transform { get; }
+    public double Opacity { get; }
 }

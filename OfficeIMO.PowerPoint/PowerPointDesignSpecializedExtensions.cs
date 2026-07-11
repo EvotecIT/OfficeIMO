@@ -5,7 +5,7 @@ using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>
         ///     Adds a logo, partner, or certification wall slide with optional proof/certificate emphasis.
         /// </summary>
@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLogoWallSlideOptions resolvedOptions = options ?? new PowerPointLogoWallSlideOptions();
             List<PowerPointLogoItem> logoList = NormalizeLogoItems(logos);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
                 AddLogoMosaic(slide, resolvedTheme, logoList, resolvedOptions, width, height);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCoverageSlideOptions resolvedOptions = options ?? new PowerPointCoverageSlideOptions();
             List<PowerPointCoverageLocation> locationList = NormalizeLocations(locations);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -92,7 +92,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointLayoutBox.FromCentimeters(2.0, height - 2.55, width - 4.0, 1.05));
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCapabilitySlideOptions resolvedOptions = options ?? new PowerPointCapabilitySlideOptions();
             List<PowerPointCapabilitySection> sectionList = NormalizeCapabilitySections(sections);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -134,7 +134,7 @@ namespace OfficeIMO.PowerPoint {
                     visualFirst: variant == PowerPointCapabilityLayoutVariant.VisualText);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         internal static void AddLogoWall(PowerPointSlide slide, PowerPointDesignTheme theme,

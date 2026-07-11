@@ -17,7 +17,7 @@ dotnet add package OfficeIMO.Word.Html
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 
-WordDocument document = "<h1>Hello</h1><p>Body</p>".LoadFromHtml(new HtmlToWordOptions());
+WordDocument document = "<h1>Hello</h1><p>Body</p>".ToWordDocument(new HtmlToWordOptions());
 
 string html = document.ToHtml(new WordToHtmlOptions {
     IncludeDefaultCss = true,
@@ -44,7 +44,7 @@ safeOptions.MaxHtmlNodes = 5000;
 safeOptions.DiagnosticHandler = diagnostic =>
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Source}");
 
-WordDocument safeDocument = html.LoadFromHtml(safeOptions);
+WordDocument safeDocument = html.ToWordDocument(safeOptions);
 ```
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.

@@ -6,15 +6,18 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Presentation-bound designer facade that applies one deck design across many semantic slides.
     /// </summary>
-    public sealed class PowerPointDeckComposer {
+    internal sealed class PowerPointDeckComposer {
         private readonly PowerPointPresentation _presentation;
         private readonly PowerPointDeckDesign _design;
+        private readonly PowerPointTemplateLayoutMap? _templateLayoutMap;
         private int _slideIndex;
 
         internal PowerPointDeckComposer(PowerPointPresentation presentation, PowerPointDeckDesign design,
-            bool applyTheme) {
+            bool applyTheme, PowerPointTemplateLayoutMap? templateLayoutMap = null) {
             _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             _design = design ?? throw new ArgumentNullException(nameof(design));
+            _templateLayoutMap = templateLayoutMap;
+            _slideIndex = presentation.Slides.Count;
 
             if (applyTheme) {
                 _design.ApplyTo(_presentation);
@@ -38,6 +41,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointDesignerSlideOptions>? configure = null) {
             PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Section);
             return _presentation.AddDesignerSectionSlide(title, subtitle, _design.Theme, options);
         }
 
@@ -49,6 +53,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCaseStudySlideOptions>? configure = null) {
             PowerPointCaseStudySlideOptions options = Configure(new PowerPointCaseStudySlideOptions(),
                 seed ?? clientTitle, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.CaseStudy);
             return _presentation.AddDesignerCaseStudySlide(clientTitle, sections, metrics, _design.Theme, options);
         }
 
@@ -59,6 +64,7 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointProcessSlideOptions>? configure = null) {
             PowerPointProcessSlideOptions options = Configure(new PowerPointProcessSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Process);
             return _presentation.AddDesignerProcessSlide(title, subtitle, steps, _design.Theme, options);
         }
 
@@ -69,6 +75,7 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointCardGridSlideOptions>? configure = null) {
             PowerPointCardGridSlideOptions options = Configure(new PowerPointCardGridSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.CardGrid);
             return _presentation.AddDesignerCardGridSlide(title, subtitle, cards, _design.Theme, options);
         }
 
@@ -79,6 +86,7 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointLogoWallSlideOptions>? configure = null) {
             PowerPointLogoWallSlideOptions options = Configure(new PowerPointLogoWallSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.LogoWall);
             return _presentation.AddDesignerLogoWallSlide(title, subtitle, logos, _design.Theme, options);
         }
 
@@ -90,6 +98,7 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCoverageSlideOptions>? configure = null) {
             PowerPointCoverageSlideOptions options = Configure(new PowerPointCoverageSlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Coverage);
             return _presentation.AddDesignerCoverageSlide(title, subtitle, locations, _design.Theme, options);
         }
 
@@ -101,16 +110,88 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCapabilitySlideOptions>? configure = null) {
             PowerPointCapabilitySlideOptions options = Configure(new PowerPointCapabilitySlideOptions(),
                 seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Capability);
             return _presentation.AddDesignerCapabilitySlide(title, subtitle, sections, _design.Theme, options);
+        }
+
+        /// <summary>Adds an executive-summary slide using the active deck design.</summary>
+        public PowerPointSlide AddExecutiveSummarySlide(string title, string? subtitle,
+            PowerPointExecutiveSummaryContent content, string? seed = null,
+            Action<PowerPointExecutiveSummarySlideOptions>? configure = null) {
+            PowerPointExecutiveSummarySlideOptions options = Configure(new PowerPointExecutiveSummarySlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.ExecutiveSummary);
+            return _presentation.AddDesignerExecutiveSummarySlide(title, subtitle, content, _design.Theme, options);
+        }
+
+        /// <summary>Adds an editable chart-story slide using the active deck design.</summary>
+        public PowerPointSlide AddChartStorySlide(string title, string? subtitle,
+            PowerPointChartStoryContent content, string? seed = null,
+            Action<PowerPointChartStorySlideOptions>? configure = null) {
+            PowerPointChartStorySlideOptions options = Configure(new PowerPointChartStorySlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.ChartStory);
+            return _presentation.AddDesignerChartStorySlide(title, subtitle, content, _design.Theme, options);
+        }
+
+        /// <summary>Adds a comparison slide using the active deck design.</summary>
+        public PowerPointSlide AddComparisonSlide(string title, string? subtitle,
+            IEnumerable<PowerPointComparisonItem> items, string? seed = null,
+            Action<PowerPointComparisonSlideOptions>? configure = null) {
+            PowerPointComparisonSlideOptions options = Configure(new PowerPointComparisonSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Comparison);
+            return _presentation.AddDesignerComparisonSlide(title, subtitle, items, _design.Theme, options);
+        }
+
+        /// <summary>Adds a semantic screenshot-story slide using the active deck design.</summary>
+        public PowerPointSlide AddScreenshotStorySlide(string title, string? subtitle,
+            PowerPointImageAsset image, IEnumerable<string>? narrative = null, string? seed = null,
+            Action<PowerPointScreenshotStorySlideOptions>? configure = null) {
+            PowerPointScreenshotStorySlideOptions options = Configure(new PowerPointScreenshotStorySlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.ScreenshotStory);
+            return _presentation.AddDesignerScreenshotStorySlide(title, subtitle, image, narrative,
+                _design.Theme, options);
+        }
+
+        /// <summary>Adds an editable appendix-table slide using the active deck design.</summary>
+        public PowerPointSlide AddAppendixTableSlide(string title, string? subtitle,
+            PowerPointTableData data, string? seed = null,
+            Action<PowerPointAppendixTableSlideOptions>? configure = null) {
+            PowerPointAppendixTableSlideOptions options = Configure(new PowerPointAppendixTableSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.AppendixTable);
+            return _presentation.AddDesignerAppendixTableSlide(title, subtitle, data, _design.Theme, options);
+        }
+
+        /// <summary>Adds an editable architecture slide using the active deck design.</summary>
+        public PowerPointSlide AddArchitectureSlide(string title, string? subtitle,
+            PowerPointArchitectureContent content, string? seed = null,
+            Action<PowerPointArchitectureSlideOptions>? configure = null) {
+            PowerPointArchitectureSlideOptions options = Configure(new PowerPointArchitectureSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Architecture);
+            return _presentation.AddDesignerArchitectureSlide(title, subtitle, content, _design.Theme, options);
+        }
+
+        /// <summary>Adds a closing slide using the active deck design.</summary>
+        public PowerPointSlide AddClosingSlide(string title, PowerPointClosingContent content,
+            string? seed = null, Action<PowerPointClosingSlideOptions>? configure = null) {
+            PowerPointClosingSlideOptions options = Configure(new PowerPointClosingSlideOptions(),
+                seed ?? title, configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Closing);
+            return _presentation.AddDesignerClosingSlide(title, content, _design.Theme, options);
         }
 
         /// <summary>
         ///     Adds a custom designer slide with raw composition primitives and active deck chrome.
         /// </summary>
-        public PowerPointSlide ComposeSlide(Action<PowerPointSlideComposer> compose, string? seed = null,
+        public PowerPointSlide ComposeSlide(Action<PowerPointSlideCompositionContext> compose, string? seed = null,
             Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
             PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
                 seed ?? "custom", configure);
+            ApplyTemplateLayout(options, PowerPointDeckPlanSlideKind.Custom);
             return _presentation.ComposeDesignerSlide(compose, _design.Theme, options, dark);
         }
 
@@ -146,6 +227,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Expands dense semantic content into continuation pages and renders the resulting valid plan.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlide> AddSlidesWithContinuation(PowerPointDeckPlan plan,
+            PowerPointDeckContinuationOptions? options = null, bool validate = true) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            return AddSlides(plan.WithContinuations(options), validate);
+        }
+
+        /// <summary>
         ///     Previews how a semantic deck plan resolves against the active deck design from the composer's
         ///     current slide position.
         /// </summary>
@@ -165,6 +258,13 @@ namespace OfficeIMO.PowerPoint {
             return options;
         }
 
+        private void ApplyTemplateLayout(PowerPointDesignerSlideOptions options,
+            PowerPointDeckPlanSlideKind kind) {
+            if (options.TemplateLayout == null) {
+                options.TemplateLayout = _templateLayoutMap?.Resolve(kind);
+            }
+        }
+
         private string ResolveSeed(string seed) {
             _slideIndex++;
             return ResolveSeed(seed, _slideIndex);
@@ -179,7 +279,7 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>
         ///     Creates a presentation-bound designer facade and optionally applies the deck theme immediately.
         /// </summary>

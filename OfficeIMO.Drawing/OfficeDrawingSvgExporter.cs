@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Exports dependency-free OfficeIMO drawings to SVG for consumers that need a portable visual fallback.
 /// </summary>
-public static class OfficeDrawingSvgExporter {
+public static partial class OfficeDrawingSvgExporter {
     /// <summary>
     /// Converts a drawing to an SVG document.
     /// </summary>
@@ -25,33 +25,7 @@ public static class OfficeDrawingSvgExporter {
     /// <param name="scale">Scale applied to the exported SVG width and height.</param>
     /// <returns>SVG markup representing the drawing.</returns>
     public static string ToSvg(OfficeDrawing drawing, double scale) {
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
-
-        if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
-        }
-
-        double width = drawing.Width * scale;
-        double height = drawing.Height * scale;
-        var sb = new StringBuilder();
-        sb.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
-            .Append(Format(width))
-            .Append("pt\" height=\"")
-            .Append(Format(height))
-            .Append("pt\" viewBox=\"0 0 ")
-            .Append(Format(drawing.Width))
-            .Append(' ')
-            .Append(Format(drawing.Height))
-            .Append("\" role=\"img\">");
-
-        int gradientId = 0;
-        int clipPathId = 0;
-        AppendElements(sb, drawing.Elements, ref gradientId, ref clipPathId);
-
-        sb.Append("</svg>");
-        return sb.ToString();
+        return ToSvg(drawing, scale, OfficeSvgSizeUnit.Point);
     }
 
     /// <summary>
@@ -68,6 +42,42 @@ public static class OfficeDrawingSvgExporter {
     /// <param name="scale">Scale applied to the exported SVG width and height.</param>
     /// <returns>UTF-8 encoded SVG bytes.</returns>
     public static byte[] ToSvgBytes(OfficeDrawing drawing, double scale) => Encoding.UTF8.GetBytes(ToSvg(drawing, scale));
+
+    private static void AppendEmbeddedFonts(StringBuilder sb, OfficeFontFaceCollection fonts) {
+        if (fonts.Faces.Count == 0) {
+            return;
+        }
+
+        sb.Append("<defs><style type=\"text/css\">");
+        foreach (OfficeFontFace face in fonts.Faces) {
+            sb.Append("@font-face{font-family:\"")
+                .Append(EscapeCssString(face.FamilyName))
+                .Append("\";src:url(data:font/ttf;base64,")
+                .Append(Convert.ToBase64String(face.DataSnapshot))
+                .Append(") format(\"truetype\");font-weight:")
+                .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
+                .Append(";font-style:")
+                .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal")
+                .Append(";}");
+        }
+
+        sb.Append("</style></defs>");
+    }
+
+    private static string EscapeCssString(string value) {
+        var escaped = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (character == '\\' || character == '"' || character == '<' || character == '>' || character == '&' || char.IsControl(character)) {
+                escaped.Append('\\')
+                    .Append(((int)character).ToString("X", CultureInfo.InvariantCulture))
+                    .Append(' ');
+            } else {
+                escaped.Append(character);
+            }
+        }
+
+        return escaped.ToString();
+    }
 
     private static void AppendElements(StringBuilder sb, IReadOnlyList<OfficeDrawingElement> elements, ref int gradientId, ref int clipPathId) {
         for (int i = 0; i < elements.Count; i++) {
@@ -111,11 +121,28 @@ public static class OfficeDrawingSvgExporter {
                         : null;
                     AppendImage(sb, drawingImage, imageClipPathId);
                     break;
+                case OfficeDrawingImagePattern imagePattern:
+                    AppendImagePattern(sb, imagePattern, ref clipPathId);
+                    break;
                 case OfficeDrawingGroup drawingGroup:
                     AppendGroup(sb, drawingGroup, ref gradientId, ref clipPathId);
                     break;
+                case OfficeDrawingEffectGroup effectGroup:
+                    AppendEffectGroup(sb, effectGroup, ref gradientId, ref clipPathId);
+                    break;
             }
         }
+    }
+
+    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, ref int gradientId, ref int clipPathId) {
+        sb.Append("<g")
+            .Append(BuildMatrixTransformAttribute(effectGroup.Transform, 0D, 0D));
+        if (effectGroup.Opacity < 1D) {
+            sb.Append(" opacity=\"").Append(Format(effectGroup.Opacity)).Append('"');
+        }
+        sb.Append('>');
+        AppendElements(sb, effectGroup.InnerDrawing.Elements, ref gradientId, ref clipPathId);
+        sb.Append("</g>");
     }
 
     private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, ref int gradientId, ref int clipPathId) {
@@ -126,7 +153,16 @@ public static class OfficeDrawingSvgExporter {
             .AppendClipPathReference(groupClipPathId)
             .Append(transform)
             .Append('>');
+        bool hasContentOffset = Math.Abs(drawingGroup.ContentOffsetX) > 0.0000001D || Math.Abs(drawingGroup.ContentOffsetY) > 0.0000001D;
+        if (hasContentOffset) {
+            sb.Append("<g transform=\"translate(")
+                .Append(Format(drawingGroup.ContentOffsetX))
+                .Append(' ')
+                .Append(Format(drawingGroup.ContentOffsetY))
+                .Append(")\">");
+        }
         AppendElements(sb, drawingGroup.InnerDrawing.Elements, ref gradientId, ref clipPathId);
+        if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }
 
@@ -301,7 +337,7 @@ public static class OfficeDrawingSvgExporter {
     }
 
     private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId) {
-        byte[] bytes = drawingImage.Bytes;
+        byte[] bytes = drawingImage.EncodedBytes;
         if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, out string dataUri)) {
             return;
         }
@@ -439,22 +475,42 @@ public static class OfficeDrawingSvgExporter {
         double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
         double y = contentY + fontSize;
         double lineHeight = text.LineHeight ?? fontSize * 1.2D;
-        sb.AppendSvgTextElement(
-            text.Text,
-            x,
-            y,
-            lineHeight,
-            text.Color ?? OfficeColor.Black,
-            text.Font.FamilyName ?? "Arial",
-            fontSize,
-            text.Alignment,
-            text.Font.IsBold,
-            text.Font.IsItalic,
-            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
-            useFrameTransform ? 0D : text.RotationDegrees,
-            useFrameTransform ? 0D : text.RotationCenterX,
-            useFrameTransform ? 0D : text.RotationCenterY,
-            (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+        if (text.TextAdvanceWidth.HasValue) {
+            sb.AppendSvgPositionedTextElement(
+                text.Text,
+                x,
+                y,
+                lineHeight,
+                text.Color ?? OfficeColor.Black,
+                text.Font.FamilyName ?? "Arial",
+                fontSize,
+                text.Alignment,
+                text.Font.IsBold,
+                text.Font.IsItalic,
+                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+                useFrameTransform ? 0D : text.RotationDegrees,
+                useFrameTransform ? 0D : text.RotationCenterX,
+                useFrameTransform ? 0D : text.RotationCenterY,
+                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+                text.TextAdvanceWidth.Value);
+        } else {
+            sb.AppendSvgTextElement(
+                text.Text,
+                x,
+                y,
+                lineHeight,
+                text.Color ?? OfficeColor.Black,
+                text.Font.FamilyName ?? "Arial",
+                fontSize,
+                text.Alignment,
+                text.Font.IsBold,
+                text.Font.IsItalic,
+                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+                useFrameTransform ? 0D : text.RotationDegrees,
+                useFrameTransform ? 0D : text.RotationCenterX,
+                useFrameTransform ? 0D : text.RotationCenterY,
+                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough);
+        }
 
         if (useFrameTransform) {
             sb.Append("</g>");

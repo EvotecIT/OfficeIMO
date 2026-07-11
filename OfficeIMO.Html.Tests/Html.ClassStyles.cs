@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
             string html = "<p class=\"title\">Text</p>";
             var options = new HtmlToWordOptions();
             options.ClassStyles["title"] = WordParagraphStyles.Heading1;
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
         }
 
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             string html = "<ul><li class=\"special\">Item</li></ul>";
             var options = new HtmlToWordOptions();
             options.ClassStyles["special"] = WordParagraphStyles.Heading2;
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
             Assert.Equal(WordParagraphStyles.Heading2, doc.Paragraphs[0].Style);
         }
     }

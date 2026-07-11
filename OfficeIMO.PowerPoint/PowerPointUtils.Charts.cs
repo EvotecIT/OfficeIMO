@@ -238,8 +238,9 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Chart plot area not found.");
             }
 
-            if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
-                UpdateScatterChartSeries(scatterChart, data);
+            List<C.ScatterChart> scatterCharts = plotArea.Elements<C.ScatterChart>().ToList();
+            if (scatterCharts.Count > 0) {
+                UpdateScatterChartLayers(plotArea, scatterCharts, data);
                 return;
             }
 
@@ -495,33 +496,6 @@ namespace OfficeIMO.PowerPoint {
                 UpdateSeriesText(seriesElement, i, data.Series[i].Name);
                 UpdateCategoryAxisData(seriesElement, data.Categories);
                 UpdateValues(seriesElement, i, data.Series[i].Values);
-            }
-
-            for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
-                existingSeries[i].Remove();
-            }
-        }
-
-        private static void UpdateScatterChartSeries(C.ScatterChart scatterChart, PowerPointScatterChartData data) {
-            List<C.ScatterChartSeries> existingSeries = scatterChart.Elements<C.ScatterChartSeries>().ToList();
-            C.ScatterChartSeries? template = existingSeries.LastOrDefault();
-
-            int seriesCount = data.Series.Count;
-            for (int i = 0; i < seriesCount; i++) {
-                C.ScatterChartSeries seriesElement;
-                if (i < existingSeries.Count) {
-                    seriesElement = existingSeries[i];
-                } else {
-                    seriesElement = template != null ? (C.ScatterChartSeries)template.CloneNode(true) : new C.ScatterChartSeries();
-                    seriesElement.RemoveAllChildren<C.Trendline>();
-                    InsertSeries(scatterChart, seriesElement);
-                    existingSeries.Add(seriesElement);
-                }
-
-                UpdateSeriesIndexOrder(seriesElement, i);
-                UpdateScatterSeriesText(seriesElement, i, data.Series[i].Name);
-                UpdateXValues(seriesElement, i, data.Series[i].XValues);
-                UpdateYValues(seriesElement, i, data.Series[i].YValues);
             }
 
             for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {

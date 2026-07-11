@@ -7,7 +7,8 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free radial gradient intent in normalized local coordinates.
 /// Coordinates use a top-left origin where 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
-/// Circle centers may sit outside that box to preserve authored gradients whose focal point is off-canvas.
+/// Ellipse centers may sit outside that box to preserve authored gradients whose focal point is off-canvas.
+/// Independent horizontal and vertical radii allow axis-aligned ellipses while the original circle constructors remain source-compatible.
 /// </summary>
 public sealed class OfficeRadialGradient {
     /// <summary>Start circle center X coordinate in shape-local units.</summary>
@@ -16,8 +17,14 @@ public sealed class OfficeRadialGradient {
     /// <summary>Start circle center Y coordinate in shape-local units.</summary>
     public double StartY { get; }
 
-    /// <summary>Normalized start circle radius.</summary>
+    /// <summary>Normalized start circle radius, or the horizontal radius for an elliptical definition.</summary>
     public double StartRadius { get; }
+
+    /// <summary>Normalized horizontal start ellipse radius.</summary>
+    public double StartRadiusX { get; }
+
+    /// <summary>Normalized vertical start ellipse radius.</summary>
+    public double StartRadiusY { get; }
 
     /// <summary>End circle center X coordinate in shape-local units.</summary>
     public double EndX { get; }
@@ -25,8 +32,14 @@ public sealed class OfficeRadialGradient {
     /// <summary>End circle center Y coordinate in shape-local units.</summary>
     public double EndY { get; }
 
-    /// <summary>Normalized end circle radius.</summary>
+    /// <summary>Normalized end circle radius, or the horizontal radius for an elliptical definition.</summary>
     public double EndRadius { get; }
+
+    /// <summary>Normalized horizontal end ellipse radius.</summary>
+    public double EndRadiusX { get; }
+
+    /// <summary>Normalized vertical end ellipse radius.</summary>
+    public double EndRadiusY { get; }
 
     /// <summary>Gradient stops in offset order.</summary>
     public IReadOnlyList<OfficeGradientStop> Stops { get; }
@@ -37,9 +50,13 @@ public sealed class OfficeRadialGradient {
         StartX = startX;
         StartY = startY;
         StartRadius = startRadius;
+        StartRadiusX = startRadius;
+        StartRadiusY = startRadius;
         EndX = endX;
         EndY = endY;
         EndRadius = endRadius;
+        EndRadiusX = endRadius;
+        EndRadiusY = endRadius;
         Stops = ValidateStops(new[] { start, end });
     }
 
@@ -49,9 +66,38 @@ public sealed class OfficeRadialGradient {
         StartX = startX;
         StartY = startY;
         StartRadius = startRadius;
+        StartRadiusX = startRadius;
+        StartRadiusY = startRadius;
         EndX = endX;
         EndY = endY;
         EndRadius = endRadius;
+        EndRadiusX = endRadius;
+        EndRadiusY = endRadius;
+        Stops = ValidateStops(stops);
+    }
+
+    /// <summary>Creates a radial gradient between two axis-aligned ellipses with the same aspect ratio.</summary>
+    public OfficeRadialGradient(
+        double startX,
+        double startY,
+        double startRadiusX,
+        double startRadiusY,
+        double endX,
+        double endY,
+        double endRadiusX,
+        double endRadiusY,
+        IReadOnlyList<OfficeGradientStop> stops) {
+        ValidateCoordinates(startX, startY, startRadiusX, startRadiusY, endX, endY, endRadiusX, endRadiusY);
+        StartX = startX;
+        StartY = startY;
+        StartRadius = startRadiusX;
+        StartRadiusX = startRadiusX;
+        StartRadiusY = startRadiusY;
+        EndX = endX;
+        EndY = endY;
+        EndRadius = endRadiusX;
+        EndRadiusX = endRadiusX;
+        EndRadiusY = endRadiusY;
         Stops = ValidateStops(stops);
     }
 
@@ -60,7 +106,7 @@ public sealed class OfficeRadialGradient {
         new OfficeRadialGradient(0.5D, 0.5D, 0D, 0.5D, 0.5D, 0.5D, new OfficeGradientStop(0D, startColor), new OfficeGradientStop(1D, endColor));
 
     /// <summary>Creates a detached copy.</summary>
-    public OfficeRadialGradient Clone() => new OfficeRadialGradient(StartX, StartY, StartRadius, EndX, EndY, EndRadius, Stops);
+    public OfficeRadialGradient Clone() => new OfficeRadialGradient(StartX, StartY, StartRadiusX, StartRadiusY, EndX, EndY, EndRadiusX, EndRadiusY, Stops);
 
     private static void ValidateCoordinates(double startX, double startY, double startRadius, double endX, double endY, double endRadius) {
         ValidateFiniteCoordinate(startX, nameof(startX));
@@ -71,6 +117,39 @@ public sealed class OfficeRadialGradient {
         ValidateRadius(endRadius, nameof(endRadius));
         if (startX.Equals(endX) && startY.Equals(endY) && startRadius.Equals(endRadius)) {
             throw new ArgumentException("Radial gradient start and end circles must be different.");
+        }
+    }
+
+    private static void ValidateCoordinates(
+        double startX,
+        double startY,
+        double startRadiusX,
+        double startRadiusY,
+        double endX,
+        double endY,
+        double endRadiusX,
+        double endRadiusY) {
+        ValidateFiniteCoordinate(startX, nameof(startX));
+        ValidateFiniteCoordinate(startY, nameof(startY));
+        ValidateFiniteCoordinate(endX, nameof(endX));
+        ValidateFiniteCoordinate(endY, nameof(endY));
+        ValidateRadius(startRadiusX, nameof(startRadiusX));
+        ValidateRadius(startRadiusY, nameof(startRadiusY));
+        ValidateRadius(endRadiusX, nameof(endRadiusX));
+        ValidateRadius(endRadiusY, nameof(endRadiusY));
+        if (endRadiusX <= 0D) throw new ArgumentOutOfRangeException(nameof(endRadiusX), "Radial gradient end ellipse radii must be positive.");
+        if (endRadiusY <= 0D) throw new ArgumentOutOfRangeException(nameof(endRadiusY), "Radial gradient end ellipse radii must be positive.");
+
+        if ((startRadiusX > 0D || startRadiusY > 0D)
+            && Math.Abs((startRadiusX / endRadiusX) - (startRadiusY / endRadiusY)) > 0.0000001D) {
+            throw new ArgumentException("Radial gradient start and end ellipses must use the same aspect ratio.");
+        }
+
+        if (startX.Equals(endX)
+            && startY.Equals(endY)
+            && startRadiusX.Equals(endRadiusX)
+            && startRadiusY.Equals(endRadiusY)) {
+            throw new ArgumentException("Radial gradient start and end ellipses must be different.");
         }
     }
 
@@ -91,8 +170,8 @@ public sealed class OfficeRadialGradient {
         double previous = -1D;
         for (int i = 0; i < stops.Count; i++) {
             OfficeGradientStop stop = stops[i];
-            if (stop.Offset <= previous) {
-                throw new ArgumentException("Radial gradient stops must be in strictly increasing offset order.", nameof(stops));
+            if (stop.Offset < previous) {
+                throw new ArgumentException("Radial gradient stops must be in non-decreasing offset order.", nameof(stops));
             }
 
             copy.Add(stop);

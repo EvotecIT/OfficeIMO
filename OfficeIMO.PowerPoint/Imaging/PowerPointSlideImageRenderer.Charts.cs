@@ -54,7 +54,8 @@ namespace OfficeIMO.PowerPoint {
                     pointColors: null,
                     showMarkers: true,
                     strokeWidth: item.StrokeWidth,
-                    renderKind: MapChartKind(item.ChartKind ?? snapshot.ChartKind)));
+                    renderKind: MapChartKind(item.ChartKind ?? snapshot.ChartKind),
+                    axisGroup: item.AxisGroup));
             }
 
             return new OfficeChartSnapshot(

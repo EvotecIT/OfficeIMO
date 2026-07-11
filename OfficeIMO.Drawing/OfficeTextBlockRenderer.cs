@@ -506,7 +506,47 @@ public static partial class OfficeTextBlockRenderer {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D,
-        bool strikethrough = false) {
+        bool strikethrough = false) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, null);
+
+    internal static StringBuilder AppendSvgPositionedTextElement(
+        this StringBuilder builder,
+        string text,
+        double x,
+        double y,
+        double lineHeight,
+        OfficeColor color,
+        string? fontFamily,
+        double fontSize,
+        OfficeTextAlignment horizontalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool strikethrough,
+        double textAdvanceWidth) =>
+        AppendSvgTextElementCore(builder, text, x, y, lineHeight, color, fontFamily, fontSize, horizontalAlignment, bold, italic, underline, rotationDegrees, rotationCenterX, rotationCenterY, strikethrough, textAdvanceWidth);
+
+    private static StringBuilder AppendSvgTextElementCore(
+        StringBuilder builder,
+        string text,
+        double x,
+        double y,
+        double lineHeight,
+        OfficeColor color,
+        string? fontFamily,
+        double fontSize,
+        OfficeTextAlignment horizontalAlignment,
+        bool bold,
+        bool italic,
+        bool underline,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool strikethrough,
+        double? textAdvanceWidth) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -518,6 +558,9 @@ public static partial class OfficeTextBlockRenderer {
         if (color.A == 0) {
             return builder;
         }
+        if (textAdvanceWidth.HasValue && (textAdvanceWidth.Value <= 0D || double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
+            throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
+        }
 
         string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         builder.Append("<text")
@@ -527,6 +570,11 @@ public static partial class OfficeTextBlockRenderer {
             .AppendNumberAttribute("font-size", fontSize)
             .AppendAttribute("text-anchor", GetSvgTextAnchor(horizontalAlignment))
             .AppendPaintAttribute("fill", color);
+
+        if (textAdvanceWidth.HasValue && lines.Length == 1) {
+            builder.AppendNumberAttribute("textLength", textAdvanceWidth.Value)
+                .AppendAttribute("lengthAdjust", "spacingAndGlyphs");
+        }
 
         if (RequiresSvgWhitespacePreserve(text)) {
             builder.Append(" xml:space=\"preserve\"");

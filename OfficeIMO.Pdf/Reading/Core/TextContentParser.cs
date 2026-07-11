@@ -5,12 +5,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class TextContentParser {
-    private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
-        "ion", "ions", "ing", "ment", "tion", "sion", "iation", "ization",
-        "ability", "ality", "able", "ible", "ance", "ence", "al", "ally",
-        "er", "ers", "ed", "ly", "ology", "ologies"
-    };
-
     private readonly struct TextGraphicsState {
         public Matrix2D Ctm { get; }
         public string Font { get; }
@@ -1047,49 +1041,11 @@ internal static class TextContentParser {
         // Helpers (left empty for future metrics)
         // NormalizeThinSpaces removed in favor of per-glyph join logic
 
-        static bool Wordish(char c) => char.IsLetter(c) || char.IsDigit(c) || c == '\'' || c == '-' || c == '/';
-        static bool AllLetters(string s) { for (int k = 0; k < s.Length; k++) if (!Wordish(s[k])) return false; return s.Length > 0; }
-        static bool ShortAbbrev(string s) { if (s.Length == 0 || s.Length > 3) return false; for (int k = 0; k < s.Length; k++) if (!char.IsUpper(s[k])) return false; return true; }
         static string NormalizeShatteredSpan(string s) {
             if (string.IsNullOrEmpty(s)) return s;
-            // Collapse whitespace sequences
-            s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
-            var parts = s.Split(' ');
-            if (parts.Length <= 2) {
-                if (parts.Length == 2 && AllLetters(parts[0]) && AllLetters(parts[1])) {
-                    if (parts[0].Length == 1 && parts[1].Length >= 3) return parts[0] + parts[1];
-                    if (parts[1].Length <= 2 || parts[0].Length <= 2) return parts[0] + parts[1];
-                }
-                return s;
-            }
-            int shortCount = parts.Count(p => p.Length <= 2 && AllLetters(p));
-            if (shortCount < 2) return s; // only repair when we see multiple micro tokens
-            var sb = new StringBuilder(s.Length);
-            sb.Append(parts[0]);
-            for (int ii = 1; ii < parts.Length; ii++) {
-                string prev = parts[ii - 1]; string cur = parts[ii];
-                bool upperSinglesJoin = prev.Length == 1 && cur.Length == 1 && char.IsUpper(prev[0]) && char.IsUpper(cur[0])
-                                        && (ii + 1 < parts.Length && parts[ii + 1].Length == 1 && char.IsUpper(parts[ii + 1][0]));
-                bool leadingLetterJoin = AllLetters(prev) && AllLetters(cur) && prev.Length == 1 && cur.Length >= 3;
-                bool joinSmall = AllLetters(prev) && AllLetters(cur) && ((prev.Length <= 2 || cur.Length <= 2) || leadingLetterJoin || upperSinglesJoin) && !(ShortAbbrev(prev) && ShortAbbrev(cur) && !upperSinglesJoin);
-                bool nextShort = (ii + 1 < parts.Length) && parts[ii + 1].Length <= 2 && AllLetters(parts[ii + 1]) && !ShortAbbrev(parts[ii + 1]);
-                if (joinSmall || (AllLetters(cur) && cur.Length <= 2 && nextShort)) sb.Append(cur);
-                else sb.Append(' ').Append(cur);
-            }
-            string joined = sb.ToString().Replace("  ", " ");
-            // Secondary pass: join common suffix fragments
-            var toks = joined.Split(' ');
-            if (toks.Length > 1) {
-                var sb2 = new StringBuilder(joined.Length);
-                sb2.Append(toks[0]);
-                for (int i = 1; i < toks.Length; i++) {
-                    string prev = toks[i - 1]; string cur = toks[i];
-                    if (AllLetters(prev) && AllLetters(cur) && CommonSuffixes.Contains(cur)) sb2.Append(cur);
-                    else sb2.Append(' ').Append(cur);
-                }
-                joined = sb2.ToString();
-            }
-            return joined;
+            string normalized = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ");
+            string trimmed = normalized.Trim();
+            return trimmed.Length == 0 && normalized.Length > 0 ? " " : trimmed;
         }
     }
 

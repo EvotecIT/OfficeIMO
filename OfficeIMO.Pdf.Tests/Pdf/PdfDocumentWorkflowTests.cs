@@ -1055,7 +1055,7 @@ public class PdfDocumentWorkflowTests {
         PdfDocument appended = PdfDocument.Open(target).Pages.Append(PdfDocument.Open(source), selection);
         Assert.Equal(PdfPageImporter.AppendPages(target, source, 3, 1), appended.ToBytes());
         Assert.Equal(3, appended.Inspect().PageCount);
-        Assert.Contains("PageC", appended.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", appended.Read.Text(), StringComparison.Ordinal);
         Assert.DoesNotContain("Page B", appended.Read.Text(), StringComparison.Ordinal);
 
         PdfDocument prepended = PdfDocument.Open(target).Pages.Prepend(source, PdfPageSelection.From(2));

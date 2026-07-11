@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using System;
 using System.Collections.Generic;
@@ -60,7 +61,7 @@ public static partial class DocumentReader {
                     AddPowerPointTableLinks(table, location, slideLinks, ref linkIndex);
                 } else if (shape is PowerPointChart chart) {
                     string chartText = shape.Name ?? "Chart";
-                    if (chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot)) {
+                    if (chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)) {
                         chartText = snapshot.Title ?? snapshot.Name;
                         string payload = BuildPowerPointChartPayload(snapshot);
                         visuals.Add(new ReaderVisual {
@@ -250,7 +251,7 @@ public static partial class DocumentReader {
         return row.Cells[index].Text;
     }
 
-    private static string BuildPowerPointChartPayload(PowerPointChartSnapshot snapshot) {
+    private static string BuildPowerPointChartPayload(OfficeChartSnapshot snapshot) {
         return JsonSerializer.Serialize(new {
             name = snapshot.Name,
             title = snapshot.Title,
@@ -260,7 +261,7 @@ public static partial class DocumentReader {
                 name = series.Name,
                 values = series.Values,
                 xValues = series.XValues,
-                kind = series.ChartKind?.ToString()
+                kind = series.RenderKind?.ToString()
             }).ToArray()
         });
     }

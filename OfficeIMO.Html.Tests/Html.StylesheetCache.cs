@@ -35,9 +35,9 @@ namespace OfficeIMO.Tests {
                 var key = ComputeHash(css);
                 cache.Remove(key);
                 var html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
-                html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var first = cache[key];
-                html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 Assert.Same(first, cache[key]);
             } finally {
                 File.Delete(path);
@@ -50,11 +50,11 @@ namespace OfficeIMO.Tests {
             string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
             try {
                 File.WriteAllText(path, "p { color:#111111; }");
-                var firstDoc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var firstDoc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 Assert.Equal("111111", firstDoc.Paragraphs[0].GetRuns().First().ColorHex);
 
                 File.WriteAllText(path, "p { color:#222222; }");
-                var secondDoc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var secondDoc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
 
                 Assert.Equal("222222", secondDoc.Paragraphs[0].GetRuns().First().ColorHex);
             } finally {
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var firstDoc = html.LoadFromHtml(options);
-            var secondDoc = html.LoadFromHtml(options);
+            var firstDoc = html.ToWordDocument(options);
+            var secondDoc = html.ToWordDocument(options);
 
             Assert.Equal("333333", firstDoc.Paragraphs[0].GetRuns().First().ColorHex);
             Assert.Equal("444444", secondDoc.Paragraphs[0].GetRuns().First().ColorHex);
@@ -93,9 +93,9 @@ namespace OfficeIMO.Tests {
             var cache = GetCache();
             cache.Remove(key);
             var html = $"<style>{css}</style><p>Test</p>";
-            html.LoadFromHtml(new HtmlToWordOptions());
+            html.ToWordDocument(new HtmlToWordOptions());
             var first = cache[key];
-            html.LoadFromHtml(new HtmlToWordOptions());
+            html.ToWordDocument(new HtmlToWordOptions());
             Assert.Same(first, cache[key]);
         }
     }

@@ -42,7 +42,7 @@ public static partial class PowerPointPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
 
-        using PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(presentationStream, autoSave: false);
+        using PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(presentationStream, new PptCore.PowerPointStreamCreateOptions { AutoSave = false });
         IReadOnlyList<PdfPowerPointTableImportResult> results = ImportTables(document, presentation, options ?? new PdfPowerPointTableImportOptions());
         presentation.Save(presentationStream);
         return results;

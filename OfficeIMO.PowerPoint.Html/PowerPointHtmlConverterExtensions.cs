@@ -14,6 +14,7 @@ public static class PowerPointHtmlConverterExtensions {
     public static string ToHtml(this PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions? options = null) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         options ??= new PowerPointHtmlSaveOptions();
+        options.SnapshotDiagnostics.Clear();
         return options.Profile == OfficeHtmlConversionProfile.PowerPointVisualReview
             ? ConvertVisual(presentation, options)
             : ConvertSemantic(presentation, options);
@@ -123,6 +124,27 @@ public static class PowerPointHtmlConverterExtensions {
             .Append(FormatNumber(height))
             .Append("pt;\">");
 
+        IReadOnlyList<OfficeImageExportDiagnostic> slideDiagnostics = Array.Empty<OfficeImageExportDiagnostic>();
+        if (options.UseSharedVisualSnapshot) {
+            var snapshotOptions = new PptCore.PowerPointImageExportOptions {
+                IncludeHiddenShapes = options.IncludeHiddenShapes,
+                IncludeTables = options.IncludeTables
+            };
+            PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(snapshotOptions);
+            slideDiagnostics = snapshot.Diagnostics;
+            body.Append("<div class=\"officeimo-shared-slide-snapshot\" data-officeimo-visual-owner=\"OfficeIMO.Drawing\" data-officeimo-snapshot-diagnostics=\"")
+                .Append(snapshot.Diagnostics.Count.ToString(CultureInfo.InvariantCulture))
+                .Append("\">")
+                .Append(OfficeDrawingSvgExporter.ToSvg(snapshot.Drawing))
+                .Append("</div>");
+            foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
+                options.SnapshotDiagnostics.Add(diagnostic);
+            }
+        }
+
+        body.Append(options.UseSharedVisualSnapshot
+            ? "<div class=\"officeimo-positioned-shape-metadata\" hidden>"
+            : "<div class=\"officeimo-positioned-shape-fallback\">");
         foreach (PptCore.PowerPointShape shape in EnumerateVisualExportShapes(slide)) {
             if (!options.IncludeHiddenShapes && shape.Hidden) {
                 continue;
@@ -131,9 +153,25 @@ public static class PowerPointHtmlConverterExtensions {
             AppendPositionedShape(body, shape, options);
         }
 
-        body.Append("</div></div>");
+        body.Append("</div></div></div>");
+        AppendSnapshotDiagnostics(body, slideDiagnostics);
         AppendExtractionProof(body, extractionProof, options);
         body.Append("</section>");
+    }
+
+    private static void AppendSnapshotDiagnostics(StringBuilder body,
+        IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
+        List<OfficeImageExportDiagnostic> slideDiagnostics = diagnostics.ToList();
+        if (slideDiagnostics.Count == 0) return;
+        body.Append("<ul class=\"officeimo-snapshot-diagnostics\">");
+        foreach (OfficeImageExportDiagnostic diagnostic in slideDiagnostics) {
+            body.Append("<li data-officeimo-diagnostic-code=\"")
+                .Append(OfficeHtmlText.EscapeAttribute(diagnostic.Code))
+                .Append("\">")
+                .Append(OfficeHtmlText.Escape(diagnostic.Message))
+                .Append("</li>");
+        }
+        body.Append("</ul>");
     }
 
     private static IEnumerable<PptCore.PowerPointShape> EnumerateVisualExportShapes(PptCore.PowerPointSlide slide) {
@@ -413,7 +451,10 @@ public static class PowerPointHtmlConverterExtensions {
 
         try {
             var series = snapshot.Data.Series
-                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues))
+                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
+                    pointColors: null, showMarkers: true, strokeWidth: item.StrokeWidth,
+                    renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
+                    axisGroup: item.AxisGroup))
                 .ToList();
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             officeSnapshot = new OfficeChartSnapshot(

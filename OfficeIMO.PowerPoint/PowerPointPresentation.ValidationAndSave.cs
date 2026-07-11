@@ -7,7 +7,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.PowerPoint.Fluent;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -67,6 +66,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Save() {
             ThrowIfDisposed();
+            ApplySignatureMutationPolicy();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
@@ -74,6 +74,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
+            _discardChangesOnDispose = false;
         }
 
         /// <summary>
@@ -84,12 +85,15 @@ namespace OfficeIMO.PowerPoint {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
+            ApplySignatureMutationPolicy();
+
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
+            _discardChangesOnDispose = false;
 
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
@@ -141,7 +145,8 @@ namespace OfficeIMO.PowerPoint {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             ValidateSlideIndex(slideIndex);
-            using PowerPointPresentation exported = Create(destination, autoSave: false);
+            using PowerPointPresentation exported = Create(destination,
+                new PowerPointStreamCreateOptions { AutoSave = false });
             exported.ImportSlide(this, slideIndex);
             exported.Save(destination);
         }

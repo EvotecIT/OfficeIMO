@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -11,6 +12,8 @@ public static class PdfTextDiagnostics {
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTrueTypeFontProgram, OpenTypeFontInfoBox> TrueTypeLayoutInfoCache = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfOpenTypeCffFontProgram, OpenTypeFontInfoBox> CffLayoutInfoCache = new();
 
     /// <summary>
     /// Finds text that cannot be written through the current generated standard-font WinAnsi path.
@@ -263,7 +266,7 @@ public static class PdfTextDiagnostics {
             int sourceIndex = scalarStart + indexOffset;
             int scalar = ReadScalar(text, ref index);
 
-            if (IsRightToLeftScalar(scalar)) {
+            if (OfficeTextElements.IsRightToLeftScalar(scalar)) {
                 AddDiagnostic(
                     diagnostics,
                     reportedCodes,
@@ -332,13 +335,33 @@ public static class PdfTextDiagnostics {
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, byte[] fontData, string source, string? fontName, int indexOffset) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(fontData, nameof(fontData));
+        PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out _, fontName);
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+    }
+
+    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+        PdfOpenTypeFontInfo? info = TrueTypeLayoutInfoCache.GetValue(
+            font,
+            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+    }
+
+    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+        PdfOpenTypeFontInfo? info = CffLayoutInfoCache.GetValue(
+            font,
+            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+    }
+
+    private static List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeFontInfo? info, string source, int indexOffset) {
         var diagnostics = new List<PdfTextShapingDiagnostic>(AnalyzeAdvancedTextLayoutCore(text, source, indexOffset));
+        if (info == null) return diagnostics;
         var reportedCodes = new HashSet<string>(diagnostics.Select(diagnostic => diagnostic.Code), StringComparer.Ordinal);
-
-        if (PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out _, fontName) && info != null) {
-            AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset);
-        }
-
+        AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset);
         return diagnostics;
     }
 
@@ -902,20 +925,6 @@ public static class PdfTextDiagnostics {
         return -1;
     }
 
-    private static bool IsRightToLeftScalar(int scalar) =>
-        IsInRange(scalar, 0x0590, 0x05FF) ||
-        IsInRange(scalar, 0x0600, 0x06FF) ||
-        IsInRange(scalar, 0x0700, 0x074F) ||
-        IsInRange(scalar, 0x0750, 0x077F) ||
-        IsInRange(scalar, 0x0780, 0x07BF) ||
-        IsInRange(scalar, 0x07C0, 0x07FF) ||
-        IsInRange(scalar, 0x0840, 0x085F) ||
-        IsInRange(scalar, 0x08A0, 0x08FF) ||
-        IsInRange(scalar, 0xFB1D, 0xFDFF) ||
-        IsInRange(scalar, 0xFE70, 0xFEFF) ||
-        IsInRange(scalar, 0x1E900, 0x1E95F) ||
-        IsInRange(scalar, 0x1EE00, 0x1EEFF);
-
     private static bool TryGetComplexScriptName(int scalar, out string script) {
         if (IsInRange(scalar, 0x0600, 0x06FF) ||
             IsInRange(scalar, 0x0750, 0x077F) ||
@@ -1069,6 +1078,15 @@ public static class PdfTextDiagnostics {
             glyphId = 0;
             return false;
         }
+    }
+
+    private sealed class OpenTypeFontInfoBox {
+        public OpenTypeFontInfoBox(byte[] fontData, string fontName) {
+            PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out _, fontName);
+            Info = info;
+        }
+
+        public PdfOpenTypeFontInfo? Info { get; }
     }
 
     private sealed class EmbeddedFontFallbackProgramBox {

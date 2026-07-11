@@ -26,7 +26,7 @@ namespace OfficeIMO.Word.Markdown {
                 var htmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
                 htmlOptions.PreserveUnsupportedBlocks = false;
                 htmlOptions.PreserveUnsupportedInlineHtml = false;
-                htmlDocument = html.LoadFromHtml(htmlOptions);
+                htmlDocument = html.ToMarkdownDocument(htmlOptions);
             } catch {
                 return false;
             }

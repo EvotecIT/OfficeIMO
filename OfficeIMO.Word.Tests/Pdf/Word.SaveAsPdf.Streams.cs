@@ -98,7 +98,7 @@ public partial class Word {
         document.AddParagraph("Hello native async bytes");
         document.Save();
 
-        byte[] bytes = await document.SaveAsPdfAsync(new PdfSaveOptions {
+        byte[] bytes = await document.ToPdfAsync(new PdfSaveOptions {
             IncludePageNumbers = false,
             PageSize = new PdfCore.PageSize(240, 320),
             Margins = PdfCore.PageMargins.Uniform(36)
@@ -119,7 +119,7 @@ public partial class Word {
 
         using WordDocument document = WordDocument.Load(docPath, readOnly: true);
 
-        byte[] bytes = document.SaveAsPdf();
+        byte[] bytes = document.ToPdf();
 
         Assert.True(bytes.Length > 4);
         Assert.Equal((byte)'%', bytes[0]);

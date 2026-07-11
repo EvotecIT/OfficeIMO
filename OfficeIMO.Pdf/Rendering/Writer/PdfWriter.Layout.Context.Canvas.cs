@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -8,6 +9,18 @@ internal static partial class PdfWriter {
             EnsurePage();
             foreach (PdfCanvasItem item in canvas.Items) {
                 switch (item) {
+                    case PdfCanvasActualTextItem actualText:
+                        RenderCanvasActualText(actualText);
+                        break;
+                    case PdfCanvasStructureItem structure:
+                        RenderCanvasStructure(structure);
+                        break;
+                    case PdfCanvasFigureItem figure:
+                        RenderCanvasFigure(figure);
+                        break;
+                    case PdfCanvasOutlineItem outline:
+                        RenderCanvasOutline(outline);
+                        break;
                     case PdfCanvasTextItem text:
                         RenderCanvasText(text);
                         break;
@@ -38,8 +51,96 @@ internal static partial class PdfWriter {
                     case PdfCanvasClipItem clip:
                         RenderCanvasClip(clip);
                         break;
+                    case PdfCanvasEffectItem effect:
+                        RenderCanvasEffect(effect);
+                        break;
                 }
             }
+        }
+
+        private void RenderCanvasActualText(PdfCanvasActualTextItem item) {
+            EnsurePage();
+            sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(item.Text))
+                .Append(" >> BDC\n");
+            RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            sb.Append("EMC\n");
+        }
+
+        private void RenderCanvasStructure(PdfCanvasStructureItem item) {
+            PdfCanvasStructureOptions options = item.Options;
+            int? structureElementIndex = RegisterStructureContainer(
+                MapCanvasStructureType(item.Role),
+                _canvasStructureParentElementIndex,
+                MapCanvasTableHeaderScope(options.HeaderScope),
+                options.ColumnSpan,
+                options.RowSpan,
+                options.AlternativeText);
+            int? previous = _canvasStructureParentElementIndex;
+            _canvasStructureParentElementIndex = structureElementIndex ?? previous;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _canvasStructureParentElementIndex = previous;
+            }
+        }
+
+        private static string MapCanvasStructureType(PdfCanvasStructureRole role) {
+            if (role == PdfCanvasStructureRole.Section) return "Sect";
+            if (role == PdfCanvasStructureRole.Division) return "Div";
+            if (role == PdfCanvasStructureRole.Paragraph) return "P";
+            if (role == PdfCanvasStructureRole.Heading1) return "H1";
+            if (role == PdfCanvasStructureRole.Heading2) return "H2";
+            if (role == PdfCanvasStructureRole.Heading3) return "H3";
+            if (role == PdfCanvasStructureRole.Heading4) return "H4";
+            if (role == PdfCanvasStructureRole.Heading5) return "H5";
+            if (role == PdfCanvasStructureRole.Heading6) return "H6";
+            if (role == PdfCanvasStructureRole.List) return "L";
+            if (role == PdfCanvasStructureRole.ListItem) return "LI";
+            if (role == PdfCanvasStructureRole.ListLabel) return "Lbl";
+            if (role == PdfCanvasStructureRole.ListBody) return "LBody";
+            if (role == PdfCanvasStructureRole.Table) return "Table";
+            if (role == PdfCanvasStructureRole.TableRow) return "TR";
+            if (role == PdfCanvasStructureRole.TableHeaderCell) return "TH";
+            if (role == PdfCanvasStructureRole.TableCell) return "TD";
+            return "Caption";
+        }
+
+        private static string MapCanvasTableHeaderScope(PdfCanvasTableHeaderScope? scope) {
+            if (scope == PdfCanvasTableHeaderScope.Row) return "Row";
+            if (scope == PdfCanvasTableHeaderScope.Column) return "Column";
+            if (scope == PdfCanvasTableHeaderScope.Both) return "Both";
+            return string.Empty;
+        }
+
+        private void RenderCanvasFigure(PdfCanvasFigureItem item) {
+            EnsurePage();
+            int? markedContentId = RegisterFigureStructureElement(item.AlternativeText, _canvasStructureParentElementIndex);
+            sb.Append("/Figure << /Alt ")
+                .Append(PdfSyntaxEscaper.TextString(item.AlternativeText));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sb.Append(" >> BDC\n");
+            bool previous = _suppressCanvasAccessibilityWrappers;
+            _suppressCanvasAccessibilityWrappers = true;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previous;
+            }
+            sb.Append("EMC\n");
+        }
+
+        private void RenderCanvasOutline(PdfCanvasOutlineItem item) {
+            EnsurePage();
+            currentPage!.Bookmarks.Add(new PageBookmark {
+                Level = item.Level,
+                Title = item.Title,
+                Y = currentOpts.PageHeight - item.Y
+            });
         }
 
         private void RenderCanvasText(PdfCanvasTextItem item) {
@@ -54,7 +155,8 @@ internal static partial class PdfWriter {
 
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
-            int? markedContentId = RegisterTextStructureElement("P");
+            string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
+            int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElementIndex);
             WriteClippedRichParagraph(
                 sb,
                 block,
@@ -71,12 +173,23 @@ internal static partial class PdfWriter {
                 item.Height,
                 item.X,
                 item.Width,
-                structureType: "P",
+                structureType: structureType,
                 markedContentId: markedContentId,
                 structurePage: currentPage);
             MarkRichFonts(item.Runs);
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
+        }
+
+        private static string MapCanvasTextStructureType(PdfCanvasTextStructureRole role) {
+            if (role == PdfCanvasTextStructureRole.Heading1) return "H1";
+            if (role == PdfCanvasTextStructureRole.Heading2) return "H2";
+            if (role == PdfCanvasTextStructureRole.Heading3) return "H3";
+            if (role == PdfCanvasTextStructureRole.Heading4) return "H4";
+            if (role == PdfCanvasTextStructureRole.Heading5) return "H5";
+            if (role == PdfCanvasTextStructureRole.Heading6) return "H6";
+            if (role == PdfCanvasTextStructureRole.Span) return "Span";
+            return "P";
         }
 
         private void RenderCanvasTextBox(PdfCanvasTextBoxItem item) {
@@ -136,7 +249,7 @@ internal static partial class PdfWriter {
 
                 double verticalOffset = GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, textContentHeight);
                 var annotations = rotated ? new System.Collections.Generic.List<LinkAnnotation>() : currentPage!.Annotations;
-                int? markedContentId = RegisterTextStructureElement("P");
+                int? markedContentId = _suppressCanvasAccessibilityWrappers ? null : RegisterTextStructureElement("P", _canvasStructureParentElementIndex);
                 WriteClippedRichParagraph(
                     sb,
                     blockText,
@@ -153,7 +266,7 @@ internal static partial class PdfWriter {
                     textHeight,
                     textX,
                     textWidth,
-                    structureType: "P",
+                    structureType: _suppressCanvasAccessibilityWrappers ? null : "P",
                     markedContentId: markedContentId,
                     structurePage: currentPage);
                 MarkRichFonts(item.Runs);
@@ -280,14 +393,15 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
+            pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
             pageImage.RotationAngle = item.RotationAngle;
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
             sb.Append(pageImage.InlineDrawToken);
-            if (!string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
-                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!);
+            if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
+                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);
                 pageImage.MarkedContentId = markedContentId;
                 pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
             }
@@ -308,11 +422,8 @@ internal static partial class PdfWriter {
             int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
-            new ContentStreamBuilder(sb)
-                .SaveState()
-                .Rectangle(item.X, bottomY, item.Width, item.Height)
-                .ClipPath()
-                .EndPath();
+            new ContentStreamBuilder(sb).SaveState();
+            AppendClipPath(sb, item.ClipPath, item.X, bottomY, item.Height);
 
             _canvasClipDepth++;
             try {
@@ -331,6 +442,93 @@ internal static partial class PdfWriter {
                 .RestoreState();
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
+        }
+
+        private void RenderCanvasEffect(PdfCanvasEffectItem item) {
+            OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
+            int annotationStart = currentPage!.Annotations.Count;
+            int textAnnotationStart = currentPage.TextAnnotations.Count;
+            int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
+            int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
+            int formFieldStart = currentPage.FormFields.Count;
+            string? opacityState = EnsureGraphicsState(item.Opacity, item.Opacity);
+            int contentStart = sb.Length;
+            _canvasClipDepth++;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _canvasClipDepth--;
+            }
+            string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
+            sb.Length = contentStart;
+            string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            currentPage.EffectGroups.Add(new PageEffectGroup {
+                Content = groupContent,
+                Token = token,
+                Transform = transform,
+                GraphicsStateName = opacityState
+            });
+            sb.Append(token);
+            TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);
+            TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.HighlightAnnotations, highlightAnnotationStart, transform);
+            TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
+            pageDirty = true;
+        }
+
+        private static OfficeTransform ConvertTopLeftCanvasTransform(OfficeTransform transform, double pageHeight) =>
+            new OfficeTransform(
+                transform.M11,
+                -transform.M12,
+                -transform.M21,
+                transform.M22,
+                transform.M21 * pageHeight + transform.OffsetX,
+                pageHeight * (1D - transform.M22) - transform.OffsetY);
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<TextAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<FreeTextAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<HighlightAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangles(System.Collections.Generic.List<FormFieldAnnotation> annotations, int startIndex, OfficeTransform transform) {
+            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
+        }
+
+        private static void TransformCanvasRectangle(LinkAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(TextAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(FreeTextAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(HighlightAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
+            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+        }
+
+        private static (double X1, double Y1, double X2, double Y2) TransformRectangle(double x1, double y1, double x2, double y2, OfficeTransform transform) {
+            (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(x1, y1, x2 - x1, y2 - y1);
+            return (left, top, right, bottom);
         }
 
         private void ValidateCanvasBox(double x, double yFromTop, double boxWidth, double boxHeight, string name) {

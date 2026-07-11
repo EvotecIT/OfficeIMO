@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 2D, IncludeSlideContent = false });
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
             slide.AddTextBoxPoints("Hidden by fluent content toggle", 20, 20, 140, 24);
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
 
             byte[] png = slide.ToImage()
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45D);
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(120, 80);
             presentation.SetThemeColor(PowerPointThemeColor.Accent1, "112233");
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "445566");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             DocumentFormat.OpenXml.Packaging.SlideMasterPart masterPart = slide.SlidePart.SlideLayoutPart!.SlideMasterPart!;
             A.BackgroundFillStyleList backgroundFills = masterPart.ThemePart!.Theme!.ThemeElements!.FormatScheme!
                 .GetFirstChild<A.BackgroundFillStyleList>()!;
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45D);
 
             A.GradientFill gradient = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45D);
 
             A.GradientFill gradient = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 60, 30);
             rectangle.FillColor = "22AA66";
             rectangle.OutlineColor = "114433";
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 100);
             presentation.SetThemeColor(PowerPointThemeColor.Accent1, "204060");
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "884422");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 80, 40);
             rectangle.FillColor = "FFFFFF";
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 80, 40);
             rectangle.FillColor = "FFFFFF";
@@ -413,7 +413,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 80, 40);
             rectangle.FillColor = "FFFFFF";
@@ -460,7 +460,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape arrow = slide.AddShapePoints(A.ShapeTypeValues.RightArrow, 24, 24, 92, 36);
             arrow.FillColor = "E0F2FE";
@@ -505,7 +505,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 100);
             presentation.SetThemeColor(PowerPointThemeColor.Accent3, "336699");
             presentation.SetThemeColor(PowerPointThemeColor.Accent4, "884422");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, 20, 20, 80, 40);
             textBox.FillColor = "FFFFFF";
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("A\tB", 20, 20, 130, 24);
             textBox.FontSize = 12;
@@ -571,7 +571,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 90);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Inset", 20, 18, 120, 44);
             textBox.FontSize = 12;
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint hanging indent wraps across lines", 20, 20, 120, 54);
             textBox.FontSize = 12;
@@ -628,7 +628,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Justified PowerPoint text wraps across the exported slide image", 20, 20, 120, 54);
             textBox.FontSize = 12;
@@ -654,7 +654,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
             presentation.SetThemeColor(PowerPointThemeColor.Accent1, "204060");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             slide.AddTextBoxPoints("Theme text", 20, 20, 120, 34);
             Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
@@ -688,7 +688,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape triangle = slide.AddShapePoints(A.ShapeTypeValues.Triangle, 20, 20, 48, 44);
             triangle.FillColor = "1F4E79";
@@ -729,7 +729,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(260, 170);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape heptagon = slide.AddShapePoints(A.ShapeTypeValues.Heptagon, 16, 18, 52, 48);
             heptagon.FillColor = "DBEAFE";
@@ -788,7 +788,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape upDown = slide.AddShapePoints(A.ShapeTypeValues.UpDownArrow, 20, 20, 48, 78);
             upDown.FillColor = "A7F3D0";
@@ -824,7 +824,7 @@ namespace OfficeIMO.Tests {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(260, 170);
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape leftUp = slide.AddShapePoints(A.ShapeTypeValues.LeftUpArrow, 18, 18, 56, 54);
         leftUp.FillColor = "DBEAFE";
@@ -870,7 +870,7 @@ namespace OfficeIMO.Tests {
         using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape rightCallout = slide.AddShapePoints(A.ShapeTypeValues.RightArrowCallout, 16, 18, 84, 42);
             rightCallout.FillColor = "DBEAFE";
@@ -917,7 +917,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 170);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape process = slide.AddShapePoints(A.ShapeTypeValues.FlowChartProcess, 18, 18, 76, 38);
             process.FillColor = "DBEAFE";
@@ -971,7 +971,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(260, 190);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape preparation = slide.AddShapePoints(A.ShapeTypeValues.FlowChartPreparation, 16, 18, 64, 42);
             preparation.FillColor = "DBEAFE";
@@ -1033,7 +1033,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(260, 170);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape rectangleCallout = slide.AddShapePoints(A.ShapeTypeValues.WedgeRectangleCallout, 16, 16, 72, 50);
             rectangleCallout.FillColor = "FDE68A";
@@ -1085,7 +1085,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape bracketPair = slide.AddShapePoints(A.ShapeTypeValues.BracketPair, 18, 18, 62, 84);
             bracketPair.FillColor = "DDD6FE";
@@ -1122,7 +1122,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
             first.FillColor = "FF0000";
@@ -1179,7 +1179,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointPicture picture = slide.AddPicture(
                 new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6 }),
@@ -1202,7 +1202,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape first = slide.AddRectanglePoints(40, 35, 30, 20);
             first.FillColor = "FF0000";
@@ -1251,7 +1251,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             byte[] pngBytes = OfficePngWriter.Encode(new OfficeRasterImage(4, 4, OfficeColor.FromRgb(37, 99, 235)));
             PowerPointPicture picture = slide.AddPicture(
@@ -1290,7 +1290,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape shape = slide.AddRectanglePoints(20, 20, 100, 20);
             shape.FillColor = "FF0000";
@@ -1338,7 +1338,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape shape = slide.AddRectanglePoints(20, 20, 100, 20);
             shape.FillColor = "FF0000";
@@ -1390,7 +1390,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Base ", 20, 20, 60, 24);
             textBox.FontSize = 10;
@@ -1451,7 +1451,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape horizontal = slide.AddShapePoints(A.ShapeTypeValues.StraightConnector1, 20, 40, 100, 0);
             horizontal.OutlineColor = "1E5A96";
@@ -1484,7 +1484,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape horizontal = slide.AddShapePoints(A.ShapeTypeValues.StraightConnector1, 20, 40, 100, 0);
             horizontal.OutlineColor = "1E5A96";
@@ -1530,7 +1530,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape connector = slide.AddShapePoints(A.ShapeTypeValues.BentConnector2, 24, 24, 92, 58);
             connector.OutlineColor = "1E5A96";
@@ -1569,7 +1569,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 150);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape bent4 = slide.AddShapePoints(A.ShapeTypeValues.BentConnector4, 20, 24, 96, 64);
             bent4.OutlineColor = "1E5A96";
@@ -1631,7 +1631,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 150);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape curved2 = slide.AddShapePoints(A.ShapeTypeValues.CurvedConnector2, 20, 28, 86, 56);
             curved2.OutlineColor = "1E5A96";
@@ -1685,14 +1685,14 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
                 presentation.SlideSize.SetSizePoints(220, 150);
-                PowerPointSlide slide = presentation.Slides[0];
+                PowerPointSlide slide = presentation.AddSlide();
                 slide.AddRectanglePoints(16, 20, 32, 24, "Start Node");
                 slide.AddRectanglePoints(162, 96, 32, 24, "End Node");
                 slide.SlidePart.Slide.CommonSlideData!.ShapeTree!.Append(CreateNativeBentConnectionShape());
             }
 
             stream.Position = 0;
-            using PowerPointPresentation loaded = PowerPointPresentation.Open(stream, readOnly: true);
+            using PowerPointPresentation loaded = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
             PowerPointSlide loadedSlide = loaded.Slides[0];
 
             PowerPointConnectionShape connection = Assert.Single(loadedSlide.Shapes.OfType<PowerPointConnectionShape>());
@@ -1734,7 +1734,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
             slide.AddPicture(new MemoryStream(png), ImagePartType.Png, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
 
@@ -1758,7 +1758,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             using MemoryStream video = new(new byte[] { 0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50 });
             slide.AddVideo(
                 video,
@@ -1791,7 +1791,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp24(2, 2, new[] {
                 OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86),
                 OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86)
@@ -1823,7 +1823,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp24(2, 2, new[] {
                 OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144),
                 OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144)
@@ -1854,7 +1854,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp32(2, 2, new[] {
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
@@ -1890,7 +1890,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "000000";
             slide.AddPicture(
                 new MemoryStream(CreateSinglePixelGif()),
@@ -1919,7 +1919,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             OfficeRasterImage source = new(4, 4, OfficeColor.Transparent);
             for (int y = 0; y < source.Height; y++) {
@@ -1993,7 +1993,7 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
                 presentation.SlideSize.SetSizePoints(80, 60);
-                PowerPointSlide slide = presentation.Slides[0];
+                PowerPointSlide slide = presentation.AddSlide();
                 slide.SetBackgroundImage(imagePath);
 
                 OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
@@ -2015,7 +2015,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(2, 2, 20, 20, 120, 50);
             table.SetColumnWidthsPoints(45, 75);
@@ -2066,7 +2066,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(160, 120);
             presentation.SetThemeColor(PowerPointThemeColor.Accent1, "336699");
             presentation.SetThemeColor(PowerPointThemeColor.Light1, "F8FAFC");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(3, 1, 20, 18, 100, 72);
             table.SetRowHeightsPoints(24, 24, 24);
@@ -2109,7 +2109,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Edges";
@@ -2152,7 +2152,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "204060");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Theme edge";
@@ -2187,7 +2187,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Alpha cell";
@@ -2233,7 +2233,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Diagonal";
@@ -2278,7 +2278,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             presentation.SetThemeColor(PowerPointThemeColor.Accent3, "336699");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Theme fill";
@@ -2312,7 +2312,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
             presentation.SetThemeColor(PowerPointThemeColor.Accent4, "884422");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Theme cell";
@@ -2343,7 +2343,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 42);
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Alpha text";
@@ -2376,7 +2376,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 20, 18, 100, 40);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -2414,7 +2414,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 24, 24, 132, 46);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -2474,7 +2474,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 24, 24, 132, 46);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -2509,7 +2509,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(1, 1, 24, 24, 132, 46);
             PowerPointTableCell cell = table.GetCell(0, 0);
@@ -2548,7 +2548,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(2, 2, 25, 25, 110, 48);
             table.SetColumnWidthsPoints(50, 60);
@@ -2590,7 +2590,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
@@ -2625,7 +2625,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
@@ -2662,7 +2662,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
@@ -2681,7 +2681,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
@@ -2702,7 +2702,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "884422");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
@@ -2732,7 +2732,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
@@ -2766,7 +2766,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             var data = new PowerPointChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
@@ -2808,7 +2808,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape rectangle = slide.AddRectanglePoints(40, 30, 40, 20);
             rectangle.FillColor = "22AA66";
@@ -2838,7 +2838,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Mirrored", 40, 30, 80, 24);
             textBox.FontSize = 14;
@@ -2869,7 +2869,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Plain ", 24, 24, 132, 58);
             PowerPointParagraph paragraph = textBox.Paragraphs[0];
@@ -2919,7 +2919,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Plain ", 24, 24, 132, 58);
             PowerPointParagraph paragraph = textBox.Paragraphs[0];
@@ -2964,7 +2964,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Marked", 24, 24, 132, 40);
             textBox.FontSize = 18;
@@ -2997,7 +2997,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Marked", 24, 24, 132, 40);
             textBox.FontSize = 18;
@@ -3038,7 +3038,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
             presentation.SetThemeColor(PowerPointThemeColor.Accent5, "66CCFF");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             slide.AddTextBoxPoints("Theme mark", 24, 24, 132, 40);
             Shape shape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
@@ -3071,7 +3071,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
             presentation.SetThemeColor(PowerPointThemeColor.Accent5, "2468AC");
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Plain ", 24, 24, 132, 58);
             textBox.Paragraphs[0].AddRun("Theme", run => {
@@ -3110,7 +3110,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Deprecated", 24, 24, 132, 40);
             textBox.ApplyTextStyle(PowerPointTextStyle.Body.WithUnderline(true).WithStrikethrough(true), applyToRuns: true);
@@ -3141,7 +3141,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(220, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, 24, 24, 172, 46);
             textBox.SetMarkdown("Keep ~~obsolete~~ current");
@@ -3171,7 +3171,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(320, 260);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox bullets = slide.AddTextBoxPoints(string.Empty, 20, 20, 280, 220);
             bullets.SetBullets(new[] { "First bullet", "Second bullet" });
@@ -3212,7 +3212,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(340, 260);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox alpha = slide.AddTextBoxPoints(string.Empty, 20, 20, 300, 90);
             alpha.AddNumberedList(
@@ -3254,7 +3254,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 110);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBoxPoints("Plain ", 24, 24, 132, 58);
             textBox.HorizontalFlip = true;
@@ -3389,13 +3389,48 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.Slides[0].ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 0D }));
+                presentation.AddSlide().ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 0D }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions { SlideNumbers = new[] { 0 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions { SlideNumbers = new[] { 2 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlides(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlideRange(2, 1));
+        }
+
+        [Fact]
+        public void PresentationImageExportPropagatesAllSlideContentFilters() {
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddPicture(imagePath);
+            PowerPointAutoShape shape = slide.AddRectanglePoints(12, 12, 30, 20, "Filtered shape");
+            shape.FillColor = "ABCDEF";
+            slide.AddTextBoxPoints("FILTERED TEXT", 48, 12, 100, 24);
+            PowerPointTable table = slide.AddTablePoints(1, 1, 12, 44, 120, 30);
+            table.GetCell(0, 0).Text = "FILTERED TABLE";
+            slide.AddChartPoints(OfficeChartKind.ColumnClustered,
+                new OfficeChartData(new[] { "FILTERED CATEGORY" }, new[] {
+                    new OfficeChartSeries("FILTERED CHART", new[] { 42D })
+                }), 150, 44, 120, 80);
+
+            OfficeImageExportResult result = Assert.Single(presentation.ExportImages(
+                OfficeImageExportFormat.Svg, new PowerPointPresentationImageExportOptions {
+                    IncludeSlideBackground = false,
+                    IncludePictures = false,
+                    IncludeAutoShapes = false,
+                    IncludeTextBoxes = false,
+                    IncludeTables = false,
+                    IncludeCharts = false
+                }));
+            string svg = Encoding.UTF8.GetString(result.Bytes);
+
+            Assert.DoesNotContain("<image", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("ABCDEF", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("FILTERED TEXT", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("FILTERED TABLE", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("FILTERED CATEGORY", svg, StringComparison.Ordinal);
         }
 
         private static int CountPixelsNear(OfficeRasterImage image, OfficeColor expected) {

@@ -53,7 +53,7 @@ using OfficeIMO.Excel.Pdf;
 
 using var workbook = ExcelDocument.Load("statement.xlsx");
 
-byte[] pdfBytes = workbook.SaveAsPdf();
+byte[] pdfBytes = workbook.ToPdf();
 
 using var stream = File.Create("statement.pdf");
 workbook.SaveAsPdf(stream);

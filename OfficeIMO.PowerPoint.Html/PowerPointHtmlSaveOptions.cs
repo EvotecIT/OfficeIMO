@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint.Html;
 
@@ -32,4 +33,13 @@ public sealed class PowerPointHtmlSaveOptions {
 
     /// <summary>When true, emits slide-aligned extraction markdown as proof text.</summary>
     public bool IncludeExtractionProof { get; set; } = true;
+
+    /// <summary>
+    /// When true, the visual-review lane renders the same shared slide snapshot used by PNG/SVG export.
+    /// Positioned shape metadata remains available in a hidden review block for inspection and compatibility.
+    /// </summary>
+    public bool UseSharedVisualSnapshot { get; set; } = true;
+
+    /// <summary>Snapshot diagnostics recorded during the latest conversion.</summary>
+    public IList<OfficeImageExportDiagnostic> SnapshotDiagnostics { get; } = new List<OfficeImageExportDiagnostic>();
 }

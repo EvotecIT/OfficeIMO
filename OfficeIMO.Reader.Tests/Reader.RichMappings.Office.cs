@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
@@ -205,9 +206,9 @@ public sealed class ReaderOfficeRichMappingTests {
             table.GetCell(0, 1).Text = "Qty";
             table.GetCell(1, 0).Text = "Bandage";
             table.GetCell(1, 1).Text = "4";
-            slide.AddChart(new PowerPointChartData(
+            slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(
                 new[] { "Q1", "Q2" },
-                new[] { new PowerPointChartSeries("Sales", new[] { 1D, 2D }) }));
+                new[] { new OfficeChartSeries("Sales", new[] { 1D, 2D }) }));
             presentation.Save();
         }
         stream.Position = 0;

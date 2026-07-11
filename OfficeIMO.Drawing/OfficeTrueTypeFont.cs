@@ -196,8 +196,9 @@ public sealed class OfficeTrueTypeFont {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
         ushort? previous = null;
-        foreach (var ch in text) {
-            var glyph = MapGlyph(ch);
+        for (int index = 0; index < text.Length;) {
+            int scalar = ReadScalar(text, ref index);
+            var glyph = MapGlyph(scalar);
             if (previous.HasValue) width += Kerning(previous.Value, glyph) * scale;
             width += AdvanceWidth(glyph) * scale;
             previous = glyph;
@@ -222,8 +223,9 @@ public sealed class OfficeTrueTypeFont {
         var cursor = x;
         var baseline = y + _ascender * scale;
         ushort? previous = null;
-        foreach (var ch in text) {
-            var glyph = MapGlyph(ch);
+        for (int index = 0; index < text.Length;) {
+            int scalar = ReadScalar(text, ref index);
+            var glyph = MapGlyph(scalar);
             if (previous.HasValue) cursor += Kerning(previous.Value, glyph) * scale;
             contours.AddRange(ReadGlyphContours(glyph, new FontTransform(scale, 0, 0, -scale, cursor, baseline), 0));
             cursor += AdvanceWidth(glyph) * scale;
@@ -239,13 +241,22 @@ public sealed class OfficeTrueTypeFont {
     /// <summary>Collection index when the font was loaded from a TrueType collection.</summary>
     public int? CollectionIndex => _collectionIndex;
 
-    private bool HasGlyphs(string value) {
-        foreach (var ch in value) {
-            if (!char.IsWhiteSpace(ch) && MapGlyph(ch) == 0) return false;
+    internal bool HasGlyphs(string value) {
+        for (int index = 0; index < value.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (!IsWhitespaceScalar(scalar) && !IsIgnorableCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
         }
 
         return true;
     }
+
+    private static bool IsIgnorableCoverageScalar(int scalar) =>
+        scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
+        || scalar >= 0x200E && scalar <= 0x200F
+        || scalar >= 0x202A && scalar <= 0x202E
+        || scalar >= 0x2066 && scalar <= 0x2069
+        || scalar >= 0xFE00 && scalar <= 0xFE0F
+        || scalar >= 0xE0100 && scalar <= 0xE01EF;
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;
@@ -304,7 +315,19 @@ public sealed class OfficeTrueTypeFont {
         return fontSize / Math.Max(1, _unitsPerEm);
     }
 
-    private ushort MapGlyph(char ch) {
+    private static int ReadScalar(string value, ref int index) {
+        char first = value[index++];
+        if (char.IsHighSurrogate(first) && index < value.Length && char.IsLowSurrogate(value[index])) {
+            return char.ConvertToUtf32(first, value[index++]);
+        }
+
+        return first;
+    }
+
+    private static bool IsWhitespaceScalar(int scalar) => scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar);
+
+    private ushort MapGlyph(int scalar) {
+        if (scalar < 0 || scalar > 0x10FFFF) return 0;
         var cmapOffset = _cmap;
         if (!InBounds(cmapOffset, 4)) return 0;
         var subtableCount = ReadUInt16(_data, cmapOffset + 2);
@@ -329,14 +352,15 @@ public sealed class OfficeTrueTypeFont {
 
         if (best == 0) return 0;
         var selectedFormat = ReadUInt16(_data, best);
-        return selectedFormat == 12 ? MapFormat12(best, ch) : MapFormat4(best, ch);
+        return selectedFormat == 12 ? MapFormat12(best, scalar) : MapFormat4(best, scalar);
     }
 
-    private ushort MapFormat4(int table, char ch) {
+    private ushort MapFormat4(int table, int scalar) {
+        if (scalar > char.MaxValue) return 0;
         if (!InBounds(table, 16)) return 0;
         var length = ReadUInt16(_data, table + 2);
         if (length < 16 || !InBounds(table, length)) return 0;
-        var code = ch;
+        var code = scalar;
         var segCount = ReadUInt16(_data, table + 6) / 2;
         if (segCount == 0 || segCount > MaxCmapSubtables * 16) return 0;
         var endCodes = table + 14;
@@ -362,11 +386,11 @@ public sealed class OfficeTrueTypeFont {
         return 0;
     }
 
-    private ushort MapFormat12(int table, char ch) {
+    private ushort MapFormat12(int table, int scalar) {
         if (!InBounds(table, 16)) return 0;
         var length = ReadUInt32(_data, table + 4);
         if (length < 16 || length > int.MaxValue || !InBounds(table, (int)length)) return 0;
-        var code = ch;
+        uint code = (uint)scalar;
         var groups = ReadUInt32(_data, table + 12);
         if (groups > MaxFormat12Groups || groups > (length - 16U) / 12U) return 0;
         var groupOffset = table + 16;

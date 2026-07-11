@@ -6,7 +6,11 @@ namespace OfficeIMO.Html;
 public static class HtmlMarketScenarioCatalog {
     private static readonly IReadOnlyList<HtmlMarketScenario> Scenarios = new List<HtmlMarketScenario> {
         new HtmlMarketScenario("invoice", "Invoice", HtmlConversionProfile.Document, new[] { "tables", "currency", "branding", "round-trip" }, "Convert billing HTML into editable DOCX and PDF-ready output."),
+        new HtmlMarketScenario("account-statement", "Account Statement", HtmlConversionProfile.HighFidelityPrint, new[] { "paged-media", "tables", "running-content", "extraction" }, "Render transaction statements with stable page and text evidence."),
         new HtmlMarketScenario("quarterly-report", "Quarterly Report", HtmlConversionProfile.Document, new[] { "headings", "tables", "forms", "diagnostics" }, "Turn generated operational reports into validated office documents."),
+        new HtmlMarketScenario("business-letter", "Business Letter", HtmlConversionProfile.Document, new[] { "headings", "addresses", "links", "print-layout" }, "Create clean correspondence for image, PDF, and editable-document workflows."),
+        new HtmlMarketScenario("certificate", "Certificate", HtmlConversionProfile.HighFidelityPrint, new[] { "borders", "gradients", "typography", "print-layout" }, "Produce a fixed-page visual document without rasterizing the PDF page."),
+        new HtmlMarketScenario("product-catalog", "Product Catalog", HtmlConversionProfile.HighFidelityPrint, new[] { "grid", "cards", "links", "print-layout" }, "Render catalog cards once for image and searchable PDF output."),
         new HtmlMarketScenario("legal-contract", "Legal Contract", HtmlConversionProfile.Semantic, new[] { "headings", "numbered-lists", "comments", "links" }, "Preserve contract structure for editing, review, and audit trails."),
         new HtmlMarketScenario("email-render", "Email Render", HtmlConversionProfile.Semantic, new[] { "inline-styles", "images", "links", "resource-policy" }, "Ingest email-like HTML safely while reporting blocked resources."),
         new HtmlMarketScenario("dashboard-print", "Dashboard Print", HtmlConversionProfile.HighFidelityPrint, new[] { "cards", "charts", "computed-style", "print-layout" }, "Create a visual-first review artifact from dashboard HTML."),

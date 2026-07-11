@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_FontTagAttributes() {
             string html = "<p><font color=\"#00FF00\" size=\"5\">Green</font></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal("00ff00", run.ColorHex);

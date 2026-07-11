@@ -201,7 +201,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
             throw new ArgumentException("Embedded font fallback candidates cannot contain null entries.", nameof(candidate));
         }
 
-        return new PdfEmbeddedFontFallbackCandidate(candidate.FontName, candidate.DataSnapshot);
+        return candidate;
     }
 
     private static PdfStandardFont NormalizeFontSlot(PdfStandardFont font) {

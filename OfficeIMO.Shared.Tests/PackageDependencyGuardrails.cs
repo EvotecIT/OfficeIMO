@@ -96,6 +96,14 @@ public sealed class PackageDependencyGuardrailTests {
         "Word.Application"
     ];
 
+    private static readonly Dictionary<string, HashSet<string>> ApprovedExternalCompatibilitySourceTerms =
+        new(StringComparer.OrdinalIgnoreCase) {
+            ["OfficeIMO.PowerPoint/PowerPointDesktopReferenceRenderer.cs"] =
+                new HashSet<string>(["PowerPoint.Application"], StringComparer.OrdinalIgnoreCase),
+            ["OfficeIMO.PowerPoint/PowerPointCompatibilityReport.cs"] =
+                new HashSet<string>(["LibreOffice", "soffice"], StringComparer.OrdinalIgnoreCase)
+        };
+
     [Fact]
     public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
         string[] projectPaths = [
@@ -189,9 +197,11 @@ public sealed class PackageDependencyGuardrailTests {
         var sourceOffenders = new List<string>();
         foreach (string sourceFile in EnumerateDocumentImageRenderingSourceFiles()) {
             string source = File.ReadAllText(sourceFile);
+            string relativePath = GetRepositoryRelativePath(sourceFile).Replace('\\', '/');
             foreach (string forbiddenTerm in ForbiddenDocumentImageRenderingSourceTerms) {
-                if (ContainsForbiddenDocumentImageRenderingSourceTerm(source, forbiddenTerm)) {
-                    sourceOffenders.Add(GetRepositoryRelativePath(sourceFile) + " -> " + forbiddenTerm);
+                if (ContainsForbiddenDocumentImageRenderingSourceTerm(source, forbiddenTerm) &&
+                    !IsApprovedExternalCompatibilitySourceTerm(relativePath, forbiddenTerm)) {
+                    sourceOffenders.Add(relativePath + " -> " + forbiddenTerm);
                 }
             }
         }
@@ -773,6 +783,10 @@ public sealed class PackageDependencyGuardrailTests {
 
         return source.Contains(forbiddenTerm, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool IsApprovedExternalCompatibilitySourceTerm(string relativePath, string forbiddenTerm) =>
+        ApprovedExternalCompatibilitySourceTerms.TryGetValue(relativePath, out HashSet<string>? allowedTerms) &&
+        allowedTerms.Contains(forbiddenTerm);
 
     private static IEnumerable<string> EnumerateDocumentImageRenderingProjectFiles() {
         foreach (string relativeRoot in DocumentImageRenderingRoots) {

@@ -1,3 +1,5 @@
+using OfficeIMO.PowerPoint;
+
 namespace OfficeIMO.Markup.PowerPoint;
 
 public sealed class OfficeMarkupPowerPointExportOptions {
@@ -11,4 +13,7 @@ public sealed class OfficeMarkupPowerPointExportOptions {
     public string? MermaidRendererPath { get; set; }
     public string? TemporaryDirectory { get; set; }
     public int MermaidRenderTimeoutMilliseconds { get; set; } = 30000;
+    public PowerPointDeckPreflightOptions? PreflightOptions { get; set; }
+    public string? PreflightReportPath { get; set; }
+    public bool FailOnPreflightFindings { get; set; }
 }

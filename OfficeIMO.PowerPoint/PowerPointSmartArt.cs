@@ -25,6 +25,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int NodeCount => LoadNodeParagraphsWithPart().paras.Count;
 
+        /// <summary>Gets all editable SmartArt node texts in data-model order.</summary>
+        public IReadOnlyList<string> GetNodeTexts() {
+            var (_, _, paras, _) = LoadNodeParagraphsWithPart();
+            XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+            return paras.Select(paragraph => string.Concat(paragraph.Descendants(a + "t")
+                .Select(text => (string?)text ?? string.Empty))).ToList().AsReadOnly();
+        }
+
         /// <summary>
         ///     Gets the text of an editable SmartArt node.
         /// </summary>

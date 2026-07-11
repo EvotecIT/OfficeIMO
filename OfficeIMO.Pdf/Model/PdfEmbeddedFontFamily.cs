@@ -65,8 +65,7 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     internal byte[]? BoldItalicSnapshot => _boldItalic;
 
-    internal PdfEmbeddedFontFamily Clone() =>
-        new PdfEmbeddedFontFamily(FamilyName, _regular, _bold, _italic, _boldItalic);
+    internal PdfEmbeddedFontFamily Clone() => this;
 
     /// <summary>Creates a reusable TrueType font family from font files on disk.</summary>
     public static PdfEmbeddedFontFamily FromFiles(

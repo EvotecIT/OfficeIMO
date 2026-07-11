@@ -285,24 +285,20 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
-    public async Task ApplyOcrAsync_DoesNotStartQueuedCandidatesAfterFailFastFailure() {
+    public async Task ApplyOcrAsync_DoesNotStartQueuedCandidatesAfterSerialFailFastFailure() {
         var engine = new FailFastConcurrentOcrEngine();
         Task<OfficeDocumentOcrExecutionResult> execution = CreateDocument(5).ApplyOcrAsync(
             engine,
             new OfficeDocumentOcrExecutionOptions {
                 ContinueOnError = false,
-                MaxDegreeOfParallelism = 2
+                MaxDegreeOfParallelism = 1
             });
 
-        try {
-            await engine.SecondCallStarted;
-            engine.FailFirstCall();
+        await engine.FirstCallStarted;
+        engine.FailFirstCall();
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
-            Assert.Equal(2, engine.CallCount);
-        } finally {
-            engine.CompleteOtherCalls();
-        }
+        await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
+        Assert.Equal(1, engine.CallCount);
     }
 
     [Fact]
@@ -448,8 +444,7 @@ public sealed class ReaderOcrCoreTests {
 
     private sealed class FailFastConcurrentOcrEngine : IOfficeOcrEngine {
         private readonly TaskCompletionSource<object?> _failFirstCall = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<object?> _secondCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<OfficeOcrEngineResult> _otherCalls = new TaskCompletionSource<OfficeOcrEngineResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _firstCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _callCount;
 
         public string Id => "fail-fast-concurrent-fixture";
@@ -461,24 +456,21 @@ public sealed class ReaderOcrCoreTests {
 
         internal int CallCount => _callCount;
 
-        internal Task SecondCallStarted => _secondCallStarted.Task;
+        internal Task FirstCallStarted => _firstCallStarted.Task;
 
         internal void FailFirstCall() {
             _failFirstCall.TrySetResult(null);
         }
 
-        internal void CompleteOtherCalls() {
-            _otherCalls.TrySetResult(new OfficeOcrEngineResult { Text = "recognized" });
-        }
-
         public async ValueTask<OfficeOcrEngineResult> RecognizeAsync(OfficeOcrEngineRequest request, CancellationToken cancellationToken = default) {
             int call = Interlocked.Increment(ref _callCount);
             if (call == 1) {
+                _firstCallStarted.TrySetResult(null);
                 await _failFirstCall.Task.ConfigureAwait(false);
                 throw new InvalidOperationException("Provider failure.");
             }
-            _secondCallStarted.TrySetResult(null);
-            return await _otherCalls.Task.ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+            return new OfficeOcrEngineResult { Text = "recognized" };
         }
     }
 

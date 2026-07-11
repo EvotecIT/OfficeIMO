@@ -98,14 +98,14 @@ string html = """
 &lt;/html&gt;
 """;
 
-using var document = WebUtility.HtmlDecode(html).LoadFromHtml();
+using var document = WebUtility.HtmlDecode(html).ToWordDocument();
 document.Save("from-html.docx");
 ```
 
 ### Async HTML to Word
 
 ```csharp
-using var document = await html.LoadFromHtmlAsync();
+using var document = await html.ToWordDocumentAsync();
 document.Save("from-html.docx");
 ```
 
@@ -120,7 +120,7 @@ var options = new HtmlToWordOptions {
     BasePath = AppContext.BaseDirectory
 };
 
-using var document = html.LoadFromHtml(options);
+using var document = html.ToWordDocument(options);
 ```
 
 ## Adding HTML to an Existing Document

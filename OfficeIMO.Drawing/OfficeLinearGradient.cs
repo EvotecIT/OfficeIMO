@@ -7,6 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free linear gradient intent in normalized local coordinates.
 /// Coordinates use a top-left origin where 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
+/// Importers may preserve finite user-space vectors that cross those bounds without weakening public constructor validation.
 /// </summary>
 public sealed class OfficeLinearGradient {
     /// <summary>Normalized start X coordinate.</summary>
@@ -25,18 +26,23 @@ public sealed class OfficeLinearGradient {
     public IReadOnlyList<OfficeGradientStop> Stops { get; }
 
     /// <summary>Creates a two-stop linear gradient.</summary>
-    public OfficeLinearGradient(double startX, double startY, double endX, double endY, OfficeGradientStop start, OfficeGradientStop end) {
-        ValidateCoordinates(startX, startY, endX, endY);
-        StartX = startX;
-        StartY = startY;
-        EndX = endX;
-        EndY = endY;
-        Stops = ValidateStops(new[] { start, end });
+    public OfficeLinearGradient(double startX, double startY, double endX, double endY, OfficeGradientStop start, OfficeGradientStop end)
+        : this(startX, startY, endX, endY, new[] { start, end }, allowOutsideUnit: false) {
     }
 
     /// <summary>Creates a linear gradient with two or more ordered stops.</summary>
-    public OfficeLinearGradient(double startX, double startY, double endX, double endY, IReadOnlyList<OfficeGradientStop> stops) {
-        ValidateCoordinates(startX, startY, endX, endY);
+    public OfficeLinearGradient(double startX, double startY, double endX, double endY, IReadOnlyList<OfficeGradientStop> stops)
+        : this(startX, startY, endX, endY, stops, allowOutsideUnit: false) {
+    }
+
+    private OfficeLinearGradient(
+        double startX,
+        double startY,
+        double endX,
+        double endY,
+        IReadOnlyList<OfficeGradientStop> stops,
+        bool allowOutsideUnit) {
+        ValidateCoordinates(startX, startY, endX, endY, allowOutsideUnit);
         StartX = startX;
         StartY = startY;
         EndX = endX;
@@ -44,16 +50,24 @@ public sealed class OfficeLinearGradient {
         Stops = ValidateStops(stops);
     }
 
-    private static void ValidateCoordinates(double startX, double startY, double endX, double endY) {
-        ValidateNormalized(startX, nameof(startX));
-        ValidateNormalized(startY, nameof(startY));
-        ValidateNormalized(endX, nameof(endX));
-        ValidateNormalized(endY, nameof(endY));
+    private static void ValidateCoordinates(double startX, double startY, double endX, double endY, bool allowOutsideUnit) {
+        ValidateCoordinate(startX, nameof(startX), allowOutsideUnit);
+        ValidateCoordinate(startY, nameof(startY), allowOutsideUnit);
+        ValidateCoordinate(endX, nameof(endX), allowOutsideUnit);
+        ValidateCoordinate(endY, nameof(endY), allowOutsideUnit);
 
         if (startX.Equals(endX) && startY.Equals(endY)) {
             throw new ArgumentException("Linear gradient start and end points must be different.");
         }
     }
+
+    internal static OfficeLinearGradient CreateImported(
+        double startX,
+        double startY,
+        double endX,
+        double endY,
+        IReadOnlyList<OfficeGradientStop> stops) =>
+        new OfficeLinearGradient(startX, startY, endX, endY, stops, allowOutsideUnit: true);
 
     /// <summary>Creates a horizontal left-to-right gradient.</summary>
     public static OfficeLinearGradient Horizontal(OfficeColor startColor, OfficeColor endColor) =>
@@ -112,7 +126,7 @@ public sealed class OfficeLinearGradient {
     }
 
     /// <summary>Creates a detached copy.</summary>
-    public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops);
+    public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops, allowOutsideUnit: true);
 
     private static IReadOnlyList<OfficeGradientStop> ValidateStops(IReadOnlyList<OfficeGradientStop>? stops) {
         if (stops == null || stops.Count < 2) {
@@ -131,8 +145,8 @@ public sealed class OfficeLinearGradient {
         double previous = -1D;
         for (int i = 0; i < stops.Count; i++) {
             OfficeGradientStop stop = stops[i];
-            if (stop.Offset <= previous) {
-                throw new ArgumentException("Linear gradient stops must be in strictly increasing offset order.", nameof(stops));
+            if (stop.Offset < previous) {
+                throw new ArgumentException("Linear gradient stops must be in non-decreasing offset order.", nameof(stops));
             }
 
             copy.Add(stop);
@@ -149,9 +163,11 @@ public sealed class OfficeLinearGradient {
 
     private static double ClampUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
 
-    private static void ValidateNormalized(double value, string paramName) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value > 1D) {
-            throw new ArgumentOutOfRangeException(paramName, "Linear gradient coordinates must be finite values between 0 and 1.");
+    private static void ValidateCoordinate(double value, string paramName, bool allowOutsideUnit) {
+        if (double.IsNaN(value) || double.IsInfinity(value) || !allowOutsideUnit && (value < 0D || value > 1D)) {
+            throw new ArgumentOutOfRangeException(paramName, allowOutsideUnit
+                ? "Linear gradient coordinates must be finite values."
+                : "Linear gradient coordinates must be finite values between 0 and 1.");
         }
     }
 }

@@ -6,6 +6,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     A basic process/list SmartArt diagram.
         /// </summary>
-        BasicProcess
+        BasicProcess,
+        /// <summary>
+        ///     A hierarchy-oriented SmartArt diagram.
+        /// </summary>
+        BasicHierarchy,
+        /// <summary>
+        ///     A cycle-oriented SmartArt diagram.
+        /// </summary>
+        BasicCycle
     }
 }

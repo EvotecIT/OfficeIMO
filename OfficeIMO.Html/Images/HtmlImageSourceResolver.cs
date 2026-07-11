@@ -53,6 +53,47 @@ public static class HtmlImageSourceResolver {
     }
 
     /// <summary>
+    /// Resolves the candidates selected by the active render media environment.
+    /// </summary>
+    internal static IReadOnlyList<string> ResolveImageSourceCandidatesForRendering(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, HtmlRenderOptions options) {
+        var candidates = new CandidateAccumulator();
+        if (element == null) return candidates.Items;
+
+        bool selectedPictureSource = false;
+        IElement? picture = element.ParentElement;
+        if (picture != null && picture.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            double mediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
+            double mediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+            foreach (IElement child in picture.Children) {
+                if (ReferenceEquals(child, element)) break;
+                if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)
+                    || !HtmlComputedStyleEngine.IsApplicableMedia(child.GetAttribute("media") ?? string.Empty, options.MediaContext, mediaWidth, mediaHeight)
+                    || !HtmlPictureSourceSupport.IsSupportedConversionContentType(child.GetAttribute("type"))) {
+                    continue;
+                }
+
+                int candidateCount = 0;
+                int countBeforeSource = candidates.Items.Count;
+                AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, null, ref candidateCount, SrcSetAttributes);
+                AddResolvedUrlAttributes(candidates, child, baseUri, policy, null, ref candidateCount, PictureSourceAttributes);
+                if (candidates.Items.Count > countBeforeSource) {
+                    selectedPictureSource = true;
+                    break;
+                }
+            }
+        }
+
+        if (!selectedPictureSource) {
+            AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
+            int responsiveCandidateCount = 0;
+            AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, null, ref responsiveCandidateCount, SrcSetAttributes);
+            AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
+        }
+
+        return candidates.Items;
+    }
+
+    /// <summary>
     /// Resolves the preferred source from a <c>picture</c> element.
     /// </summary>
     public static string ResolvePictureSource(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {

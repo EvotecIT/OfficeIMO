@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Describes chart categories and series values for PowerPoint charts.
     /// </summary>
-    public sealed class PowerPointChartData {
+    internal sealed class PowerPointChartData {
         /// <summary>
         /// Creates default chart data used by parameterless chart creation.
         /// </summary>
@@ -91,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a single chart series.
     /// </summary>
-    public sealed class PowerPointChartSeries {
+    internal sealed class PowerPointChartSeries {
         /// <summary>
         /// Initializes a new chart series with a name and values.
         /// </summary>
@@ -102,18 +102,23 @@ namespace OfficeIMO.PowerPoint {
         /// Initializes a new chart series with optional numeric X-axis values for scatter charts.
         /// </summary>
         public PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) {
-            Initialize(name, values, xValues, chartKind: null);
+            Initialize(name, values, xValues, chartKind: null, axisGroup: OfficeChartAxisGroup.Primary);
         }
 
-        internal PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, PowerPointChartSnapshotKind? chartKind) {
-            Initialize(name, values, xValues, chartKind, color: null, strokeWidth: null);
+        internal PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
+            PowerPointChartSnapshotKind? chartKind, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
+            Initialize(name, values, xValues, chartKind, color: null, strokeWidth: null, axisGroup);
         }
 
-        internal PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, PowerPointChartSnapshotKind? chartKind, OfficeColor? color, double? strokeWidth) {
-            Initialize(name, values, xValues, chartKind, color, strokeWidth);
+        internal PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
+            PowerPointChartSnapshotKind? chartKind, OfficeColor? color, double? strokeWidth,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
+            Initialize(name, values, xValues, chartKind, color, strokeWidth, axisGroup);
         }
 
-        private void Initialize(string name, IEnumerable<double> values, IEnumerable<double>? xValues, PowerPointChartSnapshotKind? chartKind, OfficeColor? color = null, double? strokeWidth = null) {
+        private void Initialize(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
+            PowerPointChartSnapshotKind? chartKind, OfficeColor? color = null, double? strokeWidth = null,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             if (name == null) {
                 throw new System.ArgumentNullException(nameof(name));
             }
@@ -134,6 +139,7 @@ namespace OfficeIMO.PowerPoint {
             ChartKind = chartKind;
             Color = color;
             StrokeWidth = strokeWidth;
+            AxisGroup = axisGroup;
         }
 
         /// <summary>
@@ -165,12 +171,18 @@ namespace OfficeIMO.PowerPoint {
         /// Optional source-defined series stroke width for exported snapshots.
         /// </summary>
         public double? StrokeWidth { get; private set; }
+
+        /// <summary>Primary or secondary value-axis assignment detected for this series.</summary>
+        public OfficeChartAxisGroup AxisGroup { get; private set; }
+
+        /// <summary>Native ChartML series index retained for legend and mixed-chart projection.</summary>
+        internal uint? SourceIndex { get; set; }
     }
 
     /// <summary>
     /// Describes a series for chart data generation from objects.
     /// </summary>
-    public sealed class PowerPointChartSeriesDefinition<T> {
+    internal sealed class PowerPointChartSeriesDefinition<T> {
         /// <summary>
         /// Initializes a series definition.
         /// </summary>
@@ -193,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Describes X/Y series values for PowerPoint scatter charts.
     /// </summary>
-    public sealed class PowerPointScatterChartData {
+    internal sealed class PowerPointScatterChartData {
         /// <summary>
         /// Creates default scatter chart data used by parameterless chart creation.
         /// </summary>
@@ -250,7 +262,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a single scatter chart series with X/Y values.
     /// </summary>
-    public sealed class PowerPointScatterChartSeries {
+    internal sealed class PowerPointScatterChartSeries {
         /// <summary>
         /// Initializes a new scatter chart series with a name and X/Y values.
         /// </summary>
@@ -299,7 +311,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Describes a scatter series for chart data generation from objects.
     /// </summary>
-    public sealed class PowerPointScatterChartSeriesDefinition<T> {
+    internal sealed class PowerPointScatterChartSeriesDefinition<T> {
         /// <summary>
         /// Initializes a scatter series definition.
         /// </summary>

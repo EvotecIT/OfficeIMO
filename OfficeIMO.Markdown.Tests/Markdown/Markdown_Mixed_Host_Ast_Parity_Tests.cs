@@ -102,7 +102,7 @@ public sealed class Markdown_Mixed_Host_Ast_Parity_Tests {
 
     private static void AssertDocumentAstParity(string markdown, string html, MarkdownReaderOptions? options = null) {
         var markdownDocument = MarkdownReader.Parse(markdown, options);
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         Assert.Equal(
             MarkdownAstParityFormatter.DescribeBlocks(markdownDocument.Blocks),

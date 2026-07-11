@@ -10,6 +10,27 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
+    public void HtmlSupportMatrix_IsGeneratedDeterministicallyFromProfilesAndDiagnostics() {
+        string first = HtmlSupportMatrixWriter.ToMarkdown();
+        string second = HtmlSupportMatrixWriter.ToMarkdown();
+
+        Assert.Equal(first, second);
+        Assert.DoesNotContain("\r", first, StringComparison.Ordinal);
+        Assert.Contains("generated from `HtmlConversionProfileContracts` and `HtmlDiagnosticCatalog`", first, StringComparison.Ordinal);
+        foreach (HtmlConversionProfileContract contract in HtmlConversionProfileContracts.All) {
+            Assert.Contains("### " + contract.Name, first, StringComparison.Ordinal);
+        }
+        foreach (HtmlDiagnosticDefinition definition in HtmlDiagnosticCatalog.Ordered) {
+            Assert.Contains("`" + definition.Code + "`", first, StringComparison.Ordinal);
+        }
+
+        Assert.Equal(HtmlDiagnosticCatalog.All.Count, HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(
+            HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Category + "\0" + definition.Code),
+            HtmlDiagnosticCatalog.Ordered.Select(definition => definition.Category + "\0" + definition.Code).OrderBy(value => value, StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void HtmlEnginePlatform_ConnectsProfilesIrStylesResourcesScoringDiagnosticsAndGallery() {
         const string sourceHtml = """
             <!doctype html>
@@ -322,7 +343,7 @@ public partial class Html {
         HtmlToWordOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(conversion.ProfileContract.Profile);
         Assert.Equal(ImageProcessingMode.Embed, sharedWordDefaults.ImageProcessing);
         Assert.True(sharedWordDefaults.AllowDocumentStylesheetLinks);
-        using var wordDocument = WordHtmlConverterExtensions.LoadFromHtml(conversion);
+        using var wordDocument = WordHtmlConverterExtensions.ToWordDocument(conversion);
         Assert.NotNull(wordDocument);
 
         HtmlConversionDocument nullPolicyConversion = HtmlConversionDocumentBuilder.Build(
@@ -452,15 +473,15 @@ public partial class Html {
         Assert.DoesNotContain("https://example.test/images/ignored-print-chart.avif", printMarkdown);
         Assert.Contains("https://example.test/images/print-chart.png", printMarkdown);
 
-        using var screenWordDocument = WordHtmlConverterExtensions.LoadFromHtml(screen);
+        using var screenWordDocument = WordHtmlConverterExtensions.ToWordDocument(screen);
         var screenRun = screenWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
         Assert.Equal("ff0000", screenRun.ColorHex);
 
-        using var printWordDocument = WordHtmlConverterExtensions.LoadFromHtml(print);
+        using var printWordDocument = WordHtmlConverterExtensions.ToWordDocument(print);
         var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
         Assert.Equal("123456", printRun.ColorHex);
 
-        byte[] printPdf = print.SaveAsPdf();
+        byte[] printPdf = print.ToPdf();
         Assert.NotEmpty(printPdf);
     }
 
@@ -512,7 +533,7 @@ public partial class Html {
         Assert.DoesNotContain("https://example.test/images/ignored.apng", markdown);
         Assert.Contains("https://example.test/images/apng-fallback.png", markdown);
 
-        byte[] pdf = document.SaveAsPdf();
+        byte[] pdf = document.ToPdf();
         Assert.NotEmpty(pdf);
 
         string filteredFragment = HtmlActiveMediaFilter.Filter(

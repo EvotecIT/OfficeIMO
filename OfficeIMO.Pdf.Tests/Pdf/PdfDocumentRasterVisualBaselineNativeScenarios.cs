@@ -410,7 +410,7 @@ MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
             VisualTheme = MarkdownPdfVisualTheme.Create(themeKind)
         };
 
-        byte[] pdf = markdown.SaveAsPdf(options);
+        byte[] pdf = markdown.ToPdfFromMarkdown(options);
         if (options.Warnings.Count != 0) {
             throw new InvalidOperationException("Markdown theme gallery fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
         }

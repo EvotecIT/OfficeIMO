@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         private static void AddSubtleLightBackground(PowerPointSlide slide, PowerPointDesignTheme theme,
             double slideWidthCm, double slideHeightCm) {
             PowerPointAutoShape diagonal = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, slideWidthCm * 0.28, 0,
@@ -19,7 +19,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddDiagonalPlanes(PowerPointSlide slide, PowerPointDesignTheme theme, double slideWidthCm,
             double slideHeightCm, bool dark) {
-            string baseColor = dark ? theme.AccentColor : theme.SurfaceColor;
+            // Dark designer slides place body copy over the left plane. Use the theme's
+            // dark neutral so normal-size text keeps sufficient contrast as well as hierarchy.
+            string baseColor = dark ? theme.PrimaryTextColor : theme.SurfaceColor;
             string second = dark ? theme.AccentDarkColor : theme.AccentLightColor;
 
             PowerPointAutoShape left = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, -1.0, 0,

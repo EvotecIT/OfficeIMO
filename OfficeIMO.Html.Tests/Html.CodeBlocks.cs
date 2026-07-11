@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_CodeBlock_RoundTrip() {
             string html = "<pre><code>var x = 1;\nvar y = 2;</code></pre>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var codeParas = doc.Paragraphs.Where(p => p.StyleId == "HTMLPreformatted" && !string.IsNullOrEmpty(p.Text)).ToList();
             Assert.Equal(2, codeParas.Count);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_PreInTableCell_PreservesAllLines() {
             string html = "<table><tr><td><pre>a\nb</pre></td></tr></table>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var paragraphs = doc.Tables[0].Rows[0].Cells[0].Paragraphs
                 .Where(paragraph => paragraph.StyleId == "HTMLPreformatted")
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_InlineCode_StaysInParagraphAndRoundTripsAsCode() {
             string html = "<p>Use <code>dotnet test</code> now.</p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var bodyParagraphs = doc._wordprocessingDocument!.MainDocumentPart!.Document!.Body!
                 .Elements<Paragraph>()

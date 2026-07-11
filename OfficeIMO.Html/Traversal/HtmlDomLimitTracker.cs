@@ -56,7 +56,7 @@ public sealed class HtmlDomLimitTracker {
         _nodes++;
         if (_maxHtmlNodes.HasValue && _nodes > _maxHtmlNodes.Value) {
             throw new HtmlDomLimitException(
-                "HtmlNodeLimitExceeded",
+                HtmlRenderDiagnosticCodes.NodeLimitExceeded,
                 "HTML node count exceeded the configured conversion limit.",
                 "MaxHtmlNodes",
                 _nodes,

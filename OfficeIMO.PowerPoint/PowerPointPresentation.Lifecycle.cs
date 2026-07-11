@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.PowerPoint.Fluent;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -21,22 +24,36 @@ namespace OfficeIMO.PowerPoint {
             }
 
             Exception? pendingException = null;
+            PresentationDocument? document = _document;
             try {
-                if (_document != null) {
-                    if (_copyPackageToSourceOnDispose) {
+                if (document != null) {
+                    bool shouldSave = _copyPackageToSourceOnDispose || _saveOnDispose;
+                    if (shouldSave && _signedPackageOpenFingerprint != null) {
+                        shouldSave = !string.Equals(_signedPackageOpenFingerprint,
+                            CreatePackageFingerprint(document), StringComparison.Ordinal);
+                    }
+                    if (!_discardChangesOnDispose && shouldSave) {
                         Save();
                     }
-                    _document.Dispose();
                 }
             } catch (Exception ex) {
                 pendingException = ex;
             } finally {
+                try {
+                    document?.Dispose();
+                } catch (Exception ex) {
+                    if (pendingException == null) pendingException = ex;
+                }
                 _document = null;
                 try {
-                    PersistPackageToSourceIfNeeded(persistChanges: pendingException == null);
+                    PersistPackageToSourceIfNeeded(
+                        persistChanges: pendingException == null && !_discardChangesOnDispose);
                 } catch (Exception ex) when (pendingException == null) {
                     pendingException = ex;
                 }
+                _saveOnDispose = false;
+                _signedPackageOpenFingerprint = null;
+                _discardChangesOnDispose = false;
                 _disposed = true;
             }
 
@@ -50,8 +67,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Path where the presentation file will be created.</param>
         public static PowerPointPresentation Create(string filePath) {
-            PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
+            PresentationDocument document = PresentationDocument.Create(filePath,
+                PresentationDocumentType.Presentation, autoSave: false);
             PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
+            presentation._saveOnDispose = true;
             presentation.PresentationRoot.Save();
             presentation._document?.Save();
             return presentation;
@@ -61,10 +80,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a new PowerPoint presentation in memory and optionally persists it to the provided stream on dispose.
         /// </summary>
         /// <param name="stream">Destination stream for the presentation package.</param>
-        /// <param name="autoSave">When true, writes the package back to the stream on dispose.</param>
-        public static PowerPointPresentation Create(Stream stream, bool autoSave = true) {
+        /// <param name="options">Stream persistence options. The source stream remains caller-owned.</param>
+        public static PowerPointPresentation Create(Stream stream, PowerPointStreamCreateOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            bool autoSave = options?.AutoSave ?? true;
             if (autoSave && !stream.CanSeek) {
                 throw new ArgumentException("Stream must support seeking when autoSave is enabled.", nameof(stream));
             }
@@ -85,18 +105,55 @@ namespace OfficeIMO.PowerPoint {
         ///     Opens an existing PowerPoint presentation.
         /// </summary>
         /// <param name="filePath">Path of the presentation file to open.</param>
-        public static PowerPointPresentation Open(string filePath) {
-            PresentationDocument document = PresentationDocument.Open(filePath, true);
-            return new PowerPointPresentation(document, filePath, isNewPresentation: false);
+        /// <param name="mode">Open the presentation for editing or read-only inspection.</param>
+        public static PowerPointPresentation Open(string filePath, PowerPointOpenMode mode = PowerPointOpenMode.Edit) {
+            bool editable = mode == PowerPointOpenMode.Edit;
+            PresentationDocument document = PresentationDocument.Open(filePath, editable,
+                new OpenSettings { AutoSave = false });
+            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
+            presentation._saveOnDispose = editable;
+            if (document.DigitalSignatureOriginPart != null ||
+                document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
+            }
+            return presentation;
         }
 
-        /// <summary>
-        ///     Opens an existing PowerPoint presentation in read-only mode (no writes, no repairs).
-        /// </summary>
-        /// <param name="filePath">Path of the presentation file to open.</param>
-        public static PowerPointPresentation OpenRead(string filePath) {
-            PresentationDocument document = PresentationDocument.Open(filePath, false);
-            return new PowerPointPresentation(document, filePath, isNewPresentation: false);
+        private static string CreatePackageFingerprint(PresentationDocument document) {
+            var parts = new HashSet<OpenXmlPart>();
+            foreach (IdPartPair pair in document.Parts) CollectPackageParts(pair.OpenXmlPart, parts);
+
+            var content = new StringBuilder();
+            foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(),
+                         StringComparer.Ordinal)) {
+                content.Append(part.Uri).Append('|').Append(part.ContentType).Append('|');
+                try {
+                    OpenXmlPartRootElement? root = part.RootElement;
+                    if (root != null) {
+                        content.Append(root.OuterXml);
+                    } else {
+                        using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                        using var memory = new MemoryStream();
+                        stream.CopyTo(memory);
+                        content.Append(Convert.ToBase64String(memory.ToArray()));
+                    }
+                } catch (InvalidDataException) {
+                    content.Append("unreadable");
+                }
+                foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId,
+                             StringComparer.Ordinal)) {
+                    content.Append('|').Append(relationship.RelationshipId).Append('=')
+                        .Append(relationship.OpenXmlPart.Uri);
+                }
+            }
+
+            using SHA256 sha = SHA256.Create();
+            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())));
+        }
+
+        private static void CollectPackageParts(OpenXmlPart part, ISet<OpenXmlPart> parts) {
+            if (!parts.Add(part)) return;
+            foreach (IdPartPair child in part.Parts) CollectPackageParts(child.OpenXmlPart, parts);
         }
 
         /// <summary>
@@ -104,8 +161,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Path of the encrypted presentation file to open.</param>
         /// <param name="password">Password used to decrypt the presentation package.</param>
-        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
-        public static PowerPointPresentation OpenEncrypted(string filePath, string password, bool readOnly = false) {
+        /// <param name="mode">Open the decrypted package for editing or read-only inspection.</param>
+        public static PowerPointPresentation OpenEncrypted(string filePath, string password,
+            PowerPointOpenMode mode = PowerPointOpenMode.Edit) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!File.Exists(filePath)) {
@@ -118,7 +176,7 @@ namespace OfficeIMO.PowerPoint {
             packageStream.Write(packageBytes, 0, packageBytes.Length);
             packageStream.Position = 0;
 
-            PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
+            PresentationDocument document = PresentationDocument.Open(packageStream, mode == PowerPointOpenMode.Edit);
             PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
             presentation.ConfigureStreamCopy(packageStream, null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
             return presentation;
@@ -128,12 +186,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Opens a PowerPoint presentation from a stream.
         /// </summary>
         /// <param name="stream">Source stream containing the presentation package.</param>
-        /// <param name="readOnly">Open the document in read-only mode.</param>
-        /// <param name="autoSave">When true, writes the package back to the stream on dispose.</param>
-        public static PowerPointPresentation Open(Stream stream, bool readOnly = false, bool autoSave = false) {
+        /// <param name="options">Access and persistence options. The source stream remains caller-owned.</param>
+        public static PowerPointPresentation Open(Stream stream, PowerPointStreamOpenOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
+            PowerPointStreamOpenOptions resolved = options ?? new PowerPointStreamOpenOptions();
+            bool readOnly = resolved.Mode == PowerPointOpenMode.ReadOnly;
+            bool autoSave = resolved.AutoSave;
             bool shouldCopyBack = autoSave && !readOnly;
             if (shouldCopyBack) {
                 if (!stream.CanWrite) {
@@ -162,8 +222,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="stream">Source stream containing the encrypted presentation package.</param>
         /// <param name="password">Password used to decrypt the presentation package.</param>
-        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
-        public static PowerPointPresentation OpenEncrypted(Stream stream, string password, bool readOnly = false) {
+        /// <param name="mode">Open the decrypted package for editing or read-only inspection.</param>
+        public static PowerPointPresentation OpenEncrypted(Stream stream, string password,
+            PowerPointOpenMode mode = PowerPointOpenMode.Edit) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -174,7 +235,7 @@ namespace OfficeIMO.PowerPoint {
             packageStream.Write(packageBytes, 0, packageBytes.Length);
             packageStream.Position = 0;
 
-            PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
+            PresentationDocument document = PresentationDocument.Open(packageStream, mode == PowerPointOpenMode.Edit);
             PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: false);
             presentation.ConfigureStreamCopy(packageStream, null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
             return presentation;

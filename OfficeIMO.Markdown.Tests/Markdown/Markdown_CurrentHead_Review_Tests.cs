@@ -145,7 +145,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         readerOptions.Superscript = true;
         readerOptions.Subscript = true;
 
-        var pdf = "Before ++new++ ^up^ H~down~O".ToPdfDocument(new MarkdownPdfSaveOptions {
+        var pdf = MarkdownReader.Parse("Before ++new++ ^up^ H~down~O", readerOptions).ToPdfDocument(new MarkdownPdfSaveOptions {
             ReaderOptions = readerOptions
         });
 

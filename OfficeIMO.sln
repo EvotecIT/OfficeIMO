@@ -282,6 +282,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Latex.Markdown.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Latex", "OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj", "{8B6103ED-BFC3-46C0-8C44-41840C8EE941}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Benchmarks", "OfficeIMO.Html.Benchmarks\OfficeIMO.Html.Benchmarks.csproj", "{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.OpenDocument", "OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj", "{58DBA585-D229-4F61-8BE4-5FB4EEA60FBF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.OpenDocument.Tests", "OfficeIMO.OpenDocument.Tests\OfficeIMO.OpenDocument.Tests.csproj", "{9FBADFE2-BF8D-424D-B22B-2CFB9E579825}"
@@ -1308,6 +1310,18 @@ Global
 		{8B6103ED-BFC3-46C0-8C44-41840C8EE941}.Release|x64.Build.0 = Release|Any CPU
 		{8B6103ED-BFC3-46C0-8C44-41840C8EE941}.Release|x86.ActiveCfg = Release|Any CPU
 		{8B6103ED-BFC3-46C0-8C44-41840C8EE941}.Release|x86.Build.0 = Release|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Debug|x64.Build.0 = Debug|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Debug|x86.Build.0 = Debug|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Release|x64.ActiveCfg = Release|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Release|x64.Build.0 = Release|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Release|x86.ActiveCfg = Release|Any CPU
+		{C0BA2DC9-082A-488C-9B88-BECF5F3F8808}.Release|x86.Build.0 = Release|Any CPU
 		{58DBA585-D229-4F61-8BE4-5FB4EEA60FBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{58DBA585-D229-4F61-8BE4-5FB4EEA60FBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58DBA585-D229-4F61-8BE4-5FB4EEA60FBF}.Debug|x64.ActiveCfg = Debug|Any CPU

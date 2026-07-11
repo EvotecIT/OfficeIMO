@@ -52,11 +52,33 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Open("training.pptx");
 
-byte[] pdfBytes = presentation.SaveAsPdf();
+byte[] pdfBytes = presentation.ToPdf();
 
 using var stream = File.Create("training.pdf");
 presentation.SaveAsPdf(stream);
 ```
+
+### Export speaker notes and handouts
+
+```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+
+using var presentation = PowerPointPresentation.Open("training.pptx");
+
+presentation.SaveAsPdf("training-notes.pdf", new PowerPointPdfSaveOptions {
+    PageLayout = PowerPointPdfPageLayout.NotesPages,
+    IncludeSpeakerNotes = true
+});
+
+presentation.SaveAsPdf("training-handout.pdf", new PowerPointPdfSaveOptions {
+    PageLayout = PowerPointPdfPageLayout.Handouts,
+    HandoutSlidesPerPage = 3,
+    IncludeSpeakerNotes = true
+});
+```
+
+Handouts support 1, 2, 3, 4, 6, or 9 slides per landscape page. Three-up output pairs each thumbnail with notes or writing lines. Notes are read without creating missing notes parts.
 
 ### Review conversion warnings
 
@@ -90,10 +112,11 @@ options.ConversionReport.RequireNoErrorWarnings();
 
 ## What it maps
 
-- One PowerPoint slide to one PDF page using the slide size in points.
+- Full-slide pages use the authored slide size; notes pages use portrait letter and handouts use landscape letter.
 - Slide backgrounds, text boxes, supported pictures, supported tables, supported charts, and basic auto-shapes.
 - Text box fill, outline, margins, font defaults, alignment, vertical anchoring, rich runs, and hyperlinks.
 - Supported JPEG/PNG pictures through the shared PDF image pipeline.
+- Faithful and print-ready profiles consume the same shared visual snapshot as PNG/SVG and visual-review HTML. Selective profiles retain the per-shape path.
 - Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
 - Conversion warnings through `PowerPointPdfSaveOptions.Warnings` and `PowerPointPdfSaveOptions.ConversionReport`.
 

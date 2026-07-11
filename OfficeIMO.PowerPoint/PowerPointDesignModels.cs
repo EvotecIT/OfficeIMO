@@ -426,6 +426,11 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointDesignerSlideOptions {
         /// <summary>
+        ///     Optional inventoried template layout used when the designer creates this slide.
+        /// </summary>
+        public PowerPointTemplateLayoutInfo? TemplateLayout { get; set; }
+
+        /// <summary>
         ///     Small label placed near the top of the slide.
         /// </summary>
         public string? Eyebrow { get; set; }

@@ -55,7 +55,7 @@ using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Load("invoice.docx");
 
-byte[] pdfBytes = document.SaveAsPdf();
+byte[] pdfBytes = document.ToPdf();
 
 using var stream = File.Create("invoice.pdf");
 document.SaveAsPdf(stream);

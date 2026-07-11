@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<figure><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/><figcaption>Logo caption</figcaption></figure>";
 
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Single(doc.Images);
             Assert.Equal("Logo caption", doc.Paragraphs[1].Text);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<figure><figcaption>Logo caption</figcaption><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/></figure>";
 
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Single(doc.Images);
             Assert.Equal("Logo caption", doc.Paragraphs[0].Text);

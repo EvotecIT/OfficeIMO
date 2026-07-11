@@ -96,6 +96,11 @@ public static class OfficeDrawingQualityAnalyzer {
             return new DrawingBounds(left, top, right, bottom);
         }
 
+        if (element is OfficeDrawingImagePattern imagePattern) {
+            OfficeImagePlacement area = imagePattern.Layout.Area;
+            return new DrawingBounds(area.X, area.Y, area.X + area.Width, area.Y + area.Height);
+        }
+
         if (element is OfficeDrawingGroup group) {
             if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
                 OfficeTransform transform = group.FrameTransform.Value.CreateDestinationTransform();
@@ -104,6 +109,15 @@ public static class OfficeDrawingQualityAnalyzer {
             }
 
             return new DrawingBounds(group.X, group.Y, group.X + group.ClipPath.Width, group.Y + group.ClipPath.Height);
+        }
+
+        if (element is OfficeDrawingEffectGroup effectGroup) {
+            (double left, double top, double right, double bottom) = effectGroup.Transform.TransformRectangleBounds(
+                0D,
+                0D,
+                effectGroup.InnerDrawing.Width,
+                effectGroup.InnerDrawing.Height);
+            return new DrawingBounds(left, top, right, bottom);
         }
 
         return new DrawingBounds(0D, 0D, 0D, 0D);

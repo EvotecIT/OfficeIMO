@@ -60,7 +60,7 @@ public partial class Word {
 
         Assert.Equal("Operational status summary", style.AlternativeText);
 
-        byte[] bytes = document.SaveAsPdf(new PdfSaveOptions {
+        byte[] bytes = document.ToPdf(new PdfSaveOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
             }

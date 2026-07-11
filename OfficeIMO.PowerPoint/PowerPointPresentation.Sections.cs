@@ -7,7 +7,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.PowerPoint.Fluent;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -369,6 +368,12 @@ namespace OfficeIMO.PowerPoint {
                 .Elements<SlideId>()
                 .ToList() ?? new List<SlideId>();
             if (slideIds.Count == 0) {
+                PresentationExtension? sectionExtension = sectionList.Parent as PresentationExtension;
+                PresentationExtensionList? extensionList = sectionExtension?.Parent as PresentationExtensionList;
+                sectionExtension?.Remove();
+                if (extensionList != null && !extensionList.Elements<PresentationExtension>().Any()) {
+                    extensionList.Remove();
+                }
                 return;
             }
 

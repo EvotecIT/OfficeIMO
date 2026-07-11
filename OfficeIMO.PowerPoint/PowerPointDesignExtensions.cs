@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     High-level slide composition helpers for building polished decks without hand-placing every shape.
     /// </summary>
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>
         ///     Applies the designer theme colors and fonts to all slide masters.
         /// </summary>
@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointDesignerSlideOptions resolvedOptions = options ?? new PowerPointDesignerSlideOptions();
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             PowerPointSectionLayoutVariant variant = ResolveSectionVariant(resolvedOptions);
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
                 AddSectionGeometricCover(slide, resolvedTheme, resolvedOptions, title, subtitle, width, height);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -95,7 +95,7 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointCaseStudySection> sectionList = NormalizeSections(sections, 4, nameof(sections));
             List<PowerPointMetric> metricList = (metrics ?? Enumerable.Empty<PowerPointMetric>()).Where(m => m != null).ToList();
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -115,7 +115,7 @@ namespace OfficeIMO.PowerPoint {
                 AddCaseStudyBand(slide, resolvedTheme, resolvedOptions, metricList, width, height);
             }
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, clientTitle);
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCardGridSlideOptions resolvedOptions = options ?? new PowerPointCardGridSlideOptions();
             List<PowerPointCardContent> cardList = NormalizeCards(cards);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.BackgroundColor;
@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
             AddCardGrid(slide, resolvedTheme, cardList, resolvedOptions,
                 ResolveCardGridVariant(resolvedOptions, cardList), width, height);
 
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointProcessSlideOptions resolvedOptions = options ?? new PowerPointProcessSlideOptions();
             List<PowerPointProcessStep> stepList = NormalizeSteps(steps);
 
-            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointSlide slide = AddDesignerSlide(presentation, resolvedOptions);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             slide.BackgroundColor = resolvedTheme.AccentDarkColor;
@@ -191,7 +191,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             AddProcessTimeline(slide, resolvedTheme, stepList, resolvedOptions, width, height);
-            return slide;
+            return FinalizeDesignerAccessibility(slide, title);
         }
 
     }

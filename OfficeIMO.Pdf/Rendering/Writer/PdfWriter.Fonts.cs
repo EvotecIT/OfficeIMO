@@ -183,7 +183,7 @@ internal static partial class PdfWriter {
             string value = text ?? string.Empty;
             if (options.HasDiagnosticsReport) {
                 options.AddTextShapingDiagnostics(
-                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName),
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram),
                     value,
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
@@ -203,7 +203,7 @@ internal static partial class PdfWriter {
             string value = text ?? string.Empty;
             if (options.HasDiagnosticsReport) {
                 options.AddTextShapingDiagnostics(
-                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName),
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram),
                     value,
                     deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }

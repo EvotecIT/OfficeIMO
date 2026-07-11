@@ -1,81 +1,65 @@
-using MarkdownHtml = OfficeIMO.Markdown.Html;
-using MarkdownPdf = OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
-using WordHtml = OfficeIMO.Word.Html;
-using WordPdf = OfficeIMO.Word.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
 
 /// <summary>
-/// Options for the first-party HTML to PDF adapter.
+/// Controls direct HTML layout and PDF generation.
+/// Layout, resource, page, and safety settings are inherited from <see cref="HtmlRenderOptions"/>.
 /// </summary>
-public sealed class HtmlPdfSaveOptions {
-    /// <summary>
-    /// Creates the default semantic HTML to PDF profile backed by OfficeIMO.Markdown.Html and OfficeIMO.Markdown.Pdf.
-    /// </summary>
-    public static HtmlPdfSaveOptions CreateSemanticProfile() => new HtmlPdfSaveOptions {
-        Profile = HtmlPdfProfile.Semantic,
-        MarkdownHtmlOptions = MarkdownHtml.HtmlToMarkdownOptions.CreateOfficeIMOProfile(),
-        MarkdownPdfOptions = new MarkdownPdf.MarkdownPdfSaveOptions()
-    };
+/// <example>
+/// <code>
+/// var options = new HtmlPdfSaveOptions {
+///     PageSize = OfficePageSizes.A4,
+///     Margins = HtmlRenderMargins.All(32),
+///     DefaultFontFamily = "Arial"
+/// };
+/// byte[] pdf = html.ToPdf(options);
+/// </code>
+/// </example>
+public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {
+    /// <summary>Creates direct paged HTML-to-PDF options using the standard defaults.</summary>
+    public HtmlPdfSaveOptions() {
+        Mode = HtmlRenderMode.Paged;
+    }
 
     /// <summary>
-    /// Creates a document-oriented HTML to PDF profile backed by OfficeIMO.Word.Html and OfficeIMO.Word.Pdf.
-    /// This path is the preferred adapter profile for practical print HTML with CSS, links, tables, images, and page-break hints.
+    /// Creates PDF-capable options from shared HTML rendering settings without changing their layout mode.
+    /// PDF conversion enforces paged layout on its own conversion snapshot.
     /// </summary>
-    public static HtmlPdfSaveOptions CreateDocumentProfile() => new HtmlPdfSaveOptions {
-        Profile = HtmlPdfProfile.Document,
-        WordHtmlOptions = WordHtml.HtmlToWordOptions.CreateOfficeIMOProfile(),
-        WordPdfOptions = new WordPdf.PdfSaveOptions()
-    };
+    /// <param name="renderOptions">Shared settings used by PNG, SVG, and PDF rendering.</param>
+    public HtmlPdfSaveOptions(HtmlRenderOptions renderOptions) : base(renderOptions) {
+        if (renderOptions is HtmlPdfSaveOptions pdfOptions) {
+            CopyPdfSettingsFrom(pdfOptions);
+        }
+    }
 
-    /// <summary>
-    /// Creates a document-oriented profile that allows stylesheet links declared by trusted HTML documents.
-    /// </summary>
-    public static HtmlPdfSaveOptions CreateTrustedDocumentProfile() => new HtmlPdfSaveOptions {
-        Profile = HtmlPdfProfile.Document,
-        WordHtmlOptions = WordHtml.HtmlToWordOptions.CreateTrustedDocumentProfile(),
-        WordPdfOptions = new WordPdf.PdfSaveOptions()
-    };
+    /// <summary>OfficeIMO-managed font fallback groups used by generated PDF text.</summary>
+    public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
 
-    /// <summary>
-    /// Internal conversion path used before rendering through <see cref="PdfCore.PdfDocument"/>.
-    /// Defaults to the semantic Markdown-backed path.
-    /// </summary>
-    public HtmlPdfProfile Profile { get; set; } = HtmlPdfProfile.Semantic;
+    /// <summary>Dependency-free shaping mode used by generated PDF text.</summary>
+    public PdfCore.PdfTextShapingMode TextShapingMode { get; set; } = PdfCore.PdfTextShapingMode.LatinLigatures;
 
-    /// <summary>
-    /// HTML to Markdown options used by the semantic profile.
-    /// </summary>
-    public MarkdownHtml.HtmlToMarkdownOptions? MarkdownHtmlOptions { get; set; }
+    /// <summary>Optional caller-supplied embedded font family used by generated PDF text.</summary>
+    public PdfCore.PdfEmbeddedFontFamily? FontFamily { get; set; }
 
-    /// <summary>
-    /// Markdown to PDF options used by the semantic profile.
-    /// </summary>
-    public MarkdownPdf.MarkdownPdfSaveOptions? MarkdownPdfOptions { get; set; }
+    /// <summary>Optional host-provided shaping seam used with caller-supplied or resolved embedded fonts.</summary>
+    public PdfCore.IPdfTextShapingProvider? TextShapingProvider { get; set; }
 
-    /// <summary>
-    /// HTML to Word options used by the document profile.
-    /// </summary>
-    public WordHtml.HtmlToWordOptions? WordHtmlOptions { get; set; }
+    /// <summary>Creates an independent options snapshot for one PDF conversion.</summary>
+    public HtmlPdfSaveOptions ClonePdf() {
+        return new HtmlPdfSaveOptions(this);
+    }
 
-    /// <summary>
-    /// Word to PDF options used by the document profile.
-    /// </summary>
-    public WordPdf.PdfSaveOptions? WordPdfOptions { get; set; }
+    /// <summary>Creates an independent options snapshot.</summary>
+    public override HtmlRenderOptions Clone() => ClonePdf();
 
-    /// <summary>
-    /// Shared conversion report populated from the selected internal HTML and PDF path.
-    /// </summary>
-    public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
-
-    /// <summary>
-    /// Returns a source-neutral snapshot of the active HTML resource policy for manifest, wrapper, and diagnostics callers.
-    /// </summary>
+    /// <summary>Returns a snapshot of the active HTML resource policy.</summary>
     public HtmlPdfResourcePolicySummary GetResourcePolicySummary() => HtmlPdfResourcePolicySummary.From(this);
 
-    internal void ResetExportState() {
-        ConversionReport.Clear();
-        ConversionReport.ClearLinkedReports();
+    private void CopyPdfSettingsFrom(HtmlPdfSaveOptions source) {
+        TextFallbacks = source.TextFallbacks;
+        TextShapingMode = source.TextShapingMode;
+        FontFamily = source.FontFamily;
+        TextShapingProvider = source.TextShapingProvider;
     }
 }

@@ -500,7 +500,7 @@ Paragraph body.
 
         var document = """
 <pre><code class="language-json">{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}</code></pre>
-""".LoadFromHtml(options);
+""".ToMarkdownDocument(options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -525,7 +525,7 @@ Paragraph body.
         var document = """
 <p><strong>Deleted object remnants</strong>(SID left in ACL path)</p>
 <p>Why it matters:missing evidence</p>
-""".LoadFromHtml(options);
+""".ToMarkdownDocument(options);
 
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
@@ -541,7 +541,7 @@ Paragraph body.
 
         var document = """
 <p><strong> LDAP/Kerberos health on all DCs </strong> next</p>
-""".LoadFromHtml(options);
+""".ToMarkdownDocument(options);
 
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", html, StringComparison.Ordinal);
@@ -556,7 +556,7 @@ Paragraph body.
 
         var document = """
 <p>Signal -&gt;<strong>Why it matters:</strong> coverage is thin</p>
-""".LoadFromHtml(options);
+""".ToMarkdownDocument(options);
 
         Assert.Contains("Signal -> **Why it matters:** coverage is thin", document.ToMarkdown(), StringComparison.Ordinal);
     }
@@ -625,7 +625,7 @@ Impact: none
   <dt>Status</dt><dd>healthy</dd>
   <dt>Impact</dt><dd>none</dd>
 </dl>
-""".LoadFromHtml(options);
+""".ToMarkdownDocument(options);
 
         var markdown = NormalizeMarkdown(document.ToMarkdown());
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

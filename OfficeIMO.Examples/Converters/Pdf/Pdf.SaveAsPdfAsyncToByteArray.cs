@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Pdf {
-        public static async Task Example_SaveAsPdfAsyncToByteArray(string folderPath, bool openWord) {
+        public static async Task Example_ToPdfByteArrayAsync(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document and exporting to PDF asynchronously as bytes");
             string docPath = Path.Combine(folderPath, "ExportToPdfAsyncBytes.docx");
             string pdfPath = Path.Combine(folderPath, "ExportToPdfAsyncBytes.pdf");
@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello Async PDF Bytes");
                 document.Save();
-                byte[] pdfBytes = await document.SaveAsPdfAsync(cancellationToken: CancellationToken.None);
+                byte[] pdfBytes = await document.ToPdfAsync(cancellationToken: CancellationToken.None);
                 File.WriteAllBytes(pdfPath, pdfBytes);
             }
 

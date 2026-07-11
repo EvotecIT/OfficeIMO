@@ -241,14 +241,6 @@ namespace OfficeIMO.Excel {
                     sheetName + "!" + snapshot.Name));
             }
 
-            if (snapshot.Data.Series.Any(series => series.AxisGroup == ExcelChartAxisGroup.Secondary)) {
-                diagnostics?.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ChartSecondaryAxisUnsupported,
-                    "Excel secondary-axis series are not scaled independently yet; image export renders them against the primary value axis.",
-                    sheetName + "!" + snapshot.Name));
-            }
-
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
                 snapshot.Data.Series.Select(series => new OfficeChartSeries(
@@ -265,7 +257,10 @@ namespace OfficeIMO.Excel {
                     markerOutlineWidth: series.MarkerOutlineWidth,
                     strokeWidth: series.SeriesLineWidth,
                     strokeDashStyle: series.SeriesLineDashStyle,
-                    renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartKind seriesKind, out _) ? seriesKind : null)));
+                    renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartKind seriesKind, out _) ? seriesKind : null,
+                    axisGroup: series.AxisGroup == ExcelChartAxisGroup.Secondary
+                        ? OfficeChartAxisGroup.Secondary
+                        : OfficeChartAxisGroup.Primary)));
             officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout);
             return true;
         }

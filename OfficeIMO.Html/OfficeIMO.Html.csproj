@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Shared HTML ingestion policies, helpers, and first-party HTML bridge APIs for OfficeIMO converters.</Description>
+    <Description>Shared HTML parsing, resource policy, layout, diagnostics, and direct PNG/SVG rendering for OfficeIMO converters.</Description>
     <AssemblyName>OfficeIMO.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html</AssemblyTitle>
     <VersionPrefix>0.1.11</VersionPrefix>
@@ -44,7 +44,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf\OfficeIMO.Rtf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>

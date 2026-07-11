@@ -15,4 +15,10 @@ public sealed class HtmlResourcePipelineOptions {
 
     /// <summary>CSS media context used when deciding whether media-gated resources are active.</summary>
     public HtmlCssMediaContext MediaContext { get; set; } = HtmlCssMediaContext.Screen;
+
+    /// <summary>Optional media-query surface width in CSS pixels. When omitted, the context default is used.</summary>
+    public double? MediaWidth { get; set; }
+
+    /// <summary>Optional media-query surface height in CSS pixels. When omitted, the context default is used.</summary>
+    public double? MediaHeight { get; set; }
 }

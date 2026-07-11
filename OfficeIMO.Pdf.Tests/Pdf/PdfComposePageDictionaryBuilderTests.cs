@@ -729,12 +729,62 @@ namespace OfficeIMO.Tests.Pdf {
                     OfficeColor.FromRgb(10, 20, 30),
                     OfficeColor.FromRgb(255, 128, 0)));
 
+            Assert.Contains(
+                "/FunctionType 3 /Domain [0 1] /Functions [<< /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 1 0] /N 1 >> << /FunctionType 2 /Domain [0 1] /C0 [0 1 0] /C1 [0 0 1] /N 1 >>] /Bounds [0.25] /Encode [0 1 0 1]",
+                PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                    0,
+                    0,
+                    1,
+                    1,
+                    new[] {
+                        new OfficeGradientStop(0D, OfficeColor.Red),
+                        new OfficeGradientStop(0.25D, OfficeColor.Lime),
+                        new OfficeGradientStop(1D, OfficeColor.Blue)
+                    }));
+
+            Assert.Contains(
+                "/Bounds [0.4999999 0.5000001]",
+                PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                    0,
+                    0,
+                    1,
+                    0,
+                    new[] {
+                        new OfficeGradientStop(0D, OfficeColor.Red),
+                        new OfficeGradientStop(0.5D, OfficeColor.Red),
+                        new OfficeGradientStop(0.5D, OfficeColor.Blue),
+                        new OfficeGradientStop(1D, OfficeColor.Blue)
+                    }));
+
+            Assert.Contains(
+                "<< /ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.25 0.75 0 0.5 0.5 0.75] /Function << /FunctionType 2",
+                PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
+                    0.25D,
+                    0.75D,
+                    0D,
+                    0.5D,
+                    0.5D,
+                    0.75D,
+                    new[] {
+                        new OfficeGradientStop(0D, OfficeColor.Red),
+                        new OfficeGradientStop(1D, OfficeColor.Blue)
+                    }));
+
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(-0.1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(1, 1.1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(double.NaN, 0, 1, 1, OfficeColor.Black, OfficeColor.White));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
+                    0,
+                    0,
+                    -0.1D,
+                    0.5D,
+                    0.5D,
+                    0.5D,
+                    new[] { new OfficeGradientStop(0D, OfficeColor.Black), new OfficeGradientStop(1D, OfficeColor.White) }));
         }
 
         private static int CountOccurrences(string text, string value) {

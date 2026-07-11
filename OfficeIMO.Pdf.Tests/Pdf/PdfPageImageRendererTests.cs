@@ -24,7 +24,7 @@ public class PdfPageImageRendererTests {
         Assert.True(drawing.Width > 0D);
         Assert.True(drawing.Height > 0D);
         string drawingText = string.Concat(drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
-        Assert.Contains("Managedrasterpage", drawingText, StringComparison.Ordinal);
+        Assert.Contains("Managed raster page", drawingText, StringComparison.Ordinal);
         Assert.Contains(drawing.Images, image => image.ContentType == "image/png" && image.Bytes.Length > 8);
         string svgText = Encoding.UTF8.GetString(svg);
         Assert.Contains("Managed", svgText, StringComparison.Ordinal);

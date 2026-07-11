@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlDelAndInsRoundTripAsSemanticTags() {
             const string html = "<p>Changed <del>old</del> to <ins>new</ins>.</p>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             string roundTrip = doc.ToHtml();
 
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlMarkRoundTripsAsSemanticTag() {
             const string html = "<p>Please <mark>review</mark> this.</p>";
-            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             string roundTrip = doc.ToHtml();
 

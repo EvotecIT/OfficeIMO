@@ -146,7 +146,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = options ?? new PowerPointOpenDocumentConversionOptions();
-        PowerPointPresentation target = PowerPointPresentation.Create(new MemoryStream(), autoSave: false);
+        PowerPointPresentation target = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false });
         var report = new OdfConversionReport("ODP", "PPTX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         target.SlideSize.SetSizePoints(source.PageWidth.ToPoints(), source.PageHeight.ToPoints());

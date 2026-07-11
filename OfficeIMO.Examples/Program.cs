@@ -90,7 +90,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.DesignBriefRecommendationsPowerPoint.Example_DesignBriefRecommendationsPowerPoint(folderPath, false);
             PowerPoint.DeckPlanAdvisorPowerPoint.Example_DeckPlanAdvisorPowerPoint(folderPath, false);
             PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
-            PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
+            PowerPoint.DirectEditingPowerPoint.Example(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
             PowerPoint.SectionsWithoutRepairPowerPoint.Example_PowerPointSectionsWithoutRepair(folderPath, false);
@@ -101,6 +101,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
             PowerPoint.ValidateDocument.Example(folderPath, false);
             PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+            PowerPoint.EndToEndPowerPointProof.Example_EndToEndPowerPointProof(folderPath, false);
 
             ValidateGeneratedPowerPointDecks(folderPath, startedUtc);
         }
@@ -172,8 +173,18 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--powerpoint-e2e")) {
+                PowerPoint.EndToEndPowerPointProof.Example_EndToEndPowerPointProof(folderPath, false);
+                return;
+            }
+
             if (HasArgument(args, "--powerpoint")) {
                 RunPowerPointExamples(folderPath);
+                return;
+            }
+
+            if (HasArgument(args, "--html-direct")) {
+                Html.Html.Example_Html11_DirectOutputs(folderPath, HasArgument(args, "--open-pdf"));
                 return;
             }
 
@@ -414,7 +425,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.DesignBriefRecommendationsPowerPoint.Example_DesignBriefRecommendationsPowerPoint(folderPath, false);
             PowerPoint.DeckPlanAdvisorPowerPoint.Example_DeckPlanAdvisorPowerPoint(folderPath, false);
             PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
-            PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
+            PowerPoint.DirectEditingPowerPoint.Example(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
             PowerPoint.SectionsWithoutRepairPowerPoint.Example_PowerPointSectionsWithoutRepair(folderPath, false);
@@ -436,6 +447,7 @@ namespace OfficeIMO.Examples {
             // Html.Html.Example_Html08_SemanticsAndCitations(folderPath, false);
             // Html.Html.Example_Html09_CodePreWhitespace(folderPath, false);
             // Html.Html.Example_Html10_OptionsAndAsync(folderPath, false).GetAwaiter().GetResult();
+            // Html.Html.Example_Html11_DirectOutputs(folderPath, false);
             // Html.Html.Example_Html00_AllInOne(folderPath, false);
             // // Markdown/Markdown
             // Markdown.Markdown.Example_MarkdownInterface(folderPath, false);

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableSections_ColGroupAndHeader() {
             string html = "<table><colgroup><col style=\"width:20%\"><col style=\"width:80%\"></colgroup><thead><tr style=\"background-color:#ff0000\"><th>H1</th><th>H2</th></tr></thead><tbody><tr><td>B1</td><td>B2</td></tr></tbody><tfoot><tr><td>F1</td><td>F2</td></tr></tfoot></table>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             Assert.True(table.RepeatHeaderRowAtTheTopOfEachPage);
             Assert.Equal("ff0000", table.Rows[0].Cells[0].ShadingFillColorHex);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_TableSections_TheadMarksEveryHeaderRowRepeated() {
             string html = "<table><thead><tr><th>H1</th></tr><tr><th>H2</th></tr></thead><tbody><tr><td>B1</td></tr></tbody></table>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var table = doc.Tables[0];
             Assert.True(table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableSections_ColGroupDecimalPercent() {
             string html = "<table><colgroup><col style=\"width:13.5%\"><col style=\"width:86.5%\"></colgroup><tbody><tr><td>A</td><td>B</td></tr></tbody></table>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             Assert.Equal(new List<int> { 675, 4325 }, table.ColumnWidth);
             Assert.Equal(TableWidthUnitValues.Pct, table.ColumnWidthType);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableSections_RowSpanReservesColumnsForFollowingRows() {
             string html = "<table><tbody><tr><td rowspan=\"2\">A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></tbody></table>";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
 
             Assert.Equal(2, table.Rows.Count);

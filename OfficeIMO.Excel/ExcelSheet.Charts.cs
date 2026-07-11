@@ -167,16 +167,18 @@ namespace OfficeIMO.Excel {
             ReportChartTiming(stageWatch, "AddChart.ReserveChartData");
 
             stageWatch?.Restart();
-            bool numericCategories = type == ExcelChartType.Scatter || HasScatterSeries(data.Series);
+            bool numericCategories = RequiresNumericScatterCategories(data.Series, type);
             ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1, numericCategories: numericCategories);
             ReportChartTiming(stageWatch, "AddChart.WriteChartData");
 
             return AddChartInternal(range, row, column, widthPixels, heightPixels, type, data, title, preserveDeferredDataSetCandidate: true);
         }
 
-        private static bool HasScatterSeries(IReadOnlyList<ExcelChartSeries> series) {
+        private static bool RequiresNumericScatterCategories(IReadOnlyList<ExcelChartSeries> series,
+            ExcelChartType defaultType) {
             for (int i = 0; i < series.Count; i++) {
-                if (series[i].ChartType == ExcelChartType.Scatter) {
+                ExcelChartSeries item = series[i];
+                if ((item.ChartType ?? defaultType) == ExcelChartType.Scatter && item.XValues == null) {
                     return true;
                 }
             }

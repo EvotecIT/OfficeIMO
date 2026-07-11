@@ -40,6 +40,41 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private bool ApplySeriesByChartIndex(int seriesIndex, Action<OpenXmlCompositeElement> apply) {
+            OpenXmlCompositeElement? series = FindSeriesByChartIndex(seriesIndex);
+            if (series == null) return false;
+            apply(series);
+            return true;
+        }
+
+        private OpenXmlCompositeElement? FindSeriesByChartIndex(int seriesIndex) {
+            C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
+            return plotArea?.Descendants()
+                .OfType<OpenXmlCompositeElement>()
+                .FirstOrDefault(element => IsSeriesElement(element) && GetSeriesIndex(element) == seriesIndex);
+        }
+
+        private bool ApplySeriesMarkerByChartIndex(int seriesIndex, Action<C.Marker> apply) {
+            OpenXmlCompositeElement? series = FindSeriesByChartIndex(seriesIndex);
+            if (series == null || !IsMarkerCapableSeriesElement(series)) return false;
+
+            C.Marker marker = series.GetFirstChild<C.Marker>() ?? new C.Marker();
+            apply(marker);
+            OpenXmlElement? insertBefore = series.GetFirstChild<C.DataPoint>();
+            insertBefore ??= series.GetFirstChild<C.DataLabels>();
+            insertBefore ??= series.GetFirstChild<C.Trendline>();
+            insertBefore ??= series.GetFirstChild<C.ErrorBars>();
+            insertBefore ??= series.GetFirstChild<C.CategoryAxisData>();
+            insertBefore ??= series.GetFirstChild<C.Values>();
+            insertBefore ??= series.GetFirstChild<C.XValues>();
+            insertBefore ??= series.GetFirstChild<C.YValues>();
+            insertBefore ??= series.GetFirstChild<C.BubbleSize>();
+            insertBefore ??= series.GetFirstChild<C.Smooth>();
+            insertBefore ??= series.GetFirstChild<C.ExtensionList>();
+            EnsureSeriesChildPosition(series, marker, insertBefore);
+            return true;
+        }
+
         private bool ApplySeriesByName(string seriesName, bool ignoreCase, Action<OpenXmlCompositeElement> apply) {
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -211,6 +246,11 @@ namespace OfficeIMO.Excel {
                    element is C.RadarChartSeries ||
                    element is C.SurfaceChartSeries;
         }
+
+        private static bool IsMarkerCapableSeriesElement(OpenXmlCompositeElement element) =>
+            element is C.LineChartSeries ||
+            element is C.ScatterChartSeries ||
+            element is C.RadarChartSeries;
 
         private static int GetSeriesIndex(OpenXmlCompositeElement series) {
             return (int)(series.GetFirstChild<C.Index>()?.Val?.Value ?? 0U);

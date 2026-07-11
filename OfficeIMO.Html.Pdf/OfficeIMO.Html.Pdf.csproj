@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Bidirectional HTML/PDF converter for OfficeIMO - Thin adapter over OfficeIMO.Markdown.Html, OfficeIMO.Word.Html, and the first-party OfficeIMO.Pdf logical/read/render engines.</Description>
+    <Description>Direct dependency-free HTML/PDF rendering and PDF-to-HTML conversion for OfficeIMO.</Description>
     <PackageId>OfficeIMO.Html.Pdf</PackageId>
     <AssemblyName>OfficeIMO.Html.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html.Pdf</AssemblyTitle>
@@ -34,10 +34,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
   </ItemGroup>
 

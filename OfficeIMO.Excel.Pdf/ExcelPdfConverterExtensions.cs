@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Converts an Excel workbook to a PDF document and returns conversion diagnostics with it.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
+        public static PdfCore.PdfDocumentConversionResult ToPdfResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -102,9 +102,16 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Converts an Excel workbook to PDF bytes.
         /// </summary>
-        public static byte[] SaveAsPdf(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
+        /// <example><code>byte[] pdf = workbook.ToPdf();</code></example>
+        public static byte[] ToPdf(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
             return document.ToPdfDocument(options).ToBytes();
         }
+
+        /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(ExcelDocument, ExcelPdfSaveOptions?)"/>.</summary>
+        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) => document.ToPdfResult(options);
+
+        /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(ExcelDocument, ExcelPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
+        public static byte[] SaveAsPdf(this ExcelDocument document, ExcelPdfSaveOptions? options = null) => document.ToPdf(options);
 
         /// <summary>
         /// Saves an Excel workbook as a PDF file.

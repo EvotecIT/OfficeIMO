@@ -915,7 +915,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsSecondaryAxisChartSeriesApproximation() {
+        public void ExcelRange_ImageExportRendersSecondaryAxisChartSeriesWithoutApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("SecondaryAxis");
@@ -925,13 +925,21 @@ namespace OfficeIMO.Tests {
                     new ExcelChartSeries("Sales", new[] { 120D, 180D, 160D }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
                     new ExcelChartSeries("Margin", new[] { 0.12D, 0.18D, 0.16D }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
                 });
-            ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo");
+            sheet.AddChart(data, row: 1, column: 4, widthPixels: 265, heightPixels: 170,
+                type: ExcelChartType.ColumnClustered, title: "Combo");
 
-            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            ExcelRange range = sheet.Range("A1:H9");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(
+                new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png,
+                new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
-            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartSecondaryAxisUnsupported);
-            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
-            Assert.Equal("SecondaryAxis!" + chart.Name, diagnostic.Source);
+            ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
+            ExcelChartSeries margin = Assert.Single(visualChart.Snapshot.Data.Series,
+                series => series.Name == "Margin");
+            Assert.Equal(ExcelChartAxisGroup.Secondary, margin.AxisGroup);
+            Assert.DoesNotContain(png.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ChartSecondaryAxisUnsupported);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
         }
 

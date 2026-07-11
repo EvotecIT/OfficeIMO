@@ -32,12 +32,33 @@ slide.Transition = SlideTransition.Fade;
 presentation.Save();
 ```
 
+`Create(...)` starts with zero slides, and each `AddSlide()` call creates exactly one. This keeps creation and
+editing deterministic; there is no hidden placeholder slide to reuse.
+
+Open an existing deck in edit or read-only mode explicitly. Stream persistence uses named options rather than
+positional booleans:
+
+```csharp
+using var edited = PowerPointPresentation.Open("deck.pptx");
+edited.ReplaceText("Draft", "Approved");
+edited.Save();
+
+using var inspected = PowerPointPresentation.Open("deck.pptx", PowerPointOpenMode.ReadOnly);
+
+using var output = new MemoryStream();
+using var streamed = PowerPointPresentation.Create(output,
+    new PowerPointStreamCreateOptions { AutoSave = true });
+```
+
 ## What it does
 
 - Creates and edits PowerPoint presentations, slides, slide size, text boxes, pictures, tables, charts, backgrounds, transitions, notes, and metadata.
 - Keeps generated output as editable PowerPoint content instead of screenshots.
 - Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
-- Provides designer composition helpers for theme-aware business decks and repeatable layout alternatives.
+- Composes reusable semantic plans through one `presentation.Compose(plan, options)` workflow.
+- Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
+- Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
+- Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
 - Supports encrypted presentation save/open workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
@@ -134,6 +155,7 @@ record SalesRow(string Product, int Q1, int Q2);
 
 ```csharp
 using DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.Drawing;
 
 var metrics = new[] {
     new MetricRow("Q1", 120, 32),
@@ -142,13 +164,18 @@ var metrics = new[] {
     new MetricRow("Q4", 190, 44)
 };
 
+var chartData = new OfficeChartData(
+    metrics.Select(row => row.Quarter),
+    new[] {
+        new OfficeChartSeries("Revenue", metrics.Select(row => row.Revenue)),
+        new OfficeChartSeries("Margin", metrics.Select(row => row.Margin))
+    });
+
 var slide = presentation.AddSlide();
 slide.AddTitle("Revenue and margin");
 
-slide.AddChartCm(metrics, row => row.Quarter,
-        leftCm: 1.4, topCm: 3.0, widthCm: 13.2, heightCm: 8.0,
-        new PowerPointChartSeriesDefinition<MetricRow>("Revenue", row => row.Revenue),
-        new PowerPointChartSeriesDefinition<MetricRow>("Margin", row => row.Margin))
+slide.AddChartCm(OfficeChartKind.ColumnClustered, chartData,
+        leftCm: 1.4, topCm: 3.0, widthCm: 13.2, heightCm: 8.0)
     .SetTitle("Quarterly performance")
     .SetCategoryAxisTitle("Quarter")
     .SetValueAxisTitle("Value")
@@ -159,12 +186,48 @@ slide.AddChartCm(metrics, row => row.Quarter,
 record MetricRow(string Quarter, double Revenue, double Margin);
 ```
 
-```csharp
-var mix = new PowerPointChartData(
-    new[] { "Services", "Licenses", "Support" },
-    new[] { new PowerPointChartSeries("Share", new[] { 55d, 30d, 15d }) });
+### Shared chart families, combo axes, and accessibility
 
-slide.AddDoughnutChartCm(mix, leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
+Use `OfficeChartData` when the same categories and series should drive PowerPoint, Excel, Drawing, HTML, PDF,
+or image workflows. A series can choose its own chart kind and primary or secondary value axis without a
+PowerPoint-only chart model.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var sharedData = new OfficeChartData(
+    new[] { "Q1", "Q2", "Q3", "Q4" },
+    new[] {
+        new OfficeChartSeries("Revenue", new[] { 120d, 145d, 172d, 190d },
+            xValues: null, color: OfficeColor.Parse("#0B7FAB"), pointColors: null,
+            showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+        new OfficeChartSeries("Margin", new[] { 22d, 26d, 31d, 35d },
+            xValues: null, color: OfficeColor.Parse("#E85D04"), pointColors: null,
+            showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
+            axisGroup: OfficeChartAxisGroup.Secondary)
+    });
+
+PowerPointChart chart = slide.AddChartCm(
+    OfficeChartKind.ColumnClustered, sharedData,
+    leftCm: 1.5, topCm: 3, widthCm: 22, heightCm: 9,
+    accessibility: new PowerPointChartAccessibilityOptions {
+        AlternativeText = "Revenue columns with margin line on a secondary axis"
+    });
+
+chart.SaveDataSummary("quarterly-chart.txt");
+```
+
+The shared authoring overload covers clustered, stacked, and 100% stacked column/bar; line variants; area
+variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
+used by PNG/SVG, HTML, and PDF paths.
+
+```csharp
+var mix = new OfficeChartData(
+    new[] { "Services", "Licenses", "Support" },
+    new[] { new OfficeChartSeries("Share", new[] { 55d, 30d, 15d }) });
+
+slide.AddChartCm(OfficeChartKind.Doughnut, mix,
+        leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
     .SetTitle("Revenue mix")
     .SetLegend(LegendPositionValues.Right);
 ```
@@ -190,12 +253,17 @@ dashboard.AddTableCm(segments, new[] {
     },
     leftCm: 1.4, topCm: 3.0, widthCm: 10.0, heightCm: 5.0);
 
-dashboard.AddLineChartCm(segments, row => row.Segment,
-        leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5,
-        new PowerPointChartSeriesDefinition<SegmentRow>("Q1", row => row.Q1),
-        new PowerPointChartSeriesDefinition<SegmentRow>("Q2", row => row.Q2),
-        new PowerPointChartSeriesDefinition<SegmentRow>("Q3", row => row.Q3),
-        new PowerPointChartSeriesDefinition<SegmentRow>("Q4", row => row.Q4))
+var segmentChart = new OfficeChartData(
+    segments.Select(row => row.Segment),
+    new[] {
+        new OfficeChartSeries("Q1", segments.Select(row => (double)row.Q1)),
+        new OfficeChartSeries("Q2", segments.Select(row => (double)row.Q2)),
+        new OfficeChartSeries("Q3", segments.Select(row => (double)row.Q3)),
+        new OfficeChartSeries("Q4", segments.Select(row => (double)row.Q4))
+    });
+
+dashboard.AddChartCm(OfficeChartKind.Line, segmentChart,
+        leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5)
     .SetTitle("Segment trend")
     .SetLegend(LegendPositionValues.Bottom);
 
@@ -225,9 +293,52 @@ foreach (PowerPointFeatureFinding feature in report.PreservedFeatures) {
 }
 ```
 
+### Accessibility, review, and animation inspection
+
+Generated and imported decks can be inspected with structured policies before they enter CI or a publishing workflow:
+
+```csharp
+using var presentation = PowerPointPresentation.Open("incoming.pptx", PowerPointOpenMode.ReadOnly);
+
+var options = new PowerPointInspectionOptions {
+    InspectFeatures = true,
+    InspectReviewComments = true,
+    InspectAnimations = true,
+    Accessibility = PowerPointAccessibilityOptions.ForProfile(PowerPointAccessibilityPolicyProfile.Strict)
+};
+PowerPointInspectionReport inspection = presentation.Inspect(options);
+inspection.Accessibility!.SaveJson("incoming.accessibility.json");
+inspection.Accessibility.EnsureCompliant();
+Console.WriteLine($"{inspection.ReviewComments!.Comments.Count} comments, " +
+                  $"{inspection.Animations!.Nodes.Count} timing nodes");
+```
+
+Shapes expose `Title`, `Description`, `Decorative`, `ReadingOrder`, `MoveToReadingOrder(...)`, and language helpers. Designer slides apply accessible defaults. The default report treats missing alternative text, table headers, slide titles, and resolvable contrast failures as errors; the strict profile also requires explicit document and shape metadata.
+
+Saving a signed package is blocked by default because mutation invalidates existing signatures. Choose `RemoveInvalidatedSignatures` or `PreserveSignatureMarkup` explicitly only after inspecting `InspectSignatures()`.
+
+### SmartArt and visual proof
+
+Use the bounded semantic SmartArt workflows when native editable diagram data is more useful than flattened artwork:
+
+```csharp
+PowerPointSmartArt process = slide.AddSmartArt(
+    PowerPointSmartArtType.BasicProcess,
+    new[] { "Discover", "Design", "Deliver" });
+
+PowerPointVisualProofReport proof = presentation.InspectVisuals();
+proof.RecordArtifact("deck.pptx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    File.ReadAllBytes("deck.pptx"));
+proof.SaveJson("deck.visual-proof.json");
+```
+
+The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering is available through `PowerPointDesktopReferenceRenderer.TryRender(...)` only when the caller explicitly enables it; normal generation and export never use Office automation.
+
 ### Designer composition
 
-Use the designer APIs when a deck needs readable business composition without hand-positioning every object:
+Use a semantic plan when a deck needs readable business composition without hand-positioning every object.
+`PowerPointDeckPlan` owns intent and `PowerPointPresentation.Compose(...)` is the only public rendering operation:
 
 ```csharp
 using var presentation = PowerPointPresentation.Create("proposal.pptx");
@@ -236,23 +347,93 @@ var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
 
-var deck = presentation.UseDesigner(brief, alternativeIndex: 0);
-deck.AddSectionSlide("Delivery plan", "Implementation overview");
+var plan = new PowerPointDeckPlan()
+    .AddSection("Delivery plan", "Implementation overview")
+    .AddProcess("Rollout", "Editable native shapes", new[] {
+        new PowerPointProcessStep("Discover", "Confirm scope and dependencies."),
+        new PowerPointProcessStep("Deliver", "Implement in controlled waves."),
+        new PowerPointProcessStep("Operate", "Hand over evidence and ownership.")
+    });
+
+PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
+composition.SelectBestAlternative = false;
+composition.AlternativeIndex = 0;
+PowerPointCompositionResult result = presentation.Compose(plan, composition);
 presentation.Save();
 ```
 
-### Fluent authoring
+Use a semantic plan when the whole story should stay reusable. Story slides render as native charts, tables,
+pictures, shapes, and connectors rather than flattened artwork. Oversized appendix tables continue across slides,
+and the rhythm report can be evaluated before the deck is created.
 
 ```csharp
-using OfficeIMO.PowerPoint.Fluent;
+using OfficeIMO.Drawing;
 
-presentation.AsFluent()
-   .Slide(masterIndex: 0, layoutIndex: 0, slide => {
-       slide.Title("Fluent Slide");
-       slide.Bullets("One", "Two", "Three");
-       slide.Notes("Talking points for the presenter");
-   });
+var chartStory = new PowerPointChartStoryContent(
+    OfficeChartKind.ColumnClustered,
+    new OfficeChartData(
+        new[] { "Q1", "Q2", "Q3", "Q4" },
+        new[] { new OfficeChartSeries("Adoption", new[] { 28d, 43d, 61d, 72d }) }),
+    new[] { "Adoption improved every quarter." }) {
+    Provenance = "Customer success dataset",
+    AlternativeText = "Quarterly adoption columns",
+    DataSummary = "Adoption rose from 28 to 72 percent."
+};
+
+var plan = new PowerPointDeckPlan()
+    .AddSection("Quarterly review", "Decision-ready evidence")
+    .AddChartStory("Adoption", null, chartStory)
+    .AddClosing("Next action", new PowerPointClosingContent(
+        "Turn the evidence into action.", "Approve the pilot"));
+
+PowerPointCompositionResult result = presentation.Compose(plan,
+    PowerPointCompositionOptions.FromBrief(brief));
+PowerPointDeckRhythmReport rhythm = result.Plan.InspectRhythm(result.Design);
 ```
+
+### Corporate templates and brand import
+
+Inventory a real `.pptx` or `.potx` before generating slides. The inventory exposes masters, named layouts, semantic placeholders, theme tokens, likely logos, footer content, slide size, and layout safe areas. Missing or ambiguous semantic names fail with candidate diagnostics instead of selecting an arbitrary layout.
+
+```csharp
+PowerPointTemplateInventory inventory =
+    PowerPointTemplate.Inspect("Corporate.potx");
+
+PowerPointTemplateLayoutInfo contentLayout =
+    inventory.ResolveLayout("Executive Summary");
+
+var layoutMap = new PowerPointTemplateLayoutMap()
+    .Map(PowerPointDeckPlanSlideKind.Section, inventory, "Title")
+    .Map(PowerPointDeckPlanSlideKind.Capability, contentLayout);
+
+using var presentation = PowerPointTemplate.CreatePresentation(
+    "Corporate.potx",
+    "Proposal.pptx",
+    new PowerPointTemplateCreationOptions {
+        SlideRetention = PowerPointTemplateSlideRetention.None
+    });
+
+var plan = new PowerPointDeckPlan()
+    .AddSection("Service proposal", "Generated into named corporate layouts.")
+    .AddCapability("Operating model", null, new[] {
+        new PowerPointCapabilitySection("Governance", "Clear ownership and decisions."),
+        new PowerPointCapabilitySection("Delivery", "Repeatable rollout evidence.")
+    });
+
+PowerPointDesignBrief brief = inventory.CreateDesignBrief("proposal-seed", "service proposal");
+PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
+composition.TemplateLayouts = layoutMap;
+composition.ApplyTheme = false; // the copied template remains the native theme owner
+presentation.Compose(plan, composition);
+presentation.Save();
+```
+
+Use `layout.ResolvePlaceholder("Customer Screenshot")` or `ResolvePlaceholder(PowerPointTemplatePlaceholderRole.Image)` when placing a native image, chart, table, or text box into authored placeholder bounds. `CreateDesignBrief(...)` maps the imported brand into designer tokens; `ApplyBrandTo(...)` applies the same colors and fonts to native theme parts in another presentation.
+
+Concrete `PowerPointPresentation`, `PowerPointSlide`, and `PowerPointShape` objects are the editing API. There is
+no separate PowerPoint builder vocabulary to learn or keep synchronized.
+
+See [the breaking API migration guide](../Docs/officeimo.powerpoint-api-migration.md) for old-to-new mappings.
 
 ## Adjacent packages
 

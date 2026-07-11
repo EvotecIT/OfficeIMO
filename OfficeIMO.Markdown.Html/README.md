@@ -18,7 +18,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 
 string markdown = "<h1>Hello</h1><p>Body</p>".ToMarkdown();
-MarkdownDoc document = "<h1>Hello</h1><p>Body</p>".LoadFromHtml();
+MarkdownDoc document = "<h1>Hello</h1><p>Body</p>".ToMarkdownDocument();
 ```
 
 ## Options

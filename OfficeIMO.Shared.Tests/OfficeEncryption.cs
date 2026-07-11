@@ -120,7 +120,7 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncrypted_And_OpenEncrypted_RoundTrips() {
             string path = CreateTempPath(".pptx");
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), autoSave: false)) {
+            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false })) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Encrypted PowerPoint content", 1, 1, 4, 1);
                 presentation.SaveEncrypted(path, Password);
@@ -137,7 +137,7 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncryptedStream_And_OpenEncryptedStream_RoundTrips() {
             using var encrypted = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), autoSave: false)) {
+            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false })) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Encrypted PowerPoint stream content", 1, 1, 4, 1);
                 presentation.SaveEncrypted(encrypted, Password);

@@ -30,16 +30,16 @@ namespace OfficeIMO.Examples.PowerPoint {
             foreach (LayoutStrategyExample example in examples) {
                 PowerPointDesignBrief brief = CreateBrief(example);
                 IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> preview = brief.DescribeDeckPlan(plan);
-                PowerPointDeckComposer deck = presentation.UseDesigner(brief);
+                PowerPointDeckPlan renderPlan = new PowerPointDeckPlan();
 
-                deck.AddSectionSlide(example.Title,
+                renderPlan.AddSection(example.Title,
                     example.Description,
                     "layout-strategy-" + example.Strategy,
                     options => options.SectionVariant = example.Strategy == PowerPointAutoLayoutStrategy.VisualFirst
                         ? PowerPointSectionLayoutVariant.Poster
                         : PowerPointSectionLayoutVariant.EditorialRail);
 
-                deck.ComposeSlide(composer => {
+                renderPlan.AddCustom("Resolved variants", composer => {
                     composer.AddTitle("Resolved variants",
                         "The plan is unchanged; the brief steers palette, density, and Auto layout behavior.");
                     PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.7, bottomMarginCm: 2.35);
@@ -74,7 +74,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }, "layout-preview-" + example.Strategy,
                     options => options.FooterRight = ToDisplayName(example.Strategy.ToString()));
 
-                deck.AddSlides(plan);
+                foreach (PowerPointDeckPlanSlide plannedSlide in plan.Slides) {
+                    renderPlan.Add(plannedSlide);
+                }
+                presentation.Compose(renderPlan, PowerPointCompositionOptions.FromBrief(brief));
             }
 
             presentation.Save();
