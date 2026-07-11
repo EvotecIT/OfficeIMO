@@ -352,6 +352,46 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(raster.GetPixel(raster.Width / 2, raster.Height - 2).B > raster.GetPixel(raster.Width / 2, raster.Height - 2).R);
     }
 
+    [Fact]
+    public void HtmlLinearGradient_OversizedBoxKeepsOneContinuousPaintAcrossPageClips() {
+        const string html = "<html style='margin:0'><body style='margin:0'><div id='tall-gradient' style='width:40px;height:90px;background:linear-gradient(to bottom,red,blue)'></div></body></html>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => {
+            HtmlRenderClipGroup fragment = Assert.Single(page.Visuals.OfType<HtmlRenderClipGroup>(), group =>
+                group.Visuals.OfType<HtmlRenderShape>().Any(shape => shape.Shape.FillGradient != null));
+            Assert.Single(fragment.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null);
+        });
+        Assert.True(OfficePngReader.TryDecode(pngPages[0].Bytes, out OfficeRasterImage? first));
+        Assert.True(OfficePngReader.TryDecode(pngPages[1].Bytes, out OfficeRasterImage? second));
+        Assert.True(OfficePngReader.TryDecode(pngPages[2].Bytes, out OfficeRasterImage? third));
+        Assert.True(first!.GetPixel(20, 20).R > first.GetPixel(20, 20).B);
+        Assert.True(second!.GetPixel(20, 20).B > second.GetPixel(20, 20).R);
+        Assert.True(third!.GetPixel(20, 5).B > third.GetPixel(20, 5).R);
+        Assert.All(svgPages, page => {
+            string svg = Encoding.UTF8.GetString(page.Bytes);
+            Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+            Assert.Contains("<linearGradient", svg, StringComparison.Ordinal);
+        });
+        Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
     [Theory]
     [InlineData("linear-gradient(red,lime,blue)")]
     [InlineData("radial-gradient(red,lime,blue)")]

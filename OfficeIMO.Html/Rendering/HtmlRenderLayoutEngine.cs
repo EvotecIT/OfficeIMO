@@ -484,27 +484,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            if (visual is HtmlRenderShape shape
-                && (shape.Shape.Kind == OfficeShapeKind.Rectangle || shape.Shape.Kind == OfficeShapeKind.RoundedRectangle)) {
-                OfficeShape sliced = shape.Shape.Clone();
-                sliced.Height = intersectionBottom - intersectionTop;
-                if (sliced.Kind == OfficeShapeKind.RoundedRectangle) sliced.CornerRadius = Math.Min(sliced.CornerRadius, sliced.Height / 2D);
-                double paintOffsetY = shape.Y - shape.LayoutY;
-                fragment.Add(new HtmlRenderShape(sliced, shape.X, intersectionTop - start + paintOffsetY, fragment.Count, shape.LinkUri, shape.Source, intersectionTop - start));
-                continue;
-            }
-
-            if (visual is HtmlRenderShape line
-                && line.Shape.Kind == OfficeShapeKind.Line
-                && line.Shape.Width <= 0.001D
-                && line.Shape.Transform == null
-                && line.Shape.ClipPath == null) {
-                OfficeShape sliced = CreateVerticalLineFragment(line.Shape, intersectionBottom - intersectionTop);
-                double paintOffsetY = line.Y - line.LayoutY;
-                fragment.Add(new HtmlRenderShape(sliced, line.X, intersectionTop - start + paintOffsetY, fragment.Count, line.LinkUri, line.Source, intersectionTop - start));
-                continue;
-            }
-
             if (visual is HtmlRenderImage
                 || visual is HtmlRenderDrawing
                 || visual is HtmlRenderImagePattern
@@ -538,21 +517,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paintOrder,
             visual.Source,
             clipY);
-    }
-
-    private static OfficeShape CreateVerticalLineFragment(OfficeShape source, double height) {
-        OfficeShape fragment = OfficeShape.Line(0D, 0D, 0.0001D, Math.Max(0.0001D, height));
-        fragment.StrokeColor = source.StrokeColor;
-        fragment.StrokeWidth = source.StrokeWidth;
-        fragment.StrokeDashStyle = source.StrokeDashStyle;
-        fragment.StrokeLineCap = source.StrokeLineCap;
-        fragment.StrokeLineJoin = source.StrokeLineJoin;
-        fragment.StrokeStartMarker = source.StrokeStartMarker?.Clone();
-        fragment.StrokeEndMarker = source.StrokeEndMarker?.Clone();
-        fragment.StrokeGradient = source.StrokeGradient?.Clone();
-        fragment.StrokeRadialGradient = source.StrokeRadialGradient?.Clone();
-        fragment.StrokeOpacity = source.StrokeOpacity;
-        return fragment;
     }
 
     private void ValidateSurface(double width, double height) {

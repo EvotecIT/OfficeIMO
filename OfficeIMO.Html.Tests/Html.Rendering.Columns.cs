@@ -185,7 +185,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("One", StringComparison.Ordinal));
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("Six", StringComparison.Ordinal));
-        Assert.All(rendered.Pages, page => Assert.Contains(page.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div::column-rule"));
+        Assert.All(rendered.Pages, page => {
+            HtmlRenderClipGroup fragment = Assert.Single(page.Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "div::column-rule");
+            HtmlRenderShape rule = Assert.Single(fragment.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div::column-rule");
+            Assert.Equal(OfficeShapeKind.Line, rule.Shape.Kind);
+            Assert.True(rule.Shape.Height > fragment.ClipHeight);
+        });
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
