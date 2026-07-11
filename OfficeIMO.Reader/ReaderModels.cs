@@ -391,6 +391,12 @@ public sealed class ReaderLocation {
     public string? HeadingPath { get; set; }
 
     /// <summary>
+    /// Escaped heading path used internally by hierarchy projections. Normal Reader output keeps
+    /// <see cref="HeadingPath"/> as the original display value.
+    /// </summary>
+    internal string? HierarchyHeadingPath { get; set; }
+
+    /// <summary>
     /// Optional unique slug/anchor for the active heading section.
     /// </summary>
     public string? HeadingSlug { get; set; }

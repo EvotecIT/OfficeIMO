@@ -12,10 +12,10 @@ public static partial class ReaderHierarchicalChunker {
         string rawRootTitle = BuildRootTitle(source);
         string rootTitle = LimitHierarchyValue(rawRootTitle, state);
         string rootIdentity = !string.IsNullOrWhiteSpace(source.SourceId)
-            ? source.SourceId!
+            ? "id:" + source.SourceId!
             : !string.IsNullOrWhiteSpace(source.Path)
-                ? source.Path!
-                : rawRootTitle;
+                ? "path:" + source.Path!
+                : "title:" + rawRootTitle;
         var root = new MutableHierarchyNode(
             "node:" + ComputeSha256Hex("document|" + rootIdentity),
             parentNodeId: null,
@@ -46,7 +46,9 @@ public static partial class ReaderHierarchicalChunker {
                     state);
             }
 
-            HierarchyHeading[] headings = SplitHeadingPath(location.HeadingPath, state);
+            HierarchyHeading[] headings = SplitHeadingPath(
+                location.HierarchyHeadingPath ?? location.HeadingPath,
+                state);
             state.HeadingSlugsByChunkId.TryGetValue(chunk.Id, out IReadOnlyList<string?>? fallbackHeadingSlugs);
             int remainingDepth = Math.Max(0, state.Options.MaxHierarchyDepth - parent.Depth);
             if (headings.Length > remainingDepth) {
@@ -54,15 +56,15 @@ public static partial class ReaderHierarchicalChunker {
                 headings = CollapseHeadingDepth(headings, remainingDepth, state);
             }
             for (int headingIndex = 0; headingIndex < headings.Length; headingIndex++) {
-                string key = "heading:" + headings[headingIndex].Identity;
                 string? headingSlug = fallbackHeadingSlugs != null && fallbackHeadingSlugs.Count == headings.Length
                     ? fallbackHeadingSlugs[headingIndex]
                     : headingIndex == headings.Length - 1
                         ? location.HeadingSlug
                         : null;
-                if (!string.IsNullOrWhiteSpace(headingSlug)) {
-                    key += "|slug:" + headingSlug!.Trim();
-                }
+                string key = BuildHierarchyIdentity(
+                    "heading",
+                    headings[headingIndex].Identity,
+                    string.IsNullOrWhiteSpace(headingSlug) ? null : headingSlug!.Trim());
                 parent = GetOrCreateNode(
                     parent,
                     ReaderChunkHierarchyNodeKind.Heading,
@@ -108,7 +110,7 @@ public static partial class ReaderHierarchicalChunker {
         IDictionary<string, MutableHierarchyNode> nodesById,
         IDictionary<string, MutableHierarchyNode> reusable,
         ChunkingState state) {
-        string lookup = parent.Id + "|" + kind.ToString() + "|" + key;
+        string lookup = BuildHierarchyIdentity(parent.Id, kind.ToString(), key);
         if (reusable.TryGetValue(lookup, out MutableHierarchyNode? existing)) return existing;
 
         var created = new MutableHierarchyNode(
@@ -123,6 +125,12 @@ public static partial class ReaderHierarchicalChunker {
         nodesById.Add(created.Id, created);
         parent.ChildNodeIds.Add(created.Id);
         return created;
+    }
+
+    private static string BuildHierarchyIdentity(params string?[] values) {
+        var builder = new System.Text.StringBuilder();
+        foreach (string? value in values) AppendSegmentIdentity(builder, value);
+        return builder.ToString();
     }
 
     private static void AddTokensToAncestors(

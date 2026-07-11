@@ -212,25 +212,27 @@ public static partial class ReaderHierarchicalChunker {
     }
 
     private static ReaderChunk InheritDocumentSource(ReaderChunk chunk, OfficeDocumentSource? source) {
-        if (source == null ||
-            (string.IsNullOrWhiteSpace(source.SourceId) && string.IsNullOrWhiteSpace(source.Path))) {
-            return chunk;
-        }
+        if (source == null) return chunk;
         bool inheritSourceId = string.IsNullOrWhiteSpace(chunk.SourceId) && !string.IsNullOrWhiteSpace(source.SourceId);
         bool inheritPath = string.IsNullOrWhiteSpace(chunk.Location?.Path) && !string.IsNullOrWhiteSpace(source.Path);
-        if (!inheritSourceId && !inheritPath) return chunk;
+        bool inheritSourceHash = string.IsNullOrWhiteSpace(chunk.SourceHash) && !string.IsNullOrWhiteSpace(source.SourceHash);
+        bool inheritLastWriteUtc = !chunk.SourceLastWriteUtc.HasValue && source.LastWriteUtc.HasValue;
+        bool inheritLengthBytes = !chunk.SourceLengthBytes.HasValue && source.LengthBytes.HasValue;
+        if (!inheritSourceId && !inheritPath && !inheritSourceHash && !inheritLastWriteUtc && !inheritLengthBytes) {
+            return chunk;
+        }
 
         ReaderLocation location = CloneLocation(chunk.Location);
-        location.Path ??= source.Path;
+        if (inheritPath) location.Path = source.Path;
         return new ReaderChunk {
             Id = chunk.Id,
             Kind = chunk.Kind,
             Location = location,
             SourceId = inheritSourceId ? source.SourceId : chunk.SourceId,
-            SourceHash = chunk.SourceHash ?? source.SourceHash,
+            SourceHash = inheritSourceHash ? source.SourceHash : chunk.SourceHash,
             ChunkHash = chunk.ChunkHash,
-            SourceLastWriteUtc = chunk.SourceLastWriteUtc ?? source.LastWriteUtc,
-            SourceLengthBytes = chunk.SourceLengthBytes ?? source.LengthBytes,
+            SourceLastWriteUtc = inheritLastWriteUtc ? source.LastWriteUtc : chunk.SourceLastWriteUtc,
+            SourceLengthBytes = inheritLengthBytes ? source.LengthBytes : chunk.SourceLengthBytes,
             TokenEstimate = chunk.TokenEstimate,
             Text = chunk.Text,
             Markdown = chunk.Markdown,

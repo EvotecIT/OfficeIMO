@@ -173,6 +173,98 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void MarkdownRead_PreservesRawHeadingPathWhileHierarchyKeepsLiteralDelimiter() {
+        byte[] markdown = Encoding.UTF8.GetBytes("# Q1 > Q2\\Back\n\nBody");
+        ReaderChunk normal = Assert.Single(DocumentReader.Read(markdown, "note.md"));
+
+        Assert.Equal("Q1 > Q2\\Back", normal.Location.HeadingPath);
+
+        ReaderChunkHierarchyResult hierarchy = DocumentReader.ReadHierarchical(
+            markdown,
+            "note.md",
+            chunkingOptions: new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 100,
+                OverlapTokens = 0,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            });
+        ReaderChunkHierarchyNode heading = Assert.Single(
+            hierarchy.Nodes,
+            node => node.Kind == ReaderChunkHierarchyNodeKind.Heading);
+        Assert.Equal("Q1 > Q2\\Back", heading.Title);
+    }
+
+    [Fact]
+    public void Chunk_InheritsMissingEnvelopeProvenanceAndReplacesWhitespacePath() {
+        ReaderChunk source = CreateChunk("source", "body");
+        source.SourceId = "chunk-id";
+        source.SourceHash = null;
+        source.SourceLastWriteUtc = null;
+        source.SourceLengthBytes = null;
+        source.Location.Path = "   ";
+        DateTime lastWrite = new DateTime(2026, 7, 11, 1, 2, 3, DateTimeKind.Utc);
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource {
+                SourceId = "envelope-id",
+                Path = "source.md",
+                SourceHash = "source-hash",
+                LastWriteUtc = lastWrite,
+                LengthBytes = 123
+            },
+            Chunks = new[] { source }
+        };
+
+        ReaderChunk inherited = Assert.Single(ReaderHierarchicalChunker.Chunk(
+            document,
+            new ReaderHierarchicalChunkingOptions {
+                MaxTokens = 10,
+                OverlapTokens = 0,
+                IncludeContextInText = false,
+                TokenCounter = WordCounter
+            }).Chunks);
+
+        Assert.Equal("chunk-id", inherited.SourceId);
+        Assert.Equal("source.md", inherited.Location.Path);
+        Assert.Equal("source-hash", inherited.SourceHash);
+        Assert.Equal(lastWrite, inherited.SourceLastWriteUtc);
+        Assert.Equal(123, inherited.SourceLengthBytes);
+    }
+
+    [Fact]
+    public void Chunk_SeparatesDelimitedHeadingKeysAndRootIdentityNamespaces() {
+        ReaderChunk literalMarker = CreateChunk("literal", "one", headingPath: "A|slug:x");
+        ReaderChunk slugIdentity = CreateChunk("slugged", "two", headingPath: "A", headingSlug: "x");
+        var options = new ReaderHierarchicalChunkingOptions {
+            MaxTokens = 10,
+            OverlapTokens = 0,
+            IncludeContextInText = false,
+            TokenCounter = WordCounter
+        };
+
+        ReaderChunkHierarchyResult headings = ReaderHierarchicalChunker.Chunk(
+            new[] { literalMarker, slugIdentity },
+            options);
+        Assert.Equal(2, headings.Nodes.Count(node => node.Kind == ReaderChunkHierarchyNodeKind.Heading));
+
+        var sourceIdDocument = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "foo" },
+            Chunks = new[] { CreateChunk("source", "body") }
+        };
+        sourceIdDocument.Chunks[0].SourceId = "foo";
+        sourceIdDocument.Chunks[0].Location.Path = null;
+        var pathDocument = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "foo" },
+            Chunks = new[] { CreateChunk("source", "body") }
+        };
+        pathDocument.Chunks[0].SourceId = null;
+        pathDocument.Chunks[0].Location.Path = "foo";
+
+        Assert.NotEqual(
+            ReaderHierarchicalChunker.Chunk(sourceIdDocument, options).RootNodeId,
+            ReaderHierarchicalChunker.Chunk(pathDocument, options).RootNodeId);
+    }
+
+    [Fact]
     public void Chunk_ReportsInputLimitOnlyWhenAnotherChunkExists() {
         var options = new ReaderHierarchicalChunkingOptions {
             MaxTokens = 10,
