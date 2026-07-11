@@ -223,7 +223,7 @@ visual-only operation is allowed to claim secure redaction.
 - [ ] Keep platform printing outside the core as well. A thin print adapter must
   honor document permissions and reuse the same page geometry and render plan;
   it must not introduce another parser or silently rasterize at low quality.
-- [ ] Add visual comparison helpers for page alignment, pixel/structural diffs,
+- [x] Add visual comparison helpers for page alignment, pixel/structural diffs,
   ignored regions, thresholds, and a human-review gallery.
 
 Exit criterion: arbitrary static business PDFs either render correctly or

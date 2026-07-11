@@ -1,6 +1,23 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
+    /// <summary>Compares this document with another PDF through the managed renderer and returns review artifacts.</summary>
+    public PdfVisualComparisonReport CompareVisual(
+        byte[] actualPdf,
+        PdfPageSelection? selection = null,
+        PdfVisualComparisonOptions? options = null,
+        PdfReadOptions? actualReadOptions = null) {
+        return PdfVisualComparer.Compare(Snapshot(), actualPdf, selection, options, ReadOptions, actualReadOptions);
+    }
+
+    /// <summary>Compares this document with another fluent PDF through the managed renderer.</summary>
+    public PdfVisualComparisonReport CompareVisual(
+        PdfDocument actualDocument,
+        PdfPageSelection? selection = null,
+        PdfVisualComparisonOptions? options = null) {
+        Guard.NotNull(actualDocument, nameof(actualDocument));
+        return PdfVisualComparer.Compare(Snapshot(), actualDocument.Snapshot(), selection, options, ReadOptions, actualDocument.ReadOptions);
+    }
     /// <summary>
     /// Compares this PDF with a rewritten PDF and reports whether important document signals were preserved.
     /// </summary>
