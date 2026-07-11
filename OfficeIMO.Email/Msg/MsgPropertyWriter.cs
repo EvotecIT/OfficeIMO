@@ -5,7 +5,7 @@ namespace OfficeIMO.Email;
 internal static class MsgPropertyWriter {
     internal static void Write(string prefix, MsgPropertyStreamKind kind, IReadOnlyList<MapiProperty> properties,
         int recipientCount, int attachmentCount, MsgNamedPropertyWriter names, IList<OfficeCompoundStream> streams,
-        IList<EmailDiagnostic> diagnostics, uint objectReserved = 0) {
+        IList<EmailDiagnostic> diagnostics, int string8CodePage, uint objectReserved = 0) {
         var resolved = properties.Select(property => new ResolvedProperty(property,
                 property.Name == null ? property.PropertyId : names.GetPropertyId(property.Name)))
             .GroupBy(item => item.Tag)
@@ -30,14 +30,15 @@ internal static class MsgPropertyWriter {
             MsgBinary.WriteUInt32(propertyStream, offset + 4, property.Flags);
             try {
                 if (MsgValueWriter.IsMultiple(property.PropertyType)) {
-                    byte[] valueStream = WriteMultiple(prefix, resolvedProperty.Tag, property, streams);
+                    byte[] valueStream = WriteMultiple(prefix, resolvedProperty.Tag, property, streams,
+                        string8CodePage);
                     MsgBinary.WriteUInt32(propertyStream, offset + 8, unchecked((uint)valueStream.Length));
                 } else if (MsgValueWriter.IsVariable(property.PropertyType)) {
                     if (property.PropertyType == MapiPropertyType.Object) {
                         MsgBinary.WriteUInt32(propertyStream, offset + 8, 0xffffffffU);
                         MsgBinary.WriteUInt32(propertyStream, offset + 12, objectReserved);
                     } else {
-                        byte[] value = MsgValueWriter.EncodeScalar(property);
+                        byte[] value = MsgValueWriter.EncodeScalar(property, string8CodePage);
                         if (property.PropertyType == MapiPropertyType.Unicode) value = AppendTerminator(value, 2);
                         if (property.PropertyType == MapiPropertyType.String8) value = AppendTerminator(value, 1);
                         streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(prefix,
@@ -49,7 +50,8 @@ internal static class MsgPropertyWriter {
                     byte[] value = MsgValueWriter.EncodeFixedValue(property);
                     Buffer.BlockCopy(value, 0, propertyStream, offset + 8, 8);
                 }
-            } catch (Exception ex) when (ex is ArgumentException || ex is InvalidCastException || ex is FormatException || ex is OverflowException) {
+            } catch (Exception ex) when (ex is ArgumentException || ex is InvalidCastException ||
+                ex is FormatException || ex is NotSupportedException || ex is OverflowException) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTY_WRITE_INVALID",
                     string.Concat("Property 0x", resolvedProperty.Tag.ToString("X8", CultureInfo.InvariantCulture),
                         " could not be serialized: ", ex.Message), EmailDiagnosticSeverity.Error, prefix));
@@ -59,7 +61,7 @@ internal static class MsgPropertyWriter {
     }
 
     private static byte[] WriteMultiple(string prefix, uint tag, MapiProperty property,
-        IList<OfficeCompoundStream> streams) {
+        IList<OfficeCompoundStream> streams, int string8CodePage) {
         object[] values = MsgValueWriter.GetMultipleValues(property);
         MapiPropertyType itemType = MsgValueWriter.GetMultipleItemType(property.PropertyType);
         string baseName = string.Concat("__substg1.0_", tag.ToString("X8", CultureInfo.InvariantCulture));
@@ -70,7 +72,7 @@ internal static class MsgPropertyWriter {
             byte[] lengths = new byte[checked(values.Length * lengthEntrySize)];
             for (int index = 0; index < values.Length; index++) {
                 var item = new MapiProperty(property.PropertyId, itemType, values[index]);
-                byte[] value = MsgValueWriter.EncodeScalar(item);
+                byte[] value = MsgValueWriter.EncodeScalar(item, string8CodePage);
                 if (itemType == MapiPropertyType.Unicode) value = AppendTerminator(value, 2);
                 if (itemType == MapiPropertyType.String8) value = AppendTerminator(value, 1);
                 MsgBinary.WriteUInt32(lengths, index * lengthEntrySize, unchecked((uint)value.Length));
@@ -84,7 +86,7 @@ internal static class MsgPropertyWriter {
         using (MemoryStream output = new MemoryStream()) {
             foreach (object value in values) {
                 var item = new MapiProperty(property.PropertyId, itemType, value);
-                byte[] bytes = MsgValueWriter.EncodeScalar(item);
+                byte[] bytes = MsgValueWriter.EncodeScalar(item, string8CodePage);
                 output.Write(bytes, 0, bytes.Length);
             }
             byte[] result = output.ToArray();

@@ -22,9 +22,10 @@ internal static class MsgWriter {
         EmailRecipient[] storageRecipients = document.Recipients
             .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
             .ToArray();
+        int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
         MsgPropertyBuilder messageProperties = CreateMessageProperties(document, diagnostics, prefix);
         MsgPropertyWriter.Write(prefix, kind, messageProperties.Properties, storageRecipients.Length,
-            document.Attachments.Count, names, streams, diagnostics);
+            document.Attachments.Count, names, streams, diagnostics, codePage);
 
         for (int index = 0; index < storageRecipients.Length; index++) {
             EmailRecipient recipient = storageRecipients[index];
@@ -32,7 +33,7 @@ internal static class MsgWriter {
                 string.Concat("__recip_version1.0_#", index.ToString("X8", CultureInfo.InvariantCulture)));
             MsgPropertyBuilder properties = CreateRecipientProperties(recipient, index);
             MsgPropertyWriter.Write(storage, MsgPropertyStreamKind.ChildObject, properties.Properties,
-                0, 0, names, streams, diagnostics);
+                0, 0, names, streams, diagnostics, codePage);
         }
 
         for (int index = 0; index < document.Attachments.Count; index++) {
@@ -43,7 +44,8 @@ internal static class MsgWriter {
                 attachment.StructuredStorageStreams.Count > 0 ? 6 : 1);
             MsgPropertyBuilder properties = CreateAttachmentProperties(attachment, index, method, diagnostics, storage);
             MsgPropertyWriter.Write(storage, MsgPropertyStreamKind.ChildObject, properties.Properties,
-                0, 0, names, streams, diagnostics, method == 5 ? 1U : method == 6 ? 4U : 0U);
+                0, 0, names, streams, diagnostics, codePage,
+                method == 5 ? 1U : method == 6 ? 4U : 0U);
 
             string objectStorage = MsgBinary.CombinePath(storage, "__substg1.0_3701000D");
             if (method == 5 && attachment.EmbeddedDocument != null) {
@@ -61,6 +63,7 @@ internal static class MsgWriter {
     internal static MsgPropertyBuilder CreateMessageProperties(EmailDocument document,
         IList<EmailDiagnostic> diagnostics, string location) {
         var properties = new MsgPropertyBuilder(document.MapiProperties);
+        int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
         EmailMessageMetadata metadata = document.MessageMetadata;
         string messageClass = document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind);
         properties.Set(0x001A, MapiPropertyType.Unicode, messageClass);
@@ -83,7 +86,8 @@ internal static class MsgWriter {
         properties.Set(0x0071, MapiPropertyType.Binary, metadata.ConversationIndex);
         properties.Set(0x1000, MapiPropertyType.Unicode, document.Body.Text);
         if (document.Body.Html != null) {
-            properties.Set(0x1013, MapiPropertyType.Binary, Encoding.UTF8.GetBytes(document.Body.Html));
+            properties.Set(0x1013, MapiPropertyType.Binary,
+                EncodeString8(document.Body.Html, codePage, diagnostics, string.Concat(location, "/html")));
             properties.Set(0x1016, MapiPropertyType.Integer32, 3);
         } else if (document.Body.Rtf != null) {
             properties.Set(0x1016, MapiPropertyType.Integer32, 2);
@@ -112,8 +116,8 @@ internal static class MsgWriter {
         DateTimeOffset created = metadata.CreatedDate ?? document.Date ?? document.ReceivedDate ?? FallbackCreationTime;
         properties.Set(0x3007, MapiPropertyType.Time, created);
         properties.Set(0x3008, MapiPropertyType.Time, metadata.ModifiedDate ?? created);
-        properties.Set(0x3FDE, MapiPropertyType.Integer32, document.OutlookCodePage ?? 65001);
-        properties.Set(0x3FFD, MapiPropertyType.Integer32, document.OutlookCodePage ?? 65001);
+        properties.Set(0x3FDE, MapiPropertyType.Integer32, codePage);
+        properties.Set(0x3FFD, MapiPropertyType.Integer32, codePage);
         properties.Set(0x3FF1, MapiPropertyType.Integer32, metadata.LocaleId ?? 1033);
         properties.Set(0x3FFA, MapiPropertyType.Unicode, metadata.LastModifierName);
         properties.Set(0x3013, MapiPropertyType.Binary, metadata.ConversationId);
@@ -229,7 +233,7 @@ internal static class MsgWriter {
         properties.Set(0x370E, MapiPropertyType.Unicode, attachment.ContentType);
         properties.Set(0x3712, MapiPropertyType.Unicode, attachment.ContentId);
         properties.Set(0x3713, MapiPropertyType.Unicode, attachment.ContentLocation);
-        properties.Set(0x3703, MapiPropertyType.Unicode, Path.GetExtension(attachment.FileName));
+        properties.Set(0x3703, MapiPropertyType.Unicode, GetLogicalExtension(attachment.FileName));
         properties.Set(0x370B, MapiPropertyType.Integer32,
             attachment.RenderingPosition >= 0 ? attachment.RenderingPosition : attachment.IsInline ? 0 : -1);
         properties.Set(0x3714, MapiPropertyType.Integer32, attachment.IsInline ? 0x00000004 : 0);
@@ -240,6 +244,11 @@ internal static class MsgWriter {
         properties.Set(0x370D, MapiPropertyType.Unicode, attachment.LinkedPath);
         if (method == 5 || method == 6) {
             properties.Set(0x3701, MapiPropertyType.Object, null);
+            if (method == 6 && attachment.StructuredStorageStreams.Count == 0 && attachment.Length > 0) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
+                    "A structured MSG attachment has a declared length but no retained storage streams.",
+                    EmailDiagnosticSeverity.Error, location));
+            }
         } else if (attachment.Content != null) {
             properties.Set(0x3701, MapiPropertyType.Binary, attachment.Content);
             properties.Set(0x0E20, MapiPropertyType.Integer32, attachment.Content.Length);
@@ -252,6 +261,27 @@ internal static class MsgWriter {
             }
         }
         return properties;
+    }
+
+    private static string GetLogicalExtension(string? fileName) {
+        if (string.IsNullOrEmpty(fileName)) return string.Empty;
+        int separator = Math.Max(fileName!.LastIndexOf('/'), fileName.LastIndexOf('\\'));
+        int dot = fileName.LastIndexOf('.');
+        return dot > separator && dot + 1 < fileName.Length ? fileName.Substring(dot) : string.Empty;
+    }
+
+    private static byte[] EncodeString8(string value, int codePage, IList<EmailDiagnostic> diagnostics,
+        string location) {
+        try {
+            return MsgValueWriter.EncodeString8(value, codePage);
+        } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException ||
+            exception is EncoderFallbackException) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_STRING8_ENCODING_INVALID",
+                string.Concat("Text could not be encoded with MAPI code page ",
+                    codePage.ToString(CultureInfo.InvariantCulture), ": ", exception.Message),
+                EmailDiagnosticSeverity.Error, location));
+            return Array.Empty<byte>();
+        }
     }
 
     private static void AddTypedProperties(MsgPropertyBuilder properties, EmailDocument document) {

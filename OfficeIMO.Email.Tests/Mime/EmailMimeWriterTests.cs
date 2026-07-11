@@ -91,6 +91,14 @@ public sealed class EmailMimeWriterTests {
         };
         document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
             new EmailAddress("jane@example.com", "Doe, Jane")));
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentId = "logo>\r\nX-Attachment-Injected: yes",
+            Content = new byte[] { 1 },
+            Length = 1,
+            IsInline = true
+        });
         document.Body.Text = "body";
 
         byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
@@ -100,6 +108,7 @@ public sealed class EmailMimeWriterTests {
         Assert.Contains("From: \"Doe, John\" <john@example.com>\r\n", eml, StringComparison.Ordinal);
         Assert.Contains("To: \"Doe, Jane\" <jane@example.com>\r\n", eml, StringComparison.Ordinal);
         Assert.DoesNotContain("\r\nX-Injected:", eml, StringComparison.Ordinal);
+        Assert.DoesNotContain("\r\nX-Attachment-Injected:", eml, StringComparison.Ordinal);
         Assert.Equal("Doe, John", roundTrip.From!.DisplayName);
         Assert.Equal("Doe, Jane", Assert.Single(roundTrip.Recipients).Address.DisplayName);
     }

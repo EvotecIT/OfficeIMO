@@ -22,6 +22,20 @@ internal static class MimeAddressParser {
         return new EmailAddress(raw, null, raw);
     }
 
+    internal static EmailAddress? ParseOne(string? input, IList<EmailDiagnostic> diagnostics, string location) {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        return ParseOne(MimeTextCodec.DecodeHeader(input!, diagnostics, location));
+    }
+
+    internal static IEnumerable<EmailAddress> ParseMany(string? input, IList<EmailDiagnostic> diagnostics,
+        string location, bool allowSemicolonSeparator = false) {
+        if (string.IsNullOrWhiteSpace(input)) yield break;
+        foreach (string item in Split(input!, allowSemicolonSeparator)) {
+            EmailAddress? address = ParseOne(item, diagnostics, location);
+            if (address != null) yield return address;
+        }
+    }
+
     private static IEnumerable<string> Split(string input, bool allowSemicolonSeparator) {
         StringBuilder current = new StringBuilder();
         bool quoted = false;

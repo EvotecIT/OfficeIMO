@@ -228,6 +228,50 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void LogicalAttachmentNamesDoNotUseFilesystemPathValidation() {
+        var diagnostics = new List<EmailDiagnostic>();
+        var attachment = new EmailAttachment { FileName = "report|2026.txt", Content = new byte[] { 1 }, Length = 1 };
+
+        MsgPropertyBuilder properties = MsgWriter.CreateAttachmentProperties(
+            attachment, 0, 1, diagnostics, "attachment[0]");
+
+        Assert.Equal(".txt", properties.Properties.Single(property => property.PropertyId == 0x3703).Value);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void MissingStructuredAttachmentStreamsProduceDataLossDiagnostics() {
+        var source = new EmailDocument { Subject = "missing structured payload" };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "object.ole",
+            MapiAttachMethod = 6,
+            Length = 10
+        });
+
+        EmailDocumentWriter writer = new EmailDocumentWriter();
+        writer.WriteToBytes(source, EmailFileFormat.OutlookMsg, out EmailWriteResult result);
+
+        Assert.True(result.HasErrors);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+    }
+
+    [Fact]
+    public void NestedMsgChildrenAreNotProjectedAsParentFallbackAttachments() {
+        var embedded = new EmailDocument { Subject = "embedded" };
+        embedded.Attachments.Add(new EmailAttachment { FileName = "one.bin", Content = new byte[] { 1 }, Length = 1 });
+        embedded.Attachments.Add(new EmailAttachment { FileName = "two.bin", Content = new byte[] { 2 }, Length = 1 });
+        var source = new EmailDocument { Subject = "parent" };
+        source.Attachments.Add(new EmailAttachment { FileName = "embedded.msg", EmbeddedDocument = embedded });
+
+        EmailReadResult result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+
+        EmailAttachment parentAttachment = Assert.Single(result.Document.Attachments);
+        Assert.Equal(2, parentAttachment.EmbeddedDocument!.Attachments.Count);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_PROPERTIES_MISSING");
+    }
+
+    [Fact]
     public void ReadsMsgKitGeneratedMessageAsCompatibilityOracle() {
         string directory = Path.Combine(Path.GetTempPath(), string.Concat("OfficeIMO-Email-", Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(directory);

@@ -4,6 +4,9 @@ internal static class MimeHeaderParser {
     internal static int Parse(byte[] data, int offset, int count, EmailReaderOptions options,
         IList<EmailHeader> headers, IList<EmailDiagnostic> diagnostics, string location) {
         int end = offset + count;
+        if (offset + 3 <= end && data[offset] == 0xEF && data[offset + 1] == 0xBB && data[offset + 2] == 0xBF) {
+            offset += 3;
+        }
         int headerEnd = FindHeaderEnd(data, offset, end, out int separatorLength);
         int headerBytes = headerEnd - offset;
         if (headerBytes > options.MaxHeaderBytes) {
@@ -61,6 +64,18 @@ internal static class MimeHeaderParser {
 
     internal static IEnumerable<string> GetValues(IEnumerable<EmailHeader> headers, string name) {
         return headers.Where(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)).Select(item => item.Value);
+    }
+
+    /// <summary>Returns the unfolded source value before encoded-word decoding.</summary>
+    internal static string? GetRawValue(IEnumerable<EmailHeader> headers, string name) {
+        EmailHeader? header = headers.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
+        return header?.RawValue ?? header?.Value;
+    }
+
+    /// <summary>Returns unfolded source values before encoded-word decoding.</summary>
+    internal static IEnumerable<string> GetRawValues(IEnumerable<EmailHeader> headers, string name) {
+        return headers.Where(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase))
+            .Select(item => item.RawValue ?? item.Value);
     }
 
     private static int FindHeaderEnd(byte[] data, int offset, int end, out int separatorLength) {

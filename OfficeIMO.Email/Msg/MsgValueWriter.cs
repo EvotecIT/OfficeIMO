@@ -1,6 +1,10 @@
 namespace OfficeIMO.Email;
 
 internal static class MsgValueWriter {
+    static MsgValueWriter() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     internal static bool IsVariable(MapiPropertyType type) {
         return type == MapiPropertyType.String8 || type == MapiPropertyType.Unicode ||
             type == MapiPropertyType.Binary || type == MapiPropertyType.Guid || type == MapiPropertyType.Object;
@@ -8,7 +12,7 @@ internal static class MsgValueWriter {
 
     internal static bool IsMultiple(MapiPropertyType type) => (((ushort)type) & 0x1000) != 0;
 
-    internal static byte[] EncodeScalar(MapiProperty property) {
+    internal static byte[] EncodeScalar(MapiProperty property, int string8CodePage = 1252) {
         if (property.RawData != null && (property.Value == null || property.PropertyType == MapiPropertyType.String8)) {
             return (byte[])property.RawData.Clone();
         }
@@ -36,7 +40,8 @@ internal static class MsgValueWriter {
             case MapiPropertyType.Integer64:
                 return EncodeInt64(Convert.ToInt64(value, CultureInfo.InvariantCulture));
             case MapiPropertyType.String8:
-                return EncodeWindows1252(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+                return EncodeString8(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty,
+                    string8CodePage);
             case MapiPropertyType.Unicode:
                 return Encoding.Unicode.GetBytes(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
             case MapiPropertyType.Time:
@@ -48,6 +53,13 @@ internal static class MsgValueWriter {
             default:
                 return property.RawData == null ? Array.Empty<byte>() : (byte[])property.RawData.Clone();
         }
+    }
+
+    /// <summary>Encodes PT_STRING8 text with the code page declared by the owning MSG or TNEF artifact.</summary>
+    internal static byte[] EncodeString8(string value, int codePage) {
+        Encoding encoding = Encoding.GetEncoding(codePage,
+            EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+        return encoding.GetBytes(value);
     }
 
     internal static object[] GetMultipleValues(MapiProperty property) {
@@ -105,17 +117,4 @@ internal static class MsgValueWriter {
         return bytes;
     }
 
-    private static byte[] EncodeWindows1252(string value) {
-        const string replacements = "\u20AC\u0081\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u008D\u017D\u008F" +
-            "\u0090\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u009D\u017E\u0178";
-        byte[] bytes = new byte[value.Length];
-        for (int i = 0; i < value.Length; i++) {
-            char character = value[i];
-            int special = replacements.IndexOf(character);
-            bytes[i] = character <= 0xff && !(character >= 0x80 && character <= 0x9f)
-                ? (byte)character
-                : special >= 0 ? (byte)(special + 0x80) : (byte)'?';
-        }
-        return bytes;
-    }
 }

@@ -124,4 +124,31 @@ public sealed class EmailMimeReaderTests {
 
         Assert.Equal("price-€.txt", Assert.Single(document.Attachments).FileName);
     }
+
+    [Fact]
+    public void AcceptsUtf8BomWithoutPollutingTheFirstHeaderName() {
+        byte[] message = Encoding.UTF8.GetPreamble()
+            .Concat(Encoding.UTF8.GetBytes("Subject: BOM message\r\nFrom: sender@example.com\r\n\r\nbody"))
+            .ToArray();
+
+        EmailReadResult result = new EmailDocumentReader().Read(message);
+
+        Assert.Equal(EmailFileFormat.Eml, result.Document.Format);
+        Assert.Equal("BOM message", result.Document.Subject);
+        Assert.Contains(result.Document.Headers, header => header.Name == "Subject");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_FORMAT_UNKNOWN" ||
+            diagnostic.Code == "EMAIL_MIME_HEADER_MALFORMED");
+    }
+
+    [Fact]
+    public void SplitsRawAddressListsBeforeDecodingDisplayNames() {
+        const string eml = "To: =?utf-8?B?RG9lLCBKb2hu?= <john@example.com>, Jane <jane@example.com>\r\n\r\nbody";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal(2, document.Recipients.Count);
+        Assert.Equal("Doe, John", document.Recipients[0].Address.DisplayName);
+        Assert.Equal("john@example.com", document.Recipients[0].Address.Address);
+        Assert.Equal("jane@example.com", document.Recipients[1].Address.Address);
+    }
 }

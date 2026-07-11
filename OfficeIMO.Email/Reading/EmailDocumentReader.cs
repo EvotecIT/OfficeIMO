@@ -126,7 +126,7 @@ public sealed class EmailDocumentReader {
 
     private static bool LooksLikeMessage(byte[] data) {
         int limit = Math.Min(data.Length, 64 * 1024);
-        int lineStart = 0;
+        int lineStart = data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF ? 3 : 0;
         while (lineStart < limit) {
             int lineEnd = lineStart;
             while (lineEnd < limit && data[lineEnd] != '\r' && data[lineEnd] != '\n') lineEnd++;

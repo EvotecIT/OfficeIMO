@@ -289,7 +289,8 @@ namespace OfficeIMO.Shared {
                 }
 
                 if (!result.Any(item => string.Equals(item.Path, entry.Name, StringComparison.OrdinalIgnoreCase))) {
-                    result.Add(new OfficeCompoundFileEntry(entry.Name, entry.Name, entry.ObjectType, entry.Size));
+                    result.Add(new OfficeCompoundFileEntry(entry.Name, entry.Name, entry.ObjectType, entry.Size,
+                        isFallback: true));
                 }
             }
 

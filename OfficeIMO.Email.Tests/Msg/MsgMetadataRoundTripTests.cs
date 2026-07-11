@@ -155,4 +155,23 @@ public sealed class MsgMetadataRoundTripTests {
         Assert.Equal("日本", reparsed.Value);
         Assert.Equal(shiftJis, reparsed.RawData);
     }
+
+    [Fact]
+    public void EncodesNewString8AndHtmlValuesWithTheDeclaredCodePage() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            Subject = "Code page",
+            OutlookCodePage = 932
+        };
+        source.Body.Html = "<p>日本</p>";
+        source.MapiProperties.Add(new MapiProperty(0x66AB, MapiPropertyType.String8, "日本"));
+
+        EmailReadResult result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+
+        Assert.Equal(932, result.Document.OutlookCodePage);
+        Assert.Equal("<p>日本</p>", result.Document.Body.Html);
+        Assert.Equal("日本", result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AB).Value);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
 }

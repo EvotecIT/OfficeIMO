@@ -1,5 +1,6 @@
 using MimeKit.Tnef;
 using OfficeIMO.Email;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;
@@ -123,5 +124,18 @@ public sealed class EmailTnefTests {
         Assert.Equal(EmailFileFormat.Tnef, result.Document.Format);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_MAPI_TRUNCATED" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void DecodesAndEncodesTnefString8UsingTheNumericCodePage() {
+        var source = new[] { new MapiProperty(0x66AB, MapiPropertyType.String8, "日本") };
+        byte[] bytes = TnefMapiCodec.WriteProperties(source, 932);
+        var diagnostics = new List<EmailDiagnostic>();
+        var state = new MsgParserState(EmailReaderOptions.Default, diagnostics, CancellationToken.None);
+
+        MapiProperty property = Assert.Single(TnefMapiCodec.ReadProperties(bytes, 932, state, "tnef/mapi"));
+
+        Assert.Equal("日本", property.Value);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
     }
 }

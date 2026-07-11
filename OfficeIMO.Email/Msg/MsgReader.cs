@@ -155,6 +155,7 @@ internal static class MsgReader {
         string pathPrefix = string.IsNullOrEmpty(parentPath) ? string.Empty : string.Concat(parentPath, "/");
         return compound.Entries
             .Where(entry => entry.IsStorage && entry.Path.StartsWith(pathPrefix, StringComparison.OrdinalIgnoreCase))
+            .Where(entry => !entry.IsFallback)
             .Select(entry => entry.Path.Substring(pathPrefix.Length))
             .Where(relative => relative.IndexOf('/') < 0 && relative.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             .OrderBy(relative => relative, StringComparer.OrdinalIgnoreCase)

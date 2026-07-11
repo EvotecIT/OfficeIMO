@@ -103,7 +103,7 @@ internal static class MimeWriter {
         WriteLine(output, string.Concat("Content-Disposition: ", attachment.IsInline ? "inline" : "attachment",
             FormatFileNameParameter("filename", fileName)));
         if (!string.IsNullOrWhiteSpace(attachment.ContentId)) {
-            WriteLine(output, string.Concat("Content-ID: <", attachment.ContentId!.Trim().Trim('<', '>'), ">"));
+            WriteLine(output, string.Concat("Content-ID: <", SanitizeMessageId(attachment.ContentId!), ">"));
         }
         if (!string.IsNullOrWhiteSpace(attachment.ContentLocation)) {
             WriteLine(output, string.Concat("Content-Location: ", EncodeHeaderText(attachment.ContentLocation!)));

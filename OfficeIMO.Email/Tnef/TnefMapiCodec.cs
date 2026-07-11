@@ -151,7 +151,7 @@ internal static class TnefMapiCodec {
             case MapiPropertyType.Boolean: return MsgBinary.ReadUInt16(bytes, 0) != 0;
             case MapiPropertyType.Integer64: return MsgBinary.ReadInt64(bytes, 0);
             case MapiPropertyType.String8:
-                return MimeTextCodec.DecodeText(bytes, CodePageName(codePage), diagnostics, location).TrimEnd('\0');
+                return MimeTextCodec.DecodeText(bytes, codePage, diagnostics, location).TrimEnd('\0');
             case MapiPropertyType.Unicode:
                 return Encoding.Unicode.GetString(bytes, 0, bytes.Length - bytes.Length % 2).TrimEnd('\0');
             case MapiPropertyType.Time:
@@ -206,7 +206,7 @@ internal static class TnefMapiCodec {
     private static byte[] EncodeValue(MapiProperty property, int codePage) {
         if (property.PropertyType == MapiPropertyType.String8) {
             string text = string.Concat(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty, "\0");
-            return codePage == 65001 ? Encoding.UTF8.GetBytes(text) : Encoding.ASCII.GetBytes(text);
+            return MsgValueWriter.EncodeString8(text, codePage);
         }
         if (property.PropertyType == MapiPropertyType.Unicode) {
             return Encoding.Unicode.GetBytes(string.Concat(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty, "\0"));
@@ -231,11 +231,6 @@ internal static class TnefMapiCodec {
 
     private static bool IsVariableValue(MapiPropertyType type) {
         return type != MapiPropertyType.Guid && MsgValueWriter.IsVariable(type);
-    }
-
-    private static string CodePageName(int codePage) {
-        return codePage == 65001 ? "utf-8" : codePage == 20127 ? "us-ascii" :
-            codePage == 28591 ? "iso-8859-1" : string.Concat("windows-", codePage.ToString(CultureInfo.InvariantCulture));
     }
 
     private static void WriteUInt32(Stream stream, uint value) {

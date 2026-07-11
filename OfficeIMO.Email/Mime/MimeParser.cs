@@ -119,15 +119,17 @@ internal static class MimeParser {
     private static void PopulateEnvelope(EmailDocument document, IReadOnlyList<EmailHeader> headers,
         IList<EmailDiagnostic> diagnostics, string location) {
         document.Subject = MimeHeaderParser.GetValue(headers, "Subject");
-        document.From = MimeAddressParser.ParseOne(MimeHeaderParser.GetValue(headers, "From"));
-        document.Sender = MimeAddressParser.ParseOne(MimeHeaderParser.GetValue(headers, "Sender"));
+        document.From = MimeAddressParser.ParseOne(MimeHeaderParser.GetRawValue(headers, "From"), diagnostics,
+            string.Concat(location, "/From"));
+        document.Sender = MimeAddressParser.ParseOne(MimeHeaderParser.GetRawValue(headers, "Sender"), diagnostics,
+            string.Concat(location, "/Sender"));
         document.MessageId = TrimAngleBrackets(MimeHeaderParser.GetValue(headers, "Message-ID"));
         document.Date = ParseDate(MimeHeaderParser.GetValue(headers, "Date"), diagnostics, string.Concat(location, "/Date"));
 
-        AddRecipients(document, headers, "To", EmailRecipientKind.To);
-        AddRecipients(document, headers, "Cc", EmailRecipientKind.Cc);
-        AddRecipients(document, headers, "Bcc", EmailRecipientKind.Bcc);
-        AddRecipients(document, headers, "Reply-To", EmailRecipientKind.ReplyTo);
+        AddRecipients(document, headers, "To", EmailRecipientKind.To, diagnostics, location);
+        AddRecipients(document, headers, "Cc", EmailRecipientKind.Cc, diagnostics, location);
+        AddRecipients(document, headers, "Bcc", EmailRecipientKind.Bcc, diagnostics, location);
+        AddRecipients(document, headers, "Reply-To", EmailRecipientKind.ReplyTo, diagnostics, location);
 
         string? received = MimeHeaderParser.GetValues(headers, "Received").FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(received)) {
@@ -140,9 +142,10 @@ internal static class MimeParser {
     }
 
     private static void AddRecipients(EmailDocument document, IEnumerable<EmailHeader> headers,
-        string headerName, EmailRecipientKind kind) {
-        foreach (string value in MimeHeaderParser.GetValues(headers, headerName)) {
-            foreach (EmailAddress address in MimeAddressParser.ParseMany(value)) {
+        string headerName, EmailRecipientKind kind, IList<EmailDiagnostic> diagnostics, string location) {
+        foreach (string value in MimeHeaderParser.GetRawValues(headers, headerName)) {
+            foreach (EmailAddress address in MimeAddressParser.ParseMany(value, diagnostics,
+                string.Concat(location, "/", headerName))) {
                 document.Recipients.Add(new EmailRecipient(kind, address));
             }
         }

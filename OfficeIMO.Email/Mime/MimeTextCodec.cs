@@ -67,6 +67,19 @@ internal static class MimeTextCodec {
         }
     }
 
+    internal static string DecodeText(byte[] bytes, int codePage, IList<EmailDiagnostic> diagnostics,
+        string location) {
+        try {
+            return Encoding.GetEncoding(codePage).GetString(bytes);
+        } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_CHARSET_UNSUPPORTED",
+                string.Concat("Code page ", codePage.ToString(CultureInfo.InvariantCulture),
+                    " is unavailable; UTF-8 fallback was used."),
+                EmailDiagnosticSeverity.Warning, location));
+            return new UTF8Encoding(false, false).GetString(bytes);
+        }
+    }
+
     internal static byte[] DecodeTransfer(byte[] bytes, string? transferEncoding, IList<EmailDiagnostic> diagnostics, string location) {
         string normalized = (transferEncoding ?? string.Empty).Trim().ToLowerInvariant();
         switch (normalized) {
