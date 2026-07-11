@@ -9,16 +9,16 @@ public sealed class MsgResourceLimitTests {
         var source = new EmailDocument { Subject = "bounded attachment" };
         source.Attachments.Add(new EmailAttachment {
             FileName = "large.bin",
-            Content = new byte[5000],
-            Length = 5000
+            Content = new byte[1000],
+            Length = 1000
         });
         byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 1024)).Read(bytes));
+            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
-        Assert.Equal(5000, exception.ActualValue);
+        Assert.Equal(1000, exception.ActualValue);
     }
 
     [Fact]

@@ -83,6 +83,24 @@ internal static class MsgProjection {
         }
     }
 
+    internal static void ApplyTransportHeaderRecipients(EmailDocument document, MsgParserState state, string location) {
+        AddTransportHeaderRecipients(document, state, location, "To", EmailRecipientKind.To);
+        AddTransportHeaderRecipients(document, state, location, "Cc", EmailRecipientKind.Cc);
+        AddTransportHeaderRecipients(document, state, location, "Bcc", EmailRecipientKind.Bcc);
+        AddTransportHeaderRecipients(document, state, location, "Reply-To", EmailRecipientKind.ReplyTo);
+    }
+
+    private static void AddTransportHeaderRecipients(EmailDocument document, MsgParserState state, string location,
+        string headerName, EmailRecipientKind kind) {
+        if (document.Recipients.Any(recipient => recipient.Kind == kind)) return;
+        foreach (string value in MimeHeaderParser.GetRawValues(document.Headers, headerName)) {
+            foreach (EmailAddress address in MimeAddressParser.ParseMany(value, state.Diagnostics,
+                string.Concat(location, "/transport-headers/", headerName))) {
+                document.Recipients.Add(new EmailRecipient(kind, address));
+            }
+        }
+    }
+
     private static void ApplyMessageMetadata(EmailDocument document, IEnumerable<MapiProperty> properties) {
         EmailMessageMetadata metadata = document.MessageMetadata;
         metadata.SubjectPrefix = GetString(properties, 0x003D);

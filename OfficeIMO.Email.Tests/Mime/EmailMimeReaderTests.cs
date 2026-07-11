@@ -64,6 +64,14 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("multipart/report", attachment.ContentType);
         Assert.Contains("inner report", Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)),
             StringComparison.Ordinal);
+
+        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.Eml,
+            out EmailWriteResult writeResult);
+        EmailAttachment rewrittenAttachment = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
+        Assert.Contains(writeResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_MULTIPART_ATTACHMENT_WRITTEN_OPAQUE");
+        Assert.Equal("application/octet-stream", rewrittenAttachment.ContentType);
+        Assert.Equal(attachment.Content, rewrittenAttachment.Content);
     }
 
     [Fact]
@@ -172,5 +180,34 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("Doe, John", document.Recipients[0].Address.DisplayName);
         Assert.Equal("john@example.com", document.Recipients[0].Address.Address);
         Assert.Equal("jane@example.com", document.Recipients[1].Address.Address);
+    }
+
+    [Fact]
+    public void KeepsLiteralCommasInsideQEncodedDisplayNames() {
+        const string eml = "To: =?utf-8?Q?Doe,_John?= <john@example.com>, Jane <jane@example.com>\r\n\r\nbody";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal(2, document.Recipients.Count);
+        Assert.Equal("Doe, John", document.Recipients[0].Address.DisplayName);
+        Assert.Equal("john@example.com", document.Recipients[0].Address.Address);
+        Assert.Equal("jane@example.com", document.Recipients[1].Address.Address);
+    }
+
+    [Fact]
+    public void PreservesCidTextPartsAsInlineAttachments() {
+        const string eml = "Subject: related\r\nContent-Type: multipart/related; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>body</p>\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\nContent-ID: <caption>\r\n\r\ninline caption\r\n" +
+            "--x--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("<p>body</p>", document.Body.Html!.Trim());
+        Assert.Null(document.Body.Text);
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.True(attachment.IsInline);
+        Assert.Equal("caption", attachment.ContentId);
+        Assert.Equal("inline caption", Encoding.UTF8.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
     }
 }

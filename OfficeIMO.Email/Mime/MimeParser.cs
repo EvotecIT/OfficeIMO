@@ -35,6 +35,7 @@ internal static class MimeParser {
             string.Empty, state.Diagnostics, location);
         string? transferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
+        string? contentId = MimeHeaderParser.GetValue(headers, "Content-ID");
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
 
@@ -63,7 +64,8 @@ internal static class MimeParser {
             return;
         }
 
-        bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
+        bool isBody = !attachmentDisposition && !inlineDisposition && string.IsNullOrWhiteSpace(fileName) &&
+            string.IsNullOrWhiteSpace(contentId) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));

@@ -49,7 +49,7 @@ internal static class MimeWriter {
 
     private static void WriteRecipientHeader(Stream output, EmailDocument document, EmailRecipientKind kind, string name) {
         string[] addresses = document.Recipients.Where(item => item.Kind == kind).Select(item => FormatAddress(item.Address)).ToArray();
-        if (addresses.Length > 0) WriteLine(output, string.Concat(name, ": ", string.Join(", ", addresses)));
+        if (addresses.Length > 0) WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
     }
 
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
@@ -118,9 +118,16 @@ internal static class MimeWriter {
     }
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, MimeWriterState state, int depth, int index) {
-        string contentType = string.IsNullOrWhiteSpace(attachment.ContentType)
-            ? (attachment.EmbeddedDocument == null ? "application/octet-stream" : "message/rfc822")
-            : attachment.ContentType!;
+        bool embeddedMessage = attachment.EmbeddedDocument != null;
+        string contentType = embeddedMessage
+            ? "message/rfc822"
+            : string.IsNullOrWhiteSpace(attachment.ContentType) ? "application/octet-stream" : attachment.ContentType!;
+        if (!embeddedMessage && contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
+            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MULTIPART_ATTACHMENT_WRITTEN_OPAQUE",
+                "A retained multipart attachment was written as application/octet-stream because its boundary metadata is not part of the attachment model.",
+                EmailDiagnosticSeverity.Warning, string.Concat("attachment[", index.ToString(CultureInfo.InvariantCulture), "]")));
+            contentType = "application/octet-stream";
+        }
         string? fileName = attachment.FileName;
         WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType), FormatFileNameParameter("name", fileName)));
         WriteLine(output, string.Concat("Content-Disposition: ", attachment.IsInline ? "inline" : "attachment",
@@ -193,7 +200,7 @@ internal static class MimeWriter {
 
     private static string FormatDisplayName(string value) {
         string sanitized = value.Replace("\r", string.Empty).Replace("\n", " ");
-        if (sanitized.Any(character => character < 32 || character > 126)) return EncodeHeaderText(sanitized);
+        if (sanitized.Length > 72 || sanitized.Any(character => character < 32 || character > 126)) return EncodeHeaderText(sanitized);
         if (sanitized.All(IsAddressPhraseCharacter)) return sanitized;
         return string.Concat("\"", sanitized.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"");
     }

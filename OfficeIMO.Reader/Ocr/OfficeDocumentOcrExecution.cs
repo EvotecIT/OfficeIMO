@@ -37,14 +37,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             ? NonConcurrentEngineGates.GetValue(engine, static _ => new SemaphoreSlim(1, 1))
             : null;
         var abandonedOperations = new AbandonedOcrOperationTracker();
-        var failFast = effective.ContinueOnError ? null : new OcrFailFastState();
         if (sharedEngineGate != null) await sharedEngineGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            using var gate = new SemaphoreSlim(degree, degree);
-            Task<CandidateOutcome>[] tasks = jobs
-                .Select(job => ExecuteCandidateAsync(document, engine, job, effective, gate, abandonedOperations, failFast, cancellationToken))
-                .ToArray();
-            outcomes = await Task.WhenAll(tasks).ConfigureAwait(false);
+            outcomes = await ExecuteCandidatesAsync(document, engine, jobs, effective, degree,
+                abandonedOperations, cancellationToken).ConfigureAwait(false);
         } finally {
             if (sharedEngineGate != null) ReleaseSharedEngineGate(sharedEngineGate, abandonedOperations);
         }
@@ -124,29 +120,52 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         };
     }
 
+    private static async Task<CandidateOutcome[]> ExecuteCandidatesAsync(
+        OfficeDocumentReadResult document,
+        IOfficeOcrEngine engine,
+        IReadOnlyList<CandidateJob> jobs,
+        ExecutionOptionsSnapshot options,
+        int degree,
+        AbandonedOcrOperationTracker abandonedOperations,
+        CancellationToken cancellationToken) {
+        var outcomes = new List<CandidateOutcome>(jobs.Count);
+        var running = new List<Task<CandidateOutcome>>(degree);
+        int nextJob = 0;
+
+        while (nextJob < jobs.Count || running.Count > 0) {
+            while (nextJob < jobs.Count && running.Count < degree) {
+                running.Add(ExecuteCandidateAsync(document, engine, jobs[nextJob++], options,
+                    abandonedOperations, cancellationToken));
+            }
+
+            await Task.WhenAny(running).ConfigureAwait(false);
+            Task<CandidateOutcome>[] completed = running
+                .Where(static task => task.IsCompleted)
+                .OrderBy(static task => task.IsFaulted ? 0 : 1)
+                .ToArray();
+            try {
+                foreach (Task<CandidateOutcome> task in completed) {
+                    running.Remove(task);
+                    outcomes.Add(await task.ConfigureAwait(false));
+                }
+            } catch {
+                foreach (Task<CandidateOutcome> task in running) ObserveBackgroundFailure(task);
+                throw;
+            }
+        }
+
+        return outcomes.ToArray();
+    }
+
     private static async Task<CandidateOutcome> ExecuteCandidateAsync(
         OfficeDocumentReadResult document,
         IOfficeOcrEngine engine,
         CandidateJob job,
         ExecutionOptionsSnapshot options,
-        SemaphoreSlim gate,
         AbandonedOcrOperationTracker abandonedOperations,
-        OcrFailFastState? failFast,
         CancellationToken cancellationToken) {
-        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            if (failFast != null && failFast.HasFailed) {
-                return CandidateOutcome.Skipped(job, BuildDiagnostic(
-                    job.Candidate,
-                    job.Asset,
-                    engine.Id,
-                    OfficeDocumentDiagnosticSeverity.Warning,
-                    OfficeDocumentDiagnosticCategory.Ocr,
-                    "ocr-fail-fast-skipped",
-                    "OCR was not started because an earlier candidate failed and ContinueOnError is disabled.",
-                    true));
-            }
             if (abandonedOperations.HasPendingOperations) {
                 return CandidateOutcome.Skipped(job, BuildDiagnostic(
                     job.Candidate,
@@ -206,11 +225,6 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 "OCR engine failed for candidate '" + job.Candidate.Id + "': " + exception.Message,
                 true,
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = exception.GetType().FullName ?? exception.GetType().Name }));
-        } catch (Exception) {
-            failFast?.SignalFailure();
-            throw;
-        } finally {
-            gate.Release();
         }
     }
 
@@ -320,16 +334,6 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         internal static CandidateOutcome Success(CandidateJob job, OfficeOcrEngineResult result) => new CandidateOutcome(job, result, null, true);
         internal static CandidateOutcome Failure(CandidateJob job, OfficeDocumentDiagnostic diagnostic) => new CandidateOutcome(job, null, diagnostic, true);
         internal static CandidateOutcome Skipped(CandidateJob job, OfficeDocumentDiagnostic diagnostic) => new CandidateOutcome(job, null, diagnostic, false);
-    }
-
-    private sealed class OcrFailFastState {
-        private int _failed;
-
-        internal bool HasFailed => Volatile.Read(ref _failed) != 0;
-
-        internal void SignalFailure() {
-            Interlocked.Exchange(ref _failed, 1);
-        }
     }
 
     private sealed class ExecutionOptionsSnapshot {

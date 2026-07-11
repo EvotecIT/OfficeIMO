@@ -93,6 +93,28 @@ public sealed class MsgSerializationRegressionTests {
     }
 
     [Fact]
+    public void UsesTransportHeaderRecipientsWhenMsgRecipientStoragesAreMissing() {
+        var source = new EmailDocument { Subject = "transport recipients" };
+        source.Headers.Add(new EmailHeader("To", "\"Doe, John\" <john@example.com>"));
+        source.Headers.Add(new EmailHeader("Cc", "Jane <jane@example.com>"));
+        source.Headers.Add(new EmailHeader("Bcc", "Hidden <hidden@example.com>"));
+        source.Headers.Add(new EmailHeader("Reply-To", "Replies <reply@example.com>"));
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Equal(4, roundTrip.Recipients.Count);
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&
+            recipient.Address.Address == "john@example.com" && recipient.Address.DisplayName == "Doe, John");
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.Cc &&
+            recipient.Address.Address == "jane@example.com");
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.Bcc &&
+            recipient.Address.Address == "hidden@example.com");
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.ReplyTo &&
+            recipient.Address.Address == "reply@example.com");
+    }
+
+    [Fact]
     public void ReusesAggregateParserStateAcrossTnefAttachments() {
         byte[] tnef = CreateMinimalTnef();
         var source = new EmailDocument { Subject = "aggregate TNEF" };

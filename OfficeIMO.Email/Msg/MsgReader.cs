@@ -47,6 +47,8 @@ internal static class MsgReader {
             state.ThrowIfCancellationRequested();
             ReadRecipient(compound, recipientPath, names, state, document, encoding);
         }
+        MsgProjection.ApplyTransportHeaderRecipients(document, state,
+            string.IsNullOrEmpty(prefix) ? "msg" : prefix);
         foreach (string attachmentPath in GetDirectChildStorages(compound, prefix, "__attach_version1.0_#")) {
             state.ThrowIfCancellationRequested();
             ReadAttachment(compound, attachmentPath, names, state, document, nestedDepth, encoding);

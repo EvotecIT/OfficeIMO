@@ -42,7 +42,8 @@ internal static class MimeAddressParser {
         bool escaped = false;
         int angleDepth = 0;
         int commentDepth = 0;
-        foreach (char character in input) {
+        for (int index = 0; index < input.Length; index++) {
+            char character = input[index];
             if (escaped) {
                 current.Append(character);
                 escaped = false;
@@ -52,6 +53,14 @@ internal static class MimeAddressParser {
                 current.Append(character);
                 escaped = true;
                 continue;
+            }
+            if (!quoted && commentDepth == 0 && character == '=' && index + 1 < input.Length && input[index + 1] == '?') {
+                int encodedWordEnd = input.IndexOf("?=", index + 2, StringComparison.Ordinal);
+                if (encodedWordEnd >= 0) {
+                    current.Append(input, index, encodedWordEnd + 2 - index);
+                    index = encodedWordEnd + 1;
+                    continue;
+                }
             }
             if (character == '"' && commentDepth == 0) quoted = !quoted;
             if (!quoted) {

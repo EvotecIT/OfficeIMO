@@ -59,13 +59,14 @@ public sealed class EmailMimeWriterTests {
         parent.Body.Text = "outside";
         parent.Attachments.Add(new EmailAttachment {
             FileName = "child.eml",
-            ContentType = "message/rfc822",
+            ContentType = "application/octet-stream",
             EmbeddedDocument = child
         });
 
         byte[] bytes = new EmailDocumentWriter().WriteToBytes(parent);
         EmailDocument parsed = new EmailDocumentReader().Read(bytes).Document;
 
+        Assert.Contains("Content-Type: message/rfc822;", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
         Assert.Equal("Child", Assert.Single(parsed.Attachments).EmbeddedDocument!.Subject);
     }
 
@@ -146,6 +147,28 @@ public sealed class EmailMimeWriterTests {
             line => Assert.InRange(line.Length, 0, 998));
         Assert.Contains("Subject: =?utf-8?B?", eml, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(subject, roundTrip.Subject);
+    }
+
+    [Fact]
+    public void FoldsLongRecipientListsWithoutChangingRecipients() {
+        var document = new EmailDocument { Subject = "recipient folding" };
+        document.Body.Text = "body";
+        for (int index = 0; index < 24; index++) {
+            document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+                new EmailAddress(string.Concat("recipient", index, "@example.com"),
+                    string.Concat(new string('A', 90), index))));
+        }
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.All(eml.Split(new[] { "\r\n" }, StringSplitOptions.None),
+            line => Assert.InRange(line.Length, 0, 998));
+        Assert.Contains("\r\n =?utf-8?B?", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(document.Recipients.Count, roundTrip.Recipients.Count);
+        Assert.Equal(document.Recipients.Select(recipient => recipient.Address.DisplayName),
+            roundTrip.Recipients.Select(recipient => recipient.Address.DisplayName));
     }
 
     [Fact]

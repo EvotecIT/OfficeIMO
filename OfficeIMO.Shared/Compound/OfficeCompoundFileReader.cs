@@ -90,20 +90,14 @@ namespace OfficeIMO.Shared {
                 if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > int.MaxValue) {
                     throw new InvalidDataException("Compound file mini stream exceeds configured bounds.");
                 }
-                byte[] miniStream = root == null || root.StartSector == EndOfChain
-                    ? Array.Empty<byte>()
-                    : ReadRegularStream(bytes, sectorSize, fat, root.StartSector, root.Size);
-                uint[] miniFat = miniFatStart == EndOfChain || miniFatSectorCount == 0
-                    ? Array.Empty<uint>()
-                    : BytesToUInt32Array(ReadRegularStream(bytes, sectorSize, fat, miniFatStart, (long)miniFatSectorCount * sectorSize));
 
                 IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
-                int streamCount = entries.Count(entry => entry.ObjectType == 2);
-                if (streamCount > options.MaxStreamCount) {
-                    throw new InvalidDataException($"Compound file stream count {streamCount} exceeds {options.MaxStreamCount}.");
+                DirectoryEntry[] streamEntries = entries.Where(entry => entry.ObjectType == 2).ToArray();
+                if (streamEntries.Length > options.MaxStreamCount) {
+                    throw new InvalidDataException($"Compound file stream count {streamEntries.Length} exceeds {options.MaxStreamCount}.");
                 }
                 long totalStreamBytes = 0;
-                foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
+                foreach (DirectoryEntry entry in streamEntries) {
                     string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
                         ? entryPath
                         : entry.Name;
@@ -115,6 +109,19 @@ namespace OfficeIMO.Shared {
                         throw new InvalidDataException($"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");
                     }
                     options.StreamSizeValidator?.Invoke(path, entry.Size);
+                }
+
+                byte[] miniStream = root == null || root.StartSector == EndOfChain
+                    ? Array.Empty<byte>()
+                    : ReadRegularStream(bytes, sectorSize, fat, root.StartSector, root.Size);
+                uint[] miniFat = miniFatStart == EndOfChain || miniFatSectorCount == 0
+                    ? Array.Empty<uint>()
+                    : BytesToUInt32Array(ReadRegularStream(bytes, sectorSize, fat, miniFatStart, (long)miniFatSectorCount * sectorSize));
+
+                foreach (DirectoryEntry entry in streamEntries) {
+                    string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
+                        ? entryPath
+                        : entry.Name;
                     byte[] data = entry.Size < miniCutoff
                         ? ReadMiniStream(miniStream, miniFat, entry.StartSector, entry.Size)
                         : ReadRegularStream(bytes, sectorSize, fat, entry.StartSector, entry.Size);
