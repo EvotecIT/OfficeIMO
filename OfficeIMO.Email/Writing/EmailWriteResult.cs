@@ -14,6 +14,16 @@ public sealed class EmailWriteResult {
     /// <summary>Structured fidelity diagnostics.</summary>
     public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
 
+    /// <summary>True when serialization produced at least one error diagnostic.</summary>
+    public bool HasErrors {
+        get {
+            foreach (EmailDiagnostic diagnostic in Diagnostics) {
+                if (diagnostic.Severity == EmailDiagnosticSeverity.Error) return true;
+            }
+            return false;
+        }
+    }
+
     /// <summary>True when the original preserved bytes were emitted verbatim.</summary>
     public bool UsedPreservedSource { get; }
 }

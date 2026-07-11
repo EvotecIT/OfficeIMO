@@ -1,7 +1,7 @@
 namespace OfficeIMO.Email;
 
 /// <summary>Format-neutral representation of an email or Outlook item.</summary>
-public sealed class EmailDocument {
+public sealed partial class EmailDocument {
     private readonly List<EmailHeader> _headers = new List<EmailHeader>();
     private readonly List<EmailRecipient> _recipients = new List<EmailRecipient>();
     private readonly List<EmailAttachment> _attachments = new List<EmailAttachment>();

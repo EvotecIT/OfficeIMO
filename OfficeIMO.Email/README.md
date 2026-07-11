@@ -22,30 +22,50 @@ The package depends on `OfficeIMO.Rtf`, which owns RTF syntax and semantic conve
 ```csharp
 using OfficeIMO.Email;
 
+EmailDocument message = EmailDocument.Load("message.msg");
+
+Console.WriteLine(message.Subject);
+Console.WriteLine(message.Body.Text);
+
+message.Save("message.eml");
+```
+
+`Save` infers EML, MSG, or TNEF from `.eml`, `.mime`, `.msg`, `.tnef`, or `winmail.dat`. The convenience methods throw `InvalidDataException` instead of silently returning a partial document or output when an error diagnostic is produced. Use the explicit overload only when the destination name has another extension:
+
+```csharp
+message.Save("artifact.bin", EmailFileFormat.OutlookMsg);
+```
+
+The async API has the same shape:
+
+```csharp
+EmailDocument message = await EmailDocument.LoadAsync("message.msg", cancellationToken: cancellationToken);
+await message.SaveAsync("message.eml", cancellationToken: cancellationToken);
+```
+
+Use `EmailDocumentReader` when the host needs custom limits, raw-source preservation, or structured diagnostics:
+
+```csharp
 var options = new EmailReaderOptions(
     maxInputBytes: 64L * 1024L * 1024L,
     maxAttachmentBytes: 32L * 1024L * 1024L,
     includeAttachmentContent: true);
 
-var reader = new EmailDocumentReader(options);
-EmailReadResult result = await reader.ReadAsync("message.msg");
-
-Console.WriteLine(result.Document.Subject);
-Console.WriteLine(result.Document.Body.Text);
+EmailReadResult result = await new EmailDocumentReader(options).ReadAsync("message.msg");
 
 foreach (EmailDiagnostic diagnostic in result.Diagnostics) {
     Console.WriteLine($"{diagnostic.Severity}: {diagnostic.Code}: {diagnostic.Message}");
 }
 
-var writer = new EmailDocumentWriter();
-writer.Write(result.Document, "message.eml", EmailFileFormat.Eml);
+if (result.HasErrors) {
+    // The advanced API leaves recovery policy to the host.
+}
 ```
 
-The same model can be written as EML, MSG, or TNEF. Conversion does not require a separate converter API:
+The same model can be written as EML, MSG, or TNEF. Conversion is a load followed by a save:
 
 ```csharp
-EmailDocument document = new EmailDocumentReader().Read("source.eml").Document;
-new EmailDocumentWriter().Write(document, "converted.msg", EmailFileFormat.OutlookMsg);
+EmailDocument.Load("source.eml").Save("converted.msg");
 ```
 
 ## Read an mbox archive
@@ -68,7 +88,7 @@ foreach (EmailMailboxEntry entry in result.Mailbox.Messages) {
 MSG and TNEF properties remain available through `MapiProperties` even when no convenience property exists. Common Outlook item fields are also projected onto typed models:
 
 ```csharp
-EmailDocument item = new EmailDocumentReader().Read("meeting.msg").Document;
+EmailDocument item = EmailDocument.Load("meeting.msg");
 
 if (item.OutlookItemKind == OutlookItemKind.Appointment && item.Appointment is not null) {
     Console.WriteLine(item.Appointment.Start);
@@ -99,7 +119,7 @@ RTF syntax editing and semantic conversion belong to `OfficeIMO.Rtf`. Generate R
 `EmailDocument.Protection` detects opaque and clear-signed S/MIME Outlook message classes and points to the original `.p7m` or `.p7s` attachment. It does not validate or decrypt that payload. Applications can pass `Protection.PayloadAttachment.Content` to MimeKit or another cryptographic owner when attachment content was retained.
 
 ```csharp
-EmailDocument protectedMessage = new EmailDocumentReader().Read("signed.msg").Document;
+EmailDocument protectedMessage = EmailDocument.Load("signed.msg");
 
 if (protectedMessage.Protection.IsProtected) {
     byte[]? cms = protectedMessage.Protection.PayloadAttachment?.Content;

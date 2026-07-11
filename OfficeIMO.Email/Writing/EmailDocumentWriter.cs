@@ -63,7 +63,7 @@ public sealed class EmailDocumentWriter {
         return result;
     }
 
-    private byte[] WriteToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
+    internal byte[] WriteToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");

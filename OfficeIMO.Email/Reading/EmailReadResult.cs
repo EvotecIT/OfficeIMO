@@ -14,6 +14,16 @@ public sealed class EmailReadResult {
     /// <summary>Structured compatibility and fidelity diagnostics.</summary>
     public IReadOnlyList<EmailDiagnostic> Diagnostics { get; }
 
+    /// <summary>True when parsing produced at least one error diagnostic.</summary>
+    public bool HasErrors {
+        get {
+            foreach (EmailDiagnostic diagnostic in Diagnostics) {
+                if (diagnostic.Severity == EmailDiagnosticSeverity.Error) return true;
+            }
+            return false;
+        }
+    }
+
     /// <summary>Number of source bytes consumed.</summary>
     public long BytesRead { get; }
 }
