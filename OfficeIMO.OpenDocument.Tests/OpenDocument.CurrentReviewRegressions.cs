@@ -110,6 +110,43 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.Null(rectangle.StrokeColor);
     }
 
+    [Fact]
+    public void PresentationBackgroundsHonorFillModeAndReferencedMasterPageLayout() {
+        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpMasterPage unused = presentation.AddMasterPage("Unused");
+        OdpMasterPage selected = presentation.AddMasterPage("Selected");
+        OdpSlide slide = presentation.AddSlide("Slide");
+        slide.MasterPageName = selected.Name;
+        slide.BackgroundColor = OdfColor.Parse("#112233");
+
+        XElement styles = presentation.Package.GetXml("styles.xml").Root!;
+        XElement automatic = styles.Element(OdfNamespaces.Office + "automatic-styles")!;
+        XElement[] layouts = automatic.Elements(OdfNamespaces.Style + "page-layout").ToArray();
+        XElement selectedLayout = new XElement(layouts[0]);
+        selectedLayout.SetAttributeValue(OdfNamespaces.Style + "name", "SelectedLayout");
+        selectedLayout.Element(OdfNamespaces.Style + "page-layout-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "page-width", "40cm");
+        automatic.AddFirst(selectedLayout);
+        styles.Descendants(OdfNamespaces.Style + "master-page")
+            .Single(element => (string?)element.Attribute(OdfNamespaces.Style + "name") == selected.Name)
+            .SetAttributeValue(OdfNamespaces.Style + "page-layout-name", "SelectedLayout");
+        XElement slideProperties = presentation.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Style + "drawing-page-properties").Single();
+        slideProperties.SetAttributeValue(OdfNamespaces.Draw + "fill", "none");
+
+        Assert.Null(slide.BackgroundColor);
+        Assert.Equal(40D, presentation.PageWidth.ToCentimeters(), 6);
+    }
+
+    [Fact]
+    public void SpreadsheetDataStylesTolerateMissingStylesPart() {
+        using OdsDocument document = OdsDocument.Create();
+        document.AddNumberStyle("Amount", 2);
+        document.Package.RemoveEntry("styles.xml");
+
+        Assert.Contains(document.DataStyles, style => style.Name == "Amount");
+    }
+
     private static void WrapFirstRowAsHeader(XElement table) {
         XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").First();
         XElement secondRow = firstRow.ElementsAfterSelf(OdfNamespaces.Table + "table-row").First();

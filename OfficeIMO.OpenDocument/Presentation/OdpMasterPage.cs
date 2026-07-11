@@ -14,7 +14,9 @@ public sealed class OdpMasterPage {
         get {
             string? styleName = (string?)_element.Attribute(OdfNamespaces.Draw + "style-name");
             OdfStyle? style = styleName == null ? null : _presentation.Styles.FindInPart(OdfStyleFamily.DrawingPage, styleName, "styles.xml");
-            string? value = (string?)style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties")?.Attribute(OdfNamespaces.Draw + "fill-color");
+            XElement? properties = style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties");
+            if (string.Equals((string?)properties?.Attribute(OdfNamespaces.Draw + "fill"), "none", StringComparison.OrdinalIgnoreCase)) return null;
+            string? value = (string?)properties?.Attribute(OdfNamespaces.Draw + "fill-color");
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }
         set {

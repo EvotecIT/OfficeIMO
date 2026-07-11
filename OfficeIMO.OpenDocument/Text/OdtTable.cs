@@ -23,7 +23,7 @@ public sealed class OdtTable {
     /// <summary>Rows in source order.</summary>
     public IReadOnlyList<OdtTableRow> Rows => new OdfRepeatedElementCollection<OdtTableRow>(
         OdfTableRowElements.Enumerate(_element).ToList(), OdfNamespaces.Table + "number-rows-repeated",
-        (element, _) => new OdtTableRow(_document, element));
+        (element, offset) => new OdtTableRow(_document, element, offset));
 
     /// <summary>Gets a zero-based cell.</summary>
     public OdtTableCell Cell(int row, int column) {
@@ -68,25 +68,46 @@ public sealed class OdtTable {
 /// <summary>An XML-backed ODT table row.</summary>
 public sealed class OdtTableRow {
     private readonly OdtDocument _document;
-    private readonly XElement _element;
+    private XElement _element;
+    private readonly long _repeatOffset;
 
-    internal OdtTableRow(OdtDocument document, XElement element) {
+    internal OdtTableRow(OdtDocument document, XElement element, long repeatOffset = 0) {
         _document = document;
         _element = element;
+        _repeatOffset = repeatOffset;
     }
 
     /// <summary>Cells, including covered cells, in source order.</summary>
-    public IReadOnlyList<OdtTableCell> Cells => new OdfRepeatedElementCollection<OdtTableCell>(_element.Elements()
-        .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
-        .ToList(), OdfNamespaces.Table + "number-columns-repeated",
-        (element, offset) => new OdtTableCell(_document, element, offset));
+    public IReadOnlyList<OdtTableCell> Cells {
+        get {
+            List<XElement> elements = _element.Elements()
+                .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
+                .ToList();
+            return new OdfRepeatedElementCollection<OdtTableCell>(elements, OdfNamespaces.Table + "number-columns-repeated",
+                (element, offset) => new OdtTableCell(_document, element, offset,
+                    () => ResolveCellElement(elements.IndexOf(element))));
+        }
+    }
 
     /// <summary>Adds a cell.</summary>
     public OdtTableCell AddCell(string? text = null) {
+        EnsureMaterialized();
         XElement cell = OdtTableCell.CreateElement(text);
         _element.Add(cell);
         _document.MarkPartDirty("content.xml");
         return new OdtTableCell(_document, cell);
+    }
+
+    private void EnsureMaterialized() {
+        if (_element.Attribute(OdfNamespaces.Table + "number-rows-repeated") == null) return;
+        _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-rows-repeated", _repeatOffset);
+    }
+
+    private XElement ResolveCellElement(int physicalIndex) {
+        EnsureMaterialized();
+        return _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell")
+            .ElementAt(physicalIndex);
     }
 }
 
@@ -95,11 +116,13 @@ public sealed class OdtTableCell {
     private readonly OdtDocument _document;
     private XElement _element;
     private readonly long _repeatOffset;
+    private Func<XElement>? _resolveRowCell;
 
-    internal OdtTableCell(OdtDocument document, XElement element, long repeatOffset = 0) {
+    internal OdtTableCell(OdtDocument document, XElement element, long repeatOffset = 0, Func<XElement>? resolveRowCell = null) {
         _document = document;
         _element = element;
         _repeatOffset = repeatOffset;
+        _resolveRowCell = resolveRowCell;
     }
 
     /// <summary>True when this is a covered position in a merged range.</summary>
@@ -165,6 +188,10 @@ public sealed class OdtTableCell {
     }
 
     private void EnsureMaterialized() {
+        if (_resolveRowCell != null) {
+            _element = _resolveRowCell();
+            _resolveRowCell = null;
+        }
         if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
         _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
     }

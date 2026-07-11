@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using Xunit;
 
@@ -23,5 +24,20 @@ public sealed class OpenDocumentRepeatedTableRowTests {
             textTable.Rows.Select(row => row.Cells[0].Text));
         Assert.Equal(new[] { "Slide row", "Slide row", "Slide row" },
             presentationTable.Rows.Select(row => row.Cells[0].Text));
+
+        textTable.Cell(1, 0).Text = "Changed text row";
+        presentationTable.Cell(1, 0).Text = "Changed slide row";
+
+        Assert.Equal(new[] { "Text row", "Changed text row", "Text row" },
+            textTable.Rows.Select(row => row.Cells[0].Text));
+        Assert.Equal(new[] { "Slide row", "Changed slide row", "Slide row" },
+            presentationTable.Rows.Select(row => row.Cells[0].Text));
+
+        using OdtDocument reopenedText = OdtDocument.Open(new MemoryStream(text.ToBytes()));
+        using OdpPresentation reopenedPresentation = OdpPresentation.Open(new MemoryStream(presentation.ToBytes()));
+        Assert.Equal(new[] { "Text row", "Changed text row", "Text row" },
+            reopenedText.Tables.Single().Rows.Select(row => row.Cells[0].Text));
+        Assert.Equal(new[] { "Slide row", "Changed slide row", "Slide row" }, reopenedPresentation.Slides.Single()
+            .Shapes.OfType<OdpTable>().Single().Rows.Select(row => row.Cells[0].Text));
     }
 }

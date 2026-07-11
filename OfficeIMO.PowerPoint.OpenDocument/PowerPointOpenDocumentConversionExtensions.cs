@@ -157,7 +157,12 @@ public static class PowerPointOpenDocumentConversionExtensions {
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
             targetSlide.Hidden = sourceSlide.Hidden;
-            if (sourceSlide.BackgroundColor.HasValue) targetSlide.BackgroundColor = sourceSlide.BackgroundColor.Value.ToString().TrimStart('#');
+            OdfColor? backgroundColor = sourceSlide.BackgroundColor;
+            if (!backgroundColor.HasValue && !string.IsNullOrWhiteSpace(sourceSlide.MasterPageName)) {
+                backgroundColor = source.MasterPages.FirstOrDefault(master =>
+                    string.Equals(master.Name, sourceSlide.MasterPageName, StringComparison.Ordinal))?.BackgroundColor;
+            }
+            if (backgroundColor.HasValue) targetSlide.BackgroundColor = backgroundColor.Value.ToString().TrimStart('#');
             if (MapTransition(sourceSlide, targetSlide)) transitions++;
             else if (!string.IsNullOrWhiteSpace(sourceSlide.TransitionStyle) || !string.IsNullOrWhiteSpace(sourceSlide.TransitionType)) unsupportedTransitions++;
 
@@ -165,8 +170,8 @@ public static class PowerPointOpenDocumentConversionExtensions {
                 if (shape is OdpTextBox textBox) {
                     IReadOnlyList<OdpParagraph> sourceParagraphs = textBox.Paragraphs;
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
-                    string text = string.Join(Environment.NewLine, sourceParagraphs.Select(paragraph => paragraph.Text));
-                    PowerPointTextBox converted = targetSlide.AddTextBox(text, ToPowerPointBox(textBox.Bounds));
+                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, ToPowerPointBox(textBox.Bounds));
+                    if (sourceParagraphs.Count > 0) converted.SetParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
                     converted.Name = textBox.Name;
                     CopyShapeAppearance(textBox, converted, effective);
                     for (int index = 0; index < sourceParagraphs.Count && index < converted.Paragraphs.Count; index++) {
@@ -194,12 +199,17 @@ public static class PowerPointOpenDocumentConversionExtensions {
                     }
                     textBoxes++;
                 } else if (shape is OdpImage image) {
-                    if (!effective.IncludeImages || !TryGetImagePartType(image.Path, out ImagePartType imageType)) {
+                    if (!effective.IncludeImages) {
                         unsupportedPictures++;
                         continue;
                     }
                     try {
-                        using var stream = new MemoryStream(image.GetImageBytes(), writable: false);
+                        byte[] imageBytes = image.GetImageBytes();
+                        if (!TryGetImagePartType(image.Path, imageBytes, out ImagePartType imageType)) {
+                            unsupportedPictures++;
+                            continue;
+                        }
+                        using var stream = new MemoryStream(imageBytes, writable: false);
                         PowerPointPicture converted = targetSlide.AddPicture(stream, imageType, ToPowerPointBox(image.Bounds));
                         converted.Name = image.Name;
                         CopyShapeAppearance(image, converted, effective);
@@ -375,8 +385,12 @@ public static class PowerPointOpenDocumentConversionExtensions {
         }
     }
 
-    private static bool TryGetImagePartType(string path, out ImagePartType type) {
-        switch (System.IO.Path.GetExtension(path).ToLowerInvariant()) {
+    private static bool TryGetImagePartType(string path, byte[] bytes, out ImagePartType type) {
+        string normalizedPath = path;
+        int suffix = normalizedPath.IndexOfAny(new[] { '?', '#' });
+        if (suffix >= 0) normalizedPath = normalizedPath.Substring(0, suffix);
+        try { normalizedPath = Uri.UnescapeDataString(normalizedPath); } catch (UriFormatException) { }
+        switch (System.IO.Path.GetExtension(normalizedPath).ToLowerInvariant()) {
             case ".png": type = ImagePartType.Png; return true;
             case ".jpg":
             case ".jpeg": type = ImagePartType.Jpeg; return true;
@@ -384,8 +398,24 @@ public static class PowerPointOpenDocumentConversionExtensions {
             case ".bmp": type = ImagePartType.Bmp; return true;
             case ".tif":
             case ".tiff": type = ImagePartType.Tiff; return true;
-            default: type = ImagePartType.Png; return false;
         }
+        if (bytes.Length >= 8 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+            type = ImagePartType.Png; return true;
+        }
+        if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+            type = ImagePartType.Jpeg; return true;
+        }
+        if (bytes.Length >= 6 && bytes[0] == (byte)'G' && bytes[1] == (byte)'I' && bytes[2] == (byte)'F') {
+            type = ImagePartType.Gif; return true;
+        }
+        if (bytes.Length >= 2 && bytes[0] == (byte)'B' && bytes[1] == (byte)'M') {
+            type = ImagePartType.Bmp; return true;
+        }
+        if (bytes.Length >= 4 && ((bytes[0] == (byte)'I' && bytes[1] == (byte)'I' && bytes[2] == 42 && bytes[3] == 0) ||
+                                (bytes[0] == (byte)'M' && bytes[1] == (byte)'M' && bytes[2] == 0 && bytes[3] == 42))) {
+            type = ImagePartType.Tiff; return true;
+        }
+        type = ImagePartType.Png; return false;
     }
 
     private static IEnumerable<string> SplitParagraphs(string text) => text.Replace("\r\n", "\n")

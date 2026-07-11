@@ -43,7 +43,9 @@ public sealed class OdpSlide {
     public OdfColor? BackgroundColor {
         get {
             OdfStyle? style = GetDrawingPageStyle();
-            string? value = (string?)style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties")?.Attribute(OdfNamespaces.Draw + "fill-color");
+            XElement? properties = style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties");
+            if (string.Equals((string?)properties?.Attribute(OdfNamespaces.Draw + "fill"), "none", StringComparison.OrdinalIgnoreCase)) return null;
+            string? value = (string?)properties?.Attribute(OdfNamespaces.Draw + "fill-color");
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }
         set {

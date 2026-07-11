@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
@@ -120,6 +122,71 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal("'Target'!A1", cell.Hyperlink.Target);
     }
 
+    [Fact]
+    public void ExcelToOdsConvertsLowercaseFormulaReferences() {
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        ExcelSheet sheet = source.AddWorkSheet("Data");
+        sheet.CellAt(1, 1).SetValue(1);
+        sheet.CellAt(1, 2).SetFormula("sum(a1,'Data'!a1)");
+
+        using OdsDocument target = source.ToOpenDocument().Document;
+
+        Assert.Equal("of:=sum([.a1];[$'Data'.a1])", target.GetSheet("Data")!.GetFormula(0, 1));
+    }
+
+    [Fact]
+    public void OdsToExcelPreservesRelativeExternalLinksAndMissingStyles() {
+        using OdsDocument template = OdsDocument.Create();
+        OdsCell linked = template.AddSheet("Links").Cell(0, 0);
+        linked.SetString("Docs");
+        linked.SetHyperlink("Docs", "docs/page.html");
+        using OdsDocument source = OdsDocument.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
+
+        using ExcelDocument target = source.ToExcelDocument().Document;
+        ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+
+        Assert.NotNull(cell.Hyperlink);
+        Assert.True(cell.Hyperlink!.IsExternal);
+        Assert.Equal("docs/page.html", cell.Hyperlink.Target);
+    }
+
+    [Fact]
+    public void OdpToPowerPointPreservesStyledParagraphsNormalizedImagesAndMasterBackground() {
+        using OdpPresentation template = OdpPresentation.Create();
+        OdpMasterPage master = template.AddMasterPage("Brand");
+        master.BackgroundColor = OdfColor.Parse("#445566");
+        OdpSlide slide = template.AddSlide("Slide");
+        slide.MasterPageName = master.Name;
+        OdpTextBox textBox = slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 4));
+        textBox.AddParagraph().AddRun("First").Bold = true;
+        textBox.AddParagraph().AddRun("Second").Italic = true;
+        OdpImage image = slide.AddImage(TinyPng, "pixel.png", OdfRect.FromCentimeters(1, 6, 2, 2));
+        string escapedHref = "./" + image.Path.Replace(".png", "%2Epng") + "?cache=1";
+        byte[] package = RewriteXmlEntry(template.ToBytes(), "content.xml", document =>
+            document.Descendants().Single(element => element.Name.LocalName == "image")
+                .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), escapedHref));
+        using OdpPresentation source = OdpPresentation.Open(new MemoryStream(package));
+
+        using PowerPointPresentation target = source.ToPowerPointPresentation().Document;
+        PowerPointSlide converted = Assert.Single(target.Slides);
+
+        Assert.Equal(new[] { "First", "Second" }, converted.TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
+        Assert.Single(converted.Pictures);
+        Assert.Equal("445566", converted.GetBackground().Color);
+    }
+
+    [Fact]
+    public void OdpToPowerPointToleratesMissingStylesPart() {
+        using OdpPresentation template = OdpPresentation.Create();
+        template.AddSlide("Minimal").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Text");
+        using OdpPresentation source = OdpPresentation.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
+
+        using PowerPointPresentation target = source.ToPowerPointPresentation().Document;
+
+        Assert.Single(target.Slides);
+        Assert.Contains("Text", target.Slides.Single().TextBoxes.Single().Text, StringComparison.Ordinal);
+    }
+
     private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) {
         using var input = new MemoryStream(packageBytes, writable: false);
         using var output = new MemoryStream();
@@ -131,6 +198,32 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 using Stream sourceStream = sourceEntry.Open();
                 using Stream targetStream = targetEntry.Open();
                 sourceStream.CopyTo(targetStream);
+            }
+        }
+        return output.ToArray();
+    }
+
+    private static byte[] RewriteXmlEntry(byte[] packageBytes, string path, Action<XDocument> rewrite) {
+        using var input = new MemoryStream(packageBytes, writable: false);
+        using var output = new MemoryStream();
+        using (var source = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false))
+        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry sourceEntry in source.Entries) {
+                byte[] bytes;
+                using (Stream sourceStream = sourceEntry.Open())
+                using (var copy = new MemoryStream()) {
+                    sourceStream.CopyTo(copy);
+                    bytes = copy.ToArray();
+                }
+                if (sourceEntry.FullName == path) {
+                    XDocument document = XDocument.Parse(Encoding.UTF8.GetString(bytes));
+                    rewrite(document);
+                    bytes = Encoding.UTF8.GetBytes(document.ToString(SaveOptions.DisableFormatting));
+                }
+                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
+                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
+                using Stream targetStream = targetEntry.Open();
+                targetStream.Write(bytes, 0, bytes.Length);
             }
         }
         return output.ToArray();

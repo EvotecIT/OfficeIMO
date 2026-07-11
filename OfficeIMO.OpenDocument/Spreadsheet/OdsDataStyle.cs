@@ -30,6 +30,7 @@ public sealed partial class OdsDocument {
         get {
             var result = new List<OdsDataStyle>();
             foreach (string partPath in new[] { "content.xml", "styles.xml" }) {
+                if (!Package.ContainsEntry(partPath)) continue;
                 XElement? root = GetXml(partPath).Root;
                 foreach (XElement container in root?.Elements().Where(element =>
                              element.Name == OdfNamespaces.Office + "automatic-styles" || element.Name == OdfNamespaces.Office + "styles") ?? Enumerable.Empty<XElement>()) {

@@ -98,7 +98,8 @@ public sealed partial class OdpPresentation : OdfDocument {
     }
 
     internal XElement GetStylesContainer(XName name) {
-        XElement root = GetXml("styles.xml").Root ?? throw new InvalidDataException("OpenDocument styles have no root element.");
+        XElement root = Package.EnsureXml("styles.xml", OdfPackageTemplates.CreateStyles(Version), "text/xml").Root
+            ?? throw new InvalidDataException("OpenDocument styles have no root element.");
         XElement? element = root.Element(name);
         if (element == null) { element = new XElement(name); root.Add(element); MarkPartDirty("styles.xml"); }
         return element;
@@ -120,7 +121,24 @@ public sealed partial class OdpPresentation : OdfDocument {
         return new OdpPageLayout(this, element);
     }
 
-    private OdpPageLayoutProperties GetPageLayoutProperties() => EnsurePageLayout().Properties;
+    private OdpPageLayoutProperties GetPageLayoutProperties() {
+        OdpMasterPage? master = null;
+        string? referencedMaster = Slides.Select(slide => slide.MasterPageName)
+            .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
+        if (referencedMaster != null) {
+            master = MasterPages.FirstOrDefault(item => string.Equals(item.Name, referencedMaster, StringComparison.Ordinal));
+        }
+        master ??= MasterPages.FirstOrDefault();
+        string? pageLayoutName = master?.PageLayoutName;
+        if (!string.IsNullOrWhiteSpace(pageLayoutName)) {
+            XElement? referenced = GetStylesContainer(OdfNamespaces.Office + "automatic-styles")
+                .Elements(OdfNamespaces.Style + "page-layout")
+                .FirstOrDefault(element => string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"),
+                    pageLayoutName, StringComparison.Ordinal));
+            if (referenced != null) return new OdpPageLayout(this, referenced).Properties;
+        }
+        return EnsurePageLayout().Properties;
+    }
     private OdpMasterPage EnsureDefaultMaster() => MasterPages.FirstOrDefault() ?? AddMasterPage("Default");
     private OdpPresentationLayout EnsureBlankLayout() => Layouts.FirstOrDefault() ?? AddLayout("Blank");
     private string NextSlideName() {
