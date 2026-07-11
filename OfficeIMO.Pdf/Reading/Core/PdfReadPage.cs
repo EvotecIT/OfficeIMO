@@ -68,6 +68,15 @@ public sealed partial class PdfReadPage {
         return Matrix2D.Multiply(rotation, cropOrigin);
     }
 
+    internal (double Width, double Height) GetInteractionPageSize() => GetVisualPageSize();
+
+    internal (double X, double Y) TransformPointToVisual(double x, double y) => GetVisualPageTransform().Transform(x, y);
+
+    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() {
+        (double Width, double Height) size = GetVisualPageSize();
+        return GetVisualTextSpans(size.Height, GetVisualPageTransform());
+    }
+
     private PdfPageBox GetPageBoundaryBox() {
         if (TryReadPageBox("CropBox", out PdfPageBox? cropBox) && cropBox != null) {
             return cropBox;

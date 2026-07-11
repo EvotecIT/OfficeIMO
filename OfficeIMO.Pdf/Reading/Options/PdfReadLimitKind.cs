@@ -57,5 +57,8 @@ public enum PdfReadLimitKind {
     RenderPages,
 
     /// <summary>Output pixels requested for one managed rendered page.</summary>
-    RenderPixels
+    RenderPixels,
+
+    /// <summary>Selectable text regions requested for one page interaction map.</summary>
+    InteractionRegions
 }

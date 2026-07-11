@@ -215,7 +215,7 @@ visual-only operation is allowed to claim secure redaction.
   modes, clipping, form XObjects, annotations, AcroForm appearances, and layers.
 - [x] Add page-range rendering, DPI/scale/background options, PNG/SVG batches,
   thumbnails, cancellation, render limits, and per-page reports.
-- [ ] Add text-selection and hit-testing primitives over glyph geometry,
+- [x] Add text-selection and hit-testing primitives over glyph geometry,
   annotation/link/form hit regions, page transforms, and selection quads.
 - [x] Keep WPF, WinUI, MAUI, Avalonia, Blazor, and other viewer controls outside
   the core. They should be thin packages over shared rendering, selection,
