@@ -311,14 +311,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static C.Legend CreateSharedLegend(OfficeChartData data) {
-            C.Legend legend = new();
+            C.Legend legend = new(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });
             for (int index = 0; index < data.Series.Count; index++) {
                 if (!data.Series[index].ShowInLegend) {
                     legend.Append(new C.LegendEntry(new C.Index { Val = (uint)index },
                         new C.Delete { Val = true }));
                 }
             }
-            legend.Append(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });
             legend.Append(new C.Layout());
             legend.Append(new C.Overlay { Val = false });
             return legend;

@@ -117,6 +117,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SharedChartContract_PreservesHiddenLegendSeriesInValidNativeChartAndSnapshot() {
+            var data = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Visible", new[] { 12D, 18D }, null, null, null,
+                    showMarkers: false, showInLegend: true),
+                new OfficeChartSeries("Threshold", new[] { 15D, 15D }, null, null, null,
+                    showMarkers: false, showInLegend: false)
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+
+            C.Legend legend = slide.SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.Legend>()!;
+            Assert.IsType<C.LegendPosition>(legend.ChildElements[0]);
+            C.LegendEntry entry = Assert.IsType<C.LegendEntry>(legend.ChildElements[1]);
+            Assert.Equal(1U, entry.Index!.Val!.Value);
+            Assert.True(entry.GetFirstChild<C.Delete>()!.Val!.Value);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.True(snapshot.Data.Series[0].ShowInLegend);
+            Assert.False(snapshot.Data.Series[1].ShowInLegend);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void SharedChartSnapshot_ClassifiesTopValueAxisAsSecondaryForHorizontalBars() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             var data = new OfficeChartData(new[] { "North", "South" }, new[] {

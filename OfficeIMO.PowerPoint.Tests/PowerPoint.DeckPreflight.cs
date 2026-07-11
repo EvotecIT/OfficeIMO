@@ -60,6 +60,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Preflight_ChecksUnreadableReductionWhenOverflowDetectionIsDisabled() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointTextBox text = presentation.Slides[0].AddTextBoxPoints(
+                "Auto-fit text must shrink to remain inside this deliberately tiny frame.", 20, 20, 80, 14);
+            text.FontSize = 20;
+            text.TextAutoFit = PowerPointTextAutoFit.Normal;
+
+            PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
+                DetectTextOverflow = false,
+                DetectUnreadableFontReduction = true,
+                MinimumReadableFontSizePoints = 19.5D,
+                DetectShapeCollisions = false,
+                DetectMissingVisualAssets = false,
+                IncludeVisualSnapshotDiagnostics = false
+            });
+
+            Assert.Contains(report.Findings, finding => finding.Code == "Text.UnreadableFontReduction");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Text.Clipped");
+        }
+
+        [Fact]
+        public void Preflight_ChecksCollisionsBetweenGroupedPeers() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 120, 80, "Grouped first");
+            PowerPointAutoShape second = slide.AddRectanglePoints(60, 40, 120, 80, "Grouped second");
+            PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] { first, second }, "Collision group");
+
+            PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
+                DetectTextOverflow = false,
+                DetectUnreadableFontReduction = false,
+                DetectMissingVisualAssets = false,
+                IncludeVisualSnapshotDiagnostics = false,
+                MinimumCollisionOverlapRatio = 0.1D
+            });
+
+            Assert.Contains(report.Findings, finding =>
+                finding.Code == "Layout.ShapeCollision" && finding.ShapeIndex == 0 &&
+                finding.ShapeId != group.Id);
+        }
+
+        [Fact]
         public void Preflight_ReportsOffSlideShapesAndSignificantPeerCollisions() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

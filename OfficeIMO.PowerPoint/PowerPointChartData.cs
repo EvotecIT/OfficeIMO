@@ -174,6 +174,9 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Primary or secondary value-axis assignment detected for this series.</summary>
         public OfficeChartAxisGroup AxisGroup { get; private set; }
+
+        /// <summary>Native ChartML series index retained for legend and mixed-chart projection.</summary>
+        internal uint? SourceIndex { get; set; }
     }
 
     /// <summary>

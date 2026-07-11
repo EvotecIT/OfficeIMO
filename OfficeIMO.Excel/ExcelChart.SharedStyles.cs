@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
             bool changed = false;
             for (int seriesIndex = 0; seriesIndex < seriesStyles.Count; seriesIndex++) {
                 ExcelChartSeries style = seriesStyles[seriesIndex];
-                changed |= ApplySeriesByIndex(seriesIndex, series => ApplyAuthoredSeriesStyle(series, style));
+                changed |= ApplySeriesByChartIndex(seriesIndex,
+                    series => ApplyAuthoredSeriesStyle(series, style));
 
                 if (style.PointColorArgb != null) {
                     for (int pointIndex = 0; pointIndex < style.PointColorArgb.Count; pointIndex++) {
@@ -19,13 +20,13 @@ namespace OfficeIMO.Excel {
                         if (!string.IsNullOrWhiteSpace(color)) {
                             int currentPoint = pointIndex;
                             string currentColor = color!;
-                            changed |= ApplySeriesByIndex(seriesIndex,
+                            changed |= ApplySeriesByChartIndex(seriesIndex,
                                 series => ApplyPointFill(series, currentPoint, NormalizeHexColor(currentColor)));
                         }
                     }
                 }
 
-                changed |= ApplySeriesMarkerByIndex(seriesIndex, marker => ApplyMarker(
+                changed |= ApplySeriesMarkerByChartIndex(seriesIndex, marker => ApplyMarker(
                     marker,
                     style.ShowMarkers ? MapMarkerStyle(style.MarkerShape) : C.MarkerStyleValues.None,
                     style.MarkerSize,
@@ -72,9 +73,10 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < seriesLegendVisibility.Count; index++) {
                 if (seriesLegendVisibility[index]) continue;
                 var entry = new C.LegendEntry(new C.Index { Val = (uint)index }, new C.Delete { Val = true });
-                C.LegendPosition? position = legend.GetFirstChild<C.LegendPosition>();
-                if (position != null) legend.InsertBefore(entry, position);
-                else legend.PrependChild(entry);
+                OpenXmlElement? insertBefore = legend.GetFirstChild<C.Layout>();
+                insertBefore ??= legend.GetFirstChild<C.Overlay>();
+                if (insertBefore != null) legend.InsertBefore(entry, insertBefore);
+                else legend.Append(entry);
                 changed = true;
             }
             return changed;

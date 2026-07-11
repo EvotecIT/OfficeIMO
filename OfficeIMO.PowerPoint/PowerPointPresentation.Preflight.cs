@@ -43,9 +43,6 @@ namespace OfficeIMO.PowerPoint {
             InspectShapeTree(slide, slide.Shapes, slideIndex,
                 new PowerPointLayoutBox(0L, 0L, slideWidth, slideHeight), options, findings, null);
 
-            if (options.DetectShapeCollisions) {
-                InspectCollisions(slide.Shapes, slideIndex, options, findings);
-            }
             if (options.IncludeVisualSnapshotDiagnostics) {
                 InspectVisualSnapshot(slide, slideIndex, findings);
             }
@@ -64,7 +61,8 @@ namespace OfficeIMO.PowerPoint {
                 if (options.DetectOffSlideShapes) {
                     InspectBounds(shape, reportShapeIndex, slideIndex, canvas, options, findings);
                 }
-                if (options.DetectTextOverflow && shape is PowerPointTextBox textBox) {
+                if ((options.DetectTextOverflow || options.DetectUnreadableFontReduction) &&
+                    shape is PowerPointTextBox textBox) {
                     InspectText(textBox, reportShapeIndex, slideIndex, options, findings);
                 }
                 if (options.DetectMissingVisualAssets && shape is PowerPointPicture picture) {
@@ -75,6 +73,10 @@ namespace OfficeIMO.PowerPoint {
                     InspectShapeTree(slide, children, slideIndex, slide.GetGroupChildBounds(groupShape),
                         options, findings, reportShapeIndex);
                 }
+            }
+
+            if (options.DetectShapeCollisions) {
+                InspectCollisions(shapes, slideIndex, options, findings, containingShapeIndex);
             }
         }
 
@@ -144,7 +146,8 @@ namespace OfficeIMO.PowerPoint {
                 contentWidth, contentHeight, 1.2D, 1D, measure, wrap: true, forceSingleLine: false,
                 shrinkToFit: false);
 
-            if (layout.Clipped && textBox.TextAutoFit != PowerPointTextAutoFit.Shape) {
+            if (options.DetectTextOverflow && layout.Clipped &&
+                textBox.TextAutoFit != PowerPointTextAutoFit.Shape) {
                 findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Text.Clipped",
                     "Measured text does not fit inside the authored text box.", slideIndex, shapeIndex, textBox,
                     textBox.Bounds, resolvedFontSize));
@@ -202,7 +205,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void InspectCollisions(IReadOnlyList<PowerPointShape> shapes, int slideIndex,
-            PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings) {
+            PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings,
+            int? containingShapeIndex) {
             double tolerance = PowerPointUnits.FromPoints(options.CollisionTolerancePoints);
             for (int leftIndex = 0; leftIndex < shapes.Count; leftIndex++) {
                 PowerPointShape left = shapes[leftIndex];
@@ -238,7 +242,8 @@ namespace OfficeIMO.PowerPoint {
                         ? "shape " + rightIndex.ToString(CultureInfo.InvariantCulture)
                         : "'" + right.Name + "'";
                     findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Warning, "Layout.ShapeCollision",
-                        "Shape significantly overlaps " + rightLabel + ".", slideIndex, leftIndex, left,
+                        "Shape significantly overlaps " + rightLabel + ".", slideIndex,
+                        containingShapeIndex ?? leftIndex, left,
                         leftBounds));
                 }
             }
