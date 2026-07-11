@@ -5,6 +5,15 @@ public sealed class PdfExternalSignatureOptions {
     private string _fieldName = "Signature1";
     private int _reservedSignatureContentsBytes = 32768;
 
+    /// <summary>High-level signature intent. Approval is the default.</summary>
+    public PdfSignatureProfile Profile { get; set; } = PdfSignatureProfile.Approval;
+
+    /// <summary>DocMDP permission emitted for certification signatures.</summary>
+    public PdfCertificationPermissionLevel CertificationPermission { get; set; } = PdfCertificationPermissionLevel.NoChanges;
+
+    /// <summary>Optional visible widget and appearance-stream settings.</summary>
+    public PdfVisibleSignatureAppearanceOptions? VisibleAppearance { get; set; }
+
     /// <summary>AcroForm signature field name to append.</summary>
     public string FieldName {
         get => _fieldName;

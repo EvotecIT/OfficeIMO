@@ -14,6 +14,7 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNull(pdf, nameof(pdf));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         ValidateExternalSignatureOptions(effectiveOptions);
+        PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
         ValidateExternalSignatureInput(security);
@@ -42,7 +43,18 @@ public static partial class PdfIncrementalUpdater {
         signatureField.Items["V"] = new PdfReference(signatureObjectNumber, 0);
         signatureField.Items["Ff"] = new PdfNumber(0);
         objects[signatureFieldObjectNumber] = new PdfIndirectObject(signatureFieldObjectNumber, 0, signatureField);
-
+        var profileChangedObjects = new HashSet<int>();
+        ApplySignatureProfile(
+            pdf,
+            objects,
+            catalog,
+            signatureField,
+            signatureObjectNumber,
+            effectiveOptions,
+            signatureProfile,
+            ref nextObjectNumber,
+            ref catalogChanged,
+            profileChangedObjects);
         var changedObjects = new HashSet<int> { signatureFieldObjectNumber };
         if (catalogChanged) {
             changedObjects.Add(security.RootObjectNumber.Value);
@@ -54,6 +66,10 @@ public static partial class PdfIncrementalUpdater {
 
         if (fieldsArrayObjectNumber.HasValue) {
             changedObjects.Add(fieldsArrayObjectNumber.Value);
+        }
+
+        foreach (int objectNumber in profileChangedObjects) {
+            changedObjects.Add(objectNumber);
         }
 
         byte[] signatureBytes = PdfObjectBytes.WrapIndirectObject(
@@ -129,6 +145,9 @@ public static partial class PdfIncrementalUpdater {
         if (string.IsNullOrWhiteSpace(options.Filter)) {
             throw new ArgumentException("Signature filter cannot be empty.", nameof(options));
         }
+
+        ResolveSignatureProfile(options);
+        ResolveSignatureSubFilter(options);
     }
 
     private static void ValidateExternalSignatureInput(PdfDocumentSecurityInfo security) {
@@ -229,12 +248,14 @@ public static partial class PdfIncrementalUpdater {
     }
 
     private static string BuildSignaturePlaceholderDictionary(PdfExternalSignatureOptions options) {
+        PdfSignatureProfile profile = ResolveSignatureProfile(options);
+        PdfExternalSignatureSubFilter subFilter = ResolveSignatureSubFilter(options);
         string zeros = new string('0', options.ReservedSignatureContentsBytes * 2);
         var builder = new StringBuilder();
         builder.Append("<< /Type /");
-        builder.Append(options.SubFilter == PdfExternalSignatureSubFilter.DocumentTimestamp ? "DocTimeStamp" : "Sig");
+        builder.Append(profile == PdfSignatureProfile.DocumentTimestamp ? "DocTimeStamp" : "Sig");
         builder.Append(" /Filter /").Append(PdfSyntaxEscaper.Name(options.Filter));
-        builder.Append(" /SubFilter /").Append(PdfSyntaxEscaper.Name(ToSubFilterName(options.SubFilter)));
+        builder.Append(" /SubFilter /").Append(PdfSyntaxEscaper.Name(ToSubFilterName(subFilter)));
         builder.Append(" /ByteRange [").Append(SignatureByteRangePlaceholder).Append(']');
         builder.Append(" /Contents <").Append(zeros).Append('>');
         AppendSignatureTextEntry(builder, "Name", options.Name);
@@ -242,6 +263,11 @@ public static partial class PdfIncrementalUpdater {
         AppendSignatureTextEntry(builder, "Location", options.Location);
         AppendSignatureTextEntry(builder, "ContactInfo", options.ContactInfo);
         builder.Append(" /M ").Append(PdfSyntaxEscaper.TextString(FormatSignatureDate(options.SigningTime ?? DateTimeOffset.UtcNow)));
+        if (profile == PdfSignatureProfile.Certification) {
+            builder.Append(" /Reference [<< /Type /SigRef /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /P ")
+                .Append(((int)options.CertificationPermission).ToString(CultureInfo.InvariantCulture))
+                .Append(" /V /1.2 >> >>]");
+        }
         builder.Append(" >>\n");
         return builder.ToString();
     }
@@ -326,7 +352,8 @@ public static partial class PdfIncrementalUpdater {
             output,
             options.FieldName,
             options.Filter,
-            ToSubFilterName(options.SubFilter),
+            ToSubFilterName(ResolveSignatureSubFilter(options)),
+            ResolveSignatureProfile(options),
             ranges,
             contentsLiteralStart + 1,
             options.ReservedSignatureContentsBytes * 2,

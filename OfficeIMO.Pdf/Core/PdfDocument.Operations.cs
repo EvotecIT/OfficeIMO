@@ -258,6 +258,14 @@ public sealed partial class PdfDocument {
         return PdfIncrementalUpdater.PrepareExternalSignature(Snapshot(), signatureOptions);
     }
 
+    /// <summary>Prepares, externally signs, and applies a PDF signature without placing key-storage logic in OfficeIMO.Pdf.</summary>
+    public PdfExternalSignatureCompletion SignExternal(
+        IPdfExternalSigner signer,
+        PdfExternalSignatureOptions? signatureOptions = null) {
+        Guard.NotNull(signer, nameof(signer));
+        return PdfIncrementalUpdater.SignExternal(Snapshot(), signer, signatureOptions);
+    }
+
     /// <summary>
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>

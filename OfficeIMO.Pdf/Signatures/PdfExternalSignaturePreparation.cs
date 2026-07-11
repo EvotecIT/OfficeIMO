@@ -9,6 +9,7 @@ public sealed class PdfExternalSignaturePreparation {
         string fieldName,
         string filter,
         string subFilter,
+        PdfSignatureProfile profile,
         IReadOnlyList<long> byteRangeValues,
         int contentsHexOffset,
         int contentsHexLength,
@@ -17,6 +18,7 @@ public sealed class PdfExternalSignaturePreparation {
         FieldName = fieldName;
         Filter = filter;
         SubFilter = subFilter;
+        Profile = profile;
         ByteRangeValues = byteRangeValues;
         ContentsHexOffset = contentsHexOffset;
         ContentsHexLength = contentsHexLength;
@@ -34,6 +36,9 @@ public sealed class PdfExternalSignaturePreparation {
 
     /// <summary>PDF signature subfilter emitted in the signature dictionary.</summary>
     public string SubFilter { get; }
+
+    /// <summary>Approval, certification, or document-timestamp profile prepared for signing.</summary>
+    public PdfSignatureProfile Profile { get; }
 
     /// <summary>Four-value detached signature /ByteRange array.</summary>
     public IReadOnlyList<long> ByteRangeValues { get; }
