@@ -409,6 +409,26 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderResolvesCurrentColorInGradientDefinitionTree() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10' color='purple'><defs style='color:orange'>"
+            + "<linearGradient id='paint' style='color:lime'><stop stop-color='currentColor'/><stop offset='1' color='red' style='color:blue;stop-color:currentColor'/></linearGradient>"
+            + "</defs><rect width='20' height='10' fill='url(#paint)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeLinearGradient gradient = Assert.IsType<OfficeLinearGradient>(Assert.Single(drawing!.Shapes).Shape.FillGradient);
+        Assert.Equal(OfficeColor.Lime, gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[gradient.Stops.Count - 1].Color);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(2, 5).G > raster.GetPixel(2, 5).B);
+        Assert.True(raster.GetPixel(18, 5).B > raster.GetPixel(18, 5).G);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("stop-color=\"#00FF00\"", exported, StringComparison.Ordinal);
+        Assert.Contains("stop-color=\"#0000FF\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"

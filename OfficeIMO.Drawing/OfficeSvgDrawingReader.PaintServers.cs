@@ -261,6 +261,7 @@ public static partial class OfficeSvgDrawingReader {
 
         private static bool TryStopColor(XElement element, out OfficeColor color) {
             color = OfficeColor.Black;
+            if (!TryResolveCurrentColor(element, out OfficeColor currentColor)) return false;
             string? colorText = element.Attribute("stop-color")?.Value;
             string? opacityText = element.Attribute("stop-opacity")?.Value;
             string? declarations = element.Attribute("style")?.Value;
@@ -276,12 +277,31 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             if (string.IsNullOrWhiteSpace(colorText)) color = OfficeColor.Black;
-            else if (colorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)
-                || !OfficeColor.TryParse(colorText.Trim(), out color)) return false;
+            else if (colorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) color = currentColor;
+            else if (!OfficeColor.TryParse(colorText.Trim(), out color)) return false;
 
             double opacity = 1D;
             if (!string.IsNullOrWhiteSpace(opacityText) && !TryUnitOrPercentage(opacityText!, clamp: true, out opacity)) return false;
             color = OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * opacity));
+            return true;
+        }
+
+        private static bool TryResolveCurrentColor(XElement element, out OfficeColor color) {
+            color = OfficeColor.Black;
+            foreach (XElement candidate in element.AncestorsAndSelf().Reverse()) {
+                string? value = candidate.Attribute("color")?.Value;
+                string? declarations = candidate.Attribute("style")?.Value;
+                if (!string.IsNullOrWhiteSpace(declarations)) {
+                    foreach (string declaration in declarations!.Split(';')) {
+                        int colon = declaration.IndexOf(':');
+                        if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
+                        value = declaration.Substring(colon + 1).Trim();
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(value) || value!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!OfficeColor.TryParse(value.Trim(), out color)) return false;
+            }
             return true;
         }
 
