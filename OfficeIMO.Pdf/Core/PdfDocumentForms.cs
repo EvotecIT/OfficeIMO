@@ -28,14 +28,33 @@ public sealed class PdfDocumentForms {
     /// Attempts to create a new PDF with simple form fields filled, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfReadOptions? options = null) {
-        return _document.TryOperation("Fill form fields", PdfPreflightCapability.FillSimpleFormFields, () => Fill(fieldValues), options);
+        Guard.NotNull(fieldValues, nameof(fieldValues));
+        return _document.TryMutationOperation(
+            "Fill form fields",
+            PdfPreflightCapability.FillSimpleFormFields,
+            PdfMutationOperation.FillFormFields,
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? AppendRevision(fieldValues, CreateIncrementalOptions(formOptions: null))
+                : Fill(fieldValues),
+            fieldValues.Keys,
+            options);
     }
 
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
-        return _document.TryOperation("Fill form fields", PdfPreflightCapability.FillSimpleFormFields, () => Fill(fieldValues, formOptions), readOptions);
+        Guard.NotNull(fieldValues, nameof(fieldValues));
+        Guard.NotNull(formOptions, nameof(formOptions));
+        return _document.TryMutationOperation(
+            "Fill form fields",
+            PdfPreflightCapability.FillSimpleFormFields,
+            PdfMutationOperation.FillFormFields,
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? AppendRevision(fieldValues, CreateIncrementalOptions(formOptions))
+                : Fill(fieldValues, formOptions),
+            fieldValues.Keys,
+            readOptions);
     }
 
     /// <summary>
@@ -56,14 +75,33 @@ public sealed class PdfDocumentForms {
     /// Attempts to create a new PDF with simple form fields filled, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfReadOptions? options = null) {
-        return _document.TryOperation("Fill form fields", PdfPreflightCapability.FillSimpleFormFields, () => Fill(fieldValues), options);
+        Guard.NotNull(fieldValues, nameof(fieldValues));
+        return _document.TryMutationOperation(
+            "Fill form fields",
+            PdfPreflightCapability.FillSimpleFormFields,
+            PdfMutationOperation.FillFormFields,
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? AppendRevision(fieldValues, CreateIncrementalOptions(formOptions: null))
+                : Fill(fieldValues),
+            fieldValues.Keys,
+            options);
     }
 
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
-        return _document.TryOperation("Fill form fields", PdfPreflightCapability.FillSimpleFormFields, () => Fill(fieldValues, formOptions), readOptions);
+        Guard.NotNull(fieldValues, nameof(fieldValues));
+        Guard.NotNull(formOptions, nameof(formOptions));
+        return _document.TryMutationOperation(
+            "Fill form fields",
+            PdfPreflightCapability.FillSimpleFormFields,
+            PdfMutationOperation.FillFormFields,
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? AppendRevision(fieldValues, CreateIncrementalOptions(formOptions))
+                : Fill(fieldValues, formOptions),
+            fieldValues.Keys,
+            readOptions);
     }
 
     /// <summary>
@@ -204,5 +242,16 @@ public sealed class PdfDocumentForms {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
         return _document.TryOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, () => FillAndFlatten(fieldValues, formOptions), readOptions);
+    }
+
+    private static PdfIncrementalFormFieldUpdateOptions CreateIncrementalOptions(PdfFormFillerOptions? formOptions) {
+        if (formOptions?.HasAppearanceFontFamily == true || formOptions?.HasAppearanceFontFallbacks == true) {
+            throw new NotSupportedException("Append-only form updates cannot yet embed custom appearance fonts. Use the default appearance policy or a PDF that permits full rewrite.");
+        }
+
+        return new PdfIncrementalFormFieldUpdateOptions {
+            KeepNeedAppearances = formOptions?.KeepNeedAppearances ?? false,
+            GenerateAppearanceStreams = true
+        };
     }
 }

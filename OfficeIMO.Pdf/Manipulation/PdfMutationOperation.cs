@@ -1,0 +1,43 @@
+namespace OfficeIMO.Pdf;
+
+/// <summary>Existing-document mutation families understood by <see cref="PdfMutationPlanner"/>.</summary>
+public enum PdfMutationOperation {
+    /// <summary>Update document information metadata.</summary>
+    UpdateMetadata,
+
+    /// <summary>Update supported AcroForm field values and appearances.</summary>
+    FillFormFields,
+
+    /// <summary>Flatten supported AcroForm widgets into page content.</summary>
+    FlattenFormFields,
+
+    /// <summary>Update and then flatten supported AcroForm fields.</summary>
+    FillAndFlattenFormFields,
+
+    /// <summary>Append an external-signature placeholder revision.</summary>
+    PrepareExternalSignature,
+
+    /// <summary>Change page membership or order, including delete, move, duplicate, merge, or import.</summary>
+    ModifyPageTree,
+
+    /// <summary>Change page content streams or resources, including stamps and watermarks.</summary>
+    ModifyPageContent,
+
+    /// <summary>Change catalog-level navigation, viewer, layer, or related document state.</summary>
+    ModifyCatalog,
+
+    /// <summary>Create, update, remove, or flatten annotations.</summary>
+    ModifyAnnotations,
+
+    /// <summary>Create, replace, rename, or remove embedded or associated files.</summary>
+    ModifyAttachments,
+
+    /// <summary>Change document encryption, passwords, or permissions.</summary>
+    ChangeEncryption,
+
+    /// <summary>Apply lossless document optimization.</summary>
+    Optimize,
+
+    /// <summary>Apply destructive content redaction.</summary>
+    Redact
+}

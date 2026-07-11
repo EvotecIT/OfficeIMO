@@ -22,6 +22,11 @@ public static partial class PdfIncrementalUpdater {
         return BuildAppendOnlyMutationReport(security, fieldNames: null);
     }
 
+    internal static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
+        Guard.NotNull(security, nameof(security));
+        return BuildAppendOnlyMutationReport(security, fieldNames);
+    }
+
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(Stream input) {
         Guard.NotNull(input, nameof(input));

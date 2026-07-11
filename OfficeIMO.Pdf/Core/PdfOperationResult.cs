@@ -12,7 +12,8 @@ public sealed class PdfOperationResult<T> where T : class {
         T? value,
         IReadOnlyList<string> diagnostics,
         Exception? exception,
-        bool? canAttemptOverride) {
+        bool? canAttemptOverride,
+        PdfMutationPlan? mutationPlan) {
         OperationName = operationName;
         Capability = capability;
         Preflight = preflight;
@@ -20,6 +21,7 @@ public sealed class PdfOperationResult<T> where T : class {
         Diagnostics = diagnostics;
         Exception = exception;
         CanAttemptOverride = canAttemptOverride;
+        MutationPlan = mutationPlan;
     }
 
     /// <summary>Human-readable operation name.</summary>
@@ -31,8 +33,11 @@ public sealed class PdfOperationResult<T> where T : class {
     /// <summary>Preflight report used before attempting the operation.</summary>
     public PdfDocumentPreflight Preflight { get; }
 
+    /// <summary>Mutation plan that selected the execution path, when this was an existing-document mutation.</summary>
+    public PdfMutationPlan? MutationPlan { get; }
+
     /// <summary>True when preflight allowed the operation to be attempted.</summary>
-    public bool CanAttempt => CanAttemptOverride ?? Preflight.Can(Capability);
+    public bool CanAttempt => MutationPlan?.CanExecute ?? CanAttemptOverride ?? Preflight.Can(Capability);
 
     /// <summary>True when the operation completed and produced a value.</summary>
     public bool Succeeded => Value is not null && Exception is null;
@@ -65,11 +70,11 @@ public sealed class PdfOperationResult<T> where T : class {
     }
 
     internal static PdfOperationResult<T> Success(string operationName, PdfPreflightCapability capability, PdfDocumentPreflight preflight, T value, bool? canAttemptOverride) {
-        return new PdfOperationResult<T>(operationName, capability, preflight, value, Array.Empty<string>(), null, canAttemptOverride);
+        return new PdfOperationResult<T>(operationName, capability, preflight, value, Array.Empty<string>(), null, canAttemptOverride, mutationPlan: null);
     }
 
     internal static PdfOperationResult<T> Blocked(string operationName, PdfPreflightCapability capability, PdfDocumentPreflight preflight) {
-        return new PdfOperationResult<T>(operationName, capability, preflight, null, preflight.GetCapabilityDiagnostics(capability), null, canAttemptOverride: null);
+        return new PdfOperationResult<T>(operationName, capability, preflight, null, preflight.GetCapabilityDiagnostics(capability), null, canAttemptOverride: null, mutationPlan: null);
     }
 
     internal static PdfOperationResult<T> Failed(string operationName, PdfPreflightCapability capability, PdfDocumentPreflight preflight, Exception exception) {
@@ -85,7 +90,25 @@ public sealed class PdfOperationResult<T> where T : class {
             AddDistinct(diagnostics, capabilityDiagnostics[i]);
         }
 
-        return new PdfOperationResult<T>(operationName, capability, preflight, null, diagnostics.AsReadOnly(), exception, canAttemptOverride);
+        return new PdfOperationResult<T>(operationName, capability, preflight, null, diagnostics.AsReadOnly(), exception, canAttemptOverride, mutationPlan: null);
+    }
+
+    internal static PdfOperationResult<T> MutationSuccess(string operationName, PdfPreflightCapability capability, PdfMutationPlan plan, T value) {
+        return new PdfOperationResult<T>(operationName, capability, plan.Preflight, value, Array.Empty<string>(), null, canAttemptOverride: true, plan);
+    }
+
+    internal static PdfOperationResult<T> MutationBlocked(string operationName, PdfPreflightCapability capability, PdfMutationPlan plan) {
+        return new PdfOperationResult<T>(operationName, capability, plan.Preflight, null, plan.Diagnostics, null, canAttemptOverride: false, plan);
+    }
+
+    internal static PdfOperationResult<T> MutationFailed(string operationName, PdfPreflightCapability capability, PdfMutationPlan plan, Exception exception) {
+        var diagnostics = new List<string>();
+        AddDistinct(diagnostics, exception.Message);
+        for (int i = 0; i < plan.Diagnostics.Count; i++) {
+            AddDistinct(diagnostics, plan.Diagnostics[i]);
+        }
+
+        return new PdfOperationResult<T>(operationName, capability, plan.Preflight, null, diagnostics.AsReadOnly(), exception, canAttemptOverride: true, plan);
     }
 
     private static void AddDistinct(List<string> diagnostics, string? diagnostic) {

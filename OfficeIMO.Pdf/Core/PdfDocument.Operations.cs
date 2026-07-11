@@ -15,6 +15,11 @@ public sealed partial class PdfDocument {
         return PdfInspector.Preflight(Snapshot(), options ?? ReadOptions);
     }
 
+    /// <summary>Chooses a full-rewrite, append-only, or blocked path for an existing-document mutation.</summary>
+    public PdfMutationPlan PlanMutation(PdfMutationOperation operation, IEnumerable<string>? fieldNames = null, PdfReadOptions? options = null) {
+        return PdfMutationPlanner.Plan(Preflight(options), operation, fieldNames);
+    }
+
     /// <summary>
     /// Validates signature structure, byte ranges, and preservation markers for this PDF.
     /// </summary>
@@ -82,6 +87,28 @@ public sealed partial class PdfDocument {
             return PdfOperationResult<T>.Success(operationName, capability, preflight, operation());
         } catch (Exception ex) {
             return PdfOperationResult<T>.Failed(operationName, capability, preflight, ex);
+        }
+    }
+
+    internal PdfOperationResult<T> TryMutationOperation<T>(
+        string operationName,
+        PdfPreflightCapability capability,
+        PdfMutationOperation mutationOperation,
+        Func<PdfMutationExecutionMode, T> operation,
+        IEnumerable<string>? fieldNames = null,
+        PdfReadOptions? options = null) where T : class {
+        Guard.NotNullOrWhiteSpace(operationName, nameof(operationName));
+        Guard.NotNull(operation, nameof(operation));
+
+        PdfMutationPlan plan = PlanMutation(mutationOperation, fieldNames, options);
+        if (!plan.CanExecute) {
+            return PdfOperationResult<T>.MutationBlocked(operationName, capability, plan);
+        }
+
+        try {
+            return PdfOperationResult<T>.MutationSuccess(operationName, capability, plan, operation(plan.ExecutionMode));
+        } catch (Exception ex) {
+            return PdfOperationResult<T>.MutationFailed(operationName, capability, plan, ex);
         }
     }
 
@@ -194,7 +221,12 @@ public sealed partial class PdfDocument {
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfReadOptions? options = null) {
-        return TryOperation("Prepare external signature", PdfPreflightCapability.PrepareExternalSignatureRevision, () => PrepareExternalSignature(signatureOptions), options);
+        return TryMutationOperation(
+            "Prepare external signature",
+            PdfPreflightCapability.PrepareExternalSignatureRevision,
+            PdfMutationOperation.PrepareExternalSignature,
+            _ => PrepareExternalSignature(signatureOptions),
+            options: options);
     }
 
     /// <summary>
@@ -208,7 +240,14 @@ public sealed partial class PdfDocument {
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryUpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {
-        return TryOperation("Update metadata", PdfPreflightCapability.ManipulatePages, () => UpdateMetadata(title, author, subject, keywords), options);
+        return TryMutationOperation(
+            "Update metadata",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.UpdateMetadata,
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? AppendMetadataRevision(title, author, subject, keywords)
+                : UpdateMetadata(title, author, subject, keywords),
+            options: options);
     }
 
     /// <summary>
