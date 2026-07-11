@@ -50,6 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
+                ReportUnsupportedBidi(textNode, inheritedStyle);
                 runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle.TextTransform), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement));
             }
 
@@ -125,6 +126,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, runs);
+    }
+
+    private void ReportUnsupportedBidi(IText textNode, HtmlRenderBoxStyle style) {
+        IElement? element = textNode.ParentElement;
+        if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedBidiElements.Contains(element)) return;
+        bool declaredRightToLeft = string.Equals(style.Direction, "rtl", StringComparison.Ordinal);
+        bool containsRightToLeftText = OfficeTextElements.ContainsRightToLeft(textNode.Data);
+        if (!declaredRightToLeft && !containsRightToLeftText) return;
+        _reportedBidiElements.Add(element);
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.BidiLayoutUnsupported,
+            "Right-to-left inline content used logical source order because managed bidi positioning is not active yet.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            declaredRightToLeft ? "direction=rtl" : "right-to-left-script");
     }
 
     private HtmlInlineLayout LayoutInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle, IElement? formattingContainer = null) {

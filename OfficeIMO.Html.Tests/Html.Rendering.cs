@@ -980,6 +980,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_DiagnosesRightToLeftContentUntilManagedBidiLayoutIsActive() {
+        const string html = "<p id='declared' dir='rtl'>Latin text</p><p id='script'>שלום</p><p id='ltr'>Left to right</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics.Diagnostics
+            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported)
+            .ToList();
+
+        Assert.Collection(
+            diagnostics.OrderBy(diagnostic => diagnostic.Source),
+            diagnostic => Assert.Equal("p#declared", diagnostic.Source),
+            diagnostic => Assert.Equal("p#script", diagnostic.Source));
+        Assert.Contains(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
+    }
+
+    [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));

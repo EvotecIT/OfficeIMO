@@ -3195,6 +3195,16 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTextElementsDetectsRightToLeftScriptScalars() {
+        Assert.False(OfficeTextElements.ContainsRightToLeft(null));
+        Assert.False(OfficeTextElements.ContainsRightToLeft("OfficeIMO 123"));
+        Assert.True(OfficeTextElements.ContainsRightToLeft("Hebrew שלום"));
+        Assert.True(OfficeTextElements.ContainsRightToLeft("Arabic العربية"));
+        Assert.True(OfficeTextElements.IsRightToLeftScalar(0x1E900));
+        Assert.False(OfficeTextElements.IsRightToLeftScalar(0x1F600));
+    }
+
+    [Fact]
     public void OfficeTextMeasurerNormalizesFallbackFontInfo() {
         var measurer = OfficeTextMeasurer.Create(new OfficeFontInfo(null, 0));
 

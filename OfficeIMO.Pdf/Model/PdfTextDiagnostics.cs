@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -263,7 +264,7 @@ public static class PdfTextDiagnostics {
             int sourceIndex = scalarStart + indexOffset;
             int scalar = ReadScalar(text, ref index);
 
-            if (IsRightToLeftScalar(scalar)) {
+            if (OfficeTextElements.IsRightToLeftScalar(scalar)) {
                 AddDiagnostic(
                     diagnostics,
                     reportedCodes,
@@ -901,20 +902,6 @@ public static class PdfTextDiagnostics {
 
         return -1;
     }
-
-    private static bool IsRightToLeftScalar(int scalar) =>
-        IsInRange(scalar, 0x0590, 0x05FF) ||
-        IsInRange(scalar, 0x0600, 0x06FF) ||
-        IsInRange(scalar, 0x0700, 0x074F) ||
-        IsInRange(scalar, 0x0750, 0x077F) ||
-        IsInRange(scalar, 0x0780, 0x07BF) ||
-        IsInRange(scalar, 0x07C0, 0x07FF) ||
-        IsInRange(scalar, 0x0840, 0x085F) ||
-        IsInRange(scalar, 0x08A0, 0x08FF) ||
-        IsInRange(scalar, 0xFB1D, 0xFDFF) ||
-        IsInRange(scalar, 0xFE70, 0xFEFF) ||
-        IsInRange(scalar, 0x1E900, 0x1E95F) ||
-        IsInRange(scalar, 0x1EE00, 0x1EEFF);
 
     private static bool TryGetComplexScriptName(int scalar, out string script) {
         if (IsInRange(scalar, 0x0600, 0x06FF) ||

@@ -32,6 +32,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFaceUnavailable = "HtmlRenderFontFaceUnavailable";
     /// <summary>A font source was not a supported TrueType glyf-outline font.</summary>
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
+    /// <summary>Right-to-left inline content requires bidi positioning not yet active in the shared renderer.</summary>
+    public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
     /// <summary>Flex layout used the documented normal-flow fallback.</summary>
     public const string FlexLayoutPending = "HtmlRenderFlexLayoutPending";
     /// <summary>A flex property value used a documented deterministic fallback.</summary>
@@ -150,6 +152,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceInvalid,
         FontFaceUnavailable,
         FontFormatUnsupported,
+        BidiLayoutUnsupported,
         FlexLayoutPending,
         FlexValueUnsupported,
         FloatValueUnsupported,

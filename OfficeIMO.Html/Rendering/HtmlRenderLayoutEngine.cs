@@ -52,6 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedOutlinePaintFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;
