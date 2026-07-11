@@ -42,6 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var rowGroupStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
         var occupiedColumns = new int[columnCount];
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            CheckCancellation();
             IElement row = rows[rowIndex];
             IElement rowGroup = GetRowGroup(row, table);
             HtmlRenderBoxStyle rowParentStyle = style;
@@ -127,6 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double rowY = tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing;
         double headerStart = rowY;
         for (int rowIndex = 0; rowIndex < rowLayouts.Count; rowIndex++) {
+            CheckCancellation();
             TableRowLayout row = rowLayouts[rowIndex];
             int rowVisualStart = visuals.Count;
             if (row.IsFooter && trailingVisuals.Count == 0) trailingStart = rowY;

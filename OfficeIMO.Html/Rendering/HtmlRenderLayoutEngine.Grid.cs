@@ -41,6 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         GridAxisLayout columns = ResolveGridAxisLayout(columnTracks, columnSizes, contentWidth, columnGap, style.JustifyContent, source, "justify-content");
 
         foreach (GridItem item in items) {
+            CheckCancellation();
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             ApplyInitialGridItemWidth(item, style, cellWidth);
             item.Block = LayoutFlexItem(item.Item, Math.Max(1D, cellWidth), style, depth + 1);
@@ -73,6 +74,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             rowLineNames);
 
         foreach (GridItem item in items) {
+            CheckCancellation();
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             double cellHeight = rows.SpanSize(item.Row, item.RowSpan);
             ApplyFinalGridItemSize(item, style, cellWidth, cellHeight);
@@ -96,6 +98,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         var itemPaintLayers = new List<FlowPaintLayer>();
         foreach (GridItem item in items) {
+            CheckCancellation();
             double itemX = contentX + columns.Positions[item.Column] + item.OffsetX;
             double itemY = contentY + rows.Positions[item.Row] + item.OffsetY;
             if (item.Item.Element != null) {

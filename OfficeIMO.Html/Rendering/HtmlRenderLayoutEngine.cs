@@ -16,6 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly OfficeFontFaceCollection _fonts;
     private readonly Uri? _baseUri;
     private readonly HtmlUrlPolicy _resourceUrlPolicy;
+    private readonly CancellationToken _cancellationToken;
     private IElement? _surfaceRootElement;
     private HtmlRenderBoxStyle? _surfaceRootStyle;
     private IElement? _viewportOverflowElement;
@@ -49,7 +50,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
 
-    internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {
+    internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
+        _cancellationToken = cancellationToken;
+        _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
         _options = options;
         _diagnostics = diagnostics;
@@ -63,6 +66,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     internal HtmlRenderDocument Render() {
+        CheckCancellation();
         IElement root = _document.Body ?? _document.DocumentElement ?? throw new InvalidOperationException("The parsed HTML document has no renderable root element.");
         double surfaceWidth = _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth;
         double contentWidth = surfaceWidth - _options.Margins.Left - _options.Margins.Right;
@@ -86,16 +90,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         IReadOnlyList<HtmlRenderFlowBlock> blocks = BuildChildBlocks(root, contentWidth, rootStyle, 0);
-        return _options.Mode == HtmlRenderMode.Paged
+        HtmlRenderDocument rendered = _options.Mode == HtmlRenderMode.Paged
             ? RenderPaged(blocks)
             : RenderContinuous(blocks);
+        CheckCancellation();
+        return rendered;
     }
+
+    private void CheckCancellation() => _cancellationToken.ThrowIfCancellationRequested();
 
     private HtmlRenderDocument RenderContinuous(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
         double width = _options.ViewportWidth;
         double y = _options.Margins.Top;
         var placements = new List<FlowPaintLayer>(blocks.Count);
         foreach (HtmlRenderFlowBlock block in blocks) {
+            CheckCancellation();
             placements.Add(new FlowPaintLayer(block, _options.Margins.Left, y, placements.Count));
             y += block.Height;
         }
@@ -112,6 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         BuildRootStackingPaintOrders(blocks);
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
         foreach (FlowPaintLayer placement in placements) {
+            CheckCancellation();
             AddTranslatedVisuals(visuals, placement.Block.Visuals, placement.X, placement.Y, placement.Block);
         }
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
@@ -138,6 +148,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y = _options.Margins.Top;
         string? currentPageName = null;
         for (int index = 0; index < blocks.Count; index++) {
+            CheckCancellation();
             HtmlRenderFlowBlock block = blocks[index];
             bool hasPageContent = y > _options.Margins.Top + 0.0001D;
             if (hasPageContent && !string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
@@ -167,6 +178,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else {
                 double blockOffset = 0D;
                 while (blockOffset < block.Height - 0.0001D) {
+                    CheckCancellation();
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
                     bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
                     double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;

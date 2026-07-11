@@ -19,6 +19,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         List<FlexItem> orderedItems = items.OrderBy(item => item.Style.Order).ThenBy(item => item.SourceIndex).ToList();
         foreach (FlexItem item in orderedItems) {
+            CheckCancellation();
             item.HasExplicitCrossSize = item.Style.ExplicitWidth.HasValue;
             item.CrossBasis = ResolveColumnFlexCrossBasis(item, contentWidth);
             string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
@@ -40,6 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string effectiveWrap = wrapping && hasDefiniteHeight ? style.FlexWrap : "nowrap";
         List<FlexLine> lines = CreateFlexLines(orderedItems, effectiveWrap, contentHeight, mainGap);
         foreach (FlexLine line in lines) {
+            CheckCancellation();
             double availableForItems = Math.Max(0D, contentHeight - mainGap * Math.Max(0, line.Items.Count - 1));
             ResolveFlexMainSizes(line.Items, availableForItems, vertical: true);
             line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.CrossBasis);
@@ -49,6 +51,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double crossGap = lines.Count > 1 ? style.ColumnGap : 0D;
         ResolveFlexLineOffsets(lines, style, contentWidth, crossGap, source);
         foreach (FlexLine line in lines) {
+            CheckCancellation();
             ResolveFlexMainOffsets(line.Items, style, contentHeight, mainGap, style.FlexDirection == "column-reverse", vertical: true, source: source);
             foreach (FlexItem item in line.Items) {
                 string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
@@ -75,6 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         var itemPaintLayers = new List<FlowPaintLayer>();
         foreach (FlexLine line in lines) {
+            CheckCancellation();
             foreach (FlexItem item in line.Items) {
                 if (item.Element != null) {
                     RecordNormalFlowPlacement(item.Element, element, line.CrossOffset + item.CrossOffset, item.MainOffset, item.Style);

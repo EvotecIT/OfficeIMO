@@ -23,6 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double allocatedAdjoiningMargins = 0D;
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
+            CheckCancellation();
             if (node is IElement element) {
                 if (ShouldSkipElement(element)) {
                     continue;

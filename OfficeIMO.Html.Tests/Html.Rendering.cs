@@ -219,6 +219,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_CancelsLargeRenderOperation() {
+        string html = "<main>" + string.Concat(Enumerable.Repeat("<div><span>Cancellation marker</span></div>", 20000)) + "</main>";
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1D));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            HtmlRenderEngine.RenderAsync(html, new HtmlRenderOptions { ViewportWidth = 240D }, cancellation.Token));
+    }
+
+    [Fact]
     public async Task HtmlPdf_RenderedProfileAsync_ResolvesExternalImageAndWritesSearchablePdf() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
