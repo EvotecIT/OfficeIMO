@@ -79,15 +79,17 @@ public static class DocumentReaderEpubExtensions {
                 var chunkId = BuildId(fileName, chapter.Order, chunkPart);
                 var wasSplit = chapter.Text.Length > maxChars;
 
+                string? chapterTitle = chapter.Title;
+                string? displayHeading = string.IsNullOrWhiteSpace(chapterTitle) ? null : chapterTitle!.Trim();
                 var location = new ReaderLocation {
                     Path = BuildVirtualPath(sourcePath, chapter.Path),
                     BlockIndex = blockIndex,
                     SourceBlockIndex = chapter.Order > 0 ? chapter.Order - 1 : null,
-                    HeadingPath = string.IsNullOrWhiteSpace(chapter.Title) ? null : chapter.Title.Trim()
+                    HeadingPath = displayHeading
                 };
                 ReaderHeadingPath.SetHierarchyPath(
                     location,
-                    ReaderHeadingPath.Combine(new[] { chapter.Title }));
+                    ReaderHeadingPath.Combine(new[] { chapterTitle }));
                 var chunk = EnrichChunk(new ReaderChunk {
                     Id = chunkId,
                     Kind = ReaderInputKind.Epub,
