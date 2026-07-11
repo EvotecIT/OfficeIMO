@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -132,13 +133,23 @@ namespace OfficeIMO.Tests {
                     markerShape: OfficeChartMarkerShape.Diamond,
                     markerOutlineColor: OfficeColor.ParseHex("#111827"), markerOutlineWidth: 1.5D,
                     strokeWidth: 2.25D, strokeDashStyle: OfficeStrokeDashStyle.Dash,
-                    renderKind: OfficeChartKind.Line)
+                    showInLegend: false, renderKind: OfficeChartKind.Line)
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Shared");
                 sheet.AddChart(OfficeChartKind.Line, sharedData, row: 1, column: 5);
                 document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ChartPart chartPart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Where(worksheet => worksheet.DrawingsPart != null)
+                    .SelectMany(worksheet => worksheet.DrawingsPart!.ChartParts)
+                    .Single();
+                C.LegendEntry entry = Assert.Single(chartPart.ChartSpace.Descendants<C.LegendEntry>());
+                Assert.Equal(0U, entry.Index!.Val!.Value);
+                Assert.True(entry.GetFirstChild<C.Delete>()!.Val!.Value);
             }
 
             using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);

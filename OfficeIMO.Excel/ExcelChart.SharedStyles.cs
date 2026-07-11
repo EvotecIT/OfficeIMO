@@ -6,7 +6,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
-        internal void ApplyAuthoredSeriesStyles(IReadOnlyList<ExcelChartSeries> seriesStyles) {
+        internal void ApplyAuthoredSeriesStyles(IReadOnlyList<ExcelChartSeries> seriesStyles,
+            IReadOnlyList<bool>? seriesLegendVisibility = null) {
             bool changed = false;
             for (int seriesIndex = 0; seriesIndex < seriesStyles.Count; seriesIndex++) {
                 ExcelChartSeries style = seriesStyles[seriesIndex];
@@ -33,7 +34,50 @@ namespace OfficeIMO.Excel {
                     style.ShowMarkers ? style.MarkerOutlineWidth : null));
             }
 
+            if (seriesLegendVisibility != null) {
+                changed |= ApplySeriesLegendVisibility(seriesLegendVisibility);
+            }
+
             if (changed) Save();
+        }
+
+        private bool ApplySeriesLegendVisibility(IReadOnlyList<bool> seriesLegendVisibility) {
+            C.Chart chart = GetChart();
+            C.Legend? legend = chart.GetFirstChild<C.Legend>();
+            bool hasHiddenSeries = false;
+            for (int index = 0; index < seriesLegendVisibility.Count; index++) {
+                if (!seriesLegendVisibility[index]) {
+                    hasHiddenSeries = true;
+                    break;
+                }
+            }
+            if (legend == null && !hasHiddenSeries) return false;
+
+            if (legend == null) {
+                legend = new C.Legend(
+                    new C.LegendPosition { Val = C.LegendPositionValues.Bottom },
+                    new C.Layout(),
+                    new C.Overlay { Val = false });
+                C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+                if (plotArea != null) chart.InsertAfter(legend, plotArea);
+                else chart.Append(legend);
+            }
+
+            bool changed = false;
+            C.LegendEntry? existing;
+            while ((existing = legend.GetFirstChild<C.LegendEntry>()) != null) {
+                existing.Remove();
+                changed = true;
+            }
+            for (int index = 0; index < seriesLegendVisibility.Count; index++) {
+                if (seriesLegendVisibility[index]) continue;
+                var entry = new C.LegendEntry(new C.Index { Val = (uint)index }, new C.Delete { Val = true });
+                C.LegendPosition? position = legend.GetFirstChild<C.LegendPosition>();
+                if (position != null) legend.InsertBefore(entry, position);
+                else legend.PrependChild(entry);
+                changed = true;
+            }
+            return changed;
         }
 
         private static void ApplyAuthoredSeriesStyle(OpenXmlCompositeElement series,

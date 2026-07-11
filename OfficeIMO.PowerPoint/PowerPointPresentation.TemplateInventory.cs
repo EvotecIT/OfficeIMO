@@ -202,13 +202,44 @@ namespace OfficeIMO.PowerPoint {
             _ => string.Empty
         };
 
-        private static PowerPointLayoutBox? GetTemplateElementBounds(OpenXmlElement element) => element switch {
-            Shape shape => GetTemplateBounds(shape.ShapeProperties?.Transform2D),
-            DocumentFormat.OpenXml.Presentation.Picture picture => GetTemplateBounds(
-                picture.ShapeProperties?.Transform2D),
-            GraphicFrame frame => GetTemplateBounds(frame.Transform),
-            _ => null
-        };
+        private static PowerPointLayoutBox? GetTemplateElementBounds(OpenXmlElement element) {
+            PowerPointLayoutBox? localBounds = element switch {
+                Shape shape => GetTemplateBounds(shape.ShapeProperties?.Transform2D),
+                DocumentFormat.OpenXml.Presentation.Picture picture => GetTemplateBounds(
+                    picture.ShapeProperties?.Transform2D),
+                GraphicFrame frame => GetTemplateBounds(frame.Transform),
+                _ => null
+            };
+            if (!localBounds.HasValue) return null;
+
+            TemplateBoundsMapping mapping = TemplateBoundsMapping.Identity;
+            foreach (GroupShape group in element.Ancestors<GroupShape>().Reverse()) {
+                mapping = mapping.Compose(CreateTemplateGroupMapping(group));
+            }
+            return mapping.Map(localBounds.Value);
+        }
+
+        private static TemplateBoundsMapping CreateTemplateGroupMapping(GroupShape group) {
+            A.TransformGroup? transform = group.GroupShapeProperties?.TransformGroup;
+            long? groupX = transform?.Offset?.X?.Value;
+            long? groupY = transform?.Offset?.Y?.Value;
+            long? groupWidth = transform?.Extents?.Cx?.Value;
+            long? groupHeight = transform?.Extents?.Cy?.Value;
+            long? childX = transform?.ChildOffset?.X?.Value;
+            long? childY = transform?.ChildOffset?.Y?.Value;
+            long? childWidth = transform?.ChildExtents?.Cx?.Value;
+            long? childHeight = transform?.ChildExtents?.Cy?.Value;
+            if (!groupX.HasValue || !groupY.HasValue || !groupWidth.HasValue || !groupHeight.HasValue ||
+                !childX.HasValue || !childY.HasValue || !childWidth.HasValue || !childHeight.HasValue ||
+                childWidth.Value == 0L || childHeight.Value == 0L) {
+                return TemplateBoundsMapping.Identity;
+            }
+
+            double scaleX = groupWidth.Value / (double)childWidth.Value;
+            double scaleY = groupHeight.Value / (double)childHeight.Value;
+            return new TemplateBoundsMapping(groupX.Value - (childX.Value * scaleX),
+                groupY.Value - (childY.Value * scaleY), scaleX, scaleY);
+        }
 
         private static PowerPointLayoutBox? GetTemplateBounds(A.Transform2D? transform) {
             long? x = transform?.Offset?.X?.Value;
@@ -228,6 +259,37 @@ namespace OfficeIMO.PowerPoint {
             return x.HasValue && y.HasValue && width.HasValue && height.HasValue
                 ? new PowerPointLayoutBox(x.Value, y.Value, width.Value, height.Value)
                 : null;
+        }
+
+        private readonly struct TemplateBoundsMapping {
+            private readonly double _offsetX;
+            private readonly double _offsetY;
+            private readonly double _scaleX;
+            private readonly double _scaleY;
+
+            internal TemplateBoundsMapping(double offsetX, double offsetY, double scaleX, double scaleY) {
+                _offsetX = offsetX;
+                _offsetY = offsetY;
+                _scaleX = scaleX;
+                _scaleY = scaleY;
+            }
+
+            internal static TemplateBoundsMapping Identity => new(0D, 0D, 1D, 1D);
+
+            internal PowerPointLayoutBox Map(PowerPointLayoutBox bounds) => new(
+                Round(_offsetX + (bounds.Left * _scaleX)),
+                Round(_offsetY + (bounds.Top * _scaleY)),
+                Round(bounds.Width * _scaleX),
+                Round(bounds.Height * _scaleY));
+
+            internal TemplateBoundsMapping Compose(TemplateBoundsMapping child) => new(
+                _offsetX + (child._offsetX * _scaleX),
+                _offsetY + (child._offsetY * _scaleY),
+                _scaleX * child._scaleX,
+                _scaleY * child._scaleY);
+
+            private static long Round(double value) =>
+                checked((long)Math.Round(value, MidpointRounding.AwayFromZero));
         }
     }
 }

@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel {
             ExcelChartData excelData = ToExcelChartData(data, chartKind);
             ExcelChart chart = AddChart(excelData, row, column, widthPixels, heightPixels,
                 MapChartKind(chartKind), title);
-            chart.ApplyAuthoredSeriesStyles(excelData.Series);
+            chart.ApplyAuthoredSeriesStyles(excelData.Series,
+                data.Series.Select(series => series.ShowInLegend).ToList());
             return chart;
         }
 

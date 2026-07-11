@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -138,6 +139,22 @@ namespace OfficeIMO.Tests {
             Assert.Single(includedReport.Slides);
             Assert.Contains(includedReport.Findings,
                 finding => finding.SlideIndex == 0 && finding.Code == "Accessibility.MissingSlideTitle");
+        }
+
+        [Fact]
+        public void AccessibilityDoesNotTreatInheritedPlaceholderPromptAsAuthoredSlideTitle() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointTextBox inheritedTitle = presentation.EnsureLayoutPlaceholderTextBox(0, slide.LayoutIndex,
+                PlaceholderValues.Title, bounds: PowerPointLayoutBox.FromCentimeters(1D, 1D, 20D, 2D));
+            inheritedTitle.Text = "Click to add title";
+
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+
+            Assert.Contains(report.Findings, finding =>
+                finding.SlideIndex == 0 && finding.Code == "Accessibility.MissingSlideTitle");
+            Assert.Null(Assert.Single(report.Slides).Title);
         }
 
         [Fact]

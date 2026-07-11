@@ -65,8 +65,8 @@ namespace OfficeIMO.Tests {
                             new NonVisualGroupShapeDrawingProperties(),
                             new ApplicationNonVisualDrawingProperties()),
                         new GroupShapeProperties(new A.TransformGroup(
-                            new A.Offset { X = 0L, Y = 0L },
-                            new A.Extents { Cx = 1000000L, Cy = 500000L },
+                            new A.Offset { X = 2000000L, Y = 1000000L },
+                            new A.Extents { Cx = 2000000L, Cy = 1000000L },
                             new A.ChildOffset { X = 0L, Y = 0L },
                             new A.ChildExtents { Cx = 1000000L, Cy = 500000L })),
                         new DocumentFormat.OpenXml.Presentation.Picture(
@@ -77,15 +77,21 @@ namespace OfficeIMO.Tests {
                             new BlipFill(new A.Blip(), new A.Stretch(new A.FillRectangle())),
                             new ShapeProperties(
                                 new A.Transform2D(
-                                    new A.Offset { X = 0L, Y = 0L },
-                                    new A.Extents { Cx = 1000000L, Cy = 500000L }),
+                                    new A.Offset { X = 100000L, Y = 50000L },
+                                    new A.Extents { Cx = 200000L, Cy = 100000L }),
                                 new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle }))));
                     layoutPart.SlideLayout.Save();
                 }
 
                 PowerPointTemplateInventory inventory = PowerPointPresentation.InspectTemplate(templatePath);
-                Assert.Contains(inventory.Assets, asset => asset.Name == "Grouped Logo" &&
-                    asset.Kind == PowerPointTemplateAssetKind.Logo);
+                PowerPointTemplateAssetInfo asset = Assert.Single(inventory.Assets,
+                    candidate => candidate.Name == "Grouped Logo" &&
+                                 candidate.Kind == PowerPointTemplateAssetKind.Logo);
+                PowerPointLayoutBox bounds = Assert.IsType<PowerPointLayoutBox>(asset.Bounds);
+                Assert.Equal(2200000L, bounds.Left);
+                Assert.Equal(1100000L, bounds.Top);
+                Assert.Equal(400000L, bounds.Width);
+                Assert.Equal(200000L, bounds.Height);
             } finally {
                 Delete(templatePath);
             }
