@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add external relationship
-                var rel = _worksheetPart.AddHyperlinkRelationship(new Uri(url), true);
+                var rel = _worksheetPart.AddHyperlinkRelationship(CreateExternalHyperlinkUri(url), true);
                 var hl = new Hyperlink {
                     Reference = reference,
                     Id = rel.Id,

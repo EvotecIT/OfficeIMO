@@ -3,6 +3,7 @@ using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Text;
@@ -29,6 +30,9 @@ public sealed class ReaderInstanceAdapterTests {
         AssertHandler(
             new OfficeDocumentReaderBuilder().AddJsonHandler().Build(),
             DocumentReaderJsonRegistrationExtensions.HandlerId);
+        AssertHandler(
+            new OfficeDocumentReaderBuilder().AddOpenDocumentHandler().Build(),
+            DocumentReaderOpenDocumentRegistrationExtensions.HandlerId);
         AssertHandler(
             new OfficeDocumentReaderBuilder().AddPdfHandler().Build(),
             DocumentReaderPdfRegistrationExtensions.HandlerId);
