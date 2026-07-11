@@ -398,6 +398,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlLinearGradient_ExpandsTwoPositionColorStops() {
+        const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,red 0 50%,blue 50% 100%)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 130D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        Assert.Equal(new[] { 0D, 0.5D, 0.5D, 1D }, gradient.Stops.Select(stop => stop.Offset));
+        Assert.Equal(new[] { OfficeColor.Red, OfficeColor.Red, OfficeColor.Blue, OfficeColor.Blue }, gradient.Stops.Select(stop => stop.Color));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlLinearGradient_ComposesAboveUrlLayers() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
         string html = "<div style=\"width:40px;height:20px;background-image:linear-gradient(to right,red,lime),url('data:image/png;base64,"

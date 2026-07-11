@@ -28,14 +28,19 @@ internal sealed class HtmlCssGradientStops {
 
         var stops = new List<HtmlCssGradientStop>(stopCount);
         for (int index = 0; index < stopCount; index++) {
-            if (!TryParseColorStop(arguments[index + startIndex], out HtmlCssGradientStop? stop) || stop == null) return false;
-            stops.Add(stop);
+            if (!TryParseColorStop(arguments[index + startIndex], out OfficeColor color, out string? firstPosition, out string? secondPosition)) return false;
+            stops.Add(new HtmlCssGradientStop(color, firstPosition));
+            if (secondPosition != null) stops.Add(new HtmlCssGradientStop(color, secondPosition));
+            if (stops.Count > maximumStops) {
+                stopLimitExceeded = true;
+                return false;
+            }
         }
         definition = new HtmlCssGradientStops(stops.AsReadOnly(), maximumStops);
         return true;
     }
 
-    internal static bool IsColorStop(string value) => TryParseColorStop(value, out _);
+    internal static bool IsColorStop(string value) => TryParseColorStop(value, out _, out _, out _);
 
     internal bool TryResolve(double referenceLength, double fontSize, double rootFontSize, out IReadOnlyList<OfficeGradientStop>? stops) {
         stops = null;
@@ -77,16 +82,20 @@ internal sealed class HtmlCssGradientStops {
         return true;
     }
 
-    private static bool TryParseColorStop(string value, out HtmlCssGradientStop? stop) {
-        stop = null;
+    private static bool TryParseColorStop(string value, out OfficeColor color, out string? firstPosition, out string? secondPosition) {
+        color = default;
+        firstPosition = null;
+        secondPosition = null;
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
-        if (parts.Count == 0 || parts.Count > 2 || !HtmlRenderCssValues.TryColor(parts[0], out OfficeColor color) || color.A != 255) return false;
-        string? position = null;
-        if (parts.Count == 2) {
-            position = parts[1].Trim();
-            if (!IsStopPosition(position)) return false;
+        if (parts.Count == 0 || parts.Count > 3 || !HtmlRenderCssValues.TryColor(parts[0], out color) || color.A != 255) return false;
+        if (parts.Count >= 2) {
+            firstPosition = parts[1].Trim();
+            if (!IsStopPosition(firstPosition)) return false;
         }
-        stop = new HtmlCssGradientStop(color, position);
+        if (parts.Count == 3) {
+            secondPosition = parts[2].Trim();
+            if (!IsStopPosition(secondPosition)) return false;
+        }
         return true;
     }
 
