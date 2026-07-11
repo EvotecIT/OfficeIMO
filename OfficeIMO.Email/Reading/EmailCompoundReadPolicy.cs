@@ -32,6 +32,30 @@ internal static class EmailCompoundReadPolicy {
             });
     }
 
+    internal static OfficeCompoundReadOptions CreateForAttachment(EmailReaderOptions options,
+        long existingTotalAttachmentBytes) {
+        long attachmentBytes = 0;
+        return new OfficeCompoundReadOptions(
+            options.MaxCompoundDirectoryEntries,
+            options.MaxCompoundDirectoryEntries,
+            Math.Min(options.MaxInputBytes, int.MaxValue),
+            options.MaxDecodedPropertyBytes,
+            (_, size) => {
+                attachmentBytes = checked(attachmentBytes + size);
+                if (attachmentBytes > options.MaxAttachmentBytes) {
+                    throw new OfficeCompoundStreamLimitExceededException(
+                        nameof(EmailReaderOptions.MaxAttachmentBytes), attachmentBytes,
+                        options.MaxAttachmentBytes);
+                }
+                long total = checked(existingTotalAttachmentBytes + attachmentBytes);
+                if (total > options.MaxTotalAttachmentBytes) {
+                    throw new OfficeCompoundStreamLimitExceededException(
+                        nameof(EmailReaderOptions.MaxTotalAttachmentBytes), total,
+                        options.MaxTotalAttachmentBytes);
+                }
+            });
+    }
+
     private static string? GetAttachmentPayloadPath(string path) {
         const string attachmentPrefix = "__attach_version1.0_#";
         const string binaryPayload = "__substg1.0_37010102";

@@ -172,8 +172,83 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void FoldsLongUnicodeFileNamesIntoRfc2231Continuations() {
+        string fileName = string.Concat(Enumerable.Repeat("資料-zażółć-", 40), "report.bin");
+        var document = new EmailDocument { Subject = "filename continuations" };
+        document.Body.Text = "body";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = fileName,
+            ContentType = "application/octet-stream",
+            Content = new byte[] { 1, 2, 3 },
+            Length = 3
+        });
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Contains("filename*0*=utf-8''", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("filename*1*=", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.All(eml.Split(new[] { "\r\n" }, StringSplitOptions.None),
+            line => Assert.InRange(line.Length, 0, 998));
+        Assert.Equal(fileName, Assert.Single(roundTrip.Attachments).FileName);
+    }
+
+    [Fact]
+    public void EmitsRetainedMapiThreadingMetadataWhenTransportHeadersAreAbsent() {
+        var source = new EmailDocument { Subject = "thread metadata" };
+        source.Body.Text = "body";
+        source.MessageMetadata.InternetReferences = "<root@example.test> <parent@example.test>";
+        source.MessageMetadata.InReplyToId = "<parent@example.test>";
+        byte[] msg = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        EmailDocument retained = new EmailDocumentReader().Read(msg).Document;
+
+        byte[] emlBytes = new EmailDocumentWriter().WriteToBytes(retained, EmailFileFormat.Eml);
+        string eml = Encoding.ASCII.GetString(emlBytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(emlBytes).Document;
+
+        Assert.Contains("References: <root@example.test> <parent@example.test>\r\n", eml,
+            StringComparison.Ordinal);
+        Assert.Contains("In-Reply-To: <parent@example.test>\r\n", eml, StringComparison.Ordinal);
+        Assert.Contains(roundTrip.Headers, header => header.Name == "References" &&
+            header.Value == "<root@example.test> <parent@example.test>");
+    }
+
+    [Fact]
+    public void GroupsReferencedCidResourcesInsideMultipartRelated() {
+        var document = new EmailDocument { Subject = "related resources" };
+        document.Body.Html = "<html><img src=\"cid:logo\"></html>";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "logo.png",
+            ContentType = "image/png",
+            ContentId = "logo",
+            IsInline = true,
+            Content = new byte[] { 1, 2 },
+            Length = 2
+        });
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "notes.txt",
+            ContentType = "text/plain",
+            Content = Encoding.UTF8.GetBytes("notes"),
+            Length = 5
+        });
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Contains("Content-Type: multipart/mixed", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Content-Type: multipart/related", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.True(eml.IndexOf("multipart/related", StringComparison.OrdinalIgnoreCase) <
+            eml.IndexOf("Content-ID: <logo>", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(document.Body.Html, roundTrip.Body.Html);
+        Assert.Contains(roundTrip.Attachments, attachment => attachment.ContentId == "logo" && attachment.IsInline);
+        Assert.Contains(roundTrip.Attachments, attachment => attachment.FileName == "notes.txt");
+    }
+
+    [Fact]
     public void WritesRtfOnlyBodyAsAPreservedMimeAlternative() {
-        const string rtf = "{\\rtf1\\ansi RTF-only body \\'e9\\par}";
+        string rtf = string.Concat("{\\rtf1\\ansi RTF-only body ", (char)0xE9, "\\par}");
         var document = new EmailDocument { Subject = "RTF body" };
         document.Body.Rtf = rtf;
 
@@ -181,7 +256,7 @@ public sealed class EmailMimeWriterTests {
             document, EmailFileFormat.Eml, out EmailWriteResult writeResult);
         EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
 
-        Assert.Contains("Content-Type: text/rtf; charset=utf-8\r\n", Encoding.ASCII.GetString(bytes),
+        Assert.Contains("Content-Type: text/rtf; charset=iso-8859-1\r\n", Encoding.ASCII.GetString(bytes),
             StringComparison.Ordinal);
         Assert.False(writeResult.HasErrors);
         Assert.Equal(rtf, readResult.Document.Body.Rtf);

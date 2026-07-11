@@ -85,6 +85,24 @@ public sealed class OfficeCompoundFileContractTests {
     }
 
     [Fact]
+    public void AttachmentPolicyRejectsDeclaredStreamTotalsBeforeMaterializingPayloads() {
+        byte[] compound = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("One", new byte[400]),
+            new OfficeCompoundStream("Two", new byte[400])
+        });
+        var readerOptions = new EmailReaderOptions(maxAttachmentBytes: 600);
+        OfficeCompoundReadOptions compoundOptions =
+            EmailCompoundReadPolicy.CreateForAttachment(readerOptions, existingTotalAttachmentBytes: 0);
+
+        OfficeCompoundStreamLimitExceededException exception =
+            Assert.Throws<OfficeCompoundStreamLimitExceededException>(() =>
+                OfficeCompoundFileReader.TryRead(compound, compoundOptions, out _, out _));
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
+        Assert.Equal(800, exception.ActualValue);
+    }
+
+    [Fact]
     public void ReaderRejectsDirectoryChainsBeforeBufferingBeyondTheConfiguredLimit() {
         byte[] compound = OfficeCompoundFileWriter.Write(new[] {
             new OfficeCompoundStream("One", new byte[] { 1 })

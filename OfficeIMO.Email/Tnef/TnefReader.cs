@@ -235,9 +235,18 @@ internal static class TnefReader {
             int compoundLength = objectBytes.Length - 16;
             state.EnsureAttachmentBytesWithinLimits(compoundLength);
             byte[] compoundBytes = MsgBinary.Slice(objectBytes, 16, compoundLength);
-            if (OfficeCompoundFileReader.TryRead(compoundBytes,
-                EmailCompoundReadPolicy.Create(state.Options), out OfficeCompoundFile? compound,
-                out string? compoundError) && compound != null) {
+            OfficeCompoundFile? compound;
+            string? compoundError;
+            bool compoundRead;
+            try {
+                compoundRead = OfficeCompoundFileReader.TryRead(compoundBytes,
+                    EmailCompoundReadPolicy.CreateForAttachment(state.Options, state.TotalAttachmentBytes),
+                    out compound, out compoundError);
+            } catch (OfficeCompoundStreamLimitExceededException exception) {
+                throw new EmailLimitExceededException(
+                    exception.LimitName, exception.ActualValue, exception.MaximumValue);
+            }
+            if (compoundRead && compound != null) {
                 long total = 0;
                 foreach (KeyValuePair<string, byte[]> stream in compound.Streams) {
                     state.ThrowIfCancellationRequested();

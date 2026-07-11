@@ -3,7 +3,8 @@ namespace OfficeIMO.Email;
 internal static class MimeWriter {
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Subject", "From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID",
-        "MIME-Version", "Content-Type", "Content-Transfer-Encoding", "Content-Disposition"
+        "References", "In-Reply-To", "MIME-Version", "Content-Type", "Content-Transfer-Encoding",
+        "Content-Disposition"
     };
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
@@ -41,6 +42,8 @@ internal static class MimeWriter {
         if (!string.IsNullOrWhiteSpace(document.MessageId)) {
             WriteLine(output, string.Concat("Message-ID: <", SanitizeMessageId(document.MessageId!), ">"));
         }
+        WriteThreadingHeader(output, document, "References", document.MessageMetadata.InternetReferences);
+        WriteThreadingHeader(output, document, "In-Reply-To", document.MessageMetadata.InReplyToId);
         foreach (EmailHeader header in document.Headers) {
             if (ManagedHeaders.Contains(header.Name)) continue;
             WriteLine(output, string.Concat(MimeHeaderSafety.SanitizeName(header.Name), ": ", EncodeHeaderText(header.Value)));
@@ -52,16 +55,44 @@ internal static class MimeWriter {
         if (addresses.Length > 0) WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
     }
 
+    private static void WriteThreadingHeader(Stream output, EmailDocument document, string name, string? fallbackValue) {
+        EmailHeader? retained = document.Headers.FirstOrDefault(header =>
+            string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
+        string? value = retained?.RawValue ?? retained?.Value ?? fallbackValue;
+        if (string.IsNullOrWhiteSpace(value)) return;
+
+        string[] tokens = MimeHeaderSafety.SanitizeValue(value!).Split(
+            new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) return;
+        var line = new StringBuilder(string.Concat(name, ":"));
+        foreach (string token in tokens) {
+            if (line.Length > name.Length + 1 && line.Length + token.Length + 1 > 78) {
+                WriteLine(output, line.ToString());
+                line.Clear().Append(' ');
+            } else {
+                line.Append(' ');
+            }
+            line.Append(token);
+        }
+        WriteLine(output, line.ToString());
+    }
+
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
-        bool hasAttachments = document.Attachments.Count > 0;
         bool hasAlternative = CountBodyAlternatives(document.Body) > 1;
-        if (hasAttachments) {
+        bool hasRelatedResources = document.Attachments.Any(attachment => IsRelatedResource(document, attachment));
+        bool hasUnrelatedAttachments = document.Attachments.Any(attachment => !IsRelatedResource(document, attachment));
+        if (hasUnrelatedAttachments) {
             string boundary = CreateBoundary(document, depth, "mixed");
             WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             WriteLine(output, string.Concat("--", boundary));
-            WriteBodyEntity(output, document, state, depth, hasAlternative);
+            if (hasRelatedResources) {
+                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative);
+            } else {
+                WriteBodyEntity(output, document, state, depth, hasAlternative);
+            }
             for (int i = 0; i < document.Attachments.Count; i++) {
+                if (IsRelatedResource(document, document.Attachments[i])) continue;
                 WriteLine(output, string.Concat("--", boundary));
                 WriteAttachment(output, document.Attachments[i], state, depth + 1, i);
             }
@@ -69,7 +100,34 @@ internal static class MimeWriter {
             return;
         }
 
+        if (hasRelatedResources) {
+            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative);
+        } else {
+            WriteBodyEntity(output, document, state, depth, hasAlternative);
+        }
+    }
+
+    private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeWriterState state,
+        int depth, bool hasAlternative) {
+        string boundary = CreateBoundary(document, depth, "related");
+        WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary, "\""));
+        WriteLine(output, string.Empty);
+        WriteLine(output, string.Concat("--", boundary));
         WriteBodyEntity(output, document, state, depth, hasAlternative);
+        for (int i = 0; i < document.Attachments.Count; i++) {
+            if (!IsRelatedResource(document, document.Attachments[i])) continue;
+            WriteLine(output, string.Concat("--", boundary));
+            WriteAttachment(output, document.Attachments[i], state, depth + 1, i);
+        }
+        WriteLine(output, string.Concat("--", boundary, "--"));
+    }
+
+    private static bool IsRelatedResource(EmailDocument document, EmailAttachment attachment) {
+        if (string.IsNullOrWhiteSpace(document.Body.Html) || string.IsNullOrWhiteSpace(attachment.ContentId)) {
+            return false;
+        }
+        string marker = string.Concat("cid:", attachment.ContentId!.Trim().Trim('<', '>'));
+        return document.Body.Html!.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth, bool hasAlternative) {
@@ -87,13 +145,13 @@ internal static class MimeWriter {
             }
             if (document.Body.Rtf != null) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteRtfPart(output, document.Body.Rtf, state.Options.Base64LineLength);
+                WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
             }
             WriteLine(output, string.Concat("--", boundary, "--"));
         } else if (document.Body.Html != null) {
             WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
         } else if (document.Body.Rtf != null) {
-            WriteRtfPart(output, document.Body.Rtf, state.Options.Base64LineLength);
+            WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
         } else {
             WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength);
         }
@@ -110,11 +168,16 @@ internal static class MimeWriter {
         WriteBase64(output, Encoding.UTF8.GetBytes(text), base64LineLength);
     }
 
-    private static void WriteRtfPart(Stream output, string rtf, int base64LineLength) {
-        WriteLine(output, "Content-Type: text/rtf; charset=utf-8");
+    private static void WriteRtfPart(Stream output, string rtf, MimeWriterState state, string location) {
+        WriteLine(output, "Content-Type: text/rtf; charset=iso-8859-1");
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
-        WriteBase64(output, Encoding.UTF8.GetBytes(rtf), base64LineLength);
+        if (!EmailRtfByteCodec.TryEncode(rtf, out byte[] rtfBytes)) {
+            state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_RTF_CHARACTER_UNENCODABLE",
+                "The RTF source contains a character above U+00FF. Serialize it through OfficeIMO.Rtf so the character is represented by an RTF escape.",
+                EmailDiagnosticSeverity.Error, location));
+        }
+        WriteBase64(output, rtfBytes, state.Options.Base64LineLength);
     }
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, MimeWriterState state, int depth, int index) {
@@ -262,21 +325,43 @@ internal static class MimeWriter {
     private static string FormatFileNameParameter(string name, string? value) {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         string sanitized = value!.Replace("\r", string.Empty).Replace("\n", string.Empty);
-        if (sanitized.All(character => character >= 32 && character <= 126) && sanitized.IndexOf('"') < 0) {
+        if (sanitized.Length <= 60 && sanitized.All(character => character >= 32 && character <= 126) &&
+            sanitized.IndexOf('"') < 0) {
             return string.Concat("; ", name, "=\"", sanitized.Replace("\\", "\\\\"), "\"");
         }
         byte[] bytes = Encoding.UTF8.GetBytes(sanitized);
-        StringBuilder encoded = new StringBuilder();
+        var tokens = new List<string>(bytes.Length);
         for (int i = 0; i < bytes.Length; i++) {
             byte current = bytes[i];
             if ((current >= 'a' && current <= 'z') || (current >= 'A' && current <= 'Z') ||
                 (current >= '0' && current <= '9') || current == '-' || current == '_' || current == '.') {
-                encoded.Append((char)current);
+                tokens.Add(((char)current).ToString());
             } else {
-                encoded.Append('%').Append(current.ToString("X2", CultureInfo.InvariantCulture));
+                tokens.Add(string.Concat("%", current.ToString("X2", CultureInfo.InvariantCulture)));
             }
         }
-        return string.Concat("; ", name, "*=utf-8''", encoded.ToString());
+        string encoded = string.Concat(tokens);
+        if (encoded.Length <= 60) return string.Concat("; ", name, "*=utf-8''", encoded);
+
+        var result = new StringBuilder();
+        var segment = new StringBuilder();
+        int segmentIndex = 0;
+        foreach (string token in tokens) {
+            if (segment.Length > 0 && segment.Length + token.Length > 45) {
+                AppendParameterContinuation(result, name, segmentIndex++, segment.ToString());
+                segment.Clear();
+            }
+            segment.Append(token);
+        }
+        if (segment.Length > 0) AppendParameterContinuation(result, name, segmentIndex, segment.ToString());
+        return result.ToString();
+    }
+
+    private static void AppendParameterContinuation(StringBuilder output, string name, int index, string value) {
+        output.Append(";\r\n ").Append(name).Append('*').Append(index.ToString(CultureInfo.InvariantCulture))
+            .Append("*=");
+        if (index == 0) output.Append("utf-8''");
+        output.Append(value);
     }
 
     private static string FormatContentTypeParameters(IEnumerable<KeyValuePair<string, string>> parameters) {

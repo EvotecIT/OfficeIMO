@@ -106,10 +106,15 @@ internal static class MsgWriter {
         } else if (document.Body.Text != null) {
             properties.Set(0x1016, MapiPropertyType.Integer32, 1);
         }
-        if (document.Body.Rtf != null && TryGetBytePreservingRtf(document.Body.Rtf, diagnostics, location,
-            out byte[] rtfBytes)) {
-            properties.Set(0x1009, MapiPropertyType.Binary, MapiCompressedRtfCodec.Compress(rtfBytes));
-            properties.Set(0x0E1F, MapiPropertyType.Boolean, true);
+        if (document.Body.Rtf != null) {
+            if (EmailRtfByteCodec.TryEncode(document.Body.Rtf, out byte[] rtfBytes)) {
+                properties.Set(0x1009, MapiPropertyType.Binary, MapiCompressedRtfCodec.Compress(rtfBytes));
+                properties.Set(0x0E1F, MapiPropertyType.Boolean, true);
+            } else {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_RTF_CHARACTER_UNENCODABLE",
+                    "The RTF source contains a character above U+00FF. Serialize it through OfficeIMO.Rtf so the character is represented by an RTF escape.",
+                    EmailDiagnosticSeverity.Error, location));
+            }
         }
         properties.Set(0x1035, MapiPropertyType.Unicode,
             string.IsNullOrWhiteSpace(document.MessageId) ? null : string.Concat("<", document.MessageId!.Trim().Trim('<', '>'), ">"));
@@ -193,22 +198,6 @@ internal static class MsgWriter {
         properties.Set(addressId, MapiPropertyType.Unicode, address?.Address);
         properties.Set(entryId, MapiPropertyType.Binary,
             address == null ? null : MsgIdentity.CreateOneOffEntryId(address));
-    }
-
-    private static bool TryGetBytePreservingRtf(string rtf, IList<EmailDiagnostic> diagnostics,
-        string location, out byte[] bytes) {
-        bytes = new byte[rtf.Length];
-        for (int index = 0; index < rtf.Length; index++) {
-            if (rtf[index] > byte.MaxValue) {
-                diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_RTF_CHARACTER_UNENCODABLE",
-                    "The RTF source contains a character above U+00FF. Serialize it through OfficeIMO.Rtf so the character is represented by an RTF escape.",
-                    EmailDiagnosticSeverity.Error, location));
-                bytes = Array.Empty<byte>();
-                return false;
-            }
-            bytes[index] = unchecked((byte)rtf[index]);
-        }
-        return true;
     }
 
     internal static MsgPropertyBuilder CreateRecipientProperties(EmailRecipient recipient, int index) {
