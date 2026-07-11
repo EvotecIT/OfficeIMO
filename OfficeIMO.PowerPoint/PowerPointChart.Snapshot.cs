@@ -143,19 +143,25 @@ namespace OfficeIMO.PowerPoint {
             foreach (OpenXmlElement element in plotArea.ChildElements) {
                 if (element is C.BarChart barChart) {
                     PowerPointChartSnapshotKind kind = GetBarChartSnapshotKind(barChart);
-                    PowerPointChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
+                    PowerPointChartData? data = ReadCategorySeriesData(
+                        barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
+                        GetAxisGroup(plotArea, barChart));
                     if (data != null) {
                         parts.Add((kind, data));
                     }
                 } else if (element is C.LineChart lineChart) {
                     PowerPointChartSnapshotKind kind = GetLineChartSnapshotKind(lineChart);
-                    PowerPointChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
+                    PowerPointChartData? data = ReadCategorySeriesData(
+                        lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
+                        GetAxisGroup(plotArea, lineChart));
                     if (data != null) {
                         parts.Add((kind, data));
                     }
                 } else if (element is C.AreaChart areaChart) {
                     PowerPointChartSnapshotKind kind = GetAreaChartSnapshotKind(areaChart);
-                    PowerPointChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
+                    PowerPointChartData? data = ReadCategorySeriesData(
+                        areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
+                        GetAxisGroup(plotArea, areaChart));
                     if (data != null) {
                         parts.Add((kind, data));
                     }
@@ -209,6 +215,17 @@ namespace OfficeIMO.PowerPoint {
             kind == PowerPointChartSnapshotKind.StackedBar ||
             kind == PowerPointChartSnapshotKind.StackedBar100;
 
+        private static OfficeChartAxisGroup GetAxisGroup(C.PlotArea plotArea, OpenXmlCompositeElement chart) {
+            HashSet<uint> axisIds = new(chart.Elements<C.AxisId>()
+                .Where(axis => axis.Val?.Value != null).Select(axis => axis.Val!.Value));
+            return plotArea.Elements<C.ValueAxis>().Any(axis =>
+                       axis.AxisId?.Val?.Value != null && axisIds.Contains(axis.AxisId.Val.Value) &&
+                       (axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right ||
+                        axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top))
+                ? OfficeChartAxisGroup.Secondary
+                : OfficeChartAxisGroup.Primary;
+        }
+
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart, PowerPointChartSnapshotKind kind, PowerPointChartData data) {
             return new PowerPointChartSnapshot(
                 Name ?? string.Empty,
@@ -261,7 +278,9 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointChartSnapshotKind.Area;
         }
 
-        private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements, PowerPointChartSnapshotKind? chartKind = null, A.ColorScheme? colorScheme = null) {
+        private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements,
+            PowerPointChartSnapshotKind? chartKind = null, A.ColorScheme? colorScheme = null,
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
             var seriesList = seriesElements.ToList();
             if (seriesList.Count == 0) {
                 return null;
@@ -301,7 +320,11 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values, null, chartKind, ReadSeriesColor(seriesElement, chartKind, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
+                series.Add(new PowerPointChartSeries(name, values, null, chartKind,
+                    ReadSeriesColor(seriesElement, chartKind, colorScheme), ReadSeriesStrokeWidth(seriesElement),
+                    axisGroup) {
+                    SourceIndex = seriesElement.GetFirstChild<C.Index>()?.Val?.Value
+                });
             }
 
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);
@@ -335,7 +358,12 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList(), PowerPointChartSnapshotKind.Scatter, ReadSeriesColor(seriesElement, PowerPointChartSnapshotKind.Scatter, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
+                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList(),
+                    PowerPointChartSnapshotKind.Scatter,
+                    ReadSeriesColor(seriesElement, PowerPointChartSnapshotKind.Scatter, colorScheme),
+                    ReadSeriesStrokeWidth(seriesElement)) {
+                    SourceIndex = seriesElement.GetFirstChild<C.Index>()?.Val?.Value
+                });
             }
 
             if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {

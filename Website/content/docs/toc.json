@@ -33,7 +33,9 @@
     "items": [
       { "title": "PowerPoint Overview", "path": "powerpoint/index.md", "href": "/docs/powerpoint/" },
       { "title": "Slides", "path": "powerpoint/slides/index.md", "href": "/docs/powerpoint/slides/" },
-      { "title": "Designer Decks", "path": "powerpoint/designer/index.md", "href": "/docs/powerpoint/designer/" }
+      { "title": "Designer Decks", "path": "powerpoint/designer/index.md", "href": "/docs/powerpoint/designer/" },
+      { "title": "Templates and Brand Kits", "path": "powerpoint/templates/index.md", "href": "/docs/powerpoint/templates/" },
+      { "title": "Capability Matrix", "path": "powerpoint/capabilities/index.md", "href": "/docs/powerpoint/capabilities/" }
     ]
   },
   {

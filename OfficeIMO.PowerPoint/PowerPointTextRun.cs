@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Represents a formatted text run within a paragraph.
     /// </summary>
-    public class PowerPointTextRun {
+    public partial class PowerPointTextRun {
         private readonly SlidePart? _slidePart;
         private readonly OpenXmlPartContainer? _ownerPart;
 

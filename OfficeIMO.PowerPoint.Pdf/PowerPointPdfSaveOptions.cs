@@ -3,10 +3,21 @@ using DrawingCore = OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
+/// <summary>Page composition used for PowerPoint PDF export.</summary>
+public enum PowerPointPdfPageLayout {
+    /// <summary>One full-bleed slide per PDF page.</summary>
+    Slides,
+    /// <summary>One slide thumbnail with its speaker notes per portrait page.</summary>
+    NotesPages,
+    /// <summary>Several slide thumbnails per landscape handout page.</summary>
+    Handouts
+}
+
 /// <summary>
 /// Options controlling first-party OfficeIMO PowerPoint-to-PDF export.
 /// </summary>
 public sealed class PowerPointPdfSaveOptions {
+    private int _handoutSlidesPerPage = 6;
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
 
@@ -43,6 +54,30 @@ public sealed class PowerPointPdfSaveOptions {
 
     /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
     public bool IncludeHiddenSlides { get; set; }
+
+    /// <summary>Slide, notes-page, or handout PDF composition.</summary>
+    public PowerPointPdfPageLayout PageLayout { get; set; } = PowerPointPdfPageLayout.Slides;
+
+    /// <summary>Number of thumbnails per handout page. Supported values are 1, 2, 3, 4, 6, and 9.</summary>
+    public int HandoutSlidesPerPage {
+        get => _handoutSlidesPerPage;
+        set {
+            if (value != 1 && value != 2 && value != 3 && value != 4 && value != 6 && value != 9) {
+                throw new ArgumentOutOfRangeException(nameof(value),
+                    "Handout slides per page must be 1, 2, 3, 4, 6, or 9.");
+            }
+            _handoutSlidesPerPage = value;
+        }
+    }
+
+    /// <summary>When true, notes-page and handout layouts include existing speaker-note text.</summary>
+    public bool IncludeSpeakerNotes { get; set; } = true;
+
+    /// <summary>
+    /// When true, faithful slide pages use the same shared visual snapshot as PNG/SVG and visual-review HTML.
+    /// Selective export profiles automatically retain the legacy per-shape path.
+    /// </summary>
+    public bool UseSharedVisualSnapshot { get; set; }
 
     /// <summary>Maximum nested group-shape depth rendered during PDF export. Defaults to 32.</summary>
     public int MaxGroupShapeDepth { get; set; } = 32;
@@ -87,6 +122,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeTables = true;
                 IncludeCharts = true;
                 IncludeHiddenSlides = false;
+                UseSharedVisualSnapshot = true;
                 break;
             case PdfCore.PdfExportProfile.Lightweight:
                 IncludePictures = false;
@@ -95,6 +131,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
+                UseSharedVisualSnapshot = false;
                 break;
             case PdfCore.PdfExportProfile.PrintReady:
                 IncludePictures = true;
@@ -104,6 +141,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeTables = true;
                 IncludeCharts = true;
                 IncludeHiddenSlides = false;
+                UseSharedVisualSnapshot = true;
                 break;
             case PdfCore.PdfExportProfile.TextOnly:
                 IncludePictures = false;
@@ -112,6 +150,7 @@ public sealed class PowerPointPdfSaveOptions {
                 IncludeSlideBackgrounds = false;
                 IncludeTables = true;
                 IncludeCharts = false;
+                UseSharedVisualSnapshot = false;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");

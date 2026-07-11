@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel {
             if (summary.HasArea3D) {
                 throw new NotSupportedException("3-D area charts cannot be used in combination chart updates.");
             }
+            if (summary.HasScatter && summary.HasMultipleTypes) {
+                throw new NotSupportedException("Scatter charts cannot be combined with other chart types.");
+            }
             if (summary.HasBar && summary.HasNonBar) {
                 throw new NotSupportedException("Cannot combine horizontal bar charts with other chart types.");
             }

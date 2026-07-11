@@ -51,7 +51,9 @@ namespace OfficeIMO.PowerPoint {
             set {
                 NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
                     ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
-                drawing.Description = value;
+                drawing.Description = string.IsNullOrWhiteSpace(value)
+                    ? null
+                    : new DocumentFormat.OpenXml.StringValue(value);
             }
         }
 

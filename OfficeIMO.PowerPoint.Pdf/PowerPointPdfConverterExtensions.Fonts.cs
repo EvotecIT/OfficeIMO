@@ -11,8 +11,16 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
         pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.PowerPoint.Pdf");
 
-        pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
-        pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
+        if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
+            pdfOptions.PageWidth = 612D;
+            pdfOptions.PageHeight = 792D;
+        } else if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
+            pdfOptions.PageWidth = 792D;
+            pdfOptions.PageHeight = 612D;
+        } else {
+            pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
+            pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
+        }
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
         bool preserveConfiguredFontSlots = options.PdfOptions != null;
         if (!string.IsNullOrWhiteSpace(options.FontFamily) &&

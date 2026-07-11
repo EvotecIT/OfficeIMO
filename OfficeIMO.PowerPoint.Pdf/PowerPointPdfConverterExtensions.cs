@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
@@ -25,6 +26,15 @@ public static partial class PowerPointPdfConverterExtensions {
         options.ResetExportState();
         PdfCore.PdfOptions pdfOptions = CreatePdfOptions(presentation, options);
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+
+        if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
+            RenderNotesPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
+            return pdf;
+        }
+        if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
+            RenderHandoutPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
+            return pdf;
+        }
 
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         int renderedSlides = 0;
@@ -107,11 +117,199 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
         pdf.Canvas(canvas => {
+            if (options.UseSharedVisualSnapshot && CanUseSharedVisualSnapshot(slide, options)) {
+                PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                    new PptCore.PowerPointImageExportOptions {
+                        IncludeSlideBackground = options.IncludeSlideBackgrounds,
+                        IncludeSlideContent = true
+                    });
+                canvas.Drawing(snapshot.Drawing, 0D, 0D, pageWidth, pageHeight);
+                foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
+                    AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message);
+                }
+                return;
+            }
+            if (options.UseSharedVisualSnapshot) {
+                AddWarning(options, slideNumber, "snapshot-selective-fallback",
+                    "Used the per-shape PDF renderer because the selected content filters or style overrides cannot be represented by a complete shared slide snapshot.");
+            }
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
             RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
             RenderShapes(canvas, slide.Shapes, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: true, groupDepth: 0);
         });
+    }
+
+    private static void RenderNotesPages(PdfCore.PdfDocument pdf, PptCore.PowerPointPresentation presentation,
+        double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
+        List<(PptCore.PowerPointSlide Slide, int Number)> slides = GetVisibleSlides(presentation, options);
+        if (slides.Count == 0) {
+            RenderEmptySlide(pdf, pageWidth, pageHeight);
+            return;
+        }
+        for (int index = 0; index < slides.Count; index++) {
+            if (index > 0) pdf.PageBreak();
+            var item = slides[index];
+            pdf.Canvas(canvas => {
+                double margin = 54D;
+                double availableWidth = pageWidth - margin * 2D;
+                double slideHeight = availableWidth * presentation.SlideSize.HeightPoints /
+                    presentation.SlideSize.WidthPoints;
+                RenderSnapshotThumbnail(canvas, item.Slide, item.Number, margin, margin, availableWidth,
+                    slideHeight, options);
+                canvas.Text("Slide " + item.Number.ToString(CultureInfo.InvariantCulture), margin,
+                    margin + slideHeight + 18D, availableWidth, 18D, fontSize: 10D,
+                    color: PdfCore.PdfColor.FromRgb(80, 86, 96));
+                string notes = string.Empty;
+                if (options.IncludeSpeakerNotes) item.Slide.Notes.TryGetText(out notes);
+                canvas.Text(string.IsNullOrWhiteSpace(notes) ? "No speaker notes." : notes,
+                    margin, margin + slideHeight + 48D, availableWidth,
+                    Math.Max(36D, pageHeight - margin * 2D - slideHeight - 48D), fontSize: 12D,
+                    color: PdfCore.PdfColor.FromRgb(35, 42, 52));
+            });
+        }
+    }
+
+    private static void RenderHandoutPages(PdfCore.PdfDocument pdf, PptCore.PowerPointPresentation presentation,
+        double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
+        List<(PptCore.PowerPointSlide Slide, int Number)> slides = GetVisibleSlides(presentation, options);
+        if (slides.Count == 0) {
+            RenderEmptySlide(pdf, pageWidth, pageHeight);
+            return;
+        }
+        int perPage = options.HandoutSlidesPerPage;
+        for (int pageStart = 0, pageIndex = 0; pageStart < slides.Count; pageStart += perPage, pageIndex++) {
+            if (pageIndex > 0) pdf.PageBreak();
+            List<(PptCore.PowerPointSlide Slide, int Number)> pageSlides = slides.Skip(pageStart)
+                .Take(perPage).ToList();
+            pdf.Canvas(canvas => RenderHandoutPage(canvas, presentation, pageSlides, pageWidth, pageHeight, options));
+        }
+    }
+
+    private static void RenderHandoutPage(PdfCore.PdfPageCanvas canvas,
+        PptCore.PowerPointPresentation presentation,
+        IReadOnlyList<(PptCore.PowerPointSlide Slide, int Number)> slides,
+        double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
+        const double margin = 36D;
+        const double gutter = 18D;
+        if (options.HandoutSlidesPerPage == 3) {
+            double rowHeight = (pageHeight - margin * 2D - gutter * 2D) / 3D;
+            double thumbWidth = (pageWidth - margin * 2D - gutter) * 0.46D;
+            for (int index = 0; index < slides.Count; index++) {
+                double top = margin + index * (rowHeight + gutter);
+                double thumbHeight = Math.Min(rowHeight - 18D, thumbWidth *
+                    presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
+                RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
+                    margin, top, thumbWidth, thumbHeight, options);
+                string notes = string.Empty;
+                if (options.IncludeSpeakerNotes) slides[index].Slide.Notes.TryGetText(out notes);
+                string noteText = string.IsNullOrWhiteSpace(notes)
+                    ? "Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture) +
+                      Environment.NewLine + "________________________________" + Environment.NewLine +
+                      "________________________________" + Environment.NewLine + "________________________________"
+                    : "Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture) +
+                      Environment.NewLine + notes;
+                canvas.Text(noteText, margin + thumbWidth + gutter, top,
+                    pageWidth - margin * 2D - thumbWidth - gutter, rowHeight,
+                    fontSize: 9D, color: PdfCore.PdfColor.FromRgb(55, 62, 72));
+            }
+            return;
+        }
+
+        (int columns, int rows) = GetHandoutGrid(options.HandoutSlidesPerPage);
+        double cellWidth = (pageWidth - margin * 2D - gutter * (columns - 1)) / columns;
+        double cellHeight = (pageHeight - margin * 2D - gutter * (rows - 1)) / rows;
+        for (int index = 0; index < slides.Count; index++) {
+            int row = index / columns;
+            int column = index % columns;
+            double left = margin + column * (cellWidth + gutter);
+            double top = margin + row * (cellHeight + gutter);
+            double notesHeight = options.IncludeSpeakerNotes ? Math.Min(36D, cellHeight * 0.22D) : 0D;
+            double labelHeight = 14D;
+            double thumbnailAreaHeight = cellHeight - labelHeight - notesHeight;
+            double thumbHeight = Math.Min(thumbnailAreaHeight, cellWidth *
+                presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
+            double thumbWidth = thumbHeight * presentation.SlideSize.WidthPoints /
+                presentation.SlideSize.HeightPoints;
+            RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
+                left + (cellWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
+            canvas.Text("Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture),
+                left, top + thumbHeight + 2D, cellWidth, labelHeight, fontSize: 8D,
+                color: PdfCore.PdfColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
+            if (notesHeight > 0D && slides[index].Slide.Notes.TryGetText(out string notes) &&
+                !string.IsNullOrWhiteSpace(notes)) {
+                canvas.Text(notes, left, top + thumbHeight + labelHeight + 2D, cellWidth, notesHeight,
+                    fontSize: 7D, color: PdfCore.PdfColor.FromRgb(55, 62, 72));
+            }
+        }
+    }
+
+    private static void RenderSnapshotThumbnail(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointSlide slide,
+        int slideNumber, double x, double y, double width, double height, PowerPointPdfSaveOptions options) {
+        PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+            new PptCore.PowerPointImageExportOptions {
+                IncludeSlideBackground = options.IncludeSlideBackgrounds,
+                IncludePictures = options.IncludePictures,
+                IncludeAutoShapes = options.IncludeAutoShapes,
+                IncludeTextBoxes = options.IncludeTextBoxes,
+                IncludeTables = options.IncludeTables,
+                IncludeCharts = options.IncludeCharts
+            });
+        canvas.Drawing(snapshot.Drawing, x, y, width, height);
+        foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
+            AddWarning(options, slideNumber, "snapshot-" + diagnostic.Code, diagnostic.Message);
+        }
+    }
+
+    private static List<(PptCore.PowerPointSlide Slide, int Number)> GetVisibleSlides(
+        PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
+        var slides = new List<(PptCore.PowerPointSlide, int)>();
+        for (int index = 0; index < presentation.Slides.Count; index++) {
+            PptCore.PowerPointSlide slide = presentation.Slides[index];
+            if (!options.IncludeHiddenSlides && slide.Hidden) continue;
+            slides.Add((slide, index + 1));
+        }
+        return slides;
+    }
+
+    private static (int Columns, int Rows) GetHandoutGrid(int slidesPerPage) {
+        switch (slidesPerPage) {
+            case 1: return (1, 1);
+            case 2: return (1, 2);
+            case 4: return (2, 2);
+            case 6: return (2, 3);
+            case 9: return (3, 3);
+            default: return (1, 3);
+        }
+    }
+
+    private static bool CanUseSharedVisualSnapshot(PptCore.PowerPointSlide slide,
+        PowerPointPdfSaveOptions options) =>
+        options.IncludePictures && options.IncludeAutoShapes && options.IncludeTextBoxes &&
+        options.IncludeTables && options.IncludeCharts && options.PictureFit == OfficeImageFit.Stretch &&
+        options.ChartStyle == null && options.ChartLayout == null && options.MaxGroupShapeDepth == 32 &&
+        !options.WarnOnPictureAspectRatioDistortion &&
+        !ContainsHyperlinks(slide);
+
+    private static bool ContainsHyperlinks(PptCore.PowerPointSlide slide) {
+        var slideRoot = slide.SlidePart.Slide;
+        if (slideRoot != null &&
+            (slideRoot.Descendants<A.HyperlinkOnClick>().Any() ||
+             slideRoot.Descendants<A.HyperlinkOnHover>().Any())) {
+            return true;
+        }
+
+        var layoutPart = slide.SlidePart.SlideLayoutPart;
+        if (layoutPart?.SlideLayout != null &&
+            (layoutPart.SlideLayout.Descendants<A.HyperlinkOnClick>().Any() ||
+             layoutPart.SlideLayout.Descendants<A.HyperlinkOnHover>().Any())) {
+            return true;
+        }
+
+        var master = layoutPart?.SlideMasterPart?.SlideMaster;
+        return master != null &&
+               (master.Descendants<A.HyperlinkOnClick>().Any() ||
+                master.Descendants<A.HyperlinkOnHover>().Any());
     }
 
     private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {

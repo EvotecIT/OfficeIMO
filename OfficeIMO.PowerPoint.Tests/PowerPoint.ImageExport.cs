@@ -3398,6 +3398,41 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlideRange(2, 1));
         }
 
+        [Fact]
+        public void PresentationImageExportPropagatesAllSlideContentFilters() {
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.Slides[0];
+            slide.AddPicture(imagePath);
+            PowerPointAutoShape shape = slide.AddRectanglePoints(12, 12, 30, 20, "Filtered shape");
+            shape.FillColor = "ABCDEF";
+            slide.AddTextBoxPoints("FILTERED TEXT", 48, 12, 100, 24);
+            PowerPointTable table = slide.AddTablePoints(1, 1, 12, 44, 120, 30);
+            table.GetCell(0, 0).Text = "FILTERED TABLE";
+            slide.AddChartPoints(OfficeChartKind.ColumnClustered,
+                new OfficeChartData(new[] { "FILTERED CATEGORY" }, new[] {
+                    new OfficeChartSeries("FILTERED CHART", new[] { 42D })
+                }), 150, 44, 120, 80);
+
+            OfficeImageExportResult result = Assert.Single(presentation.ExportImages(
+                OfficeImageExportFormat.Svg, new PowerPointPresentationImageExportOptions {
+                    IncludeSlideBackground = false,
+                    IncludePictures = false,
+                    IncludeAutoShapes = false,
+                    IncludeTextBoxes = false,
+                    IncludeTables = false,
+                    IncludeCharts = false
+                }));
+            string svg = Encoding.UTF8.GetString(result.Bytes);
+
+            Assert.DoesNotContain("<image", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("ABCDEF", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("FILTERED TEXT", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("FILTERED TABLE", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("FILTERED CATEGORY", svg, StringComparison.Ordinal);
+        }
+
         private static int CountPixelsNear(OfficeRasterImage image, OfficeColor expected) {
             int count = 0;
             for (int y = 0; y < image.Height; y++) {

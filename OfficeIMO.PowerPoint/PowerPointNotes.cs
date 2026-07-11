@@ -154,6 +154,24 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Reads existing speaker notes without creating notes or notes-master parts when none exist.
+        /// </summary>
+        public bool TryGetText(out string text) {
+            NotesSlide? notesSlide = _slidePart.NotesSlidePart?.NotesSlide;
+            Shape? shape = GetNotesTextShape(notesSlide?.CommonSlideData?.ShapeTree);
+            if (shape?.TextBody == null) {
+                text = string.Empty;
+                return false;
+            }
+
+            List<string> paragraphs = shape.TextBody.Elements<A.Paragraph>()
+                .Select(ReadParagraphText)
+                .ToList();
+            text = paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
+            return text.Length > 0;
+        }
+
+        /// <summary>
         /// Tries to read speaker notes that already exist without creating a notes part.
         /// </summary>
         /// <param name="text">The existing speaker-notes text, or an empty string when none exists.</param>

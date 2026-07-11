@@ -67,6 +67,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Save() {
             ThrowIfDisposed();
+            ApplySignatureMutationPolicy();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
@@ -74,6 +75,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
+            _discardChangesOnDispose = false;
         }
 
         /// <summary>
@@ -84,12 +86,15 @@ namespace OfficeIMO.PowerPoint {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
+            ApplySignatureMutationPolicy();
+
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
+            _discardChangesOnDispose = false;
 
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);

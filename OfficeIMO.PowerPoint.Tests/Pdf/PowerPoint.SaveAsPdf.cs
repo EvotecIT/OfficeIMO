@@ -70,10 +70,12 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTextRun run = textBox.Paragraphs[0].AddRun("OfficeIMO");
         run.SetHyperlink("https://officeimo.net/");
 
-        byte[] bytes = presentation.SaveAsPdf();
+        var options = new PowerPointPdfSaveOptions { UseSharedVisualSnapshot = true };
+        byte[] bytes = presentation.SaveAsPdf(options);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         Assert.Equal(new[] { "https://officeimo.net/" }, info.LinkUris);
+        Assert.Contains(options.Warnings, warning => warning.Code == "snapshot-selective-fallback");
     }
 
     [Fact]
@@ -805,7 +807,8 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfSaveOptions {
             PictureFit = OfficeImageFit.Stretch,
-            WarnOnPictureAspectRatioDistortion = true
+            WarnOnPictureAspectRatioDistortion = true,
+            UseSharedVisualSnapshot = true
         };
 
         byte[] bytes = presentation.SaveAsPdf(options);
