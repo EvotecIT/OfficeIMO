@@ -57,7 +57,8 @@ public static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null) {
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = false) {
         Guard.NotNull(pdf, nameof(pdf));
         _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
 
@@ -72,16 +73,20 @@ public static partial class PdfIncrementalUpdater {
             throw new InvalidOperationException("PDF startxref offset is required for an incremental metadata update.");
         }
 
-        PdfMetadata existing = PdfInspector.Inspect(pdf, readOptions).Metadata;
+        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, readOptions);
+        PdfMetadata existing = documentInfo.Metadata;
+        PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
         var updated = new PdfMetadata {
-            Title = title ?? existing.Title,
-            Author = author ?? existing.Author,
-            Subject = subject ?? existing.Subject,
-            Keywords = keywords ?? existing.Keywords
+            Title = title ?? existing.Title ?? existingXmp?.Title,
+            Author = author ?? existing.Author ?? existingXmp?.Creator,
+            Subject = subject ?? existing.Subject ?? existingXmp?.Description,
+            Keywords = keywords ?? existing.Keywords ?? existingXmp?.Keywords
         };
 
         int newInfoObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
         objects[newInfoObjectNumber] = new PdfIndirectObject(newInfoObjectNumber, 0, PdfInfoDictionaryBuilder.BuildDictionary(updated));
+        var changedObjectNumbers = new List<int> { newInfoObjectNumber };
+        SynchronizeXmpMetadata(objects, security, existingXmp, updated, createXmpMetadata, changedObjectNumbers);
         PdfStandardSecurityHandler? encryptionHandler = null;
         if (security.HasEncryption &&
             !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler)) {
@@ -93,7 +98,7 @@ public static partial class PdfIncrementalUpdater {
             objects,
             security,
             trailerRaw,
-            changedObjectNumbers: new[] { newInfoObjectNumber },
+            changedObjectNumbers: changedObjectNumbers,
             infoObjectNumberOverride: newInfoObjectNumber,
             encryptionHandler: encryptionHandler);
     }
@@ -105,7 +110,8 @@ public static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null) {
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = false) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
@@ -113,7 +119,7 @@ public static partial class PdfIncrementalUpdater {
 
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
-        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords, readOptions);
+        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords, readOptions, createXmpMetadata);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -124,10 +130,75 @@ public static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null) {
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = false) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions));
+        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions, createXmpMetadata));
+    }
+
+    private static void SynchronizeXmpMetadata(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDocumentSecurityInfo security,
+        PdfXmpMetadataInfo? existingXmp,
+        PdfMetadata updated,
+        bool createXmpMetadata,
+        List<int> changedObjectNumbers) {
+        if (!security.RootObjectNumber.HasValue ||
+            !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
+            catalogObject.Value is not PdfDictionary catalog) {
+            throw new InvalidOperationException("PDF root catalog dictionary is required for XMP metadata synchronization.");
+        }
+
+        PdfReference? metadataReference = catalog.Get<PdfReference>("Metadata");
+        if (metadataReference is null && !createXmpMetadata) {
+            return;
+        }
+
+        byte[] xml;
+        PdfDictionary streamDictionary;
+        int metadataObjectNumber;
+        int metadataGeneration;
+        if (metadataReference is not null &&
+            PdfObjectLookup.TryGet(objects, metadataReference, out PdfIndirectObject? metadataObject) &&
+            metadataObject.Value is PdfStream metadataStream) {
+            if (existingXmp is null || existingXmp.RawXml is null || !existingXmp.IsWellFormedXml || existingXmp.HasUnsupportedFilters) {
+                throw new InvalidOperationException("The existing XMP metadata stream cannot be decoded and preserved safely.");
+            }
+
+            xml = PdfXmpMetadataSynchronizer.Synchronize(existingXmp.RawXml, updated);
+            streamDictionary = CloneUnfilteredMetadataDictionary(metadataStream.Dictionary);
+            metadataObjectNumber = metadataObject.ObjectNumber;
+            metadataGeneration = metadataObject.Generation;
+        } else {
+            xml = PdfXmpMetadataBuilder.Build(updated.Title, updated.Author, updated.Subject, updated.Keywords);
+            streamDictionary = new PdfDictionary();
+            streamDictionary.Items["Type"] = new PdfName("Metadata");
+            streamDictionary.Items["Subtype"] = new PdfName("XML");
+            metadataObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
+            metadataGeneration = 0;
+            catalog.Items["Metadata"] = new PdfReference(metadataObjectNumber, metadataGeneration);
+            changedObjectNumbers.Add(catalogObject.ObjectNumber);
+        }
+
+        objects[metadataObjectNumber] = new PdfIndirectObject(
+            metadataObjectNumber,
+            metadataGeneration,
+            new PdfStream(streamDictionary, xml));
+        changedObjectNumbers.Add(metadataObjectNumber);
+    }
+
+    private static PdfDictionary CloneUnfilteredMetadataDictionary(PdfDictionary source) {
+        var clone = new PdfDictionary();
+        foreach (KeyValuePair<string, PdfObject> item in source.Items) {
+            if (item.Key != "Length" && item.Key != "Filter" && item.Key != "DecodeParms") {
+                clone.Items[item.Key] = item.Value;
+            }
+        }
+
+        clone.Items["Type"] = new PdfName("Metadata");
+        clone.Items["Subtype"] = new PdfName("XML");
+        return clone;
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {

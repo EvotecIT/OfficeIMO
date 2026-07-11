@@ -234,19 +234,30 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Appends a metadata-only incremental revision without rewriting the existing PDF bytes.
     /// </summary>
-    public PdfDocument AppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
-        return AppendMetadataRevision(title, author, subject, keywords, ReadOptions);
+    public PdfDocument AppendMetadataRevision(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        bool createXmpMetadata = false) {
+        return AppendMetadataRevision(title, author, subject, keywords, ReadOptions, createXmpMetadata);
     }
 
     /// <summary>
     /// Attempts to append a metadata-only incremental revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? options = null,
+        bool createXmpMetadata = false) {
         return TryMutationOperation(
             "Append metadata revision",
             PdfPreflightCapability.AppendMetadataRevision,
             PdfMutationOperation.UpdateMetadata,
-            _ => AppendMetadataRevision(title, author, subject, keywords, options ?? ReadOptions),
+            _ => AppendMetadataRevision(title, author, subject, keywords, options ?? ReadOptions, createXmpMetadata),
             options: options,
             executionPreference: PdfMutationExecutionPreference.RequireAppendOnly);
     }
@@ -256,8 +267,9 @@ public sealed partial class PdfDocument {
         string? author,
         string? subject,
         string? keywords,
-        PdfReadOptions? readOptions) {
-        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords, readOptions);
+        PdfReadOptions? readOptions,
+        bool createXmpMetadata = false) {
+        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords, readOptions, createXmpMetadata);
         return FromBytes(updated, readOptions);
     }
 

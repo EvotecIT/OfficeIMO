@@ -15,7 +15,7 @@ public class PdfIncrementalUpdaterTests {
             OwnerPassword = "owner",
             Algorithm = algorithm
         };
-        byte[] original = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] original = PdfDocument.Create(new PdfOptions { IncludeXmpMetadata = true }.SetEncryption(encryption))
             .Meta(title: "Encrypted original", author: "Encrypted author")
             .Paragraph(paragraph => paragraph.Text("Encrypted incremental body"))
             .ToBytes();
@@ -34,6 +34,7 @@ public class PdfIncrementalUpdaterTests {
         PdfDocumentInfo userInfo = PdfInspector.Inspect(updated, userOptions);
         PdfDocumentSecurityInfo after = PdfSyntax.ReadDocumentSecurityInfo(updated, ownerOptions);
         Assert.Equal("Encrypted updated", userInfo.Metadata.Title);
+        Assert.Equal("Encrypted updated", userInfo.XmpMetadata!.Title);
         Assert.Equal("Encrypted author", userInfo.Metadata.Author);
         Assert.Contains(
             "Encrypted incremental body",
@@ -47,6 +48,50 @@ public class PdfIncrementalUpdaterTests {
         string appended = PdfEncoding.Latin1GetString(updated, original.Length, updated.Length - original.Length);
         Assert.Contains("/Encrypt " + before.EncryptObjectNumber + " 0 R", appended, StringComparison.Ordinal);
         Assert.Contains("/ID [", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UpdateMetadata_SynchronizesXmpAndPreservesExtensionSchemas() {
+        var options = new PdfOptions { IncludeXmpMetadata = true }
+            .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));
+        byte[] original = PdfDocument.Create(options)
+            .Meta(title: "Original XMP", author: "Original author", keywords: "first; second")
+            .Paragraph(paragraph => paragraph.Text("XMP extension preservation"))
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(
+            original,
+            title: "Synchronized XMP",
+            author: string.Empty,
+            keywords: "third, fourth");
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+
+        Assert.True(updated.AsSpan(0, original.Length).SequenceEqual(original));
+        Assert.Equal("Synchronized XMP", info.Metadata.Title);
+        Assert.Null(info.Metadata.Author);
+        Assert.Equal("third, fourth", info.Metadata.Keywords);
+        Assert.Equal("Synchronized XMP", info.XmpMetadata!.Title);
+        Assert.Null(info.XmpMetadata.Creator);
+        Assert.Equal(new[] { "third", "fourth" }, info.XmpMetadata.Subjects);
+        Assert.Equal("ORDER", info.XmpMetadata.ElectronicInvoiceDocumentType);
+        Assert.Equal("invoice.xml", info.XmpMetadata.ElectronicInvoiceDocumentFileName);
+        Assert.Equal("EN 16931", info.XmpMetadata.ElectronicInvoiceConformanceLevel);
+    }
+
+    [Fact]
+    public void AppendMetadataRevision_CanCreateSynchronizedXmpPacket() {
+        byte[] original = PdfDocument.Create()
+            .Meta(title: "Info only")
+            .Paragraph(paragraph => paragraph.Text("Create XMP append"))
+            .ToBytes();
+
+        PdfDocument updated = PdfDocument.Open(original)
+            .AppendMetadataRevision(title: "Created XMP", keywords: "one;two", createXmpMetadata: true);
+        PdfDocumentInfo info = updated.Inspect();
+
+        Assert.Equal("Created XMP", info.Metadata.Title);
+        Assert.Equal("Created XMP", info.XmpMetadata!.Title);
+        Assert.Equal(new[] { "one", "two" }, info.XmpMetadata.Subjects);
     }
 
     [Fact]
