@@ -95,6 +95,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("\"commentCount\":3", review.ToJson(), StringComparison.Ordinal);
             PowerPointAnimationNode animated = Assert.Single(animation.Nodes,
                 node => node.Kind == PowerPointAnimationKind.Animate);
+            PowerPointAnimationNode container = Assert.Single(animation.Nodes,
+                node => node.Kind == PowerPointAnimationKind.Parallel);
+            Assert.Equal("1", container.TimingId);
+            Assert.Null(container.ShapeId);
+            Assert.Null(container.ShapeName);
             Assert.Equal(target.Id, animated.ShapeId);
             Assert.Equal(target.Name, animated.ShapeName);
             Assert.Equal("500", animated.Duration);

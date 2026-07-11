@@ -40,34 +40,46 @@ namespace OfficeIMO.PowerPoint {
 
         private static void InspectSlide(PowerPointSlide slide, int slideIndex, long slideWidth, long slideHeight,
             PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings) {
-            IReadOnlyList<PowerPointShape> shapes = slide.Shapes;
-            for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
-                PowerPointShape shape = shapes[shapeIndex];
-                if (shape.Hidden) {
-                    continue;
-                }
-
-                if (options.DetectOffSlideShapes) {
-                    InspectBounds(shape, shapeIndex, slideIndex, slideWidth, slideHeight, options, findings);
-                }
-                if (options.DetectTextOverflow && shape is PowerPointTextBox textBox) {
-                    InspectText(textBox, shapeIndex, slideIndex, options, findings);
-                }
-                if (options.DetectMissingVisualAssets && shape is PowerPointPicture picture) {
-                    InspectPicture(picture, shapeIndex, slideIndex, findings);
-                }
-            }
+            InspectShapeTree(slide, slide.Shapes, slideIndex,
+                new PowerPointLayoutBox(0L, 0L, slideWidth, slideHeight), options, findings, null);
 
             if (options.DetectShapeCollisions) {
-                InspectCollisions(shapes, slideIndex, options, findings);
+                InspectCollisions(slide.Shapes, slideIndex, options, findings);
             }
             if (options.IncludeVisualSnapshotDiagnostics) {
                 InspectVisualSnapshot(slide, slideIndex, findings);
             }
         }
 
-        private static void InspectBounds(PowerPointShape shape, int shapeIndex, int slideIndex, long slideWidth,
-            long slideHeight, PowerPointDeckPreflightOptions options,
+        private static void InspectShapeTree(PowerPointSlide slide, IReadOnlyList<PowerPointShape> shapes,
+            int slideIndex, PowerPointLayoutBox canvas, PowerPointDeckPreflightOptions options,
+            IList<PowerPointDeckPreflightFinding> findings, int? containingShapeIndex) {
+            for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
+                PowerPointShape shape = shapes[shapeIndex];
+                int reportShapeIndex = containingShapeIndex ?? shapeIndex;
+                if (shape.Hidden) {
+                    continue;
+                }
+
+                if (options.DetectOffSlideShapes) {
+                    InspectBounds(shape, reportShapeIndex, slideIndex, canvas, options, findings);
+                }
+                if (options.DetectTextOverflow && shape is PowerPointTextBox textBox) {
+                    InspectText(textBox, reportShapeIndex, slideIndex, options, findings);
+                }
+                if (options.DetectMissingVisualAssets && shape is PowerPointPicture picture) {
+                    InspectPicture(picture, reportShapeIndex, slideIndex, findings);
+                }
+                if (shape is PowerPointGroupShape groupShape) {
+                    IReadOnlyList<PowerPointShape> children = slide.GetGroupChildren(groupShape);
+                    InspectShapeTree(slide, children, slideIndex, slide.GetGroupChildBounds(groupShape),
+                        options, findings, reportShapeIndex);
+                }
+            }
+        }
+
+        private static void InspectBounds(PowerPointShape shape, int shapeIndex, int slideIndex,
+            PowerPointLayoutBox canvas, PowerPointDeckPreflightOptions options,
             IList<PowerPointDeckPreflightFinding> findings) {
             PowerPointLayoutBox bounds = shape.Bounds;
             if (bounds.Width <= 0L || bounds.Height <= 0L) {
@@ -76,18 +88,20 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            if (bounds.Left < 0L || bounds.Top < 0L || bounds.Right > slideWidth || bounds.Bottom > slideHeight) {
+            if (bounds.Left < canvas.Left || bounds.Top < canvas.Top ||
+                bounds.Right > canvas.Right || bounds.Bottom > canvas.Bottom) {
                 long bleed = PowerPointUnits.FromPoints(options.MaximumDecorativeBleedPoints);
                 bool allowedDecorativeBleed = options.AllowDecorativeShapeBleed &&
                     shape is PowerPointAutoShape &&
-                    bounds.Left >= -bleed && bounds.Top >= -bleed &&
-                    bounds.Right <= slideWidth + bleed && bounds.Bottom <= slideHeight + bleed &&
-                    bounds.Right > 0L && bounds.Bottom > 0L && bounds.Left < slideWidth && bounds.Top < slideHeight;
+                    bounds.Left >= canvas.Left - bleed && bounds.Top >= canvas.Top - bleed &&
+                    bounds.Right <= canvas.Right + bleed && bounds.Bottom <= canvas.Bottom + bleed &&
+                    bounds.Right > canvas.Left && bounds.Bottom > canvas.Top &&
+                    bounds.Left < canvas.Right && bounds.Top < canvas.Bottom;
                 if (allowedDecorativeBleed) {
                     return;
                 }
                 findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "Layout.ShapeOffSlide",
-                    "Shape extends beyond the slide canvas.", slideIndex, shapeIndex, shape, bounds));
+                    "Shape extends beyond its slide or group canvas.", slideIndex, shapeIndex, shape, bounds));
             }
         }
 

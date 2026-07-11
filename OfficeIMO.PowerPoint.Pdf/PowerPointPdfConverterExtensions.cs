@@ -288,6 +288,7 @@ public static partial class PowerPointPdfConverterExtensions {
         options.IncludePictures && options.IncludeAutoShapes && options.IncludeTextBoxes &&
         options.IncludeTables && options.IncludeCharts && options.PictureFit == OfficeImageFit.Stretch &&
         options.ChartStyle == null && options.ChartLayout == null && options.MaxGroupShapeDepth == 32 &&
+        !options.WarnOnPictureAspectRatioDistortion &&
         !ContainsHyperlinks(slide);
 
     private static bool ContainsHyperlinks(PptCore.PowerPointSlide slide) {

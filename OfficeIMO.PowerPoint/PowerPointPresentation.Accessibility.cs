@@ -25,8 +25,8 @@ namespace OfficeIMO.PowerPoint {
             for (int slideIndex = 0; slideIndex < _slides.Count; slideIndex++) {
                 PowerPointSlide slide = _slides[slideIndex];
                 if (slide.Hidden && !resolved.IncludeHiddenSlides) continue;
-                List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide).Where(shape => !shape.Hidden).ToList();
-                string? slideTitle = FindSlideTitle(slide.Shapes.Where(shape => !shape.Hidden),
+                List<PowerPointShape> shapes = EnumerateAccessibilityShapes(slide).ToList();
+                string? slideTitle = FindSlideTitle(slide.EnumerateShapesDeep(slide.Shapes),
                     SlideSize.HeightPoints);
                 if (resolved.RequireSlideTitles && string.IsNullOrWhiteSpace(slideTitle)) {
                     findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
@@ -48,8 +48,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static IEnumerable<PowerPointShape> EnumerateAccessibilityShapes(PowerPointSlide slide) {
-            foreach (PowerPointShape shape in slide.GetInheritedShapesForExport()) yield return shape;
-            foreach (PowerPointShape shape in slide.Shapes) yield return shape;
+            return slide.EnumerateShapesDeep(slide.GetInheritedShapesForExport().Concat(slide.Shapes));
         }
 
         private static string? FindSlideTitle(IEnumerable<PowerPointShape> shapes, double slideHeightPoints) {

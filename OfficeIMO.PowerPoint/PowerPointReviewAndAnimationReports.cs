@@ -219,14 +219,14 @@ namespace OfficeIMO.PowerPoint {
                 Timing? timing = slide.SlidePart.Slide?.Timing;
                 if (timing == null) continue;
                 foreach (OpenXmlElement element in timing.Descendants().Where(IsAnimationElement)) {
-                    OpenXmlElement? common = element.Descendants().FirstOrDefault(item => item.LocalName == "cTn");
-                    OpenXmlElement? target = element.Descendants().FirstOrDefault(item => item.LocalName == "spTgt");
+                    OpenXmlElement? common = FindOwnedAnimationDescendant(element, "cTn");
+                    OpenXmlElement? target = FindOwnedAnimationDescendant(element, "spTgt");
                     uint? shapeId = ParseUInt(GetAttribute(target, "spid"));
                     string? shapeName = shapeId.HasValue
-                        ? slide.Shapes.Concat(slide.GetInheritedShapesForExport())
+                        ? slide.EnumerateShapesDeep(slide.Shapes.Concat(slide.GetInheritedShapesForExport()))
                             .FirstOrDefault(shape => shape.Id == shapeId)?.Name
                         : null;
-                    OpenXmlElement? condition = element.Descendants().FirstOrDefault(item => item.LocalName == "cond");
+                    OpenXmlElement? condition = FindOwnedAnimationDescendant(element, "cond");
                     nodes.Add(new PowerPointAnimationNode(index + 1, MapAnimationKind(element.LocalName),
                         element.LocalName, GetAttribute(common, "id"), shapeId, shapeName,
                         GetAttribute(condition, "evt"), GetAttribute(condition, "delay"),
@@ -236,6 +236,11 @@ namespace OfficeIMO.PowerPoint {
             }
             return new PowerPointAnimationReport(nodes);
         }
+
+        private static OpenXmlElement? FindOwnedAnimationDescendant(OpenXmlElement animation, string localName) =>
+            animation.Descendants().FirstOrDefault(candidate =>
+                candidate.LocalName == localName &&
+                ReferenceEquals(candidate.Ancestors().FirstOrDefault(IsAnimationElement), animation));
 
         private Dictionary<uint, string> GetClassicAuthors() {
             var result = new Dictionary<uint, string>();

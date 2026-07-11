@@ -31,6 +31,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Enumerates a shape tree in drawing order, including nested group children while preserving
+        ///     inherited hidden state.
+        /// </summary>
+        internal IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
+            bool includeHidden = false) {
+            foreach (PowerPointShape shape in shapes) {
+                if (!includeHidden && shape.Hidden) continue;
+                yield return shape;
+                if (shape is not PowerPointGroupShape groupShape) continue;
+                foreach (PowerPointShape child in EnumerateShapesDeep(GetGroupChildren(groupShape), includeHidden)) {
+                    yield return child;
+                }
+            }
+        }
+
+        /// <summary>
         ///     Returns the child textboxes of a group shape.
         /// </summary>
         public IReadOnlyList<PowerPointTextBox> GetGroupTextBoxes(PowerPointGroupShape groupShape) {

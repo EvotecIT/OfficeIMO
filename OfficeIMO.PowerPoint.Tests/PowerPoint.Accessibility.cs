@@ -158,6 +158,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AccessibilityInspectsTableNestedInsideGroup() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointTable table = slide.AddTablePoints(2, 2, 20, 50, 180, 70);
+            table.HeaderRow = false;
+            PowerPointAutoShape anchor = slide.AddRectanglePoints(210, 50, 20, 20, "Group anchor");
+            slide.GroupShapes(new PowerPointShape[] { table, anchor }, "Accessibility group");
+
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility(
+                new PowerPointAccessibilityOptions {
+                    RequireSlideTitles = false,
+                    RequireAlternativeText = false,
+                    RequireLanguage = false,
+                    CheckContrast = false,
+                    CheckMeaningfulLinks = false,
+                    CheckColorOnlyMeaning = false
+                });
+
+            Assert.Contains(report.Findings, finding =>
+                finding.Code == "Accessibility.MissingTableHeader" && finding.ShapeId == table.Id);
+            Assert.Contains(Assert.Single(report.Slides).Shapes, shape => shape.ShapeId == table.Id);
+        }
+
+        [Fact]
         public void AccessibilityReportIsStableForGeneratedAndReloadedDecks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");

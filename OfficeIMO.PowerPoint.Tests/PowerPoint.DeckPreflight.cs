@@ -36,6 +36,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Preflight_InspectsTextNestedInsideGroups() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(400, 225);
+            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointTextBox text = slide.AddTextBoxPoints(
+                "A deliberately long grouped paragraph that cannot fit inside its tiny text frame.",
+                20, 20, 80, 14);
+            text.FontSize = 20;
+            text.TextAutoFit = PowerPointTextAutoFit.None;
+            PowerPointAutoShape anchor = slide.AddRectanglePoints(110, 20, 20, 20, "Group anchor");
+            slide.GroupShapes(new PowerPointShape[] { text, anchor }, "Preflight group");
+
+            PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
+                DetectShapeCollisions = false,
+                DetectMissingVisualAssets = false,
+                IncludeVisualSnapshotDiagnostics = false
+            });
+
+            Assert.Contains(report.Findings, finding =>
+                finding.Code == "Text.Clipped" && finding.ShapeId == text.Id);
+        }
+
+        [Fact]
         public void Preflight_ReportsOffSlideShapesAndSignificantPeerCollisions() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

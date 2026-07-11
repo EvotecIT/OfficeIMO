@@ -117,6 +117,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SharedChartSnapshot_ClassifiesTopValueAxisAsSecondaryForHorizontalBars() {
+            string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+            var data = new OfficeChartData(new[] { "North", "South" }, new[] {
+                new OfficeChartSeries("Primary", new[] { 42D, 55D }, null, null, null,
+                    showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+                new OfficeChartSeries("Secondary", new[] { 4.2D, 5.5D }, null, null, null,
+                    showMarkers: false, renderKind: OfficeChartKind.ColumnClustered,
+                    axisGroup: OfficeChartAxisGroup.Secondary)
+            });
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
+                    PowerPointSlide slide = presentation.Slides[0];
+                    slide.AddChart(OfficeChartKind.ColumnClustered, data);
+                    ChartPart chartPart = slide.SlidePart.ChartParts.Single();
+                    C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!;
+                    foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
+                        barChart.BarDirection!.Val = C.BarDirectionValues.Bar;
+                    }
+                    C.BarChart secondaryChart = plotArea.Elements<C.BarChart>().Last();
+                    uint[] secondaryAxisIds = secondaryChart.Elements<C.AxisId>()
+                        .Select(axis => axis.Val!.Value).ToArray();
+                    plotArea.Elements<C.CategoryAxis>().Single(axis =>
+                        axis.AxisId?.Val?.Value == secondaryAxisIds[0]).AxisPosition!.Val =
+                        C.AxisPositionValues.Right;
+                    plotArea.Elements<C.ValueAxis>().Single(axis =>
+                        axis.AxisId?.Val?.Value == secondaryAxisIds[1]).AxisPosition!.Val =
+                        C.AxisPositionValues.Top;
+                    chartPart.ChartSpace.Save();
+                    presentation.Save();
+                }
+
+                using PowerPointPresentation reopened = PowerPointPresentation.OpenRead(output);
+                PowerPointChart chart = Assert.Single(reopened.Slides[0].Charts);
+                Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+                Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
+                Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
+            } finally {
+                if (File.Exists(output)) File.Delete(output);
+            }
+        }
+
+        [Fact]
         public void SharedScatterChartUsesExplicitXValuesWithNonNumericLabels() {
             var data = new OfficeChartData(new[] { "Discovery", "Delivery" }, new[] {
                 new OfficeChartSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })

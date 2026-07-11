@@ -807,7 +807,8 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfSaveOptions {
             PictureFit = OfficeImageFit.Stretch,
-            WarnOnPictureAspectRatioDistortion = true
+            WarnOnPictureAspectRatioDistortion = true,
+            UseSharedVisualSnapshot = true
         };
 
         byte[] bytes = presentation.SaveAsPdf(options);
