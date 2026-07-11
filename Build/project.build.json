@@ -33,6 +33,8 @@
     "OfficeIMO.Reader.Html": "0.0.X",
     "OfficeIMO.Reader.Json": "0.0.X",
     "OfficeIMO.Reader.OpenDocument": "0.1.X",
+    "OfficeIMO.Reader.Ocr.Process": "0.0.X",
+    "OfficeIMO.Reader.Ocr.Tesseract": "0.0.X",
     "OfficeIMO.Reader.Pdf": "0.0.X",
     "OfficeIMO.Reader.Rtf": "0.0.X",
     "OfficeIMO.Reader.Text": "0.0.X",

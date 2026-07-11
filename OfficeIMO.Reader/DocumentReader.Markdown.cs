@@ -60,6 +60,7 @@ public static partial class DocumentReader {
             }
 
             string? headingPath = BuildHeadingPath(headingStack);
+            string? hierarchyHeadingPath = BuildHierarchyHeadingPath(headingStack);
             string? headingSlug = BuildHeadingSlug(headingStack);
             string blockKind = GetMarkdownBlockKind(block);
             string blockAnchor = BuildMarkdownBlockAnchor(headingSlug, blockKind, i, startsHeading);
@@ -94,6 +95,7 @@ public static partial class DocumentReader {
                 sourceStartLine: sourceStartLine,
                 sourceEndLine: sourceEndLine,
                 headingPath: headingPath,
+                hierarchyHeadingPath: hierarchyHeadingPath,
                 headingSlug: headingSlug,
                 blockKind: blockKind,
                 blockAnchor: blockAnchor,

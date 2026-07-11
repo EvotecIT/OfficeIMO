@@ -58,6 +58,23 @@ var chunks = DocumentReaderRtfExtensions.ReadRtf(stream, "large-note.rtf", new R
 rtfOptions.ConversionReport.RequireNoLoss();
 ```
 
+### Read the semantic RTF envelope
+
+```csharp
+OfficeDocumentReadResult document =
+    DocumentReaderRtfExtensions.ReadRtfDocumentResult("form.rtf");
+
+foreach (OfficeDocumentFormField field in document.Forms) {
+    Console.WriteLine($"{field.Name}: {field.Value}");
+}
+
+foreach (OfficeDocumentAsset asset in document.Assets) {
+    Console.WriteLine($"{asset.Kind}: {asset.FileName}");
+}
+```
+
+After registration, `DocumentReader.ReadDocument("form.rtf")` uses the same native rich mapping.
+
 ## What it emits
 
 - RTF input kind and deterministic source/chunk metadata.
@@ -65,6 +82,7 @@ rtfOptions.ConversionReport.RequireNoLoss();
 - Markdown-friendly table output plus `ReaderTable` payloads for parsed RTF tables.
 - Parser and binder diagnostics as reader warnings when requested.
 - A shared conversion report for flattened, omitted, and blocked features.
+- A schema-v5 rich result containing semantic blocks, tables, hyperlinks, form fields, image visuals and payloads, embedded-object assets, metadata, and structured diagnostics.
 
 ## Boundaries
 

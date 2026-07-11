@@ -20,6 +20,20 @@ public sealed class EpubReadOptions {
     public bool IncludeRawHtml { get; set; }
 
     /// <summary>
+    /// When true, includes bounded manifest resource payloads.
+    /// </summary>
+    public bool IncludeResourceData { get; set; }
+
+    /// <summary>Maximum number of manifest resources returned.</summary>
+    public int MaxResources { get; set; } = 2_000;
+
+    /// <summary>Maximum payload size for one manifest resource.</summary>
+    public long MaxResourceBytes { get; set; } = 8L * 1024 * 1024;
+
+    /// <summary>Maximum combined payload size returned for manifest resources.</summary>
+    public long MaxTotalResourceBytes { get; set; } = 64L * 1024 * 1024;
+
+    /// <summary>
     /// When true, chapter order is deterministic by internal path.
     /// </summary>
     public bool DeterministicOrder { get; set; } = true;
