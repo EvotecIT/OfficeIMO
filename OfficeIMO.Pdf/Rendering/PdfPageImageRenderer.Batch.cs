@@ -1,0 +1,69 @@
+using System.Diagnostics;
+using System.Threading;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Pdf;
+
+public static partial class PdfPageImageRenderer {
+    /// <summary>Renders all pages or a caller-ordered page selection with bounded per-page reports.</summary>
+    public static IReadOnlyList<PdfPageRenderResult> RenderPages(
+        byte[] pdf,
+        PdfPageSelection? selection = null,
+        PdfPageRenderOptions? options = null,
+        PdfReadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
+        effectiveOptions.Validate();
+        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+        if (pages.Length > effectiveOptions.MaxPages) {
+            throw new PdfReadLimitException(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pages.Length, "PDF render page count exceeded the configured limit.");
+        }
+
+        var results = new List<PdfPageRenderResult>(pages.Length);
+        for (int i = 0; i < pages.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            results.Add(RenderPage(document, pages[i], effectiveOptions, cancellationToken));
+        }
+
+        return results.AsReadOnly();
+    }
+
+    /// <summary>Renders parsed page ranges such as <c>1-3,5</c>.</summary>
+    public static IReadOnlyList<PdfPageRenderResult> RenderPages(
+        byte[] pdf,
+        string pageRanges,
+        PdfPageRenderOptions? options = null,
+        PdfReadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) {
+        return RenderPages(pdf, PdfPageSelection.Parse(pageRanges), options, readOptions, cancellationToken);
+    }
+
+    private static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken) {
+        var timer = Stopwatch.StartNew();
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeDrawing drawing = RenderPage(document, pageNumber);
+            double scale = options.GetScale(drawing);
+            int width = checked((int)Math.Ceiling(drawing.Width * scale));
+            int height = checked((int)Math.Ceiling(drawing.Height * scale));
+            long pixels = checked((long)width * height);
+            if (pixels > options.MaxPixelsPerPage) {
+                throw new PdfReadLimitException(PdfReadLimitKind.RenderPixels, options.MaxPixelsPerPage, pixels, "PDF render pixel count exceeded the configured per-page limit.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] bytes = options.Format == PdfPageRenderFormat.Png
+                ? RenderDrawingAsPng(drawing, scale, options.Background)
+                : OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale);
+            timer.Stop();
+            return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed, Array.Empty<string>());
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (Exception ex) when (options.ContinueOnError && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            timer.Stop();
+            return new PdfPageRenderResult(pageNumber, options.Format, null, 0, 0, timer.Elapsed, new[] { ex.GetType().Name + ": " + ex.Message });
+        }
+    }
+}

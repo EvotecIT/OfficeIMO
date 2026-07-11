@@ -213,7 +213,7 @@ visual-only operation is allowed to claim secure redaction.
   codecs, Type 1/3/TrueType/OpenType/CID fonts, color spaces and ICC handling,
   tiling and shading patterns, functions, transparency groups, masks, blend
   modes, clipping, form XObjects, annotations, AcroForm appearances, and layers.
-- [ ] Add page-range rendering, DPI/scale/background options, PNG/SVG batches,
+- [x] Add page-range rendering, DPI/scale/background options, PNG/SVG batches,
   thumbnails, cancellation, render limits, and per-page reports.
 - [ ] Add text-selection and hit-testing primitives over glyph geometry,
   annotation/link/form hit regions, page transforms, and selection quads.

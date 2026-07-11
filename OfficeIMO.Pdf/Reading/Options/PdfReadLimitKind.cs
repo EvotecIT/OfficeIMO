@@ -51,5 +51,11 @@ public enum PdfReadLimitKind {
     ContentOperations,
 
     /// <summary>Nested form XObjects traversed while parsing page content.</summary>
-    ContentNestingDepth
+    ContentNestingDepth,
+
+    /// <summary>Pages requested in one managed render batch.</summary>
+    RenderPages,
+
+    /// <summary>Output pixels requested for one managed rendered page.</summary>
+    RenderPixels
 }

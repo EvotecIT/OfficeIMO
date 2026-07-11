@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Managed PDF page image renderer for the OfficeIMO-generated visual subset.
 /// </summary>
-public static class PdfPageImageRenderer {
+public static partial class PdfPageImageRenderer {
     /// <summary>
     /// Projects a one-based PDF page into the shared OfficeIMO drawing scene.
     /// </summary>
