@@ -202,10 +202,19 @@ internal static class TnefMapiCodec {
                 Pad4(output);
             }
         } else {
-            byte[] bytes = EncodeValue(property, codePage);
+            byte[] bytes = EncodeFixedValue(property, codePage);
             output.Write(bytes, 0, bytes.Length);
             Pad4(output);
         }
+    }
+
+    private static byte[] EncodeFixedValue(MapiProperty property, int codePage) {
+        byte[] encoded = EncodeValue(property, codePage);
+        int size = GetFixedSize(property.PropertyType);
+        if (encoded.Length == size) return encoded;
+        var fixedBytes = new byte[size];
+        Buffer.BlockCopy(encoded, 0, fixedBytes, 0, Math.Min(encoded.Length, size));
+        return fixedBytes;
     }
 
     private static void WriteNamedProperty(Stream output, MapiNamedProperty name) {

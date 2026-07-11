@@ -261,6 +261,7 @@ internal static class MsgWriter {
             properties.Set(0x3701, MapiPropertyType.Binary, attachment.Content);
             properties.Set(0x0E20, MapiPropertyType.Integer32, attachment.Content.Length);
         } else {
+            properties.Set(0x3701, MapiPropertyType.Binary, null);
             properties.Set(0x0E20, MapiPropertyType.Integer32, checked((int)Math.Min(attachment.Length, int.MaxValue)));
             if (attachment.Length > 0) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",

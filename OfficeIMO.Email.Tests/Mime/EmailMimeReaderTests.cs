@@ -45,6 +45,28 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void PreservesNamedMultipartEntitiesAsSingleAttachments() {
+        const string eml = "Subject: multipart attachment\r\n" +
+            "Content-Type: multipart/mixed; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/plain\r\n\r\nmessage body\r\n" +
+            "--outer\r\nContent-Type: multipart/report; boundary=report; name=delivery-report.mime\r\n" +
+            "Content-Disposition: attachment; filename=delivery-report.mime\r\n\r\n" +
+            "--report\r\nContent-Type: text/plain\r\n\r\ninner report\r\n" +
+            "--report\r\nContent-Type: text/plain; name=details.txt\r\n" +
+            "Content-Disposition: attachment; filename=details.txt\r\n\r\ndetails\r\n" +
+            "--report--\r\n--outer--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("message body", document.Body.Text!.Trim());
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Equal("delivery-report.mime", attachment.FileName);
+        Assert.Equal("multipart/report", attachment.ContentType);
+        Assert.Contains("inner report", Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadsEmbeddedMessageAsStructuredAttachment() {
         const string eml = "Subject: Parent\r\nMIME-Version: 1.0\r\n" +
             "Content-Type: multipart/mixed; boundary=x\r\n\r\n" +

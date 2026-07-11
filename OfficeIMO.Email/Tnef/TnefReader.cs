@@ -190,7 +190,9 @@ internal static class TnefReader {
                     "An embedded TNEF message could not be projected.", EmailDiagnosticSeverity.Warning, location));
             }
         } else if (method == 6 && objectBytes != null && objectBytes.Length > 16 && new Guid(MsgBinary.Slice(objectBytes, 0, 16)) == IidStorage) {
-            byte[] compoundBytes = MsgBinary.Slice(objectBytes, 16, objectBytes.Length - 16);
+            int compoundLength = objectBytes.Length - 16;
+            state.EnsureAttachmentBytesWithinLimits(compoundLength);
+            byte[] compoundBytes = MsgBinary.Slice(objectBytes, 16, compoundLength);
             if (OfficeCompoundFileReader.TryRead(compoundBytes,
                 EmailCompoundReadPolicy.Create(state.Options), out OfficeCompoundFile? compound,
                 out string? compoundError) && compound != null) {
@@ -213,11 +215,13 @@ internal static class TnefReader {
             }
         } else {
             byte[]? mapiContent = dataProperty?.Value as byte[];
-            if (attachment.Content == null && state.Options.IncludeAttachmentContent && mapiContent != null) {
-                attachment.Content = (byte[])mapiContent.Clone();
+            if (mapiContent != null) {
                 attachment.Length = mapiContent.LongLength;
             }
-            state.CountAttachment(attachment.Content?.LongLength ?? attachment.Length);
+            if (attachment.Content == null && state.Options.IncludeAttachmentContent && mapiContent != null) {
+                attachment.Content = (byte[])mapiContent.Clone();
+            }
+            state.CountAttachment(mapiContent?.LongLength ?? attachment.Content?.LongLength ?? attachment.Length);
         }
 
         if (!state.Options.IncludeAttachmentContent && dataProperty != null) {

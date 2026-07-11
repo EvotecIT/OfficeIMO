@@ -140,6 +140,43 @@ public sealed class EmailTnefTests {
     }
 
     [Fact]
+    public void WritesFixedWidthNullPropertiesWithoutDesynchronizingFollowingValues() {
+        var source = new[] {
+            new MapiProperty(0x66AA, MapiPropertyType.Null, null),
+            new MapiProperty(0x66AB, MapiPropertyType.Integer32, 42)
+        };
+        var diagnostics = new List<EmailDiagnostic>();
+        byte[] bytes = TnefMapiCodec.WriteProperties(source, 1252, diagnostics, "tnef/mapi");
+        var state = new MsgParserState(EmailReaderOptions.Default, diagnostics, CancellationToken.None);
+
+        List<MapiProperty> properties = TnefMapiCodec.ReadProperties(bytes, 1252, state, "tnef/mapi");
+
+        Assert.Equal(2, properties.Count);
+        Assert.Null(properties[0].Value);
+        Assert.Equal(42, properties[1].Value);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_MAPI_TRUNCATED");
+    }
+
+    [Fact]
+    public void CountsMapiAttachmentBytesWhenPayloadRetentionIsDisabled() {
+        byte[] payload = Enumerable.Range(0, 16).Select(value => (byte)value).ToArray();
+        byte[] bytes = CreateTnefWithMapiAttachment(payload);
+
+        EmailDocument document = new EmailDocumentReader(
+            new EmailReaderOptions(includeAttachmentContent: false)).Read(bytes).Document;
+
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Null(attachment.Content);
+        Assert.Equal(payload.Length, attachment.Length);
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(new EmailReaderOptions(
+                maxAttachmentBytes: payload.Length - 1,
+                includeAttachmentContent: false)).Read(bytes));
+        Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
+        Assert.Equal(payload.Length, exception.ActualValue);
+    }
+
+    [Fact]
     public void DecodesTopLevelTnefAttributesUsingTheNumericCodePage() {
         byte[] codePage = new byte[8];
         MsgBinary.WriteUInt32(codePage, 0, 932);
@@ -193,6 +230,38 @@ public sealed class EmailTnefTests {
         Assert.NotNull(parsed.Content);
         Assert.Contains(result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID");
+    }
+
+    [Fact]
+    public void RejectsOversizedTnefOlePayloadBeforeParsingItsStorage() {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "bounded OLE bytes" };
+        var attachment = new EmailAttachment { FileName = "object.ole", MapiAttachMethod = 6 };
+        attachment.StructuredStorageStreams["Contents"] = new byte[] { 1, 2, 3 };
+        source.Attachments.Add(attachment);
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
+        Assert.True(exception.ActualValue > 512);
+    }
+
+    private static byte[] CreateTnefWithMapiAttachment(byte[] payload) {
+        byte[] rendition = new byte[14];
+        MsgBinary.WriteUInt16(rendition, 0, 1);
+        byte[] properties = TnefMapiCodec.WriteProperties(new[] {
+            new MapiProperty(0x3701, MapiPropertyType.Binary, payload),
+            new MapiProperty(0x3705, MapiPropertyType.Integer32, 1)
+        }, 1252, new List<EmailDiagnostic>(), "tnef/attachment/mapi");
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(TnefConstants.Signature);
+            writer.Write((ushort)1);
+            WriteAttribute(writer, TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, rendition);
+            WriteAttribute(writer, TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties, properties);
+        }
+        return stream.ToArray();
     }
 
     private static void WriteAttribute(BinaryWriter writer, TnefAttributeLevel level, uint tag, byte[] data) {

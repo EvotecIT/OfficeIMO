@@ -319,11 +319,6 @@ public static partial class DocumentReader {
         });
     }
 
-    private static string GetLogicalFileName(string path) {
-        int separator = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
-        return separator < 0 ? path : path.Substring(separator + 1);
-    }
-
     private static bool CanReadEmailAttachmentContent(string fileName) {
         ReaderInputKind kind = DetectKind(fileName);
         if (kind == ReaderInputKind.Email) {

@@ -48,13 +48,19 @@ internal sealed class MsgParserState {
         if (AttachmentCount > Options.MaxPartCount) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount), AttachmentCount, Options.MaxPartCount);
         }
+        EnsureAttachmentBytesWithinLimits(bytes);
+        TotalAttachmentBytes = checked(TotalAttachmentBytes + bytes);
+    }
+
+    internal void EnsureAttachmentBytesWithinLimits(long bytes) {
+        ThrowIfCancellationRequested();
         if (bytes > Options.MaxAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentBytes), bytes, Options.MaxAttachmentBytes);
         }
-        TotalAttachmentBytes = checked(TotalAttachmentBytes + bytes);
-        if (TotalAttachmentBytes > Options.MaxTotalAttachmentBytes) {
+        long total = checked(TotalAttachmentBytes + bytes);
+        if (total > Options.MaxTotalAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTotalAttachmentBytes),
-                TotalAttachmentBytes, Options.MaxTotalAttachmentBytes);
+                total, Options.MaxTotalAttachmentBytes);
         }
     }
 

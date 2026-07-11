@@ -50,6 +50,29 @@ public sealed class MsgSerializationRegressionTests {
     }
 
     [Fact]
+    public void ClearingAttachmentContentRemovesTheRetainedMsgPayload() {
+        var source = new EmailDocument { Subject = "attachment" };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            Content = new byte[] { 1, 2, 3, 4 },
+            Length = 4
+        });
+        EmailDocument edited = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+        EmailAttachment attachment = Assert.Single(edited.Attachments);
+        attachment.Content = null;
+        attachment.Length = 0;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(edited, EmailFileFormat.OutlookMsg)).Document;
+
+        EmailAttachment cleared = Assert.Single(roundTrip.Attachments);
+        Assert.Null(cleared.Content);
+        Assert.Equal(0, cleared.Length);
+        Assert.DoesNotContain(cleared.MapiProperties, property => property.PropertyId == 0x3701);
+    }
+
+    [Fact]
     public void SanitizesTransportHeadersBeforeMsgSerialization() {
         var source = new EmailDocument { Subject = "headers" };
         source.Headers.Add(new EmailHeader(

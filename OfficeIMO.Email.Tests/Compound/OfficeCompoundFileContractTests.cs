@@ -84,6 +84,19 @@ public sealed class OfficeCompoundFileContractTests {
         Assert.Contains("exceed", error, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ReaderRejectsDirectoryChainsBeforeBufferingBeyondTheConfiguredLimit() {
+        byte[] compound = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("One", new byte[] { 1 })
+        });
+        var options = new OfficeCompoundReadOptions(maxDirectoryEntries: 1);
+
+        bool success = OfficeCompoundFileReader.TryRead(compound, options, out _, out string? error);
+
+        Assert.False(success);
+        Assert.Contains("directory entry count exceeds 1", error, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static uint ReadUInt32(byte[] bytes, int offset) {
         return (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
     }

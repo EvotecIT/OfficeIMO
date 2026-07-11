@@ -34,8 +34,12 @@ internal static class MimeParser {
         MimeValue disposition = MimeValueParser.Parse(MimeHeaderParser.GetValue(headers, "Content-Disposition"),
             string.Empty, state.Diagnostics, location);
         string? transferEncoding = MimeHeaderParser.GetValue(headers, "Content-Transfer-Encoding");
+        string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
+        bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
+        bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
 
-        if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
+        if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
+            !attachmentDisposition && string.IsNullOrWhiteSpace(fileName)) {
             string? boundary = contentType.GetParameter("boundary");
             if (string.IsNullOrEmpty(boundary)) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_MISSING",
@@ -59,9 +63,6 @@ internal static class MimeParser {
             return;
         }
 
-        string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
-        bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
-        bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
         bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||

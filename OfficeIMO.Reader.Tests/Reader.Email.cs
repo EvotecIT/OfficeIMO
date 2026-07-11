@@ -195,6 +195,7 @@ public sealed class ReaderEmailTests {
 
     [Fact]
     public void AttachmentNamesRemainLogicalWhenInvalidAsWindowsPaths() {
+        Assert.Equal(ReaderInputKind.Text, DocumentReader.DetectKind("report|draft.txt"));
         var document = new EmailDocument { Subject = "Logical attachment name" };
         document.Attachments.Add(new EmailAttachment {
             FileName = "report|draft.txt",

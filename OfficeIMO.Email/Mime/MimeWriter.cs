@@ -207,7 +207,7 @@ internal static class MimeWriter {
     private static string EncodeHeaderText(string value) {
         string sanitized = MimeHeaderSafety.SanitizeValue(value);
         bool ascii = sanitized.All(character => character >= 32 && character <= 126);
-        if (ascii) return sanitized;
+        if (ascii && sanitized.Length <= 72) return sanitized;
         const int maxEncodedBytes = 45;
         var words = new List<string>();
         var chunk = new StringBuilder();

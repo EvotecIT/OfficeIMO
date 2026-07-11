@@ -81,7 +81,9 @@ namespace OfficeIMO.Shared {
 
                 List<uint> fatSectorIds = ReadDifat(bytes, sectorSize, firstDifat, difatSectorCount, fatSectorCount);
                 uint[] fat = ReadFat(bytes, sectorSize, fatSectorIds);
-                byte[] directoryBytes = ReadRegularStream(bytes, sectorSize, fat, directoryStart, long.MaxValue);
+                long maximumDirectoryBytes = checked((long)options.MaxDirectoryEntries * DirectoryEntrySize);
+                byte[] directoryBytes = ReadRegularStream(bytes, sectorSize, fat, directoryStart, long.MaxValue,
+                    maximumDirectoryBytes);
                 List<DirectoryEntry> entries = ReadDirectoryEntries(directoryBytes, majorVersion, options.MaxDirectoryEntries);
                 DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                 if (root == null) throw new InvalidDataException("Compound file root directory entry is missing.");
@@ -179,7 +181,8 @@ namespace OfficeIMO.Shared {
             return entries.ToArray();
         }
 
-        private static byte[] ReadRegularStream(byte[] bytes, int sectorSize, uint[] fat, uint startSector, long size) {
+        private static byte[] ReadRegularStream(byte[] bytes, int sectorSize, uint[] fat, uint startSector, long size,
+            long maximumBytes = long.MaxValue) {
             if (size == 0) return Array.Empty<byte>();
             if (startSector == EndOfChain) {
                 if (size == long.MaxValue) return Array.Empty<byte>();
@@ -197,6 +200,9 @@ namespace OfficeIMO.Shared {
                 int offset = SectorOffset(sector, sectorSize);
                 if (offset < 0 || offset + sectorSize > bytes.Length) {
                     throw new InvalidDataException("Compound file sector points outside the file.");
+                }
+                if (output.Length > maximumBytes - sectorSize) {
+                    throw new InvalidDataException($"Compound directory entry count exceeds {maximumBytes / DirectoryEntrySize}.");
                 }
 
                 output.Write(bytes, offset, sectorSize);

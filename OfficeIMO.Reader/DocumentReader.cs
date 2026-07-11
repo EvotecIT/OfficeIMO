@@ -456,18 +456,29 @@ public static partial class DocumentReader {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
-        var extLower = NormalizeExtension(TryGetExtension(path));
+        var extLower = NormalizeExtension(GetLogicalExtension(path));
         if (extLower.Length > 0 && TryResolveCustomHandlerByExtension(extLower, out var custom)) {
             return custom.Kind;
         }
-        if (string.Equals(Path.GetFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(GetLogicalFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
             return ReaderInputKind.Email;
         }
         return DetectBuiltInKind(path);
     }
 
+    private static string GetLogicalFileName(string path) {
+        int separator = Math.Max(path.LastIndexOf('/'), path.LastIndexOf('\\'));
+        return separator < 0 ? path : path.Substring(separator + 1);
+    }
+
+    private static string GetLogicalExtension(string path) {
+        string fileName = GetLogicalFileName(path);
+        int separator = fileName.LastIndexOf('.');
+        return separator <= 0 ? string.Empty : fileName.Substring(separator);
+    }
+
     private static ReaderInputKind DetectBuiltInKind(string path) {
-        var extLower = NormalizeExtension(TryGetExtension(path));
+        var extLower = NormalizeExtension(GetLogicalExtension(path));
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
             ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,

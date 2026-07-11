@@ -133,6 +133,22 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void FoldsLongAsciiHeadersWithoutChangingTheirValues() {
+        string subject = new string('a', 1200);
+        var document = new EmailDocument { Subject = subject };
+        document.Body.Text = "body";
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.All(eml.Split(new[] { "\r\n" }, StringSplitOptions.None),
+            line => Assert.InRange(line.Length, 0, 998));
+        Assert.Contains("Subject: =?utf-8?B?", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(subject, roundTrip.Subject);
+    }
+
+    [Fact]
     public void WritesRtfOnlyBodyAsAPreservedMimeAlternative() {
         const string rtf = "{\\rtf1\\ansi RTF-only body \\'e9\\par}";
         var document = new EmailDocument { Subject = "RTF body" };
