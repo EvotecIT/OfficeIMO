@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlImages_SvgPrimitivesAndLocalReferencesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
-        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs><rect id='marker' width='2' height='2' fill='lime'/></defs><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><use href='#marker' transform='translate(18 8) scale(2)'/><text x='20' y='18' font-size='4' text-anchor='middle' fill='black' transform='translate(0 -1)'>Svg<tspan font-weight='bold'>LabelX</tspan></text></svg>";
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs><symbol id='marker' viewBox='0 0 2 2'><rect width='2' height='2' fill='lime'/></symbol></defs><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><use href='#marker' transform='translate(18 8) scale(2)'/><text x='20' y='18' font-size='4' text-anchor='middle' fill='black' transform='translate(0 -1)'>Svg<tspan font-weight='bold'>LabelX</tspan></text></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
         var options = new HtmlImageExportOptions {
@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = html.SaveAsPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.Equal(4, vector.Drawing.Shapes.Count);
+        Assert.Equal(3, vector.Drawing.Shapes.Count);
         string[] svgTextRuns = vector.Drawing.Elements.OfType<OfficeDrawingEffectGroup>()
             .SelectMany(group => group.Drawing.Elements.OfType<OfficeDrawingText>())
             .Select(text => text.Text)

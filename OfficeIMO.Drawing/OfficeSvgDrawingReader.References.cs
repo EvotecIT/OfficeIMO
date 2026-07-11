@@ -26,8 +26,12 @@ public static partial class OfficeSvgDrawingReader {
 
         try {
             string targetName = target!.Name.LocalName.ToLowerInvariant();
-            if (targetName is "defs" or "symbol" or "lineargradient" or "radialgradient" or "stop") {
+            if (targetName is "defs" or "lineargradient" or "radialgradient" or "stop") {
                 unsupported++;
+                return;
+            }
+            if (targetName == "symbol") {
+                AddReferencedSymbol(use, target, drawing, style, paintServers, references, transform, ref visited, ref unsupported);
                 return;
             }
             if (!TryOptionalUseLength(use, "x", out double x) || !TryOptionalUseLength(use, "y", out double y)) {

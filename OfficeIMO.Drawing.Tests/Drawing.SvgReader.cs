@@ -172,6 +172,26 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderMapsLocalSymbolViewportsThroughSharedEffectGroups() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<defs><symbol id='badge' viewBox='0 0 10 10'><rect width='10' height='10'/></symbol></defs>"
+            + "<use href='#badge' x='2' y='2' width='20' height='10' fill='red'/>"
+            + "<use href='#badge' x='24' y='4' width='12' height='8' preserveAspectRatio='none' fill='blue'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(2, drawing!.Elements.OfType<OfficeDrawingEffectGroup>().Count());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 5));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(26, 6));
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.DoesNotContain("<symbol", exported, StringComparison.Ordinal);
+        Assert.DoesNotContain("<use", exported, StringComparison.Ordinal);
+        Assert.True(exported.Split(new[] { "transform=\"matrix(" }, StringSplitOptions.None).Length >= 3);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesCyclicExternalAndAmbiguousUseReferences() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><g id='loop'><use href='#loop'/></g><rect id='duplicate' width='5' height='5'/><circle id='duplicate' r='2'/></defs>"
