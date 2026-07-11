@@ -67,6 +67,36 @@ public class PdfParsingModeTests {
         Assert.Empty(document.RepairReport.Diagnostics);
     }
 
+    [Fact]
+    public void InvalidStartXrefIsExplicitlyRebuiltOrRejectedByPolicy() {
+        byte[] clean = PdfDocument.Create().Paragraph(p => p.Text("Cross-reference recovery")).ToBytes();
+        byte[] damaged = ReplaceLastStartXrefOffset(clean, "1");
+
+        PdfReadDocument lenient = PdfReadDocument.Load(damaged, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfParseException strict = Assert.Throws<PdfParseException>(() =>
+            PdfReadDocument.Load(damaged, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+
+        PdfRepairDiagnostic repair = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "InvalidStartXref");
+        Assert.Contains("rebuilt the object index", repair.Message, StringComparison.Ordinal);
+        Assert.Contains("Cross-reference recovery", lenient.ExtractText(), StringComparison.Ordinal);
+        Assert.Equal("InvalidStartXref", strict.Code);
+    }
+
+    [Fact]
+    public void MissingStartXrefIsExplicitlyRebuiltOrRejectedByPolicy() {
+        byte[] pdf = Encoding.ASCII.GetBytes(
+            "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 3 >>\n%%EOF\n");
+
+        PdfReadDocument lenient = PdfReadDocument.Load(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfParseException strict = Assert.Throws<PdfParseException>(() =>
+            PdfReadDocument.Load(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+
+        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingStartXref");
+        Assert.Equal("MissingStartXref", strict.Code);
+    }
+
     private static byte[] BuildStreamPdf(string lengthEntry) {
         string dictionary = string.IsNullOrEmpty(lengthEntry) ? "<< >>" : "<< " + lengthEntry + " >>";
         return Encoding.ASCII.GetBytes(
@@ -76,5 +106,16 @@ public class PdfParsingModeTests {
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>\nendobj\n" +
             "4 0 obj\n" + dictionary + "\nstream\nBT (Recovered stream text) Tj ET\nendstream\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n0\n%%EOF\n");
+    }
+
+    private static byte[] ReplaceLastStartXrefOffset(byte[] pdf, string replacement) {
+        string text = Encoding.ASCII.GetString(pdf);
+        int marker = text.LastIndexOf("startxref", StringComparison.Ordinal);
+        Assert.True(marker >= 0);
+        int start = marker + "startxref".Length;
+        while (start < text.Length && char.IsWhiteSpace(text[start])) start++;
+        int end = start;
+        while (end < text.Length && char.IsDigit(text[end])) end++;
+        return Encoding.ASCII.GetBytes(text.Substring(0, start) + replacement + text.Substring(end));
     }
 }

@@ -180,6 +180,7 @@ internal static partial class PdfSyntax {
                 }
             }
         }
+        ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics);
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
         var activeClassicObjectNumbers = new HashSet<int>();
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, out bool appliedClassicEntries);
@@ -236,6 +237,40 @@ internal static partial class PdfSyntax {
         }
 
         diagnostics.Add(new PdfRepairDiagnostic(code, message, objectNumber));
+    }
+
+    private static void ValidateActiveCrossReference(
+        string text,
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        PdfParsingMode parsingMode,
+        List<PdfRepairDiagnostic> diagnostics) {
+        if (!TryGetLatestStartXrefOffset(text, out int activeOffset)) {
+            HandleStructuralDefect(
+                parsingMode,
+                diagnostics,
+                "MissingStartXref",
+                "The PDF has no readable startxref pointer; lenient parsing rebuilt the object index with a bounded indirect-object scan.",
+                null);
+            return;
+        }
+
+        if (TryParseClassicXrefTable(text, activeOffset, out _, out _, out _, out _)) return;
+        foreach (KeyValuePair<int, int> parsedOffset in parsedOffsets) {
+            if (parsedOffset.Value == activeOffset &&
+                map.TryGetValue(parsedOffset.Key, out PdfIndirectObject? indirect) &&
+                indirect.Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef") {
+                return;
+            }
+        }
+
+        HandleStructuralDefect(
+            parsingMode,
+            diagnostics,
+            "InvalidStartXref",
+            "The active startxref pointer does not identify a readable xref table or xref stream; lenient parsing rebuilt the object index with a bounded indirect-object scan.",
+            null);
     }
 
     private static bool DeclaredStreamLengthEndsAt(string text, int dataStart, int byteLength, int endStream) {
