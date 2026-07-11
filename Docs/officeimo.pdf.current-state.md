@@ -116,7 +116,7 @@ or refuse the input, and the decision is exercised against the curated corpus.
   not only as document-wide flags.
 - [x] Add before/after signature reports that identify which signatures still
   cover which revisions and whether the requested change is permitted.
-- [ ] Add operations incrementally: metadata/XMP first, then supported form
+- [x] Add operations incrementally: metadata/XMP first, then supported form
   updates, annotation updates, permitted stamps, DSS/LTV material, and finally
   other catalog changes that have fixture-backed proof.
 - [x] Never route page deletion, page import, destructive redaction, encryption
