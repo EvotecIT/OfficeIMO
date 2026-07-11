@@ -74,7 +74,7 @@ public static partial class OfficeSvgDrawingReader {
             var resolving = new HashSet<string>(StringComparer.Ordinal);
             if (!TryResolveDefinition(id, element, resolving, 0, out SvgGradientDefinition? definition)) return false;
             try {
-                if (definition!.UserSpaceOnUse) {
+                if (definition!.UserSpaceOnUse || definition.GradientTransform != OfficeTransform.Identity) {
                     paint = new SvgResolvedPaint(definition);
                 } else if (definition.Kind == SvgGradientKind.Linear) {
                     paint = new SvgResolvedPaint(new OfficeLinearGradient(
@@ -123,6 +123,7 @@ public static partial class OfficeSvgDrawingReader {
 
                 if (!UsesSupportedGradientOptions(element)) return false;
                 if (!TryResolveGradientUnits(element, inherited, out bool userSpaceOnUse)) return false;
+                if (!TryResolveGradientTransform(element, inherited, out OfficeTransform gradientTransform)) return false;
                 IReadOnlyList<OfficeGradientStop>? stops = null;
                 if (element.Elements().Any(child => child.Name.LocalName.Equals("stop", StringComparison.OrdinalIgnoreCase))) {
                     if (!TryReadStops(element, out stops)) return false;
@@ -141,7 +142,7 @@ public static partial class OfficeSvgDrawingReader {
                         || !TryCoordinate(element, "x2", defaultX2, allowOutsideUnit: false, userSpaceOnUse, out SvgGradientCoordinate x2)
                         || !TryCoordinate(element, "y2", defaultY2, allowOutsideUnit: false, userSpaceOnUse, out SvgGradientCoordinate y2)
                         || (x1.Equals(x2) && y1.Equals(y2))) return false;
-                    definition = SvgGradientDefinition.Linear(x1, y1, x2, y2, stops, userSpaceOnUse);
+                    definition = SvgGradientDefinition.Linear(x1, y1, x2, y2, stops, userSpaceOnUse, gradientTransform);
                     return true;
                 }
 
@@ -158,7 +159,7 @@ public static partial class OfficeSvgDrawingReader {
                     || focalRadius.Value < 0D
                     || (focalX.Equals(centerX) && focalY.Equals(centerY) && focalRadius.Equals(radius))) return false;
                 if (!userSpaceOnUse && focalRadius.Value > radius.Value) return false;
-                definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse);
+                definition = SvgGradientDefinition.Radial(focalX, focalY, focalRadius, centerX, centerY, radius, stops, userSpaceOnUse, gradientTransform);
                 return true;
             } finally {
                 resolving.Remove(id);
@@ -168,7 +169,19 @@ public static partial class OfficeSvgDrawingReader {
         private static bool UsesSupportedGradientOptions(XElement element) {
             string? spread = element.Attribute("spreadMethod")?.Value.Trim();
             if (!string.IsNullOrEmpty(spread) && !spread!.Equals("pad", StringComparison.OrdinalIgnoreCase)) return false;
-            return element.Attribute("gradientTransform") == null;
+            return true;
+        }
+
+        private static bool TryResolveGradientTransform(
+            XElement element,
+            SvgGradientDefinition? inherited,
+            out OfficeTransform transform) {
+            string? value = element.Attribute("gradientTransform")?.Value;
+            if (string.IsNullOrWhiteSpace(value)) {
+                transform = inherited?.GradientTransform ?? OfficeTransform.Identity;
+                return true;
+            }
+            return OfficeSvgTransformParser.TryParse(value, out transform);
         }
 
         private static bool TryResolveGradientUnits(XElement element, SvgGradientDefinition? inherited, out bool userSpaceOnUse) {
@@ -317,6 +330,7 @@ public static partial class OfficeSvgDrawingReader {
         internal SvgGradientCoordinate Y2 { get; private set; }
         internal SvgGradientCoordinate Radius2 { get; private set; }
         internal bool UserSpaceOnUse { get; private set; }
+        internal OfficeTransform GradientTransform { get; private set; }
         internal IReadOnlyList<OfficeGradientStop> Stops { get; private set; } = Array.Empty<OfficeGradientStop>();
 
         internal static SvgGradientDefinition Linear(
@@ -325,8 +339,9 @@ public static partial class OfficeSvgDrawingReader {
             SvgGradientCoordinate x2,
             SvgGradientCoordinate y2,
             IReadOnlyList<OfficeGradientStop> stops,
-            bool userSpaceOnUse) =>
-            new SvgGradientDefinition { Kind = SvgGradientKind.Linear, X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stops = stops, UserSpaceOnUse = userSpaceOnUse };
+            bool userSpaceOnUse,
+            OfficeTransform gradientTransform) =>
+            new SvgGradientDefinition { Kind = SvgGradientKind.Linear, X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stops = stops, UserSpaceOnUse = userSpaceOnUse, GradientTransform = gradientTransform };
 
         internal static SvgGradientDefinition Radial(
             SvgGradientCoordinate x1,
@@ -336,8 +351,9 @@ public static partial class OfficeSvgDrawingReader {
             SvgGradientCoordinate y2,
             SvgGradientCoordinate radius2,
             IReadOnlyList<OfficeGradientStop> stops,
-            bool userSpaceOnUse) =>
-            new SvgGradientDefinition { Kind = SvgGradientKind.Radial, X1 = x1, Y1 = y1, Radius1 = radius1, X2 = x2, Y2 = y2, Radius2 = radius2, Stops = stops, UserSpaceOnUse = userSpaceOnUse };
+            bool userSpaceOnUse,
+            OfficeTransform gradientTransform) =>
+            new SvgGradientDefinition { Kind = SvgGradientKind.Radial, X1 = x1, Y1 = y1, Radius1 = radius1, X2 = x2, Y2 = y2, Radius2 = radius2, Stops = stops, UserSpaceOnUse = userSpaceOnUse, GradientTransform = gradientTransform };
 
         internal bool TryCreateForShape(
             OfficeShape shape,
@@ -351,30 +367,39 @@ public static partial class OfficeSvgDrawingReader {
             out OfficeRadialGradient? radial) {
             linear = null;
             radial = null;
-            if (!UserSpaceOnUse || shape.Width <= 0D || shape.Height <= 0D || viewportWidth <= 0D || viewportHeight <= 0D) return false;
+            if (shape.Width <= 0D || shape.Height <= 0D || viewportWidth <= 0D || viewportHeight <= 0D) return false;
             try {
-                double x1 = (ResolveAxis(X1, viewportWidth, viewX) - shapeX) / shape.Width;
-                double y1 = (ResolveAxis(Y1, viewportHeight, viewY) - shapeY) / shape.Height;
-                double x2 = (ResolveAxis(X2, viewportWidth, viewX) - shapeX) / shape.Width;
-                double y2 = (ResolveAxis(Y2, viewportHeight, viewY) - shapeY) / shape.Height;
+                OfficePoint first = ResolvePoint(X1, Y1, viewportWidth, viewportHeight, viewX, viewY);
+                OfficePoint second = ResolvePoint(X2, Y2, viewportWidth, viewportHeight, viewX, viewY);
+                first = GradientTransform.TransformPoint(first);
+                second = GradientTransform.TransformPoint(second);
+                double x1 = NormalizeAxis(first.X, shapeX, shape.Width, viewX);
+                double y1 = NormalizeAxis(first.Y, shapeY, shape.Height, viewY);
+                double x2 = NormalizeAxis(second.X, shapeX, shape.Width, viewX);
+                double y2 = NormalizeAxis(second.Y, shapeY, shape.Height, viewY);
                 if (Kind == SvgGradientKind.Linear) {
                     linear = OfficeLinearGradient.CreateImported(x1, y1, x2, y2, Stops);
                     return true;
                 }
 
+                if (Math.Abs(GradientTransform.M12) > 0.0000001D || Math.Abs(GradientTransform.M21) > 0.0000001D) return false;
                 double diagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
-                double radius1 = ResolveRadius(Radius1, diagonal);
-                double radius2 = ResolveRadius(Radius2, diagonal);
-                if (radius2 <= 0D || radius1 < 0D || radius1 > radius2) return false;
+                double radius1 = ResolveRadius(Radius1, diagonal, UserSpaceOnUse);
+                double radius2 = ResolveRadius(Radius2, diagonal, UserSpaceOnUse);
+                double radius1X = radius1 * Math.Abs(GradientTransform.M11);
+                double radius1Y = radius1 * Math.Abs(GradientTransform.M22);
+                double radius2X = radius2 * Math.Abs(GradientTransform.M11);
+                double radius2Y = radius2 * Math.Abs(GradientTransform.M22);
+                if (radius2X <= 0D || radius2Y <= 0D || radius1X < 0D || radius1Y < 0D || radius1X > radius2X || radius1Y > radius2Y) return false;
                 radial = new OfficeRadialGradient(
                     x1,
                     y1,
-                    radius1 / shape.Width,
-                    radius1 / shape.Height,
+                    NormalizeRadius(radius1X, shape.Width, UserSpaceOnUse),
+                    NormalizeRadius(radius1Y, shape.Height, UserSpaceOnUse),
                     x2,
                     y2,
-                    radius2 / shape.Width,
-                    radius2 / shape.Height,
+                    NormalizeRadius(radius2X, shape.Width, UserSpaceOnUse),
+                    NormalizeRadius(radius2Y, shape.Height, UserSpaceOnUse),
                     Stops);
                 return true;
             } catch (ArgumentException) {
@@ -382,11 +407,27 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
 
-        private static double ResolveAxis(SvgGradientCoordinate coordinate, double viewportSize, double viewOrigin) =>
-            coordinate.IsPercentage ? coordinate.Value * viewportSize : coordinate.Value - viewOrigin;
+        private OfficePoint ResolvePoint(
+            SvgGradientCoordinate x,
+            SvgGradientCoordinate y,
+            double viewportWidth,
+            double viewportHeight,
+            double viewX,
+            double viewY) {
+            if (!UserSpaceOnUse) return new OfficePoint(x.Value, y.Value);
+            return new OfficePoint(
+                x.IsPercentage ? viewX + (x.Value * viewportWidth) : x.Value,
+                y.IsPercentage ? viewY + (y.Value * viewportHeight) : y.Value);
+        }
 
-        private static double ResolveRadius(SvgGradientCoordinate coordinate, double viewportDiagonal) =>
-            coordinate.IsPercentage ? coordinate.Value * viewportDiagonal : coordinate.Value;
+        private double NormalizeAxis(double value, double shapeOrigin, double shapeSize, double viewOrigin) =>
+            UserSpaceOnUse ? ((value - viewOrigin) - shapeOrigin) / shapeSize : value;
+
+        private static double ResolveRadius(SvgGradientCoordinate coordinate, double viewportDiagonal, bool userSpaceOnUse) =>
+            userSpaceOnUse && coordinate.IsPercentage ? coordinate.Value * viewportDiagonal : coordinate.Value;
+
+        private static double NormalizeRadius(double radius, double shapeSize, bool userSpaceOnUse) =>
+            userSpaceOnUse ? radius / shapeSize : radius;
     }
 
     private readonly struct SvgGradientCoordinate : IEquatable<SvgGradientCoordinate> {

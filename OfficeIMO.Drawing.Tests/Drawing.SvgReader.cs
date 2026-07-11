@@ -313,6 +313,39 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAppliesSupportedGradientTransformsAndDiagnosesRotatedRadials() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'><defs>"
+            + "<linearGradient id='turn-base' gradientTransform='rotate(90 .5 .5)' x1='0' y1='.5' x2='1' y2='.5'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<linearGradient id='turn' href='#turn-base'/>"
+            + "<radialGradient id='spot' gradientTransform='matrix(.5 0 0 1 .5 0)'><stop stop-color='white'/><stop offset='1' stop-color='navy'/></radialGradient>"
+            + "<linearGradient id='move' gradientUnits='userSpaceOnUse' gradientTransform='translate(-10 0)' x1='40' y1='0' x2='60' y2='0'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<radialGradient id='skewed' gradientTransform='skewX(20)'><stop stop-color='white'/><stop offset='1' stop-color='black'/></radialGradient>"
+            + "</defs><rect width='20' height='20' fill='url(#turn)'/><rect x='20' width='20' height='20' fill='url(#spot)'/>"
+            + "<rect x='40' width='20' height='20' fill='url(#move)'/><rect x='60' width='20' height='20' fill='url(#skewed)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        Assert.Equal(4, drawing!.Shapes.Count);
+        OfficeLinearGradient turned = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[0].Shape.FillGradient);
+        Assert.Equal(0.5D, turned.StartX, 8);
+        Assert.Equal(0D, turned.StartY, 8);
+        Assert.Equal(0.5D, turned.EndX, 8);
+        Assert.Equal(1D, turned.EndY, 8);
+        OfficeRadialGradient spot = Assert.IsType<OfficeRadialGradient>(drawing.Shapes[1].Shape.FillRadialGradient);
+        Assert.Equal(0.75D, spot.EndX, 8);
+        Assert.Equal(0.25D, spot.EndRadiusX, 8);
+        Assert.Equal(0.5D, spot.EndRadiusY, 8);
+        OfficeLinearGradient moved = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[2].Shape.FillGradient);
+        Assert.Equal(-0.5D, moved.StartX, 8);
+        Assert.Equal(0.5D, moved.EndX, 8);
+        Assert.Null(drawing.Shapes[3].Shape.FillRadialGradient);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(10, 2).R > raster.GetPixel(10, 2).B);
+        Assert.True(raster.GetPixel(10, 18).B > raster.GetPixel(10, 18).R);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"
