@@ -15,7 +15,7 @@ public static class HtmlImageExportExtensions {
             throw new ArgumentOutOfRangeException(nameof(options), "The selected HTML render page does not exist.");
         }
 
-        return RenderPage(rendered.Pages[resolved.PageIndex], format, resolved, rendered.Diagnostics);
+        return RenderPage(rendered.Pages[resolved.PageIndex], format, resolved, rendered.Diagnostics, CancellationToken.None);
     }
 
     /// <summary>Exports every paged HTML surface, or the single continuous surface, as PNG or SVG.</summary>
@@ -24,7 +24,7 @@ public static class HtmlImageExportExtensions {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, resolved);
         var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
         foreach (HtmlRenderPage page in rendered.Pages) {
-            results.Add(RenderPage(page, format, resolved, rendered.Diagnostics));
+            results.Add(RenderPage(page, format, resolved, rendered.Diagnostics, CancellationToken.None));
         }
 
         return results.AsReadOnly();
@@ -36,7 +36,9 @@ public static class HtmlImageExportExtensions {
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, resolved, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         if (resolved.PageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "The selected HTML render page does not exist.");
-        return RenderPage(rendered.Pages[resolved.PageIndex], format, resolved, rendered.Diagnostics);
+        OfficeImageExportResult result = RenderPage(rendered.Pages[resolved.PageIndex], format, resolved, rendered.Diagnostics, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 
     /// <summary>Asynchronously resolves resources and exports every paged HTML surface, or the single continuous surface.</summary>
@@ -46,7 +48,8 @@ public static class HtmlImageExportExtensions {
         var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
         foreach (HtmlRenderPage page in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            results.Add(RenderPage(page, format, resolved, rendered.Diagnostics));
+            results.Add(RenderPage(page, format, resolved, rendered.Diagnostics, cancellationToken));
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         return results.AsReadOnly();
@@ -96,11 +99,13 @@ public static class HtmlImageExportExtensions {
     public static async Task SaveAsSvgAsync(this string html, Stream stream, HtmlImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
         await WriteStreamAsync(stream, Encoding.UTF8.GetBytes(await html.ToSvgAsync(options, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
 
-    private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlImageExportOptions options, HtmlDiagnosticReport diagnostics) {
-        OfficeDrawing drawing = page.CreateDrawing();
+    private static OfficeImageExportResult RenderPage(HtmlRenderPage page, OfficeImageExportFormat format, HtmlImageExportOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeDrawing drawing = page.CreateDrawing(cancellationToken);
         byte[] bytes = format == OfficeImageExportFormat.Svg
             ? OfficeDrawingSvgExporter.ToSvgBytes(drawing, options.Scale)
             : OfficeDrawingRasterRenderer.ToPng(drawing, options.Scale, options.BackgroundColor);
+        cancellationToken.ThrowIfCancellationRequested();
         int width = Math.Max(1, (int)Math.Ceiling(page.Width * options.Scale));
         int height = Math.Max(1, (int)Math.Ceiling(page.Height * options.Scale));
         return new OfficeImageExportResult(

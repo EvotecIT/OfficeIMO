@@ -16,7 +16,7 @@ internal static class HtmlPdfRenderedConverter {
         };
         options.RenderOptions = renderOptions;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, renderOptions);
-        return CreatePdf(rendered, options);
+        return CreatePdf(rendered, options, CancellationToken.None);
     }
 
     internal static async Task<PdfCore.PdfDocument> ConvertAsync(string html, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
@@ -26,10 +26,11 @@ internal static class HtmlPdfRenderedConverter {
         options.RenderOptions = renderOptions;
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, renderOptions, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return CreatePdf(rendered, options);
+        return CreatePdf(rendered, options, cancellationToken);
     }
 
-    private static PdfCore.PdfDocument CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options) {
+    private static PdfCore.PdfDocument CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         options.RenderDiagnostics = rendered.Diagnostics.Clone();
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create();
@@ -39,22 +40,25 @@ internal static class HtmlPdfRenderedConverter {
 
         pdf.UseTextFallbacks(options.RenderedTextFallbacks)
             .UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(pdf, rendered, options.RenderDiagnostics);
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(pdf, rendered, options.RenderDiagnostics, cancellationToken);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
+            cancellationToken.ThrowIfCancellationRequested();
             double pageWidth = renderedPage.Width * PointsPerCssPixel;
             double pageHeight = renderedPage.Height * PointsPerCssPixel;
             pdf.Page(page => page
                 .Size(pageWidth, pageHeight)
                 .Margin(0D)
-                .Canvas(canvas => AddPageVisuals(canvas, renderedPage, webFonts)));
+                .Canvas(canvas => AddPageVisuals(canvas, renderedPage, webFonts, cancellationToken)));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return pdf;
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, CancellationToken cancellationToken) {
         foreach (HtmlRenderVisual visual in page.Visuals.OrderBy(item => item.PaintOrder)) {
-            AddVisual(canvas, visual, webFonts, page.Width, page.Height);
+            cancellationToken.ThrowIfCancellationRequested();
+            AddVisual(canvas, visual, webFonts, page.Width, page.Height, cancellationToken);
         }
     }
 
@@ -63,7 +67,9 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderVisual visual,
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
-        double surfaceHeight) {
+        double surfaceHeight,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (visual is HtmlRenderShape shape) {
             AddShape(canvas, shape);
         } else if (visual is HtmlRenderText text) {
@@ -71,15 +77,15 @@ internal static class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderImage image) {
             AddImage(canvas, image);
         } else if (visual is HtmlRenderDrawing drawing) {
-            AddDrawing(canvas, drawing, webFonts);
+            AddDrawing(canvas, drawing, webFonts, cancellationToken);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
-            AddImagePattern(canvas, imagePattern);
+            AddImagePattern(canvas, imagePattern, cancellationToken);
         } else if (visual is HtmlRenderClipGroup group) {
-            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight);
+            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
         } else if (visual is HtmlRenderPathClipGroup pathClipGroup) {
-            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight);
+            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
         } else if (visual is HtmlRenderEffectGroup effectGroup) {
-            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight);
+            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
         }
     }
 
@@ -88,7 +94,8 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderEffectGroup group,
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
-        double surfaceHeight) {
+        double surfaceHeight,
+        CancellationToken cancellationToken) {
         OfficeTransform transform = group.Transform;
         var scaled = new OfficeTransform(
             transform.M11,
@@ -99,7 +106,8 @@ internal static class HtmlPdfRenderedConverter {
             transform.OffsetY * PointsPerCssPixel);
         canvas.Effect(scaled, group.Opacity, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
             }
         });
     }
@@ -109,7 +117,8 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderClipGroup group,
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
-        double surfaceHeight) {
+        double surfaceHeight,
+        CancellationToken cancellationToken) {
         double left = group.ClipHorizontal ? Math.Max(0D, group.ClipX) : 0D;
         double top = group.ClipVertical ? Math.Max(0D, group.ClipY) : 0D;
         double right = group.ClipHorizontal ? Math.Min(surfaceWidth, group.ClipX + group.ClipWidth) : surfaceWidth;
@@ -122,7 +131,8 @@ internal static class HtmlPdfRenderedConverter {
             (bottom - top) * PointsPerCssPixel,
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
                 }
             });
     }
@@ -132,14 +142,16 @@ internal static class HtmlPdfRenderedConverter {
         HtmlRenderPathClipGroup group,
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
-        double surfaceHeight) {
+        double surfaceHeight,
+        CancellationToken cancellationToken) {
         canvas.Clip(
             group.ClipX * PointsPerCssPixel,
             group.ClipY * PointsPerCssPixel,
             group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel),
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
                 }
             });
     }
@@ -208,7 +220,8 @@ internal static class HtmlPdfRenderedConverter {
     private static void AddDrawing(
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderDrawing visual,
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        CancellationToken cancellationToken) {
         OfficeDrawing source = visual.Drawing;
         double scaleX = visual.Width / source.Width;
         double scaleY = visual.Height / source.Height;
@@ -222,6 +235,7 @@ internal static class HtmlPdfRenderedConverter {
             var shapeBatch = new OfficeDrawing(source.Width, source.Height);
             void FlushShapes() {
                 if (shapeBatch.Elements.Count == 0) return;
+                cancellationToken.ThrowIfCancellationRequested();
                 target.Drawing(
                     shapeBatch,
                     originX,
@@ -234,6 +248,7 @@ internal static class HtmlPdfRenderedConverter {
             }
 
             foreach (OfficeDrawingElement element in elements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (element is OfficeDrawingShape shape) {
                     shapeBatch.AddShape(shape.Shape, shape.X, shape.Y);
                     continue;
@@ -280,12 +295,13 @@ internal static class HtmlPdfRenderedConverter {
         AddElements(canvas, source.Elements);
     }
 
-    private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual) {
+    private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual, CancellationToken cancellationToken) {
         OfficeImagePatternLayout pattern = visual.Pattern.Scale(PointsPerCssPixel);
         OfficeImagePlacement area = pattern.Area;
         PdfCore.PdfCanvasImageResource imageResource = PdfCore.PdfCanvasImageResource.Create(visual.Bytes);
         canvas.Clip(area.X, area.Y, area.Width, area.Height, clipped => {
             foreach (OfficeImagePlacement tile in pattern.GetTilePlacements(visual.MaximumTileCount)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 clipped.ImageShared(imageResource, tile.X, tile.Y, tile.Width, tile.Height);
             }
         });
@@ -316,7 +332,9 @@ internal static class HtmlPdfRenderedConverter {
     private static IReadOnlyDictionary<string, PdfCore.PdfStandardFont> RegisterWebFonts(
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
-        HtmlDiagnosticReport? diagnostics) {
+        HtmlDiagnosticReport? diagnostics,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeFontFaceCollection faces = rendered.Fonts;
         var byFamily = faces.Faces
             .GroupBy(face => face.FamilyName, StringComparer.OrdinalIgnoreCase)
@@ -329,6 +347,7 @@ internal static class HtmlPdfRenderedConverter {
         var orderedFamilies = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (HtmlRenderText text in rendered.Pages.SelectMany(page => EnumerateVisuals(page.Visuals)).OfType<HtmlRenderText>()) {
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (string family in EnumerateFamilies(text.Font.FamilyName)) {
                 if (byFamily.ContainsKey(family) && seen.Add(family)) {
                     orderedFamilies.Add(family);
@@ -342,6 +361,7 @@ internal static class HtmlPdfRenderedConverter {
             PdfCore.PdfStandardFont.Courier
         };
         for (int index = 0; index < orderedFamilies.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string family = orderedFamilies[index];
             if (index >= slots.Length) {
                 diagnostics?.Add(
@@ -355,7 +375,7 @@ internal static class HtmlPdfRenderedConverter {
             }
 
             PdfCore.PdfStandardFont slot = slots[index];
-            RegisterFamily(pdf, slot, family, byFamily[family]);
+            RegisterFamily(pdf, slot, family, byFamily[family], cancellationToken);
             mappings[family] = slot;
         }
 
@@ -377,14 +397,19 @@ internal static class HtmlPdfRenderedConverter {
         PdfCore.PdfDocument pdf,
         PdfCore.PdfStandardFont slot,
         string family,
-        IReadOnlyList<OfficeFontFace> faces) {
+        IReadOnlyList<OfficeFontFace> faces,
+        CancellationToken cancellationToken) {
         OfficeFontFace regular = FindFace(faces, OfficeFontStyle.Regular) ?? faces[0];
         OfficeFontFace bold = FindFace(faces, OfficeFontStyle.Bold) ?? regular;
         OfficeFontFace italic = FindFace(faces, OfficeFontStyle.Italic) ?? regular;
         OfficeFontFace boldItalic = FindFace(faces, OfficeFontStyle.Bold | OfficeFontStyle.Italic) ?? bold;
+        cancellationToken.ThrowIfCancellationRequested();
         EmbedFace(pdf, slot, family, "Regular", regular);
+        cancellationToken.ThrowIfCancellationRequested();
         EmbedFace(pdf, PdfCore.PdfStandardFontMapper.GetStyledFont(slot, bold: true, italic: false), family, "Bold", bold);
+        cancellationToken.ThrowIfCancellationRequested();
         EmbedFace(pdf, PdfCore.PdfStandardFontMapper.GetStyledFont(slot, bold: false, italic: true), family, "Italic", italic);
+        cancellationToken.ThrowIfCancellationRequested();
         EmbedFace(pdf, PdfCore.PdfStandardFontMapper.GetStyledFont(slot, bold: true, italic: true), family, "BoldItalic", boldItalic);
     }
 

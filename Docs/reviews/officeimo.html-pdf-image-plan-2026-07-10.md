@@ -226,7 +226,7 @@ Exit gate: the public behavior and proof corpus exist before implementation deta
 
 ### Phase 1 - Prepare the existing HTML foundation
 
-- [x] `RenderAsync` carries caller cancellation through resource resolution, stylesheet/font preparation checkpoints, shared child-block construction, continuous placement, paged block loops, and forced-fragment loops; image and rendered-PDF async surfaces reuse this renderer contract.
+- [x] `RenderAsync` carries caller cancellation through resource resolution, stylesheet/font preparation checkpoints, shared child-block construction, continuous placement, paged block loops, and forced-fragment loops. Image scene projection, per-page encoding boundaries, rendered-PDF font/page/visual projection, buffered serialization boundaries, and final async writes observe the same token.
 
 - [x] Split `HtmlResourcePipeline.cs` into focused partials for element discovery, CSS discovery and syntax, custom-property resolution, selector matching, policy, and internal models.
 - [x] Split `HtmlComputedStyleEngine.cs` by rules, media, supports, cascade, selector matching, CSS syntax, and internal models so the existing engine remains the shared owner.

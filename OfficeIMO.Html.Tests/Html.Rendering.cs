@@ -229,6 +229,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderPage_CreateDrawingHonorsCancellation() {
+        HtmlRenderPage page = HtmlRenderEngine.Render("<p>Drawing cancellation marker</p>").Pages[0];
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => page.CreateDrawing(cancellation.Token));
+    }
+
+    [Fact]
+    public async Task HtmlImageAndRenderedPdfAsync_HonorCancellation() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            "<p>Image cancellation marker</p>".ExportImagesAsync(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            "<p>PDF cancellation marker</p>".SaveAsPdfAsync(HtmlPdfSaveOptions.CreateRenderedProfile(), cancellation.Token));
+    }
+
+    [Fact]
     public async Task HtmlPdf_RenderedProfileAsync_ResolvesExternalImageAndWritesSearchablePdf() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(8, 5);
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();

@@ -29,6 +29,7 @@ public static class HtmlPdfConverterExtensions {
 
         PdfCore.PdfDocument pdf = await HtmlPdfRenderedConverter.ConvertAsync(html, options, cancellationToken).ConfigureAwait(false);
         AddCurrentHtmlDiagnostics(options);
+        cancellationToken.ThrowIfCancellationRequested();
         return pdf;
     }
 
@@ -38,6 +39,7 @@ public static class HtmlPdfConverterExtensions {
         PdfCore.PdfDocument pdf = await html.ToPdfDocumentAsync(options, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = pdf.ToBytes();
+        cancellationToken.ThrowIfCancellationRequested();
         SyncSelectedProfileReport(options);
         return bytes;
     }
