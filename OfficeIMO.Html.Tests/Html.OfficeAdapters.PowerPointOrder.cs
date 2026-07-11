@@ -7,6 +7,31 @@ namespace OfficeIMO.Tests;
 
 public class HtmlOfficeAdaptersPowerPointOrder {
     [Fact]
+    public void PowerPointHtml_RoundTripsShapesAtTheSlideOrigin() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddTextBoxPoints("Origin text", 0, 0, 180, 35);
+        PowerPointTable table = slide.AddTablePoints(1, 1, 0, 0, 220, 60);
+        table.GetCell(0, 0).Text = "Origin table";
+
+        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
+        });
+        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        using PowerPointPresentation imported = result.Presentation;
+        PowerPointSlide importedSlide = Assert.Single(imported.Slides);
+
+        Assert.Contains("data-officeimo-left=\"0\" data-officeimo-top=\"0\"", html, StringComparison.Ordinal);
+        PowerPointTextBox importedText = Assert.Single(importedSlide.TextBoxes);
+        PowerPointTable importedTable = Assert.Single(importedSlide.Tables);
+        Assert.Equal(0D, importedText.LeftPoints, 3);
+        Assert.Equal(0D, importedText.TopPoints, 3);
+        Assert.Equal(0D, importedTable.LeftPoints, 3);
+        Assert.Equal(0D, importedTable.TopPoints, 3);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
     public void PowerPointHtml_RoundTripsUnifiedShapeReadingOrderAndGeometry() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.Slides[0];

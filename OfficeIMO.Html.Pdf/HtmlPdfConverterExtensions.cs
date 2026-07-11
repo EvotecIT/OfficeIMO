@@ -67,7 +67,9 @@ public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts a shared HTML conversion document to a PDF document plus diagnostics.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfResult(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(document.DocumentForConversion, Normalize(options));
+        HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(
+            document.CreateDocumentForConversion(HtmlCssMediaContext.Print),
+            Normalize(options));
         return CreateResult(rendered);
     }
 
@@ -90,7 +92,10 @@ public static partial class HtmlPdfConverterExtensions {
     public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfResultAsync(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlPdfRenderResult rendered = await HtmlPdfRenderedConverter.ConvertAsync(document.DocumentForConversion, Normalize(options), cancellationToken).ConfigureAwait(false);
+        HtmlPdfRenderResult rendered = await HtmlPdfRenderedConverter.ConvertAsync(
+            document.CreateDocumentForConversion(HtmlCssMediaContext.Print),
+            Normalize(options),
+            cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return CreateResult(rendered);
     }

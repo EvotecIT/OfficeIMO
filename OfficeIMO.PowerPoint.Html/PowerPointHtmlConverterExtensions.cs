@@ -258,10 +258,10 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"picture\" data-officeimo-layer-index=\"")
                 .Append(picture.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
-            AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints);
-            AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints);
-            AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints);
-            AppendDataAttribute(body, "data-officeimo-height", picture.HeightPoints);
+            AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-height", picture.HeightPoints, omitWhenZero: false);
             AppendDataAttribute(body, "data-officeimo-rotation", picture.Rotation ?? 0D);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", picture.HorizontalFlip == true);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", picture.VerticalFlip == true);
@@ -289,8 +289,8 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</ul></section>");
     }
 
-    private static void AppendDataAttribute(StringBuilder body, string name, double value) {
-        if (Math.Abs(value) < 0.0000001D) {
+    private static void AppendDataAttribute(StringBuilder body, string name, double value, bool omitWhenZero = true) {
+        if (omitWhenZero && Math.Abs(value) < 0.0000001D) {
             return;
         }
 
@@ -322,10 +322,10 @@ public static partial class PowerPointHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
-            AppendDataAttribute(body, "data-officeimo-left", chart.LeftPoints);
-            AppendDataAttribute(body, "data-officeimo-top", chart.TopPoints);
-            AppendDataAttribute(body, "data-officeimo-width", chart.WidthPoints);
-            AppendDataAttribute(body, "data-officeimo-height", chart.HeightPoints);
+            AppendDataAttribute(body, "data-officeimo-left", chart.LeftPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-top", chart.TopPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-width", chart.WidthPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-height", chart.HeightPoints, omitWhenZero: false);
             AppendDataAttribute(body, "data-officeimo-rotation", chart.Rotation ?? 0D);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", chart.HorizontalFlip == true);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", chart.VerticalFlip == true);

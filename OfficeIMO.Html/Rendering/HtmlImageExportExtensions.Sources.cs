@@ -99,9 +99,10 @@ public static partial class HtmlImageExportExtensions {
     public static async Task SaveAsSvgAsync(this Stream htmlStream, Stream svgStream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
         await (await ReadHtmlAsync(htmlStream, cancellationToken).ConfigureAwait(false)).SaveAsSvgAsync(svgStream, options, pageIndex, cancellationToken).ConfigureAwait(false);
 
-    private static AngleSharp.Html.Dom.IHtmlDocument GetDocument(HtmlConversionDocument document) {
+    private static AngleSharp.Html.Dom.IHtmlDocument GetDocument(HtmlConversionDocument document, HtmlRenderOptions? options) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.DocumentForConversion;
+        HtmlCssMediaContext mediaContext = options?.MediaContext ?? HtmlCssMediaContext.Screen;
+        return document.CreateDocumentForConversion(mediaContext);
     }
 
     private static async Task<byte[]> ToPngDocumentAsync(HtmlConversionDocument document, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>

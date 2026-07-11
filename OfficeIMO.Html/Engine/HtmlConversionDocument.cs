@@ -10,6 +10,7 @@ public sealed class HtmlConversionDocument {
     internal HtmlConversionDocument(
         string sourceHtml,
         IHtmlDocument sourceDocument,
+        IHtmlDocument adapterDocument,
         IHtmlDocument documentForConversion,
         HtmlConversionProfileContract profileContract,
         HtmlInputTrust trust,
@@ -22,6 +23,7 @@ public sealed class HtmlConversionDocument {
         string adapterHtml) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
         SourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
+        AdapterDocument = adapterDocument ?? throw new ArgumentNullException(nameof(adapterDocument));
         DocumentForConversion = documentForConversion ?? throw new ArgumentNullException(nameof(documentForConversion));
         ProfileContract = profileContract ?? throw new ArgumentNullException(nameof(profileContract));
         Trust = trust;
@@ -40,8 +42,21 @@ public sealed class HtmlConversionDocument {
     /// <summary>Parsed source DOM used by logical, style, and resource analysis.</summary>
     public IHtmlDocument SourceDocument { get; }
 
-    /// <summary>Policy-normalized DOM prepared for read-only target adapter consumption.</summary>
+    /// <summary>Policy-normalized DOM filtered for the conversion profile's default media context.</summary>
     public IHtmlDocument DocumentForConversion { get; }
+
+    private IHtmlDocument AdapterDocument { get; }
+
+    /// <summary>
+    /// Creates a policy-normalized DOM filtered for a target media context without reparsing source HTML or mutating shared state.
+    /// </summary>
+    /// <param name="mediaContext">Screen or print media context selected by the target adapter.</param>
+    /// <returns>An independent DOM clone that the target adapter may safely mutate.</returns>
+    public IHtmlDocument CreateDocumentForConversion(HtmlCssMediaContext mediaContext) {
+        IHtmlDocument document = HtmlDocumentParser.CloneDocument(AdapterDocument);
+        HtmlActiveMediaFilter.Filter(document, mediaContext);
+        return document;
+    }
 
     /// <summary>Profile contract advertised to target adapters and galleries.</summary>
     public HtmlConversionProfileContract ProfileContract { get; }

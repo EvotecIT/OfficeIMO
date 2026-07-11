@@ -71,33 +71,23 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private sealed class ExcelMergeExportMap {
         private readonly Dictionary<long, ExcelMergeExportRange> _origins = new();
-        private readonly HashSet<long> _coveredCells = new();
+        private readonly List<ExcelMergeExportRange> _ranges = new();
 
         internal int Count => _origins.Count;
 
         internal bool TryAdd(ExcelMergeExportRange merge) {
-            for (int row = merge.StartRow; row <= merge.EndRow; row++) {
-                for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
-                    long key = GetCellKey(row, column);
-                    if (_coveredCells.Contains(key) || _origins.ContainsKey(key)) {
-                        return false;
-                    }
-                }
+            if (_ranges.Any(existing => existing.Intersects(merge))) {
+                return false;
             }
 
             _origins.Add(GetCellKey(merge.StartRow, merge.StartColumn), merge);
-            for (int row = merge.StartRow; row <= merge.EndRow; row++) {
-                for (int column = merge.StartColumn; column <= merge.EndColumn; column++) {
-                    if (row != merge.StartRow || column != merge.StartColumn) {
-                        _coveredCells.Add(GetCellKey(row, column));
-                    }
-                }
-            }
+            _ranges.Add(merge);
 
             return true;
         }
 
-        internal bool IsCoveredCell(int row, int column) => _coveredCells.Contains(GetCellKey(row, column));
+        internal bool IsCoveredCell(int row, int column) =>
+            _ranges.Any(range => range.Contains(row, column) && (row != range.StartRow || column != range.StartColumn));
 
         internal bool TryGetOrigin(int row, int column, out ExcelMergeExportRange merge) =>
             _origins.TryGetValue(GetCellKey(row, column), out merge);
@@ -124,6 +114,13 @@ public static partial class ExcelHtmlConverterExtensions {
         internal int ColumnSpan => EndColumn - StartColumn + 1;
 
         internal string A1Range => A1.CellReference(StartRow, StartColumn) + ":" + A1.CellReference(EndRow, EndColumn);
+
+        internal bool Contains(int row, int column) =>
+            row >= StartRow && row <= EndRow && column >= StartColumn && column <= EndColumn;
+
+        internal bool Intersects(ExcelMergeExportRange other) =>
+            StartRow <= other.EndRow && EndRow >= other.StartRow
+            && StartColumn <= other.EndColumn && EndColumn >= other.StartColumn;
     }
 
     private static long GetCellKey(int row, int column) => ((long)row << 32) | (uint)column;

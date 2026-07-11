@@ -426,6 +426,10 @@ public partial class Html {
                 <link rel="stylesheet" media="print" href="file:///secret/print-only-link.css">
                 <style media="screen">
                     .total { color: #ff0000; }
+                    .print-only { display: none; }
+                </style>
+                <style media="print">
+                    .print-only { display: block; }
                 </style>
                 <style>
                     @media print { @supports (color: red) { .total { background-image: url(file:///secret/print-total.png); color: #123456; } } }
@@ -439,6 +443,7 @@ public partial class Html {
             <body>
                 <main>
                     <p class="total">Total</p>
+                    <p class="print-only">Print target retained</p>
                     <picture>
                         <source media="screen" srcset="https://example.test/images/screen-chart.png 1x">
                         <source media="print/*c*/ and (color)" type="image/avif" srcset="https://example.test/images/ignored-print-chart.avif 1x">
@@ -469,11 +474,14 @@ public partial class Html {
 
         string screenWordHtml = screen.DocumentForConversion.DocumentElement?.OuterHtml ?? string.Empty;
         string printWordHtml = print.DocumentForConversion.DocumentElement?.OuterHtml ?? string.Empty;
+        string screenRetargetedToPrint = screen.CreateDocumentForConversion(HtmlCssMediaContext.Print).DocumentElement?.OuterHtml ?? string.Empty;
         Assert.Contains("https://example.test/images/screen-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/print-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/screen-chart.png", printWordHtml);
         Assert.DoesNotContain("https://example.test/images/ignored-print-chart.avif", printWordHtml);
         Assert.Contains("https://example.test/images/print-chart.png", printWordHtml);
+        Assert.DoesNotContain(".print-only { display: none; }", screenRetargetedToPrint, StringComparison.Ordinal);
+        Assert.Contains(".print-only { display: block; }", screenRetargetedToPrint, StringComparison.Ordinal);
         string printMarkdown = print.ToMarkdown();
         Assert.DoesNotContain("https://example.test/images/screen-chart.png", printMarkdown);
         Assert.DoesNotContain("https://example.test/images/ignored-print-chart.avif", printMarkdown);
@@ -489,6 +497,8 @@ public partial class Html {
 
         byte[] printPdf = print.ToPdf();
         Assert.NotEmpty(printPdf);
+        string retargetedPdfText = OfficeIMO.Pdf.PdfReadDocument.Load(screen.ToPdf()).ExtractText();
+        Assert.Contains("Print target retained", retargetedPdfText, StringComparison.Ordinal);
     }
 
     [Fact]
