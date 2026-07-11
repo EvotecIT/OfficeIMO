@@ -477,6 +477,31 @@ public sealed partial class PdfDocumentPages {
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges)), options);
     }
 
+    /// <summary>Sets a typed boundary box for selected pages, or every page when no page numbers are supplied.</summary>
+    public PdfDocument SetPageBox(PdfPageBoundaryBox box, double left, double bottom, double right, double top, params int[] pageNumbers) {
+        return PdfDocument.FromBytes(PdfPageEditor.SetPageBox(_document.Snapshot(), box, left, bottom, right, top, pageNumbers));
+    }
+
+    /// <summary>Sets the media box for selected pages.</summary>
+    public PdfDocument SetMediaBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(PdfPageBoundaryBox.MediaBox, left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the crop box for selected pages.</summary>
+    public PdfDocument SetCropBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(PdfPageBoundaryBox.CropBox, left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the bleed box for selected pages.</summary>
+    public PdfDocument SetBleedBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(PdfPageBoundaryBox.BleedBox, left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the trim box for selected pages.</summary>
+    public PdfDocument SetTrimBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(PdfPageBoundaryBox.TrimBox, left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the art box for selected pages.</summary>
+    public PdfDocument SetArtBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(PdfPageBoundaryBox.ArtBox, left, bottom, right, top, pageNumbers);
+
     private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info) {
         var outlines = new List<PdfOutlineItem>();
         FlattenOutlines(info.Outlines, outlines);

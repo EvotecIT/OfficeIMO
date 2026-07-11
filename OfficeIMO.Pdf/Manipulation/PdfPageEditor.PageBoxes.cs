@@ -1,6 +1,31 @@
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfPageEditor {
+    /// <summary>Creates a new PDF with the selected pages updated to the supplied typed boundary box.</summary>
+    public static byte[] SetPageBox(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, params int[] pageNumbers) {
+        return SetPageBox(pdf, GetPageBoxName(box), left, bottom, right, top, pageNumbers);
+    }
+
+    /// <summary>Sets the media box for selected pages, or every page when no page numbers are supplied.</summary>
+    public static byte[] SetMediaBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(pdf, "MediaBox", left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the crop box for selected pages, or every page when no page numbers are supplied.</summary>
+    public static byte[] SetCropBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(pdf, "CropBox", left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the bleed box for selected pages, or every page when no page numbers are supplied.</summary>
+    public static byte[] SetBleedBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(pdf, "BleedBox", left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the trim box for selected pages, or every page when no page numbers are supplied.</summary>
+    public static byte[] SetTrimBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(pdf, "TrimBox", left, bottom, right, top, pageNumbers);
+
+    /// <summary>Sets the art box for selected pages, or every page when no page numbers are supplied.</summary>
+    public static byte[] SetArtBox(byte[] pdf, double left, double bottom, double right, double top, params int[] pageNumbers) =>
+        SetPageBox(pdf, "ArtBox", left, bottom, right, top, pageNumbers);
+
     /// <summary>
     /// Creates a new PDF with the selected pages updated to the supplied production boundary box.
     /// </summary>
@@ -103,6 +128,23 @@ public static partial class PdfPageEditor {
         }
 
         throw new ArgumentOutOfRangeException(nameof(boxName), "Page box name must be MediaBox, CropBox, BleedBox, TrimBox, or ArtBox.");
+    }
+
+    private static string GetPageBoxName(PdfPageBoundaryBox box) {
+        switch (box) {
+            case PdfPageBoundaryBox.MediaBox:
+                return "MediaBox";
+            case PdfPageBoundaryBox.CropBox:
+                return "CropBox";
+            case PdfPageBoundaryBox.BleedBox:
+                return "BleedBox";
+            case PdfPageBoundaryBox.TrimBox:
+                return "TrimBox";
+            case PdfPageBoundaryBox.ArtBox:
+                return "ArtBox";
+            default:
+                throw new ArgumentOutOfRangeException(nameof(box), box, "Unsupported PDF page boundary box.");
+        }
     }
 
     private static void ValidatePageBoxCoordinates(double left, double bottom, double right, double top) {

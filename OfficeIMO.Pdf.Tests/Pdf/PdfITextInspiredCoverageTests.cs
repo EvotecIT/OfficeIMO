@@ -576,6 +576,29 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void PageEditor_NamedAndFluentBoundaryBoxApisUseSharedEngine() {
+        byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
+
+        PdfDocument updated = PdfDocument.Open(pdf)
+            .Pages.SetMediaBox(0, 0, 260, 280)
+            .Pages.SetCropBox(5, 6, 250, 270)
+            .Pages.SetBleedBox(7, 8, 248, 268)
+            .Pages.SetTrimBox(9, 10, 246, 266)
+            .Pages.SetArtBox(11, 12, 244, 264);
+        PdfPageGeometry geometry = updated.Inspect().Pages[0].Geometry!;
+        PdfPageGeometry typed = PdfInspector.Inspect(
+            PdfPageEditor.SetPageBox(pdf, PdfPageBoundaryBox.CropBox, 13, 14, 230, 240)).Pages[0].Geometry!;
+
+        Assert.Equal(260, geometry.MediaBox.Width);
+        Assert.Equal(5, geometry.CropBox!.Left);
+        Assert.Equal(7, geometry.BleedBox!.Left);
+        Assert.Equal(9, geometry.TrimBox!.Left);
+        Assert.Equal(11, geometry.ArtBox!.Left);
+        Assert.Equal(13, typed.CropBox!.Left);
+        Assert.Equal(240, typed.CropBox.Top);
+    }
+
+    [Fact]
     public void PageEditor_SetPageBoxPreservesSourceHeaderVersion() {
         byte[] pdf = BuildVersionedPageBoxPdf("2.0");
 
