@@ -262,7 +262,7 @@ internal static partial class PdfWriter {
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
-            int? markedContentId = RegisterTextStructureElement(rowIsHeader ? "TH" : "TD");
+            int? markedContentId = RegisterTextStructureElement(rowIsHeader ? "TH" : "TD", _canvasStructureParentElementIndex);
             WriteClippedRichParagraph(
                 sb,
                 paragraph,

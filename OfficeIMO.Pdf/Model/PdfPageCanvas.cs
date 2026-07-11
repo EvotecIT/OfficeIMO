@@ -51,6 +51,30 @@ public sealed class PdfPageCanvas {
         return this;
     }
 
+    /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
+    public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
+        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Caption) {
+            throw new ArgumentOutOfRangeException(nameof(role));
+        }
+        Guard.NotNull(build, nameof(build));
+        PdfCanvasStructureOptions snapshot = options?.Clone() ?? new PdfCanvasStructureOptions();
+        bool tableCell = role == PdfCanvasStructureRole.TableHeaderCell || role == PdfCanvasStructureRole.TableCell;
+        if (!tableCell && (snapshot.ColumnSpan != 1 || snapshot.RowSpan != 1)) {
+            throw new ArgumentException("Canvas structure spans are valid only for table cells.", nameof(options));
+        }
+        if (role != PdfCanvasStructureRole.TableHeaderCell && snapshot.HeaderScope.HasValue) {
+            throw new ArgumentException("Canvas table header scope is valid only for table-header cells.", nameof(options));
+        }
+
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (nestedCanvas.Items.Count == 0) {
+            throw new ArgumentException("Canvas structure containers require at least one content item.", nameof(build));
+        }
+        _items.Add(new PdfCanvasStructureItem(role, snapshot, nestedCanvas.Items));
+        return this;
+    }
+
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, PdfColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
@@ -449,6 +473,19 @@ internal sealed class PdfCanvasFigureItem : PdfCanvasItem {
     }
 
     public string AlternativeText { get; }
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+}
+
+internal sealed class PdfCanvasStructureItem : PdfCanvasItem {
+    public PdfCanvasStructureItem(PdfCanvasStructureRole role, PdfCanvasStructureOptions options, IReadOnlyList<PdfCanvasItem> items)
+        : base(0D, 0D) {
+        Role = role;
+        Options = options;
+        Items = items;
+    }
+
+    public PdfCanvasStructureRole Role { get; }
+    public PdfCanvasStructureOptions Options { get; }
     public IReadOnlyList<PdfCanvasItem> Items { get; }
 }
 

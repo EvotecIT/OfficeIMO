@@ -276,7 +276,7 @@ internal static partial class PdfWriter {
                 return null;
             }
 
-            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!);
+            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!, _canvasStructureParentElementIndex);
             int? structElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(style.AlternativeText!));
