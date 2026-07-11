@@ -27,7 +27,10 @@ public sealed class MapiProperty {
     /// <summary>Decoded scalar or array value.</summary>
     public object? Value { get; set; }
 
-    /// <summary>Original serialized value bytes when available.</summary>
+    /// <summary>
+    /// Original serialized value bytes when available. String8 properties retain these bytes when written so an
+    /// untouched value is not damaged by a decode/re-encode cycle; clear this property when replacing the value.
+    /// </summary>
     public byte[]? RawData { get; set; }
 
     /// <summary>Canonical named-property identity for mapped IDs.</summary>

@@ -1,9 +1,9 @@
 namespace OfficeIMO.Email;
 
 internal static class MimeAddressParser {
-    internal static IEnumerable<EmailAddress> ParseMany(string? input) {
+    internal static IEnumerable<EmailAddress> ParseMany(string? input, bool allowSemicolonSeparator = false) {
         if (string.IsNullOrWhiteSpace(input)) yield break;
-        foreach (string item in Split(input!)) {
+        foreach (string item in Split(input!, allowSemicolonSeparator)) {
             EmailAddress? address = ParseOne(item);
             if (address != null) yield return address;
         }
@@ -22,7 +22,7 @@ internal static class MimeAddressParser {
         return new EmailAddress(raw, null, raw);
     }
 
-    private static IEnumerable<string> Split(string input) {
+    private static IEnumerable<string> Split(string input, bool allowSemicolonSeparator) {
         StringBuilder current = new StringBuilder();
         bool quoted = false;
         int angleDepth = 0;
@@ -35,7 +35,8 @@ internal static class MimeAddressParser {
                 if (character == '(') commentDepth++;
                 if (character == ')' && commentDepth > 0) commentDepth--;
             }
-            if (character == ',' && !quoted && angleDepth == 0 && commentDepth == 0) {
+            if ((character == ',' || (allowSemicolonSeparator && character == ';')) &&
+                !quoted && angleDepth == 0 && commentDepth == 0) {
                 if (current.Length > 0) yield return current.ToString();
                 current.Clear();
             } else {

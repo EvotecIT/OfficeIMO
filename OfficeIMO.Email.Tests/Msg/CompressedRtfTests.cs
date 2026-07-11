@@ -113,6 +113,23 @@ public sealed class CompressedRtfTests {
         Assert.Equal(rtf, oracle.BodyRtf);
     }
 
+    [Fact]
+    public void MsgReadProjectsOutlookEncapsulatedHtmlThroughOfficeImoRtf() {
+        const string rtf = @"{\rtf1\ansi\fromhtml1{\*\htmltag <p><b>Rich</b> message</p>}Plain fallback}";
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            Subject = "HTML in RTF"
+        };
+        source.Body.Rtf = rtf;
+
+        EmailReadResult result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+
+        Assert.Equal(rtf, result.Document.Body.Rtf);
+        Assert.Equal("<p><b>Rich</b> message</p>", result.Document.Body.Html);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
     private static byte[] BytePreservingBytes(string value) {
         byte[] result = new byte[value.Length];
         for (int index = 0; index < value.Length; index++) result[index] = checked((byte)value[index]);

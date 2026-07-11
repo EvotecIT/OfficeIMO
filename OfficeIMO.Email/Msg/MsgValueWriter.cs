@@ -9,7 +9,9 @@ internal static class MsgValueWriter {
     internal static bool IsMultiple(MapiPropertyType type) => (((ushort)type) & 0x1000) != 0;
 
     internal static byte[] EncodeScalar(MapiProperty property) {
-        if (property.Value == null && property.RawData != null) return (byte[])property.RawData.Clone();
+        if (property.RawData != null && (property.Value == null || property.PropertyType == MapiPropertyType.String8)) {
+            return (byte[])property.RawData.Clone();
+        }
         object? value = property.Value;
         switch (property.PropertyType) {
             case MapiPropertyType.Unspecified:

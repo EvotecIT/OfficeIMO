@@ -50,6 +50,26 @@ public enum EmailRecipientKind {
     Room = 6
 }
 
+/// <summary>Outlook/MAPI message importance.</summary>
+public enum EmailMessageImportance {
+    /// <summary>Low importance.</summary>
+    Low = 0,
+    /// <summary>Normal importance.</summary>
+    Normal = 1,
+    /// <summary>High importance.</summary>
+    High = 2
+}
+
+/// <summary>Outlook/MAPI transport priority.</summary>
+public enum EmailMessagePriority {
+    /// <summary>Non-urgent priority.</summary>
+    NonUrgent = -1,
+    /// <summary>Normal priority.</summary>
+    Normal = 0,
+    /// <summary>Urgent priority.</summary>
+    Urgent = 1
+}
+
 /// <summary>Severity assigned to a structured email diagnostic.</summary>
 public enum EmailDiagnosticSeverity {
     /// <summary>Informational observation.</summary>

@@ -18,6 +18,9 @@ public sealed class EmailAddress {
     /// <summary>Original source spelling when available.</summary>
     public string? RawValue { get; set; }
 
+    /// <summary>Source address type such as SMTP, EX, X400, or FAX.</summary>
+    public string? AddressType { get; set; }
+
     /// <inheritdoc />
     public override string ToString() {
         if (!string.IsNullOrWhiteSpace(DisplayName) && !string.IsNullOrWhiteSpace(Address)) {
@@ -41,6 +44,18 @@ public sealed class EmailRecipient {
 
     /// <summary>Recipient address.</summary>
     public EmailAddress Address { get; set; }
+
+    /// <summary>MAPI row identifier when the source supplies one.</summary>
+    public int? MapiRowId { get; set; }
+
+    /// <summary>MAPI object type, normally 6 for a messaging user.</summary>
+    public int? MapiObjectType { get; set; }
+
+    /// <summary>MAPI display type.</summary>
+    public int? MapiDisplayType { get; set; }
+
+    /// <summary>Extended MAPI display type used to distinguish rooms.</summary>
+    public int? MapiDisplayTypeEx { get; set; }
 
     /// <summary>Recipient-level MAPI properties.</summary>
     public IList<MapiProperty> MapiProperties => _mapiProperties;

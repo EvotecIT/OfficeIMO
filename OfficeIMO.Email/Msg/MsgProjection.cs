@@ -7,8 +7,10 @@ internal static class MsgProjection {
     internal static readonly Guid PsetidCommon = new Guid("00062008-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidLog = new Guid("0006200A-0000-0000-C000-000000000046");
     internal static readonly Guid PsetidNote = new Guid("0006200E-0000-0000-C000-000000000046");
+    internal static readonly Guid PsPublicStrings = new Guid("00020329-0000-0000-C000-000000000046");
 
-    internal static void Apply(EmailDocument document, MsgParserState state, string location) {
+    internal static void Apply(EmailDocument document, MsgParserState state, string location,
+        MapiStringEncodingContext encoding) {
         IList<MapiProperty> properties = document.MapiProperties;
         document.MessageClass = GetString(properties, 0x001A) ?? "IPM.Note";
         document.OutlookItemKind = Classify(document.MessageClass);
@@ -16,16 +18,21 @@ internal static class MsgProjection {
         document.MessageId = TrimAngle(GetString(properties, 0x1035));
         document.Date = GetDate(properties, 0x0039) ?? GetDate(properties, 0x3007);
         document.ReceivedDate = GetDate(properties, 0x0E06);
+        ApplyMessageMetadata(document, properties);
         document.Body.Text = GetString(properties, 0x1000);
-        document.Body.Html = GetHtml(properties, state.Diagnostics, location);
+        document.Body.Html = GetHtml(properties, encoding, state.Diagnostics, location);
         document.Body.Rtf = GetRtf(properties, state, location);
+        if (document.Body.Html == null && document.Body.Rtf != null) {
+            document.Body.Html = MsgRtfBodyProjection.TryGetEncapsulatedHtml(
+                document.Body.Rtf,
+                state,
+                string.Concat(location, "/rtf-html"));
+        }
 
-        string? fromName = GetString(properties, 0x0042);
-        string? fromAddress = GetString(properties, 0x5D02) ?? GetString(properties, 0x0065);
-        if (fromName != null || fromAddress != null) document.From = new EmailAddress(fromAddress, fromName);
-        string? senderName = GetString(properties, 0x0C1A);
-        string? senderAddress = GetString(properties, 0x5D01) ?? GetString(properties, 0x0C1F);
-        if (senderName != null || senderAddress != null) document.Sender = new EmailAddress(senderAddress, senderName);
+        document.From = MsgAddressProjection.ReadAddress(
+            properties, 0x0042, 0x5D02, 0x0065, 0x0064);
+        document.Sender = MsgAddressProjection.ReadAddress(
+            properties, 0x0C1A, 0x5D01, 0x0C1F, 0x0C1E);
 
         string? transportHeaders = GetString(properties, 0x007D);
         if (!string.IsNullOrWhiteSpace(transportHeaders)) {
@@ -47,7 +54,49 @@ internal static class MsgProjection {
             document.Properties[key] = property.Value;
         }
 
+        ApplyReplyTo(document, properties);
         ApplyTyped(document);
+    }
+
+    private static void ApplyReplyTo(EmailDocument document, IEnumerable<MapiProperty> properties) {
+        string? replyTo = GetString(properties, 0x0050);
+        if (string.IsNullOrWhiteSpace(replyTo)) return;
+
+        foreach (EmailAddress address in MimeAddressParser.ParseMany(replyTo, allowSemicolonSeparator: true)) {
+            if (document.Recipients.Any(recipient => recipient.Kind == EmailRecipientKind.ReplyTo &&
+                string.Equals(recipient.Address.Address, address.Address, StringComparison.OrdinalIgnoreCase))) {
+                continue;
+            }
+            document.Recipients.Add(new EmailRecipient(EmailRecipientKind.ReplyTo, address));
+        }
+    }
+
+    private static void ApplyMessageMetadata(EmailDocument document, IEnumerable<MapiProperty> properties) {
+        EmailMessageMetadata metadata = document.MessageMetadata;
+        metadata.SubjectPrefix = GetString(properties, 0x003D);
+        metadata.NormalizedSubject = GetString(properties, 0x0E1D);
+        metadata.ConversationTopic = GetString(properties, 0x0070);
+        metadata.ConversationIndex = properties.FirstOrDefault(property => property.PropertyId == 0x0071)?.Value as byte[];
+        metadata.InternetReferences = GetString(properties, 0x1039);
+        metadata.InReplyToId = GetString(properties, 0x1042);
+        int? importance = GetInt(properties, 0x0017);
+        if (importance.HasValue && Enum.IsDefined(typeof(EmailMessageImportance), importance.Value)) {
+            metadata.Importance = (EmailMessageImportance)importance.Value;
+        }
+        int? priority = GetInt(properties, 0x0026);
+        if (priority.HasValue && Enum.IsDefined(typeof(EmailMessagePriority), priority.Value)) {
+            metadata.Priority = (EmailMessagePriority)priority.Value;
+        }
+        metadata.IconIndex = GetInt(properties, 0x1080);
+        int flags = GetInt(properties, 0x0E07) ?? 0;
+        metadata.IsDraft = (flags & 0x0008) != 0;
+        metadata.IsRead = (flags & 0x0001) != 0;
+        metadata.ReadReceiptRequested = GetBool(properties, 0x0029) ?? false;
+        metadata.CreatedDate = GetDate(properties, 0x3007);
+        metadata.ModifiedDate = GetDate(properties, 0x3008);
+        foreach (string category in GetNamedStrings(properties, PsPublicStrings, "Keywords", 0x9000)) {
+            metadata.Categories.Add(category);
+        }
     }
 
     internal static void ApplyTyped(EmailDocument document) {
@@ -85,8 +134,21 @@ internal static class MsgProjection {
         return ConvertDate(properties.FirstOrDefault(property => property.PropertyId == id)?.Value);
     }
 
+    internal static bool? GetBool(IEnumerable<MapiProperty> properties, ushort id) {
+        return ConvertBool(properties.FirstOrDefault(property => property.PropertyId == id)?.Value);
+    }
+
     internal static MapiProperty? GetNamed(IEnumerable<MapiProperty> properties, Guid set, uint localId) {
         return properties.FirstOrDefault(property => property.Name?.PropertySet == set && property.Name.LocalId == localId);
+    }
+
+    private static IEnumerable<string> GetNamedStrings(IEnumerable<MapiProperty> properties, Guid set,
+        string name, uint legacyLocalId) {
+        MapiProperty? property = properties.FirstOrDefault(item => item.Name?.PropertySet == set &&
+            (string.Equals(item.Name.Name, name, StringComparison.OrdinalIgnoreCase) || item.Name.LocalId == legacyLocalId));
+        if (property?.Value is string scalar) return new[] { scalar };
+        if (property?.Value is object[] values) return values.OfType<string>();
+        return Array.Empty<string>();
     }
 
     private static OutlookAppointment CreateAppointment(IEnumerable<MapiProperty> properties) {
@@ -144,14 +206,12 @@ internal static class MsgProjection {
         };
     }
 
-    private static string? GetHtml(IEnumerable<MapiProperty> properties, IList<EmailDiagnostic> diagnostics, string location) {
+    private static string? GetHtml(IEnumerable<MapiProperty> properties, MapiStringEncodingContext encoding,
+        IList<EmailDiagnostic> diagnostics, string location) {
         MapiProperty? property = properties.FirstOrDefault(item => item.PropertyId == 0x1013);
         if (property?.Value is string text) return text;
         if (property?.Value is byte[] bytes) {
-            int codePage = GetInt(properties, 0x3FDE) ?? GetInt(properties, 0x3FFD) ?? 65001;
-            string charset = codePage == 65001 ? "utf-8" : codePage == 20127 ? "us-ascii" :
-                codePage == 28591 ? "iso-8859-1" : string.Concat("windows-", codePage.ToString(CultureInfo.InvariantCulture));
-            return MimeTextCodec.DecodeText(bytes, charset, diagnostics, location).TrimEnd('\0');
+            return encoding.Decode(bytes, diagnostics, location).TrimEnd('\0');
         }
         return null;
     }

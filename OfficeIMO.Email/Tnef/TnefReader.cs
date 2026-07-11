@@ -71,7 +71,7 @@ internal static class TnefReader {
             }
         }
 
-        MsgProjection.Apply(document, state, location);
+        MsgProjection.Apply(document, state, location, MapiStringEncodingContext.FromCodePage(codePage));
         document.Format = EmailFileFormat.Tnef;
         document.Subject = subject ?? document.Subject;
         document.Body.Text = body ?? document.Body.Text;
@@ -163,6 +163,14 @@ internal static class TnefReader {
         attachment.ContentType = MsgProjection.GetString(attachment.MapiProperties, 0x370E) ?? attachment.ContentType;
         attachment.ContentId = MsgProjection.GetString(attachment.MapiProperties, 0x3712)?.Trim().Trim('<', '>') ?? attachment.ContentId;
         attachment.ContentLocation = MsgProjection.GetString(attachment.MapiProperties, 0x3713) ?? attachment.ContentLocation;
+        attachment.IsHidden = MsgProjection.GetBool(attachment.MapiProperties, 0x7FFE) ?? attachment.IsHidden;
+        attachment.IsContactPhoto = MsgProjection.GetBool(attachment.MapiProperties, 0x7FFF) ?? attachment.IsContactPhoto;
+        attachment.RenderingPosition = MsgProjection.GetInt(attachment.MapiProperties, 0x370B) ?? attachment.RenderingPosition;
+        attachment.CreatedDate = MsgProjection.GetDate(attachment.MapiProperties, 0x3007) ?? attachment.CreatedDate;
+        attachment.ModifiedDate = MsgProjection.GetDate(attachment.MapiProperties, 0x3008) ?? attachment.ModifiedDate;
+        attachment.LinkedPath = MsgProjection.GetString(attachment.MapiProperties, 0x370D) ?? attachment.LinkedPath;
+        attachment.IsInline = attachment.IsInline || !string.IsNullOrWhiteSpace(attachment.ContentId) ||
+            ((MsgProjection.GetInt(attachment.MapiProperties, 0x3714) ?? 0) & 0x00000004) != 0;
         int method = MsgProjection.GetInt(attachment.MapiProperties, 0x3705) ?? attachment.MapiAttachMethod ?? 1;
         attachment.MapiAttachMethod = method;
         MapiProperty? dataProperty = attachment.MapiProperties.FirstOrDefault(property => property.PropertyId == 0x3701);
@@ -208,12 +216,16 @@ internal static class TnefReader {
 
     private static void AddRecipients(EmailDocument document, IEnumerable<List<MapiProperty>> rows) {
         foreach (List<MapiProperty> properties in rows) {
-            int type = MsgProjection.GetInt(properties, 0x0C15) ?? 0;
-            EmailRecipientKind kind = type == 1 ? EmailRecipientKind.To : type == 2 ? EmailRecipientKind.Cc :
-                type == 3 ? EmailRecipientKind.Bcc : EmailRecipientKind.Unknown;
-            string? display = MsgProjection.GetString(properties, 0x3001);
-            string? address = MsgProjection.GetString(properties, 0x39FE) ?? MsgProjection.GetString(properties, 0x3003);
-            var recipient = new EmailRecipient(kind, new EmailAddress(address, display));
+            EmailAddress? address = MsgAddressProjection.ReadAddress(
+                properties, 0x3001, 0x39FE, 0x3003, 0x3002, 0x403E);
+            var recipient = new EmailRecipient(
+                MsgAddressProjection.ReadRecipientKind(properties),
+                address ?? new EmailAddress(null)) {
+                MapiRowId = MsgProjection.GetInt(properties, 0x3000),
+                MapiObjectType = MsgProjection.GetInt(properties, 0x0FFE),
+                MapiDisplayType = MsgProjection.GetInt(properties, 0x3900),
+                MapiDisplayTypeEx = MsgProjection.GetInt(properties, 0x3905)
+            };
             foreach (MapiProperty property in properties) recipient.MapiProperties.Add(property);
             document.Recipients.Add(recipient);
         }

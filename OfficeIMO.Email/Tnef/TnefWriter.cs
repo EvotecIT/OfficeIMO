@@ -38,9 +38,11 @@ internal static class TnefWriter {
             if (document.ReceivedDate.HasValue) WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.DateReceived, EncodeDate(document.ReceivedDate.Value));
             WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageId, document.MessageId);
 
-            if (document.Recipients.Count > 0) {
-                IReadOnlyList<MapiProperty>[] rows = document.Recipients
-                    .Select(recipient => MsgWriter.CreateRecipientProperties(recipient).Properties).ToArray();
+            IReadOnlyList<MapiProperty>[] rows = document.Recipients
+                .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
+                .Select((recipient, index) => MsgWriter.CreateRecipientProperties(recipient, index).Properties)
+                .ToArray();
+            if (rows.Length > 0) {
                 WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.RecipientTable,
                     TnefMapiCodec.WriteRecipientTable(rows, codePage));
             }

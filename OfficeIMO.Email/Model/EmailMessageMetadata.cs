@@ -1,0 +1,51 @@
+namespace OfficeIMO.Email;
+
+/// <summary>Common Outlook/MAPI message metadata not represented by MIME headers alone.</summary>
+public sealed class EmailMessageMetadata {
+    private readonly List<string> _categories = new List<string>();
+
+    /// <summary>Subject prefix such as <c>RE: </c> or <c>FW: </c>.</summary>
+    public string? SubjectPrefix { get; set; }
+
+    /// <summary>Subject without the reply/forward prefix.</summary>
+    public string? NormalizedSubject { get; set; }
+
+    /// <summary>Conversation topic displayed by Outlook.</summary>
+    public string? ConversationTopic { get; set; }
+
+    /// <summary>Binary Outlook conversation index.</summary>
+    public byte[]? ConversationIndex { get; set; }
+
+    /// <summary>Internet References field retained in MAPI form.</summary>
+    public string? InternetReferences { get; set; }
+
+    /// <summary>Internet In-Reply-To identifier retained in MAPI form.</summary>
+    public string? InReplyToId { get; set; }
+
+    /// <summary>Message importance.</summary>
+    public EmailMessageImportance? Importance { get; set; }
+
+    /// <summary>Message transport priority.</summary>
+    public EmailMessagePriority? Priority { get; set; }
+
+    /// <summary>Outlook icon-index hint.</summary>
+    public int? IconIndex { get; set; }
+
+    /// <summary>Whether the message is still being composed.</summary>
+    public bool IsDraft { get; set; }
+
+    /// <summary>Read state when present.</summary>
+    public bool? IsRead { get; set; }
+
+    /// <summary>Whether a read receipt was requested.</summary>
+    public bool ReadReceiptRequested { get; set; }
+
+    /// <summary>Message creation timestamp.</summary>
+    public DateTimeOffset? CreatedDate { get; set; }
+
+    /// <summary>Last MAPI modification timestamp.</summary>
+    public DateTimeOffset? ModifiedDate { get; set; }
+
+    /// <summary>Outlook categories.</summary>
+    public IList<string> Categories => _categories;
+}

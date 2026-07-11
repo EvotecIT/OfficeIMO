@@ -24,48 +24,61 @@ internal static class MsgReader {
 
         MsgParserState state = new MsgParserState(options, diagnostics, cancellationToken);
         MsgNamedPropertyMap names = MsgNamedPropertyMap.Read(compound, diagnostics, state);
-        document = ReadMessage(compound, string.Empty, MsgPropertyStreamKind.TopLevel, names, state, 0);
+        document = ReadMessage(compound, string.Empty, MsgPropertyStreamKind.TopLevel, names, state, 0, null);
         return true;
     }
 
     private static EmailDocument ReadMessage(OfficeCompoundFile compound, string prefix, MsgPropertyStreamKind kind,
-        MsgNamedPropertyMap names, MsgParserState state, int nestedDepth) {
+        MsgNamedPropertyMap names, MsgParserState state, int nestedDepth,
+        MapiStringEncodingContext? inheritedEncoding) {
         state.ThrowIfCancellationRequested();
         var document = new EmailDocument { Format = EmailFileFormat.OutlookMsg };
-        foreach (MapiProperty property in MsgPropertyReader.Read(compound, prefix, kind, names, state)) {
+        List<MapiProperty> messageProperties = MsgPropertyReader.Read(
+            compound, prefix, kind, names, state, inheritedEncoding, out MapiStringEncodingContext encoding);
+        document.OutlookCodePage = encoding.PrimaryCodePage;
+        foreach (MapiProperty property in messageProperties) {
             document.MapiProperties.Add(property);
         }
-        MsgProjection.Apply(document, state, string.IsNullOrEmpty(prefix) ? "msg" : prefix);
+        MsgProjection.Apply(document, state, string.IsNullOrEmpty(prefix) ? "msg" : prefix, encoding);
 
         foreach (string recipientPath in GetDirectChildStorages(compound, prefix, "__recip_version1.0_#")) {
             state.ThrowIfCancellationRequested();
-            ReadRecipient(compound, recipientPath, names, state, document);
+            ReadRecipient(compound, recipientPath, names, state, document, encoding);
         }
         foreach (string attachmentPath in GetDirectChildStorages(compound, prefix, "__attach_version1.0_#")) {
             state.ThrowIfCancellationRequested();
-            ReadAttachment(compound, attachmentPath, names, state, document, nestedDepth);
+            ReadAttachment(compound, attachmentPath, names, state, document, nestedDepth, encoding);
         }
         return document;
     }
 
     private static void ReadRecipient(OfficeCompoundFile compound, string path, MsgNamedPropertyMap names,
-        MsgParserState state, EmailDocument document) {
-        List<MapiProperty> properties = MsgPropertyReader.Read(compound, path, MsgPropertyStreamKind.ChildObject, names, state);
-        int recipientType = MsgProjection.GetInt(properties, 0x0C15) ?? 0;
-        EmailRecipientKind kind = recipientType == 1 ? EmailRecipientKind.To :
-            recipientType == 2 ? EmailRecipientKind.Cc : recipientType == 3 ? EmailRecipientKind.Bcc : EmailRecipientKind.Unknown;
-        string? displayName = MsgProjection.GetString(properties, 0x3001);
-        string? address = MsgProjection.GetString(properties, 0x39FE) ?? MsgProjection.GetString(properties, 0x3003);
-        string? addressType = MsgProjection.GetString(properties, 0x3002);
-        var recipient = new EmailRecipient(kind, new EmailAddress(address, displayName,
-            addressType == null ? address : string.Concat(addressType, ":", address)));
+        MsgParserState state, EmailDocument document, MapiStringEncodingContext inheritedEncoding) {
+        List<MapiProperty> properties = MsgPropertyReader.Read(
+            compound, path, MsgPropertyStreamKind.ChildObject, names, state, inheritedEncoding, out _);
+        EmailAddress? address = MsgAddressProjection.ReadAddress(
+            properties,
+            displayNameId: 0x3001,
+            smtpAddressId: 0x39FE,
+            emailAddressId: 0x3003,
+            addressTypeId: 0x3002,
+            originalAddressId: 0x403E);
+        var recipient = new EmailRecipient(
+            MsgAddressProjection.ReadRecipientKind(properties),
+            address ?? new EmailAddress(null)) {
+            MapiRowId = MsgProjection.GetInt(properties, 0x3000),
+            MapiObjectType = MsgProjection.GetInt(properties, 0x0FFE),
+            MapiDisplayType = MsgProjection.GetInt(properties, 0x3900),
+            MapiDisplayTypeEx = MsgProjection.GetInt(properties, 0x3905)
+        };
         foreach (MapiProperty property in properties) recipient.MapiProperties.Add(property);
         document.Recipients.Add(recipient);
     }
 
     private static void ReadAttachment(OfficeCompoundFile compound, string path, MsgNamedPropertyMap names,
-        MsgParserState state, EmailDocument document, int nestedDepth) {
-        List<MapiProperty> properties = MsgPropertyReader.Read(compound, path, MsgPropertyStreamKind.ChildObject, names, state);
+        MsgParserState state, EmailDocument document, int nestedDepth, MapiStringEncodingContext inheritedEncoding) {
+        List<MapiProperty> properties = MsgPropertyReader.Read(
+            compound, path, MsgPropertyStreamKind.ChildObject, names, state, inheritedEncoding, out _);
         int method = MsgProjection.GetInt(properties, 0x3705) ?? 1;
         byte[]? content = properties.FirstOrDefault(property => property.PropertyId == 0x3701)?.Value as byte[];
         var attachment = new EmailAttachment {
@@ -74,7 +87,14 @@ internal static class MsgReader {
             ContentType = MsgProjection.GetString(properties, 0x370E),
             ContentId = TrimAngle(MsgProjection.GetString(properties, 0x3712)),
             ContentLocation = MsgProjection.GetString(properties, 0x3713),
-            IsInline = !string.IsNullOrWhiteSpace(MsgProjection.GetString(properties, 0x3712)),
+            IsInline = !string.IsNullOrWhiteSpace(MsgProjection.GetString(properties, 0x3712)) ||
+                ((MsgProjection.GetInt(properties, 0x3714) ?? 0) & 0x00000004) != 0,
+            IsHidden = MsgProjection.GetBool(properties, 0x7FFE) ?? false,
+            IsContactPhoto = MsgProjection.GetBool(properties, 0x7FFF) ?? false,
+            RenderingPosition = MsgProjection.GetInt(properties, 0x370B) ?? -1,
+            CreatedDate = MsgProjection.GetDate(properties, 0x3007),
+            ModifiedDate = MsgProjection.GetDate(properties, 0x3008),
+            LinkedPath = MsgProjection.GetString(properties, 0x370D),
             MapiAttachMethod = method,
             Length = content?.LongLength ?? Math.Max(0, MsgProjection.GetInt(properties, 0x0E20) ?? 0)
         };
@@ -91,7 +111,7 @@ internal static class MsgReader {
                     EmailDiagnosticSeverity.Warning, objectStorage));
             } else {
                 attachment.EmbeddedDocument = ReadMessage(compound, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,
-                    names, state, nestedDepth + 1);
+                    names, state, nestedDepth + 1, inheritedEncoding);
             }
         } else if (method == 6 && hasObjectStorage) {
             long total = 0;

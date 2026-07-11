@@ -13,7 +13,10 @@ public sealed class EmailPackagingContractTests {
         XNamespace ns = project.Root?.Name.Namespace ?? XNamespace.None;
 
         Assert.Empty(project.Descendants(ns + "PackageReference"));
-        Assert.Empty(project.Descendants(ns + "ProjectReference"));
+        string[] projectReferences = project.Descendants(ns + "ProjectReference")
+            .Select(element => ((string?)element.Attribute("Include") ?? string.Empty).Replace('\\', '/'))
+            .ToArray();
+        Assert.Equal(new[] { "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj" }, projectReferences);
         string[] sharedSources = project.Descendants(ns + "Compile")
             .Select(element => (string?)element.Attribute("Include"))
             .Where(value => !string.IsNullOrWhiteSpace(value))
@@ -32,6 +35,7 @@ public sealed class EmailPackagingContractTests {
         Assert.DoesNotContain(references, name => string.Equals(name, "MimeKit", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "MailKit", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetRepositoryRoot() {

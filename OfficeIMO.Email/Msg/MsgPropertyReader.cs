@@ -10,12 +10,14 @@ internal enum MsgPropertyStreamKind {
 
 internal static class MsgPropertyReader {
     internal static List<MapiProperty> Read(OfficeCompoundFile compound, string prefix, MsgPropertyStreamKind kind,
-        MsgNamedPropertyMap names, MsgParserState state) {
+        MsgNamedPropertyMap names, MsgParserState state, MapiStringEncodingContext? inheritedEncoding,
+        out MapiStringEncodingContext encoding) {
         string propertyPath = MsgBinary.CombinePath(prefix, "__properties_version1.0");
         var result = new List<MapiProperty>();
         if (!compound.Streams.TryGetValue(propertyPath, out byte[]? propertyStream)) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTIES_MISSING",
                 "The required MSG property stream is missing.", EmailDiagnosticSeverity.Error, prefix));
+            encoding = inheritedEncoding ?? MapiStringEncodingContext.Resolve(Array.Empty<byte>(), 0, null);
             return result;
         }
 
@@ -24,6 +26,7 @@ internal static class MsgPropertyReader {
         if (propertyStream.Length < headerLength) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTIES_TRUNCATED",
                 "The MSG property stream header is truncated.", EmailDiagnosticSeverity.Error, propertyPath));
+            encoding = inheritedEncoding ?? MapiStringEncodingContext.Resolve(Array.Empty<byte>(), 0, null);
             return result;
         }
         int remainder = propertyStream.Length - headerLength;
@@ -32,7 +35,7 @@ internal static class MsgPropertyReader {
                 "The MSG property stream has a trailing partial entry.", EmailDiagnosticSeverity.Warning, propertyPath));
         }
 
-        int codePage = DetermineCodePage(propertyStream, headerLength);
+        encoding = MapiStringEncodingContext.Resolve(propertyStream, headerLength, inheritedEncoding);
         int count = remainder / 16;
         for (int index = 0; index < count; index++) {
             state.ThrowIfCancellationRequested();
@@ -53,8 +56,8 @@ internal static class MsgPropertyReader {
                     } else if (compound.Streams.TryGetValue(valuePath, out byte[]? streamBytes)) {
                         raw = streamBytes;
                         value = IsMultiple(type)
-                            ? DecodeMultiple(type, streamBytes, compound, prefix, valueName, codePage, state, valuePath)
-                            : DecodeScalar(type, streamBytes, codePage, state, valuePath);
+                            ? DecodeMultiple(type, streamBytes, compound, prefix, valueName, encoding, state, valuePath)
+                            : DecodeScalar(type, streamBytes, encoding, state, valuePath);
                     } else {
                         state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTY_STREAM_MISSING",
                             string.Concat("Property stream ", valueName, " is missing."),
@@ -62,7 +65,7 @@ internal static class MsgPropertyReader {
                     }
                 } else {
                     raw = MsgBinary.Slice(propertyStream, offset + 8, 8);
-                    value = DecodeScalar(type, raw, codePage, state, propertyPath);
+                    value = DecodeScalar(type, raw, encoding, state, propertyPath);
                 }
             } catch (Exception ex) when (ex is InvalidDataException || ex is ArgumentException || ex is OverflowException) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_PROPERTY_INVALID",
@@ -76,21 +79,7 @@ internal static class MsgPropertyReader {
         return result;
     }
 
-    private static int DetermineCodePage(byte[] propertyStream, int headerLength) {
-        int count = (propertyStream.Length - headerLength) / 16;
-        for (int index = 0; index < count; index++) {
-            int offset = headerLength + index * 16;
-            uint tag = MsgBinary.ReadUInt32(propertyStream, offset);
-            ushort id = unchecked((ushort)(tag >> 16));
-            ushort type = unchecked((ushort)tag);
-            if ((id == 0x3FFD || id == 0x3FDE) && type == (ushort)MapiPropertyType.Integer32) {
-                return MsgBinary.ReadInt32(propertyStream, offset + 8);
-            }
-        }
-        return 1252;
-    }
-
-    private static object? DecodeScalar(MapiPropertyType type, byte[] bytes, int codePage,
+    private static object? DecodeScalar(MapiPropertyType type, byte[] bytes, MapiStringEncodingContext encoding,
         MsgParserState state, string location) {
         switch (type) {
             case MapiPropertyType.Unspecified:
@@ -114,7 +103,7 @@ internal static class MsgPropertyReader {
             case MapiPropertyType.Integer64:
                 return MsgBinary.ReadInt64(bytes, 0);
             case MapiPropertyType.String8:
-                return DecodeString8(bytes, codePage, state, location).TrimEnd('\0');
+                return encoding.Decode(bytes, state.Diagnostics, location).TrimEnd('\0');
             case MapiPropertyType.Unicode:
                 return Encoding.Unicode.GetString(bytes, 0, bytes.Length - bytes.Length % 2).TrimEnd('\0');
             case MapiPropertyType.Time:
@@ -129,7 +118,8 @@ internal static class MsgPropertyReader {
     }
 
     private static object[] DecodeMultiple(MapiPropertyType type, byte[] lengthOrValueStream,
-        OfficeCompoundFile compound, string prefix, string valueName, int codePage, MsgParserState state, string location) {
+        OfficeCompoundFile compound, string prefix, string valueName, MapiStringEncodingContext encoding,
+        MsgParserState state, string location) {
         if (type == MapiPropertyType.MultipleString8 || type == MapiPropertyType.MultipleUnicode ||
             type == MapiPropertyType.MultipleBinary) {
             int entrySize = type == MapiPropertyType.MultipleBinary ? 8 : 4;
@@ -156,7 +146,7 @@ internal static class MsgPropertyReader {
                         EmailDiagnosticSeverity.Warning, itemPath));
                 }
                 state.CountDecodedBytes(itemBytes.Length);
-                values[index] = DecodeScalar(scalarType, itemBytes, codePage, state, itemPath) ?? Array.Empty<byte>();
+                values[index] = DecodeScalar(scalarType, itemBytes, encoding, state, itemPath) ?? Array.Empty<byte>();
             }
             return values;
         }
@@ -170,7 +160,7 @@ internal static class MsgPropertyReader {
         for (int index = 0; index < fixedValues.Length; index++) {
             state.ThrowIfCancellationRequested();
             fixedValues[index] = DecodeScalar(itemType, MsgBinary.Slice(lengthOrValueStream, index * itemSize, itemSize),
-                codePage, state, location) ?? 0;
+                encoding, state, location) ?? 0;
         }
         return fixedValues;
     }
@@ -201,17 +191,6 @@ internal static class MsgPropertyReader {
     }
 
     private static bool IsMultiple(MapiPropertyType type) => (((ushort)type) & 0x1000) != 0;
-
-    private static string DecodeString8(byte[] bytes, int codePage, MsgParserState state, string location) {
-        string charset;
-        switch (codePage) {
-            case 65001: charset = "utf-8"; break;
-            case 20127: charset = "us-ascii"; break;
-            case 28591: charset = "iso-8859-1"; break;
-            default: charset = string.Concat("windows-", codePage.ToString(CultureInfo.InvariantCulture)); break;
-        }
-        return MimeTextCodec.DecodeText(bytes, charset, state.Diagnostics, location);
-    }
 
     private static DateTimeOffset DecodeFileTime(long fileTime) {
         return new DateTimeOffset(DateTime.FromFileTimeUtc(fileTime), TimeSpan.Zero);

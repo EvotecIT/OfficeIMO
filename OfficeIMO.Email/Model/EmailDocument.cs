@@ -18,6 +18,9 @@ public sealed class EmailDocument {
     /// <summary>Outlook message class, such as IPM.Note.</summary>
     public string? MessageClass { get; set; }
 
+    /// <summary>Primary MAPI code page used for legacy PT_STRING8 properties.</summary>
+    public int? OutlookCodePage { get; set; }
+
     /// <summary>Message subject.</summary>
     public string? Subject { get; set; }
 
@@ -38,6 +41,9 @@ public sealed class EmailDocument {
 
     /// <summary>Body alternatives.</summary>
     public EmailBody Body { get; } = new EmailBody();
+
+    /// <summary>Common Outlook/MAPI message metadata.</summary>
+    public EmailMessageMetadata MessageMetadata { get; } = new EmailMessageMetadata();
 
     /// <summary>Ordered, duplicate-preserving headers.</summary>
     public IList<EmailHeader> Headers => _headers;

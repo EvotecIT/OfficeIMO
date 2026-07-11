@@ -38,6 +38,24 @@ public sealed class EmailAttachment {
     /// <summary>True when the source marks the attachment as inline.</summary>
     public bool IsInline { get; set; }
 
+    /// <summary>True when Outlook marks the attachment hidden.</summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>True when the attachment is the picture for an Outlook contact.</summary>
+    public bool IsContactPhoto { get; set; }
+
+    /// <summary>RTF rendering position, or -1 when not rendered in the body.</summary>
+    public int RenderingPosition { get; set; } = -1;
+
+    /// <summary>Attachment creation timestamp.</summary>
+    public DateTimeOffset? CreatedDate { get; set; }
+
+    /// <summary>Attachment modification timestamp.</summary>
+    public DateTimeOffset? ModifiedDate { get; set; }
+
+    /// <summary>Linked attachment path for by-reference attachment methods.</summary>
+    public string? LinkedPath { get; set; }
+
     /// <summary>Decoded payload length.</summary>
     public long Length { get; set; }
 
