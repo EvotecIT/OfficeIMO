@@ -47,9 +47,23 @@ internal static class HtmlPdfRenderedConverter {
             pdf.UseFontFamily(options.RenderedFontFamily);
         }
 
-        pdf.UseTextFallbacks(options.RenderedTextFallbacks)
-            .UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
-        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(pdf, rendered, options.RenderDiagnostics, cancellationToken);
+        var reservedFontSlots = new HashSet<PdfCore.PdfStandardFont>();
+        if (options.RenderedFontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(
+            pdf,
+            rendered,
+            options.RenderDiagnostics,
+            reservedFontSlots,
+            cancellationToken);
+        foreach (PdfCore.PdfStandardFont slot in webFonts.Values) {
+            reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
+        }
+        ReserveUsedStandardFontSlots(rendered, webFonts, reservedFontSlots);
+        PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.RenderedTextFallbacks);
+        if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+            pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, allowSystemFontEmbedding: true);
+        }
+        pdf.UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -437,6 +451,7 @@ internal static class HtmlPdfRenderedConverter {
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
         HtmlDiagnosticReport? diagnostics,
+        ISet<PdfCore.PdfStandardFont> reservedFontSlots,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontFaceCollection faces = rendered.Fonts;
@@ -464,26 +479,39 @@ internal static class HtmlPdfRenderedConverter {
             PdfCore.PdfStandardFont.TimesRoman,
             PdfCore.PdfStandardFont.Courier
         };
+        PdfCore.PdfStandardFont[] availableSlots = slots
+            .Where(slot => !reservedFontSlots.Contains(PdfCore.PdfStandardFontMapper.GetFontFamily(slot)))
+            .ToArray();
         for (int index = 0; index < orderedFamilies.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             string family = orderedFamilies[index];
-            if (index >= slots.Length) {
+            if (index >= availableSlots.Length) {
                 diagnostics?.Add(
                     "OfficeIMO.Html.Pdf",
                     HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded,
                     "The rendered PDF can embed three distinct active web-font families; an additional family used standard-font fallback.",
                     HtmlDiagnosticSeverity.Warning,
                     family,
-                    "limit=" + slots.Length);
+                    "limit=" + availableSlots.Length);
                 continue;
             }
 
-            PdfCore.PdfStandardFont slot = slots[index];
+            PdfCore.PdfStandardFont slot = availableSlots[index];
             RegisterFamily(pdf, slot, family, byFamily[family], cancellationToken);
             mappings[family] = slot;
         }
 
         return mappings;
+    }
+
+    private static void ReserveUsedStandardFontSlots(
+        HtmlRenderDocument rendered,
+        IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
+        ISet<PdfCore.PdfStandardFont> reservedFontSlots) {
+        foreach (string familyNames in EnumerateUsedFontFamilyLists(rendered.Pages.SelectMany(page => page.Visuals))) {
+            PdfCore.PdfStandardFont family = PdfCore.PdfStandardFontMapper.GetFontFamily(MapFont(familyNames, webFonts));
+            if (family != PdfCore.PdfStandardFont.Helvetica) reservedFontSlots.Add(family);
+        }
     }
 
     private static IEnumerable<string> EnumerateUsedFontFamilyLists(IEnumerable<HtmlRenderVisual> visuals) {
@@ -520,6 +548,36 @@ internal static class HtmlPdfRenderedConverter {
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
     }
+
+    internal static PdfCore.PdfTextFallbackFeatures ResolveTextFallbackFeatures(
+        HtmlRenderDocument rendered,
+        PdfCore.PdfTextFallbackFeatures requested) {
+        if (requested == PdfCore.PdfTextFallbackFeatures.None) return requested;
+
+        foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
+            if (visual is HtmlRenderText text && RequiresUnicodeFont(text.Text)) {
+                return requested;
+            }
+
+            if (visual is HtmlRenderDrawing drawing && DrawingRequiresUnicodeFont(drawing.Drawing.Elements)) {
+                return requested;
+            }
+        }
+
+        return PdfCore.PdfTextFallbackFeatures.None;
+    }
+
+    private static bool DrawingRequiresUnicodeFont(IEnumerable<OfficeDrawingElement> elements) {
+        foreach (OfficeDrawingElement element in elements) {
+            if (element is OfficeDrawingText text && RequiresUnicodeFont(text.Text)) return true;
+            if (element is OfficeDrawingEffectGroup effectGroup && DrawingRequiresUnicodeFont(effectGroup.Drawing.Elements)) return true;
+        }
+
+        return false;
+    }
+
+    private static bool RequiresUnicodeFont(string text) =>
+        PdfCore.PdfTextDiagnostics.AnalyzeWinAnsiText(text).Count != 0;
 
     private static void RegisterFamily(
         PdfCore.PdfDocument pdf,

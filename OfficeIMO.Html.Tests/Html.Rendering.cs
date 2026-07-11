@@ -993,6 +993,45 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_RenderedProfile_UsesRegularFallbackCoverageWhenBoldSystemFaceIsNarrower() {
+        const string marker = "Bold שלום سلام";
+
+        byte[] pdf = ("<h1>" + marker + "</h1>").SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+
+        Assert.Contains(marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_RenderedProfile_PreservesCallerUnicodeFontWhenManagedFallbacksAreActive() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfCore.PdfEmbeddedFontFamily? installed) || installed == null) return;
+        const string marker = "Caller שלום سلام";
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+        options.RenderedFontFamily = new PdfCore.PdfEmbeddedFontFamily("CallerUnicode", installed.Regular);
+
+        byte[] pdf = ("<h1>" + marker + "</h1>").SaveAsPdf(options);
+        PdfCore.PdfDiagnosticReport report = PdfCore.PdfDiagnostics.Analyze(pdf);
+
+        Assert.Contains(marker, PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(report.Fonts, font => font.BaseFont?.Contains("CallerUnicode", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void HtmlPdf_RenderedProfile_LoadsManagedFontFallbacksOnlyWhenSceneTextRequiresUnicode() {
+        HtmlRenderDocument winAnsi = HtmlRenderEngine.Render("<p>Invoice Café — paid</p>");
+        HtmlRenderDocument unicode = HtmlRenderEngine.Render("<p>Invoice Ω Ж שלום سلام</p>");
+
+        Assert.Equal(
+            PdfCore.PdfTextFallbackFeatures.None,
+            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(winAnsi, PdfCore.PdfTextFallbackFeatures.Default));
+        Assert.Equal(
+            PdfCore.PdfTextFallbackFeatures.Default,
+            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(unicode, PdfCore.PdfTextFallbackFeatures.Default));
+        Assert.Equal(
+            PdfCore.PdfTextFallbackFeatures.None,
+            HtmlPdfRenderedConverter.ResolveTextFallbackFeatures(unicode, PdfCore.PdfTextFallbackFeatures.None));
+    }
+
+    [Fact]
     public void HtmlRenderer_PositionsSimpleRtlTextAndDiagnosesOnlyRemainingBidiStages() {
         const string html = "<div style='width:200px'><p id='declared' dir='rtl'>Latin text</p><p id='hebrew' dir='rtl'>שלום 123</p><h2 id='arabic' dir='rtl'>سلام</h2><p id='authored' dir='rtl'>\uFE8F\uFE8F</p><p id='syriac' dir='rtl'>ܫܠܡ</p><p id='control'>abc\u202Edef</p></div>";
 

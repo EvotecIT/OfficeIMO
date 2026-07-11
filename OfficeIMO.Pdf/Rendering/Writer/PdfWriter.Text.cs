@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
-                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName)
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
             string glyphHex = fontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.RecordProviderShapedTextRun);
@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
             IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
-                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName)
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram)
                 : Array.Empty<PdfTextShapingDiagnostic>();
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
             string glyphHex = cffFontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.RecordProviderShapedTextRun);

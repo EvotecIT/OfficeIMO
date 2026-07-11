@@ -12,6 +12,8 @@ public static class PdfTextDiagnostics {
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTrueTypeFontProgram, OpenTypeFontInfoBox> TrueTypeLayoutInfoCache = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfOpenTypeCffFontProgram, OpenTypeFontInfoBox> CffLayoutInfoCache = new();
 
     /// <summary>
     /// Finds text that cannot be written through the current generated standard-font WinAnsi path.
@@ -333,13 +335,33 @@ public static class PdfTextDiagnostics {
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, byte[] fontData, string source, string? fontName, int indexOffset) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(fontData, nameof(fontData));
+        PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out _, fontName);
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+    }
+
+    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+        PdfOpenTypeFontInfo? info = TrueTypeLayoutInfoCache.GetValue(
+            font,
+            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+    }
+
+    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0) {
+        Guard.NotNull(text, nameof(text));
+        Guard.NotNull(font, nameof(font));
+        PdfOpenTypeFontInfo? info = CffLayoutInfoCache.GetValue(
+            font,
+            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+    }
+
+    private static List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeFontInfo? info, string source, int indexOffset) {
         var diagnostics = new List<PdfTextShapingDiagnostic>(AnalyzeAdvancedTextLayoutCore(text, source, indexOffset));
+        if (info == null) return diagnostics;
         var reportedCodes = new HashSet<string>(diagnostics.Select(diagnostic => diagnostic.Code), StringComparer.Ordinal);
-
-        if (PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out _, fontName) && info != null) {
-            AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset);
-        }
-
+        AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset);
         return diagnostics;
     }
 
@@ -1056,6 +1078,15 @@ public static class PdfTextDiagnostics {
             glyphId = 0;
             return false;
         }
+    }
+
+    private sealed class OpenTypeFontInfoBox {
+        public OpenTypeFontInfoBox(byte[] fontData, string fontName) {
+            PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out _, fontName);
+            Info = info;
+        }
+
+        public PdfOpenTypeFontInfo? Info { get; }
     }
 
     private sealed class EmbeddedFontFallbackProgramBox {
