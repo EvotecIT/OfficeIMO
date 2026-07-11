@@ -29,7 +29,7 @@ public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
         document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
         document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -45,7 +45,7 @@ public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
         paragraph.ParagraphAlignment = JustificationValues.Center;
         paragraph.Color = Color.Red;
 
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }

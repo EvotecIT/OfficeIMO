@@ -24,7 +24,7 @@ public class BasicDocumentTests : VerifyTestBase {
         document.BuiltinDocumentProperties.Title = "This is my title";
         document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
         document.BuiltinDocumentProperties.Keywords = "word, docx, test";
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -44,7 +44,7 @@ public class BasicDocumentTests : VerifyTestBase {
         paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
         paragraph.Color = Color.CornflowerBlue;
 
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -66,7 +66,7 @@ public class BasicDocumentTests : VerifyTestBase {
         _ = document.AddParagraph("Adding paragraph3 with some text and pressing ENTER");
         _ = document.AddParagraph("Adding paragraph4 with some text and pressing SHIFT+ENTER");
 
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -84,7 +84,7 @@ public class BasicDocumentTests : VerifyTestBase {
         paragraph.FontSize = 15;
         paragraph.FontFamily = "Courier New";
 
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -105,7 +105,7 @@ public class BasicDocumentTests : VerifyTestBase {
 
         document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
 
-        document.Save();
+        _ = document.ToDocx();
 
         await DoTest(document._wordprocessingDocument);
     }
