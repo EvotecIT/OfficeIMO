@@ -234,20 +234,71 @@ internal static class MsgWriter {
             properties.SetNamed(MsgProjection.PsetidAppointment, 0x8205, MapiPropertyType.Integer32, item.BusyStatus);
             properties.SetNamed(MsgProjection.PsetidAppointment, 0x8217, MapiPropertyType.Integer32, item.MeetingStatus);
             properties.SetNamed(MsgProjection.PsetidAppointment, 0x8218, MapiPropertyType.Integer32, item.ResponseStatus);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8201, MapiPropertyType.Integer32, item.Sequence);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8213, MapiPropertyType.Integer32,
+                item.DurationMinutes ?? GetDurationMinutes(item.Start, item.End));
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8238, MapiPropertyType.Unicode,
+                item.AllAttendees ?? JoinAppointmentAttendees(document, null));
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x823B, MapiPropertyType.Unicode,
+                item.RequiredAttendees ?? JoinAppointmentAttendees(document, EmailRecipientKind.To));
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x823C, MapiPropertyType.Unicode,
+                item.OptionalAttendees ?? JoinAppointmentAttendees(document, EmailRecipientKind.Cc));
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x825A, MapiPropertyType.Boolean, item.NotAllowPropose);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8231, MapiPropertyType.Integer32, item.RecurrenceType);
             properties.SetNamed(MsgProjection.PsetidAppointment, 0x8232, MapiPropertyType.Unicode, item.RecurrencePattern);
             properties.SetNamed(MsgProjection.PsetidAppointment, 0x8216, MapiPropertyType.Binary, item.RecurrenceState);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8223, MapiPropertyType.Boolean,
+                item.IsRecurring ?? (item.RecurrenceState != null || item.RecurrenceType.GetValueOrDefault() != 0));
+            properties.SetNamed(MsgProjection.PsetidCalendarAssistant, 0x0015, MapiPropertyType.Integer32, item.ClientIntentFlags);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8501, MapiPropertyType.Integer32, item.ReminderDeltaMinutes);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8502, MapiPropertyType.Time, item.ReminderTime);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8503, MapiPropertyType.Boolean, item.ReminderIsSet);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8560, MapiPropertyType.Time, item.ReminderSignalTime);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8233, MapiPropertyType.Binary, item.TimeZoneStructure);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8234, MapiPropertyType.Unicode, item.TimeZoneDescription);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x825E, MapiPropertyType.Binary, item.StartTimeZoneDefinition);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x825F, MapiPropertyType.Binary, item.EndTimeZoneDefinition);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8260, MapiPropertyType.Binary, item.RecurrenceTimeZoneDefinition);
         }
         if (document.Contact != null) {
             OutlookContact item = document.Contact;
+            properties.Set(0x3001, MapiPropertyType.Unicode, item.DisplayName);
+            properties.Set(0x3A45, MapiPropertyType.Unicode, item.Prefix);
+            properties.Set(0x3A0A, MapiPropertyType.Unicode, item.Initials);
             properties.Set(0x3A06, MapiPropertyType.Unicode, item.GivenName);
+            properties.Set(0x3A44, MapiPropertyType.Unicode, item.MiddleName);
             properties.Set(0x3A11, MapiPropertyType.Unicode, item.Surname);
+            properties.Set(0x3A05, MapiPropertyType.Unicode, item.Generation);
             properties.Set(0x3A16, MapiPropertyType.Unicode, item.CompanyName);
             properties.Set(0x3A17, MapiPropertyType.Unicode, item.JobTitle);
-            properties.Set(0x3A08, MapiPropertyType.Unicode, item.BusinessPhone);
-            properties.Set(0x3A09, MapiPropertyType.Unicode, item.HomePhone);
-            properties.Set(0x3A1C, MapiPropertyType.Unicode, item.MobilePhone);
+            properties.Set(0x3A18, MapiPropertyType.Unicode, item.Department);
+            properties.Set(0x3A4F, MapiPropertyType.Unicode, item.NickName);
+            properties.Set(0x3A4E, MapiPropertyType.Unicode, item.ManagerName);
+            properties.Set(0x3A30, MapiPropertyType.Unicode, item.AssistantName);
+            properties.Set(0x3A48, MapiPropertyType.Unicode, item.SpouseName);
+            properties.Set(0x3A58, MapiPropertyType.Unicode,
+                item.Children.Count == 0 ? null : string.Join(", ", item.Children));
+            properties.Set(0x3A46, MapiPropertyType.Unicode, item.Profession);
+            properties.Set(0x3A0C, MapiPropertyType.Unicode, item.Language);
+            properties.Set(0x3A0D, MapiPropertyType.Unicode, item.Location);
+            properties.Set(0x3A19, MapiPropertyType.Unicode, item.OfficeLocation);
+            properties.Set(0x3A42, MapiPropertyType.Time, item.Birthday);
+            properties.Set(0x3A41, MapiPropertyType.Time, item.WeddingAnniversary);
+            properties.Set(0x3A51, MapiPropertyType.Unicode, item.BusinessHomePage);
+            properties.Set(0x3A50, MapiPropertyType.Unicode, item.PersonalHomePage);
             properties.SetNamed(MsgProjection.PsetidAddress, 0x8005, MapiPropertyType.Unicode, item.FileAs);
-            properties.SetNamed(MsgProjection.PsetidAddress, 0x8084, MapiPropertyType.Unicode, item.Email1Address);
+            properties.SetNamed(MsgProjection.PsetidAddress, 0x8062, MapiPropertyType.Unicode, item.InstantMessagingAddress);
+            properties.SetNamed(MsgProjection.PsetidAddress, 0x80DE, MapiPropertyType.Time, item.Birthday);
+            properties.SetNamed(MsgProjection.PsetidAddress, 0x80DF, MapiPropertyType.Time, item.WeddingAnniversary);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8506, MapiPropertyType.Boolean, item.IsPrivate);
+            properties.SetNamed(MsgProjection.PsetidAddress, 0x8015, MapiPropertyType.Boolean,
+                item.HasPicture ?? document.Attachments.Any(attachment => attachment.IsContactPhoto));
+            properties.SetNamed(MsgProjection.PsetidAddress, 0x802B, MapiPropertyType.Unicode, item.Html);
+            AddContactAddressProperties(properties, item);
+            AddContactPhoneProperties(properties, item.Phones);
+            AddContactEmailProperties(properties, item.Email1, 0x8080, 0x8082, 0x8083, 0x8084, 0x8085);
+            AddContactEmailProperties(properties, item.Email2, 0x8090, 0x8092, 0x8093, 0x8094, 0x8095);
+            AddContactEmailProperties(properties, item.Email3, 0x80A0, 0x80A2, 0x80A3, 0x80A4, 0x80A5);
         }
         if (document.Task != null) {
             OutlookTask item = document.Task;
@@ -255,22 +306,158 @@ internal static class MsgWriter {
             properties.SetNamed(MsgProjection.PsetidTask, 0x8105, MapiPropertyType.Time, item.Due);
             properties.SetNamed(MsgProjection.PsetidTask, 0x8101, MapiPropertyType.Integer32, item.Status);
             properties.SetNamed(MsgProjection.PsetidTask, 0x8102, MapiPropertyType.Floating64, item.PercentComplete);
-            properties.SetNamed(MsgProjection.PsetidTask, 0x810F, MapiPropertyType.Boolean, item.IsComplete);
-            properties.SetNamed(MsgProjection.PsetidTask, 0x811C, MapiPropertyType.Unicode, item.Owner);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x811C, MapiPropertyType.Boolean, item.IsComplete);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x811F, MapiPropertyType.Unicode, item.Owner);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8110, MapiPropertyType.Integer32, ToMinutes(item.ActualEffort));
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8111, MapiPropertyType.Integer32, ToMinutes(item.EstimatedEffort));
+            properties.SetNamed(MsgProjection.PsetidTask, 0x811B, MapiPropertyType.Boolean, item.SendUpdates);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8119, MapiPropertyType.Boolean, item.SendStatusOnComplete);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8129, MapiPropertyType.Integer32, item.Ownership);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x812A, MapiPropertyType.Integer32, item.AcceptanceState);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8112, MapiPropertyType.Integer32, item.Version);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8113, MapiPropertyType.Integer32, item.State);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8121, MapiPropertyType.Unicode, item.Assigner);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8103, MapiPropertyType.Boolean, item.IsTeamTask);
+            properties.SetNamed(MsgProjection.PsetidTask, 0x8123, MapiPropertyType.Integer32, item.Ordinal);
+            properties.SetNamed(MsgProjection.PsetidAppointment, 0x8223, MapiPropertyType.Boolean, item.IsRecurring);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8501, MapiPropertyType.Integer32, item.ReminderDeltaMinutes);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8502, MapiPropertyType.Time, item.ReminderTime);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8503, MapiPropertyType.Boolean, item.ReminderIsSet);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8560, MapiPropertyType.Time, item.ReminderSignalTime);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8516, MapiPropertyType.Time, item.CommonStart);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8517, MapiPropertyType.Time, item.CommonEnd);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8518, MapiPropertyType.Integer32, item.Mode);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x85A0, MapiPropertyType.Time, item.ToDoOrdinalDate);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x85A1, MapiPropertyType.Unicode, item.ToDoSubOrdinal);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x853A, MapiPropertyType.MultipleUnicode,
+                ToObjectArray(item.Contacts));
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8539, MapiPropertyType.MultipleUnicode,
+                ToObjectArray(item.Companies));
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8535, MapiPropertyType.Unicode, item.BillingInformation);
+            properties.SetNamed(MsgProjection.PsetidCommon, 0x8534, MapiPropertyType.Unicode, item.Mileage);
+            properties.Set(0x1091, MapiPropertyType.Time, item.CompletedAt);
         }
         if (document.Journal != null) {
             OutlookJournal item = document.Journal;
             properties.SetNamed(MsgProjection.PsetidCommon, 0x8516, MapiPropertyType.Time, item.Start);
             properties.SetNamed(MsgProjection.PsetidCommon, 0x8517, MapiPropertyType.Time, item.End);
             properties.SetNamed(MsgProjection.PsetidLog, 0x8700, MapiPropertyType.Unicode, item.Type);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x8706, MapiPropertyType.Time, item.Start);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x8707, MapiPropertyType.Integer32, item.DurationMinutes);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x8708, MapiPropertyType.Time, item.End);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x870C, MapiPropertyType.Integer32, item.Flags);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x870E, MapiPropertyType.Boolean, item.DocumentPrinted);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x870F, MapiPropertyType.Boolean, item.DocumentSaved);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x8710, MapiPropertyType.Boolean, item.DocumentRouted);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x8711, MapiPropertyType.Boolean, item.DocumentPosted);
+            properties.SetNamed(MsgProjection.PsetidLog, 0x8712, MapiPropertyType.Unicode, item.TypeDescription);
         }
         if (document.Note != null) {
             OutlookNote item = document.Note;
             properties.SetNamed(MsgProjection.PsetidNote, 0x8B00, MapiPropertyType.Integer32, item.Color);
             properties.SetNamed(MsgProjection.PsetidNote, 0x8B02, MapiPropertyType.Integer32, item.Width);
             properties.SetNamed(MsgProjection.PsetidNote, 0x8B03, MapiPropertyType.Integer32, item.Height);
+            properties.SetNamed(MsgProjection.PsetidNote, 0x8B04, MapiPropertyType.Integer32, item.X);
+            properties.SetNamed(MsgProjection.PsetidNote, 0x8B05, MapiPropertyType.Integer32, item.Y);
         }
     }
+
+    private static void AddContactAddressProperties(MsgPropertyBuilder properties, OutlookContact contact) {
+        AddFixedAddress(properties, contact.BusinessAddress, 0x3A29, 0x3A27, 0x3A28, 0x3A2A, 0x3A26, 0x3A2B);
+        AddFixedAddress(properties, contact.HomeAddress, 0x3A5D, 0x3A59, 0x3A5C, 0x3A5B, 0x3A5A, 0x3A5E);
+        AddFixedAddress(properties, contact.OtherAddress, 0x3A63, 0x3A5F, 0x3A62, 0x3A61, 0x3A60, 0x3A64);
+        properties.Set(0x3A15, MapiPropertyType.Unicode, contact.BusinessAddress.Formatted);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x801A, MapiPropertyType.Unicode, contact.HomeAddress.Formatted);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x801B, MapiPropertyType.Unicode,
+            contact.WorkAddress.Formatted ?? contact.BusinessAddress.Formatted);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x801C, MapiPropertyType.Unicode, contact.OtherAddress.Formatted);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x8045, MapiPropertyType.Unicode,
+            contact.WorkAddress.Street ?? contact.BusinessAddress.Street);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x8046, MapiPropertyType.Unicode,
+            contact.WorkAddress.City ?? contact.BusinessAddress.City);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x8047, MapiPropertyType.Unicode,
+            contact.WorkAddress.StateOrProvince ?? contact.BusinessAddress.StateOrProvince);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x8048, MapiPropertyType.Unicode,
+            contact.WorkAddress.PostalCode ?? contact.BusinessAddress.PostalCode);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x8049, MapiPropertyType.Unicode,
+            contact.WorkAddress.Country ?? contact.BusinessAddress.Country);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x804A, MapiPropertyType.Unicode,
+            contact.WorkAddress.PostOfficeBox ?? contact.BusinessAddress.PostOfficeBox);
+        properties.SetNamed(MsgProjection.PsetidAddress, 0x80DB, MapiPropertyType.Unicode, contact.WorkAddress.CountryCode);
+    }
+
+    private static void AddFixedAddress(MsgPropertyBuilder properties, OutlookPostalAddress address,
+        ushort streetId, ushort cityId, ushort stateId, ushort postalId, ushort countryId, ushort postOfficeBoxId) {
+        properties.Set(streetId, MapiPropertyType.Unicode, address.Street);
+        properties.Set(cityId, MapiPropertyType.Unicode, address.City);
+        properties.Set(stateId, MapiPropertyType.Unicode, address.StateOrProvince);
+        properties.Set(postalId, MapiPropertyType.Unicode, address.PostalCode);
+        properties.Set(countryId, MapiPropertyType.Unicode, address.Country);
+        properties.Set(postOfficeBoxId, MapiPropertyType.Unicode, address.PostOfficeBox);
+    }
+
+    private static void AddContactPhoneProperties(MsgPropertyBuilder properties, OutlookContactPhones phones) {
+        properties.Set(0x3A08, MapiPropertyType.Unicode, phones.Business);
+        properties.Set(0x3A1B, MapiPropertyType.Unicode, phones.Business2);
+        properties.Set(0x3A09, MapiPropertyType.Unicode, phones.Home);
+        properties.Set(0x3A2F, MapiPropertyType.Unicode, phones.Home2);
+        properties.Set(0x3A1C, MapiPropertyType.Unicode, phones.Mobile);
+        properties.Set(0x3A1F, MapiPropertyType.Unicode, phones.Other);
+        properties.Set(0x3A1A, MapiPropertyType.Unicode, phones.Primary);
+        properties.Set(0x3A24, MapiPropertyType.Unicode, phones.BusinessFax);
+        properties.Set(0x3A25, MapiPropertyType.Unicode, phones.HomeFax);
+        properties.Set(0x3A23, MapiPropertyType.Unicode, phones.PrimaryFax);
+        properties.Set(0x3A2E, MapiPropertyType.Unicode, phones.Assistant);
+        properties.Set(0x3A57, MapiPropertyType.Unicode, phones.CompanyMain);
+        properties.Set(0x3A1E, MapiPropertyType.Unicode, phones.Car);
+        properties.Set(0x3A1D, MapiPropertyType.Unicode, phones.Radio);
+        properties.Set(0x3A21, MapiPropertyType.Unicode, phones.Pager);
+        properties.Set(0x3A02, MapiPropertyType.Unicode, phones.Callback);
+        properties.Set(0x3A2C, MapiPropertyType.Unicode, phones.Telex);
+        properties.Set(0x3A4B, MapiPropertyType.Unicode, phones.TextTelephone);
+        properties.Set(0x3A2D, MapiPropertyType.Unicode, phones.Isdn);
+    }
+
+    private static void AddContactEmailProperties(MsgPropertyBuilder properties, OutlookContactEmailAddress email,
+        uint displayId, uint addressTypeId, uint addressId, uint originalDisplayId, uint entryId) {
+        properties.SetNamed(MsgProjection.PsetidAddress, displayId, MapiPropertyType.Unicode, email.DisplayName);
+        properties.SetNamed(MsgProjection.PsetidAddress, addressTypeId, MapiPropertyType.Unicode,
+            email.AddressType ?? (email.Address == null ? null : "SMTP"));
+        properties.SetNamed(MsgProjection.PsetidAddress, addressId, MapiPropertyType.Unicode, email.Address);
+        properties.SetNamed(MsgProjection.PsetidAddress, originalDisplayId, MapiPropertyType.Unicode,
+            email.OriginalDisplayName ?? email.Address);
+        byte[]? originalEntryId = email.OriginalEntryId;
+        if (originalEntryId == null && email.Address != null) {
+            originalEntryId = MsgIdentity.CreateOneOffEntryId(new EmailAddress(email.Address, email.DisplayName) {
+                AddressType = email.AddressType ?? "SMTP"
+            });
+        }
+        properties.SetNamed(MsgProjection.PsetidAddress, entryId, MapiPropertyType.Binary, originalEntryId);
+    }
+
+    private static int? GetDurationMinutes(DateTimeOffset? start, DateTimeOffset? end) {
+        if (!start.HasValue || !end.HasValue) return null;
+        return checked((int)Math.Round((end.Value - start.Value).TotalMinutes));
+    }
+
+    private static string? JoinAppointmentAttendees(EmailDocument document, EmailRecipientKind? kind) {
+        string[] attendees = document.Recipients
+            .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo &&
+                (!kind.HasValue || recipient.Kind == kind.Value))
+            .Select(recipient => recipient.Address.DisplayName ?? recipient.Address.Address)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Cast<string>()
+            .ToArray();
+        return attendees.Length == 0 ? null : string.Join("; ", attendees);
+    }
+
+    private static int? ToMinutes(TimeSpan? value) {
+        if (!value.HasValue) return null;
+        return checked((int)Math.Round(value.Value.TotalMinutes));
+    }
+
+    private static object[]? ToObjectArray(IList<string> values) =>
+        values.Count == 0 ? null : values.Cast<object>().ToArray();
 
     private static string DefaultMessageClass(OutlookItemKind kind) {
         switch (kind) {
