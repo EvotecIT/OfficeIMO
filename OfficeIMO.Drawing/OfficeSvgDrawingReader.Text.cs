@@ -58,8 +58,10 @@ public static partial class OfficeSvgDrawingReader {
             else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
             else unsupported++;
         }
-        if (element.Attribute("textLength") != null || element.Attribute("lengthAdjust") != null) unsupported++;
         ApplyTextPosition(element, viewX, viewY, ref cursor, ref unsupported);
+        int firstRun = runs.Count;
+        double lengthOrigin = cursor.X;
+        bool adjustGlyphs = TryReadTextLengthAdjustment(element, out double authoredLength, ref unsupported);
 
         foreach (XNode node in element.Nodes()) {
             if (runs.Count >= MaximumTextRuns) {
@@ -82,6 +84,54 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
             }
         }
+        if (adjustGlyphs) ApplyTextLengthAdjustment(runs, firstRun, lengthOrigin, authoredLength, ref cursor, ref unsupported);
+    }
+
+    private static bool TryReadTextLengthAdjustment(XElement element, out double textLength, ref int unsupported) {
+        textLength = 0D;
+        string? value = element.Attribute("textLength")?.Value;
+        string? mode = element.Attribute("lengthAdjust")?.Value;
+        if (string.IsNullOrWhiteSpace(value)) {
+            if (!string.IsNullOrWhiteSpace(mode)) unsupported++;
+            return false;
+        }
+        if (!TrySvgLength(value, out textLength) || textLength <= 0D) {
+            unsupported++;
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(mode) || !mode!.Trim().Equals("spacingAndGlyphs", StringComparison.OrdinalIgnoreCase)) {
+            unsupported++;
+            return false;
+        }
+        return true;
+    }
+
+    private static void ApplyTextLengthAdjustment(
+        ICollection<SvgTextRun> runs,
+        int firstRun,
+        double origin,
+        double authoredLength,
+        ref SvgTextCursor cursor,
+        ref int unsupported) {
+        if (firstRun >= runs.Count) return;
+        SvgTextRun[] adjusted = runs.Skip(firstRun).ToArray();
+        double right = adjusted.Max(run => run.X + run.Width);
+        double naturalLength = right - origin;
+        if (naturalLength <= 0.0000001D) {
+            unsupported++;
+            return;
+        }
+        double scale = authoredLength / naturalLength;
+        if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0.01D || scale > 100D) {
+            unsupported++;
+            return;
+        }
+        foreach (SvgTextRun run in adjusted) {
+            run.X = origin + ((run.X - origin) * scale);
+            run.Width *= scale;
+            run.GlyphScale *= scale;
+        }
+        cursor.X = origin + ((cursor.X - origin) * scale);
     }
 
     private static void ApplyTextPosition(XElement element, double viewX, double viewY, ref SvgTextCursor cursor, ref int unsupported) {
@@ -171,10 +221,20 @@ public static partial class OfficeSvgDrawingReader {
         double opacity = Math.Max(0D, Math.Min(1D, run.Style.FillOpacity * run.Style.Opacity));
         OfficeColor color = OfficeColor.FromRgba(baseColor.R, baseColor.G, baseColor.B, (byte)Math.Round(baseColor.A * opacity));
         var font = new OfficeFontInfo(run.Style.FontFamily, run.FontSize, run.Style.FontStyle);
-        OfficeDrawing target = run.Transform == OfficeTransform.Identity ? drawing : new OfficeDrawing(drawing.Width, drawing.Height);
+        bool usesEffect = run.Transform != OfficeTransform.Identity || Math.Abs(run.GlyphScale - 1D) > 0.0000001D;
+        OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         try {
-            target.AddText(run.Text, x, y, width, height, font, color, OfficeTextAlignment.Left, height);
-            if (!ReferenceEquals(target, drawing)) drawing.AddEffectDrawing(target, run.Transform);
+            double naturalWidth = width / run.GlyphScale;
+            target.AddText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height);
+            if (!ReferenceEquals(target, drawing)) {
+                OfficeTransform effect = run.GlyphScale.Equals(1D)
+                    ? run.Transform
+                    : OfficeTransform.Translate(-x, 0D)
+                        .Then(OfficeTransform.Scale(run.GlyphScale, 1D))
+                        .Then(OfficeTransform.Translate(x, 0D))
+                        .Then(run.Transform);
+                drawing.AddEffectDrawing(target, effect);
+            }
         } catch (ArgumentOutOfRangeException) {
             unsupported++;
         }
@@ -184,7 +244,8 @@ public static partial class OfficeSvgDrawingReader {
         internal string Text { get; }
         internal double X { get; set; }
         internal double Baseline { get; }
-        internal double Width { get; }
+        internal double Width { get; set; }
+        internal double GlyphScale { get; set; } = 1D;
         internal double FontSize { get; }
         internal int Chunk { get; }
         internal string Anchor { get; }

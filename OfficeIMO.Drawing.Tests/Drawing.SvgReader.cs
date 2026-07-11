@@ -151,6 +151,23 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderScalesTextLengthThroughSearchableEffectGroups() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
+            + "<text x='2' y='14' font-size='8' textLength='24' lengthAdjust='spacingAndGlyphs'>Wide</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup group = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingText text = Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Wide", text.Text);
+        Assert.True(group.Transform.M11 > 1D);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("transform=\"matrix(", exported, StringComparison.Ordinal);
+        Assert.Contains(">Wide</text>", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderExpandsBoundedLocalUseReferencesWithInheritedPaintAndPlacement() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 40 20'>"
             + "<defs><g id='badge'><rect width='10' height='10'/><circle cx='5' cy='5' r='3' fill='white'/></g></defs>"
