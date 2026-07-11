@@ -173,7 +173,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
             new XElement(OdfNamespaces.Draw + "frame", new XAttribute(OdfNamespaces.Draw + "name", "Missing")));
 
         Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODF200" &&
-            diagnostic.Message.Contains("Missing", StringComparison.Ordinal));
+            diagnostic.Message.IndexOf("Missing", StringComparison.Ordinal) >= 0);
     }
 
     private static void WrapFirstRowAsHeader(XElement table) {
