@@ -125,7 +125,8 @@ public static partial class ReaderHierarchicalChunker {
             location.BlockAnchor ??= string.IsNullOrWhiteSpace(block.Id) ? "block-" + index.ToString(CultureInfo.InvariantCulture) : block.Id;
             if (isHeading) UpdateFallbackHeadings(headings, block.Level ?? 1, text, location.BlockAnchor);
             if (string.IsNullOrWhiteSpace(location.HeadingPath)) {
-                location.HeadingPath = BuildFallbackHeadingPath(headings);
+                location.HeadingPath = BuildFallbackHeadingDisplayPath(headings);
+                ReaderHeadingPath.SetHierarchyPath(location, BuildFallbackHierarchyHeadingPath(headings));
                 location.HeadingSlug ??= BuildFallbackHeadingSlug(headings);
             } else if (isHeading) {
                 location.HeadingSlug ??= location.BlockAnchor;
@@ -255,17 +256,19 @@ public static partial class ReaderHierarchicalChunker {
     private static void InheritPageLocation(ReaderLocation location, OfficeDocumentPage? page) {
         if (page == null) return;
         ReaderLocation container = page.Location ?? new ReaderLocation();
-        location.Path ??= container.Path;
-        location.Sheet ??= container.Sheet;
-        location.A1Range ??= container.A1Range;
+        if (string.IsNullOrWhiteSpace(location.Path)) location.Path = container.Path;
+        if (string.IsNullOrWhiteSpace(location.Sheet)) location.Sheet = container.Sheet;
+        if (string.IsNullOrWhiteSpace(location.A1Range)) location.A1Range = container.A1Range;
         location.Slide ??= container.Slide;
         string? containerKind = container.SourceBlockKind?.Trim();
         if (string.Equals(containerKind, "sheet", StringComparison.OrdinalIgnoreCase)) {
-            location.Sheet ??= !string.IsNullOrWhiteSpace(page.Name)
-                ? page.Name
-                : page.Number > 0
-                    ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture)
-                    : null;
+            if (string.IsNullOrWhiteSpace(location.Sheet)) {
+                location.Sheet = !string.IsNullOrWhiteSpace(page.Name)
+                    ? page.Name
+                    : page.Number > 0
+                        ? "Sheet " + page.Number.Value.ToString(CultureInfo.InvariantCulture)
+                        : null;
+            }
         }
         if (!location.Page.HasValue &&
             !location.Slide.HasValue &&
@@ -294,8 +297,17 @@ public static partial class ReaderHierarchicalChunker {
         headings.Add(new FallbackHeading(effectiveLevel, title, slug));
     }
 
-    private static string? BuildFallbackHeadingPath(IReadOnlyList<FallbackHeading> headings) {
+    private static string? BuildFallbackHierarchyHeadingPath(IReadOnlyList<FallbackHeading> headings) {
         return ReaderHeadingPath.Combine(headings.Select(heading => heading.Title));
+    }
+
+    private static string? BuildFallbackHeadingDisplayPath(IReadOnlyList<FallbackHeading> headings) {
+        string[] titles = headings
+            .Select(heading => heading.Title)
+            .Where(title => !string.IsNullOrWhiteSpace(title))
+            .Select(title => title.Trim())
+            .ToArray();
+        return titles.Length == 0 ? null : string.Join(" > ", titles);
     }
 
     private static string? BuildFallbackHeadingSlug(IReadOnlyList<FallbackHeading> headings) =>

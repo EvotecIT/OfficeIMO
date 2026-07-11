@@ -46,20 +46,21 @@ public static partial class ReaderHierarchicalChunker {
                     state);
             }
 
-            string? hierarchyHeadingPath = location.HierarchyHeadingPath;
-            if (!string.Equals(location.HierarchyHeadingDisplayPath, location.HeadingPath, StringComparison.Ordinal)) {
-                hierarchyHeadingPath = null;
-            }
+            string? hierarchyHeadingPath = ReaderHeadingPath.GetValidatedHierarchyPath(location);
             HierarchyHeading[] headings = SplitHeadingPath(hierarchyHeadingPath ?? location.HeadingPath, state);
             state.HeadingSlugsByChunkId.TryGetValue(chunk.Id, out IReadOnlyList<string?>? fallbackHeadingSlugs);
+            IReadOnlyList<string?>? headingSlugs = fallbackHeadingSlugs != null && fallbackHeadingSlugs.Count == headings.Length
+                ? fallbackHeadingSlugs
+                : null;
             int remainingDepth = Math.Max(0, state.Options.MaxHierarchyDepth - parent.Depth);
             if (headings.Length > remainingDepth) {
                 state.AddLimitDiagnostic("hierarchical-depth-limit", state.Options.MaxHierarchyDepth, "hierarchy depth");
+                if (headingSlugs != null) headingSlugs = CollapseHeadingSlugs(headingSlugs, remainingDepth);
                 headings = CollapseHeadingDepth(headings, remainingDepth, state);
             }
             for (int headingIndex = 0; headingIndex < headings.Length; headingIndex++) {
-                string? headingSlug = fallbackHeadingSlugs != null && fallbackHeadingSlugs.Count == headings.Length
-                    ? fallbackHeadingSlugs[headingIndex]
+                string? headingSlug = headingSlugs != null && headingSlugs.Count == headings.Length
+                    ? headingSlugs[headingIndex]
                     : headingIndex == headings.Length - 1
                         ? location.HeadingSlug
                         : null;
@@ -211,8 +212,21 @@ public static partial class ReaderHierarchicalChunker {
             titles[index] = headings[availableDepth - 1 + index].Title;
         }
         collapsed[availableDepth - 1] = new HierarchyHeading(
-            string.Join(" > ", identities),
+            BuildHierarchyIdentity(identities),
             LimitHierarchyValue(string.Join(" > ", titles), state));
+        return collapsed;
+    }
+
+    private static IReadOnlyList<string?> CollapseHeadingSlugs(
+        IReadOnlyList<string?> slugs,
+        int availableDepth) {
+        if (availableDepth <= 0) return Array.Empty<string?>();
+        if (slugs.Count <= availableDepth) return slugs;
+        var collapsed = new string?[availableDepth];
+        for (int index = 0; index < availableDepth - 1; index++) collapsed[index] = slugs[index];
+        var trailing = new string?[slugs.Count - availableDepth + 1];
+        for (int index = 0; index < trailing.Length; index++) trailing[index] = slugs[availableDepth - 1 + index];
+        collapsed[availableDepth - 1] = BuildHierarchyIdentity(trailing);
         return collapsed;
     }
 

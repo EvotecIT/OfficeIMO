@@ -61,6 +61,15 @@ public static class ReaderHeadingPath {
         location.HierarchyHeadingDisplayPath = location.HeadingPath;
     }
 
+    internal static string? GetValidatedHierarchyPath(ReaderLocation location) {
+        string? hierarchyPath = location.HierarchyHeadingPath;
+        if (string.IsNullOrWhiteSpace(hierarchyPath)) return null;
+        string? displayPath = location.HierarchyHeadingDisplayPath ?? ToDisplayString(hierarchyPath);
+        return string.Equals(displayPath, location.HeadingPath, StringComparison.Ordinal)
+            ? hierarchyPath
+            : null;
+    }
+
     private static string Escape(string value) => value
         .Replace("\\", "\\\\")
         .Replace(">", "\\>");

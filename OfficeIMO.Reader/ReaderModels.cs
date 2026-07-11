@@ -391,10 +391,11 @@ public sealed class ReaderLocation {
     public string? HeadingPath { get; set; }
 
     /// <summary>
-    /// Escaped heading path used internally by hierarchy projections. Normal Reader output keeps
-    /// <see cref="HeadingPath"/> as the original display value.
+    /// Escaped heading path used by hierarchy projections. Normal Reader output keeps
+    /// <see cref="HeadingPath"/> as the original display value. This value is transported so a
+    /// serialized read result can reproduce the same hierarchy as the in-memory result.
     /// </summary>
-    internal string? HierarchyHeadingPath { get; set; }
+    public string? HierarchyHeadingPath { get; set; }
 
     /// <summary>Display-path snapshot associated with <see cref="HierarchyHeadingPath"/>.</summary>
     internal string? HierarchyHeadingDisplayPath { get; set; }

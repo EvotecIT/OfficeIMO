@@ -479,6 +479,34 @@ public sealed class ReaderHierarchicalChunkingTests {
     }
 
     [Fact]
+    public void Chunk_InheritsSheetContainerWhenBlockSheetIsWhitespace() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "workbook.xlsx" },
+            Pages = new[] {
+                new OfficeDocumentPage {
+                    Number = 2,
+                    Name = "Inventory",
+                    Location = new ReaderLocation { SourceBlockKind = "sheet" },
+                    Blocks = new[] {
+                        new OfficeDocumentBlock {
+                            Id = "sheet-body",
+                            Kind = "paragraph",
+                            Text = "Sheet body",
+                            Location = new ReaderLocation { Sheet = " " }
+                        }
+                    }
+                }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(document);
+
+        ReaderLocation location = Assert.Single(result.Chunks).Location;
+        Assert.Equal("Inventory", location.Sheet);
+        Assert.Null(location.Page);
+    }
+
+    [Fact]
     public void Chunk_PreservesLiteralHeadingSeparators() {
         var document = new OfficeDocumentReadResult {
             Source = new OfficeDocumentSource { SourceId = "literal-heading" },
@@ -493,6 +521,16 @@ public sealed class ReaderHierarchicalChunkingTests {
         ReaderChunkHierarchyNode heading = Assert.Single(result.Nodes, node => node.Kind == ReaderChunkHierarchyNodeKind.Heading);
         Assert.Equal("Q1 > Q2", heading.Title);
         Assert.Equal("Q1 > Q2", result.Segments[1].Context);
+        Assert.Equal("Q1 > Q2", result.Chunks[1].Location.HeadingPath);
+    }
+
+    [Fact]
+    public void Chunk_PreservesRawEscapesInContextWithoutHierarchyMetadata() {
+        ReaderChunk source = CreateChunk("raw-context", "Body", headingPath: @"Q1 \> Q2\\Back");
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(new[] { source });
+
+        Assert.Equal(@"Q1 \> Q2\\Back", Assert.Single(result.Segments).Context);
     }
 
     [Fact]
@@ -587,6 +625,50 @@ public sealed class ReaderHierarchicalChunkingTests {
         Assert.All(overviews, overview => Assert.Single(
             overview.ChildNodeIds.Select(id => result.Nodes.Single(node => node.Id == id)),
             child => child.Kind == ReaderChunkHierarchyNodeKind.Heading && child.Title == "Details"));
+    }
+
+    [Fact]
+    public void Chunk_PreservesFallbackSlugIdentityWhenHeadingDepthCollapses() {
+        var document = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { SourceId = "collapsed-repeated-ancestors" },
+            Blocks = new[] {
+                new OfficeDocumentBlock { Id = "overview-a", Kind = "heading", Level = 1, Text = "Overview" },
+                new OfficeDocumentBlock { Id = "details-a", Kind = "heading", Level = 2, Text = "Details" },
+                new OfficeDocumentBlock { Id = "body-a", Kind = "paragraph", Text = "First body" },
+                new OfficeDocumentBlock { Id = "overview-b", Kind = "heading", Level = 1, Text = "Overview" },
+                new OfficeDocumentBlock { Id = "details-b", Kind = "heading", Level = 2, Text = "Details" },
+                new OfficeDocumentBlock { Id = "body-b", Kind = "paragraph", Text = "Second body" }
+            }
+        };
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            document,
+            new ReaderHierarchicalChunkingOptions { MaxHierarchyDepth = 1 });
+
+        ReaderChunkHierarchyNode[] headings = result.Nodes
+            .Where(node => node.Kind == ReaderChunkHierarchyNodeKind.Heading)
+            .ToArray();
+        Assert.Equal(4, headings.Length);
+        Assert.Equal(4, headings.Select(heading => heading.Id).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void Chunk_SeparatesEncodedHeadingPathsAfterDepthCollapse() {
+        ReaderChunk literal = CreateChunk("literal", "One", headingPath: "A > B > C");
+        ReaderHeadingPath.SetHierarchyPath(literal.Location, ReaderHeadingPath.Combine(new[] { "A > B", "C" }));
+        ReaderChunk nested = CreateChunk("nested", "Two", headingPath: "A > B > C");
+        ReaderHeadingPath.SetHierarchyPath(nested.Location, ReaderHeadingPath.Combine(new[] { "A", "B", "C" }));
+
+        ReaderChunkHierarchyResult result = ReaderHierarchicalChunker.Chunk(
+            new[] { literal, nested },
+            new ReaderHierarchicalChunkingOptions { MaxHierarchyDepth = 1 });
+
+        ReaderChunkHierarchyNode[] headings = result.Nodes
+            .Where(node => node.Kind == ReaderChunkHierarchyNodeKind.Heading)
+            .ToArray();
+        Assert.Equal(2, headings.Length);
+        Assert.All(headings, heading => Assert.Equal("A > B > C", heading.Title));
+        Assert.NotEqual(headings[0].Id, headings[1].Id);
     }
 
     [Fact]
