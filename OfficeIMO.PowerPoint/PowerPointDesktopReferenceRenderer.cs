@@ -85,8 +85,7 @@ namespace OfficeIMO.PowerPoint {
                 presentation = null;
                 InvokeMethod(application, "Quit");
                 application = null;
-                string[] images = Directory.GetFiles(fullOutput, "*.png")
-                    .OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray();
+                string[] images = GetSlideImagesInOrder(fullOutput);
                 return images.Length == 0
                     ? new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Failed,
                         "PowerPoint Desktop completed without producing PNG slide images.")
@@ -109,20 +108,26 @@ namespace OfficeIMO.PowerPoint {
                 if (!string.Equals(Path.GetExtension(path), ".png", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
-                string name = Path.GetFileNameWithoutExtension(path);
-                if (name.Length <= 5 || !name.StartsWith("Slide", StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-
-                bool numericSuffix = true;
-                for (int index = 5; index < name.Length; index++) {
-                    if (!char.IsDigit(name[index])) {
-                        numericSuffix = false;
-                        break;
-                    }
-                }
-                if (numericSuffix) File.Delete(path);
+                if (TryGetSlideNumber(path, out _)) File.Delete(path);
             }
+        }
+
+        internal static string[] GetSlideImagesInOrder(string outputDirectory) =>
+            Directory.EnumerateFiles(outputDirectory)
+                .Where(path => string.Equals(Path.GetExtension(path), ".png", StringComparison.OrdinalIgnoreCase))
+                .Where(path => TryGetSlideNumber(path, out _))
+                .OrderBy(path => {
+                    TryGetSlideNumber(path, out int number);
+                    return number;
+                })
+                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+        private static bool TryGetSlideNumber(string path, out int number) {
+            number = 0;
+            string name = Path.GetFileNameWithoutExtension(path);
+            return name.Length > 5 && name.StartsWith("Slide", StringComparison.OrdinalIgnoreCase) &&
+                   int.TryParse(name.Substring(5), out number) && number > 0;
         }
 
         private static void TryClosePresentation(object? presentation) {

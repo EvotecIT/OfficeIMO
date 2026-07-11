@@ -102,24 +102,44 @@ namespace OfficeIMO.PowerPoint {
         private static void InspectLinks(PowerPointTextBox textBox, int slideIndex, PowerPointShape shape,
             PowerPointAccessibilityOptions options, IList<PowerPointAccessibilityFinding> findings) {
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                foreach (PowerPointTextRun run in paragraph.Runs) {
-                    if (run.Hyperlink == null) continue;
-                    if (!run.HasMeaningfulHyperlinkLabel) {
+                IReadOnlyList<PowerPointTextRun> runs = paragraph.Runs;
+                int index = 0;
+                while (index < runs.Count) {
+                    PowerPointTextRun run = runs[index];
+                    Uri? hyperlink = run.Hyperlink;
+                    if (hyperlink == null) {
+                        index++;
+                        continue;
+                    }
+
+                    int end = index + 1;
+                    while (end < runs.Count && SameHyperlink(hyperlink, runs[end].Hyperlink)) end++;
+                    string label = string.Concat(runs.Skip(index).Take(end - index).Select(item => item.Text));
+                    if (!PowerPointTextRun.IsMeaningfulLinkLabel(label)) {
                         findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
                             "Accessibility.UnclearLinkLabel",
                             "Hyperlink text must describe its destination without surrounding context.",
                             slideIndex, shape.Id, shape.Name));
                     }
-                    if (options.Profile == PowerPointAccessibilityPolicyProfile.Strict &&
-                        string.IsNullOrWhiteSpace(run.HyperlinkTooltip)) {
-                        findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Warning,
-                            "Accessibility.MissingLinkTooltip",
-                            "Strict policy recommends an accessible hyperlink tooltip.",
-                            slideIndex, shape.Id, shape.Name));
+
+                    if (options.Profile == PowerPointAccessibilityPolicyProfile.Strict) {
+                        for (int runIndex = index; runIndex < end; runIndex++) {
+                            if (string.IsNullOrWhiteSpace(runs[runIndex].HyperlinkTooltip)) {
+                                findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Warning,
+                                    "Accessibility.MissingLinkTooltip",
+                                    "Strict policy recommends an accessible hyperlink tooltip.",
+                                    slideIndex, shape.Id, shape.Name));
+                            }
+                        }
                     }
+                    index = end;
                 }
             }
         }
+
+        private static bool SameHyperlink(Uri expected, Uri? candidate) =>
+            candidate != null && string.Equals(expected.OriginalString, candidate.OriginalString,
+                StringComparison.Ordinal);
 
         private static void InspectContrast(PowerPointSlide slide, PowerPointTextBox textBox,
             IReadOnlyList<PowerPointShape> shapes, int slideIndex,

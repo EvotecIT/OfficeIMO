@@ -48,8 +48,19 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ChartPart chartPart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .Where(worksheet => worksheet.DrawingsPart != null)
+                    .SelectMany(worksheet => worksheet.DrawingsPart!.ChartParts)
+                    .Single();
+                Assert.Null(chartPart.ChartSpace.Descendants<C.BarChartSeries>().Single()
+                    .GetFirstChild<C.Marker>());
+                Assert.NotNull(chartPart.ChartSpace.Descendants<C.LineChartSeries>().Single()
+                    .GetFirstChild<C.Marker>());
                 OpenXmlValidator validator = new();
-                Assert.Empty(validator.Validate(spreadsheet));
+                var validationErrors = validator.Validate(spreadsheet).ToList();
+                Assert.True(validationErrors.Count == 0, string.Join(Environment.NewLine,
+                    validationErrors.Select(error => error.Description + Environment.NewLine +
+                        error.Node?.OuterXml)));
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
@@ -171,6 +182,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
             Assert.Equal("111827", series.MarkerOutlineColorArgb);
             Assert.Equal(1.5D, series.MarkerOutlineWidth);
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_SharedContractClampsMarkerSizeToChartSchemaLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.MarkerSize.xlsx");
+            var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Trend", new[] { 12D, 18D }, xValues: null,
+                    color: null, pointColors: null, showMarkers: true, markerSize: 300,
+                    renderKind: OfficeChartKind.Line)
+            });
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Shared").AddChart(OfficeChartKind.Line, sharedData,
+                    row: 1, column: 5);
+                document.Save();
+            }
+
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            C.Marker marker = spreadsheet.WorkbookPart!.WorksheetParts
+                .Where(worksheet => worksheet.DrawingsPart != null)
+                .SelectMany(worksheet => worksheet.DrawingsPart!.ChartParts)
+                .Single().ChartSpace.Descendants<C.Marker>().Single();
+            Assert.Equal((byte)72, marker.Size!.Val!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
         [Fact]

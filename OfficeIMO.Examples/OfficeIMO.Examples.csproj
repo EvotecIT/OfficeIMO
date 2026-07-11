@@ -26,6 +26,10 @@
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint.Html\\OfficeIMO.PowerPoint.Html.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.OpenDocument\\OfficeIMO.OpenDocument.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Word.OpenDocument\\OfficeIMO.Word.OpenDocument.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Excel.OpenDocument\\OfficeIMO.Excel.OpenDocument.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint.OpenDocument\\OfficeIMO.PowerPoint.OpenDocument.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -159,6 +159,11 @@ namespace OfficeIMO.PowerPoint {
             Metrics = Materialize(metrics, nameof(metrics));
             Points = Materialize(points, nameof(points));
             Lead = lead;
+            if (Points.Count > 4) {
+                throw new ArgumentException(
+                    "Executive-summary content supports at most four decision points per slide; split additional points across another slide.",
+                    nameof(points));
+            }
             if (Metrics.Count == 0 && Points.Count == 0 && string.IsNullOrWhiteSpace(Lead)) {
                 throw new ArgumentException(
                     "Executive-summary content requires a lead, metric, or decision point.", nameof(points));

@@ -93,6 +93,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AccessibilityGroupsContiguousRunsWithTheSameHyperlinkBeforeJudgingTheLabel() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            PowerPointTextBox link = presentation.Slides[0].AddTextBoxPoints("Open", 20, 20, 180, 28);
+            PowerPointParagraph paragraph = link.Paragraphs.Single();
+            paragraph.Runs.Single().SetHyperlink("https://openai.com");
+            paragraph.AddRun("AI", run => {
+                run.Bold = true;
+                run.SetHyperlink("https://openai.com");
+            });
+
+            PowerPointAccessibilityReport report = presentation.InspectAccessibility();
+
+            Assert.DoesNotContain(report.Findings,
+                finding => finding.Code == "Accessibility.UnclearLinkLabel");
+        }
+
+        [Fact]
         public void DesignerSlidesPassDefaultAccessibilityProfileWithoutCallerCleanup() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);

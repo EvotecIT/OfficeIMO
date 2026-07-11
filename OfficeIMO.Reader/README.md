@@ -53,7 +53,7 @@ Built-in and modular adapters can extract:
 - Excel (`.xlsx`, `.xlsm`, `.xls`) as table chunks and optional Markdown previews.
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
-- PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
+- OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
 
 ## Modular adapters
 
@@ -64,6 +64,7 @@ using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Visio;
@@ -76,6 +77,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddEpubHandler()
     .AddHtmlHandler()
     .AddJsonHandler()
+    .AddOpenDocumentHandler()
     .AddPdfHandler()
     .AddRtfHandler()
     .AddVisioHandler()
@@ -209,7 +211,7 @@ Console.WriteLine(restored.SchemaVersion); // 5
 string jsonSchema = OfficeDocumentReadResultSchema.GetJsonSchema();
 ```
 
-The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Every pack of the core and modular Reader packages runs NuGet package validation against the currently published package version, so accidental public API breaks fail packaging.
+The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Published core and modular Reader packages run NuGet package validation against their current public versions, so accidental API breaks fail packaging. A brand-new package opts out only until its first public baseline exists.
 
 ## Content detection and structured diagnostics
 
@@ -249,6 +251,42 @@ Console.WriteLine($"{deck.Visuals.Count} PowerPoint chart snapshots");
 ```
 
 The Word mapping preserves headings, lists, links, tables, and header/footer content. Excel exposes worksheet locations, formal tables, cell links, formula/comment/named-range counts, and workbook properties. PowerPoint exposes slide-local blocks and tables, run and shape links, chart snapshots, and point-based geometry. Modular HTML, EPUB, RTF, and Visio adapters register the same native v5 result surface when their packages are installed.
+
+## Optional OCR execution
+
+The core defines `IOfficeOcrEngine` and runs caller-supplied engines without taking an OCR or cloud SDK dependency. Execution resolves candidate assets, validates payload hashes and media types, and bounds candidate count, per-candidate and total bytes, concurrency, duration, recognized characters, and detailed spans:
+
+```csharp
+var engine = new DelegateOfficeOcrEngine(
+    "host-vision-service",
+    async (request, cancellationToken) => {
+        HostVisionResponse response = await visionClient.RecognizeAsync(
+            request.Payload,
+            request.Language,
+            cancellationToken);
+
+        return new OfficeOcrEngineResult {
+            Text = response.Text,
+            Confidence = response.Confidence,
+            Language = response.Language,
+            Provider = "host-vision-service"
+        };
+    });
+
+OfficeDocumentReadResult source = DocumentReader.ReadDocument("scanned.pdf");
+OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(
+    engine,
+    new OfficeDocumentOcrExecutionOptions {
+        MaxCandidates = 25,
+        MaxDegreeOfParallelism = 2
+    });
+```
+
+To run the same frozen configuration automatically for every rich read, register `new OfficeDocumentOcrProcessor(engine, executionOptions)` with `OfficeDocumentReaderBuilder.AddProcessor(...)`. Engines that do not advertise concurrent-request support are serialized per engine instance even when several reader operations run concurrently.
+
+`execution.Document` contains merged `ocr-text` blocks/chunks while unresolved candidates and diagnostics remain intact. `execution.Recognitions` carries optional line, word, and character spans with confidence, language, bounding boxes, and coordinate units. Detailed provider spans intentionally stay outside the stable v5 transport; the merged text and trace metadata use the existing schema.
+
+Use `OfficeIMO.Reader.Ocr.Process` for a versioned local executable/service bridge or `OfficeIMO.Reader.Ocr.Tesseract` for an installed Tesseract CLI. Neither package is pulled transitively by `OfficeIMO.Reader`.
 
 ## Host examples
 
@@ -351,7 +389,10 @@ The benchmark corpus is generated deterministically before measurement. Benchmar
 - [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
 - [OfficeIMO.Reader.Html](../OfficeIMO.Reader.Html/README.md)
 - [OfficeIMO.Reader.Csv](../OfficeIMO.Reader.Csv/README.md)
+- [OfficeIMO.Reader.Ocr.Process](../OfficeIMO.Reader.Ocr.Process/README.md)
+- [OfficeIMO.Reader.Ocr.Tesseract](../OfficeIMO.Reader.Ocr.Tesseract/README.md)
 - [OfficeIMO.Reader.Json](../OfficeIMO.Reader.Json/README.md)
+- [OfficeIMO.Reader.OpenDocument](../OfficeIMO.Reader.OpenDocument/README.md)
 - [OfficeIMO.Reader.Xml](../OfficeIMO.Reader.Xml/README.md)
 - [OfficeIMO.Reader.Yaml](../OfficeIMO.Reader.Yaml/README.md)
 - [OfficeIMO.Reader.Epub](../OfficeIMO.Reader.Epub/README.md)

@@ -1,88 +1,157 @@
 ---
 title: Reader and Extraction
-description: Overview of the OfficeIMO.Reader package for unified document extraction and AI-ready chunking workflows.
+description: Deterministic document extraction, rich results, structured records, RAG chunking, and optional OCR with OfficeIMO.Reader.
 order: 55
 ---
 
 # Reader and Extraction
 
-`OfficeIMO.Reader` provides a single extraction surface for the built-in formats currently handled in the repo, plus optional adapters for adjacent document types. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, CSV, JSON, XML, YAML, HTML, EPUB, ZIP, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
+`OfficeIMO.Reader` is the shared read-only extraction facade for Office and adjacent document formats. It can return simple `ReaderChunk` sequences for indexing, or a rich `OfficeDocumentReadResult` with pages, blocks, tables, links, forms, assets, visuals, OCR candidates, metadata, and structured diagnostics.
 
-## Best fit scenarios
+Format-specific parsing stays in the owning OfficeIMO package. Optional adapters and OCR providers remain separate packages, so applications install only the formats and runtimes they need.
 
-- Build ingestion pipelines for RAG, semantic search, or compliance review.
-- Normalize mixed document folders into one extraction and chunking model.
-- Preserve headings, citations, token estimates, and source hashes while preparing content for downstream tools.
-- Run extraction in background workers, containers, Azure Functions, or scheduled jobs.
+## Install
 
-## Core workflow
+Install the core package and any modular adapters used by the application:
 
-1. Extract a file into `ReaderChunk` instances with text, markdown, tables, visuals, and source information.
-2. Tune `ReaderOptions` so emitted slices stay deterministic and sized for search or AI prompts.
-3. Store chunks, citations, and source identifiers in your vector store, search index, or audit trail.
+```powershell
+dotnet add package OfficeIMO.Reader
+dotnet add package OfficeIMO.Reader.Pdf
+dotnet add package OfficeIMO.Reader.Html
+dotnet add package OfficeIMO.Reader.Epub
+```
 
-## Quick start
+The core package reads Word, Excel, PowerPoint, and Markdown. Adapter packages add PDF, CSV/TSV, EPUB, HTML, JSON, XML, YAML, RTF, Visio, ZIP, and structured text support.
+
+## Choose the result you need
+
+Use `Read(...)` for indexing-friendly chunks:
 
 ```csharp
 using OfficeIMO.Reader;
 
-var chunks = DocumentReader.Read("proposal.docx", new ReaderOptions
-{
-    MaxChars = 4_000,
-    IncludeWordFootnotes = true,
-    ComputeHashes = true
-}).ToList();
-
-foreach (var chunk in chunks)
-{
-    Console.WriteLine($"{chunk.Id} :: {chunk.Kind}");
+foreach (ReaderChunk chunk in DocumentReader.Read("proposal.docx")) {
     Console.WriteLine(chunk.Location.HeadingPath ?? chunk.Location.Path);
-    Console.WriteLine(chunk.TokenEstimate);
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
 ```
 
-## Formats and behavior
+Use `ReadDocument(...)` when the host needs the complete normalized document:
 
-| Input | Typical use |
-|-------|-------------|
-| Word (`.docx`) | Rich business documents, reports, contracts, and templates |
-| Excel (`.xlsx`) | Workbook content, tabular reports, and structured exports |
-| PowerPoint (`.pptx`) | Slide decks, speaker notes, and presentation narratives |
-| Markdown | Documentation, changelogs, developer notes, and generated content |
-| PDF | Published exports, archival documents, and third-party handoffs |
-| CSV/TSV | Structured flat files through `OfficeIMO.Reader.Csv` |
-| JSON | API exports and structured payloads through `OfficeIMO.Reader.Json` |
-| XML | Element-oriented documents through `OfficeIMO.Reader.Xml` |
-| YAML | Configuration files and manifests through `OfficeIMO.Reader.Yaml` |
-| HTML | Web pages and exported fragments through `OfficeIMO.Reader.Html` |
-| EPUB | Books and packaged publications through `OfficeIMO.Reader.Epub` |
-| ZIP | Archive traversal through `OfficeIMO.Reader.Zip` |
+```csharp
+OfficeDocumentReadResult document = DocumentReader.ReadDocument("proposal.docx");
 
-## Adapter packages
+Console.WriteLine($"{document.Pages.Count} pages or source containers");
+Console.WriteLine($"{document.Tables.Count} tables");
+Console.WriteLine($"{document.Assets.Count} assets");
 
-The core package covers the main Office-oriented extraction flow. Add adapter packages only when the deployment needs those input families:
+string json = OfficeDocumentReadResultJson.Serialize(document, indented: true);
+```
 
-- `OfficeIMO.Reader.Csv` for CSV and TSV ingestion.
-- `OfficeIMO.Reader.Json` for JSON payloads.
-- `OfficeIMO.Reader.Xml` for XML documents.
-- `OfficeIMO.Reader.Yaml` for YAML configuration files, manifests, and multi-document streams.
-- `OfficeIMO.Reader.Text` when CSV, JSON, and XML adapters should travel together.
-- `OfficeIMO.Reader.Html` for HTML normalization through the Markdown pipeline.
-- `OfficeIMO.Reader.Epub` for EPUB publications.
-- `OfficeIMO.Reader.Zip` for safe archive traversal.
+The rich JSON envelope uses stable schema version 5. The package embeds and ships its JSON Schema, rejects incomplete or incompatible envelopes, and preserves structured diagnostics rather than requiring consumers to parse warning text.
 
-Use the [Reader API reference](/api/reader/) for the core `DocumentReader`, `ReaderOptions`, chunk, manifest, and handler registration types. Adapter-specific APIs are documented through their package README files until the website generates separate adapter reference sections.
+## Isolated readers for services
 
-## Design goals
+The static `DocumentReader` facade remains available for compatible process-wide registration. Services and concurrent hosts should freeze their adapters, options, and processors into an isolated reader instance:
 
-- **Deterministic chunking** so repeated runs produce stable chunk boundaries.
-- **Heading-aware extraction** so downstream systems retain document structure.
-- **Citation-friendly location data** so search and AI responses can reference original sources.
-- **Incremental indexing support** through source IDs, hashes, and per-document chunk summaries.
-- **Container-friendly execution** with no Office installation requirements.
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Pdf;
 
-## Related packages
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .AddHtmlHandler()
+    .AddEpubHandler()
+    .WithMaxConcurrentReads(4)
+    .Build();
 
-- [OfficeIMO.Word](/products/word/) for producing `.docx` content before ingestion.
-- [OfficeIMO.Markdown](/products/markdown/) for rendering, transforming, and re-emitting extracted content.
-- [AOT and Trimming](/docs/advanced/aot-trimming/) for lean deployment guidance.
+OfficeDocumentReadResult result = await reader.ReadDocumentAsync(
+    "handbook.pdf",
+    cancellationToken: cancellationToken);
+```
+
+`Build()` snapshots the configuration. Different reader instances can use different handlers for the same extension without leaking registration state. Async path, stream, byte, and bounded batch APIs preserve input limits, cancellation, deterministic ordering, and caller-owned stream lifetimes.
+
+## Detection and bounds
+
+Reader combines extension, media-type, signature, and structured container evidence. Normal reads preserve known-extension routing; hosts can opt into content-first routing for mislabeled uploads:
+
+```csharp
+ReaderDetectionResult detection = reader.Detect("upload.bin");
+
+OfficeDocumentReadResult result = reader.ReadDocument(
+    "upload.bin",
+    new ReaderOptions {
+        DetectionMode = ReaderDetectionMode.PreferContent,
+        MaxInputBytes = 100L * 1024 * 1024,
+        MaxTableRows = 1_000
+    });
+```
+
+Detection reports the selected kind, extension/content evidence, confidence, media type, and mismatch state. Input bytes, folder totals, document counts, concurrency, table rows, output characters, and other expansion points have explicit bounds.
+
+## Processing and structured extraction
+
+Register ordered processors when every rich read should receive the same deterministic cleanup or filtering:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddProcessor(new OfficeDocumentBlockNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentTableNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentLinkNormalizationProcessor())
+    .WithProcessorFailureBehavior(
+        OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic)
+    .Build();
+
+OfficeDocumentStructuredExtractionResult extracted = reader.ReadStructured(
+    "contract.docx",
+    structuredOptions: new OfficeDocumentStructuredExtractionOptions {
+        MaxRecords = 5_000,
+        MaxSections = 500,
+        MaxTables = 250
+    });
+```
+
+The structured extractor emits bounded scalar records, heading sections, named tables, forms, chart and visual summaries, and readiness/security/OCR diagnostics. It is deterministic and does not add an AI client dependency.
+
+## Token-aware RAG chunks
+
+`ReadHierarchical(...)` splits large source chunks by a token budget while preserving document, page/slide/sheet, and heading ancestry:
+
+```csharp
+ReaderChunkHierarchyResult hierarchy = reader.ReadHierarchical(
+    "policy.docx",
+    chunkingOptions: new ReaderHierarchicalChunkingOptions {
+        MaxTokens = 800,
+        OverlapTokens = 80,
+        MaxInputChunks = 10_000,
+        MaxOutputChunks = 50_000
+    });
+
+foreach (ReaderChunk chunk in hierarchy.Chunks) {
+    StoreEmbedding(chunk.Id, chunk.Text, chunk.TokenEstimate ?? 0);
+}
+```
+
+The result includes deterministic leaf IDs and hashes, exact source spans, overlap/context totals, and a flattened hierarchy sidecar. Supply an `IReaderTokenCounter` when the embedding model requires its exact tokenizer.
+
+## Optional OCR
+
+The core `IOfficeOcrEngine` contract executes OCR candidates with bounded count, bytes, concurrency, duration, recognized text, and geometry spans. OCR output is merged as an additional source layer without replacing native text.
+
+- `OfficeIMO.Reader.Ocr.Process` bridges a configured executable or service through a versioned JSON protocol.
+- `OfficeIMO.Reader.Ocr.Tesseract` uses a separately installed Tesseract CLI and exposes TSV line/word geometry.
+- Hosts can implement `IOfficeOcrEngine` or use `DelegateOfficeOcrEngine` for another local or cloud provider.
+
+Neither provider is a transitive dependency of `OfficeIMO.Reader`.
+
+## Package and ownership boundaries
+
+- `OfficeIMO.Reader` owns the shared result, routing, limits, diagnostics, processing, structured extraction, and hierarchy contracts.
+- Word, Excel, PowerPoint, Markdown, PDF, RTF, HTML, EPUB, Visio, and other format packages own their parsing and inspection models.
+- Modular Reader packages adapt those models into the shared result.
+- Storage, vector databases, AI clients, and platform-specific services belong in the consuming application or an opt-in provider.
+
+See the [OfficeIMO.Reader package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Reader/README.md) for the complete API walkthrough and the [Reader API reference](/api/reader/) for generated type documentation.

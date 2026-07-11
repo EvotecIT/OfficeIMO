@@ -206,6 +206,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal("nodes", exception.ParamName);
         }
 
+        [Fact]
+        public void ExecutiveSummaryRejectsDecisionPointsThatWouldBeSilentlyDropped() {
+            PowerPointCardContent[] points = Enumerable.Range(1, 5)
+                .Select(index => new PowerPointCardContent("Decision " + index, new[] { "Evidence" }))
+                .ToArray();
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                new PowerPointExecutiveSummaryContent(Array.Empty<PowerPointMetric>(), points));
+
+            Assert.Equal("points", exception.ParamName);
+            Assert.Contains("at most four", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Theory]
+        [InlineData(PowerPointExecutiveSummaryLayoutVariant.DecisionBrief, 4, 3)]
+        [InlineData(PowerPointExecutiveSummaryLayoutVariant.MetricLead, 5, 4)]
+        public void ExecutiveSummaryRejectsMetricsBeyondTheSelectedLayoutCapacity(
+            PowerPointExecutiveSummaryLayoutVariant variant, int metricCount, int expectedCapacity) {
+            var content = new PowerPointExecutiveSummaryContent(
+                Enumerable.Range(1, metricCount)
+                    .Select(index => new PowerPointMetric(index.ToString(), "Metric " + index)),
+                Array.Empty<PowerPointCardContent>());
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                presentation.AddDesignerExecutiveSummarySlide("Summary", null, content,
+                    options: new PowerPointExecutiveSummarySlideOptions { Variant = variant }));
+
+            Assert.Equal("content", exception.ParamName);
+            Assert.Contains("at most " + expectedCapacity, exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static PowerPointExecutiveSummaryContent CreateExecutiveContent() => new(
             new[] { new PowerPointMetric("72%", "adoption"), new PowerPointMetric("3", "decisions") },
             new[] {

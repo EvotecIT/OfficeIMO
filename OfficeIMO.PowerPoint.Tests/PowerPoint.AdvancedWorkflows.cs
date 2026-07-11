@@ -326,6 +326,26 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void DesktopReferenceLaneReturnsOnlySlideImagesInNumericOrder() {
+            string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.ReferenceOrder",
+                Guid.NewGuid().ToString("N"));
+            try {
+                Directory.CreateDirectory(output);
+                File.WriteAllBytes(Path.Combine(output, "Slide10.png"), new byte[] { 10 });
+                File.WriteAllBytes(Path.Combine(output, "Slide2.PNG"), new byte[] { 2 });
+                File.WriteAllBytes(Path.Combine(output, "Slide1.png"), new byte[] { 1 });
+                File.WriteAllBytes(Path.Combine(output, "comparison.png"), new byte[] { 3 });
+
+                string[] images = PowerPointDesktopReferenceRenderer.GetSlideImagesInOrder(output);
+
+                Assert.Equal(new[] { "Slide1.png", "Slide2.PNG", "Slide10.png" },
+                    images.Select(Path.GetFileName));
+            } finally {
+                if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
+            }
+        }
+
         private static void FeedXml(OpenXmlPart part, string xml) {
             using var data = new MemoryStream(Encoding.UTF8.GetBytes(xml));
             part.FeedData(data);

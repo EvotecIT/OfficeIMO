@@ -13,11 +13,12 @@ namespace OfficeIMO.PowerPoint {
             if (content == null) throw new ArgumentNullException(nameof(content));
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointExecutiveSummarySlideOptions resolved = options ?? new PowerPointExecutiveSummarySlideOptions();
+            PowerPointExecutiveSummaryLayoutVariant variant = ResolveExecutiveVariant(resolved, content);
+            ValidateExecutiveSummaryCapacity(content, variant);
             PowerPointSlide slide = AddDesignerSlide(presentation, resolved);
             double width = presentation.SlideSize.WidthCm;
             double height = presentation.SlideSize.HeightCm;
             PrepareLightStorySlide(slide, resolvedTheme, resolved, title, subtitle, width, height);
-            PowerPointExecutiveSummaryLayoutVariant variant = ResolveExecutiveVariant(resolved, content);
             if (variant == PowerPointExecutiveSummaryLayoutVariant.DecisionBrief) {
                 AddExecutiveDecisionBrief(slide, resolvedTheme, content, width, height, resolved);
             } else {
@@ -73,6 +74,16 @@ namespace OfficeIMO.PowerPoint {
                 : PowerPointExecutiveSummaryLayoutVariant.DecisionBrief;
         }
 
+        private static void ValidateExecutiveSummaryCapacity(PowerPointExecutiveSummaryContent content,
+            PowerPointExecutiveSummaryLayoutVariant variant) {
+            int metricCapacity = variant == PowerPointExecutiveSummaryLayoutVariant.DecisionBrief ? 3 : 4;
+            if (content.Metrics.Count > metricCapacity) {
+                throw new ArgumentException(
+                    "The selected executive-summary layout supports at most " + metricCapacity +
+                    " metrics per slide; split additional metrics across another slide.", nameof(content));
+            }
+        }
+
         internal static PowerPointClosingLayoutVariant ResolveClosingVariant(PowerPointClosingSlideOptions options,
             PowerPointClosingContent content) {
             if (options.Variant != PowerPointClosingLayoutVariant.Auto) return options.Variant;
@@ -92,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
                 top += 1.05;
             }
             PowerPointLayoutBox metrics = PowerPointLayoutBox.FromCentimeters(1.5, top, width - 3, 2.15);
-            AddMetrics(slide, theme, content.Metrics.Take(4).ToList(), metrics.LeftCm, metrics.TopCm,
+            AddMetrics(slide, theme, content.Metrics.ToList(), metrics.LeftCm, metrics.TopCm,
                 metrics.WidthCm, metrics.HeightCm);
             double cardTop = content.Metrics.Count == 0 ? top : top + 2.6;
             PowerPointLayoutBox cards = PowerPointLayoutBox.FromCentimeters(1.5, cardTop, width - 3,
@@ -100,7 +111,7 @@ namespace OfficeIMO.PowerPoint {
             var cardOptions = new PowerPointCardGridSlideOptions { MaxColumns = 4,
                 Variant = PowerPointCardGridLayoutVariant.SoftTiles, DesignIntent = options.DesignIntent };
             if (content.Points.Count > 0) {
-                AddCardGrid(slide, theme, content.Points.Take(4).ToList(), cardOptions,
+                AddCardGrid(slide, theme, content.Points.ToList(), cardOptions,
                     PowerPointCardGridLayoutVariant.SoftTiles, cards);
             }
         }
@@ -119,12 +130,12 @@ namespace OfficeIMO.PowerPoint {
                 : content.Lead!;
             AddText(slide, lead, columns[0].LeftCm + 0.65, columns[0].TopCm + 0.65,
                 columns[0].WidthCm - 1.3, 2.0, 22, theme.AccentContrastColor, theme.HeadingFontName, bold: true);
-            AddMetrics(slide, theme, content.Metrics.Take(3).ToList(), columns[0].LeftCm + 0.45,
+            AddMetrics(slide, theme, content.Metrics.ToList(), columns[0].LeftCm + 0.45,
                 columns[0].BottomCm - 2.25, columns[0].WidthCm - 0.9, 1.7);
             var cardOptions = new PowerPointCardGridSlideOptions { MaxColumns = 1,
                 Variant = PowerPointCardGridLayoutVariant.AccentTop, DesignIntent = options.DesignIntent };
             if (content.Points.Count > 0) {
-                AddCardGrid(slide, theme, content.Points.Take(4).ToList(), cardOptions,
+                AddCardGrid(slide, theme, content.Points.ToList(), cardOptions,
                     PowerPointCardGridLayoutVariant.AccentTop, columns[1]);
             }
         }
