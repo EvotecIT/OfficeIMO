@@ -14,12 +14,25 @@ internal static partial class PdfSyntax {
     private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
-        return ParseObjects(pdf, null);
+        return ParseObjects(pdf, null, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
+        return ParseObjects(pdf, options, out _);
+    }
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
+        byte[] pdf,
+        PdfReadOptions? options,
+        out PdfRepairReport repairReport) {
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         limits.Validate();
+        PdfParsingMode parsingMode = options?.ParsingMode ?? PdfParsingMode.Lenient;
+        if (parsingMode != PdfParsingMode.Lenient && parsingMode != PdfParsingMode.Strict) {
+            throw new ArgumentOutOfRangeException(nameof(options), parsingMode, "Unsupported PDF parsing mode.");
+        }
+
+        var repairDiagnostics = new List<PdfRepairDiagnostic>();
         if (pdf.LongLength > limits.MaxInputBytes) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.LongLength);
         }
@@ -44,7 +57,15 @@ internal static partial class PdfSyntax {
             int start = matches[i].Index;
             int bodyStart = matches[i].Index + matches[i].Length;
             int end = FindObjectEnd(text, start);
-            if (end < 0) end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
+            if (end < 0) {
+                HandleStructuralDefect(
+                    parsingMode,
+                    repairDiagnostics,
+                    "MissingEndObject",
+                    "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) + " has no readable endobj boundary; lenient parsing used the next object or end of file.",
+                    id);
+                end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
+            }
 
             int preliminaryBodyEnd = end;
             if (preliminaryBodyEnd - 6 >= bodyStart && string.Equals(text.Substring(preliminaryBodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
@@ -97,10 +118,34 @@ internal static partial class PdfSyntax {
                         // Try /Length first (inline number only)
                         int byteStart = dataStart;
                         int byteLen = -1;
-                        TryGetResolvedLength(dict, map, out byteLen);
-                        if (byteLen < 0) {
-                            int endStream = IndexOfKeyword(text, "endstream", dataStart, end);
-                            if (endStream > dataStart) byteLen = endStream - dataStart;
+                        bool hasResolvedLength = TryGetResolvedLength(dict, map, out byteLen);
+                        int endStream = IndexOfKeyword(text, "endstream", dataStart, end);
+                        if (hasResolvedLength &&
+                            endStream > dataStart &&
+                            !DeclaredStreamLengthEndsAt(text, dataStart, byteLen, endStream)) {
+                            int recoveredLength = GetRecoveredStreamLength(text, dataStart, endStream);
+                            HandleStructuralDefect(
+                                parsingMode,
+                                repairDiagnostics,
+                                "IncorrectStreamLength",
+                                "Stream object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                                " declares /Length " + byteLen.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                                " but its readable endstream boundary indicates " + recoveredLength.ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes.",
+                                id);
+                            byteLen = recoveredLength;
+                        } else if (!hasResolvedLength &&
+                            !dict.Items.ContainsKey("Length") &&
+                            endStream > dataStart) {
+                            byteLen = GetRecoveredStreamLength(text, dataStart, endStream);
+                            HandleStructuralDefect(
+                                parsingMode,
+                                repairDiagnostics,
+                                "MissingStreamLength",
+                                "Stream object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                                " has no /Length; lenient parsing used its endstream boundary.",
+                                id);
+                        } else if (byteLen < 0 && endStream > dataStart) {
+                            byteLen = GetRecoveredStreamLength(text, dataStart, endStream);
                         }
                         if (byteLen >= 0) {
                             if (byteLen > limits.MaxRawStreamBytes) {
@@ -167,6 +212,7 @@ internal static partial class PdfSyntax {
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);
 
+        repairReport = new PdfRepairReport(repairDiagnostics.AsReadOnly());
         return (map, trailerRaw);
     }
 
@@ -177,6 +223,41 @@ internal static partial class PdfSyntax {
                 (long)limits.MaxObjectParsingTime.TotalMilliseconds,
                 (long)timer.Elapsed.TotalMilliseconds);
         }
+    }
+
+    private static void HandleStructuralDefect(
+        PdfParsingMode parsingMode,
+        List<PdfRepairDiagnostic> diagnostics,
+        string code,
+        string message,
+        int? objectNumber) {
+        if (parsingMode == PdfParsingMode.Strict) {
+            throw new PdfParseException(code, message, objectNumber);
+        }
+
+        diagnostics.Add(new PdfRepairDiagnostic(code, message, objectNumber));
+    }
+
+    private static bool DeclaredStreamLengthEndsAt(string text, int dataStart, int byteLength, int endStream) {
+        if (byteLength < 0 || dataStart > int.MaxValue - byteLength) {
+            return false;
+        }
+
+        int position = dataStart + byteLength;
+        if (position == endStream) {
+            return true;
+        }
+
+        if (position < endStream && text[position] == '\r') position++;
+        if (position < endStream && text[position] == '\n') position++;
+        return position == endStream;
+    }
+
+    private static int GetRecoveredStreamLength(string text, int dataStart, int endStream) {
+        int dataEnd = endStream;
+        if (dataEnd > dataStart && text[dataEnd - 1] == '\n') dataEnd--;
+        if (dataEnd > dataStart && text[dataEnd - 1] == '\r') dataEnd--;
+        return dataEnd - dataStart;
     }
 
 }

@@ -5,12 +5,12 @@ public sealed partial class PdfReadDocument {
     public static PdfReadDocument Load(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, options);
-        var (map, trailer) = PdfSyntax.ParseObjects(pdf, options);
+        var (map, trailer) = PdfSyntax.ParseObjects(pdf, options, out PdfRepairReport repairReport);
         if (options?.Password is not null && security.HasEncryption) {
             security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security);
         }
 
-        return new PdfReadDocument(map, trailer, security, options);
+        return new PdfReadDocument(map, trailer, security, repairReport, options);
     }
 
     /// <summary>Loads a PDF from a file path.</summary>
