@@ -997,6 +997,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_ResolvesLogicalTextAlignmentAgainstElementDirection() {
+        const string html = "<div style='width:160px'><p id='start' dir='rtl' style='margin:0'>Start</p><p id='end' dir='rtl' style='margin:0;text-align:end'>End</p><p id='left' dir='rtl' style='margin:0;text-align:left'>Left</p></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 160D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderText> text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+
+        HtmlRenderText start = Assert.Single(text, item => item.Text == "Start");
+        HtmlRenderText end = Assert.Single(text, item => item.Text == "End");
+        HtmlRenderText left = Assert.Single(text, item => item.Text == "Left");
+        Assert.True(start.X > 100D);
+        Assert.Equal(0D, end.X, 6);
+        Assert.Equal(0D, left.X, 6);
+    }
+
+    [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));

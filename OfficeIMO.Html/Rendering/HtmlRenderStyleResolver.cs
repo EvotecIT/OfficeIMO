@@ -54,18 +54,19 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? "Consolas"
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
+        string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
 
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(tag, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
             Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
-            Alignment = ResolveAlignment(computed.GetValue("text-align"), parent?.Alignment ?? OfficeTextAlignment.Left),
+            Alignment = ResolveAlignment(computed.GetValue("text-align"), direction),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
-            Direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction),
+            Direction = direction,
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
 
@@ -295,11 +296,13 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private static OfficeColor ResolveColor(string value, OfficeColor fallback) => HtmlRenderCssValues.TryColor(value, out OfficeColor color) ? color : fallback;
 
-    private static OfficeTextAlignment ResolveAlignment(string value, OfficeTextAlignment fallback) {
+    private static OfficeTextAlignment ResolveAlignment(string value, string direction) {
         if (string.Equals(value, "center", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Center;
-        if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "end", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;
-        if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "start", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;
-        return fallback;
+        if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;
+        if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;
+        bool rightToLeft = string.Equals(direction, "rtl", StringComparison.Ordinal);
+        if (string.Equals(value, "end", StringComparison.OrdinalIgnoreCase)) return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
+        return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
     }
 
     private double ResolveLineHeight(string value, double fontSize) {
