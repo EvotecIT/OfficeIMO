@@ -58,7 +58,8 @@ internal static class MimeParser {
             string childDefaultContentType = string.Equals(contentType.Value, "multipart/digest", StringComparison.OrdinalIgnoreCase)
                 ? "message/rfc822"
                 : "text/plain";
-            string? childPreferredBodyContentId = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase)
+            bool isRelated = string.Equals(contentType.Value, "multipart/related", StringComparison.OrdinalIgnoreCase);
+            string? childPreferredBodyContentId = isRelated
                 ? TrimAngleBrackets(contentType.GetParameter("start"))
                 : preferredBodyContentId;
             for (int i = 0; i < parts.Count; i++) {
@@ -69,9 +70,13 @@ internal static class MimeParser {
                 int partBodyOffset = MimeHeaderParser.Parse(data, part.Offset, part.Count, state.Options,
                     partHeaders, state.Diagnostics, partLocation);
                 int partEnd = part.Offset + part.Count;
+                string? partPreferredBodyContentId = childPreferredBodyContentId;
+                if (isRelated && string.IsNullOrWhiteSpace(partPreferredBodyContentId) && i == 0) {
+                    partPreferredBodyContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(partHeaders, "Content-ID"));
+                }
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
                     document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
-                    childPreferredBodyContentId);
+                    partPreferredBodyContentId);
             }
             return;
         }

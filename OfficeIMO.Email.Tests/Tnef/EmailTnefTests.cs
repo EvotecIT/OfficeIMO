@@ -199,6 +199,40 @@ public sealed class EmailTnefTests {
     }
 
     [Fact]
+    public void ReplacesUnencodableMapiString8ValuesWithDiagnostics() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.Tnef,
+            OutlookCodePage = 1252,
+            Subject = "Mapi fallback"
+        };
+        source.MapiProperties.Add(new MapiProperty(0x66AB, MapiPropertyType.String8, "日本"));
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+            source, EmailFileFormat.Tnef, out EmailWriteResult writeResult);
+        MapiProperty property = new EmailDocumentReader().Read(bytes).Document.MapiProperties
+            .Single(item => item.PropertyId == 0x66AB);
+
+        Assert.Contains(writeResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_TNEF_MAPI_STRING8_CHARACTER_UNENCODABLE");
+        Assert.Contains("?", Assert.IsType<string>(property.Value), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FallsBackFromUnsupportedPreservedCodePagesWhenWriting() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.Tnef,
+            OutlookCodePage = 999999,
+            Subject = "unsupported code page"
+        };
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Equal(1252, roundTrip.OutlookCodePage);
+        Assert.Equal(source.Subject, roundTrip.Subject);
+    }
+
+    [Fact]
     public void WritesFixedWidthNullPropertiesWithoutDesynchronizingFollowingValues() {
         var source = new[] {
             new MapiProperty(0x66AA, MapiPropertyType.Null, null),
@@ -289,6 +323,11 @@ public sealed class EmailTnefTests {
         Assert.NotNull(parsed.Content);
         Assert.Contains(result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID");
+
+        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(result.Document, EmailFileFormat.Tnef);
+        EmailAttachment reparsed = Assert.Single(new EmailDocumentReader(
+            new EmailReaderOptions(maxCompoundDirectoryEntries: 1)).Read(rewritten).Document.Attachments);
+        Assert.Equal(parsed.Content, reparsed.Content);
     }
 
     [Fact]

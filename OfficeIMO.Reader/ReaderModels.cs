@@ -17,79 +17,79 @@ public enum ReaderInputKind {
     /// <summary>
     /// Word document (DOCX/DOCM).
     /// </summary>
-    Word,
+    Word = 1,
     /// <summary>
     /// Excel workbook (XLSX/XLSM).
     /// </summary>
-    Excel,
+    Excel = 2,
     /// <summary>
     /// PowerPoint presentation (PPTX/PPTM).
     /// </summary>
-    PowerPoint,
+    PowerPoint = 3,
     /// <summary>
     /// Markdown text file.
     /// </summary>
-    Markdown,
+    Markdown = 4,
     /// <summary>
     /// Generic text file.
     /// </summary>
-    Text,
+    Text = 5,
     /// <summary>
     /// PDF document.
     /// </summary>
-    Pdf,
+    Pdf = 6,
     /// <summary>
     /// CSV/TSV structured text.
     /// </summary>
-    Csv,
+    Csv = 7,
     /// <summary>
     /// JSON structured text.
     /// </summary>
-    Json,
+    Json = 8,
     /// <summary>
     /// XML structured text.
     /// </summary>
-    Xml,
+    Xml = 9,
     /// <summary>
     /// HTML document.
     /// </summary>
-    Html,
+    Html = 10,
     /// <summary>
     /// ZIP archive.
     /// </summary>
-    Zip,
+    Zip = 11,
     /// <summary>
     /// EPUB e-book archive.
     /// </summary>
-    Epub,
+    Epub = 12,
     /// <summary>
     /// Visio drawing (VSDX/VSDM/VSTX/VSTM).
     /// </summary>
-    Visio,
+    Visio = 13,
     /// <summary>
     /// YAML structured text.
     /// </summary>
-    Yaml,
+    Yaml = 14,
     /// <summary>
     /// Rich Text Format document.
     /// </summary>
-    Rtf,
-    /// <summary>
-    /// AsciiDoc technical document.
-    /// </summary>
-    AsciiDoc,
-    /// <summary>
-    /// Bounded-profile LaTeX technical document.
-    /// </summary>
-    Latex,
-    /// <summary>
-    /// Email, Outlook item, TNEF payload, or mbox mailbox.
-    /// </summary>
-    Email,
+    Rtf = 15,
     /// <summary>
     /// OpenDocument Text, Spreadsheet, or Presentation package.
     /// </summary>
-    OpenDocument
+    OpenDocument = 16,
+    /// <summary>
+    /// AsciiDoc technical document.
+    /// </summary>
+    AsciiDoc = 17,
+    /// <summary>
+    /// Bounded-profile LaTeX technical document.
+    /// </summary>
+    Latex = 18,
+    /// <summary>
+    /// Email, Outlook item, TNEF payload, or mbox mailbox.
+    /// </summary>
+    Email = 19
 }
 
 /// <summary>

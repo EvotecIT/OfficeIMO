@@ -15,9 +15,10 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderEmailTests {
     [Fact]
     public void EmailKindAndCapabilities_AreBuiltInWithoutChangingEarlierEnumValues() {
-        Assert.Equal(17, (int)ReaderInputKind.Latex);
-        Assert.Equal(18, (int)ReaderInputKind.Email);
-        Assert.Equal(19, (int)ReaderInputKind.OpenDocument);
+        Assert.Equal(16, (int)ReaderInputKind.OpenDocument);
+        Assert.Equal(17, (int)ReaderInputKind.AsciiDoc);
+        Assert.Equal(18, (int)ReaderInputKind.Latex);
+        Assert.Equal(19, (int)ReaderInputKind.Email);
         Assert.Equal(ReaderInputKind.Email, DocumentReader.DetectKind("message.eml"));
         Assert.Equal(ReaderInputKind.Email, DocumentReader.DetectKind("outlook.msg"));
         Assert.Equal(ReaderInputKind.Email, DocumentReader.DetectKind("archive.mbox"));

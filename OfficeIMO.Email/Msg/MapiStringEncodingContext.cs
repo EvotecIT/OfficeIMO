@@ -108,7 +108,15 @@ internal sealed class MapiStringEncodingContext {
     }
 
     private static bool IsUsableString8CodePage(int codePage) {
-        return codePage > 0 && codePage != 1200 && codePage != 1201;
+        if (codePage <= 0 || codePage == 1200 || codePage == 1201) return false;
+        try {
+            _ = Encoding.GetEncoding(codePage, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+            return true;
+        } catch (ArgumentException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        }
     }
 
     private static string DecodeWithReplacement(int codePage, byte[] bytes) {

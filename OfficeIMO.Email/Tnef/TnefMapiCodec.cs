@@ -104,7 +104,7 @@ internal static class TnefMapiCodec {
         MapiProperty[] values = PrepareProperties(properties, diagnostics, location);
         using (MemoryStream output = new MemoryStream()) {
             WriteUInt32(output, unchecked((uint)values.Length));
-            foreach (MapiProperty property in values) WriteProperty(output, property, codePage);
+            foreach (MapiProperty property in values) WriteProperty(output, property, codePage, diagnostics, location);
             return output.ToArray();
         }
     }
@@ -115,9 +115,13 @@ internal static class TnefMapiCodec {
             string.Concat(location, "/row[", index.ToString(CultureInfo.InvariantCulture), "]"))).ToArray();
         using (MemoryStream output = new MemoryStream()) {
             WriteUInt32(output, unchecked((uint)values.Length));
-            foreach (IReadOnlyList<MapiProperty> row in values) {
+            for (int rowIndex = 0; rowIndex < values.Length; rowIndex++) {
+                IReadOnlyList<MapiProperty> row = values[rowIndex];
                 WriteUInt32(output, unchecked((uint)row.Count));
-                foreach (MapiProperty property in row) WriteProperty(output, property, codePage);
+                foreach (MapiProperty property in row) {
+                    WriteProperty(output, property, codePage, diagnostics,
+                        string.Concat(location, "/row[", rowIndex.ToString(CultureInfo.InvariantCulture), "]"));
+                }
             }
             return output.ToArray();
         }
@@ -257,7 +261,26 @@ internal static class TnefMapiCodec {
         }
     }
 
-    private static void WriteProperty(Stream output, MapiProperty property, int codePage) {
+    private static void WriteProperty(Stream output, MapiProperty property, int codePage,
+        IList<EmailDiagnostic> diagnostics, string location) {
+        using (var encoded = new MemoryStream()) {
+            try {
+                WriteEncodedProperty(encoded, property, codePage, useReplacementEncoding: false);
+            } catch (EncoderFallbackException) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_MAPI_STRING8_CHARACTER_UNENCODABLE",
+                    string.Concat("String8 property 0x", property.PropertyId.ToString("X4", CultureInfo.InvariantCulture),
+                        " contains characters that code page ", codePage.ToString(CultureInfo.InvariantCulture),
+                        " cannot represent; replacement encoding was used."),
+                    EmailDiagnosticSeverity.Warning, location));
+                encoded.SetLength(0);
+                WriteEncodedProperty(encoded, property, codePage, useReplacementEncoding: true);
+            }
+            encoded.WriteTo(output);
+        }
+    }
+
+    private static void WriteEncodedProperty(Stream output, MapiProperty property, int codePage,
+        bool useReplacementEncoding) {
         ushort propertyId = property.Name != null && property.PropertyId < 0x8000 ? (ushort)0x8000 : property.PropertyId;
         uint tag = ((uint)propertyId << 16) | (ushort)property.PropertyType;
         WriteUInt32(output, tag);
@@ -270,20 +293,20 @@ internal static class TnefMapiCodec {
             MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(property.PropertyType) : property.PropertyType;
             foreach (object value in values) {
                 var item = new MapiProperty(propertyId, itemType, value) { RawData = multiple ? null : property.RawData };
-                byte[] bytes = EncodeValue(item, codePage);
+                byte[] bytes = EncodeValue(item, codePage, useReplacementEncoding);
                 if (IsVariableValue(itemType)) WriteUInt32(output, unchecked((uint)bytes.Length));
                 output.Write(bytes, 0, bytes.Length);
                 Pad4(output);
             }
         } else {
-            byte[] bytes = EncodeFixedValue(property, codePage);
+            byte[] bytes = EncodeFixedValue(property, codePage, useReplacementEncoding);
             output.Write(bytes, 0, bytes.Length);
             Pad4(output);
         }
     }
 
-    private static byte[] EncodeFixedValue(MapiProperty property, int codePage) {
-        byte[] encoded = EncodeValue(property, codePage);
+    private static byte[] EncodeFixedValue(MapiProperty property, int codePage, bool useReplacementEncoding) {
+        byte[] encoded = EncodeValue(property, codePage, useReplacementEncoding);
         int size = GetFixedSize(property.PropertyType);
         if (encoded.Length == size) return encoded;
         var fixedBytes = new byte[size];
@@ -306,11 +329,13 @@ internal static class TnefMapiCodec {
         }
     }
 
-    private static byte[] EncodeValue(MapiProperty property, int codePage) {
+    private static byte[] EncodeValue(MapiProperty property, int codePage, bool useReplacementEncoding) {
         if (property.PropertyType == MapiPropertyType.String8) {
             if (property.RawData != null) return (byte[])property.RawData.Clone();
             string text = string.Concat(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty, "\0");
-            return MsgValueWriter.EncodeString8(text, codePage);
+            return useReplacementEncoding
+                ? MsgValueWriter.EncodeString8WithReplacement(text, codePage)
+                : MsgValueWriter.EncodeString8(text, codePage);
         }
         if (property.PropertyType == MapiPropertyType.Unicode) {
             return Encoding.Unicode.GetBytes(string.Concat(Convert.ToString(property.Value, CultureInfo.InvariantCulture) ?? string.Empty, "\0"));

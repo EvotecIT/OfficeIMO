@@ -105,6 +105,13 @@ internal static class TnefWriter {
             byte[] compound = OfficeCompoundFileWriter.Write(compoundStreams);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidStorage.ToByteArray(), compound)));
+        } else if (method == 6 && attachment.Content != null) {
+            byte[] opaque = attachment.Content.Length >= 16 &&
+                new Guid(MsgBinary.Slice(attachment.Content, 0, 16)) == IidStorage
+                    ? (byte[])attachment.Content.Clone()
+                    : Combine(IidStorage.ToByteArray(), attachment.Content);
+            properties.RemoveAll(property => property.PropertyId == 0x3701);
+            properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, opaque));
         }
         if (properties.Count > 0) {
             WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties,

@@ -302,4 +302,17 @@ public sealed class EmailMimeReaderTests {
         EmailAttachment attachment = Assert.Single(document.Attachments);
         Assert.Equal("logo", attachment.ContentId);
     }
+
+    [Fact]
+    public void UsesFirstRelatedPartAsBodyWhenStartIsAbsent() {
+        const string eml = "Subject: default related root\r\nContent-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <root>\r\n\r\n<p>default root</p>\r\n" +
+            "--outer\r\nContent-Type: image/png\r\nContent-ID: <logo>\r\n\r\npng\r\n" +
+            "--outer--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("<p>default root</p>", document.Body.Html!.Trim());
+        Assert.Equal("logo", Assert.Single(document.Attachments).ContentId);
+    }
 }
