@@ -95,7 +95,7 @@ security proof.
 - [x] Run every rewrite scenario through `PdfRewritePreservationMatrix` and
   retain the original blocker or preservation report. Expected blockers must be
   distinguishable from regressions.
-- [ ] Add external development-time checks for syntax, rendering, signatures,
+- [x] Add external development-time checks for syntax, rendering, signatures,
   and the selected compliance profile. External tools remain test/build proof,
   not runtime dependencies.
 - [x] Fuzz the tokenizer, object parser, stream decoders, page-tree traversal,
