@@ -553,8 +553,8 @@ namespace OfficeIMO.Tests {
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
-            Assert.Equal(CellValues.String, cell.DataType!.Value);
-            Assert.Equal(id.ToString(), cell.CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
+            Assert.Equal(id.ToString(), GetSpreadsheetCellText(spreadsheet, cell));
         }
 
         [Fact]
@@ -598,8 +598,8 @@ namespace OfficeIMO.Tests {
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
-            Assert.Equal(CellValues.String, cell.DataType!.Value);
-            Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), cell.CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
+            Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), GetSpreadsheetCellText(spreadsheet, cell));
         }
 
         [Fact]
@@ -622,8 +622,8 @@ namespace OfficeIMO.Tests {
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
-            Assert.Equal(CellValues.String, cell.DataType!.Value);
-            Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), cell.CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
+            Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), GetSpreadsheetCellText(spreadsheet, cell));
         }
 
         [Fact]
@@ -652,8 +652,8 @@ namespace OfficeIMO.Tests {
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("4999", cells["A5001"].CellValue!.Text);
-            Assert.Equal(CellValues.String, cells["B5001"].DataType!.Value);
-            Assert.Equal("Row 4999", cells["B5001"].CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, cells["B5001"].DataType!.Value);
+            Assert.Equal("Row 4999", GetSpreadsheetCellText(spreadsheet, cells["B5001"]));
             Assert.Equal(1U, cells["C5001"].StyleIndex!.Value);
             Assert.Equal(2U, cells["D5001"].StyleIndex!.Value);
         }
@@ -679,8 +679,8 @@ namespace OfficeIMO.Tests {
 
             var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal(CellValues.String, cells["A2"].DataType!.Value);
-            Assert.Equal("Row 0", cells["A2"].CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, cells["A2"].DataType!.Value);
+            Assert.Equal("Row 0", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
         }
 
         [Fact]
@@ -784,8 +784,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Name", "Unique", "Repeated" }, sharedStrings);
             Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
             Assert.Equal("2", cells["A2"].CellValue!.Text);
-            Assert.Equal(CellValues.String, cells["B2"].DataType!.Value);
-            Assert.Equal("Unique 0", cells["B2"].CellValue!.Text);
+            Assert.Equal(CellValues.InlineString, cells["B2"].DataType!.Value);
+            Assert.Equal("Unique 0", GetSpreadsheetCellText(spreadsheet, cells["B2"]));
         }
 
         [Fact]
@@ -873,8 +873,8 @@ namespace OfficeIMO.Tests {
                 var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
                 Assert.False(cells.ContainsKey("B2"));
                 Assert.True(cells.ContainsKey("C2"));
-                Assert.Equal(CellValues.String, cells["C2"].DataType!.Value);
-                Assert.Equal(string.Empty, cells["C2"].CellValue!.Text);
+                Assert.Equal(CellValues.InlineString, cells["C2"].DataType!.Value);
+                Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["C2"]));
                 Assert.True(cells.ContainsKey("D2"));
                 Assert.True(cells.ContainsKey("A3"));
                 Assert.True(cells.ContainsKey("B3"));
@@ -1152,7 +1152,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A1"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
             Assert.Equal("10", cells["B1"].CellValue!.Text);
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
             Assert.Equal(0U, tableDefinition.HeaderRowCount!.Value);
@@ -1251,7 +1251,7 @@ namespace OfficeIMO.Tests {
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Cell valueCell = cells["A2"];
-            Assert.Equal(CellValues.Number, valueCell.DataType!.Value);
+            Assert.True(valueCell.DataType == null || valueCell.DataType.Value == CellValues.Number);
             Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture), valueCell.CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
@@ -2067,8 +2067,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Name", cells["A1"].CellValue!.Text);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(worksheetPart.TableDefinitionParts);
@@ -2630,8 +2630,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Name", cells["A1"].CellValue!.Text);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("20", cells["B3"].CellValue!.Text);
             Assert.Empty(worksheetPart.TableDefinitionParts);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
@@ -3059,7 +3059,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
@@ -3391,10 +3391,10 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Name", cells["A1"].CellValue!.Text);
-            Assert.Equal("Score", cells["B1"].CellValue!.Text);
-            Assert.Equal("Created", cells["C1"].CellValue!.Text);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Score", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
+            Assert.Equal("Created", GetSpreadsheetCellText(spreadsheet, cells["C1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
@@ -3531,7 +3531,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
@@ -5957,8 +5957,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Name", cells["A1"].CellValue!.Text);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(worksheetPart.TableDefinitionParts);
@@ -5987,7 +5987,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Name", cells["A1"].CellValue!.Text);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
@@ -6156,8 +6156,8 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Name", cells["A1"].CellValue!.Text);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(worksheetPart.TableDefinitionParts);
@@ -6301,7 +6301,7 @@ namespace OfficeIMO.Tests {
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.False(cells.ContainsKey("A3"));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
@@ -6381,7 +6381,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.False(cells.ContainsKey("A3"));
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
             Assert.Equal("A1:B2", tableDefinition.Reference!.Value);
@@ -6413,7 +6413,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
@@ -6445,7 +6445,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A1"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
             Assert.Equal("10", cells["B1"].CellValue!.Text);
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
             Assert.Equal("0", tableDefinition.HeaderRowCount!.Value.ToString(CultureInfo.InvariantCulture));
@@ -7098,6 +7098,10 @@ namespace OfficeIMO.Tests {
 
         private static string? GetSpreadsheetCellText(SpreadsheetDocument spreadsheet, Cell cell) {
             string? value = cell.CellValue?.Text;
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                return cell.InlineString?.InnerText ?? string.Empty;
+            }
+
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
                 && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int sharedStringIndex)) {
                 return spreadsheet.WorkbookPart?.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ElementAtOrDefault(sharedStringIndex)?.InnerText;

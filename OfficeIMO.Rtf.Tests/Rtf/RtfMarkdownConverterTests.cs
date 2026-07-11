@@ -712,15 +712,54 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
-    public void RtfDocumentToMarkdownReportsRunAttachedNotes() {
+    public void RtfDocumentToMarkdownConvertsRunAttachedNotesToFootnotes() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddFootnote("1", "Footnote body");
         var options = new RtfToMarkdownOptions();
 
-        string markdown = document.ToMarkdown(options);
+        string markdown = document.ToMarkdown(options).Replace("\r\n", "\n");
 
-        Assert.Contains("1", markdown, StringComparison.Ordinal);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+        Assert.Contains("<sup>1</sup>[^fn1]", markdown, StringComparison.Ordinal);
+        Assert.Contains("[^fn1]: Footnote body", markdown, StringComparison.Ordinal);
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD015");
+        Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+        options.ConversionReport.RequireNoLoss();
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownPreserves_Rich_MultiParagraph_Note_Content() {
+        RtfDocument document = RtfDocument.Create();
+        var note = new RtfNote(RtfNoteKind.Footnote);
+        RtfParagraph first = note.AddParagraph("Rich ");
+        first.AddText("bold").SetBold();
+        first.AddText(" and ");
+        first.AddText("link").SetHyperlink(new Uri("https://example.test/note"));
+        RtfParagraph second = note.AddParagraph("Second ");
+        second.AddText("paragraph").SetItalic();
+        document.AddParagraph("Body").AddNoteReference(note, "1");
+        var options = new RtfToMarkdownOptions();
+
+        string markdown = document.ToMarkdown(options).Replace("\r\n", "\n");
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        FootnoteDefinitionBlock definition = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(parsed.Blocks, block => block is FootnoteDefinitionBlock));
+
+        Assert.Contains("[^fn1]: Rich **bold** and [link](https://example.test/note)", markdown, StringComparison.Ordinal);
+        Assert.Contains("Second *paragraph*", markdown, StringComparison.Ordinal);
+        Assert.Equal(2, definition.ParagraphBlocks.Count);
+        Assert.DoesNotContain(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Action == RtfConversionAction.Omitted || diagnostic.Action == RtfConversionAction.Flattened);
+        options.ConversionReport.RequireNoLoss();
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownOmitsNotesAttachedToHiddenRuns() {
+        RtfDocument document = RtfDocument.Create();
+        RtfRun hiddenReference = document.AddParagraph().AddFootnote("1", "Hidden footnote body");
+        hiddenReference.Hidden = true;
+
+        string markdown = document.ToMarkdown(new RtfToMarkdownOptions { IncludeHiddenText = false });
+
+        Assert.DoesNotContain("fn1", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden footnote body", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -858,6 +897,26 @@ public class RtfMarkdownConverterTests {
 
         Assert.Contains("![Logo](images/My%20File.png)", markdown, StringComparison.Ordinal);
         Assert.Equal("images/My%20File.png", image.Path);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownExportsBlockAndInlineImagePayloads() {
+        RtfDocument document = RtfDocument.Create();
+        RtfImage block = document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50 });
+        RtfImage inline = document.AddParagraph().AddImage(RtfImageFormat.Jpeg, new byte[] { 0xFF, 0xD8 });
+        var exported = new List<(RtfImage Image, int Index, string Path)>();
+        var options = new RtfToMarkdownOptions {
+            ImagePathFactory = (image, index) => "media/image " + index + "." + image.Format.ToString().ToLowerInvariant(),
+            ImageExporter = (image, index, path) => exported.Add((image, index, path))
+        };
+
+        string markdown = document.ToMarkdown(options);
+
+        Assert.Equal(2, exported.Count);
+        Assert.Equal((block, 0, "media/image 0.png"), exported[0]);
+        Assert.Equal((inline, 1, "media/image 1.jpeg"), exported[1]);
+        Assert.Contains("media/image%200.png", markdown, StringComparison.Ordinal);
+        Assert.Contains("media/image%201.jpeg", markdown, StringComparison.Ordinal);
     }
 
     private static string ExtractPlainText(IPlainTextMarkdownInline inline) {

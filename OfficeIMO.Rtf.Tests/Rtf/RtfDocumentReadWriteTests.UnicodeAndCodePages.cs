@@ -1,10 +1,64 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
+using System.Globalization;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
 
 public partial class RtfDocumentReadWriteTests {
+    [Theory]
+    [InlineData(932, @"\'93\'fa\'96\'7b\'8c\'ea", "日本語")]
+    [InlineData(936, @"\'d6\'d0\'ce\'c4", "中文")]
+    [InlineData(949, @"\'c7\'d1\'b1\'b9\'be\'ee", "한국어")]
+    [InlineData(950, @"\'a4\'a4\'a4\'e5", "中文")]
+    [InlineData(1361, @"\'88\'61\'90\'61\'94\'61", "가나다")]
+    public void Read_Decodes_DoubleByte_Ansi_CodePages(int codePage, string encodedText, string expected) {
+        string rtf = "{\\rtf1\\ansi\\ansicpg" + codePage.ToString(CultureInfo.InvariantCulture) + " " + encodedText + "}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(expected, Assert.Single(result.Document.Paragraphs).ToPlainText());
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
+        Assert.Equal(rtf, result.ToRtfLossless());
+    }
+
+    [Theory]
+    [InlineData(932, 26085, @"\'93\'fa", "日")]
+    [InlineData(936, 20013, @"\'d6\'d0", "中")]
+    [InlineData(949, -10916, @"\'c7\'d1", "한")]
+    [InlineData(950, 20013, @"\'a4\'a4", "中")]
+    [InlineData(1361, -21504, @"\'88\'61", "가")]
+    public void Read_Consumes_Dbcs_Unicode_Fallback_Per_Source_Byte(int codePage, int unicodeValue, string fallback, string expected) {
+        string rtf = "{\\rtf1\\ansi\\ansicpg" + codePage.ToString(CultureInfo.InvariantCulture) +
+            "\\uc2\\u" + unicodeValue.ToString(CultureInfo.InvariantCulture) + fallback + "X}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(expected + "X", Assert.Single(result.Document.Paragraphs).ToPlainText());
+        Assert.Equal(rtf, result.ToRtfLossless());
+    }
+
+    [Fact]
+    public void Read_Consumes_Dbcs_Unicode_Fallback_Per_Source_Byte_In_Metadata() {
+        const string rtf = @"{\rtf1\ansi\ansicpg932{\info{\title \uc2\u12354\'82\'a0X}}Body}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal("あX", result.Document.Info.Title);
+        Assert.Equal(rtf, result.ToRtfLossless());
+    }
+
+    [Fact]
+    public void Read_Uses_Johab_CodePage_For_Font_Charset_130() {
+        const string rtf = @"{\rtf1\ansi{\fonttbl{\f0\fcharset130 Johab;}}\f0 \'88\'61\'90\'61\'94\'61}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(130, Assert.Single(result.Document.Fonts).Charset);
+        Assert.Equal("가나다", Assert.Single(result.Document.Paragraphs).ToPlainText());
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
+    }
+
     [Fact]
     public void Load_Decodes_Literal_Ansi_Text_With_CodePage_And_Preserves_Source_Bytes() {
         var bytes = new List<byte>();

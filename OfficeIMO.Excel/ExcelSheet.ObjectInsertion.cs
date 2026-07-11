@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
 
         private static object? NullObjectSelector<T>(T row) => null;
 
-        private static object?[] CreateExplicitObjectExportCellValues<T>(
+        internal static object?[] CreateExplicitObjectExportCellValues<T>(
             IReadOnlyList<T> rows,
             IReadOnlyList<Func<T, object?>> selectors,
             out Type?[] inferredColumnTypes) {

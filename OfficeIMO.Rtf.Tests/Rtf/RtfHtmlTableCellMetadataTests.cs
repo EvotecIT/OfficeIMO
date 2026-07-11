@@ -24,7 +24,9 @@ public class RtfHtmlTableCellMetadataTests {
         first.AddParagraph("Left");
         second.AddParagraph("Right");
 
-        string html = document.ToHtml(new RtfToHtmlOptions { NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true, NewLine = "\n" });
 
         Assert.Contains("data-officeimo-rtf-cell=\"", html, StringComparison.Ordinal);
 
@@ -67,7 +69,9 @@ public class RtfHtmlTableCellMetadataTests {
         first.AddParagraph("Merged");
         last.AddParagraph("Tail");
 
-        string html = document.ToHtml(new RtfToHtmlOptions { NewLine = "\n" });
+        string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true, NewLine = "\n" });
 
         Assert.Contains("colspan=\"2\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-cell=\"", html, StringComparison.Ordinal);

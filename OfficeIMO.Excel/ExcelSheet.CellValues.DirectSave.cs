@@ -239,7 +239,7 @@ namespace OfficeIMO.Excel {
             }
 
             int dataStartIndex = includeHeaders ? columnCount : 0;
-            bool useFlatSnapshot = !includeHeaders && columnCount <= 3;
+            bool useFlatSnapshot = cells.Count - dataStartIndex <= DirectCellValuesFlatSnapshotCellLimit;
             Type[] columnTypes;
             object?[]? values = null;
             object?[][]? rows = null;

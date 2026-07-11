@@ -30,9 +30,43 @@ public static class DocumentReaderXmlRegistrationExtensions {
     /// </param>
     /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     public static void RegisterXmlHandler(XmlReadOptions? xmlOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        var registered = Clone(xmlOptions);
+        ReaderHandlerRegistration registration = CreateRegistration(xmlOptions);
 
-        var registration = new ReaderHandlerRegistration {
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
+    }
+
+    /// <summary>
+    /// Adds XML ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddXmlHandler(
+        this OfficeDocumentReaderBuilder builder,
+        XmlReadOptions? xmlOptions = null,
+        bool replaceExisting = true,
+        bool preserveExistingCustomExtensions = false) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ReaderHandlerRegistration registration = CreateRegistration(xmlOptions);
+        if (preserveExistingCustomExtensions) {
+            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            builder.AddHandler(registration, replaceExisting);
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Unregisters XML ingestion handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterXmlHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(XmlReadOptions? xmlOptions) {
+        XmlReadOptions? registered = Clone(xmlOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "XML Reader Adapter",
             Description = "Modular XML tree parser with path/type/value chunk output.",
@@ -50,19 +84,6 @@ public static class DocumentReaderXmlRegistrationExtensions {
                 xmlOptions: Clone(registered),
                 cancellationToken: ct)
         };
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
-
-    /// <summary>
-    /// Unregisters XML ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterXmlHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 
     private static XmlReadOptions? Clone(XmlReadOptions? options) {

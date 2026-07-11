@@ -5,9 +5,13 @@ namespace OfficeIMO.Rtf;
 /// </summary>
 public sealed class RtfTableCell {
     private readonly List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
+    private readonly List<IRtfBlock> _blocks = new List<IRtfBlock>();
 
     /// <summary>Paragraphs in the cell.</summary>
     public IReadOnlyList<RtfParagraph> Paragraphs => _paragraphs.AsReadOnly();
+
+    /// <summary>Ordered cell blocks, including paragraphs and nested tables.</summary>
+    public IReadOnlyList<IRtfBlock> Blocks => _blocks.AsReadOnly();
 
     /// <summary>Right cell boundary in twips.</summary>
     public int? RightBoundaryTwips { get; set; }
@@ -144,10 +148,33 @@ public sealed class RtfTableCell {
         }
 
         _paragraphs.Add(paragraph);
+        _blocks.Add(paragraph);
         return paragraph;
     }
 
+    /// <summary>Adds a nested table to the cell.</summary>
+    public RtfTable AddTable(int rows, int columns) {
+        if (rows < 0) throw new ArgumentOutOfRangeException(nameof(rows), "Row count cannot be negative.");
+        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns), "Column count must be greater than zero.");
+        var table = new RtfTable();
+        for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+            RtfTableRow row = table.AddRow();
+            for (int columnIndex = 0; columnIndex < columns; columnIndex++) {
+                row.AddCell((columnIndex + 1) * 2400);
+            }
+        }
+
+        _blocks.Add(table);
+        return table;
+    }
+
     internal void AddParsedParagraph(RtfParagraph paragraph) {
-        _paragraphs.Add(paragraph ?? throw new ArgumentNullException(nameof(paragraph)));
+        RtfParagraph value = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+        _paragraphs.Add(value);
+        _blocks.Add(value);
+    }
+
+    internal void AddParsedTable(RtfTable table) {
+        _blocks.Add(table ?? throw new ArgumentNullException(nameof(table)));
     }
 }

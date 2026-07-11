@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Root document container and fluent API entrypoint for composing Markdown.
 /// Supports a fluent-chaining style and an explicit object model via <see cref="Add(IMarkdownBlock)"/>.
 /// </summary>
-public class MarkdownDoc : MarkdownObject {
+public partial class MarkdownDoc : MarkdownObject {
     /// <summary>Resolved heading metadata within a document.</summary>
     public sealed class HeadingInfo {
         /// <summary>The heading block.</summary>
@@ -53,6 +53,26 @@ public class MarkdownDoc : MarkdownObject {
             _blocks.Add(block);
             _lastBlock = block;
         }
+        _parseResult = null;
+        RequestObjectTreeBinding();
+        return this;
+    }
+
+    /// <summary>Adds multiple blocks and binds the resulting object tree once after the batch is complete.</summary>
+    /// <param name="blocks">Blocks to append in source order.</param>
+    /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
+    public MarkdownDoc AddRange(IEnumerable<IMarkdownBlock> blocks) {
+        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        foreach (IMarkdownBlock block in blocks) {
+            if (block == null) throw new ArgumentException("Markdown blocks cannot contain null entries.", nameof(blocks));
+            if (block is IFrontMatterMarkdownBlock frontMatter) {
+                _frontMatter = frontMatter;
+            } else {
+                _blocks.Add(block);
+                _lastBlock = block;
+            }
+        }
+
         _parseResult = null;
         MarkdownObjectTreeBinder.BindDocument(this);
         return this;

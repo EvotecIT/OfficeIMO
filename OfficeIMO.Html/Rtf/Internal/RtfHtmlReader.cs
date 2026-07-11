@@ -14,6 +14,7 @@ internal static partial class RtfHtmlReader {
         private readonly Stack<HtmlListState> _lists = new Stack<HtmlListState>();
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
         private readonly Stack<RtfRevisionScope> _revisions = new Stack<RtfRevisionScope>();
+        private readonly Stack<TableReadState> _tableStates = new Stack<TableReadState>();
         private readonly List<RowSpanState> _rowSpans = new List<RowSpanState>();
         private RtfParagraph? _paragraph;
         private RtfTable? _table;
@@ -286,11 +287,7 @@ internal static partial class RtfHtmlReader {
                     _row = null;
                     break;
                 case "table":
-                    _paragraph = null;
-                    _cell = null;
-                    _row = null;
-                    _table = null;
-                    _rowSpans.Clear();
+                    EndTable();
                     break;
                 case "html":
                 case "body":

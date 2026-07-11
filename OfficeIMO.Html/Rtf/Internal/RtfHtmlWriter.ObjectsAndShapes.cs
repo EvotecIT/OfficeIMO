@@ -4,6 +4,15 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendObject(StringBuilder builder, RtfObject rtfObject, RtfToHtmlOptions options, RtfDocument document, bool blockTag) {
+        if (!options.IncludeRoundTripMetadata) {
+            AppendSafeObjectResult(builder, rtfObject, options, document, blockTag);
+            options.AddDiagnostic(
+                "RtfHtmlObjectMetadataOmitted",
+                "RTF object metadata and binary payload were omitted from web-safe HTML.",
+                rtfObject.ClassName);
+            return;
+        }
+
         string tag = blockTag ? "div" : "span";
         builder.Append('<');
         builder.Append(tag);
@@ -26,6 +35,14 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendShape(StringBuilder builder, RtfShape shape, RtfToHtmlOptions options, RtfDocument document, bool blockTag) {
+        if (!options.IncludeRoundTripMetadata) {
+            AppendSafeShapeText(builder, shape, options, document, blockTag);
+            options.AddDiagnostic(
+                "RtfHtmlShapeMetadataOmitted",
+                "RTF shape metadata was omitted from web-safe HTML.");
+            return;
+        }
+
         string tag = blockTag ? "div" : "span";
         builder.Append('<');
         builder.Append(tag);
@@ -35,6 +52,38 @@ internal static partial class RtfHtmlWriter {
         AppendMetadataAttribute(builder, "data-officeimo-rtf-shape-text", EncodeShapeText(shape, options, document));
         AppendMetadataAttribute(builder, "title", shape.ToPlainText());
         builder.Append("></");
+        builder.Append(tag);
+        builder.Append('>');
+    }
+
+    private static void AppendSafeObjectResult(StringBuilder builder, RtfObject rtfObject, RtfToHtmlOptions options, RtfDocument document, bool blockTag) {
+        string tag = blockTag ? "div" : "span";
+        builder.Append('<');
+        builder.Append(tag);
+        builder.Append(" class=\"rtf-object-result\">");
+        AppendInlines(builder, rtfObject.Result.Inlines, options, document);
+        if (rtfObject.ResultImage != null) {
+            AppendImage(builder, rtfObject.ResultImage, options);
+        }
+        builder.Append("</");
+        builder.Append(tag);
+        builder.Append('>');
+    }
+
+    private static void AppendSafeShapeText(StringBuilder builder, RtfShape shape, RtfToHtmlOptions options, RtfDocument document, bool blockTag) {
+        string tag = blockTag ? "div" : "span";
+        builder.Append('<');
+        builder.Append(tag);
+        builder.Append(" class=\"rtf-shape-text\">");
+        for (int index = 0; index < shape.TextBoxParagraphs.Count; index++) {
+            if (blockTag) {
+                AppendParagraph(builder, shape.TextBoxParagraphs[index], options, document);
+            } else {
+                if (index > 0) builder.Append("<br>");
+                AppendInlines(builder, shape.TextBoxParagraphs[index].Inlines, options, document);
+            }
+        }
+        builder.Append("</");
         builder.Append(tag);
         builder.Append('>');
     }

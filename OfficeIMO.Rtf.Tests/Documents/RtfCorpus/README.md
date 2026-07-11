@@ -1,13 +1,15 @@
-# OfficeIMO RTF Golden Corpus
+# OfficeIMO RTF interoperability corpus
 
-This folder holds small, reviewable fixtures for RTF conversion contracts. Keep fixtures focused and name them after the behavior they protect.
+This folder contains small RTF fixtures with checked provenance and executable conversion expectations. `corpus-manifest.json` is the source of truth for fixture ids, producers, versions, origins, licenses, SHA-256 hashes, required controls/text, adapter coverage, producer scorecard status, and reopen evidence.
 
-Each fixture should declare:
+The current corpus includes:
 
-- source generator or real-world origin when known;
-- intended conversion class: `Lossless`, `Semantic`, `Visual`, `Extractive`, or `Diagnostic`;
-- target adapters covered: `Rtf`, `Word`, `Html`, `Markdown`, `Reader`, or deferred `Pdf`;
-- expected known losses, if any.
+- a Microsoft Word 16 document generated locally and reopened in Word after OfficeIMO normalization;
+- a Microsoft Outlook 16 message saved as RTF;
+- four LibreOffice upstream regression fixtures pinned to an exact source commit;
+- a synthetic Outlook HTML-encapsulation grammar fixture, labeled synthetic;
+- focused synthetic files for core syntax, formatting, lists, tables, images, notes/fields, layout, code pages, and pathological input.
 
-PDF fixtures can be referenced in planning, but PDF implementation assertions should wait until the active PDF work stream is ready to integrate.
+Every `.rtf` file must appear in the manifest with a stable hash and redistribution permission. `RtfGoldenCorpusTests` verifies exact source bytes, normalized reparse, required semantic text/control words, executable adapter claims, producer scorecard honesty, and reopen evidence.
 
+Do not relabel synthetic grammar coverage as producer evidence. Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial-library output remain `unverified` until redistributable source files and reproducible reopen evidence are added.

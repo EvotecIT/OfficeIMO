@@ -18,16 +18,44 @@ internal static class RtfBytePreservingEncoding {
     }
 
     public static string ReadToEnd(Stream stream) {
-        using var memory = new MemoryStream();
-        stream.CopyTo(memory);
-        return FromBytes(memory.ToArray());
+        return FromBytes(ReadBytesToEnd(stream, null, CancellationToken.None));
     }
 
     public static async Task<string> ReadToEndAsync(Stream stream, CancellationToken cancellationToken) {
+        return FromBytes(await ReadBytesToEndAsync(stream, null, cancellationToken).ConfigureAwait(false));
+    }
+
+    public static byte[] ReadBytesToEnd(Stream stream, long? maxBytes, CancellationToken cancellationToken) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        using var memory = new MemoryStream();
-        await stream.CopyToAsync(memory, 81920, cancellationToken).ConfigureAwait(false);
-        return FromBytes(memory.ToArray());
+        using var memory = CreateInputBuffer(stream, maxBytes);
+        var buffer = new byte[81920];
+        long total = 0;
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            total += read;
+            EnforceInputByteLimit(total, maxBytes);
+            memory.Write(buffer, 0, read);
+        }
+
+        return memory.ToArray();
+    }
+
+    public static async Task<byte[]> ReadBytesToEndAsync(Stream stream, long? maxBytes, CancellationToken cancellationToken) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        using var memory = CreateInputBuffer(stream, maxBytes);
+        var buffer = new byte[81920];
+        long total = 0;
+        while (true) {
+            int read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+            if (read == 0) break;
+            total += read;
+            EnforceInputByteLimit(total, maxBytes);
+            await memory.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+        }
+
+        return memory.ToArray();
     }
 
     public static byte[] GetBytes(string rtf) => ToBytes(rtf);
@@ -61,6 +89,24 @@ internal static class RtfBytePreservingEncoding {
         }
 
         return new string(chars);
+    }
+
+    private static MemoryStream CreateInputBuffer(Stream stream, long? maxBytes) {
+        if (!stream.CanSeek) return new MemoryStream();
+        long remaining = Math.Max(0, stream.Length - stream.Position);
+        EnforceInputByteLimit(remaining, maxBytes);
+        return remaining <= int.MaxValue ? new MemoryStream((int)remaining) : new MemoryStream();
+    }
+
+    private static void EnforceInputByteLimit(long actual, long? limit) {
+        if (limit.HasValue && actual > limit.Value) {
+            throw new RtfReadLimitException(
+                "RtfInputByteLimitExceeded",
+                $"RTF input exceeded {nameof(RtfReadOptions.MaxInputBytes)} ({actual} > {limit.Value}).",
+                nameof(RtfReadOptions.MaxInputBytes),
+                actual,
+                limit.Value);
+        }
     }
 
     private static byte[] ToBytes(string rtf) {

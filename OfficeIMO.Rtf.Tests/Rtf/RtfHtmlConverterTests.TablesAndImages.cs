@@ -81,7 +81,7 @@ public partial class RtfHtmlConverterTests {
         table.Rows[1].Cells[0].AddParagraph("Pulse");
         table.Rows[1].Cells[1].AddParagraph("72");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><thead><tr><th style=\"background-color:#F2F2F2;width:25%;vertical-align:middle;\"><p>Name</p></th><th style=\"width:72pt;\"><p>Value</p></th></tr></thead><tbody><tr><td style=\"background-color:#FFF2CC;vertical-align:bottom;\"><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", html);
     }
@@ -110,7 +110,7 @@ public partial class RtfHtmlConverterTests {
     public void RtfDocument_ToHtml_Reports_Diagnostic_For_Unsupported_Image_Format() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
-        var options = new RtfToHtmlOptions();
+        RtfToHtmlOptions options = RtfToHtmlOptions.CreateRoundTripProfile();
 
         string html = document.ToHtml(options);
 
@@ -160,7 +160,7 @@ public partial class RtfHtmlConverterTests {
         table.Rows[1].Cells[1].AddParagraph("72");
         table.Rows[1].Cells[2].VerticalMerge = RtfTableCellMerge.Continue;
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr><td colspan=\"2\"><p>Panel</p></td><td rowspan=\"2\"><p>Flag</p></td></tr><tr><td><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", html);
     }
@@ -219,7 +219,7 @@ public partial class RtfHtmlConverterTests {
         cell.RightBorder.ColorIndex = dark;
         cell.AddParagraph("Value");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr><td style=\"padding-top:6pt;padding-left:12pt;padding-bottom:3pt;padding-right:9pt;border-top:1pt solid #0C2238;border-left:1pt solid #0C2238;border-bottom:2pt dashed #FF0000;border-right:1pt double #0C2238;\"><p>Value</p></td></tr></tbody></table>", html);
     }
@@ -261,7 +261,7 @@ public partial class RtfHtmlConverterTests {
         cell.VerticalAlignment = RtfTableCellVerticalAlignment.Center;
         cell.AddParagraph("Result");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr><td style=\"background-color:#FFF2CC;width:30%;vertical-align:middle;white-space:nowrap;--officeimo-rtf-cell-nowrap:true;\"><p>Result</p></td></tr></tbody></table>", html);
     }
@@ -311,7 +311,7 @@ public partial class RtfHtmlConverterTests {
         row.HeightTwips = 480;
         row.Cells[0].AddParagraph("Result");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<table><tbody><tr style=\"background-color:#F2F2F2;text-align:right;width:80%;height:24pt;padding-top:3pt;padding-left:6pt;padding-bottom:5pt;padding-right:4pt;\"><td><p>Result</p></td></tr></tbody></table>", html);
     }
@@ -362,7 +362,7 @@ public partial class RtfHtmlConverterTests {
         image.DesiredWidthTwips = 1440;
         image.DesiredHeightTwips = 720;
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<img src=\"data:image/png;base64,iVBORw==\" alt=\"Chart\" width=\"96\" height=\"48\" style=\"width:72pt;height:36pt;\">", html);
 

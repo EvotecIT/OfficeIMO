@@ -22,11 +22,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                if (columns.Space != null) {
-                    return int.Parse(columns.Space!.Value!);
-                }
-
-                return null;
+                return int.TryParse(columns.Space?.Value, out int spacing) ? spacing : null;
             }
             set {
                 Columns? columns = _sectionProperties.GetFirstChild<Columns>();

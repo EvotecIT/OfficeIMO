@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
                 int previous = 0;
                 int nextRowIndex = 1;
                 int rowCount = lastRow - firstRow + 1;
-                var seenRows = CreateCompletedRowTracker(rowCount);
+                int rowsSeen = 0;
 
                 while (reader.Read()) {
                     if (canCancel) {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (rowIndex > lastRow) {
-                        if (seenRows.AllRowsSeen) {
+                        if (rowsSeen == rowCount) {
                             return true;
                         }
 
@@ -62,7 +62,8 @@ namespace OfficeIMO.Excel {
 
                     previous = rowIndex;
                     hasPrevious = true;
-                    seenRows.MarkSeen(rowIndex - firstRow);
+                    rowsSeen++;
+                    SkipXmlElement(reader, "row");
                 }
 
                 return true;
@@ -83,7 +84,7 @@ namespace OfficeIMO.Excel {
             bool sawRowAfterRange = false;
             int previous = 0;
             int rowCount = lastRow - firstRow + 1;
-            var seenRows = CreateCompletedRowTracker(rowCount);
+            int rowsSeen = 0;
 
             foreach (var row in data.Elements<Row>()) {
                 if (canCancel) {
@@ -93,7 +94,7 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
-                    if (seenRows.AllRowsSeen) {
+                    if (rowsSeen == rowCount) {
                         return true;
                     }
 
@@ -110,7 +111,7 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
-                seenRows.MarkSeen(rowIndex - firstRow);
+                rowsSeen++;
             }
 
             return true;
@@ -122,7 +123,7 @@ namespace OfficeIMO.Excel {
             bool sawRowAfterRange = false;
             int previous = 0;
             int rowCount = lastRow - firstRow + 1;
-            var seenRows = CreateCompletedRowTracker(rowCount);
+            int rowsSeen = 0;
 
             foreach (var row in EnumerateWorksheetRows(token)) {
                 if (canCancel) {
@@ -132,7 +133,7 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
-                    if (seenRows.AllRowsSeen) {
+                    if (rowsSeen == rowCount) {
                         return true;
                     }
 
@@ -149,7 +150,7 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
-                seenRows.MarkSeen(rowIndex - firstRow);
+                rowsSeen++;
             }
 
             return true;

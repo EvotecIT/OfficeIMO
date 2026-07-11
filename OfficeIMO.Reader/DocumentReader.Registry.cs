@@ -59,6 +59,8 @@ public static partial class DocumentReader {
             SupportsStream = capability.SupportsStream,
             SupportsDocumentPath = capability.SupportsDocumentPath,
             SupportsDocumentStream = capability.SupportsDocumentStream,
+            SupportsAsyncPath = capability.SupportsAsyncPath,
+            SupportsAsyncStream = capability.SupportsAsyncStream,
             SchemaId = capability.SchemaId,
             SchemaVersion = capability.SchemaVersion,
             DefaultMaxInputBytes = capability.DefaultMaxInputBytes,
@@ -272,7 +274,7 @@ public static partial class DocumentReader {
         return hasReplaceExisting;
     }
 
-    private static string NormalizeExtension(string? extension) {
+    internal static string NormalizeExtension(string? extension) {
         var value = extension ?? string.Empty;
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         var ext = value.Trim();
@@ -280,23 +282,6 @@ public static partial class DocumentReader {
             ext = "." + ext;
         }
         return ext.ToLowerInvariant();
-    }
-
-    private static List<string> NormalizeRegistrationExtensions(IReadOnlyList<string>? extensions) {
-        var list = new List<string>();
-        if (extensions == null) return list;
-
-        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var ext in extensions) {
-            var normalized = NormalizeExtension(ext);
-            if (normalized.Length == 0) continue;
-            if (set.Add(normalized)) {
-                list.Add(normalized);
-            }
-        }
-
-        list.Sort(StringComparer.Ordinal);
-        return list;
     }
 
     private static HashSet<string> BuildBuiltInExtensionSet() {
@@ -311,44 +296,22 @@ public static partial class DocumentReader {
         return set;
     }
 
-    private static bool TryResolveCustomHandlerByPath(string path, out CustomReaderHandler handler) {
+    private static bool TryResolveCustomHandlerByPath(string path, out ReaderHandlerDescriptor handler) {
         var ext = NormalizeExtension(TryGetExtension(path));
         return TryResolveCustomHandlerByExtension(ext, out handler);
     }
 
-    private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out CustomReaderHandler handler) {
+    private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out ReaderHandlerDescriptor handler) {
         var ext = NormalizeExtension(TryGetExtension(sourceName ?? string.Empty));
         return TryResolveCustomHandlerByExtension(ext, out handler);
     }
 
-    private static bool TryResolveCustomHandlerByExtension(string ext, out CustomReaderHandler handler) {
-        handler = null!;
-        if (string.IsNullOrWhiteSpace(ext)) return false;
-
-        lock (HandlerRegistrySync) {
-            if (!CustomHandlerIdByExtension.TryGetValue(ext, out var handlerId)) {
-                return false;
-            }
-            if (!CustomHandlersById.TryGetValue(handlerId, out var resolved) || resolved == null) {
-                return false;
-            }
-            handler = resolved;
-            return true;
-        }
+    private static bool TryResolveCustomHandlerByExtension(string ext, out ReaderHandlerDescriptor handler) {
+        return GetActiveHandlerRegistry().TryResolve(ext, out handler);
     }
 
-    private static bool RemoveCustomHandlerUnsafe(string handlerId) {
-        if (!CustomHandlersById.TryGetValue(handlerId, out var existing)) return false;
-
-        CustomHandlersById.Remove(handlerId);
-        foreach (var ext in existing.Extensions) {
-            if (CustomHandlerIdByExtension.TryGetValue(ext, out var current) &&
-                string.Equals(current, handlerId, StringComparison.OrdinalIgnoreCase)) {
-                CustomHandlerIdByExtension.Remove(ext);
-            }
-        }
-
-        return true;
+    private static bool TryResolveCustomHandlerByKind(ReaderInputKind kind, bool pathInput, out ReaderHandlerDescriptor handler) {
+        return GetActiveHandlerRegistry().TryResolveByKind(kind, pathInput, out handler);
     }
 
     private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
@@ -372,7 +335,10 @@ public static partial class DocumentReader {
             ExcelA1Range = o?.ExcelA1Range,
             MarkdownChunkByHeadings = o?.MarkdownChunkByHeadings ?? true,
             MarkdownInputNormalization = CloneMarkdownInputNormalization(o?.MarkdownInputNormalization),
-            ComputeHashes = o?.ComputeHashes ?? true
+            ComputeHashes = o?.ComputeHashes ?? true,
+            DetectionMode = o?.DetectionMode ?? ReaderDetectionMode.ContentWhenUnknown,
+            DetectionMaxProbeBytes = o?.DetectionMaxProbeBytes ?? ReaderOptions.DefaultDetectionMaxProbeBytes,
+            DetectionMaxContainerEntries = o?.DetectionMaxContainerEntries ?? ReaderOptions.DefaultDetectionMaxContainerEntries
         };
 
         if (clone.MaxChars < 256) clone.MaxChars = 256;
@@ -383,6 +349,11 @@ public static partial class DocumentReader {
         if (clone.MaxOpenXmlImagePlacementsPerRelationship.HasValue && clone.MaxOpenXmlImagePlacementsPerRelationship.Value < 1) clone.MaxOpenXmlImagePlacementsPerRelationship = null;
         if (clone.MaxOpenXmlImageAssetBytes.HasValue && clone.MaxOpenXmlImageAssetBytes.Value < 1) clone.MaxOpenXmlImageAssetBytes = null;
         if (clone.MaxOpenXmlImageTotalAssetBytes.HasValue && clone.MaxOpenXmlImageTotalAssetBytes.Value < 1) clone.MaxOpenXmlImageTotalAssetBytes = null;
+        if (clone.DetectionMaxProbeBytes < 256) clone.DetectionMaxProbeBytes = 256;
+        if (clone.DetectionMaxProbeBytes > ReaderOptions.MaximumDetectionProbeBytes) clone.DetectionMaxProbeBytes = ReaderOptions.MaximumDetectionProbeBytes;
+        if (clone.DetectionMaxContainerEntries < 1) clone.DetectionMaxContainerEntries = 1;
+        if (clone.DetectionMaxContainerEntries > ReaderOptions.MaximumDetectionContainerEntries) clone.DetectionMaxContainerEntries = ReaderOptions.MaximumDetectionContainerEntries;
+        if (!Enum.IsDefined(typeof(ReaderDetectionMode), clone.DetectionMode)) clone.DetectionMode = ReaderDetectionMode.ContentWhenUnknown;
 
         return clone;
     }
@@ -407,7 +378,10 @@ public static partial class DocumentReader {
             ExcelA1Range = options.ExcelA1Range,
             MarkdownChunkByHeadings = options.MarkdownChunkByHeadings,
             MarkdownInputNormalization = CloneMarkdownInputNormalization(options.MarkdownInputNormalization),
-            ComputeHashes = computeHashes ?? options.ComputeHashes
+            ComputeHashes = computeHashes ?? options.ComputeHashes,
+            DetectionMode = options.DetectionMode,
+            DetectionMaxProbeBytes = options.DetectionMaxProbeBytes,
+            DetectionMaxContainerEntries = options.DetectionMaxContainerEntries
         };
     }
 
@@ -470,22 +444,12 @@ public static partial class DocumentReader {
     }
 
     private static IReadOnlyList<string> GetDefaultAndRegisteredFolderExtensions() {
-        lock (HandlerRegistrySync) {
-            if (CustomHandlerIdByExtension.Count == 0) {
-                return DefaultFolderExtensions;
-            }
-
-            var merged = new string[DefaultFolderExtensions.Length + CustomHandlerIdByExtension.Count];
-            Array.Copy(DefaultFolderExtensions, merged, DefaultFolderExtensions.Length);
-
-            int index = DefaultFolderExtensions.Length;
-            foreach (var extension in CustomHandlerIdByExtension.Keys) {
-                merged[index] = extension;
-                index++;
-            }
-
-            return merged;
+        IReadOnlyList<string> customExtensions = GetActiveHandlerRegistry().Extensions;
+        if (customExtensions.Count == 0) {
+            return DefaultFolderExtensions;
         }
+
+        return DefaultFolderExtensions.Concat(customExtensions).ToArray();
     }
 
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {

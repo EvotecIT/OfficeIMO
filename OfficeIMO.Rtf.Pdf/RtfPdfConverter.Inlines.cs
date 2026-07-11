@@ -47,9 +47,11 @@ internal static partial class RtfPdfConverter {
                     RenderImage(image, pdf, options);
                     break;
                 case RtfObject rtfObject:
+                    AddConversionWarning(options, "ObjectFlattened", "Paragraph/Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);
                     AppendPlainText(rtfObject.ToPlainText(), pendingRuns);
                     break;
                 case RtfShape shape:
+                    AddConversionWarning(options, "ShapeFlattened", "Paragraph/Shape", "RTF shape was flattened to its visible text result.", RtfConversionAction.Flattened);
                     AppendPlainText(shape.ToPlainText(), pendingRuns);
                     break;
                 case RtfBookmarkMarker marker when marker.Kind == RtfBookmarkMarkerKind.Start:
@@ -100,9 +102,11 @@ internal static partial class RtfPdfConverter {
                     AppendGeneratedText(generatedText, runs, state, collectNotes);
                     break;
                 case RtfObject rtfObject:
+                    AddConversionWarning(options, "ObjectFlattened", "Inline/Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);
                     AppendPlainText(rtfObject.ToPlainText(), runs);
                     break;
                 case RtfShape shape:
+                    AddConversionWarning(options, "ShapeFlattened", "Inline/Shape", "RTF shape was flattened to its visible text result.", RtfConversionAction.Flattened);
                     AppendPlainText(shape.ToPlainText(), runs);
                     break;
             }

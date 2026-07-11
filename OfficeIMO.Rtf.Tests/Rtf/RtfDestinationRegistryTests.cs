@@ -75,4 +75,35 @@ public class RtfDestinationRegistryTests {
 
         Assert.True(RtfDestinationRegistry.IsIgnorableDestinationGroup(unknownGroup));
     }
+
+    [Theory]
+    [InlineData("themedata", RtfDestinationType.Metadata)]
+    [InlineData("colorschememapping", RtfDestinationType.Metadata)]
+    [InlineData("latentstyles", RtfDestinationType.StyleSheet)]
+    [InlineData("xe", RtfDestinationType.Field)]
+    [InlineData("tc", RtfDestinationType.Field)]
+    [InlineData("xmlopen", RtfDestinationType.Metadata)]
+    [InlineData("factoidname", RtfDestinationType.Metadata)]
+    [InlineData("datastore", RtfDestinationType.Metadata)]
+    [InlineData("protstart", RtfDestinationType.Metadata)]
+    [InlineData("mvfmf", RtfDestinationType.Bookmark)]
+    public void Registry_Classifies_Preserve_Only_Advanced_Families(string destination, RtfDestinationType type) {
+        Assert.Equal(type, RtfDestinationRegistry.GetDestinationType(destination));
+        Assert.True(RtfDestinationRegistry.ShouldSkipSemanticBinding(destination));
+        Assert.True(RtfDestinationRegistry.ShouldSkipTextReplacement(destination));
+        Assert.True(RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination));
+    }
+
+    [Fact]
+    public void Semantic_Read_Diagnoses_Known_Preserve_Only_Families_And_Keeps_Visible_Text() {
+        const string rtf = @"{\rtf1\ansi{\*\themedata 001122}{\*\xe Index entry}{\*\xmlopen\xmlns1}{\*\xmlclose}\pard Visible\par}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal("Visible", Assert.Single(result.Document.Paragraphs).ToPlainText());
+        Assert.Equal(rtf, result.ToRtfLossless());
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.Message.Contains("themedata"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.Message.Contains("xe"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.Message.Contains("xmlopen"));
+    }
 }

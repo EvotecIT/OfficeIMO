@@ -153,6 +153,7 @@ public static partial class MarkdownReader {
 
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(sourceLines, options, state);
         var nestedDocument = MarkdownDoc.Create();
+        using var objectTreeBindingDeferral = nestedDocument.DeferObjectTreeBinding();
         for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
             nestedDocument.Add(blocks[blockIndex]);
         }
@@ -190,55 +191,57 @@ public static partial class MarkdownReader {
             var lines = text.Split('\n');
             int i = 0;
 
-            // Front matter (YAML) only if it's the very first thing in the file
-            if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
-                int start = i + 1;
-                int end = -1;
-                for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
-                if (end > start) {
-                    var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
-                    if (frontMatter.Entries.Count > 0 || frontMatter.RawYaml != null) {
-                        doc.Add(frontMatter);
-                        if (syntaxNodes != null) {
-                            syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
-                                CreateLineSpan(state, lineOffset + i + 1, lineOffset + end + 1)));
+            using (doc.DeferObjectTreeBinding()) {
+                // Front matter (YAML) only if it's the very first thing in the file
+                if (allowFrontMatter && options.FrontMatter && i < lines.Length && lines[i].Trim() == "---") {
+                    int start = i + 1;
+                    int end = -1;
+                    for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
+                    if (end > start) {
+                        var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
+                        if (frontMatter.Entries.Count > 0 || frontMatter.RawYaml != null) {
+                            doc.Add(frontMatter);
+                            if (syntaxNodes != null) {
+                                syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
+                                    CreateLineSpan(state, lineOffset + i + 1, lineOffset + end + 1)));
+                            }
                         }
-                    }
-                    i = end + 1;
-                    // optional blank line after front matter
-                    if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
-                }
-            }
-
-            var pipeline = MarkdownReaderPipeline.Default(options);
-            // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
-            PreScanReferenceLinkDefinitions(lines, state, options);
-            PreScanAbbreviationDefinitions(lines, state, options);
-            while (i < lines.Length) {
-                if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
-                if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
-                bool matched = false;
-                var parsers = pipeline.Parsers;
-                int previousBlockCount = doc.Blocks.Count;
-                int startIndex = i;
-                int startLine = lineOffset + i;
-                for (int p = 0; p < parsers.Count; p++) {
-                    if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
-                        matched = true;
-                        if (doc.Blocks.Count > previousBlockCount
-                            && TryApplyPendingGenericAttributeBlock(doc, previousBlockCount, startLine, state, out var pendingAttributeStartLine)) {
-                            startLine = Math.Min(startLine, pendingAttributeStartLine);
-                        }
-
-                        if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
-                            CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
-                        } else if (syntaxNodes != null) {
-                            CaptureConsumedSyntaxNodes(parsers[p], lines, startIndex, options, syntaxNodes, state);
-                        }
-                        break;
+                        i = end + 1;
+                        // optional blank line after front matter
+                        if (i < lines.Length && string.IsNullOrWhiteSpace(lines[i])) i++;
                     }
                 }
-                if (!matched) i++; // defensive: avoid infinite loop
+
+                var pipeline = MarkdownReaderPipeline.Default(options);
+                // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
+                PreScanReferenceLinkDefinitions(lines, state, options);
+                PreScanAbbreviationDefinitions(lines, state, options);
+                while (i < lines.Length) {
+                    if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
+                    if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
+                    bool matched = false;
+                    var parsers = pipeline.Parsers;
+                    int previousBlockCount = doc.Blocks.Count;
+                    int startIndex = i;
+                    int startLine = lineOffset + i;
+                    for (int p = 0; p < parsers.Count; p++) {
+                        if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
+                            matched = true;
+                            if (doc.Blocks.Count > previousBlockCount
+                                && TryApplyPendingGenericAttributeBlock(doc, previousBlockCount, startLine, state, out var pendingAttributeStartLine)) {
+                                startLine = Math.Min(startLine, pendingAttributeStartLine);
+                            }
+
+                            if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
+                                CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
+                            } else if (syntaxNodes != null) {
+                                CaptureConsumedSyntaxNodes(parsers[p], lines, startIndex, options, syntaxNodes, state);
+                            }
+                            break;
+                        }
+                    }
+                    if (!matched) i++; // defensive: avoid infinite loop
+                }
             }
 
             syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;

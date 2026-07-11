@@ -38,6 +38,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeDibReader_And_PngConverter_Decode_RtfStyle_DibPayload() {
+            byte[] bmp = CreateBmp24(2, 1, new[] { OfficeColor.Red, OfficeColor.Blue });
+            byte[] dib = bmp.Skip(14).ToArray();
+
+            Assert.True(OfficeDibReader.TryDecode(dib, out OfficeRasterImage? image));
+            Assert.Equal(OfficeColor.Red, image!.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Blue, image.GetPixel(1, 0));
+            Assert.True(OfficeImagePngConverter.TryConvertDibToPng(dib, out byte[] png));
+            Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? roundTrip));
+            Assert.Equal(OfficeColor.Red, roundTrip!.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Blue, roundTrip.GetPixel(1, 0));
+        }
+
+        [Fact]
         public void OfficeRasterImageDecoder_DecodesTopDownBmp24RowsThroughSharedRasterPath() {
             byte[] bmp = CreateBmp24(
                 2,

@@ -221,6 +221,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static string GetCellText(Cell cell, SharedStringTablePart shared) {
+            if (cell.DataType?.Value == CellValues.InlineString) {
+                return cell.InlineString?.InnerText ?? string.Empty;
+            }
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
                 return shared.SharedStringTable!.ElementAt(int.Parse(cell.CellValue!.Text)).InnerText;
             }
@@ -229,6 +232,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static string GetCellText(SpreadsheetDocument spreadsheet, Cell cell) {
+            if (cell.DataType?.Value == CellValues.InlineString) {
+                return cell.InlineString?.InnerText ?? string.Empty;
+            }
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
                 SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
                 return shared.SharedStringTable!.ElementAt(int.Parse(cell.CellValue!.Text)).InnerText;

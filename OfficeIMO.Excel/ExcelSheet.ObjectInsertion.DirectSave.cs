@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static string BuildObjectExportRange(int startRow, int columnCount, int dataRowCount, bool includeHeaders) {
+        internal static string BuildObjectExportRange(int startRow, int columnCount, int dataRowCount, bool includeHeaders) {
             int rowCount = dataRowCount + (includeHeaders ? 1 : 0);
             if (columnCount <= 0 || rowCount <= 0) {
                 return string.Empty;
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
                 : typeof(object);
         }
 
-        private static Type[] CompleteObjectExportColumnTypes(Type?[] inferredColumnTypes) {
+        internal static Type[] CompleteObjectExportColumnTypes(Type?[] inferredColumnTypes) {
             var columnTypes = new Type[inferredColumnTypes.Length];
             for (int i = 0; i < columnTypes.Length; i++) {
                 columnTypes[i] = inferredColumnTypes[i] ?? typeof(object);

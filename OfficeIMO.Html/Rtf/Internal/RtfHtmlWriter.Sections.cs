@@ -10,8 +10,11 @@ internal static partial class RtfHtmlWriter {
                 builder.Append(newline);
             }
 
-            builder.Append("<section data-officeimo-rtf-section=\"true\"");
-            AppendMetadataAttribute(builder, "data-officeimo-rtf-section-layout", EncodeSectionLayout(section));
+            builder.Append("<section");
+            if (options.IncludeRoundTripMetadata) {
+                builder.Append(" data-officeimo-rtf-section=\"true\"");
+                AppendMetadataAttribute(builder, "data-officeimo-rtf-section-layout", EncodeSectionLayout(section));
+            }
             AppendSectionStyle(builder, section);
             builder.Append('>');
             if (section.Blocks.Count > 0) {
