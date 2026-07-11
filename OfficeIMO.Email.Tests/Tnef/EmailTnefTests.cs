@@ -107,23 +107,39 @@ public sealed class EmailTnefTests {
     }
 
     [Fact]
-    public void TruncatedMapiPropertyRowsReturnDiagnostics() {
+    public void RejectsMalformedMapiAttributesBeforeRetainingRawPayload() {
+        byte[] malformedProperties = new byte[4096];
+        MsgBinary.WriteUInt32(malformedProperties, 0, 1);
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
             writer.Write(TnefConstants.Signature);
             writer.Write((ushort)1);
-            writer.Write((byte)TnefAttributeLevel.Message);
-            writer.Write(TnefConstants.MessageProperties);
-            writer.Write(4U);
-            writer.Write(1U);
-            writer.Write((ushort)1);
+            WriteAttribute(writer, TnefAttributeLevel.Message, TnefConstants.MessageProperties, malformedProperties);
         }
 
-        EmailReadResult result = new EmailDocumentReader().Read(stream.ToArray());
+        EmailReadResult result = new EmailDocumentReader(
+            new EmailReaderOptions(maxDecodedPropertyBytes: 16)).Read(stream.ToArray());
 
         Assert.Equal(EmailFileFormat.Tnef, result.Document.Format);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_MAPI_TRUNCATED" &&
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_MAPI_PREFLIGHT_INVALID" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Error);
+        Assert.DoesNotContain(result.Document.TnefAttributes,
+            attribute => attribute.Tag == TnefConstants.MessageProperties);
+    }
+
+    [Fact]
+    public void AppliesTransportHeaderRecipientsWhenRecipientTableIsAbsent() {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "transport recipients" };
+        source.Headers.Add(new EmailHeader("To", "Primary <primary@example.test>"));
+        source.Headers.Add(new EmailHeader("Cc", "Copy <copy@example.test>"));
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        EmailDocument document = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Contains(document.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&
+            recipient.Address.Address == "primary@example.test");
+        Assert.Contains(document.Recipients, recipient => recipient.Kind == EmailRecipientKind.Cc &&
+            recipient.Address.Address == "copy@example.test");
     }
 
     [Fact]

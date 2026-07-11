@@ -1,12 +1,12 @@
 namespace OfficeIMO.Email;
 
 internal static class TnefMapiCodec {
-    internal static long PreflightProperties(byte[] data, int offset, int count, MsgParserState state,
-        bool recipientTable, out long attachmentPayloadLength) {
+    internal static bool TryPreflightProperties(byte[] data, int offset, int count, MsgParserState state,
+        bool recipientTable, out long decodedPropertyBytes, out long attachmentPayloadLength) {
+        decodedPropertyBytes = 0;
         attachmentPayloadLength = 0;
         try {
             var cursor = new PreflightCursor(data, offset, count);
-            long decodedPropertyBytes = 0;
             if (recipientTable) {
                 uint rowCount = cursor.ReadUInt32();
                 if (rowCount > state.Options.MaxPartCount) {
@@ -19,11 +19,15 @@ internal static class TnefMapiCodec {
             } else {
                 PreflightPropertyArray(cursor, state, ref decodedPropertyBytes, ref attachmentPayloadLength);
             }
-            return decodedPropertyBytes;
+            if (cursor.Remaining != 0) {
+                throw new InvalidDataException("TNEF MAPI property data contains trailing bytes.");
+            }
+            return true;
         } catch (Exception exception) when (exception is InvalidDataException || exception is ArgumentOutOfRangeException ||
             exception is OverflowException || exception is IndexOutOfRangeException) {
+            decodedPropertyBytes = 0;
             attachmentPayloadLength = 0;
-            return 0;
+            return false;
         }
     }
 
@@ -400,6 +404,8 @@ internal static class TnefMapiCodec {
         }
 
         internal int Position { get; private set; }
+
+        internal int Remaining => _end - Position;
 
         internal uint ReadUInt32() {
             if (Position > _end - 4) throw new InvalidDataException("TNEF MAPI property data is truncated.");

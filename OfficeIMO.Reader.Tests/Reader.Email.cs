@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -108,7 +109,7 @@ public sealed class ReaderEmailTests {
     }
 
     [Fact]
-    public void ContentDetection_RecognizesRenamedMsgButDoesNotClaimArbitraryCompoundSignature() {
+    public async Task ContentDetection_RecognizesRenamedMsgButDoesNotClaimArbitraryCompoundSignature() {
         var appointment = new EmailDocument {
             Format = EmailFileFormat.OutlookMsg,
             OutlookItemKind = OutlookItemKind.Appointment,
@@ -122,12 +123,24 @@ public sealed class ReaderEmailTests {
         };
         byte[] msg = new EmailDocumentWriter().WriteToBytes(appointment, EmailFileFormat.OutlookMsg);
 
+        ReaderDetectionResult syncDetection = DocumentReader.Detect(msg, "renamed.bin");
+        ReaderDetectionResult asyncDetection = await DocumentReader.DetectAsync(msg, "renamed.bin");
+        Assert.Equal(ReaderInputKind.Email, syncDetection.Kind);
+        Assert.Equal(ReaderInputKind.Email, asyncDetection.Kind);
+        Assert.True(syncDetection.ContainerInspected);
+        Assert.Contains("container:msg-properties-stream", syncDetection.Evidence);
+
+        ReaderDetectionResult boundedDetection = DocumentReader.Detect(msg, "renamed.bin",
+            new ReaderDetectionOptions { MaxProbeBytes = 256 });
+        Assert.Equal(ReaderInputKind.Unknown, boundedDetection.Kind);
+
         OfficeDocumentReadResult detected = DocumentReader.ReadDocument(msg, "renamed.bin");
         Assert.Equal(ReaderInputKind.Email, detected.Kind);
         Assert.Contains(detected.Metadata, item => item.Category == "email.appointment" &&
             item.Name == "Location" && item.Value == "Room 1");
 
         byte[] signatureOnly = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+        Assert.Equal(ReaderInputKind.Unknown, DocumentReader.Detect(signatureOnly, "legacy.bin").Kind);
         Assert.DoesNotContain(DocumentReader.Read(signatureOnly, "legacy.bin"), chunk => chunk.Kind == ReaderInputKind.Email);
     }
 

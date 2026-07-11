@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Email;
 
 namespace OfficeIMO.Reader;
 
@@ -242,6 +243,9 @@ public static partial class DocumentReader {
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) {
                     candidate = containerCandidate;
                 }
+            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+                candidate = InspectEmailCompound(prefix);
+                containerInspected = true;
             }
 
             return BuildCombinedDetection(
@@ -279,6 +283,9 @@ public static partial class DocumentReader {
                     cancellationToken).ConfigureAwait(false);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
+            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+                candidate = InspectEmailCompound(prefix);
+                containerInspected = true;
             }
 
             return BuildCombinedDetection(extensionResult, candidate, prefix.Length, containerInspected, options.Mode);
@@ -456,6 +463,17 @@ public static partial class DocumentReader {
         }
 
         return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", "content:mostly-text");
+    }
+
+    private static bool IsOleCompound(byte[] prefix) {
+        return StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 });
+    }
+
+    private static DetectionCandidate InspectEmailCompound(byte[] boundedPayload) {
+        return EmailDocumentReader.DetectFormat(boundedPayload) == EmailFileFormat.OutlookMsg
+            ? DetectionCandidate.High(ReaderInputKind.Email, "application/vnd.ms-outlook",
+                "container:msg-properties-stream")
+            : DetectionCandidate.Unknown("container:ole-compound-unrecognized");
     }
 
     private static bool LooksLikeEmailMessage(string text) {

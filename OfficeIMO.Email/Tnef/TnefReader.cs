@@ -77,6 +77,7 @@ internal static class TnefReader {
         }
 
         MsgProjection.Apply(document, state, location, MapiStringEncodingContext.FromCodePage(codePage));
+        MsgProjection.ApplyTransportHeaderRecipients(document, state, location);
         document.Format = EmailFileFormat.Tnef;
         document.Subject = subject ?? document.Subject;
         document.Body.Text = body ?? document.Body.Text;
@@ -121,9 +122,15 @@ internal static class TnefReader {
             long attachmentMapiPayloadLength = 0;
             if (tag == TnefConstants.MessageProperties || tag == TnefConstants.RecipientTable ||
                 tag == TnefConstants.AttachmentProperties) {
-                long decodedPropertyBytes = TnefMapiCodec.PreflightProperties(
+                if (!TnefMapiCodec.TryPreflightProperties(
                     data, offset, (int)rawLength, state, tag == TnefConstants.RecipientTable,
-                    out attachmentMapiPayloadLength);
+                    out long decodedPropertyBytes, out attachmentMapiPayloadLength)) {
+                    state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_MAPI_PREFLIGHT_INVALID",
+                        string.Concat("TNEF MAPI attribute 0x", tag.ToString("X8", CultureInfo.InvariantCulture),
+                            " is malformed and was rejected before buffering."),
+                        EmailDiagnosticSeverity.Error, location));
+                    break;
+                }
                 pendingDecodedPropertyBytes = checked(pendingDecodedPropertyBytes + decodedPropertyBytes);
                 state.EnsureDecodedPropertyBytesWithinLimits(pendingDecodedPropertyBytes);
             }
