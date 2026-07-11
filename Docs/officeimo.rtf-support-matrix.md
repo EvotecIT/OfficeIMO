@@ -1,99 +1,130 @@
-# OfficeIMO RTF Support Matrix
+# OfficeIMO RTF support matrix
 
-This matrix is the working product contract for RTF read/write and conversion. It separates what OfficeIMO preserves losslessly, what it binds semantically, and what each adapter can faithfully project today.
+Last reviewed: 2026-07-10
 
-Status legend:
+This is the current contract for RTF read, write, edit, conversion, and ingestion. The machine-readable source is [officeimo.rtf-capabilities.json](officeimo.rtf-capabilities.json); a test requires every capability below to remain represented here. The original findings and competitor comparison remain in [the 2026-07-10 audit](reviews/officeimo.rtf-end-to-end-market-gap-2026-07-10.md).
 
-- `Full`: covered by public API and focused tests.
-- `Partial`: supported with known loss or limited projection.
-- `Extractive`: content is recovered for reading/search/AI use, not round-trip fidelity.
-- `Planned`: in scope for the RTF market roadmap but not implemented yet.
-- `Deferred`: intentionally postponed to avoid colliding with active PDF work.
-- `No`: not currently supported.
+Status meanings:
 
-Conversion class legend:
+- `Full`: the stated contract has a public API and focused evidence.
+- `Broad`: useful coverage exists with a named fidelity boundary.
+- `Preserved`: source syntax survives losslessly but is not fully semantic.
+- `Extractive`: useful content and provenance are recovered without round-trip claims.
 
-- `Lossless`: preserves original RTF syntax/tree for untouched content.
-- `Semantic`: preserves editable document meaning through `RtfDocument`.
-- `Visual`: targets rendered appearance, may lose source structure.
-- `Extractive`: recovers useful text/metadata/provenance from a richer source.
-- `Diagnostic`: unsupported or degraded content is reported instead of silently disappearing.
+## Packages and conversion graph
 
-## Package Ownership
+```text
+                        trusted round trip
+                    HTML <--------------> RTF
+                      ^                    |
+                      |                    | semantic + result report
+                 web-safe HTML             v
+Reader chunks <------ RTF <-------------> Word/DOCX
+                      |
+                      +------> Markdown
+                      |
+                      +------> PDF (visual export)
+                      ^
+                      +------- PDF (extractive import)
+```
 
-| Area | Owning package | Contract |
+| Area | Owner | Current contract |
 | --- | --- | --- |
-| RTF syntax, parser, diagnostics, model, writer, lossless editor | `OfficeIMO.Rtf` | Core engine. No Word/HTML/Markdown/PDF-specific mapping logic belongs here. |
-| RTF <=> Word | `OfficeIMO.Word.Rtf` | Thin adapter between `WordDocument` and `RtfDocument`. |
-| RTF <=> HTML | `OfficeIMO.Html` | Thin adapter between HTML DOM/CSS policy and `RtfDocument`. |
-| RTF <=> Markdown | `OfficeIMO.Rtf.Markdown` | Thin adapter between `RtfDocument` and `MarkdownDoc`. |
-| RTF => Reader chunks | `OfficeIMO.Reader.Rtf` | Extraction/chunking adapter for ingestion workflows. |
-| RTF <=> PDF | `OfficeIMO.Rtf.Pdf` | Deferred implementation surface while PDF work is active elsewhere. |
+| Core syntax, semantic model, writer, limits, reports, and editing | `OfficeIMO.Rtf` | Reusable RTF engine. |
+| Word mapping and document workflows | `OfficeIMO.Word.Rtf` | Thin bridge over `OfficeIMO.Word`. |
+| Web-safe and round-trip HTML | `OfficeIMO.Html` | URL/resource policy plus semantic HTML mapping. |
+| Markdown | `OfficeIMO.Rtf.Markdown` | Semantic `RtfDocument`/`MarkdownDoc` bridge. |
+| PDF | `OfficeIMO.Rtf.Pdf` | Visual export and extractive import through `OfficeIMO.Pdf`. |
+| Reader | `OfficeIMO.Reader.Rtf` | Bounded chunk, table, visual, warning, and provenance extraction. |
 
-## Core RTF Engine
+The packages target `netstandard2.0`, .NET 8, and .NET 10; Windows builds also target .NET Framework 4.7.2.
 
-| Capability | Syntax tree | Semantic model | Writer | Lossless edit | Diagnostics | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| Control words, symbols, groups, text, binary payloads | Full | Full | Full | Full | Full | Parser keeps source tokens for lossless output. |
-| Unknown destinations | Full | Partial | Full | Full | Full | Unknown syntax is preserved; semantic binding warns when requested. |
-| Fonts and colors | Full | Full | Full | Full | Full | Includes core font/color tables and lossless table edits. |
-| ANSI code pages and Unicode escapes | Full | Partial | Full | Full | Full | Single-byte Windows ANSI code pages 874 and 1250-1258 are supported. |
-| Paragraphs and runs | Full | Full | Full | Partial | Full | Lossless structural editing still needs more operations. |
-| Character formatting | Full | Full | Full | Partial | Full | Bold, italic, underline, strike, caps, hidden, offset, spacing, colors, borders. |
-| Paragraph layout | Full | Full | Full | Partial | Full | Alignment, indents, spacing, line spacing, pagination, direction, frame metadata. |
-| Styles | Full | Partial | Partial | Partial | Full | Rich style fidelity is an active hardening area for Word/HTML/Markdown. |
-| Lists and list tables | Full | Partial | Partial | Partial | Full | Basic list semantics exist; cross-format numbering fidelity needs scorecard cases. |
-| Tables | Full | Full | Full | Partial | Full | Rows, cells, merges, widths, padding, shading, borders, text flow. |
-| Images | Full | Full | Full | Planned | Full | PNG/JPEG data is modeled; HTML export now reports skipped images when embedding is disabled, data is missing, or the format is unsupported. |
-| Fields and hyperlinks | Full | Partial | Partial | Planned | Full | Visible field result is usable; instruction fidelity needs adapter-specific tests. |
-| Notes, annotations, generated references | Full | Partial | Partial | Planned | Full | Footnote/endnote bodies exist; Markdown projection needs dedicated contract. |
-| Headers and footers | Full | Partial | Partial | Planned | Full | Important for Word/HTML fidelity work. |
-| Sections and page setup | Full | Full | Full | Partial | Full | PDF implementation changes are deferred. |
-| Revisions/comments | Full | Partial | Partial | Planned | Full | Markdown/HTML should expose loss/degradation diagnostics. |
-| Shapes and objects | Full | Partial | Partial | Planned | Full | Preserve source, expose placeholders/diagnostics where target format cannot represent them. |
+## P0: safe and diagnosable ingestion
 
-## Adapter Matrix
+| Capability | Status | Contract and evidence |
+| --- | --- | --- |
+| <!-- capability:core-parse --> Core parsing | Full | `RtfDocument.Read/Load` parse groups, controls, text, binary payloads, and recoverable malformed input. |
+| <!-- capability:lossless-roundtrip --> Lossless round trip | Full | `ToRtfLossless` and lossless save preserve source bytes, unknown destinations, binary payloads, and trailing bytes. Semantic writes are normalized. |
+| <!-- capability:bounded-ingestion --> Bounded ingestion | Full | `RtfReadOptions.CreateUntrustedProfile()` caps input bytes/chars, depth, tokens, groups, text, binary, images, objects, and semantic blocks. |
+| <!-- capability:cancellation --> Cancellation | Full | String, byte, file, and stream routes support cooperative cancellation through tokenization and semantic binding. |
+| <!-- capability:unknown-diagnostics --> Unknown and preserve-only destinations | Full | Stable diagnostics identify unknown ignorable destinations and classified advanced families while the lossless path retains syntax. |
+| <!-- capability:shared-report --> Shared conversion truth | Full | `RtfConversionReport` is used across adapters. `RequireNoLoss()` rejects flattened, omitted, blocked, or error diagnostics. |
+| <!-- capability:web-safe-html --> HTML output profiles | Full | `CreateWebSafeProfile()` blocks unsafe URL schemes, private metadata, and inline payloads by default. `CreateRoundTripProfile()` is explicit trusted output. |
 
-| Feature | Word | HTML | Markdown | Reader | PDF |
+The untrusted profile is intentionally conservative. Applications can clone or create `RtfReadOptions` with different limits, but uploaded RTF should not use the compatibility-oriented default without a host boundary.
+
+## P1: interoperability and adapters
+
+| Capability | Status | Contract and boundary |
+| --- | --- | --- |
+| <!-- capability:dbcs --> DBCS and font charset switching | Broad | Windows code pages 932, 936, 949, and 950 are decoded through `System.Text.Encoding.CodePages`; Word-style `fcharset` changes are honored. Composite-font parity is not claimed. |
+| <!-- capability:outlook-html --> Outlook HTML encapsulation | Broad | `fromhtml`, `htmltag`, `htmlrtf`, and `mhtmltag` are recognized, modeled, written, and preferred by HTML conversion. The grammar is tested; real `fromhtml` producer evidence is still open. |
+| <!-- capability:styles-numbering --> Styles and numbering | Broad | Common paragraph, character, and table styles plus list definitions/overrides map through Word. Theme and latent-style parity remains outside the current contract. |
+| <!-- capability:nested-tables --> Nested tables | Broad | Native core, HTML, and Word nesting is supported. Markdown, PDF, and Reader flatten nested tables and report that action. |
+| <!-- capability:images --> Images | Broad | PNG, JPEG, and supported DIB data use the shared drawing layer. Markdown has a media callback; PDF accepts a WMF/EMF converter callback. |
+| <!-- capability:notes-markdown --> Markdown notes and media | Broad | Footnotes/endnotes become Markdown references and definitions. Headers/footers remain explicit diagnostic omissions. |
+| <!-- capability:advanced-destinations --> Advanced RTF families | Preserved | Move revisions, protection exceptions, index/TOC entries, custom XML, smart tags, and related destinations are classified and diagnosed. Not every family is semantically editable. |
+| <!-- capability:word-workflows --> Word workflows | Broad | Result-bearing mail merge, cross-run find/replace, field update, append/merge, and comparison route through `OfficeIMO.Word` and return combined conversion/workflow reports. |
+| <!-- capability:pdf-adapter --> PDF bridge | Broad | Export maps semantic layout, tables, images, links, notes, and headers/footers. Import is logical extraction, not lossless PDF reconstruction. |
+| <!-- capability:reader-adapter --> Reader bridge | Extractive | Emits bounded chunks, Markdown-friendly tables, image placeholders, source metadata, and parser/conversion warnings. |
+| <!-- capability:producer-corpus --> Producer corpus | Broad | Real Word 16 and Outlook 16 files, four pinned LibreOffice regression fixtures, and a synthetic Outlook encapsulation fixture have hashes, provenance, adapter assertions, and reopen evidence. |
+
+The producer scorecard deliberately leaves Google Docs, macOS TextEdit/RTFD, EHR/CRM/helpdesk generators, and commercial-library output as unverified. Those missing files limit market proof, not the implemented parser contracts.
+
+## P2: editing and scale
+
+| Capability | Status | Contract and boundary |
+| --- | --- | --- |
+| <!-- capability:semantic-editing --> Semantic editing | Full | Clone; block insert/remove/move; paragraph/table/image insertion; cross-run text replacement; and cross-paragraph bookmark replacement are native `RtfDocument` operations. |
+| <!-- capability:lossless-structural-editing --> Lossless structural editing | Broad | Root syntax fragments/nodes can be inserted, removed, or moved; pictures and destination-group content such as headers/footers can be replaced without normalizing unrelated syntax. |
+| <!-- capability:document-merge --> Semantic document merge | Broad | `AppendDocument` clones and remaps fonts, colors, revision authors, blocks, tables, and notes. Style/list flattening and header/footer omission are reported and fail strict mode. |
+| <!-- capability:fuzz-properties --> Seeded fuzz/property lane | Full | Valid exact round trip, malformed groups, extreme control parameters, Unicode fallback widths, binary lengths/limits, and semantic normalization run on all RTF test targets. |
+| <!-- capability:benchmark-budgets --> Performance and allocation budgets | Full | BenchmarkDotNet covers scale comparison; isolated probes enforce elapsed, allocation, peak-working-set, output-size, and corpus-size ceilings for core plus every adapter. |
+| <!-- capability:conversion-docs --> Living documentation | Full | This matrix, the capability manifest, package READMEs, safe/strict recipes, workflow examples, and benchmark commands are checked into the owning repository. |
+
+## Adapter fidelity summary
+
+| Feature | Word | HTML | Markdown | PDF export | Reader |
 | --- | --- | --- | --- | --- | --- |
-| Plain paragraphs/runs | Full | Full | Full | Full | Deferred |
-| Bold/italic/strike/underline | Full | Full | Full | Full | Deferred |
-| Font family/size/color/highlight | Partial | Partial | Partial | Extractive | Deferred |
-| Hyperlinks | Partial | Full | Full | Full | Deferred |
-| Bookmarks | Partial | Partial | Planned | Extractive | Deferred |
-| Headings/styles | Partial | Partial | Partial | Full | Deferred |
-| Ordered/unordered lists | Partial | Partial | Full | Full | Deferred |
-| Nested lists and numbering restarts | Partial | Partial | Partial | Partial | Deferred |
-| Tables | Full | Full | Full | Full | Deferred |
-| Merged cells | Full | Partial | Partial | Partial | Deferred |
-| Images | Full | Partial + Diagnostic | Partial | Extractive | Deferred |
-| Footnotes/endnotes | Partial | Partial | Planned | Full | Deferred |
-| Comments/annotations | Partial | Partial | Planned | Full | Deferred |
-| Headers/footers | Partial | Partial | Planned | Full | Deferred |
-| Sections/page setup | Full | Partial | Diagnostic | Extractive | Deferred |
-| Revisions/tracked changes | Partial | Partial | Planned | Extractive | Deferred |
-| Shapes/text boxes/objects | Partial | Partial | Diagnostic | Extractive | Deferred |
-| Unknown destinations | Diagnostic | Diagnostic | Diagnostic | Diagnostic | Deferred |
+| Paragraphs and rich runs | Broad | Broad | Broad | Broad | Extractive |
+| Links and bookmarks | Broad | Broad with URL policy | Broad | Broad | Extractive |
+| Styles and lists | Broad | Broad | Broad | Partial visual mapping | Extractive |
+| Tables and merged cells | Broad | Broad | Broad | Broad | Extractive |
+| Nested tables | Broad | Broad | Flattened + diagnostic | Flattened + diagnostic | Flattened + diagnostic |
+| Images | Broad | Resolver or trusted data URI | Export callback | PNG/JPEG/DIB; WMF/EMF callback | Visual placeholder |
+| Notes | Broad | Broad | Markdown footnotes | Appended semantic notes | Extractive |
+| Headers/footers | Broad | Broad | Omitted + diagnostic | Broad text mapping | Extractive |
+| Objects/shapes | Omitted + report where unsupported | Metadata/text subset | Omitted + diagnostic | Text/image subset + report | Text/placeholder subset |
 
-## Golden Corpus Buckets
+## Safe and strict recipe
 
-The corpus lives under `OfficeIMO.Rtf.Tests/Documents/RtfCorpus`. Every fixture should state its expected conversion class and the target adapters it protects.
+```csharp
+RtfReadOptions limits = RtfReadOptions.CreateUntrustedProfile();
+using FileStream input = File.OpenRead("upload.rtf");
+RtfReadResult read = await RtfDocument.LoadAsync(input, limits, cancellationToken: cancellationToken);
 
-| Bucket | Purpose | Initial status |
-| --- | --- | --- |
-| `basic-text` | Plain paragraphs, run boundaries, line/page breaks, tabs. | Added |
-| `unicode-codepages` | Unicode escapes, ANSI code pages, fallback behavior. | Added |
-| `formatting` | Character and paragraph formatting. | Added |
-| `styles-lists` | Stylesheets, list tables, legacy numbering. | Added |
-| `tables` | Table structure, merged cells, borders, shading. | Added |
-| `images-objects` | Pictures, OLE/object placeholders, shapes. | Added |
-| `notes-fields` | Footnotes, endnotes, annotations, fields, hyperlinks. | Added |
-| `sections-layout` | Page setup, columns, headers/footers, section breaks. | Added |
-| `security-pathological` | Malformed groups, depth limits, binary payload limits, unknown destinations. | Added |
+var htmlOptions = RtfToHtmlOptions.CreateWebSafeProfile();
+string html = read.Document.ToHtml(htmlOptions);
 
-## Scorecard Rules
+var report = new RtfConversionReport();
+report.AddReadDiagnostics(read.Diagnostics, "upload.rtf");
+report.Merge(htmlOptions.ConversionReport);
+report.RequireNoLoss();
+```
 
-- A feature is `Full` only when there is a public API, a focused test, and at least one corpus fixture where applicable.
-- A degraded conversion must surface a diagnostic, warning, placeholder, or documented extraction boundary.
-- RTF <=> Markdown should prefer a direct `RtfDocument` <=> `MarkdownDoc` bridge over routing through Word or HTML.
-- PDF entries remain `Deferred` until the active PDF implementation stream is ready to integrate.
+Use strict mode when the workflow must reject any degradation. For display or extraction workflows, inspect `Diagnostics` and decide which explicit flatten/omit/block actions are acceptable.
+
+## Performance commands
+
+```powershell
+# Validate every benchmark case without collecting publication measurements.
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Rtf.Benchmarks\OfficeIMO.Rtf.Benchmarks.csproj -- --filter "*" --job Dry --noOverwrite
+
+# Enforce the committed small/medium/large regression ceilings.
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Rtf.Benchmarks\OfficeIMO.Rtf.Benchmarks.csproj -- --verify-budgets --json .\artifacts\rtf-budget-report.json
+
+# Collect focused BenchmarkDotNet measurements.
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Rtf.Benchmarks\OfficeIMO.Rtf.Benchmarks.csproj -- --filter "*RtfCoreBenchmarks*" --job Short --noOverwrite
+```
+
+Budget ceilings are regression safeguards, not competitor claims. Use the same runtime, corpus, and hardware when comparing historical results.

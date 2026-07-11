@@ -35,6 +35,19 @@ namespace OfficeIMO.Excel {
                 decided = policy.Decide("ReadRangeStream", estRows);
             }
 
+            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
+                && ShouldAttemptUtf8Range(r1, r2)
+                && RangeReachesDeclaredWorksheetEnd(r2)
+                && TryCreateRangeStreamUtf8(r1, c1, r2, c2, ct, out var utf8Source)) {
+                using (utf8Source) {
+                    foreach (var chunk in ReadRangeStreamUtf8(utf8Source!, r1, c1, r2, c2, chunkRows, ct)) {
+                        yield return chunk;
+                    }
+                }
+
+                yield break;
+            }
+
             if (automaticDecision && CanAttemptRangeStreamXmlReader()) {
                 if (chunkRows >= estRows) {
                     if (TryReadSingleRangeChunkXmlFast(r1, c1, r2, c2, ct, out var chunk)) {

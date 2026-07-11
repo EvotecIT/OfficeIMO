@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             WordParagraph.EnsureParagraphCanBeInserted(this, body, wordParagraph,
                 "append a paragraph to the document body");
             AppendBlockToBody(wordParagraph._paragraph);
-            wordParagraph.RefreshParent();
+            wordParagraph.Parent = Sections.Count > 0 ? Sections[Sections.Count - 1] : null;
             return wordParagraph;
         }
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Word {
             newWordParagraph._paragraph = new Paragraph(newWordParagraph._run);
 
             AppendBlockToBody(newWordParagraph._paragraph);
-            newWordParagraph.RefreshParent();
+            newWordParagraph.Parent = Sections.Count > 0 ? Sections[Sections.Count - 1] : null;
             return newWordParagraph;
         }
 

@@ -20,10 +20,14 @@ using OfficeIMO.Html;
 
 RtfDocument document = "<p>Hello <strong>RTF</strong></p>".ToRtfDocument();
 string rtf = document.ToRtf();
-string html = document.ToHtml();
+var webOptions = RtfToHtmlOptions.CreateWebSafeProfile();
+string html = document.ToHtml(webOptions);
+webOptions.ConversionReport.RequireNoLoss();
 ```
 
 RTF-to-RTF editing in `OfficeIMO.Rtf` remains the lossless preservation path. The HTML bridge is semantic: it preserves supported text, inline formatting, links, lists, tables, bookmarks, fields, form fields, notes, tracked revisions, object metadata, shape metadata, and embedded PNG/JPEG images without Office/COM automation.
+
+The web-safe profile is the default publishing boundary: only allowed web/mail URLs are emitted, private `data-officeimo-rtf-*` metadata is disabled, and image payloads require an explicit resolver. Use `RtfToHtmlOptions.CreateRoundTripProfile()` only for trusted OfficeIMO round trips; it can carry private metadata and embedded binary data and should not be published without sanitization.
 
 ## URL Policy
 

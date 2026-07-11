@@ -243,7 +243,6 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
-    [InlineData("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj")]
     [InlineData("OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj")]
     [InlineData("OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj")]
     [InlineData("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj")]
@@ -269,6 +268,26 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Empty(references);
+    }
+
+    [Fact]
+    public void RtfCore_OnlyReferencesTheCodePageCompatibilityPackage() {
+        var projectPath = GetRepositoryPath("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        var references = document
+            .Descendants(ns + "PackageReference")
+            .Select(static element => new {
+                Id = (string?)element.Attribute("Include") ?? string.Empty,
+                Version = (string?)element.Attribute("Version") ?? string.Empty
+            })
+            .ToArray();
+
+        var reference = Assert.Single(references);
+        Assert.Equal("System.Text.Encoding.CodePages", reference.Id);
+        Assert.Equal("8.0.0", reference.Version);
     }
 
     [Fact]
@@ -437,6 +456,15 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Single(references);
+    }
+
+    [Fact]
+    public void ExcelCore_DoesNotReferenceCsvPackages() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Excel/OfficeIMO.Excel.csproj");
+        string[] references = GetProjectReferences(projectPath);
+
+        Assert.DoesNotContain(references, reference => reference.EndsWith("OfficeIMO.CSV/OfficeIMO.CSV.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, reference => reference.EndsWith("OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

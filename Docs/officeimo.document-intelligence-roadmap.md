@@ -161,6 +161,11 @@ This branch starts the shared model and adapter path:
 - `OfficeIMO.Reader.Visio` is an optional adapter over `OfficeIMO.Visio`, with page chunks, Shape Data tables, blocks, links, and optional SVG/PNG preview asset metadata.
 - Reader handlers can register native path and stream `OfficeDocumentReadResult` delegates. The generic `DocumentReader.ReadDocument(...)` entry point preserves PDF and Visio rich results, while legacy chunk reads project the same result's chunks when a handler is rich-result-only.
 - `OfficeDocumentReaderBuilder` and `OfficeDocumentReader` provide instance-scoped handler routing, capability manifests, file/stream/byte reads, and folder ingestion. Every modular Reader adapter exposes a matching `Add...Handler()` builder extension, while the static registry remains backward compatible.
+- Reader registrations can expose native asynchronous rich-result delegates. `ReadAsync(...)` and `ReadDocumentAsync(...)` await those delegates directly, non-seekable inputs use an asynchronous bounded snapshot, and synchronous format engines use a bounded worker fallback. `ReadDocumentsAsync(...)` adds deterministic multi-file execution with explicit concurrency and document-count limits.
+- Reader detection now reports extension kind, content kind, confidence, media type, bounded evidence, and mismatch state. Reads preserve known-extension behavior by default, can prefer content for mislabeled inputs, and can route unknown extensions to a unique registered handler by detected kind. Generic and native rich results expose detection, parsing, limit, truncation, unsupported-content, read, and OCR findings through structured diagnostics instead of warning strings alone.
+- Reader instances can freeze an ordered processor pipeline with explicit throw, continue-with-diagnostic, or stop-with-diagnostic failure policy. Sync and async document, chunk, JSON, structured, and bounded batch reads use the same configured pipeline; folder chunk enumeration remains unchanged.
+- Opt-in shared-model processors now normalize blocks, list and heading levels, tables, and links; classify repeated page-boundary artifacts; and filter assets together with dependent OCR candidates. Hosts can add typed sync or async processors without adding format-specific behavior to the facade.
+- Bounded structured extraction now exposes metadata, forms, key/value and Path/Type/Value rows, Visio Shape Data, heading sections, named tables, chart summaries, quality/readiness summaries, and source diagnostics through a deterministic non-generic result and JSON serializer.
 - Document-level metadata entries now carry stable catalog, outline, destination, open-action, viewer-preference, and form-summary facts without making the shared Reader model depend on PDF-specific types.
 - PDF source preflight capability flags now flow into metadata, and read/rewrite blockers flow into shared diagnostics as stable `pdf-read-blocker` and `pdf-rewrite-blocker` entries for file and stream readback.
 - OCR readiness is represented as `OcrCandidates` plus `ocr-needed` diagnostics for image-only PDF pages and embedded Office image assets, without adding an OCR engine or service dependency to the core.
@@ -184,7 +189,7 @@ Use `OfficeIMO.Markdown` as the final Markdown writer where possible. PDF logica
 
 ### JSON
 
-Add a stable JSON shape for pages, blocks, tables, images, links, forms, diagnostics, assets, visuals, and source references. JSON should be deterministic and versioned with a schema id/version.
+Schema version 5 is the first stable JSON envelope for pages, blocks, tables, links, forms, diagnostics, assets, visuals, OCR candidates, chunks, metadata, and source references. The schema is embedded in `OfficeIMO.Reader`, packed as a versioned artifact, and guarded by strict deserialization and transport round-trip tests. Future breaking transport changes require a new schema version and explicit compatibility policy.
 
 ### HTML
 
@@ -286,34 +291,20 @@ Goal: align HTML, Markdown, Word, PDF, and Reader output into one portable docum
 
 Goal: deterministic cleanup and enrichment across formats.
 
-- Add typed processors over the shared model:
-  - header/footer/artifact classification;
-  - table cleanup;
-  - list cleanup;
-  - heading normalization;
-  - link normalization;
-  - form/key-value extraction;
-  - asset filtering;
-  - diagram shape/connector enrichment;
-  - host custom processors.
-- Keep processors ordered, deterministic, diagnosable, and testable.
-- Reuse the `OfficeIMO.Markdown` transform pattern where it fits.
+- The ordered immutable pipeline, sync/async processor contract, step evidence, cancellation, and explicit failure policies are implemented.
+- Opt-in processors cover header/footer/artifact classification, table cleanup, list and heading normalization, link normalization, and asset/OCR-candidate filtering.
+- Host custom processors are supported through a typed interface, base class, or delegates. Instances used by a shared reader must be safe for concurrent calls.
+- Form/key-value projection is available through structured extraction rather than a mutating cleanup step.
+- Diagram shape/connector enrichment remains adapter-owned work for the Visio fidelity track.
 
 ### P9 - Structured Extraction
 
 Goal: expose schema-friendly extraction without making the core depend on AI services.
 
-- Add deterministic extraction helpers for:
-  - key-value rows;
-  - headings and following paragraphs;
-  - named tables;
-  - form fields;
-  - shape data;
-  - document metadata;
-  - chart data summaries;
-  - visual quality and compliance-readiness summaries.
-- Add `ExtractStructured<T>()` only after the non-generic model is stable.
-- Add optional host-supplied model interfaces later, but keep cloud/client SDKs out of the core packages.
+- The bounded non-generic extractor covers key/value and Path/Type/Value rows, headings and following paragraphs, named tables, forms, Visio Shape Data, metadata, chart summaries, visual/table quality, chunk readiness, and security/OCR/limit diagnostics.
+- Schema-friendly JSON serialization is available with an independent schema id/version. The stable rich transport remains `OfficeDocumentReadResult` version 5.
+- `ExtractStructured<T>()` remains deferred until the non-generic contract has downstream use and compatibility evidence.
+- Optional host-supplied model interfaces remain later work; cloud and client SDKs stay out of the core package.
 
 ### P10 - OCR-Ready Core
 
@@ -358,14 +349,15 @@ Goal: prove document intelligence with tests users can trust.
 - Word/HTML support matrix fixtures.
 - Folder-ingestion summary tests.
 - Cross-target builds for `net472`, `netstandard2.0`, `net8.0`, and `net10.0` where applicable.
+- Reader-wide BenchmarkDotNet coverage for extraction, detection, transport, and parser/chunker isolation, with environment-qualified baseline notes for release decisions.
 
 ## Near-Term Implementation Slices
 
 1. Keep this roadmap current and link it only from the active owner docs.
-2. Harden the experimental `OfficeDocumentReadResult` model after PDF and Visio feedback.
+2. Evolve the stable `OfficeDocumentReadResult` model additively; use a new schema version for breaking transport changes.
 3. Deepen PDF logical-document read-result coverage for richer image/form metadata, compliance diagnostics, destinations, outlines, and catalog evidence.
 4. Align read-result Markdown through existing PDF logical Markdown and `OfficeIMO.Markdown`.
-5. Keep deterministic JSON stable and add schema snapshot coverage.
+5. Keep deterministic schema version 5 JSON stable and expand nested schema detail as shared models mature.
 6. Extend asset manifests to richer PDF form/widget assets, HTML/EPUB referenced media, and Office drawing anchors.
 7. Expand table-only extraction examples and adapter coverage beyond the initial Reader/PDF/Visio facades.
 8. Extend scan/OCR-needed diagnostics beyond image-only PDF pages into richer image-region and Office-document heuristics, still without an OCR implementation.

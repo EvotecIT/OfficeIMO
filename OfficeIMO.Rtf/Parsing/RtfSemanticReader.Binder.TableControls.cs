@@ -6,6 +6,10 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private bool TryApplyTableControl(RtfControlWord control, CharacterState state) {
             switch (control.Name) {
+                case "itap":
+                    int level = control.Parameter.GetValueOrDefault();
+                    if (level >= 2) BeginNestedTable(level, state);
+                    return true;
                 case "intbl":
                     _currentParagraphIsInTable = true;
                     return true;
@@ -466,6 +470,11 @@ internal static partial class RtfSemanticReader {
                     return true;
                 case "cell":
                     FlushTableCell(state);
+                    return true;
+                case "nestcell":
+                    FlushNestedTableCell(state);
+                    return true;
+                case "nestrow":
                     return true;
                 case "row":
                     EndTableRow(state);

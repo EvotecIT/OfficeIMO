@@ -3,8 +3,13 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendNote(StringBuilder builder, RtfNote? note, RtfDocument document) {
+    private static void AppendNote(StringBuilder builder, RtfNote? note, RtfToHtmlOptions options, RtfDocument document) {
         if (note == null) {
+            return;
+        }
+
+        if (!options.IncludeRoundTripMetadata) {
+            AppendSafeNote(builder, note, options, document);
             return;
         }
 
@@ -22,9 +27,24 @@ internal static partial class RtfHtmlWriter {
         builder.Append("></span>");
     }
 
+    private static void AppendSafeNote(StringBuilder builder, RtfNote note, RtfToHtmlOptions options, RtfDocument document) {
+        builder.Append("<span class=\"rtf-note rtf-note-");
+        builder.Append(FormatNoteKind(note.Kind));
+        builder.Append("\">");
+        for (int index = 0; index < note.Paragraphs.Count; index++) {
+            if (index > 0) {
+                builder.Append("<br>");
+            }
+
+            AppendInlines(builder, note.Paragraphs[index].Inlines, options, document);
+        }
+        builder.Append("</span>");
+    }
+
     private static string EncodeNoteContent(RtfNote note, RtfDocument document) {
         var content = new StringBuilder();
-        var options = new RtfToHtmlOptions { FragmentOnly = true };
+        var options = RtfToHtmlOptions.CreateRoundTripProfile();
+        options.FragmentOnly = true;
         for (int index = 0; index < note.Paragraphs.Count; index++) {
             if (index > 0) {
                 content.Append(options.GetNewLine());

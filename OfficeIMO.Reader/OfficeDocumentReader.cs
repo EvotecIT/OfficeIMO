@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
@@ -12,11 +13,24 @@ namespace OfficeIMO.Reader;
 /// Handler routing is frozen when the reader is built. Static <see cref="DocumentReader"/> registrations
 /// and other <see cref="OfficeDocumentReader"/> instances cannot change this reader's behavior.
 /// </remarks>
-public sealed class OfficeDocumentReader {
+public sealed partial class OfficeDocumentReader {
     private readonly ReaderHandlerRegistrySnapshot _handlers;
+    private readonly SemaphoreSlim _asyncGate;
+    private readonly OfficeDocumentProcessingOptions _processingOptions;
 
-    internal OfficeDocumentReader(ReaderHandlerRegistrySnapshot handlers) {
+    internal OfficeDocumentReader(
+        ReaderHandlerRegistrySnapshot handlers,
+        int maxConcurrentReads,
+        OfficeDocumentProcessorPipeline processorPipeline,
+        OfficeDocumentProcessingOptions processingOptions) {
         _handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
+        ProcessorPipeline = processorPipeline ?? throw new ArgumentNullException(nameof(processorPipeline));
+        _processingOptions = processingOptions ?? throw new ArgumentNullException(nameof(processingOptions));
+        if (maxConcurrentReads < 1 || maxConcurrentReads > DocumentReader.MaximumConcurrentReads) {
+            throw new ArgumentOutOfRangeException(nameof(maxConcurrentReads));
+        }
+        MaxConcurrentReads = maxConcurrentReads;
+        _asyncGate = new SemaphoreSlim(maxConcurrentReads, maxConcurrentReads);
     }
 
     /// <summary>
@@ -25,13 +39,25 @@ public sealed class OfficeDocumentReader {
     public static OfficeDocumentReader Default { get; } = new OfficeDocumentReaderBuilder().Build();
 
     /// <summary>
+    /// Gets the maximum number of asynchronous operations allowed in flight for this reader.
+    /// </summary>
+    public int MaxConcurrentReads { get; }
+
+    /// <summary>Gets this reader's immutable ordered processor pipeline.</summary>
+    public OfficeDocumentProcessorPipeline ProcessorPipeline { get; }
+
+    /// <summary>Gets the configured processor failure behavior.</summary>
+    public OfficeDocumentProcessorFailureBehavior ProcessorFailureBehavior => _processingOptions.FailureBehavior;
+
+    /// <summary>
     /// Reads a supported file using this reader's frozen handler configuration.
     /// </summary>
     public IEnumerable<ReaderChunk> Read(
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return Scope(DocumentReader.Read(path, options, cancellationToken));
+        if (ProcessorPipeline.Count == 0) return Scope(DocumentReader.Read(path, options, cancellationToken));
+        return ReadDocument(path, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
     }
 
     /// <summary>
@@ -42,7 +68,8 @@ public sealed class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return Scope(DocumentReader.Read(stream, sourceName, options, cancellationToken));
+        if (ProcessorPipeline.Count == 0) return Scope(DocumentReader.Read(stream, sourceName, options, cancellationToken));
+        return ReadDocument(stream, sourceName, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
     }
 
     /// <summary>
@@ -53,7 +80,58 @@ public sealed class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return Scope(DocumentReader.Read(bytes, sourceName, options, cancellationToken));
+        if (ProcessorPipeline.Count == 0) return Scope(DocumentReader.Read(bytes, sourceName, options, cancellationToken));
+        return ReadDocument(bytes, sourceName, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
+    }
+
+    /// <summary>
+    /// Asynchronously reads a file into normalized chunks.
+    /// </summary>
+    public Task<IReadOnlyList<ReaderChunk>> ReadAsync(
+        string path,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (ProcessorPipeline.Count == 0) {
+            return ExecuteAsync(() => DocumentReader.ReadAsync(path, options, cancellationToken), cancellationToken);
+        }
+        return ExecuteProcessedChunksAsync(
+            () => DocumentReader.ReadDocumentAsync(path, options, cancellationToken),
+            options?.ComputeHashes ?? true,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously reads a stream into normalized chunks. The caller retains ownership of the stream.
+    /// </summary>
+    public Task<IReadOnlyList<ReaderChunk>> ReadAsync(
+        Stream stream,
+        string? sourceName = null,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (ProcessorPipeline.Count == 0) {
+            return ExecuteAsync(() => DocumentReader.ReadAsync(stream, sourceName, options, cancellationToken), cancellationToken);
+        }
+        return ExecuteProcessedChunksAsync(
+            () => DocumentReader.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously reads bytes into normalized chunks.
+    /// </summary>
+    public Task<IReadOnlyList<ReaderChunk>> ReadAsync(
+        byte[] bytes,
+        string? sourceName = null,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        if (ProcessorPipeline.Count == 0) {
+            return ExecuteAsync(() => DocumentReader.ReadAsync(bytes, sourceName, options, cancellationToken), cancellationToken);
+        }
+        return ExecuteProcessedChunksAsync(
+            () => DocumentReader.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
+            cancellationToken);
     }
 
     /// <summary>
@@ -64,7 +142,10 @@ public sealed class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadDocument(path, options, cancellationToken);
+            return ProcessDocumentResult(
+                DocumentReader.ReadDocument(path, options, cancellationToken),
+                options?.ComputeHashes ?? true,
+                cancellationToken);
         }
     }
 
@@ -77,7 +158,10 @@ public sealed class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadDocument(stream, sourceName, options, cancellationToken);
+            return ProcessDocumentResult(
+                DocumentReader.ReadDocument(stream, sourceName, options, cancellationToken),
+                options?.ComputeHashes ?? true,
+                cancellationToken);
         }
     }
 
@@ -90,8 +174,69 @@ public sealed class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadDocument(bytes, sourceName, options, cancellationToken);
+            return ProcessDocumentResult(
+                DocumentReader.ReadDocument(bytes, sourceName, options, cancellationToken),
+                options?.ComputeHashes ?? true,
+                cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Asynchronously reads a file into the shared rich document envelope.
+    /// </summary>
+    public Task<OfficeDocumentReadResult> ReadDocumentAsync(
+        string path,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteProcessedDocumentAsync(
+            () => DocumentReader.ReadDocumentAsync(path, options, cancellationToken),
+            options?.ComputeHashes ?? true,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously reads a stream into the shared rich document envelope. The caller retains ownership of the stream.
+    /// </summary>
+    public Task<OfficeDocumentReadResult> ReadDocumentAsync(
+        Stream stream,
+        string? sourceName = null,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteProcessedDocumentAsync(
+            () => DocumentReader.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously reads bytes into the shared rich document envelope.
+    /// </summary>
+    public Task<OfficeDocumentReadResult> ReadDocumentAsync(
+        byte[] bytes,
+        string? sourceName = null,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteProcessedDocumentAsync(
+            () => DocumentReader.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
+            options?.ComputeHashes ?? true,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously reads a bounded set of files. Results retain the input path order.
+    /// </summary>
+    public Task<IReadOnlyList<OfficeDocumentReadResult>> ReadDocumentsAsync(
+        IEnumerable<string> paths,
+        ReaderOptions? options = null,
+        ReaderBatchOptions? batchOptions = null,
+        CancellationToken cancellationToken = default) {
+        return ReaderBatchExecutor.ExecuteAsync(
+            paths,
+            batchOptions,
+            MaxConcurrentReads,
+            MaxConcurrentReads,
+            (path, token) => ReadDocumentAsync(path, options, token),
+            cancellationToken);
     }
 
     /// <summary>
@@ -102,9 +247,7 @@ public sealed class OfficeDocumentReader {
         ReaderOptions? options = null,
         bool indented = false,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadDocumentJson(path, options, indented, cancellationToken);
-        }
+        return OfficeDocumentReadResultJson.Serialize(ReadDocument(path, options, cancellationToken), indented);
     }
 
     /// <summary>
@@ -116,9 +259,9 @@ public sealed class OfficeDocumentReader {
         ReaderOptions? options = null,
         bool indented = false,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadDocumentJson(stream, sourceName, options, indented, cancellationToken);
-        }
+        return OfficeDocumentReadResultJson.Serialize(
+            ReadDocument(stream, sourceName, options, cancellationToken),
+            indented);
     }
 
     /// <summary>
@@ -130,9 +273,9 @@ public sealed class OfficeDocumentReader {
         ReaderOptions? options = null,
         bool indented = false,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadDocumentJson(bytes, sourceName, options, indented, cancellationToken);
-        }
+        return OfficeDocumentReadResultJson.Serialize(
+            ReadDocument(bytes, sourceName, options, cancellationToken),
+            indented);
     }
 
     /// <summary>
@@ -207,6 +350,75 @@ public sealed class OfficeDocumentReader {
     }
 
     /// <summary>
+    /// Detects a file kind from extension and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public ReaderDetectionResult Detect(string path, ReaderDetectionOptions? options = null) {
+        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            return DocumentReader.Detect(path, options);
+        }
+    }
+
+    /// <summary>
+    /// Detects a stream kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public ReaderDetectionResult Detect(
+        Stream stream,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null) {
+        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            return DocumentReader.Detect(stream, sourceName, options);
+        }
+    }
+
+    /// <summary>
+    /// Detects a byte payload kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public ReaderDetectionResult Detect(
+        byte[] bytes,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null) {
+        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            return DocumentReader.Detect(bytes, sourceName, options);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously detects a file kind from extension and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public Task<ReaderDetectionResult> DetectAsync(
+        string path,
+        ReaderDetectionOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteAsync(() => DocumentReader.DetectAsync(path, options, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously detects a stream kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public Task<ReaderDetectionResult> DetectAsync(
+        Stream stream,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteAsync(
+            () => DocumentReader.DetectAsync(stream, sourceName, options, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously detects a byte payload kind from source-name and bounded content evidence using this reader's handlers.
+    /// </summary>
+    public Task<ReaderDetectionResult> DetectAsync(
+        byte[] bytes,
+        string? sourceName = null,
+        ReaderDetectionOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return ExecuteAsync(
+            () => DocumentReader.DetectAsync(bytes, sourceName, options, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>
     /// Lists capabilities visible to this reader instance.
     /// </summary>
     public IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
@@ -235,5 +447,16 @@ public sealed class OfficeDocumentReader {
 
     private IEnumerable<T> Scope<T>(IEnumerable<T> source) {
         return new ReaderHandlerScopedEnumerable<T>(_handlers, source);
+    }
+
+    private async Task<T> ExecuteAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken) {
+        await _asyncGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            using (DocumentReader.UseHandlerRegistry(_handlers)) {
+                return await action().ConfigureAwait(false);
+            }
+        } finally {
+            _asyncGate.Release();
+        }
     }
 }

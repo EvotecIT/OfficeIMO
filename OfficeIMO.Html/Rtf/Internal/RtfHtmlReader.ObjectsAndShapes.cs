@@ -49,7 +49,9 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfDocument resultDocument = html!.ToRtfDocument();
+            HtmlToRtfOptions nestedOptions = CreateNestedOptions();
+            RtfDocument resultDocument = html!.ToRtfDocument(nestedOptions);
+            PropagateNestedDiagnostics(nestedOptions);
             RtfParagraph? paragraph = resultDocument.Paragraphs.FirstOrDefault();
             if (paragraph != null) {
                 CopyParagraphInlines(paragraph, rtfObject.Result, resultDocument);
@@ -62,10 +64,24 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            RtfDocument textDocument = html!.ToRtfDocument();
+            HtmlToRtfOptions nestedOptions = CreateNestedOptions();
+            RtfDocument textDocument = html!.ToRtfDocument(nestedOptions);
+            PropagateNestedDiagnostics(nestedOptions);
             foreach (RtfParagraph paragraph in textDocument.Paragraphs) {
                 RtfParagraph textParagraph = shape.AddTextBoxParagraph();
                 CopyParagraphInlines(paragraph, textParagraph, textDocument);
+            }
+        }
+
+        private HtmlToRtfOptions CreateNestedOptions() {
+            HtmlToRtfOptions nestedOptions = _options.Clone();
+            nestedOptions.DiagnosticHandler = null;
+            return nestedOptions;
+        }
+
+        private void PropagateNestedDiagnostics(HtmlToRtfOptions nestedOptions) {
+            foreach (HtmlRtfConversionDiagnostic diagnostic in nestedOptions.Diagnostics) {
+                _options.AddDiagnostic(diagnostic);
             }
         }
 

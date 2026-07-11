@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static string? CreateStyleAttributeForValue(object? value, bool useCellValueNumberFormats) {
+            internal static string? CreateStyleAttributeForValue(object? value, bool useCellValueNumberFormats) {
                 switch (value) {
                     case DateTime:
                     case DateTimeOffset:
@@ -43,6 +43,12 @@ namespace OfficeIMO.Excel {
                         return null;
                 }
             }
+
+            internal static string GetDateStyleAttribute(bool useCellValueNumberFormats)
+                => useCellValueNumberFormats ? CellValueDateStyleAttribute : DateStyleAttribute;
+
+            internal static string GetTimeStyleAttribute(bool useCellValueNumberFormats)
+                => useCellValueNumberFormats ? CellValueTimeStyleAttribute : TimeStyleAttribute;
 
             private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 writer.Write(cellReferencePrefix);
@@ -236,7 +242,7 @@ namespace OfficeIMO.Excel {
                 WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
             }
 
-            private static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
+            internal static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, DirectSharedStringTable? sharedStrings) {
                 switch (value) {
                     case null:
                     case DBNull:
@@ -350,7 +356,7 @@ namespace OfficeIMO.Excel {
                 writer.Write("</c>");
             }
 
-            private static void WriteStringCellValue(TextWriter writer, string value, DirectSharedStringTable? sharedStrings) {
+            internal static void WriteStringCellValue(TextWriter writer, string value, DirectSharedStringTable? sharedStrings) {
                 if (sharedStrings != null && sharedStrings.TryGetIndex(value, out int sharedStringIndex)) {
                     WriteSharedStringCell(writer, sharedStringIndex);
                 } else {
@@ -358,7 +364,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
+            internal static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
                 if (!TryGetDateTimeOffsetSerial(value, dateTimeOffsetWriteStrategy, dateSystem, out double dateTimeOffsetSerial)) {
                     WriteStringCell(writer, value.ToString("o", CultureInfo.InvariantCulture), validateLength: true);
                     return;
@@ -391,13 +397,18 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (text.Length == 0) {
-                    writer.Write(" t=\"str\"><v/></c>");
+                    writer.Write(" t=\"inlineStr\"><is><t/></is></c>");
                     return;
                 }
 
-                writer.Write(" t=\"str\"><v>");
+                writer.Write(" t=\"inlineStr\"><is><t");
+                if (NeedsPreserveSpace(text)) {
+                    writer.Write(" xml:space=\"preserve\"");
+                }
+
+                writer.Write('>');
                 WriteSanitizedEscaped(writer, text);
-                writer.Write("</v></c>");
+                writer.Write("</t></is></c>");
             }
 
             private static void WriteSharedStringCell(TextWriter writer, int sharedStringIndex) {
@@ -417,50 +428,50 @@ namespace OfficeIMO.Excel {
                 writer.Write("</v></c>");
             }
 
-            private static void WriteRawValueCell(TextWriter writer, double value) {
-                writer.Write(" t=\"n\"><v>");
+            internal static void WriteRawValueCell(TextWriter writer, double value) {
+                writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
-            private static void WriteRawValueCell(TextWriter writer, float value) {
-                writer.Write(" t=\"n\"><v>");
+            internal static void WriteRawValueCell(TextWriter writer, float value) {
+                writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
-            private static void WriteRawValueCell(TextWriter writer, decimal value) {
-                writer.Write(" t=\"n\"><v>");
+            internal static void WriteRawValueCell(TextWriter writer, decimal value) {
+                writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
-            private static void WriteRawValueCell(TextWriter writer, int value) {
+            internal static void WriteRawValueCell(TextWriter writer, int value) {
                 if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
                     return;
                 }
 
-                writer.Write(" t=\"n\"><v>");
+                writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
-            private static void WriteRawValueCell(TextWriter writer, long value) {
+            internal static void WriteRawValueCell(TextWriter writer, long value) {
                 if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
                     return;
                 }
 
-                writer.Write(" t=\"n\"><v>");
+                writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
-            private static void WriteRawValueCell(TextWriter writer, ulong value) {
+            internal static void WriteRawValueCell(TextWriter writer, ulong value) {
                 if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
                     return;
                 }
 
-                writer.Write(" t=\"n\"><v>");
+                writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
@@ -498,7 +509,7 @@ namespace OfficeIMO.Excel {
             private static string[] CreateRawNonNegativeIntegerCellCache() {
                 var cache = new string[CachedRawIntegerCellLimit];
                 for (int i = 0; i < cache.Length; i++) {
-                    cache[i] = " t=\"n\"><v>" + InvariantNumberText.Get(i) + "</v></c>";
+                    cache[i] = "><v>" + InvariantNumberText.Get(i) + "</v></c>";
                 }
 
                 return cache;

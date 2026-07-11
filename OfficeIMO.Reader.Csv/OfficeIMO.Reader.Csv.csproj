@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>CSV/TSV adapter extensions for OfficeIMO.Reader.</Description>
+    <Description>CSV/TSV adapters for OfficeIMO.Reader and OfficeIMO.Excel.</Description>
     <AssemblyName>OfficeIMO.Reader.Csv</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Csv</AssemblyTitle>
-    <VersionPrefix>0.0.33</VersionPrefix>
+    <VersionPrefix>0.0.34</VersionPrefix>
+    <PackageValidationBaselineVersion>0.0.33</PackageValidationBaselineVersion>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

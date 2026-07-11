@@ -11,7 +11,9 @@ public static class RtfSyntaxWriter {
         if (tree == null) throw new ArgumentNullException(nameof(tree));
 
         var builder = new StringBuilder();
+        builder.Append(tree.SourcePrefix);
         WriteGroup(tree.Root, builder);
+        builder.Append(tree.SourceSuffix);
         return builder.ToString();
     }
 

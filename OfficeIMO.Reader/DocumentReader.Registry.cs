@@ -59,6 +59,8 @@ public static partial class DocumentReader {
             SupportsStream = capability.SupportsStream,
             SupportsDocumentPath = capability.SupportsDocumentPath,
             SupportsDocumentStream = capability.SupportsDocumentStream,
+            SupportsAsyncPath = capability.SupportsAsyncPath,
+            SupportsAsyncStream = capability.SupportsAsyncStream,
             SchemaId = capability.SchemaId,
             SchemaVersion = capability.SchemaVersion,
             DefaultMaxInputBytes = capability.DefaultMaxInputBytes,
@@ -308,6 +310,10 @@ public static partial class DocumentReader {
         return GetActiveHandlerRegistry().TryResolve(ext, out handler);
     }
 
+    private static bool TryResolveCustomHandlerByKind(ReaderInputKind kind, bool pathInput, out ReaderHandlerDescriptor handler) {
+        return GetActiveHandlerRegistry().TryResolveByKind(kind, pathInput, out handler);
+    }
+
     private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
         // Avoid mutating a caller-provided options instance.
         var o = options;
@@ -329,7 +335,10 @@ public static partial class DocumentReader {
             ExcelA1Range = o?.ExcelA1Range,
             MarkdownChunkByHeadings = o?.MarkdownChunkByHeadings ?? true,
             MarkdownInputNormalization = CloneMarkdownInputNormalization(o?.MarkdownInputNormalization),
-            ComputeHashes = o?.ComputeHashes ?? true
+            ComputeHashes = o?.ComputeHashes ?? true,
+            DetectionMode = o?.DetectionMode ?? ReaderDetectionMode.ContentWhenUnknown,
+            DetectionMaxProbeBytes = o?.DetectionMaxProbeBytes ?? ReaderOptions.DefaultDetectionMaxProbeBytes,
+            DetectionMaxContainerEntries = o?.DetectionMaxContainerEntries ?? ReaderOptions.DefaultDetectionMaxContainerEntries
         };
 
         if (clone.MaxChars < 256) clone.MaxChars = 256;
@@ -340,6 +349,11 @@ public static partial class DocumentReader {
         if (clone.MaxOpenXmlImagePlacementsPerRelationship.HasValue && clone.MaxOpenXmlImagePlacementsPerRelationship.Value < 1) clone.MaxOpenXmlImagePlacementsPerRelationship = null;
         if (clone.MaxOpenXmlImageAssetBytes.HasValue && clone.MaxOpenXmlImageAssetBytes.Value < 1) clone.MaxOpenXmlImageAssetBytes = null;
         if (clone.MaxOpenXmlImageTotalAssetBytes.HasValue && clone.MaxOpenXmlImageTotalAssetBytes.Value < 1) clone.MaxOpenXmlImageTotalAssetBytes = null;
+        if (clone.DetectionMaxProbeBytes < 256) clone.DetectionMaxProbeBytes = 256;
+        if (clone.DetectionMaxProbeBytes > ReaderOptions.MaximumDetectionProbeBytes) clone.DetectionMaxProbeBytes = ReaderOptions.MaximumDetectionProbeBytes;
+        if (clone.DetectionMaxContainerEntries < 1) clone.DetectionMaxContainerEntries = 1;
+        if (clone.DetectionMaxContainerEntries > ReaderOptions.MaximumDetectionContainerEntries) clone.DetectionMaxContainerEntries = ReaderOptions.MaximumDetectionContainerEntries;
+        if (!Enum.IsDefined(typeof(ReaderDetectionMode), clone.DetectionMode)) clone.DetectionMode = ReaderDetectionMode.ContentWhenUnknown;
 
         return clone;
     }
@@ -364,7 +378,10 @@ public static partial class DocumentReader {
             ExcelA1Range = options.ExcelA1Range,
             MarkdownChunkByHeadings = options.MarkdownChunkByHeadings,
             MarkdownInputNormalization = CloneMarkdownInputNormalization(options.MarkdownInputNormalization),
-            ComputeHashes = computeHashes ?? options.ComputeHashes
+            ComputeHashes = computeHashes ?? options.ComputeHashes,
+            DetectionMode = options.DetectionMode,
+            DetectionMaxProbeBytes = options.DetectionMaxProbeBytes,
+            DetectionMaxContainerEntries = options.DetectionMaxContainerEntries
         };
     }
 

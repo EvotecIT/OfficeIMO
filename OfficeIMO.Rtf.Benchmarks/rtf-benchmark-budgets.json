@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "description": "Regression ceilings, not performance claims. Rebaseline only from repeatable Release measurements on representative hardware.",
+  "scales": [
+    { "scale": "Small", "minInputBytes": 1000, "maxInputBytes": 100000 },
+    { "scale": "Medium", "minInputBytes": 50000, "maxInputBytes": 2000000 },
+    { "scale": "Large", "minInputBytes": 500000, "maxInputBytes": 16000000 }
+  ],
+  "budgets": [
+    { "operation": "Parse", "scale": "Small", "maxElapsedMilliseconds": 750, "maxAllocatedBytes": 16777216, "maxPeakWorkingSetBytes": 536870912, "maxOutputBytes": 16777216 },
+    { "operation": "Parse", "scale": "Medium", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 134217728, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 134217728 },
+    { "operation": "Parse", "scale": "Large", "maxElapsedMilliseconds": 5000, "maxAllocatedBytes": 536870912, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 1073741824 },
+    { "operation": "Lossless", "scale": "Small", "maxElapsedMilliseconds": 750, "maxAllocatedBytes": 16777216, "maxPeakWorkingSetBytes": 536870912, "maxOutputBytes": 16777216 },
+    { "operation": "Lossless", "scale": "Medium", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 134217728, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 134217728 },
+    { "operation": "Lossless", "scale": "Large", "maxElapsedMilliseconds": 5000, "maxAllocatedBytes": 536870912, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 1073741824 },
+    { "operation": "SemanticWrite", "scale": "Small", "maxElapsedMilliseconds": 750, "maxAllocatedBytes": 33554432, "maxPeakWorkingSetBytes": 536870912, "maxOutputBytes": 16777216 },
+    { "operation": "SemanticWrite", "scale": "Medium", "maxElapsedMilliseconds": 2000, "maxAllocatedBytes": 201326592, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 134217728 },
+    { "operation": "SemanticWrite", "scale": "Large", "maxElapsedMilliseconds": 7500, "maxAllocatedBytes": 805306368, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 1073741824 },
+    { "operation": "Html", "scale": "Small", "maxElapsedMilliseconds": 750, "maxAllocatedBytes": 33554432, "maxPeakWorkingSetBytes": 536870912, "maxOutputBytes": 33554432 },
+    { "operation": "Html", "scale": "Medium", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 134217728, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 268435456 },
+    { "operation": "Html", "scale": "Large", "maxElapsedMilliseconds": 5000, "maxAllocatedBytes": 536870912, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 1073741824 },
+    { "operation": "Markdown", "scale": "Small", "maxElapsedMilliseconds": 1000, "maxAllocatedBytes": 67108864, "maxPeakWorkingSetBytes": 536870912, "maxOutputBytes": 33554432 },
+    { "operation": "Markdown", "scale": "Medium", "maxElapsedMilliseconds": 3000, "maxAllocatedBytes": 268435456, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 268435456 },
+    { "operation": "Markdown", "scale": "Large", "maxElapsedMilliseconds": 10000, "maxAllocatedBytes": 805306368, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 1073741824 },
+    { "operation": "Pdf", "scale": "Small", "maxElapsedMilliseconds": 3000, "maxAllocatedBytes": 268435456, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 67108864 },
+    { "operation": "Pdf", "scale": "Medium", "maxElapsedMilliseconds": 10000, "maxAllocatedBytes": 1073741824, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 536870912 },
+    { "operation": "Pdf", "scale": "Large", "maxElapsedMilliseconds": 45000, "maxAllocatedBytes": 3221225472, "maxPeakWorkingSetBytes": 4294967296, "maxOutputBytes": 2147483648 },
+    { "operation": "Word", "scale": "Small", "maxElapsedMilliseconds": 3000, "maxAllocatedBytes": 268435456, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 67108864 },
+    { "operation": "Word", "scale": "Medium", "maxElapsedMilliseconds": 10000, "maxAllocatedBytes": 1073741824, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 536870912 },
+    { "operation": "Word", "scale": "Large", "maxElapsedMilliseconds": 30000, "maxAllocatedBytes": 1610612736, "maxPeakWorkingSetBytes": 4294967296, "maxOutputBytes": 2147483648 },
+    { "operation": "WordModel", "scale": "Small", "maxElapsedMilliseconds": 3000, "maxAllocatedBytes": 268435456, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 0 },
+    { "operation": "WordModel", "scale": "Medium", "maxElapsedMilliseconds": 10000, "maxAllocatedBytes": 1073741824, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 0 },
+    { "operation": "WordModel", "scale": "Large", "maxElapsedMilliseconds": 30000, "maxAllocatedBytes": 1610612736, "maxPeakWorkingSetBytes": 4294967296, "maxOutputBytes": 0 },
+    { "operation": "Reader", "scale": "Small", "maxElapsedMilliseconds": 750, "maxAllocatedBytes": 33554432, "maxPeakWorkingSetBytes": 536870912, "maxOutputBytes": 33554432 },
+    { "operation": "Reader", "scale": "Medium", "maxElapsedMilliseconds": 1500, "maxAllocatedBytes": 134217728, "maxPeakWorkingSetBytes": 1073741824, "maxOutputBytes": 268435456 },
+    { "operation": "Reader", "scale": "Large", "maxElapsedMilliseconds": 5000, "maxAllocatedBytes": 536870912, "maxPeakWorkingSetBytes": 2147483648, "maxOutputBytes": 1073741824 }
+  ]
+}

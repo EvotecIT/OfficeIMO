@@ -90,6 +90,121 @@ var chunks = reader.Read(@"C:\Docs\data.json").ToList();
 
 `Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads, is unaffected by later builder changes, and cannot see handlers registered on another reader. The static `DocumentReader.RegisterHandler(...)` and adapter `Register...Handler()` methods remain available for compatibility, but they update a process-wide registry.
 
+## Async and bounded batches
+
+Configure the instance-wide async limit once, then use the same reader for individual or batched work:
+
+```csharp
+using OfficeIMO.Reader;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .WithMaxConcurrentReads(4)
+    .Build();
+
+OfficeDocumentReadResult document = await reader.ReadDocumentAsync(
+    @"C:\Docs\Policy.docx",
+    cancellationToken: cancellationToken);
+
+IReadOnlyList<OfficeDocumentReadResult> documents = await reader.ReadDocumentsAsync(
+    Directory.EnumerateFiles(@"C:\Docs", "*.docx"),
+    batchOptions: new ReaderBatchOptions {
+        MaxDegreeOfParallelism = 3,
+        MaxDocuments = 500
+    },
+    cancellationToken: cancellationToken);
+```
+
+`ReadDocumentsAsync(...)` starts no more than the configured degree of parallelism, rejects input beyond `MaxDocuments`, cancels sibling workers after a failure, and returns results in the same order as the input paths. Handlers can provide `ReadDocumentPathAsync` or `ReadDocumentStreamAsync` for native asynchronous work. Existing synchronous format engines remain compatible and are scheduled through the instance's bounded worker gate.
+
+## Ordered document processors
+
+Processors are opt-in transformations over `OfficeDocumentReadResult`. The builder freezes their order with the handler configuration, and the reader applies them to `Read(...)`, `ReadAsync(...)`, rich document reads, JSON reads, structured reads, and `ReadDocumentsAsync(...)`:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddProcessor(new OfficeDocumentBlockNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentTableNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentLinkNormalizationProcessor())
+    .AddProcessor(new OfficeDocumentArtifactClassificationProcessor())
+    .AddProcessor(new OfficeDocumentAssetFilterProcessor(
+        asset => asset.LengthBytes <= 5 * 1024 * 1024))
+    .WithProcessorFailureBehavior(
+        OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic)
+    .Build();
+
+OfficeDocumentReadResult document = reader.ReadDocument(@"C:\Docs\Policy.docx");
+```
+
+The built-ins normalize shared blocks, list and heading levels, tables, and links; classify repeated page-boundary text; and filter assets together with dependent OCR candidates. They do not run unless registered, so an unconfigured reader preserves existing output. Add host behavior with `OfficeDocumentProcessorBase`, `IOfficeDocumentProcessor`, or `DelegateOfficeDocumentProcessor`.
+
+The default failure policy is `Throw`. `ContinueWithDiagnostic` records `processor-failed` and runs later steps, while `StopWithDiagnostic` records the failure and marks later steps as skipped. Call `ProcessDocument(...)` or `ProcessDocumentAsync(...)` directly when the host needs the per-step `OfficeDocumentProcessingResult`. Processor instances attached to a shared reader must be safe for concurrent calls and should avoid retaining per-document state.
+
+Folder enumeration remains a chunk/source traversal surface and does not run rich-document processors automatically. Use `ReadDocumentsAsync(...)` when every file must pass through the configured document pipeline.
+
+## Bounded structured extraction
+
+Structured extraction projects the shared document model into deterministic scalar records, heading sections, named tables, typed forms, and diagnostics without adding an AI client or format-specific dependency:
+
+```csharp
+OfficeDocumentStructuredExtractionResult extracted = reader.ReadStructured(
+    @"C:\Docs\Policy.docx",
+    structuredOptions: new OfficeDocumentStructuredExtractionOptions {
+        MaxRecords = 5_000,
+        MaxSections = 500,
+        MaxSectionCharacters = 50_000,
+        MaxTables = 250,
+        MaxForms = 1_000,
+        MaxDiagnostics = 500
+    });
+
+foreach (OfficeDocumentStructuredRecord record in extracted.Records) {
+    Console.WriteLine($"{record.Category}: {record.Name} = {record.Value}");
+}
+
+string json = extracted.ToJson(indented: true);
+```
+
+The extractor recognizes metadata, forms, two-column key/value tables, Path/Type/Value tables, Visio Shape Data, chart summaries, table and visual quality, chunk readiness, and security/OCR/limit diagnostics. Each collection and section body has an explicit positive limit; reaching a bound adds a structured limit diagnostic instead of silently growing output. The non-generic schema-friendly shape is versioned independently from the stable `OfficeDocumentReadResult` transport. It is currently a serialization and host-integration contract; a generic `ExtractStructured<T>()` mapper and model-assisted extraction are intentionally outside the core package.
+
+## Stable document transport
+
+`OfficeDocumentReadResult` schema version 5 is the first stable JSON transport contract. Versions 1 through 4 were experimental and are deliberately rejected when reading transport payloads.
+
+```csharp
+OfficeDocumentReadResult document = reader.ReadDocument(@"C:\Docs\Policy.docx");
+string json = OfficeDocumentReadResultJson.Serialize(document, indented: true);
+
+OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
+Console.WriteLine(restored.SchemaVersion); // 5
+
+string jsonSchema = OfficeDocumentReadResultSchema.GetJsonSchema();
+```
+
+The package embeds the versioned JSON Schema and also ships it as `schemas/officeimo.document.read-result.v5.schema.json`. Deserialization accepts only the current schema id/version, rejects unknown top-level members and incomplete envelopes, and returns a typed `OfficeDocumentReadResultSchemaException` for incompatible versions. Every pack of the core and modular Reader packages runs NuGet package validation against the currently published package version, so accidental public API breaks fail packaging.
+
+## Content detection and structured diagnostics
+
+`Detect(...)` and `DetectAsync(...)` report extension and content evidence without reducing the answer to one opaque enum:
+
+```csharp
+ReaderDetectionResult detection = reader.Detect(@"C:\Inbox\upload.bin");
+
+Console.WriteLine($"Selected: {detection.Kind}");
+Console.WriteLine($"Extension: {detection.ExtensionKind}");
+Console.WriteLine($"Content: {detection.ContentKind} ({detection.ContentConfidence})");
+Console.WriteLine(string.Join(", ", detection.Evidence));
+```
+
+Standalone detection prefers medium- or high-confidence content evidence. Normal reads use `ContentWhenUnknown` by default, which preserves known-extension behavior while identifying unknown uploads. Opt into mislabeled-file routing when needed:
+
+```csharp
+OfficeDocumentReadResult result = reader.ReadDocument(
+    @"C:\Inbox\actually-markdown.txt",
+    new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+```
+
+Seekable stream probes restore the original position. Prefix probing is capped at 4 MiB, and ZIP-based Office/Visio/EPUB inspection walks at most 4,096 local entries without decompressing archive payloads. Detection mismatches, detected unknown inputs, parser failures, limits, truncation, unsupported content, read failures, and OCR readiness are exposed through `OfficeDocumentDiagnostic` with stable `Category`, `Code`, `Source`, `IsRecoverable`, and `Attributes` fields.
+
 ## Host examples
 
 ### Capability discovery
@@ -113,22 +228,22 @@ using OfficeIMO.Reader;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHandler(new ReaderHandlerRegistration {
-    Id = "custom-audit",
-    DisplayName = "Custom audit reader",
-    Kind = ReaderInputKind.Text,
-    Extensions = new[] { ".auditx" },
-    ReadPath = (path, options, cancellationToken) => {
-        string text = File.ReadAllText(path);
-        return new[] {
-            new ReaderChunk {
-                Id = "audit:1",
-                Kind = ReaderInputKind.Text,
-                Text = text,
-                Location = new ReaderLocation { Path = path }
-            }
-        };
-    }
-})
+        Id = "custom-audit",
+        DisplayName = "Custom audit reader",
+        Kind = ReaderInputKind.Text,
+        Extensions = new[] { ".auditx" },
+        ReadPath = (path, options, cancellationToken) => {
+            string text = File.ReadAllText(path);
+            return new[] {
+                new ReaderChunk {
+                    Id = "audit:1",
+                    Kind = ReaderInputKind.Text,
+                    Text = text,
+                    Location = new ReaderLocation { Path = path }
+                }
+            };
+        }
+    })
     .Build();
 ```
 
@@ -137,13 +252,13 @@ Handlers that already expose a structured document model can register rich resul
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHandler(new ReaderHandlerRegistration {
-    Id = "custom-rich-reader",
-    DisplayName = "Custom rich reader",
-    Kind = ReaderInputKind.Text,
-    Extensions = new[] { ".rich" },
-    ReadDocumentPath = (path, options, cancellationToken) => ReadRichDocument(path),
-    ReadDocumentStream = (stream, sourceName, options, cancellationToken) => ReadRichDocument(stream, sourceName)
-})
+        Id = "custom-rich-reader",
+        DisplayName = "Custom rich reader",
+        Kind = ReaderInputKind.Text,
+        Extensions = new[] { ".rich" },
+        ReadDocumentPath = (path, options, cancellationToken) => ReadRichDocument(path),
+        ReadDocumentStream = (stream, sourceName, options, cancellationToken) => ReadRichDocument(stream, sourceName)
+    })
     .Build();
 ```
 
@@ -155,6 +270,12 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - `ReaderFolderOptions` controls recursion, file limits, byte limits, reparse-point handling, and deterministic folder order.
 - `OfficeDocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose the frozen configuration of that reader instance.
 - Capability records distinguish basic path/stream support from native rich-result support through `SupportsDocumentPath` and `SupportsDocumentStream`.
+- `SupportsAsyncPath` and `SupportsAsyncStream` identify handlers with native asynchronous delegates; false means the async facade uses the bounded synchronous fallback.
+- `DocumentReader.Detect(...)` / `DetectAsync(...)` and `OfficeDocumentReader.Detect(...)` / `DetectAsync(...)` expose bounded extension/content evidence, confidence, media type, and mismatch state.
+- `OfficeDocumentDiagnostic` carries stable categories, codes, sources, recoverability, and attributes so hosts do not need to parse warning text.
+- `OfficeDocumentReadResultJson` reads and writes stable schema version 5 envelopes; `OfficeDocumentReadResultSchema.GetJsonSchema()` exposes the packaged schema artifact.
+- `OfficeDocumentProcessorPipeline` freezes ordered processors and reports each completed, failed, or skipped step.
+- `OfficeDocumentStructuredExtractor` produces bounded non-generic records, sections, named tables, forms, and diagnostics without AI dependencies.
 - `OfficeDocumentReaderBuilder.AddHandler(...)` is the recommended custom-handler path for services and concurrent hosts.
 - Static `DocumentReader` registration is retained as a process-wide compatibility surface.
 
@@ -165,6 +286,16 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 - Email RTF transport decoding belongs to `OfficeIMO.Email`; semantic extraction of an RTF-only email body is delegated to the registered `OfficeIMO.Reader.Rtf` adapter.
 - Adapters should use `ReaderInputLimits` so input size and stream behavior stays consistent.
 - AI or database storage belongs in the consuming application.
+
+## Performance evidence
+
+`OfficeIMO.Reader.Benchmarks` covers rich extraction across all built-in and modular formats, bounded content detection, schema serialization/deserialization, and parser-versus-Reader isolation. Run it from the repository root with:
+
+```powershell
+dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csproj -c Release -f net8.0
+```
+
+The benchmark corpus is generated deterministically before measurement. Benchmark artifacts are machine-specific and remain untracked; durable baseline notes record the runtime, hardware, corpus, and relevant comparisons.
 
 ## Related packages
 

@@ -3,10 +3,18 @@ namespace OfficeIMO.Html;
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private void StartAnchor(IElement token) {
-            Uri? uri = ReadUri(token, "href");
+            string? href = GetAttribute(token, "href");
+            Uri? uri = ReadUriValue(href);
             if (uri != null) {
                 _hyperlink = uri;
                 return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(href) && !IsFragmentHref(href)) {
+                _options.AddDiagnostic(
+                    "HtmlRtfHyperlinkRejected",
+                    "HTML hyperlink was omitted because it was rejected by the configured URL policy.",
+                    "href");
             }
 
             string? kind = GetAttribute(token, "data-officeimo-rtf-bookmark");

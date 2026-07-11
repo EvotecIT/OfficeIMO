@@ -1,6 +1,14 @@
-# Excel benchmark artifacts
+# Benchmark artifacts
 
-This folder stores small, committed benchmark artifacts for `OfficeIMO.Excel`.
+This folder stores small, committed benchmark summaries and artifacts. Raw BenchmarkDotNet output, traces, and other machine-specific bulk evidence stay local.
+
+## Reader baselines
+
+- `officeimo.reader.foundation-2026-07-10.md`: first Reader-wide extraction, detection, transport, and parser/chunker baseline after the P0 foundation work.
+
+Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
+
+## Excel artifacts
 
 ## Artifact types
 
@@ -30,10 +38,3 @@ After a suite run, generate the website/blog data layer:
 ```powershell
 .\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
 ```
-
-## Boundaries
-
-- This folder stores benchmark artifacts and artifact-generation notes.
-- Benchmark code lives in `OfficeIMO.Excel.Benchmarks`.
-- NPOI verification code lives in `OfficeIMO.Excel.Benchmarks.NPOI` and is explicit benchmark-only evidence, not an OfficeIMO runtime dependency.
-- Runtime Excel behavior lives in `OfficeIMO.Excel`.

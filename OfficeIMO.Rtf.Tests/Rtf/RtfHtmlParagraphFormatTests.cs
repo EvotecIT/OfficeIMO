@@ -41,7 +41,7 @@ public class RtfHtmlParagraphFormatTests {
             .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 40, colorIndex: red)
             .SetBorder(RtfParagraphBorderSide.Bottom, RtfParagraphBorderStyle.Dotted);
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p style=\"border-top:1pt solid #0C2238;border-left:2pt double #FF0000;border-bottom:dotted;\">Boxed</p>", html);
 
@@ -91,7 +91,9 @@ public class RtfHtmlParagraphFormatTests {
             .SetDirection(RtfTextDirection.LeftToRight);
         document.AddParagraph("Default");
 
-        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false });
+        string html = document.ToHtml(new RtfToHtmlOptions {
+            IncludeRoundTripMetadata = true,
+            EmbedImagesAsDataUri = true, FragmentOnly = false });
 
         Assert.Contains("<html lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">", html, StringComparison.Ordinal);
         Assert.Contains("<p dir=\"ltr\" style=\"direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\">LTR</p>", html, StringComparison.Ordinal);
@@ -150,7 +152,7 @@ public class RtfHtmlParagraphFormatTests {
         paragraph.AddColumnBreak();
         paragraph.AddText("Column");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
 

@@ -463,6 +463,11 @@ public static partial class DocumentReader {
         if (string.Equals(Path.GetFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase)) {
             return ReaderInputKind.Email;
         }
+        return DetectBuiltInKind(path);
+    }
+
+    private static ReaderInputKind DetectBuiltInKind(string path) {
+        var extLower = NormalizeExtension(TryGetExtension(path));
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
             ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,

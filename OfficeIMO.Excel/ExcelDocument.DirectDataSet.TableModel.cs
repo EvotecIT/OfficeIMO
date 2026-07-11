@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel {
             private readonly int[]? _stringCandidateColumnIndexes;
             private readonly object?[][]? _arrayRows;
             private readonly List<object?[]>? _listRows;
+            private readonly IDirectObjectRows? _objectRows;
             private readonly DirectCellValueRows _cellValueRows;
             private readonly bool _hasCellValueRows;
             private readonly IReadOnlyList<Dictionary<string, object?>>? _exactDictionaryRows;
@@ -84,6 +85,12 @@ namespace OfficeIMO.Excel {
                 _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
                 _cellValueRows = cellValueRows;
                 _hasCellValueRows = true;
+            }
+
+            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IDirectObjectRows objectRows) {
+                _columns = columns;
+                _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
+                _objectRows = objectRows;
             }
 
             private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IReadOnlyList<IReadOnlyDictionary<string, object?>> dictionaryRows) {
@@ -141,6 +148,45 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetTableModel(columns, new DirectCellValueRows(values, columnCount, rowCount, valuesMatchColumnTypes));
+            }
+
+            internal static DirectDataSetTableModel FromObjectRows<T>(
+                IReadOnlyList<string> columnNames,
+                IReadOnlyList<T> rows,
+                IReadOnlyList<Func<T, object?>> selectors) {
+                if (columnNames.Count != selectors.Count) {
+                    throw new ArgumentException("Column name and selector counts must match.", nameof(selectors));
+                }
+
+                var columns = new DirectDataSetColumnModel[columnNames.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], typeof(object));
+                }
+
+                return new DirectDataSetTableModel(columns, new DirectObjectRows<T>(rows, selectors));
+            }
+
+            internal static DirectDataSetTableModel FromTypedObjectRows<T>(
+                IReadOnlyList<T> rows,
+                IReadOnlyList<ExcelTabularColumn<T>> tabularColumns) {
+                var columns = new DirectDataSetColumnModel[tabularColumns.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(tabularColumns[i].Header, tabularColumns[i].DataType);
+                }
+
+                return new DirectDataSetTableModel(columns, new DirectTypedObjectRows<T>(rows, tabularColumns));
+            }
+
+            internal static DirectDataSetTableModel FromCallbackRows<T>(
+                IReadOnlyList<string> columnNames,
+                IReadOnlyList<T> rows,
+                Action<ExcelTabularRowWriter, T> writeRow) {
+                var columns = new DirectDataSetColumnModel[columnNames.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], typeof(object));
+                }
+
+                return new DirectDataSetTableModel(columns, new DirectCallbackRows<T>(rows, writeRow));
             }
 
             internal static DirectDataSetTableModel FromLegacyDictionaries(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, IReadOnlyList<System.Collections.IDictionary> rows) {
@@ -259,6 +305,10 @@ namespace OfficeIMO.Excel {
                     return new DirectDataSetTableModel(columns, _cellValueRows);
                 }
 
+                if (_objectRows != null) {
+                    return new DirectDataSetTableModel(columns, _objectRows);
+                }
+
                 return new DirectDataSetTableModel(columns, GetBufferedRowsForReuse());
             }
 
@@ -331,11 +381,13 @@ namespace OfficeIMO.Excel {
 
             internal int ColumnCount => _columns!.Length;
 
-            internal int RowCount => _sourceTable?.Rows.Count ?? _arrayRows?.Length ?? _listRows?.Count ?? (_hasCellValueRows ? _cellValueRows.Count : (int?)null) ?? _exactDictionaryRows?.Count ?? _dictionaryRows?.Count ?? _legacyDictionaryRows!.Count;
+            internal int RowCount => _sourceTable?.Rows.Count ?? _arrayRows?.Length ?? _listRows?.Count ?? _objectRows?.Count ?? (_hasCellValueRows ? _cellValueRows.Count : (int?)null) ?? _exactDictionaryRows?.Count ?? _dictionaryRows?.Count ?? _legacyDictionaryRows!.Count;
 
             internal string GetColumnName(int index) => _columns![index].Name;
 
             internal Type GetColumnType(int index) => _columns![index].DataType;
+
+            internal bool AllowObjectColumnKindInference => _objectRows == null;
 
             int IExcelSheetTabularRowSource.ColumnCount => ColumnCount;
 
@@ -475,6 +527,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            internal bool TryGetObjectRows(out IDirectObjectRows rows) {
+                if (_objectRows != null) {
+                    rows = _objectRows;
+                    return true;
+                }
+
+                rows = null!;
+                return false;
+            }
+
             internal object?[]? GetBufferedRow(int rowIndex) {
                 if (_arrayRows != null) {
                     return _arrayRows[rowIndex];
@@ -499,6 +561,8 @@ namespace OfficeIMO.Excel {
                     value = GetLegacyDictionaryValue(_legacyDictionaryRows[rowIndex], GetColumnName(columnIndex), _legacyDictionaryExactKeyLookup);
                 } else if (_hasCellValueRows) {
                     value = _cellValueRows.GetValue(rowIndex, columnIndex);
+                } else if (_objectRows != null) {
+                    value = _objectRows.GetValue(rowIndex, columnIndex);
                 } else {
                     value = GetBufferedRow(rowIndex)![columnIndex];
                 }

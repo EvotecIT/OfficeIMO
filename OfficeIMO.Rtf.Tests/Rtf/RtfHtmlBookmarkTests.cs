@@ -51,7 +51,7 @@ public class RtfHtmlBookmarkTests {
         paragraph.AddBookmarkEnd("Anchor");
         paragraph.AddText(" text");
 
-        string html = document.ToHtml();
+        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><a id=\"Anchor\" data-officeimo-rtf-bookmark=\"start\" data-officeimo-rtf-bookmark-name=\"Anchor\"></a>Bookmarked<a data-officeimo-rtf-bookmark=\"end\" data-officeimo-rtf-bookmark-name=\"Anchor\"></a> text</p>", html);
 

@@ -180,13 +180,13 @@ namespace OfficeIMO.Word {
                     if (line == "") {
                         wordParagraph = AddBreak();
                     } else {
-                        wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+                        wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
                         wordParagraph.Text = line;
                         this._paragraph.Append(wordParagraph._run!);
                     }
                 }
             } else {
-                wordParagraph = new WordParagraph(this._document, this._paragraph, new Run());
+                wordParagraph = new WordParagraph(this._document, this._paragraph, new Run(), Parent);
                 wordParagraph.Text = text;
                 this._paragraph.Append(wordParagraph._run!);
             }

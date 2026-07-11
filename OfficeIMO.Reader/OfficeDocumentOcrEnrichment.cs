@@ -347,8 +347,11 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
     private static OfficeDocumentDiagnostic BuildOcrNeededDiagnostic(OfficeDocumentOcrCandidate candidate) =>
         new OfficeDocumentDiagnostic {
             Severity = OfficeDocumentDiagnosticSeverity.Warning,
+            Category = OfficeDocumentDiagnosticCategory.Ocr,
             Code = "ocr-needed",
             Message = candidate.Reason ?? "OCR should be considered for this source region.",
+            Source = "officeimo.reader.ocr",
+            IsRecoverable = true,
             Location = candidate.Location
         };
 

@@ -93,21 +93,35 @@ internal static partial class RtfPdfConverter {
                 RenderImage(image, pdf, options);
                 break;
             case RtfObject rtfObject:
+                AddConversionWarning(options, "ObjectFlattened", "Object", "RTF object was flattened to its visible text result.", RtfConversionAction.Flattened);
                 RenderPlainTextBlock(rtfObject.ToPlainText(), pdf);
                 break;
             case RtfShape shape:
+                AddConversionWarning(options, "ShapeFlattened", "Shape", "RTF shape was flattened to its visible text result.", RtfConversionAction.Flattened);
                 RenderPlainTextBlock(shape.ToPlainText(), pdf);
                 break;
         }
     }
 
     private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, IReadOnlyDictionary<string, string>? details = null) {
+        AddConversionWarning(options, code, source, message, RtfConversionAction.Omitted, details);
+    }
+
+    private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
         options.ConversionReport.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Rtf.Pdf",
             code,
             source,
             message,
             details: details));
+        options.RtfConversionReport.Add(
+            RtfConversionSeverity.Warning,
+            code,
+            message,
+            action,
+            sourcePath: source,
+            feature: source,
+            detail: details == null ? null : string.Join(";", details.Select(pair => pair.Key + "=" + pair.Value)));
     }
 
     private static void RenderPlainTextBlock(string text, PdfCore.PdfDocument pdf) {
