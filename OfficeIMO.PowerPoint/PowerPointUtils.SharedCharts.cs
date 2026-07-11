@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
                 var replacement = new C.PlotArea();
                 replacement.Append(plotArea.GetFirstChild<C.Layout>()?.CloneNode(true) ?? new C.Layout());
                 AppendSharedChartContent(replacement, data, defaultKind);
-                PreserveSharedAxes(plotArea, replacement);
+                PreserveSharedChartFormatting(plotArea, replacement);
                 foreach (OpenXmlElement child in plotArea.ChildElements) {
                     if (child is C.DataTable || child is C.ChartShapeProperties || child is C.ExtensionList) {
                         replacement.Append(child.CloneNode(true));
@@ -142,35 +142,6 @@ namespace OfficeIMO.PowerPoint {
             UpdateSharedLegend(chart, data);
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
             chartSpace.Save();
-        }
-
-        private static void PreserveSharedAxes(C.PlotArea source, C.PlotArea replacement) {
-            PreserveSharedAxes<C.CategoryAxis>(source, replacement);
-            PreserveSharedAxes<C.ValueAxis>(source, replacement);
-        }
-
-        private static void PreserveSharedAxes<TAxis>(C.PlotArea source, C.PlotArea replacement)
-            where TAxis : OpenXmlCompositeElement {
-            List<TAxis> sourceAxes = source.Elements<TAxis>().ToList();
-            List<TAxis> replacementAxes = replacement.Elements<TAxis>().ToList();
-            int count = Math.Min(sourceAxes.Count, replacementAxes.Count);
-            for (int index = 0; index < count; index++) {
-                TAxis generated = replacementAxes[index];
-                TAxis preserved = (TAxis)sourceAxes[index].CloneNode(true);
-                C.AxisId? generatedId = generated.GetFirstChild<C.AxisId>();
-                C.CrossingAxis? generatedCrossing = generated.GetFirstChild<C.CrossingAxis>();
-                if (generatedId != null) {
-                    preserved.GetFirstChild<C.AxisId>()?.Remove();
-                    preserved.PrependChild((C.AxisId)generatedId.CloneNode(true));
-                }
-                if (generatedCrossing != null) {
-                    C.CrossingAxis? crossing = preserved.GetFirstChild<C.CrossingAxis>();
-                    if (crossing != null) {
-                        crossing.Val = generatedCrossing.Val;
-                    }
-                }
-                replacement.ReplaceChild(preserved, generated);
-            }
         }
 
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
@@ -387,10 +358,6 @@ namespace OfficeIMO.PowerPoint {
         private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data) {
             C.Legend? current = chart.GetFirstChild<C.Legend>();
             if (current == null) {
-                C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
-                C.Legend created = CreateSharedLegend(data);
-                if (plotArea != null) chart.InsertAfter(created, plotArea);
-                else chart.Append(created);
                 return;
             }
 
