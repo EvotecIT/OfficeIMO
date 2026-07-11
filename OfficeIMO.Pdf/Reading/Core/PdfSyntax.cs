@@ -18,12 +18,27 @@ internal static partial class PdfSyntax {
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
+        PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
+        limits.Validate();
+        if (pdf.LongLength > limits.MaxInputBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.LongLength);
+        }
+
+        var parseTimer = System.Diagnostics.Stopwatch.StartNew();
         string text = PdfEncoding.Latin1GetString(pdf);
         var map = new Dictionary<int, PdfIndirectObject>();
         var parsedOffsets = new Dictionary<int, int>();
         var streamLocations = new List<(int Id, int Generation, int DataStart)>();
         var matches = ObjRegex.Matches(text);
+        if (matches.Count > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, matches.Count);
+        }
+
         for (int i = 0; i < matches.Count; i++) {
+            if ((i & 127) == 0) {
+                ThrowIfParsingTimeExceeded(parseTimer, limits);
+            }
+
             int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
             int gen = int.Parse(matches[i].Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
             int start = matches[i].Index;
@@ -73,6 +88,10 @@ internal static partial class PdfSyntax {
                             if (endStream > dataStart) byteLen = endStream - dataStart;
                         }
                         if (byteLen >= 0) {
+                            if (byteLen > limits.MaxRawStreamBytes) {
+                                throw PdfReadLimitException.Create(PdfReadLimitKind.RawStreamBytes, limits.MaxRawStreamBytes, byteLen);
+                            }
+
                             if (byteStart >= 0 && byteLen >= 0 && byteStart + byteLen <= pdf.Length) {
                                 var data = new byte[byteLen];
                                 Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
@@ -122,6 +141,22 @@ internal static partial class PdfSyntax {
             ThrowIfEncryptedXrefStream(map);
         }
 
+        if (map.Count > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, map.Count);
+        }
+
+        ThrowIfParsingTimeExceeded(parseTimer, limits);
+
         return (map, trailerRaw);
     }
+
+    private static void ThrowIfParsingTimeExceeded(System.Diagnostics.Stopwatch timer, PdfReadLimits limits) {
+        if (timer.Elapsed > limits.MaxObjectParsingTime) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.ObjectParsingTime,
+                (long)limits.MaxObjectParsingTime.TotalMilliseconds,
+                (long)timer.Elapsed.TotalMilliseconds);
+        }
+    }
+
 }

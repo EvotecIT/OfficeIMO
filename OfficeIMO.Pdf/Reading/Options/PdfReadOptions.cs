@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 /// Options for controlling PDF reading/decoding behavior.
 /// </summary>
 public sealed class PdfReadOptions {
+    /// <summary>Resource budgets for object scanning and raw stream allocation.</summary>
+    public PdfReadLimits Limits { get; set; } = new PdfReadLimits();
+
     /// <summary>Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.</summary>
     public string? Password { get; set; }
     /// <summary>Prefer decoding via ToUnicode CMap when available. Default: true.</summary>
