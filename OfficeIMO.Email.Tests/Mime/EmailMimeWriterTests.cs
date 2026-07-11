@@ -160,4 +160,18 @@ public sealed class EmailMimeWriterTests {
         Assert.Contains("Date: Fri, 10 Jul 2026 15:00:00 +0230\r\n", eml, StringComparison.Ordinal);
         Assert.DoesNotContain("+02:30", eml, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RoundTripsQuotedPairsInDisplayNames() {
+        const string displayName = "John \\\"JD\\\" \\\\ Smith";
+        var document = new EmailDocument {
+            From = new EmailAddress("john@example.com", displayName)
+        };
+        document.Body.Text = "body";
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(document)).Document;
+
+        Assert.Equal(displayName, roundTrip.From!.DisplayName);
+    }
 }

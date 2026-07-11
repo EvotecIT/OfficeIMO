@@ -43,7 +43,7 @@ internal static class MimeWriter {
         }
         foreach (EmailHeader header in document.Headers) {
             if (ManagedHeaders.Contains(header.Name)) continue;
-            WriteLine(output, string.Concat(SanitizeHeaderName(header.Name), ": ", EncodeHeaderText(header.Value)));
+            WriteLine(output, string.Concat(MimeHeaderSafety.SanitizeName(header.Name), ": ", EncodeHeaderText(header.Value)));
         }
     }
 
@@ -205,7 +205,7 @@ internal static class MimeWriter {
     }
 
     private static string EncodeHeaderText(string value) {
-        string sanitized = value.Replace("\r", string.Empty).Replace("\n", " ");
+        string sanitized = MimeHeaderSafety.SanitizeValue(value);
         bool ascii = sanitized.All(character => character >= 32 && character <= 126);
         if (ascii) return sanitized;
         const int maxEncodedBytes = 45;
@@ -259,15 +259,6 @@ internal static class MimeWriter {
             }
         }
         return string.Concat("; ", name, "*=utf-8''", encoded.ToString());
-    }
-
-    private static string SanitizeHeaderName(string value) {
-        StringBuilder result = new StringBuilder(value.Length);
-        foreach (char character in value) {
-            if ((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') ||
-                (character >= '0' && character <= '9') || character == '-') result.Append(character);
-        }
-        return result.Length == 0 ? "X-OfficeIMO-Header" : result.ToString();
     }
 
     private static string SanitizeAddress(string value) {

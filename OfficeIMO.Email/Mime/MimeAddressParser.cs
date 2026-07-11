@@ -15,7 +15,7 @@ internal static class MimeAddressParser {
         int less = raw.LastIndexOf('<');
         int greater = less >= 0 ? raw.IndexOf('>', less + 1) : -1;
         if (less >= 0 && greater > less) {
-            string display = raw.Substring(0, less).Trim().Trim('"');
+            string display = DecodeDisplayName(raw.Substring(0, less));
             string address = raw.Substring(less + 1, greater - less - 1).Trim();
             return new EmailAddress(address.Length == 0 ? null : address, display.Length == 0 ? null : display, raw);
         }
@@ -39,9 +39,20 @@ internal static class MimeAddressParser {
     private static IEnumerable<string> Split(string input, bool allowSemicolonSeparator) {
         StringBuilder current = new StringBuilder();
         bool quoted = false;
+        bool escaped = false;
         int angleDepth = 0;
         int commentDepth = 0;
         foreach (char character in input) {
+            if (escaped) {
+                current.Append(character);
+                escaped = false;
+                continue;
+            }
+            if (character == '\\' && (quoted || commentDepth > 0)) {
+                current.Append(character);
+                escaped = true;
+                continue;
+            }
             if (character == '"' && commentDepth == 0) quoted = !quoted;
             if (!quoted) {
                 if (character == '<') angleDepth++;
@@ -58,5 +69,23 @@ internal static class MimeAddressParser {
             }
         }
         if (current.Length > 0) yield return current.ToString();
+    }
+
+    private static string DecodeDisplayName(string value) {
+        string display = value.Trim();
+        if (display.Length < 2 || display[0] != '"' || display[display.Length - 1] != '"') {
+            return display.Trim('"');
+        }
+
+        var result = new StringBuilder(display.Length - 2);
+        for (int index = 1; index < display.Length - 1; index++) {
+            char character = display[index];
+            if (character == '\\' && index + 1 < display.Length - 1) {
+                result.Append(display[++index]);
+            } else {
+                result.Append(character);
+            }
+        }
+        return result.ToString();
     }
 }

@@ -79,12 +79,16 @@ internal static class MsgWriter {
         properties.Set(0x0E07, MapiPropertyType.Integer32, messageFlags);
         properties.Set(0x0E1B, MapiPropertyType.Boolean, document.Attachments.Count > 0);
         properties.Set(0x0037, MapiPropertyType.Unicode, document.Subject);
-        ResolveSubject(document.Subject, metadata, out string subjectPrefix, out string normalizedSubject);
+        ResolveSubject(document.Subject, metadata, out string? subjectPrefix, out string? normalizedSubject);
         properties.Set(0x003D, MapiPropertyType.Unicode, subjectPrefix);
         properties.Set(0x0E1D, MapiPropertyType.Unicode, normalizedSubject);
         properties.Set(0x0070, MapiPropertyType.Unicode, metadata.ConversationTopic ?? normalizedSubject);
         properties.Set(0x0071, MapiPropertyType.Binary, metadata.ConversationIndex);
         properties.Set(0x1000, MapiPropertyType.Unicode, document.Body.Text);
+        properties.Set(0x1013, MapiPropertyType.Binary, null);
+        properties.Set(0x1016, MapiPropertyType.Integer32, null);
+        properties.Set(0x1009, MapiPropertyType.Binary, null);
+        properties.Set(0x0E1F, MapiPropertyType.Boolean, null);
         if (document.Body.Html != null) {
             properties.Set(0x1013, MapiPropertyType.Binary,
                 EncodeString8(document.Body.Html, codePage, diagnostics, string.Concat(location, "/html")));
@@ -141,22 +145,21 @@ internal static class MsgWriter {
         properties.Set(0x0C1F, MapiPropertyType.Unicode, sender?.Address);
         properties.Set(0x0C1E, MapiPropertyType.Unicode, sender?.AddressType ?? "SMTP");
         properties.Set(0x5D01, MapiPropertyType.Unicode, sender?.Address);
-        if (sender != null) properties.Set(0x0C19, MapiPropertyType.Binary, MsgIdentity.CreateOneOffEntryId(sender));
+        properties.Set(0x0C19, MapiPropertyType.Binary,
+            sender == null ? null : MsgIdentity.CreateOneOffEntryId(sender));
         SetReceivedAddress(properties, document.ReceivedBy, 0x0040, 0x0075, 0x0076, 0x003F);
         SetReceivedAddress(properties, document.ReceivedRepresenting, 0x0044, 0x0077, 0x0078, 0x0043);
         properties.Set(0x0E04, MapiPropertyType.Unicode, JoinRecipients(document, EmailRecipientKind.To));
         properties.Set(0x0E03, MapiPropertyType.Unicode, JoinRecipients(document, EmailRecipientKind.Cc));
         properties.Set(0x0E02, MapiPropertyType.Unicode, JoinRecipients(document, EmailRecipientKind.Bcc));
         properties.Set(0x0050, MapiPropertyType.Unicode, JoinRecipients(document, EmailRecipientKind.ReplyTo));
-        if (metadata.Categories.Count > 0) {
-            properties.SetNamed(MsgProjection.PsPublicStrings, "Keywords", MapiPropertyType.MultipleUnicode,
-                metadata.Categories.Cast<object>().ToArray());
-        }
-        if (document.Headers.Count > 0) {
-            string headers = string.Join("\r\n", document.Headers.Select(header =>
-                string.Concat(header.Name, ": ", header.RawValue ?? header.Value)));
-            properties.Set(0x007D, MapiPropertyType.Unicode, headers);
-        }
+        properties.SetNamed(MsgProjection.PsPublicStrings, "Keywords", MapiPropertyType.MultipleUnicode,
+            metadata.Categories.Count == 0 ? null : metadata.Categories.Cast<object>().ToArray());
+        string? headers = document.Headers.Count == 0 ? null : string.Join("\r\n",
+            document.Headers.Select(header => string.Concat(
+                MimeHeaderSafety.SanitizeName(header.Name), ": ",
+                MimeHeaderSafety.SanitizeValue(header.RawValue ?? header.Value))));
+        properties.Set(0x007D, MapiPropertyType.Unicode, headers);
         AddTypedProperties(properties, document);
         return properties;
     }
@@ -180,7 +183,8 @@ internal static class MsgWriter {
         properties.Set(displayNameId, MapiPropertyType.Unicode, address?.DisplayName);
         properties.Set(addressTypeId, MapiPropertyType.Unicode, address?.AddressType ?? (address == null ? null : "SMTP"));
         properties.Set(addressId, MapiPropertyType.Unicode, address?.Address);
-        if (address != null) properties.Set(entryId, MapiPropertyType.Binary, MsgIdentity.CreateOneOffEntryId(address));
+        properties.Set(entryId, MapiPropertyType.Binary,
+            address == null ? null : MsgIdentity.CreateOneOffEntryId(address));
     }
 
     private static bool TryGetBytePreservingRtf(string rtf, IList<EmailDiagnostic> diagnostics,
@@ -543,10 +547,15 @@ internal static class MsgWriter {
     }
 
     private static void ResolveSubject(string? subject, EmailMessageMetadata metadata,
-        out string prefix, out string normalized) {
+        out string? prefix, out string? normalized) {
+        if (subject == null) {
+            prefix = null;
+            normalized = null;
+            return;
+        }
         prefix = metadata.SubjectPrefix ?? string.Empty;
-        normalized = metadata.NormalizedSubject ?? subject ?? string.Empty;
-        if (metadata.NormalizedSubject != null || string.IsNullOrEmpty(subject)) return;
+        normalized = metadata.NormalizedSubject ?? subject;
+        if (metadata.NormalizedSubject != null || subject.Length == 0) return;
 
         int colon = subject!.IndexOf(':');
         if (colon > 0 && colon <= 3 && colon + 1 < subject.Length) {

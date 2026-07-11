@@ -59,8 +59,6 @@ internal static class MimeParser {
             return;
         }
 
-        byte[] source = Copy(data, offset, count);
-        byte[] decoded = MimeTextCodec.DecodeTransfer(source, transferEncoding, state.Diagnostics, location);
         string? fileName = disposition.GetParameter("filename") ?? contentType.GetParameter("name");
         bool attachmentDisposition = string.Equals(disposition.Value, "attachment", StringComparison.OrdinalIgnoreCase);
         bool inlineDisposition = string.Equals(disposition.Value, "inline", StringComparison.OrdinalIgnoreCase);
@@ -68,6 +66,23 @@ internal static class MimeParser {
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
+        bool embeddedMessage = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
+        bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage;
+        long decodedLength = isBody ? 0 : MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
+            skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
+        if (!isBody) {
+            state.EnsureAttachmentWithinLimits(decodedLength);
+            if (skipAttachmentDecoding) {
+                state.CountAttachment(decodedLength);
+                document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
+                    inlineDisposition, null, decodedLength));
+                return;
+            }
+        }
+
+        byte[] source = Copy(data, offset, count);
+        byte[] decoded = MimeTextCodec.DecodeTransfer(source, transferEncoding, state.Diagnostics, location);
 
         if (isBody) {
             string? charset = contentType.GetParameter("charset");
@@ -86,10 +101,10 @@ internal static class MimeParser {
             return;
         }
 
-        if (string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase)) {
+        if (embeddedMessage) {
             state.CountAttachment(decoded.LongLength);
-            EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName, inlineDisposition, decoded, state.Options);
+            EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
+                inlineDisposition, state.Options.IncludeAttachmentContent ? decoded : null, decoded.LongLength);
             if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_NESTED_MESSAGE_LIMIT",
                     "The embedded message was retained but not parsed because the nested-message limit was reached.",
@@ -103,19 +118,20 @@ internal static class MimeParser {
         }
 
         state.CountAttachment(decoded.LongLength);
-        document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName, inlineDisposition, decoded, state.Options));
+        document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName, inlineDisposition,
+            decoded, decoded.LongLength));
     }
 
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
-        MimeValue disposition, string? fileName, bool inlineDisposition, byte[] decoded, EmailReaderOptions options) {
+        MimeValue disposition, string? fileName, bool inlineDisposition, byte[]? content, long length) {
         return new EmailAttachment {
             FileName = fileName,
             ContentType = contentType.Value,
             ContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(headers, "Content-ID")),
             ContentLocation = MimeHeaderParser.GetValue(headers, "Content-Location"),
             IsInline = inlineDisposition || !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-ID")),
-            Length = decoded.LongLength,
-            Content = options.IncludeAttachmentContent ? decoded : null
+            Length = length,
+            Content = content
         };
     }
 

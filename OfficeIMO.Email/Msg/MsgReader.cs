@@ -130,7 +130,8 @@ internal static class MsgReader {
             state.CountAttachment(length);
             attachment.Content = state.Options.IncludeAttachmentContent && content != null ? (byte[])content.Clone() : null;
             if (content != null && IsTnef(content) && nestedDepth < state.Options.MaxNestedMessageDepth) {
-                attachment.EmbeddedDocument = TnefReader.Read(content, state.Options, state.Diagnostics, state.CancellationToken);
+                attachment.EmbeddedDocument = TnefReader.Read(content, state, nestedDepth + 1,
+                    string.Concat(path, "/tnef"));
             } else if (content != null && IsTnef(content)) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_NESTED_MESSAGE_LIMIT",
                     "The encapsulated TNEF attachment was retained but not projected because the nested-message limit was reached.",

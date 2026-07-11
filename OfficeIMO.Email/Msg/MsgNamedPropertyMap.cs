@@ -32,6 +32,13 @@ internal sealed class MsgNamedPropertyMap {
             uint identifier = MsgBinary.ReadUInt32(entries, offset);
             ushort guidAndKind = MsgBinary.ReadUInt16(entries, offset + 4);
             ushort propertyIndex = MsgBinary.ReadUInt16(entries, offset + 6);
+            if (propertyIndex > 0x7FFF) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_NAMEID_PROPERTY_INDEX_INVALID",
+                    string.Concat("Named-property index ", propertyIndex.ToString(CultureInfo.InvariantCulture),
+                        " exceeds the 0x7FFF mapping range and was ignored."),
+                    EmailDiagnosticSeverity.Warning, prefix));
+                continue;
+            }
             int guidIndex = guidAndKind >> 1;
             bool stringNamed = (guidAndKind & 0x0001) != 0;
             Guid? propertySet = ResolveGuid(guidIndex, guidBytes);

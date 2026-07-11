@@ -12,6 +12,10 @@ internal static class TnefReader {
         return ReadMessage(data, state, 0, "tnef");
     }
 
+    internal static EmailDocument Read(byte[] data, MsgParserState state, int nestedDepth, string location) {
+        return ReadMessage(data, state, nestedDepth, location);
+    }
+
     private static EmailDocument ReadMessage(byte[] data, MsgParserState state, int nestedDepth, string location) {
         state.ThrowIfCancellationRequested();
         var document = new EmailDocument { Format = EmailFileFormat.Tnef, OutlookItemKind = OutlookItemKind.Message };

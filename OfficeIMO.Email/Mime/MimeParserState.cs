@@ -26,14 +26,19 @@ internal sealed class MimeParserState {
     }
 
     internal void CountAttachment(long length) {
+        EnsureAttachmentWithinLimits(length);
+        TotalAttachmentBytes = checked(TotalAttachmentBytes + length);
+    }
+
+    internal void EnsureAttachmentWithinLimits(long length) {
         ThrowIfCancellationRequested();
         if (length > Options.MaxAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentBytes), length, Options.MaxAttachmentBytes);
         }
-        TotalAttachmentBytes += length;
-        if (TotalAttachmentBytes > Options.MaxTotalAttachmentBytes) {
+        long total = checked(TotalAttachmentBytes + length);
+        if (total > Options.MaxTotalAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTotalAttachmentBytes),
-                TotalAttachmentBytes, Options.MaxTotalAttachmentBytes);
+                total, Options.MaxTotalAttachmentBytes);
         }
     }
 

@@ -71,6 +71,15 @@ public sealed class EmailReaderContractTests {
         const string attachment = "Subject: x\r\nContent-Type: application/octet-stream\r\n\r\n12345";
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
             new EmailReaderOptions(maxAttachmentBytes: 4)).Read(Encoding.ASCII.GetBytes(attachment)));
+
+        const string base64Attachment = "Subject: x\r\nContent-Type: application/octet-stream\r\n" +
+            "Content-Transfer-Encoding: base64\r\n\r\nAQIDBAUG";
+        EmailLimitExceededException decodedLimit = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(new EmailReaderOptions(
+                maxAttachmentBytes: 5, includeAttachmentContent: false))
+                .Read(Encoding.ASCII.GetBytes(base64Attachment)));
+        Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), decodedLimit.LimitName);
+        Assert.Equal(6, decodedLimit.ActualValue);
     }
 
     [Fact]

@@ -10,14 +10,14 @@ internal sealed class MsgPropertyBuilder {
     internal IReadOnlyList<MapiProperty> Properties => _properties;
 
     internal void Set(ushort id, MapiPropertyType type, object? value) {
-        if (value == null && type != MapiPropertyType.Object && type != MapiPropertyType.Null) return;
         _properties.RemoveAll(property => property.Name == null && property.PropertyId == id);
+        if (value == null && type != MapiPropertyType.Object && type != MapiPropertyType.Null) return;
         _properties.Add(new MapiProperty(id, type, value));
     }
 
     internal void SetNamed(Guid propertySet, uint localId, MapiPropertyType type, object? value) {
-        if (value == null) return;
         _properties.RemoveAll(property => property.Name?.PropertySet == propertySet && property.Name.LocalId == localId);
+        if (value == null) return;
         _properties.Add(new MapiProperty(0x8000, type, value, name: new MapiNamedProperty(propertySet, localId)));
     }
 
@@ -37,9 +37,9 @@ internal sealed class MsgPropertyBuilder {
     }
 
     internal void SetNamed(Guid propertySet, string name, MapiPropertyType type, object? value) {
-        if (value == null) return;
         _properties.RemoveAll(property => property.Name?.PropertySet == propertySet &&
-            string.Equals(property.Name.Name, name, StringComparison.Ordinal));
+            string.Equals(property.Name.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (value == null) return;
         _properties.Add(new MapiProperty(0x8000, type, value, name: new MapiNamedProperty(propertySet, name)));
     }
 
