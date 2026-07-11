@@ -32,6 +32,7 @@ internal static class TnefReader {
 
         List<ParsedAttribute> attributes = ParseAttributes(data, state, location);
         int codePage = ReadCodePage(attributes);
+        document.OutlookCodePage = codePage;
         EmailAttachment? currentAttachment = null;
         string? subject = null;
         string? body = null;
@@ -97,6 +98,7 @@ internal static class TnefReader {
     private static List<ParsedAttribute> ParseAttributes(byte[] data, MsgParserState state, string location) {
         var result = new List<ParsedAttribute>();
         int offset = 6;
+        long pendingAttachmentBytes = 0;
         while (offset < data.Length) {
             state.CountTnefAttribute();
             if (offset + 9 > data.Length) {
@@ -113,6 +115,10 @@ internal static class TnefReader {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_ATTRIBUTE_LENGTH_INVALID",
                     "A TNEF attribute length exceeds the remaining input.", EmailDiagnosticSeverity.Error, location));
                 break;
+            }
+            if (rawLevel == (byte)TnefAttributeLevel.Attachment && tag == TnefConstants.AttachData) {
+                state.EnsureAttachmentBytesWithinLimits(rawLength, pendingAttachmentBytes);
+                pendingAttachmentBytes = checked(pendingAttachmentBytes + rawLength);
             }
             byte[] bytes = MsgBinary.Slice(data, offset, (int)rawLength);
             offset += (int)rawLength;
@@ -181,8 +187,9 @@ internal static class TnefReader {
         MapiProperty? dataProperty = attachment.MapiProperties.FirstOrDefault(property => property.PropertyId == 0x3701);
         byte[]? objectBytes = dataProperty?.Value as byte[];
         if (method == 5 && objectBytes != null && objectBytes.Length >= 20 && new Guid(MsgBinary.Slice(objectBytes, 0, 16)) == IidMessage) {
-            byte[] nested = MsgBinary.Slice(objectBytes, 16, objectBytes.Length - 16);
-            state.CountAttachment(0);
+            int nestedLength = objectBytes.Length - 16;
+            state.CountAttachment(nestedLength);
+            byte[] nested = MsgBinary.Slice(objectBytes, 16, nestedLength);
             if (nestedDepth < state.Options.MaxNestedMessageDepth && nested.Length >= 4 && MsgBinary.ReadUInt32(nested, 0) == TnefConstants.Signature) {
                 attachment.EmbeddedDocument = ReadMessage(nested, state, nestedDepth + 1, string.Concat(location, "/embedded"));
             } else {
@@ -217,9 +224,9 @@ internal static class TnefReader {
             byte[]? mapiContent = dataProperty?.Value as byte[];
             if (mapiContent != null) {
                 attachment.Length = mapiContent.LongLength;
-            }
-            if (attachment.Content == null && state.Options.IncludeAttachmentContent && mapiContent != null) {
-                attachment.Content = (byte[])mapiContent.Clone();
+                if (state.Options.IncludeAttachmentContent) {
+                    attachment.Content = (byte[])mapiContent.Clone();
+                }
             }
             state.CountAttachment(mapiContent?.LongLength ?? attachment.Content?.LongLength ?? attachment.Length);
         }

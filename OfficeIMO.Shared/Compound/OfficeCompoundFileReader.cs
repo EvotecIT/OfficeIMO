@@ -104,6 +104,9 @@ namespace OfficeIMO.Shared {
                 }
                 long totalStreamBytes = 0;
                 foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
+                    string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
+                        ? entryPath
+                        : entry.Name;
                     if (entry.Size < 0 || entry.Size > options.MaxStreamBytes || entry.Size > int.MaxValue) {
                         throw new InvalidDataException($"Compound stream '{entry.Name}' has unsupported size {entry.Size}.");
                     }
@@ -111,12 +114,10 @@ namespace OfficeIMO.Shared {
                     if (totalStreamBytes > options.MaxTotalStreamBytes) {
                         throw new InvalidDataException($"Compound stream bytes exceed {options.MaxTotalStreamBytes}.");
                     }
+                    options.StreamSizeValidator?.Invoke(path, entry.Size);
                     byte[] data = entry.Size < miniCutoff
                         ? ReadMiniStream(miniStream, miniFat, entry.StartSector, entry.Size)
                         : ReadRegularStream(bytes, sectorSize, fat, entry.StartSector, entry.Size);
-                    string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
-                        ? entryPath
-                        : entry.Name;
                     streams[path] = data;
                     if (string.Equals(path, entry.Name, StringComparison.OrdinalIgnoreCase)) {
                         streams[entry.Name] = data;
@@ -452,7 +453,8 @@ namespace OfficeIMO.Shared {
         internal static OfficeCompoundReadOptions Default { get; } = new OfficeCompoundReadOptions();
 
         internal OfficeCompoundReadOptions(int maxDirectoryEntries = 65536, int maxStreamCount = 32768,
-            long maxStreamBytes = 256L * 1024L * 1024L, long maxTotalStreamBytes = 512L * 1024L * 1024L) {
+            long maxStreamBytes = 256L * 1024L * 1024L, long maxTotalStreamBytes = 512L * 1024L * 1024L,
+            Action<string, long>? streamSizeValidator = null) {
             if (maxDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryEntries));
             if (maxStreamCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreamCount));
             if (maxStreamBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreamBytes));
@@ -461,6 +463,7 @@ namespace OfficeIMO.Shared {
             MaxStreamCount = maxStreamCount;
             MaxStreamBytes = maxStreamBytes;
             MaxTotalStreamBytes = maxTotalStreamBytes;
+            StreamSizeValidator = streamSizeValidator;
         }
 
         internal int MaxDirectoryEntries { get; }
@@ -470,5 +473,23 @@ namespace OfficeIMO.Shared {
         internal long MaxStreamBytes { get; }
 
         internal long MaxTotalStreamBytes { get; }
+
+        internal Action<string, long>? StreamSizeValidator { get; }
+    }
+
+    /// <summary>Signals a path-aware stream-size rejection before compound stream bytes are buffered.</summary>
+    internal sealed class OfficeCompoundStreamLimitExceededException : Exception {
+        internal OfficeCompoundStreamLimitExceededException(string limitName, long actualValue, long maximumValue)
+            : base($"{limitName} exceeded: {actualValue} is greater than {maximumValue}.") {
+            LimitName = limitName;
+            ActualValue = actualValue;
+            MaximumValue = maximumValue;
+        }
+
+        internal string LimitName { get; }
+
+        internal long ActualValue { get; }
+
+        internal long MaximumValue { get; }
     }
 }

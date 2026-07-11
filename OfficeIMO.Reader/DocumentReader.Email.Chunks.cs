@@ -321,9 +321,6 @@ public static partial class DocumentReader {
 
     private static bool CanReadEmailAttachmentContent(string fileName) {
         ReaderInputKind kind = DetectKind(fileName);
-        if (kind == ReaderInputKind.Email) {
-            return false;
-        }
         if (kind != ReaderInputKind.Unknown) {
             return true;
         }

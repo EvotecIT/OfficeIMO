@@ -7,11 +7,17 @@ internal static class MsgReader {
         CancellationToken cancellationToken, out EmailDocument document) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeCompoundReadOptions compoundOptions = EmailCompoundReadPolicy.Create(options);
-        if (!OfficeCompoundFileReader.TryRead(data, compoundOptions, out OfficeCompoundFile? compound, out string? error) || compound == null) {
-            diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_COMPOUND_INVALID", error ?? "The MSG compound file is invalid.",
-                EmailDiagnosticSeverity.Error));
-            document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
-            return false;
+        OfficeCompoundFile? compound;
+        string? error;
+        try {
+            if (!OfficeCompoundFileReader.TryRead(data, compoundOptions, out compound, out error) || compound == null) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_COMPOUND_INVALID", error ?? "The MSG compound file is invalid.",
+                    EmailDiagnosticSeverity.Error));
+                document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
+                return false;
+            }
+        } catch (OfficeCompoundStreamLimitExceededException exception) {
+            throw new EmailLimitExceededException(exception.LimitName, exception.ActualValue, exception.MaximumValue);
         }
         if (!compound.Streams.ContainsKey("__properties_version1.0")) {
             document = new EmailDocument { Format = EmailFileFormat.Unknown, OutlookItemKind = OutlookItemKind.Unknown };
@@ -102,7 +108,9 @@ internal static class MsgReader {
         bool hasObjectStorage = compound.Entries.Any(entry => entry.IsStorage &&
             string.Equals(entry.Path, objectStorage, StringComparison.OrdinalIgnoreCase));
         if (method == 5 && hasObjectStorage) {
-            state.CountAttachment(0);
+            long total = GetStorageLength(compound, objectStorage);
+            attachment.Length = total;
+            state.CountAttachment(total);
             if (nestedDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_NESTED_MESSAGE_LIMIT",
                     "The embedded MSG was retained but not projected because the nested-message limit was reached.",
@@ -112,7 +120,7 @@ internal static class MsgReader {
                     names, state, nestedDepth + 1, inheritedEncoding);
             }
         } else if (method == 6 && hasObjectStorage) {
-            long total = 0;
+            long total = GetStorageLength(compound, objectStorage);
             string storagePrefix = string.Concat(objectStorage, "/");
             foreach (KeyValuePair<string, byte[]> stream in compound.Streams.Where(item =>
                 item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
@@ -121,7 +129,6 @@ internal static class MsgReader {
                 if (state.Options.IncludeAttachmentContent) {
                     attachment.StructuredStorageStreams[relative] = stream.Value;
                 }
-                total = checked(total + stream.Value.LongLength);
             }
             attachment.Length = total;
             state.CountAttachment(total);
@@ -146,6 +153,16 @@ internal static class MsgReader {
             }
         }
         document.Attachments.Add(attachment);
+    }
+
+    private static long GetStorageLength(OfficeCompoundFile compound, string storagePath) {
+        string storagePrefix = string.Concat(storagePath, "/");
+        long total = 0;
+        foreach (KeyValuePair<string, byte[]> stream in compound.Streams.Where(item =>
+            item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
+            total = checked(total + stream.Value.LongLength);
+        }
+        return total;
     }
 
     private static IEnumerable<string> GetDirectChildStorages(OfficeCompoundFile compound, string parentPath, string prefix) {

@@ -35,10 +35,16 @@ internal sealed class MsgParserState {
 
     internal void CountDecodedBytes(int bytes) {
         ThrowIfCancellationRequested();
+        EnsureDecodedPropertyBytesWithinLimits(bytes);
         DecodedPropertyBytes = checked(DecodedPropertyBytes + bytes);
-        if (DecodedPropertyBytes > Options.MaxDecodedPropertyBytes) {
+    }
+
+    internal void EnsureDecodedPropertyBytesWithinLimits(long bytes) {
+        ThrowIfCancellationRequested();
+        long total = checked(DecodedPropertyBytes + bytes);
+        if (total > Options.MaxDecodedPropertyBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxDecodedPropertyBytes),
-                DecodedPropertyBytes, Options.MaxDecodedPropertyBytes);
+                total, Options.MaxDecodedPropertyBytes);
         }
     }
 
@@ -52,12 +58,12 @@ internal sealed class MsgParserState {
         TotalAttachmentBytes = checked(TotalAttachmentBytes + bytes);
     }
 
-    internal void EnsureAttachmentBytesWithinLimits(long bytes) {
+    internal void EnsureAttachmentBytesWithinLimits(long bytes, long pendingTotalBytes = 0) {
         ThrowIfCancellationRequested();
         if (bytes > Options.MaxAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxAttachmentBytes), bytes, Options.MaxAttachmentBytes);
         }
-        long total = checked(TotalAttachmentBytes + bytes);
+        long total = checked(TotalAttachmentBytes + pendingTotalBytes + bytes);
         if (total > Options.MaxTotalAttachmentBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxTotalAttachmentBytes),
                 total, Options.MaxTotalAttachmentBytes);

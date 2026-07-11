@@ -22,21 +22,21 @@ internal static class TnefWriter {
     private static byte[] WriteMessage(EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics, int depth) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");
-        const int codePage = 65001;
+        int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
         using (MemoryStream output = new MemoryStream()) {
             WriteUInt32(output, TnefConstants.Signature);
             WriteUInt16(output, 1);
             WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.TnefVersion, EncodeUInt32(TnefConstants.Version));
             byte[] codePageBytes = new byte[8];
-            MsgBinary.WriteUInt32(codePageBytes, 0, codePage);
+            MsgBinary.WriteUInt32(codePageBytes, 0, unchecked((uint)codePage));
             WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.OemCodePage, codePageBytes);
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageClass,
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageClass, codePage,
                 document.MessageClass ?? DefaultMessageClass(document.OutlookItemKind));
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Subject, document.Subject);
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Body, document.Body.Text);
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Subject, codePage, document.Subject);
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.Body, codePage, document.Body.Text);
             if (document.Date.HasValue) WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.DateSent, EncodeDate(document.Date.Value));
             if (document.ReceivedDate.HasValue) WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.DateReceived, EncodeDate(document.ReceivedDate.Value));
-            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageId, document.MessageId);
+            WriteStringAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageId, codePage, document.MessageId);
 
             IReadOnlyList<MapiProperty>[] rows = document.Recipients
                 .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
@@ -72,8 +72,8 @@ internal static class TnefWriter {
         MsgBinary.WriteUInt16(rendition, 0, method == 6 ? (ushort)2 : (ushort)1);
         MsgBinary.WriteUInt32(rendition, 2, attachment.IsInline ? 0U : 0xffffffffU);
         WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, rendition);
-        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTitle, attachment.FileName);
-        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTransportFilename, attachment.FileName);
+        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTitle, codePage, attachment.FileName);
+        WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTransportFilename, codePage, attachment.FileName);
         if (method == 1 && attachment.Content != null) {
             WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachData, attachment.Content);
         }
@@ -117,9 +117,10 @@ internal static class TnefWriter {
         };
     }
 
-    private static void WriteStringAttribute(Stream output, TnefAttributeLevel level, uint tag, string? value) {
+    private static void WriteStringAttribute(Stream output, TnefAttributeLevel level, uint tag, int codePage,
+        string? value) {
         if (value == null) return;
-        WriteAttribute(output, level, tag, Encoding.UTF8.GetBytes(string.Concat(value, "\0")));
+        WriteAttribute(output, level, tag, MsgValueWriter.EncodeString8(string.Concat(value, "\0"), codePage));
     }
 
     private static void WriteAttribute(Stream output, TnefAttributeLevel level, uint tag, byte[] data) {

@@ -108,10 +108,14 @@ internal static class TnefMapiCodec {
                             if (IsVariableValue(itemType)) {
                                 uint rawLength = cursor.ReadUInt32();
                                 if (rawLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
+                                state.EnsureDecodedPropertyBytesWithinLimits(
+                                    checked(rawValues.Length + rawLength));
                                 itemBytes = cursor.ReadBytes((int)rawLength);
                                 cursor.Align4();
                             } else {
                                 int size = GetFixedSize(itemType);
+                                state.EnsureDecodedPropertyBytesWithinLimits(
+                                    checked(rawValues.Length + size));
                                 itemBytes = cursor.ReadBytes(size);
                                 cursor.Align4();
                             }
@@ -123,6 +127,7 @@ internal static class TnefMapiCodec {
                     value = multiple ? decoded : decoded.FirstOrDefault();
                 } else {
                     int size = GetFixedSize(type);
+                    state.EnsureDecodedPropertyBytesWithinLimits(size);
                     raw = cursor.ReadBytes(size);
                     cursor.Align4();
                     value = DecodeValue(type, raw, codePage, state.Diagnostics, location);

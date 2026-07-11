@@ -49,6 +49,30 @@ public sealed class ReaderEmailTests {
     }
 
     [Fact]
+    public void ByValueEmlAttachment_ProducesSearchableNestedEmailChunks() {
+        var forwarded = new EmailDocument { Subject = "Forwarded subject" };
+        forwarded.Body.Text = "Forwarded searchable body";
+        byte[] forwardedBytes = new EmailDocumentWriter().WriteToBytes(forwarded, EmailFileFormat.Eml);
+        var parent = new EmailDocument { Subject = "Parent" };
+        parent.Attachments.Add(new EmailAttachment {
+            FileName = "forwarded.eml",
+            ContentType = "application/octet-stream",
+            Content = forwardedBytes,
+            Length = forwardedBytes.Length
+        });
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(parent, EmailFileFormat.Eml);
+
+        ReaderChunk[] chunks = DocumentReader.Read(bytes, "parent.eml").ToArray();
+
+        Assert.Contains(chunks, chunk => chunk.Location.Path != null &&
+            chunk.Location.Path.EndsWith("!/forwarded.eml", StringComparison.Ordinal) &&
+            chunk.Text.Contains("Forwarded subject", StringComparison.Ordinal));
+        Assert.Contains(chunks, chunk => chunk.Location.Path != null &&
+            chunk.Location.Path.EndsWith("!/forwarded.eml", StringComparison.Ordinal) &&
+            chunk.Text.Contains("Forwarded searchable body", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void EmlRichResult_ContainsTypedMetadataMaterializableAssetsAndHtml() {
         byte[] bytes = BuildEmlWithAttachment();
 
