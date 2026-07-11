@@ -76,22 +76,22 @@ internal static class MimeWriter {
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             WriteLine(output, string.Concat("--", boundary));
-            WriteTextPart(output, "text/plain", document.Body.Text!);
+            WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength);
             WriteLine(output, string.Concat("--", boundary));
-            WriteTextPart(output, "text/html", document.Body.Html!);
+            WriteTextPart(output, "text/html", document.Body.Html!, state.Options.Base64LineLength);
             WriteLine(output, string.Concat("--", boundary, "--"));
         } else if (document.Body.Html != null) {
-            WriteTextPart(output, "text/html", document.Body.Html);
+            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
         } else {
-            WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty);
+            WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength);
         }
     }
 
-    private static void WriteTextPart(Stream output, string mediaType, string text) {
+    private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength) {
         WriteLine(output, string.Concat("Content-Type: ", mediaType, "; charset=utf-8"));
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
-        WriteBase64(output, Encoding.UTF8.GetBytes(text), 76);
+        WriteBase64(output, Encoding.UTF8.GetBytes(text), base64LineLength);
     }
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, MimeWriterState state, int depth, int index) {

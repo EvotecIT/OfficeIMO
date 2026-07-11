@@ -145,6 +145,29 @@ public sealed class ReaderEmailTests {
     }
 
     [Fact]
+    public void DefaultFolderIngestionIncludesWinmailDatWithoutClaimingOtherDatFiles() {
+        string folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-winmail-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try {
+            var document = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "Folder TNEF" };
+            document.Body.Text = "winmail body";
+            File.WriteAllBytes(Path.Combine(folder, "winmail.dat"),
+                new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.Tnef));
+            File.WriteAllText(Path.Combine(folder, "other.dat"), "not an email");
+
+            ReaderChunk[] chunks = DocumentReader.ReadFolder(folder,
+                new ReaderFolderOptions { Recurse = false, MaxFiles = 10 }, new ReaderOptions()).ToArray();
+
+            Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Email &&
+                chunk.Text.Contains("Folder TNEF", StringComparison.Ordinal));
+            Assert.DoesNotContain(chunks, chunk => chunk.Location.Path != null &&
+                chunk.Location.Path.EndsWith("other.dat", StringComparison.OrdinalIgnoreCase));
+        } finally {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
     public void RtfOnlyMsg_UsesRegisteredSemanticRtfHandler() {
         try {
             DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();

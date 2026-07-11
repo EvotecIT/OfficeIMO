@@ -133,12 +133,20 @@ public sealed class EmailDocumentReader {
             if (lineEnd == lineStart) return false;
             for (int i = lineStart; i < lineEnd; i++) {
                 if (data[i] == ':' && i > lineStart) return true;
-                if (data[i] < 33 || data[i] > 126) break;
+                if (!IsHeaderNameCharacter(data[i])) break;
             }
             lineStart = lineEnd;
             if (lineStart < limit && data[lineStart] == '\r') lineStart++;
             if (lineStart < limit && data[lineStart] == '\n') lineStart++;
         }
         return false;
+    }
+
+    private static bool IsHeaderNameCharacter(byte value) {
+        return value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z' ||
+            value >= '0' && value <= '9' || value == '!' || value == '#' || value == '$' ||
+            value == '%' || value == '&' || value == '\'' || value == '*' || value == '+' ||
+            value == '-' || value == '.' || value == '^' || value == '_' || value == '`' ||
+            value == '|' || value == '~';
     }
 }

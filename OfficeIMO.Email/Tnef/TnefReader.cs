@@ -191,7 +191,9 @@ internal static class TnefReader {
                 long total = 0;
                 foreach (KeyValuePair<string, byte[]> stream in compound.Streams) {
                     state.ThrowIfCancellationRequested();
-                    attachment.StructuredStorageStreams[stream.Key] = stream.Value;
+                    if (state.Options.IncludeAttachmentContent) {
+                        attachment.StructuredStorageStreams[stream.Key] = stream.Value;
+                    }
                     total = checked(total + stream.Value.LongLength);
                 }
                 attachment.Length = total;

@@ -76,7 +76,12 @@ public sealed class EmailMailboxWriter {
                     date.UtcDateTime.ToString("ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture), "\n");
                 byte[] fromBytes = Encoding.ASCII.GetBytes(fromLine);
                 output.Write(fromBytes, 0, fromBytes.Length);
-                byte[] eml = messageWriter.WriteToBytes(entry.Document, EmailFileFormat.Eml);
+                byte[] eml;
+                using (MemoryStream messageOutput = new MemoryStream()) {
+                    EmailWriteResult messageResult = messageWriter.Write(entry.Document, messageOutput, EmailFileFormat.Eml);
+                    diagnostics.AddRange(messageResult.Diagnostics);
+                    eml = messageOutput.ToArray();
+                }
                 byte[] normalized = NormalizeLineEndings(eml);
                 byte[] escaped = Escape(normalized, _options.Variant);
                 output.Write(escaped, 0, escaped.Length);

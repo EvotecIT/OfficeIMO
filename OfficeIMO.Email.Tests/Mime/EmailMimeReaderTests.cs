@@ -74,4 +74,26 @@ public sealed class EmailMimeReaderTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
         Assert.Single(result.Document.Attachments);
     }
+
+    [Fact]
+    public void DecodesLegacyCodePagesWithoutPriorMsgInitialization() {
+        string encoded = Convert.ToBase64String(new byte[] { 0x5A, 0x61, 0xBF, 0xF3, 0xB3, 0xE6 });
+        string eml = string.Concat("Subject: =?windows-1250?B?", encoded, "?=\r\n\r\nbody");
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Equal("Zażółć", result.Document.Subject);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void IgnoresWhitespaceBetweenAdjacentEncodedWords() {
+        string first = Convert.ToBase64String(Encoding.UTF8.GetBytes("Zaż"));
+        string second = Convert.ToBase64String(Encoding.UTF8.GetBytes("ółć"));
+        string eml = string.Concat("Subject: =?utf-8?B?", first, "?=  \t=?utf-8?B?", second, "?=\r\n\r\nbody");
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Equal("Zażółć", result.Document.Subject);
+    }
 }

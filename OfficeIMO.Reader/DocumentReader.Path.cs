@@ -136,7 +136,7 @@ public static partial class DocumentReader {
 
             var ext = TryGetExtension(file);
             if (string.IsNullOrEmpty(ext)) continue;
-            if (!allowedExt.Contains(ext!)) continue;
+            if (!allowedExt.Contains(ext!) && !IsDefaultWinmailDat(file, fo.Extensions)) continue;
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;
@@ -266,7 +266,7 @@ public static partial class DocumentReader {
 
             var ext = TryGetExtension(file);
             if (string.IsNullOrEmpty(ext)) continue;
-            if (!allowedExt.Contains(ext!)) continue;
+            if (!allowedExt.Contains(ext!) && !IsDefaultWinmailDat(file, fo.Extensions)) continue;
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;

@@ -129,7 +129,7 @@ public sealed class EmailMsgRoundTripTests {
         }
         using (OpenMcdf.CfbStream acceptLanguageLookup = namedProperties.OpenStream("__substg1.0_101D0102")) {
             byte[] entry = new byte[8];
-            acceptLanguageLookup.ReadExactly(entry);
+            ReadFully(acceptLanguageLookup, entry);
             Assert.Equal(new byte[] { 0x9E, 0x53, 0xE9, 0x83, 0x09, 0x00, 0x01, 0x00 }, entry);
         }
 
@@ -160,7 +160,7 @@ public sealed class EmailMsgRoundTripTests {
         OpenMcdf.Storage namedProperties = oracle.OpenStorage("__nameid_version1.0");
         using OpenMcdf.CfbStream lookup = namedProperties.OpenStream("__substg1.0_10010102");
         byte[] entries = new byte[lookup.Length];
-        lookup.ReadExactly(entries);
+        ReadFully(lookup, entries);
 
         uint[] identifiers = Enumerable.Range(0, entries.Length / 8)
             .Select(index => BitConverter.ToUInt32(entries, index * 8))
@@ -181,6 +181,22 @@ public sealed class EmailMsgRoundTripTests {
         Assert.Equal(3, attachment.Length);
         Assert.Null(attachment.Content);
         Assert.Null(attachment.MapiProperties.Single(property => property.PropertyId == 0x3701).RawData);
+    }
+
+    [Fact]
+    public void ReaderCanSkipOleStorageBytesWhileKeepingDeclaredLength() {
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "skip OLE" };
+        var attachment = new EmailAttachment { FileName = "object.bin", MapiAttachMethod = 6 };
+        attachment.StructuredStorageStreams["Contents"] = new byte[] { 1, 2, 3, 4 };
+        source.Attachments.Add(attachment);
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+
+        EmailDocument parsed = new EmailDocumentReader(
+            new EmailReaderOptions(includeAttachmentContent: false)).Read(bytes).Document;
+
+        EmailAttachment result = Assert.Single(parsed.Attachments);
+        Assert.Equal(4, result.Length);
+        Assert.Empty(result.StructuredStorageStreams);
     }
 
     [Fact]
@@ -207,6 +223,15 @@ public sealed class EmailMsgRoundTripTests {
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        }
+    }
+
+    private static void ReadFully(Stream stream, byte[] buffer) {
+        int offset = 0;
+        while (offset < buffer.Length) {
+            int read = stream.Read(buffer, offset, buffer.Length - offset);
+            if (read == 0) throw new EndOfStreamException();
+            offset += read;
         }
     }
 }

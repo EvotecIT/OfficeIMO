@@ -48,6 +48,8 @@ public sealed class EmailReaderContractTests {
     public void DetectsMboxAndEmlFromContent() {
         Assert.Equal(EmailFileFormat.Mbox, EmailDocumentReader.DetectFormat(Encoding.ASCII.GetBytes("From sender@example.com now\n")));
         Assert.Equal(EmailFileFormat.Eml, EmailDocumentReader.DetectFormat(Encoding.ASCII.GetBytes("Subject: value\r\n\r\nbody")));
+        Assert.Equal(EmailFileFormat.Eml, EmailDocumentReader.DetectFormat(Encoding.ASCII.GetBytes("X-Custom: value\r\n\r\nbody")));
+        Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(Encoding.ASCII.GetBytes("{\"a\":1}")));
         Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(new byte[] { 1, 2, 3 }));
     }
 

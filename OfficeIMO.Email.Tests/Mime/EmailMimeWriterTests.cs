@@ -67,4 +67,19 @@ public sealed class EmailMimeWriterTests {
 
         Assert.Equal("Child", Assert.Single(parsed.Attachments).EmbeddedDocument!.Subject);
     }
+
+    [Fact]
+    public void AppliesConfiguredBase64LineLengthToTextBodies() {
+        var document = new EmailDocument { Subject = "line length" };
+        document.Body.Text = new string('x', 120);
+
+        byte[] bytes = new EmailDocumentWriter(new EmailWriterOptions(base64LineLength: 20))
+            .WriteToBytes(document);
+        string[] lines = Encoding.ASCII.GetString(bytes).Split(new[] { "\r\n" }, StringSplitOptions.None);
+        int bodyStart = Array.IndexOf(lines, string.Empty) + 1;
+        string[] payloadLines = lines.Skip(bodyStart).Where(line => line.Length > 0).ToArray();
+
+        Assert.True(payloadLines.Length > 1);
+        Assert.All(payloadLines, line => Assert.InRange(line.Length, 1, 20));
+    }
 }

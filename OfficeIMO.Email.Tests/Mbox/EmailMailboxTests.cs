@@ -56,4 +56,18 @@ public sealed class EmailMailboxTests {
         Assert.Equal(EmailFileFormat.Mbox, result.Document.Format);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MBOX_REQUIRES_MAILBOX_READER");
     }
+
+    [Fact]
+    public void MailboxWriterReturnsPerMessageDiagnostics() {
+        var document = new EmailDocument { Subject = "lossy attachment" };
+        document.Attachments.Add(new EmailAttachment { FileName = "missing.bin", Length = 12 });
+        var mailbox = new EmailMailbox();
+        mailbox.Messages.Add(new EmailMailboxEntry(document));
+
+        using var output = new MemoryStream();
+        EmailWriteResult result = new EmailMailboxWriter().Write(mailbox, output);
+
+        Assert.Contains(result.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+    }
 }

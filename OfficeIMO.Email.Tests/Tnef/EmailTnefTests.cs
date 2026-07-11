@@ -99,4 +99,24 @@ public sealed class EmailTnefTests {
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
             new EmailReaderOptions(maxTnefAttributeCount: 1)).Read(bytes));
     }
+
+    [Fact]
+    public void TruncatedMapiPropertyRowsReturnDiagnostics() {
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(TnefConstants.Signature);
+            writer.Write((ushort)1);
+            writer.Write((byte)TnefAttributeLevel.Message);
+            writer.Write(TnefConstants.MessageProperties);
+            writer.Write(4U);
+            writer.Write(1U);
+            writer.Write((ushort)1);
+        }
+
+        EmailReadResult result = new EmailDocumentReader().Read(stream.ToArray());
+
+        Assert.Equal(EmailFileFormat.Tnef, result.Document.Format);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_MAPI_TRUNCATED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
 }

@@ -6,12 +6,20 @@ internal static class MimeTextCodec {
     private static readonly Regex EncodedWordPattern = new Regex(
         @"=\?([^?\s]+)\?([bBqQ])\?([^?]*)\?=",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex EncodedWordSeparatorPattern = new Regex(
+        @"(?<=\?=)[ \t\r\n]+(?==\?)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    static MimeTextCodec() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
 
     internal static string DecodeHeader(string value, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrEmpty(value) || value.IndexOf("=?", StringComparison.Ordinal) < 0) return value;
 
         try {
-            return EncodedWordPattern.Replace(value, match => {
+            string adjacentWords = EncodedWordSeparatorPattern.Replace(value, string.Empty);
+            return EncodedWordPattern.Replace(adjacentWords, match => {
                 string charset = match.Groups[1].Value;
                 string encoding = match.Groups[2].Value;
                 string payload = match.Groups[3].Value;
@@ -19,7 +27,7 @@ internal static class MimeTextCodec {
                     ? DecodeBase64(payload, diagnostics, location)
                     : DecodeQuotedPrintable(Encoding.ASCII.GetBytes(payload.Replace('_', ' ')), true, diagnostics, location);
                 return DecodeText(bytes, charset, diagnostics, location);
-            }).Replace("?= =?", "?==?");
+            });
         } catch (Exception ex) when (ex is FormatException || ex is ArgumentException) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_ENCODED_WORD_INVALID", ex.Message, EmailDiagnosticSeverity.Warning, location));
             return value;

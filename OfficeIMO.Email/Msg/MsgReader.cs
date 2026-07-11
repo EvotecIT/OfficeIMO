@@ -122,7 +122,9 @@ internal static class MsgReader {
                 item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
                 state.ThrowIfCancellationRequested();
                 string relative = stream.Key.Substring(storagePrefix.Length);
-                attachment.StructuredStorageStreams[relative] = stream.Value;
+                if (state.Options.IncludeAttachmentContent) {
+                    attachment.StructuredStorageStreams[relative] = stream.Value;
+                }
                 total = checked(total + stream.Value.LongLength);
             }
             attachment.Length = total;
