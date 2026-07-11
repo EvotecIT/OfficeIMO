@@ -106,7 +106,7 @@ This is a paragraph with **bold** and *italic* text.
             Console.WriteLine(html);
             Console.WriteLine();
             
-            using (WordDocument fromHtml = html.LoadFromHtml()) {
+            using (WordDocument fromHtml = html.ToWordDocument()) {
                 string docPath = Path.Combine(folderPath, "FromHtml.docx");
                 fromHtml.Save(docPath);
                 Console.WriteLine($"✓ HTML → Word: {docPath}");

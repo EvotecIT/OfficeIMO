@@ -21,7 +21,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
 
         AssertSemanticBlockParity(
             MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
-            html.LoadFromHtml());
+            html.ToMarkdownDocument());
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
 
         AssertSemanticBlockParity(
             MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
-            html.LoadFromHtml());
+            html.ToMarkdownDocument());
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
 
         AssertSemanticBlockParity(
             MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
-            html.LoadFromHtml());
+            html.ToMarkdownDocument());
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
 
         AssertSemanticBlockParity(
             MarkdownReader.Parse(markdown, CreateSemanticOptions("mermaid", MarkdownSemanticKinds.Mermaid)),
-            html.LoadFromHtml());
+            html.ToMarkdownDocument());
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
 
         AssertSemanticBlockParity(
             MarkdownReader.Parse(markdown, CreateSemanticOptions("math", MarkdownSemanticKinds.Math)),
-            html.LoadFromHtml());
+            html.ToMarkdownDocument());
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "<p>Tail</p></li></ul>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -182,7 +182,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "</details><p>Tail</p></li></ul>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -211,7 +211,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "</blockquote></details></li></ul>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -241,7 +241,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "<p>Tail</p></li></ol>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownList = Assert.IsType<OrderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<OrderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -270,7 +270,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "</blockquote></details></li></ol>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownList = Assert.IsType<OrderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<OrderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -300,7 +300,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "<p>Tail</p></details>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownDetails = Assert.IsType<DetailsBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlDetails = Assert.IsType<DetailsBlock>(Assert.Single(htmlDocument.Blocks));
@@ -326,7 +326,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "<p>Tail</p></blockquote>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownQuote = Assert.IsType<QuoteBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlQuote = Assert.IsType<QuoteBlock>(Assert.Single(htmlDocument.Blocks));
@@ -351,7 +351,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "<p>Tail</p></blockquote>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownCallout = Assert.IsType<CalloutBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlCallout = Assert.IsType<CalloutBlock>(Assert.Single(htmlDocument.Blocks));
@@ -378,7 +378,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             + "<p>Tail</p></td></tr></table>";
 
         var markdownDocument = MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = html.LoadFromHtml();
+        var htmlDocument = html.ToMarkdownDocument();
 
         var markdownTable = Assert.IsType<TableBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlTable = Assert.IsType<TableBlock>(Assert.Single(htmlDocument.Blocks));

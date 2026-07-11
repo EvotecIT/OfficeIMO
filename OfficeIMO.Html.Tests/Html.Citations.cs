@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void CiteIsItalicAndRoundsTrip() {
             const string html = "<p>This is a <cite>citation</cite>.</p>";
-            using var doc = html.LoadFromHtml();
+            using var doc = html.ToWordDocument();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
             Assert.Equal("HtmlCite", runs[1].CharacterStyleId);
             Assert.True(runs[1].Italic);

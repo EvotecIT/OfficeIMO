@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_HeadingNumbering_NestedHeadings() {
             string html = "<h1>One</h1><h2>Two</h2><h3>Three</h3>";
             var options = new HtmlToWordOptions { SupportsHeadingNumbering = true };
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var headings = doc.Paragraphs.Where(p => p.IsListItem && (p.Text == "One" || p.Text == "Two" || p.Text == "Three")).ToArray();
             Assert.Equal(3, headings.Length);

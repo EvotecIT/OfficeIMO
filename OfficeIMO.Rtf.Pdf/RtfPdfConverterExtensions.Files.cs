@@ -17,13 +17,17 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Converts an RTF file to PDF and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResultFromRtfFile(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtfFile(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (path == null) {
             throw new ArgumentNullException(nameof(path));
         }
 
         return RtfDocument.Load(path, readOptions, encoding).Document.ToPdfDocumentResult(options);
     }
+
+    /// <summary>Returns an RTF-file PDF result. Prefer <see cref="ToPdfResultFromRtfFile(string, RtfReadOptions?, RtfPdfSaveOptions?, Encoding?)"/>.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResultFromRtfFile(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) =>
+        path.ToPdfResultFromRtfFile(readOptions, options, encoding);
 
     /// <summary>Converts an RTF file to a first-party OfficeIMO PDF document model asynchronously.</summary>
     public static async Task<PdfCore.PdfDocument> ToPdfDocumentFromRtfFileAsync(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
@@ -38,7 +42,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Converts an RTF file to PDF asynchronously and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfDocumentResultFromRtfFileAsync(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfResultFromRtfFileAsync(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) {
             throw new ArgumentNullException(nameof(path));
         }
@@ -48,6 +52,10 @@ public static partial class RtfPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         return readResult.Document.ToPdfDocumentResult(options);
     }
+
+    /// <summary>Returns an RTF-file PDF result asynchronously. Prefer <see cref="ToPdfResultFromRtfFileAsync(string, RtfReadOptions?, RtfPdfSaveOptions?, Encoding?, CancellationToken)"/>.</summary>
+    public static Task<PdfCore.PdfDocumentConversionResult> ToPdfDocumentResultFromRtfFileAsync(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
+        path.ToPdfResultFromRtfFileAsync(readOptions, options, encoding, cancellationToken);
 
     /// <summary>Converts an RTF file to PDF bytes.</summary>
     public static byte[] SaveRtfFileAsPdf(string rtfPath, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {

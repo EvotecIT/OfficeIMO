@@ -52,7 +52,7 @@ using OfficeIMO.PowerPoint.Pdf;
 
 using var presentation = PowerPointPresentation.Open("training.pptx");
 
-byte[] pdfBytes = presentation.SaveAsPdf();
+byte[] pdfBytes = presentation.ToPdf();
 
 using var stream = File.Create("training.pdf");
 presentation.SaveAsPdf(stream);

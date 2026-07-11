@@ -32,7 +32,7 @@ using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Markdown;
 
 MarkdownDoc markdownDocument = "<table><tr><td><p>Line 1</p><p>Line 2</p></td></tr></table>"
-    .LoadFromHtml();
+    .ToMarkdownDocument();
 
 using var wordDocument = markdownDocument.ToWordDocument();
 ```
@@ -58,7 +58,7 @@ doc.SaveAsHtmlViaMarkdown("report.html");     // defaults to HtmlStyle.Word
 doc.SaveAsHtmlViaMarkdown("report.html", new HtmlOptions { Style = HtmlStyle.GithubAuto });
 ```
 
-Use `LoadFromHtmlViaMarkdown()` when your source is HTML but you want the AST-first Markdown bridge instead of flattening HTML into Markdown text first.
+Use `ToWordDocumentViaMarkdown()` when your source is HTML but you want the AST-first Markdown bridge instead of flattening HTML into Markdown text first.
 
 ## Notes
 

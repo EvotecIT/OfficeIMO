@@ -77,6 +77,10 @@ public static class HtmlRenderEngine {
     /// </summary>
     public static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);
 
+    /// <summary>Asynchronously renders HTML through the shared first-party layout engine.</summary>
+    public static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RenderAsync(html, options, cancellationToken);
+
     private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlRenderResourceSet resources, HtmlDiagnosticReport diagnostics) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (HtmlResourceReference reference in manifest.Resources) {

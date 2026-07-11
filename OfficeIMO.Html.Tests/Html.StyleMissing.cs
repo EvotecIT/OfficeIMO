@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             };
             WordHtmlConverterExtensions.StyleMissing += handler;
             try {
-                var doc = html.LoadFromHtml();
+                var doc = html.ToWordDocument();
                 Assert.True(invoked);
                 Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
             } finally {
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             };
             WordHtmlConverterExtensions.StyleMissing += handler;
             try {
-                var doc = html.LoadFromHtml();
+                var doc = html.ToWordDocument();
                 Assert.Equal(styleId, doc.Paragraphs[0].StyleId);
             } finally {
                 WordHtmlConverterExtensions.StyleMissing -= handler;

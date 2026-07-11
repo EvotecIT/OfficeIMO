@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
     [MemberData(nameof(HtmlRenderingCorpusScenarioIds))]
     public void HtmlRenderingCorpus_ProvesSharedSceneImageAndSearchablePdf(string scenarioId) {
         HtmlRenderingCorpusCase scenario = CorpusCases.Single(item => item.Id == scenarioId);
-        HtmlImageExportOptions options = scenario.CreateOptions();
+        HtmlRenderOptions options = scenario.CreateOptions();
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(scenario.Html, options);
 
@@ -53,9 +53,9 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(word, svg, StringComparison.Ordinal);
         }
 
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options.Clone();
-        byte[] pdf = scenario.Html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = scenario.Html.ToPdf(pdfOptions);
         PdfCore.PdfDocumentInfo pdfInfo = PdfCore.PdfInspector.Inspect(pdf);
         string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
@@ -216,7 +216,7 @@ public sealed partial class HtmlRenderingTests {
         internal int MinimumHeadingCount { get; }
         internal double ExpectedSurfaceWidth => Mode == HtmlRenderMode.Paged ? 480D : 640D;
 
-        internal HtmlImageExportOptions CreateOptions() => new HtmlImageExportOptions {
+        internal HtmlRenderOptions CreateOptions() => new HtmlRenderOptions {
             Mode = Mode,
             ViewportWidth = 640D,
             PageSize = new OfficePageSize(5D, 4D),

@@ -233,7 +233,7 @@ namespace OfficeIMO.Examples.Word {
                 File.WriteAllText(sourcePath, scenario.Value, Encoding.UTF8);
 
                 HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-                using WordDocument document = scenario.Value.LoadFromHtml(options);
+                using WordDocument document = scenario.Value.ToWordDocument(options);
                 document.Save(docxPath);
                 File.WriteAllText(roundTripPath, document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }), Encoding.UTF8);
                 WriteHtmlDiagnostics(diagnosticsPath, options.Diagnostics);

@@ -5,8 +5,8 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Summary of a semantic PowerPoint HTML import.
 /// </summary>
-public sealed class PowerPointHtmlLoadResult {
-    internal PowerPointHtmlLoadResult(PptCore.PowerPointPresentation presentation) {
+public sealed class HtmlToPowerPointResult {
+    internal HtmlToPowerPointResult(PptCore.PowerPointPresentation presentation) {
         Presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
     }
 

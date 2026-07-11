@@ -9,24 +9,26 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Extension methods for importing semantic OfficeIMO PowerPoint HTML.
 /// </summary>
-public static class PowerPointHtmlLoadExtensions {
+public static class HtmlPowerPointConverterExtensions {
     /// <summary>
     /// Imports semantic OfficeIMO PowerPoint HTML into a native presentation.
     /// </summary>
-    public static PptCore.PowerPointPresentation LoadPowerPointFromHtml(this string html, PowerPointHtmlLoadOptions? options = null) =>
-        LoadPowerPointFromHtmlWithResult(html, options).Presentation;
+    /// <example><code>using PowerPointPresentation presentation = html.ToPowerPointPresentation();</code></example>
+    public static PptCore.PowerPointPresentation ToPowerPointPresentation(this string html, HtmlToPowerPointOptions? options = null) =>
+        ToPowerPointPresentationResult(html, options).Presentation;
 
     /// <summary>
     /// Imports semantic OfficeIMO PowerPoint HTML into a native presentation and returns import evidence.
     /// </summary>
-    public static PowerPointHtmlLoadResult LoadPowerPointFromHtmlWithResult(this string html, PowerPointHtmlLoadOptions? options = null) {
+    /// <example><code>HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();</code></example>
+    public static HtmlToPowerPointResult ToPowerPointPresentationResult(this string html, HtmlToPowerPointOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        options ??= new PowerPointHtmlLoadOptions();
+        options ??= new HtmlToPowerPointOptions();
 
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var stream = new MemoryStream();
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(stream);
-        var result = new PowerPointHtmlLoadResult(presentation);
+        var result = new HtmlToPowerPointResult(presentation);
 
         List<IElement> slideSections = document.QuerySelectorAll("section.officeimo-slide").ToList();
         if (slideSections.Count == 0) {
@@ -45,7 +47,7 @@ public static class PowerPointHtmlLoadExtensions {
         return result;
     }
 
-    private static void ImportSlide(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadOptions options, PowerPointHtmlLoadResult result) {
+    private static void ImportSlide(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result) {
         result.Slides++;
         double top = 48D;
         foreach (IElement paragraph in section.Children.Where(child => IsElement(child, "p"))) {
@@ -78,7 +80,7 @@ public static class PowerPointHtmlLoadExtensions {
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.Ordinal);
 
-    private static double ImportTable(IElement tableElement, PptCore.PowerPointSlide slide, double top, PowerPointHtmlLoadResult result) {
+    private static double ImportTable(IElement tableElement, PptCore.PowerPointSlide slide, double top, HtmlToPowerPointResult result) {
         List<IElement> rows = tableElement.QuerySelectorAll("tr").ToList();
         int rowCount = rows.Count;
         int columnCount = rows.Count == 0
@@ -101,7 +103,7 @@ public static class PowerPointHtmlLoadExtensions {
         return top + Math.Max(90, rowCount * 40);
     }
 
-    private static void ImportDrawings(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadOptions options, PowerPointHtmlLoadResult result) {
+    private static void ImportDrawings(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result) {
         var drawings = new List<PowerPointDrawingImportItem>();
         int fallbackOrder = 0;
         if (options.ImportPictures) {
@@ -127,7 +129,7 @@ public static class PowerPointHtmlLoadExtensions {
         }
     }
 
-    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result, ref double fallbackTop) {
+    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, ref double fallbackTop) {
         IElement? image = item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
@@ -162,7 +164,7 @@ public static class PowerPointHtmlLoadExtensions {
         fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
     }
 
-    private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result, ref double fallbackTop) {
+    private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, ref double fallbackTop) {
         string title = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         bool restoredFromSemanticData = TryReadChartData(item, out PptCore.PowerPointChartData? semanticData);
         PptCore.PowerPointChartData data = semanticData ?? CreatePlaceholderChartDataFromInventory(item);
@@ -187,7 +189,7 @@ public static class PowerPointHtmlLoadExtensions {
         fallbackTop = Math.Max(fallbackTop + 198D, chartTop + height + 18D);
     }
 
-    private static void ImportNotes(IElement section, PptCore.PowerPointSlide slide, PowerPointHtmlLoadResult result) {
+    private static void ImportNotes(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result) {
         string notes = ExtractPresenterNotes(section.QuerySelector("pre.officeimo-source-markdown")?.TextContent);
         if (notes.Length == 0) {
             return;

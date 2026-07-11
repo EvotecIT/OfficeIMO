@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             Assert.DoesNotContain(roundTrip.Paragraphs.Select(paragraph => paragraph.Text), text => text.Contains("Review note", StringComparison.OrdinalIgnoreCase));
             var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
             var rootReply = Assert.Single(rootComment.Replies);
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             };
             string html = "<p>Visible <!-- reviewer note -->text.</p>";
 
-            using var doc = html.LoadFromHtml(options);
+            using var doc = html.ToWordDocument(options);
 
             Assert.Equal("Visible text.", string.Concat(doc.Paragraphs.Select(paragraph => paragraph.Text)));
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");

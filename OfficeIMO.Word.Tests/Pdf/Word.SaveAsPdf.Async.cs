@@ -101,7 +101,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            byte[] bytes = await document.SaveAsPdfAsync(cancellationToken: CancellationToken.None);
+            byte[] bytes = await document.ToPdfAsync(cancellationToken: CancellationToken.None);
             Assert.True(bytes.Length > 0);
         }
     }

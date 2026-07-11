@@ -7,10 +7,10 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
-        public async Task LoadFromHtmlAsync_Cancelled_Throws() {
+        public async Task ToWordDocumentAsync_Cancelled_Throws() {
             using var cts = new CancellationTokenSource();
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => "<p>a</p>".LoadFromHtmlAsync(cancellationToken: cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => "<p>a</p>".ToWordDocumentAsync(cancellationToken: cts.Token));
         }
 
         [Fact]

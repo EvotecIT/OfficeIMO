@@ -62,7 +62,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
     /// </summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }
@@ -75,9 +75,16 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Converts a PowerPoint presentation to PDF bytes.
     /// </summary>
-    public static byte[] SaveAsPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
+    /// <example><code>byte[] pdf = presentation.ToPdf();</code></example>
+    public static byte[] ToPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
         return presentation.ToPdfDocument(options).ToBytes();
     }
+
+    /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(PptCore.PowerPointPresentation, PowerPointPdfSaveOptions?)"/>.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) => presentation.ToPdfResult(options);
+
+    /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(PptCore.PowerPointPresentation, PowerPointPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
+    public static byte[] SaveAsPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) => presentation.ToPdf(options);
 
     /// <summary>
     /// Saves a PowerPoint presentation as a PDF file.

@@ -124,7 +124,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRelativePosition_FlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div id='paint' style='position:relative;left:10px;top:10px;width:20px;height:20px;margin:0;background:#ff0000'></div>"
             + "<p style='margin:0'>PositionPdfMarker</p>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 60D,
@@ -135,14 +135,14 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 15));
@@ -150,14 +150,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"10\" y=\"10\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("PositionPdfMarker", searchablePdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlAbsolutePosition_FlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div style='position:relative;width:100px;height:50px;margin:0'>"
             + "<div id='absolute-paint' style='position:absolute;left:10px;top:10px;width:80px;height:40px;margin:0;background:#ff0000'>AbsolutePdfMarker</div></div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             ViewportHeight = 50D,
@@ -168,14 +168,14 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = new HtmlRenderOptions {
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(85, 45));
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"10\" y=\"10\" width=\"80\" height=\"40\"", svg, StringComparison.Ordinal);
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("AbsolutePdfMarker", searchablePdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

@@ -230,7 +230,7 @@ namespace OfficeIMO.Examples.Word {
 ";
             
             try {
-                using (var document = sampleHtml.LoadFromHtml(new HtmlToWordOptions {
+                using (var document = sampleHtml.ToWordDocument(new HtmlToWordOptions {
                     FontFamily = "Calibri"
                 })) {
                     string outputPath = Path.Combine(folderPath, "README_from_html.docx");

@@ -47,7 +47,8 @@ public static class HtmlMarkdownConverterExtensions {
     /// <param name="html">HTML fragment or document to convert.</param>
     /// <param name="options">Optional conversion options. Default options are used when omitted.</param>
     /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
-    public static MarkdownDoc LoadFromHtml(this string html, HtmlToMarkdownOptions? options = null) {
+    /// <example><code>MarkdownDoc document = html.ToMarkdownDocument();</code></example>
+    public static MarkdownDoc ToMarkdownDocument(this string html, HtmlToMarkdownOptions? options = null) {
         var converter = new HtmlToMarkdownConverter();
         return converter.ConvertToDocument(html, options);
     }
@@ -58,9 +59,9 @@ public static class HtmlMarkdownConverterExtensions {
     /// <param name="document">Shared HTML conversion document.</param>
     /// <param name="options">Optional conversion options. Default options are used when omitted.</param>
     /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
-    public static MarkdownDoc LoadFromHtml(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
+    public static MarkdownDoc ToMarkdownDocument(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return PrepareHtmlForSharedMarkdownConversion(document).LoadFromHtml(options);
+        return PrepareHtmlForSharedMarkdownConversion(document).ToMarkdownDocument(options);
     }
 
     private static string PrepareHtmlForSharedMarkdownConversion(HtmlConversionDocument document) {
@@ -76,9 +77,9 @@ public static class HtmlMarkdownConverterExtensions {
     /// <param name="htmlStream">Readable stream containing HTML markup.</param>
     /// <param name="options">Optional conversion options. Default options are used when omitted.</param>
     /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
-    public static MarkdownDoc LoadFromHtml(this Stream htmlStream, HtmlToMarkdownOptions? options = null) {
+    public static MarkdownDoc ToMarkdownDocument(this Stream htmlStream, HtmlToMarkdownOptions? options = null) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
         using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-        return reader.ReadToEnd().LoadFromHtml(options);
+        return reader.ReadToEnd().ToMarkdownDocument(options);
     }
 }

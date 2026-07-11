@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions();
             string html = "<p>Visible before.</p><script>document.body.innerHTML = 'Hidden script';</script><p>Visible after.</p>";
 
-            var document = html.LoadFromHtml(options);
+            var document = html.ToWordDocument(options);
 
             Assert.Equal(new[] { "Visible before.", "Visible after." }, document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("Hidden script"));
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions();
             string html = "<p>Visible.</p><template><p>Hidden template</p></template>";
 
-            var document = html.LoadFromHtml(options);
+            var document = html.ToWordDocument(options);
 
             Assert.Single(document.Paragraphs);
             Assert.Equal("Visible.", document.Paragraphs[0].Text);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             };
             string html = "<p>Visible before.</p><!-- reviewer note --><p>Visible after.</p>";
 
-            var document = html.LoadFromHtml(options);
+            var document = html.ToWordDocument(options);
 
             Assert.Equal(new[] { "Visible before.", "Visible after." }, document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("reviewer note"));
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 <p>After.</p>
                 """;
 
-            var document = html.LoadFromHtml(options);
+            var document = html.ToWordDocument(options);
 
             Assert.Equal(new[] { "Before.", "After." }, document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("Hidden", System.StringComparison.Ordinal));
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions();
             string html = "<p>Visible.</p><iframe src=\"https://example.com/widget\">Hidden iframe fallback</iframe><video src=\"movie.mp4\">Hidden video fallback</video>";
 
-            using var document = html.LoadFromHtml(options);
+            using var document = html.ToWordDocument(options);
 
             using MemoryStream stream = document.SaveAsMemoryStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);

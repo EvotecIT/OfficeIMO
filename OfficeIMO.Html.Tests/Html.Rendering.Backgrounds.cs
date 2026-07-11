@@ -116,7 +116,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style=\"width:100px;height:60px;background-image:url('data:image/png;base64,"
             + imageData
             + "');background-repeat:no-repeat;background-size:30px 20px;background-position:right bottom\">BackgroundOutputMarker</div>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 180D,
             Margins = HtmlRenderMargins.All(8D)
@@ -126,8 +126,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderImage background = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, imageOptions);
         OfficeImageExportResult svg = html.ExportImage(OfficeImageExportFormat.Svg, imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.EndsWith(":background-image", background.Source, StringComparison.Ordinal);
         Assert.Equal(30D, background.Width, 3);
@@ -139,7 +139,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public sealed partial class HtmlRenderingTests {
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<div style=\"width:40px;height:20px;background-image:url('data:image/svg+xml;base64," + data
             + "');background-size:10px 10px;background-repeat:repeat\"></div><div style='font-size:6px'>SvgBgPdf</div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 70D,
             ViewportHeight = 45D,
@@ -162,9 +162,9 @@ public sealed partial class HtmlRenderingTests {
             visual => visual.Source != null && visual.Source.Contains(":background-image:pattern-clip", StringComparison.Ordinal));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(8, pattern.Visuals.OfType<HtmlRenderDrawing>().Count());
@@ -178,7 +178,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public sealed partial class HtmlRenderingTests {
             + "'),url('data:image/png;base64,"
             + blue
             + "');background-size:10px 10px,20px 20px;background-position:left top,left top;background-repeat:no-repeat,no-repeat\"></div>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D)
@@ -223,8 +223,8 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<HtmlRenderImage> layers = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(2, layers.Count);
         Assert.EndsWith(":background-image[1]", layers[0].Source, StringComparison.Ordinal);
@@ -291,7 +291,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style=\"width:20px;height:10px;background-image:url('data:image/png;base64,"
             + imageData
             + "');background-size:8px 4px;background-repeat:repeat\"></div>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             Margins = HtmlRenderMargins.All(8D)
@@ -302,8 +302,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, imageOptions);
         string svg = html.ToSvg(imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(9L, pattern.Pattern.EstimatedTileCount);
         Assert.Single(drawing.ImagePatterns);
@@ -313,7 +313,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(9, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -322,7 +322,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style=\"width:30px;height:8px;background-image:url('data:image/png;base64,"
             + imageData
             + "');background-size:8px 4px;background-repeat:space no-repeat\"></div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             Margins = HtmlRenderMargins.All(8D)
@@ -332,9 +332,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(8D, pattern.Pattern.Tile.Width, 3);
         Assert.Equal(11D, pattern.Pattern.HorizontalStep, 3);
@@ -355,7 +355,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div style=\"width:30px;height:8px;background-image:url('data:image/png;base64,"
             + imageData
             + "');background-size:8px 4px;background-repeat:round no-repeat\"></div>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 60D,
             Margins = HtmlRenderMargins.All(8D)
@@ -365,9 +365,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(7.5D, pattern.Pattern.Tile.Width, 3);
         Assert.Equal(7.5D, pattern.Pattern.HorizontalStep, 3);

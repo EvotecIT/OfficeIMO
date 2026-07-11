@@ -240,8 +240,8 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="htmlOptions">Optional HTML-to-Markdown conversion options.</param>
         /// <param name="wordOptions">Optional Word conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromHtmlViaMarkdown(this string html, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
-            var markdown = html.LoadFromHtml(htmlOptions);
+        public static WordDocument ToWordDocumentViaMarkdown(this string html, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
+            var markdown = html.ToMarkdownDocument(htmlOptions);
             return markdown.ToWordDocument(wordOptions);
         }
 
@@ -252,10 +252,10 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="htmlOptions">Optional HTML-to-Markdown conversion options.</param>
         /// <param name="wordOptions">Optional Word conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromHtmlViaMarkdown(this Stream htmlStream, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
+        public static WordDocument ToWordDocumentViaMarkdown(this Stream htmlStream, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
             if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
             using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-            return reader.ReadToEnd().LoadFromHtmlViaMarkdown(htmlOptions, wordOptions);
+            return reader.ReadToEnd().ToWordDocumentViaMarkdown(htmlOptions, wordOptions);
         }
 
         /// <summary>

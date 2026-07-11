@@ -183,7 +183,7 @@ public class RtfNestedTableTests {
     public void Pdf_Flattens_Nested_Table_With_Explicit_Loss_Report() {
         var options = new RtfPdfSaveOptions();
 
-        byte[] pdf = CreateNestedDocument().SaveAsPdf(options);
+        byte[] pdf = CreateNestedDocument().ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Contains("Outer before", text, StringComparison.Ordinal);

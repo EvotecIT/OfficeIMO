@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
 
 
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
 
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
 
 
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
 
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_PreserveInlineFormatting() {
             string html = "<p><a href=\"https://example.com\"><strong>Go</strong> now</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             var paragraph = doc.ParagraphsHyperLinks[0];
             var runs = paragraph.GetRuns().Where(r => !r.IsBreak).ToList();
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_Normalizes_WwwLinks() {
             string html = "<p><a href=\"www.site.com\">Site</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
 
             Assert.NotNull(hyperlink);
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_Normalizes_ProtocolRelativeLinks() {
             string html = "<p><a href=\"://www.site.com\">Site</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
 
             Assert.NotNull(hyperlink);
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_PreservesProtocolRelativeWebLinks() {
             string html = "<p><a href=\"//example.com/path\">Site</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
 
             Assert.NotNull(hyperlink);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_InvalidHref_IsPlainText() {
             string html = "<p><a href=\"javascript:alert()\">Js</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Empty(doc.ParagraphsHyperLinks);
             Assert.Equal("Js", doc.Paragraphs[0].Text);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
             options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var hyperlink = Assert.Single(doc.ParagraphsHyperLinks).Hyperlink;
             Assert.NotNull(hyperlink);
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_AppliesPolicyAfterBaseUriResolution() {
             string html = "<base href=\"file:///C:/temp/\"><p><a href=\"doc.txt\">Doc</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Empty(doc.ParagraphsHyperLinks);
             Assert.Equal("Doc", doc.Paragraphs[0].Text);
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
                 HyperlinkUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
             };
 
-            var doc = html.LoadFromHtml(options);
+            var doc = html.ToWordDocument(options);
 
             var hyperlink = Assert.Single(doc.ParagraphsHyperLinks).Hyperlink;
             Assert.NotNull(hyperlink);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_TopAnchor_CreatesBookmark() {
             string html = "<p>Start</p><p><a href=\"#top\">Move</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Contains(doc.Bookmarks, b => string.Equals(b.Name, "_top", StringComparison.OrdinalIgnoreCase));
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_DataBookmarkAttribute_AddsBookmark() {
             string html = "<p data-bookmark='CustomAnchor'>Target</p><p><a href='#CustomAnchor'>Go</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Contains(doc.Bookmarks, b => b.Name == "CustomAnchor");
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
         public void Html_Hyperlinks_NameAttribute_AddsBookmark() {
             string html = "<h1><a name=\"heading1\"></a>Heading</h1><p><a href=\"#heading1\">Go</a></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
 
             Assert.Contains(doc.Bookmarks, b => b.Name == "heading1");
             var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;

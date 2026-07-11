@@ -149,21 +149,21 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlGeneratedContent_FlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<style>.marker::before{content:'Generated\\20';color:#123456}</style><p class='marker' style='margin:0'>BackendMarker</p>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(8D)
         };
 
         OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, imageOptions);
         string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.SaveAsPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("Generated", svg, StringComparison.Ordinal);
         Assert.Contains("BackendMarker", svg, StringComparison.Ordinal);
         Assert.Contains("GeneratedBackendMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

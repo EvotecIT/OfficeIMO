@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_MaxHtmlNodes_StopsConversionWithDiagnostic() {
             var options = new HtmlToWordOptions { MaxHtmlNodes = 1 };
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => "<p>One</p><p>Two</p>".LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => "<p>One</p><p>Two</p>".ToWordDocument(options));
 
             Assert.Equal("HtmlNodeLimitExceeded", exception.Code);
             Assert.Equal("MaxHtmlNodes", exception.LimitSource);
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_MaxHtmlDepth_StopsConversionWithDiagnostic() {
             var options = new HtmlToWordOptions { MaxHtmlDepth = 2 };
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => "<div><div><p>Deep</p></div></div>".LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => "<div><div><p>Deep</p></div></div>".ToWordDocument(options));
 
             Assert.Equal("HtmlDepthLimitExceeded", exception.Code);
             Assert.Equal("MaxHtmlDepth", exception.LimitSource);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions { MaxCssBytes = 8 };
             string html = "<style>.a { color: red; }</style><p class=\"a\">Text</p>";
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
             Assert.Equal("CssSizeLimitExceeded", exception.Code);
             Assert.Equal(8, exception.Limit);
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions { MaxTableCells = 3 };
             string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
             Assert.Equal("TableSizeLimitExceeded", exception.Code);
             Assert.Equal("MaxTableCells", exception.LimitSource);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions { MaxTableCells = 10 };
             string html = "<table><tr><td colspan=\"1000000\">Wide</td></tr></table>";
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
             Assert.Equal("TableSizeLimitExceeded", exception.Code);
             Assert.Equal("MaxTableCells", exception.LimitSource);
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions();
             string html = "<table><tr><td colspan=\"50001\">Wide</td></tr></table>";
 
-            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.ToWordDocument(options));
 
             Assert.Equal("TableSizeLimitExceeded", exception.Code);
             Assert.Equal("MaxTableCells", exception.LimitSource);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions();
             string html = "<table><colgroup><col span=\"1000000\" style=\"width:10px\"></colgroup><tr><td>Cell</td></tr></table>";
 
-            using var document = html.LoadFromHtml(options);
+            using var document = html.ToWordDocument(options);
 
             Assert.Single(document.Tables);
             Assert.Empty(options.Diagnostics);

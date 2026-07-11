@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWordConverter_HandlesRowspanAndColspan() {
             string html = "<table><tr><td rowspan=\"2\">A1</td><td>B1</td></tr><tr><td>B2</td></tr><tr><td colspan=\"2\">A3</td></tr></table>";
-            using WordDocument doc = html.LoadFromHtml();
+            using WordDocument doc = html.ToWordDocument();
             var table = doc.Tables[0];
 
             Assert.Equal(MergedCellValues.Restart, table.Rows[0].Cells[0].VerticalMerge);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWordConverter_RowSpanZero_StopsAtSectionEnd() {
             string html = "<table><tbody><tr><td rowspan=\"0\">A</td><td>B1</td></tr><tr><td>B2</td></tr></tbody><tfoot><tr><td>F1</td><td>F2</td></tr></tfoot></table>";
-            using WordDocument doc = html.LoadFromHtml();
+            using WordDocument doc = html.ToWordDocument();
             var table = doc.Tables[0];
 
             Assert.Equal(MergedCellValues.Restart, table.Rows[0].Cells[0].VerticalMerge);

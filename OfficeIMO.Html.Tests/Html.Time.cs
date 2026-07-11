@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimeRoundsTripWithDateTime() {
             const string html = "<p>On <time datetime=\"2023-01-01\">2023-01-01</time> we met.</p>";
-            using var doc = html.LoadFromHtml();
+            using var doc = html.ToWordDocument();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
             Assert.Equal("HtmlTime", runs[1].CharacterStyleId);
             Assert.Equal("2023-01-01", runs[1].Text);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimePreservesDateTimeWhenVisibleTextDiffers() {
             const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
-            using var doc = html.LoadFromHtml();
+            using var doc = html.ToWordDocument();
 
             string roundTrip = doc.ToHtml();
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         public void TimePreservesDateTimeAfterSaveAndReload() {
             const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
 
-            using var doc = html.LoadFromHtml();
+            using var doc = html.ToWordDocument();
             using MemoryStream stream = doc.SaveAsMemoryStream();
             byte[] packageBytes = stream.ToArray();
 

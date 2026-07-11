@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<sup", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("footnote text", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             var footNotes = roundTrip.FootNotes;
             Assert.NotNull(footNotes);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("<p>First paragraph</p><p>Second paragraph</p>", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             var footnote = Assert.Single(roundTrip.FootNotes);
             var texts = footnote.Paragraphs!.Skip(1).Select(paragraph => paragraph.Text).ToArray();
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("class=\"endnotes\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("endnote text", html, StringComparison.OrdinalIgnoreCase);
 
-            using var roundTrip = html.LoadFromHtml();
+            using var roundTrip = html.ToWordDocument();
 
             var endNotes = roundTrip.EndNotes;
             Assert.NotNull(endNotes);

@@ -3,7 +3,7 @@ namespace OfficeIMO.Excel.Html;
 /// <summary>
 /// Options for importing semantic OfficeIMO Excel HTML into a workbook.
 /// </summary>
-public sealed class ExcelHtmlLoadOptions {
+public sealed class HtmlToExcelOptions {
     /// <summary>
     /// Imports embedded data URI images from the semantic image inventory.
     /// </summary>

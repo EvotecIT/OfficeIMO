@@ -10,13 +10,13 @@ namespace OfficeIMO.Html.Pdf;
 internal static class HtmlPdfRenderedConverter {
     private const double PointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
 
-    internal static PdfCore.PdfDocument Convert(string html, HtmlPdfSaveOptions options) {
+    internal static HtmlPdfRenderResult Convert(string html, HtmlPdfSaveOptions options) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, renderOptions);
         return CreatePdf(rendered, options, CancellationToken.None);
     }
 
-    internal static async Task<PdfCore.PdfDocument> ConvertAsync(string html, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
+    internal static async Task<HtmlPdfRenderResult> ConvertAsync(string html, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, renderOptions, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
@@ -24,18 +24,19 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static HtmlRenderOptions ResolveRenderOptions(HtmlPdfSaveOptions options) {
-        HtmlRenderOptions renderOptions = options.RenderOptions?.Clone() ?? new HtmlRenderOptions();
+        HtmlRenderOptions renderOptions = options.ClonePdf();
         renderOptions.Mode = HtmlRenderMode.Paged;
-        options.RenderOptions = renderOptions;
         return renderOptions;
     }
 
-    private static PdfCore.PdfDocument CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
+    private static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        options.RenderDiagnostics = rendered.Diagnostics.Clone();
+        HtmlDiagnosticReport diagnostics = rendered.Diagnostics.Clone();
 
+        var conversionReport = new PdfCore.PdfConversionReport();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create()
             .TaggedPdfCatalogMarkers();
+        pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");
         if (rendered.Metadata.Title != null) pdf.Meta(title: rendered.Metadata.Title);
         if (rendered.Metadata.Language != null) pdf.Language(rendered.Metadata.Language);
         if (rendered.Metadata.Title != null || rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) {
@@ -44,12 +45,12 @@ internal static class HtmlPdfRenderedConverter {
                 if (rendered.Metadata.Direction == HtmlRenderTextDirection.RightToLeft) preferences.Direction = PdfCore.PdfViewerDirection.RightToLeft;
             });
         }
-        if (options.RenderedFontFamily != null) {
-            pdf.UseFontFamily(options.RenderedFontFamily);
+        if (options.FontFamily != null) {
+            pdf.UseFontFamily(options.FontFamily);
         }
 
         var reservedFontSlots = new HashSet<PdfCore.PdfStandardFont>();
-        if (options.RenderedFontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
+        if (options.FontFamily != null) reservedFontSlots.Add(PdfCore.PdfStandardFont.Helvetica);
         var activeWebFontFamilies = new HashSet<string>(
             rendered.Fonts.Faces.Select(face => face.FamilyName),
             StringComparer.OrdinalIgnoreCase);
@@ -57,17 +58,17 @@ internal static class HtmlPdfRenderedConverter {
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts = RegisterWebFonts(
             pdf,
             rendered,
-            options.RenderDiagnostics,
+            diagnostics,
             reservedFontSlots,
             cancellationToken);
         foreach (PdfCore.PdfStandardFont slot in webFonts.Values) {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
-        PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.RenderedTextFallbacks);
+        PdfCore.PdfTextFallbackFeatures activeTextFallbacks = ResolveTextFallbackFeatures(rendered, options.TextFallbacks);
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
             pdf.Options.UseTextFallbacks(activeTextFallbacks, reservedFontSlots, allowSystemFontEmbedding: true);
         }
-        pdf.UseTextShaping(options.RenderedTextShapingMode, options.RenderedTextShapingProvider);
+        pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -83,7 +84,7 @@ internal static class HtmlPdfRenderedConverter {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return pdf;
+        return new HtmlPdfRenderResult(pdf, diagnostics, conversionReport);
     }
 
     private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, CancellationToken cancellationToken) {

@@ -258,7 +258,7 @@ Console.WriteLine("ready");
                 </table>
                 """;
 
-            var markdown = html.LoadFromHtml();
+            var markdown = html.ToMarkdownDocument();
 
             using var doc = markdown.ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
@@ -272,7 +272,7 @@ Console.WriteLine("ready");
         }
 
         [Fact]
-        public void Html_LoadFromHtmlViaMarkdown_Preserves_MultiParagraph_TableCell_From_AstBridge() {
+        public void Html_ToWordDocumentViaMarkdown_Preserves_MultiParagraph_TableCell_From_AstBridge() {
             const string html = """
                 <table>
                   <tr>
@@ -287,7 +287,7 @@ Console.WriteLine("ready");
                 </table>
                 """;
 
-            using var doc = html.LoadFromHtmlViaMarkdown(
+            using var doc = html.ToWordDocumentViaMarkdown(
                 wordOptions: new MarkdownToWordOptions { FontFamily = "Calibri" });
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
                 .Select(p => p.Text)
@@ -317,7 +317,7 @@ Console.WriteLine("ready");
                 </table>
                 """;
 
-            var markdown = html.LoadFromHtml();
+            var markdown = html.ToMarkdownDocument();
             var rawCellBlock = Assert.IsType<OfficeIMO.Markdown.HtmlRawBlock>(Assert.Single(Assert.Single(markdown.Blocks.OfType<OfficeIMO.Markdown.TableBlock>()).RowCells[0][0].Blocks));
 
             Assert.Contains("<custom-card>", rawCellBlock.Html);

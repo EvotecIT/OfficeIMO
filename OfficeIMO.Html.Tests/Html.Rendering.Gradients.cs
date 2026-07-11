@@ -11,7 +11,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlLinearGradient_FlowsAsMultiStopVectorPaintAcrossPngSvgAndSearchablePdf() {
         const string html = "<div style=\"width:160px;height:30px;background-image:linear-gradient(to right,#ff0000 0%,#00ff00 50%,#0000ff 100%)\">GradientMarker</div>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(8D)
@@ -24,8 +24,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeLinearGradient gradient = gradientShape.Shape.FillGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(3, gradient.Stops.Count);
         Assert.Equal(0D, gradient.StartX, 3);
@@ -38,13 +38,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/FunctionType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Contains("GradientMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlLinearGradient_PreservesHardStopsAcrossPngSvgAndSearchablePdf() {
         const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,red 0%,red 50%,blue 50%,blue 100%)'></div><p>HardStopPdf</p>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 130D,
             Margins = HtmlRenderMargins.All(8D)
@@ -56,9 +56,9 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfSource = Encoding.ASCII.GetString(pdf);
 
         Assert.Equal(new[] { 0D, 0.5D, 0.5D, 1D }, gradient.Stops.Select(stop => stop.Offset));
@@ -68,13 +68,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Bounds [0.4999999 0.5000001]", pdfSource, StringComparison.Ordinal);
         Assert.Contains("HardStopPdf", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlLinearGradient_ResolvesLengthStopsAgainstThePhysicalGradientLine() {
         const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,red 0px,lime 25px,blue 100px)'></div><p>LengthStopPdf</p>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 130D,
             Margins = HtmlRenderMargins.All(8D)
@@ -85,9 +85,9 @@ public sealed partial class HtmlRenderingTests {
             rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         string svg = html.ToSvg(options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(new[] { 0D, 0.25D, 1D }, gradient.Stops.Select(stop => stop.Offset));
         Assert.Contains("offset=\"25%\"", svg, StringComparison.Ordinal);
@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRadialGradient_FlowsAsMultiStopVectorPaintAcrossPngSvgAndSearchablePdf() {
         const string html = "<div style=\"width:160px;height:60px;background-image:radial-gradient(ellipse at center,#ff0000 0%,#00ff00 50%,#0000ff 100%)\">RadialMarker</div>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(8D)
@@ -128,9 +128,9 @@ public sealed partial class HtmlRenderingTests {
         OfficeRadialGradient gradient = gradientShape.Shape.FillRadialGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = imageOptions;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(imageOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfSource = Encoding.ASCII.GetString(pdf);
 
         Assert.Equal(3, gradient.Stops.Count);
@@ -143,13 +143,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Coords [0.5 0.5 0 0.5 0.5 0.707]", pdfSource, StringComparison.Ordinal);
         Assert.Contains("RadialMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlRadialGradient_OffCenterEllipseFlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div style='width:160px;height:60px;background:radial-gradient(ellipse farthest-side at 25% 50%,red,blue)'></div><p>EllipseMarker</p>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(8D)
@@ -161,9 +161,9 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = imageOptions;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(imageOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
         string pdfSource = Encoding.ASCII.GetString(pdf);
 
         Assert.Equal(0.25D, gradient.EndX, 3);
@@ -177,13 +177,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Coords [0 0 0 0 0 1]", pdfSource, StringComparison.Ordinal);
         Assert.Contains("EllipseMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlRadialGradient_CircleFlowsThroughPngSvgAndSearchablePdf() {
         const string html = "<div style='width:160px;height:60px;background:radial-gradient(circle closest-side at 25% 50%,red,blue)'></div><p>CircleMarker</p>";
-        var imageOptions = new HtmlImageExportOptions {
+        var imageOptions = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(8D)
@@ -195,9 +195,9 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = html.ToSvg(imageOptions);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = imageOptions;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(imageOptions);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(0.1875D, gradient.EndRadiusX, 4);
         Assert.Equal(0.5D, gradient.EndRadiusY, 4);
@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/ShadingType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -461,7 +461,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlLinearGradient_OversizedBoxKeepsOneContinuousPaintAcrossPageClips() {
         const string html = "<html style='margin:0'><body style='margin:0'><div id='tall-gradient' style='width:40px;height:90px;background:linear-gradient(to bottom,red,blue)'></div></body></html>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
             HonorCssPageRules = false,
@@ -472,9 +472,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
         IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
         IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
-        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        pdfOptions.RenderOptions = options;
-        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
+        pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = html.ToPdf(pdfOptions);
 
         Assert.Equal(3, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => {
@@ -495,7 +495,7 @@ public sealed partial class HtmlRenderingTests {
         });
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
-        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Theory]

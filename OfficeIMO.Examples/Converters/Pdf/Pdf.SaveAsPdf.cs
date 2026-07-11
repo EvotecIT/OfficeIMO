@@ -84,7 +84,7 @@ namespace OfficeIMO.Examples.Word {
             }
         }
 
-        public static void Example_SaveAsPdfToByteArray(string folderPath, bool openWord) {
+        public static void Example_ToPdfByteArray(string folderPath, bool openWord) {
             Console.WriteLine("[*] Creating document and exporting to PDF byte array");
             string docPath = Path.Combine(folderPath, "ExportToPdfBytes.docx");
             string pdfPath = Path.Combine(folderPath, "ExportToPdfBytes.pdf");
@@ -93,7 +93,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Hello World");
                 document.Save();
 
-                byte[] pdfBytes = document.SaveAsPdf();
+                byte[] pdfBytes = document.ToPdf();
                 File.WriteAllBytes(pdfPath, pdfBytes);
             }
         }

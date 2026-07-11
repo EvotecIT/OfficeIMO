@@ -13,7 +13,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p style='margin:0;font:14px Arial'><strong>One model.</strong> Shared output.</p>"
             + "<p dir='rtl' style='margin:0;font:14px Arial'>שלום 123</p>"
             + "</body></html>";
-        var options = new HtmlImageExportOptions {
+        var options = new HtmlRenderOptions {
             ViewportWidth = 320D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D),

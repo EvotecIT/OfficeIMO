@@ -6,8 +6,8 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests {
     public class ConverterExceptions {
         [Fact]
-        public void LoadFromHtml_NullHtml_ThrowsArgumentNullException() {
-            Assert.Throws<ArgumentNullException>(() => ((string)null!).LoadFromHtml());
+        public void ToWordDocument_NullHtml_ThrowsArgumentNullException() {
+            Assert.Throws<ArgumentNullException>(() => ((string)null!).ToWordDocument());
         }
 
         [Fact]

@@ -71,7 +71,8 @@ public static class MarkdownPdfConverter {
         }
 
         try {
-            return markdown.ToPdfDocument(options);
+            MarkdownDoc document = MarkdownReader.Parse(markdown, MarkdownPdfConverterExtensions.ResolveReaderOptions(options));
+            return document.ToPdfDocument(options);
         } finally {
             if (assignedBaseDirectory) {
                 options.BaseDirectory = originalBaseDirectory;

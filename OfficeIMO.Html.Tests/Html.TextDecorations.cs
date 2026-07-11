@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_TextDecorationTags() {
             string html = "<p><s>strike</s><del>delete</del><ins>insert</ins><mark>mark</mark></p>";
 
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var doc = html.ToWordDocument(new HtmlToWordOptions());
             var runs = doc.Paragraphs;
 
             var strikeRun = runs.First(r => r.Text == "strike");

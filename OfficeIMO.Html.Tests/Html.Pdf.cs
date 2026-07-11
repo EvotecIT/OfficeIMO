@@ -6,6 +6,7 @@ using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
 using System.Text;
+using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
@@ -14,611 +15,67 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_ExportsThroughMarkdownPipeline() {
+    public void Html_DirectOutputs_UseOneSharedOptionsShape() {
+        const string html = "<main><h1>Quarterly report</h1><p>Direct HTML rendering.</p></main>";
         var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic
+            ViewportWidth = 640D,
+            Margins = HtmlRenderMargins.All(24D),
+            Scale = 1D
         };
 
-        byte[] pdf = """
-<article>
-  <h1>HTML Report</h1>
-  <p><strong>OfficeIMO</strong> turns semantic HTML into PDF.</p>
-  <ul><li>Markdown bridge</li><li>Shared PDF engine</li></ul>
-</article>
-""".SaveAsPdf(options);
+        byte[] png = html.ToPng(options);
+        string svg = html.ToSvg(options);
+        byte[] pdf = html.ToPdf(options);
 
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
-
-        Assert.True(pdf.Length > 0);
-        Assert.Contains("HTML Report", text);
-        Assert.Contains("Markdown bridge", text);
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "UnsupportedImage");
+        Assert.True(png.Length > 8);
+        Assert.True(pdf.Length > 8);
+        Assert.StartsWith("<svg", svg, StringComparison.Ordinal);
+        Assert.Equal(HtmlRenderMode.Paged, options.Mode);
     }
 
     [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_ForwardsMarkdownPdfWarningsToSharedReport() {
-        var markdownOptions = new MarkdownPdfSaveOptions();
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownHtmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile(),
-            MarkdownPdfOptions = markdownOptions
-        };
+    public void Html_ToPdfResult_ReturnsDiagnosticsWithoutMutatingReusableOptions() {
+        const string html = "<p><img src='https://example.invalid/missing.png'>Report</p>";
+        var options = new HtmlPdfSaveOptions();
 
-        byte[] pdf = """
-<h1>Remote Asset</h1>
-<p><img src="https://example.com/logo.png" alt="OfficeIMO logo"></p>
-""".SaveAsPdf(options);
+        PdfCore.PdfDocumentConversionResult first = html.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult second = "<p>Clean</p>".ToPdfResult(options);
 
-        Assert.True(pdf.Length > 0);
-        Assert.Single(markdownOptions.Warnings, item => item.Code == "UnsupportedImage");
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "UnsupportedImage");
-        Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
-        Assert.Equal("UnsupportedImage", warning.Code);
-
-        options.ConversionReport.Clear();
-
-        Assert.False(options.ConversionReport.HasWarnings);
-        Assert.Empty(options.ConversionReport.Warnings);
+        Assert.Contains(first.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(second.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.Equal(HtmlRenderMode.Paged, options.Mode);
     }
 
     [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_PreservesBodyCellTableAlignment() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
-                PdfOptions = new PdfCore.PdfOptions {
-                    PageWidth = 420,
-                    PageHeight = 260,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36,
-                    DefaultFontSize = 10
-                }
-            }
-        };
-
-        byte[] pdf = """
-<table>
-  <tr><th>Item</th><th>Center Qty</th><th>Right Qty</th></tr>
-  <tr>
-    <td>Service</td>
-    <td style="text-align:center">77</td>
-    <td style="text-align:right">88</td>
-  </tr>
-</table>
-""".SaveAsPdf(options);
-
-        PdfTextBounds centerHeader = FindPdfTextBounds(pdf, "Center", "Qty");
-        PdfTextBounds rightHeader = FindPdfTextBounds(pdf, "Right", "Qty");
-        PdfTextBounds centerQuantity = FindPdfTextBounds(pdf, "77");
-        PdfTextBounds rightQuantity = FindPdfTextBounds(pdf, "88");
-
-        Assert.InRange(Math.Abs(centerQuantity.Center - centerHeader.Center), 0D, 2D);
-        Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_PreservesNonUniformBodyCellTableAlignment() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
-                PdfOptions = new PdfCore.PdfOptions {
-                    PageWidth = 420,
-                    PageHeight = 260,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36,
-                    DefaultFontSize = 10
-                }
-            }
-        };
-
-        byte[] pdf = """
-<table>
-  <tr><th>Item</th><th style="text-align:center">Amount</th></tr>
-  <tr><td>Subtotal</td><td style="text-align:right">125.50</td></tr>
-  <tr><td>Discount</td><td style="text-align:center">10%</td></tr>
-</table>
-""".SaveAsPdf(options);
-
-        PdfTextBounds amountHeader = FindPdfTextBounds(pdf, "Amount");
-        PdfTextBounds subtotal = FindPdfTextBounds(pdf, "125.50");
-        PdfTextBounds discount = FindPdfTextBounds(pdf, "10%");
-
-        Assert.InRange(Math.Abs(discount.Center - amountHeader.Center), 0D, 2D);
-        Assert.True(subtotal.Right > discount.Right + 20D, $"Expected right-aligned subtotal to move past the centered discount. Subtotal right: {subtotal.Right:0.##}; discount right: {discount.Right:0.##}.");
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_PreservesColumnGroupTableAlignment() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
-                PdfOptions = new PdfCore.PdfOptions {
-                    PageWidth = 420,
-                    PageHeight = 260,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36,
-                    DefaultFontSize = 10
-                }
-            }
-        };
-
-        byte[] pdf = """
-<table>
-  <colgroup>
-    <col>
-    <col class="text-center">
-    <col style="text-align:right">
-  </colgroup>
-  <tr><th>Item</th><th>Center Qty</th><th>Right Qty</th></tr>
-  <tr><td>Service</td><td>77</td><td>88</td></tr>
-</table>
-""".SaveAsPdf(options);
-
-        PdfTextBounds centerHeader = FindPdfTextBounds(pdf, "Center", "Qty");
-        PdfTextBounds rightHeader = FindPdfTextBounds(pdf, "Right", "Qty");
-        PdfTextBounds centerQuantity = FindPdfTextBounds(pdf, "77");
-        PdfTextBounds rightQuantity = FindPdfTextBounds(pdf, "88");
-
-        Assert.InRange(Math.Abs(centerQuantity.Center - centerHeader.Center), 0D, 2D);
-        Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_PreservesTableCellSpans() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
-                PdfOptions = new PdfCore.PdfOptions {
-                    CompressContentStreams = false,
-                    PageWidth = 420,
-                    PageHeight = 260,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36,
-                    DefaultFontSize = 10
-                }
-            }
-        };
-
-        byte[] pdf = """
-<table>
-  <tr><th colspan="2">Details</th></tr>
-  <tr><td rowspan="2">Service</td><td>Setup</td></tr>
-  <tr><td>Support</td></tr>
-</table>
-""".SaveAsPdf(options);
-
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
-        PdfTextBounds service = FindPdfTextBounds(pdf, "Service");
-        PdfTextBounds setup = FindPdfTextBounds(pdf, "Setup");
-        PdfTextBounds support = FindPdfTextBounds(pdf, "Support");
-
-        Assert.Contains("Details", text);
-        Assert.Contains("Support", text);
-        Assert.True(setup.Left > service.Left + 40D, $"Expected Setup to render in the second column. Service left: {service.Left}; Setup left: {setup.Left}.");
-        Assert.InRange(Math.Abs(support.Left - setup.Left), 0D, 2D);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_PreservesTableCellBackgroundColors() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
-                PdfOptions = new PdfCore.PdfOptions {
-                    CompressContentStreams = false,
-                    PageWidth = 420,
-                    PageHeight = 260,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36,
-                    DefaultFontSize = 10
-                }
-            }
-        };
-
-        byte[] pdf = """
-<table>
-  <tr><th>Item</th><th>Total</th></tr>
-  <tr><td>Service</td><td style="background-color:#663399">125.50</td></tr>
-</table>
-""".SaveAsPdf(options);
-
-        string content = Encoding.ASCII.GetString(pdf);
-        int fillCount = content.Split(new[] { "0.4 0.2 0.6 rg" }, StringSplitOptions.None).Length - 1;
-
-        Assert.Equal(1, fillCount);
-        Assert.Contains("125.50", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_SemanticProfile_PreservesTableCellTextStyles() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Semantic,
-            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
-                PdfOptions = new PdfCore.PdfOptions {
-                    CompressContentStreams = false,
-                    PageWidth = 420,
-                    PageHeight = 260,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36,
-                    DefaultFontSize = 10
-                }
-            }
-        };
-
-        byte[] pdf = """
-<table>
-  <tr><th>Item</th><th>Total</th></tr>
-  <tr>
-    <td>PlainMarker <strong>NestedBold</strong> <em>NestedItalic</em></td>
-    <td style="color:#663399;font-weight:700;font-style:italic">StyledTotal</td>
-  </tr>
-</table>
-""".SaveAsPdf(options);
-
-        string content = Encoding.ASCII.GetString(pdf);
-        int plainText = content.IndexOf("<" + Hex("PlainMarker") + ">", StringComparison.Ordinal);
-        int boldText = content.IndexOf("<" + Hex("NestedBold") + ">", StringComparison.Ordinal);
-        int italicText = content.IndexOf("<" + Hex("NestedItalic") + ">", StringComparison.Ordinal);
-        int styledText = content.IndexOf("<" + Hex("StyledTotal") + ">", StringComparison.Ordinal);
-
-        Assert.True(plainText >= 0, "Expected plain table text in the PDF content stream.");
-        Assert.True(boldText > plainText, "Expected nested bold table text after the plain marker.");
-        Assert.True(italicText > boldText, "Expected nested italic table text after the bold text.");
-        Assert.True(styledText > italicText, "Expected styled total text after the nested emphasis.");
-
-        Assert.True(content.LastIndexOf("/F2 ", boldText, StringComparison.Ordinal) > plainText, "Expected nested strong text to switch to the bold PDF font resource.");
-        Assert.True(content.LastIndexOf("/F3 ", italicText, StringComparison.Ordinal) > boldText, "Expected nested emphasis text to switch to the italic PDF font resource.");
-        Assert.True(content.LastIndexOf("/F4 ", styledText, StringComparison.Ordinal) > italicText, "Expected styled cell text to use the bold-italic PDF font resource.");
-        Assert.True(content.LastIndexOf("0.4 0.2 0.6 rg", styledText, StringComparison.Ordinal) > italicText, "Expected styled cell text to emit the CSS text color.");
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_DocumentProfile_ExportsThroughWordPipeline() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Document,
-            WordHtmlOptions = HtmlToWordOptions.CreateOfficeIMOProfile(),
-            WordPdfOptions = new PdfSaveOptions()
-        };
-
-        byte[] pdf = """
-<html>
-  <body>
-    <h1>Document HTML</h1>
-    <p>Rendered through the Word HTML bridge.</p>
-    <table><tr><th>Area</th><th>Status</th></tr><tr><td>HTML</td><td>PDF</td></tr></table>
-  </body>
-</html>
-""".SaveAsPdf(options);
-
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
-
-        Assert.True(pdf.Length > 0);
-        Assert.Contains("Document HTML", text);
-        Assert.Contains("Word HTML bridge", text);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_DocumentProfilePreset_PreservesPracticalHtmlFeatures() {
-        string linkUri = "https://example.com/report";
-        string html = CreatePracticalHtmlSample(linkUri);
-        var options = HtmlPdfSaveOptions.CreateDocumentProfile();
-
-        byte[] pdf = html.SaveAsPdf(options);
-
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
-            ForceSingleColumn = true
-        });
-        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
-
-        Assert.True(pdf.Length > 0);
-        Assert.True(logical.PageCount >= 2);
-        Assert.Contains("Practical HTML", text, StringComparison.Ordinal);
-        Assert.Contains("Table marker", text, StringComparison.Ordinal);
-        Assert.Contains("Second page marker", text, StringComparison.Ordinal);
-        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.Contains(logical.GetLinksByUri(linkUri), link => link.Contents == "Report link");
-    }
-
-    [Fact]
-    public void HtmlPdfSaveOptions_ProfileFactories_SelectExpectedPipelines() {
-        HtmlPdfSaveOptions semantic = HtmlPdfSaveOptions.CreateSemanticProfile();
-        HtmlPdfSaveOptions document = HtmlPdfSaveOptions.CreateDocumentProfile();
-        HtmlPdfSaveOptions trustedDocument = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-        HtmlPdfSaveOptions rendered = HtmlPdfSaveOptions.CreateRenderedProfile();
-
-        Assert.Equal(HtmlPdfProfile.Semantic, semantic.Profile);
-        Assert.NotNull(semantic.MarkdownHtmlOptions);
-        Assert.NotNull(semantic.MarkdownPdfOptions);
-        Assert.Equal(HtmlPdfProfile.Document, document.Profile);
-        Assert.NotNull(document.WordHtmlOptions);
-        Assert.NotNull(document.WordPdfOptions);
-        Assert.Equal(HtmlPdfProfile.Document, trustedDocument.Profile);
-        Assert.NotNull(trustedDocument.WordHtmlOptions);
-        Assert.NotNull(trustedDocument.WordPdfOptions);
-        Assert.Equal(HtmlPdfProfile.Rendered, rendered.Profile);
-        Assert.NotNull(rendered.RenderOptions);
-        Assert.Equal(HtmlRenderMode.Paged, rendered.RenderOptions!.Mode);
-    }
-
-    [Fact]
-    public void HtmlConversionDocument_SaveAsPdf_UsesSharedDocumentProfile() {
-        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(
-            "<main><h1>Document profile</h1><p>Shared conversion document.</p></main>",
-            new HtmlConversionDocumentOptions {
-                Profile = HtmlConversionProfile.Document
-            });
-        var options = HtmlPdfSaveOptions.CreateSemanticProfile();
-
-        byte[] pdf = conversion.SaveAsPdf(options);
-
-        Assert.NotEmpty(pdf);
-        Assert.Equal(HtmlPdfProfile.Document, options.Profile);
-        Assert.NotNull(options.WordHtmlOptions);
-        Assert.NotNull(options.WordPdfOptions);
-        Assert.Equal(ImageProcessingMode.Embed, options.WordHtmlOptions.ImageProcessing);
-        Assert.True(options.WordHtmlOptions.AllowDocumentStylesheetLinks);
-
-        HtmlConversionDocument highFidelity = HtmlConversionDocumentBuilder.Build(
-            "<main><h1>High-fidelity profile</h1><p>Shared conversion document.</p></main>",
-            new HtmlConversionDocumentOptions {
-                Profile = HtmlConversionProfile.HighFidelityPrint
-            });
-        var highFidelityOptions = HtmlPdfSaveOptions.CreateSemanticProfile();
-
-        byte[] highFidelityPdf = highFidelity.SaveAsPdf(highFidelityOptions);
-
-        Assert.NotEmpty(highFidelityPdf);
-        Assert.Equal(HtmlPdfProfile.Document, highFidelityOptions.Profile);
-        Assert.NotNull(highFidelityOptions.WordHtmlOptions);
-        Assert.NotNull(highFidelityOptions.WordPdfOptions);
-        Assert.Equal(ImageProcessingMode.Embed, highFidelityOptions.WordHtmlOptions.ImageProcessing);
-        Assert.True(highFidelityOptions.WordHtmlOptions.AllowDocumentStylesheetLinks);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_ProvidesSharedDocumentAndStreamOutputOverloads() {
-        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(
-            "<main><h1>Document overload profile</h1><p>Shared conversion document path.</p></main>",
-            new HtmlConversionDocumentOptions {
-                Profile = HtmlConversionProfile.Document
-            });
-        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf.Overloads", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
+    public async Task Html_Pdf_BytesDocumentFileAndStream_AreConsistent() {
+        const string html = "<article><h1>API contract</h1><p>One direct renderer.</p></article>";
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            string documentPath = Path.Combine(directory, "document.pdf");
-            string streamPath = Path.Combine(directory, "stream.pdf");
-            string tryPath = Path.Combine(directory, "try-stream.pdf");
+            byte[] bytes = html.ToPdf();
+            using PdfCore.PdfDocument document = html.ToPdfDocument();
+            using var stream = new MemoryStream();
+            await html.SaveAsPdfAsync(stream);
+            html.SaveAsPdf(path);
 
-            conversion.SaveAsPdf(documentPath, HtmlPdfSaveOptions.CreateSemanticProfile());
-            using var documentStream = new MemoryStream();
-            PdfCore.PdfSaveResult documentStreamResult = conversion.TrySaveAsPdf(documentStream, HtmlPdfSaveOptions.CreateSemanticProfile());
-
-            using var htmlStream = new MemoryStream(Encoding.UTF8.GetBytes("<main><h1>Stream overload profile</h1><p>HTML stream content.</p></main>"));
-            byte[] streamBytes = htmlStream.SaveAsPdf(HtmlPdfSaveOptions.CreateDocumentProfile());
-
-            using var streamForPath = new MemoryStream(Encoding.UTF8.GetBytes("<main><h1>Stream path overload</h1><p>Saved from input stream.</p></main>"));
-            streamForPath.SaveAsPdf(streamPath, HtmlPdfSaveOptions.CreateDocumentProfile());
-
-            using var streamForTryPath = new MemoryStream(Encoding.UTF8.GetBytes("<main><h1>Stream try overload</h1><p>Try-saved from input stream.</p></main>"));
-            PdfCore.PdfSaveResult tryPathResult = streamForTryPath.TrySaveAsPdf(tryPath, HtmlPdfSaveOptions.CreateDocumentProfile());
-
-            Assert.True(File.Exists(documentPath));
-            Assert.True(new FileInfo(documentPath).Length > 0);
-            Assert.True(documentStreamResult.Succeeded);
-            Assert.True(documentStream.Length > 0);
-            Assert.True(streamBytes.Length > 0);
-            Assert.True(File.Exists(streamPath));
-            Assert.True(new FileInfo(streamPath).Length > 0);
-            Assert.True(tryPathResult.Succeeded);
-            Assert.True(File.Exists(tryPath));
-            Assert.Contains("Document overload profile", PdfCore.PdfReadDocument.Load(File.ReadAllBytes(documentPath)).ExtractText(), StringComparison.Ordinal);
-            Assert.Contains("Stream overload profile", PdfCore.PdfReadDocument.Load(streamBytes).ExtractText(), StringComparison.Ordinal);
-            Assert.Contains("Stream path overload", PdfCore.PdfReadDocument.Load(File.ReadAllBytes(streamPath)).ExtractText(), StringComparison.Ordinal);
-            Assert.Contains("Stream try overload", PdfCore.PdfReadDocument.Load(File.ReadAllBytes(tryPath)).ExtractText(), StringComparison.Ordinal);
+            Assert.Equal((byte)'%', bytes[0]);
+            Assert.True(document.ToBytes().Length > 8);
+            Assert.Equal((byte)'%', stream.ToArray()[0]);
+            Assert.True(new FileInfo(path).Length > 8L);
         } finally {
-            Directory.Delete(directory, recursive: true);
+            if (File.Exists(path)) File.Delete(path);
         }
     }
 
     [Fact]
-    public void HtmlPdfSaveOptions_TrustedDocumentProfile_ExposesResourcePolicySummary() {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-        options.WordHtmlOptions!.AllowedStylesheetHosts.Add("cdn.example.test");
-        options.WordHtmlOptions.MaxCssBytes = 4096;
-        options.WordHtmlOptions.MaxTotalCssBytes = 8192;
+    public void Html_OfficeProjections_AreExplicitTargets() {
+        const string html = "<article><h1>Projection</h1><p>Explicit conversion.</p></article>";
 
-        HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
+        using OfficeIMO.Word.WordDocument word = html.ToWordDocument();
+        OfficeIMO.Markdown.MarkdownDoc markdown = html.ToMarkdownDocument();
 
-        Assert.Equal(HtmlPdfProfile.Document, policy.Profile);
-        Assert.True(policy.UsesWordHtmlPolicy);
-        Assert.True(policy.AllowDocumentStylesheetLinks);
-        Assert.Contains(Uri.UriSchemeFile, policy.AllowedStylesheetUriSchemes);
-        Assert.Contains(Uri.UriSchemeHttps, policy.AllowedStylesheetUriSchemes);
-        Assert.Equal(new[] { "cdn.example.test" }, policy.AllowedStylesheetHosts);
-        Assert.True(policy.ValidateStylesheetContentTypes);
-        Assert.Contains("text/css", policy.AllowedStylesheetContentTypes);
-        Assert.Equal(4096, policy.MaxCssBytes);
-        Assert.Equal(8192, policy.MaxTotalCssBytes);
-        Assert.Equal("Embed", policy.ImageProcessing);
-        Assert.Contains("data", policy.AllowedImageUriSchemes);
+        Assert.NotNull(word);
+        Assert.Contains("Projection", markdown.ToMarkdown(), StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void HtmlPdfSaveOptions_DocumentProfileSummaryReportsDefaultWordPolicyBeforeConversion() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Document
-        };
-
-        HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
-
-        Assert.Equal(HtmlPdfProfile.Document, policy.Profile);
-        Assert.True(policy.UsesWordHtmlPolicy);
-        Assert.False(policy.AllowDocumentStylesheetLinks);
-        Assert.Contains("data", policy.AllowedImageUriSchemes);
-        Assert.Equal("EmbedDataUriOnly", policy.ImageProcessing);
-        Assert.Null(options.WordHtmlOptions);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_DocumentProfile_ForwardsHtmlImportDiagnosticsToSharedReport() {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-        options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
-
-        byte[] pdf = """
-<html>
-<head>
-  <link rel="stylesheet" href="https://blocked.example.test/site.css">
-</head>
-<body>
-  <h1>HTML policy diagnostic</h1>
-</body>
-</html>
-""".SaveAsPdf(options);
-
-        Assert.True(pdf.Length > 0);
-        Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
-        Assert.Contains(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy" && diagnostic.Component == "OfficeIMO.Word.Html");
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
-        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
-        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
-        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
-        Assert.Contains("Stylesheet host", warning.Details["Detail"], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Html_ToPdfDocument_DocumentProfile_ForwardsHtmlImportDiagnosticsToSharedReport() {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-        options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
-
-        PdfCore.PdfDocument pdf = """
-<html>
-<head>
-  <link rel="stylesheet" href="https://blocked.example.test/site.css">
-</head>
-<body>
-  <h1>HTML policy diagnostic</h1>
-</body>
-</html>
-""".ToPdfDocument(options);
-
-        Assert.NotNull(pdf);
-        Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
-        Assert.Contains(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy" && diagnostic.Component == "OfficeIMO.Word.Html");
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
-        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
-        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Html_ToPdfDocument_DocumentProfileWithDefaultWordOptions_ForwardsHtmlImportDiagnostics() {
-        var options = new HtmlPdfSaveOptions {
-            Profile = HtmlPdfProfile.Document
-        };
-
-        PdfCore.PdfDocument pdf = """
-<html>
-<head>
-  <link rel="stylesheet" href="https://blocked.example.test/site.css">
-</head>
-<body>
-  <h1>HTML default profile diagnostic</h1>
-</body>
-</html>
-""".ToPdfDocument(options);
-
-        Assert.NotNull(pdf);
-        Assert.NotNull(options.WordHtmlOptions);
-        Assert.Contains(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped");
-        Assert.Contains(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped" && diagnostic.Component == "OfficeIMO.Word.Html");
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "HtmlStylesheetLinkSkipped");
-        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
-        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Html_SaveAsPdf_DocumentProfile_DoesNotReuseStaleHtmlImportDiagnostics() {
-        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
-        string blocked = """
-<html>
-<head>
-  <link rel="stylesheet" href="https://blocked.example.test/site.css">
-</head>
-<body>
-  <h1>Blocked policy diagnostic</h1>
-</body>
-</html>
-""";
-        string clean = """
-<html>
-<body>
-  <h1>Clean document profile export</h1>
-</body>
-</html>
-""";
-
-        byte[] blockedPdf = blocked.SaveAsPdf(options);
-        byte[] cleanPdf = clean.SaveAsPdf(options);
-
-        Assert.True(blockedPdf.Length > 0);
-        Assert.True(cleanPdf.Length > 0);
-        Assert.DoesNotContain(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
-        Assert.DoesNotContain(options.WordHtmlOptions.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "StylesheetResourceRejectedByPolicy");
-    }
-
-    [Fact]
-    public void HtmlPdf_ProfileContracts_CoverSupportedProfiles() {
-        HtmlPdfProfileContract semantic = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
-        HtmlPdfProfileContract document = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document);
-        HtmlPdfProfileContract rendered = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Rendered);
-
-        Assert.Equal(3, HtmlPdfProfileContracts.All.Count);
-        Assert.Equal(HtmlConversionProfile.Semantic, semantic.SharedProfile);
-        Assert.Equal("html-pdf-semantic", semantic.Id);
-        Assert.Contains("Markdown", semantic.Pipeline, StringComparison.Ordinal);
-        Assert.Contains("semantic HTML", semantic.IntendedUse, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Not a browser renderer", semantic.UnsupportedScope, StringComparison.Ordinal);
-        Assert.Contains("tables", semantic.SupportedHtmlFeatures);
-        Assert.Contains("table-cell-alignment", semantic.SupportedCssFeatures);
-        Assert.Contains("unsupported-image-warning", semantic.DiagnosticGuarantees);
-        Assert.Contains("no-browser-layout-engine", semantic.RendererBoundaries);
-        Assert.Equal(HtmlConversionProfile.Document, document.SharedProfile);
-        Assert.Equal("html-pdf-document", document.Id);
-        Assert.Contains("WordDocument", document.Pipeline, StringComparison.Ordinal);
-        Assert.Contains("print-oriented HTML", document.IntendedUse, StringComparison.Ordinal);
-        Assert.Contains("Word HTML", document.UnsupportedScope, StringComparison.Ordinal);
-        Assert.Contains("page-break-hints", document.SupportedHtmlFeatures);
-        Assert.Contains("linked-stylesheets-when-enabled", document.SupportedCssFeatures);
-        Assert.Contains("resource-policy-summary", document.SupportedResourceFeatures);
-        Assert.Contains("no-css-grid-or-flex-layout-contract", document.RendererBoundaries);
-        Assert.Equal(HtmlConversionProfile.HighFidelityPrint, rendered.SharedProfile);
-        Assert.Equal("html-pdf-rendered", rendered.Id);
-        Assert.Contains("OfficeIMO.Html layout", rendered.Pipeline, StringComparison.Ordinal);
-        Assert.Contains("data-uri-images", rendered.SupportedHtmlFeatures);
-        Assert.Contains("repeated-table-headers", rendered.SupportedHtmlFeatures);
-        Assert.Contains("print-media", rendered.SupportedCssFeatures);
-        Assert.Contains("generic-page-size-margin", rendered.SupportedCssFeatures);
-        Assert.Contains("first-left-right-page-margin-content", rendered.SupportedCssFeatures);
-        Assert.Contains("page-counters", rendered.SupportedCssFeatures);
-        Assert.Contains("left-right-page-breaks", rendered.SupportedCssFeatures);
-        Assert.Contains("widows-orphans", rendered.SupportedCssFeatures);
-        Assert.Contains("caller-resolved-external-images", rendered.SupportedResourceFeatures);
-        Assert.Contains("shared-html-render-diagnostics", rendered.DiagnosticGuarantees);
-        Assert.Contains("no-new-external-dependencies", rendered.RendererBoundaries);
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlPdfProfileContracts.Get((HtmlPdfProfile)99));
-    }
-
     [Fact]
     public void PdfHtml_ProfileContracts_CoverSupportedProfiles() {
         PdfHtmlProfileContract semantic = PdfHtmlProfileContracts.Get(PdfHtmlProfile.Semantic);
@@ -1154,7 +611,7 @@ public sealed class HtmlPdfTests {
         Directory.CreateDirectory(directory);
 
         try {
-            CreatePracticalHtmlSample(linkUri).SaveAsPdf(pdfPath, HtmlPdfSaveOptions.CreateDocumentProfile());
+            CreatePracticalHtmlSample(linkUri).SaveAsPdf(pdfPath, new HtmlPdfSaveOptions());
             PdfHtmlConverter.SaveAsHtml(pdfPath, htmlPath, new PdfHtmlSaveOptions {
                 Profile = PdfHtmlProfile.PositionedReview,
                 IncludeLinkAnnotations = true

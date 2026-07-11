@@ -58,7 +58,7 @@ public class HtmlRenderingStageBenchmarks {
 public class HtmlRenderingOutputBenchmarks {
     private OfficeDrawing _drawing = null!;
     private string _html = string.Empty;
-    private HtmlImageExportOptions _imageOptions = null!;
+    private HtmlRenderOptions _imageOptions = null!;
     private HtmlPdfSaveOptions _pdfOptions = null!;
     private HtmlRenderPage _renderedPage = null!;
 
@@ -72,8 +72,7 @@ public class HtmlRenderingOutputBenchmarks {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(_html, _imageOptions);
         _renderedPage = rendered.Pages[0];
         _drawing = _renderedPage.CreateDrawing();
-        _pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
-        _pdfOptions.RenderOptions = new HtmlRenderOptions {
+        _pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(8.5D, 11D),
             Margins = HtmlRenderMargins.All(36D)
@@ -90,11 +89,11 @@ public class HtmlRenderingOutputBenchmarks {
     public string ExportSvg() => OfficeDrawingSvgExporter.ToSvg(_drawing);
 
     [Benchmark]
-    public byte[] ExportRenderedPdf() => _html.SaveAsPdf(_pdfOptions);
+    public byte[] ExportRenderedPdf() => _html.ToPdf(_pdfOptions);
 }
 
 internal static class HtmlBenchmarkCorpus {
-    internal static HtmlImageExportOptions CreateContinuousOptions() => new HtmlImageExportOptions {
+    internal static HtmlRenderOptions CreateContinuousOptions() => new HtmlRenderOptions {
         Mode = HtmlRenderMode.Continuous,
         ViewportWidth = 816D,
         Margins = HtmlRenderMargins.All(36D),
