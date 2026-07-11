@@ -42,12 +42,17 @@ namespace OfficeIMO.Word {
             return CreateLegacyDocLoadResult(document, sourcePath: null);
         }
 
-        private static WordDocument LoadLegacyDocFromNormalFlow(byte[] bytes, string? sourcePath, bool autoSave, bool readOnly) {
+        private static WordDocument LoadLegacyDocFromNormalFlow(
+            byte[] bytes,
+            string? sourcePath,
+            bool autoSave,
+            bool readOnly,
+            LegacyDocImportOptions? importOptions = null) {
             if (autoSave) {
                 throw new NotSupportedException("Auto-save is not supported when loading legacy binary .doc files. Load the document, then save explicitly to a .docx path.");
             }
 
-            LegacyDocDocument document = LegacyDocDocument.Load(bytes, new LegacyDocImportOptions());
+            LegacyDocDocument document = LegacyDocDocument.Load(bytes, importOptions ?? new LegacyDocImportOptions());
             LegacyDocImportDiagnostic[] errors = document.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error)
                 .ToArray();

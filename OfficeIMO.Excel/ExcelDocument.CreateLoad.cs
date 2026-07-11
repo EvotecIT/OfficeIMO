@@ -292,14 +292,13 @@ namespace OfficeIMO.Excel {
             bool readOnly,
             bool autoSave,
             string? filePath,
-            OpenSettings? openSettings) {
+            OpenSettings? openSettings,
+            LegacyXlsImportOptions? importOptions = null) {
             if (ShouldCopyBackToSource(readOnly, autoSave, openSettings)) {
                 throw new NotSupportedException("Auto-save is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
             }
 
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
-                ReportUnsupportedContent = true
-            });
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, importOptions ?? new LegacyXlsImportOptions());
             LegacyXlsImportDiagnostic[] errors = workbook.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)
                 .ToArray();

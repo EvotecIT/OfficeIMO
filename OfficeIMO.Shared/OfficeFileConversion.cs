@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Shared {
     /// <summary>
@@ -44,6 +46,22 @@ namespace OfficeIMO.Shared {
         internal static void EnsureDestinationDirectory(string destinationPath) {
             string? directory = Path.GetDirectoryName(destinationPath);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        }
+
+        internal static async Task<byte[]> ReadAllBytesAsync(string path, CancellationToken cancellationToken) {
+            const int bufferSize = 81920;
+            using var source = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                bufferSize,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            using var destination = source.Length <= int.MaxValue
+                ? new MemoryStream((int)source.Length)
+                : new MemoryStream();
+            await source.CopyToAsync(destination, bufferSize, cancellationToken).ConfigureAwait(false);
+            return destination.ToArray();
         }
 
         private static void ValidateExtension(

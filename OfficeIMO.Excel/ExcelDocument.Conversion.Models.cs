@@ -167,7 +167,10 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets optional Open XML load settings for XLSX sources.</summary>
         public OpenSettings? OpenSettings { get; set; }
 
-        /// <summary>Gets or sets optional legacy XLS import settings.</summary>
+        /// <summary>
+        /// Gets or sets optional legacy XLS import settings. Conversion always enables unsupported-content
+        /// discovery so <see cref="LossPolicy"/> cannot be bypassed by suppressing import diagnostics.
+        /// </summary>
         public LegacyXlsImportOptions? LegacyXlsImportOptions { get; set; }
 
         /// <summary>Gets or sets optional save settings for the destination file.</summary>

@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Shared;
 using System.Threading;
@@ -124,8 +125,18 @@ namespace OfficeIMO.Excel {
             string sourcePath,
             ExcelDocumentConversionOptions options,
             CancellationToken cancellationToken) {
-            if (options.LegacyXlsImportOptions != null && ExcelDocumentLoadRouting.HasLegacyXlsExtension(sourcePath)) {
-                return LoadLegacyXls(sourcePath, options.LegacyXlsImportOptions);
+            if (options.LegacyXlsImportOptions != null) {
+                byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+                if (ExcelDocumentLoadRouting.IsLegacyXls(sourceBytes, sourcePath)) {
+                    LegacyXlsImportOptions importOptions = CreateConversionImportOptions(options.LegacyXlsImportOptions);
+                    return LoadLegacyXlsFromNormalFlow(
+                        sourceBytes,
+                        readOnly: false,
+                        autoSave: false,
+                        filePath: sourcePath,
+                        openSettings: null,
+                        importOptions: importOptions);
+                }
             }
 
             return await LoadAsync(
@@ -134,6 +145,15 @@ namespace OfficeIMO.Excel {
                 autoSave: false,
                 openSettings: options.OpenSettings,
                 cancellationToken).ConfigureAwait(false);
+        }
+
+        private static LegacyXlsImportOptions CreateConversionImportOptions(LegacyXlsImportOptions options) {
+            return new LegacyXlsImportOptions {
+                MaxInputBytes = options.MaxInputBytes,
+                Password = options.Password,
+                // Conversion loss policy depends on complete unsupported-content discovery.
+                ReportUnsupportedContent = true
+            };
         }
 
         private static List<ExcelConversionDiagnostic> CreateExcelConversionDiagnostics(

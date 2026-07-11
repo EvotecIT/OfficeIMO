@@ -98,7 +98,7 @@ Console.WriteLine($"Preserve-only records: {summary.PreservedFeatureCount}");
 load.EnsureNoConversionLoss();
 ```
 
-Use `load.AdvancedWorkbook` and `load.CreateAdvancedImportReport()` for corpus-grade detail. Import options consistently use `MaxInputBytes` and `ReportUnsupportedContent`; `Password` is additionally available for supported password-to-open XLS inputs.
+Use `load.AdvancedWorkbook` and `load.CreateAdvancedImportReport()` for corpus-grade detail. Import options consistently use `MaxInputBytes` and `ReportUnsupportedContent`; `Password` is additionally available for supported password-to-open XLS inputs. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so limits and passwords still apply when a legacy workbook has a misleading extension.
 
 ## Breaking API cleanup
 

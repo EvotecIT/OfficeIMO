@@ -1,4 +1,5 @@
 using OfficeIMO.Shared;
+using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Threading;
 using System.Threading.Tasks;
@@ -124,8 +125,17 @@ namespace OfficeIMO.Word {
             string sourcePath,
             WordDocumentConversionOptions options,
             CancellationToken cancellationToken) {
-            if (options.LegacyDocImportOptions != null && WordDocumentLoadRouting.HasLegacyDocExtension(sourcePath)) {
-                return LoadLegacyDoc(sourcePath, options.LegacyDocImportOptions);
+            if (options.LegacyDocImportOptions != null) {
+                byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, sourcePath)) {
+                    LegacyDocImportOptions importOptions = CreateConversionImportOptions(options.LegacyDocImportOptions);
+                    return LoadLegacyDocFromNormalFlow(
+                        sourceBytes,
+                        sourcePath,
+                        autoSave: false,
+                        readOnly: false,
+                        importOptions: importOptions);
+                }
             }
 
             return await LoadAsync(
@@ -135,6 +145,14 @@ namespace OfficeIMO.Word {
                 overrideStyles: options.OverrideStyles,
                 openSettings: options.OpenSettings,
                 cancellationToken).ConfigureAwait(false);
+        }
+
+        private static LegacyDocImportOptions CreateConversionImportOptions(LegacyDocImportOptions options) {
+            return new LegacyDocImportOptions {
+                MaxInputBytes = options.MaxInputBytes,
+                // Conversion loss policy depends on complete unsupported-content discovery.
+                ReportUnsupportedContent = true
+            };
         }
 
         private static List<WordConversionDiagnostic> CreateWordConversionDiagnostics(

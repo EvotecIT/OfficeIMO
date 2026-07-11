@@ -98,7 +98,7 @@ if (summary.HasConversionLoss) {
 }
 ```
 
-For corpus analysis or forensic detail, use `load.AdvancedDocument` and `load.CreateAdvancedImportReport()`. Import options use the common names `MaxInputBytes` and `ReportUnsupportedContent`.
+For corpus analysis or forensic detail, use `load.AdvancedDocument` and `load.CreateAdvancedImportReport()`. Import options use the common names `MaxInputBytes` and `ReportUnsupportedContent`. File conversion always enables unsupported-content discovery—even when a supplied import option disables reporting—because `LossPolicy.Block` must never be bypassed silently. Import options are selected from detected physical content, so limits and XLS passwords still apply when a legacy file has a misleading extension.
 
 ## Breaking API cleanup
 

@@ -1,4 +1,5 @@
 using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -65,6 +66,38 @@ namespace OfficeIMO.Tests {
             using WordDocument converted = WordDocument.Load(allowedPath);
             Assert.False(converted.SourceFormat == WordFileFormat.Doc);
             Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text == "Preserve-only body");
+        }
+
+        [Fact]
+        public void LegacyDoc_Convert_ContentDetectionAppliesImportOptionsDespiteMisleadingExtension() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            File.WriteAllBytes(sourcePath, LegacyDocTestBuilder.CreateSimpleDoc("Physical DOC"));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
+                    LossPolicy = WordConversionLossPolicy.Allow,
+                    LegacyDocImportOptions = new LegacyDocImportOptions { MaxInputBytes = 1 }
+                }));
+
+            Assert.Contains("configured limit of 1 byte", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(destinationPath));
+        }
+
+        [Fact]
+        public void LegacyDoc_Convert_CannotSuppressDiscoveryToBypassLossPolicy() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            File.WriteAllBytes(sourcePath, LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Safety gate"));
+
+            WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() =>
+                WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
+                    LegacyDocImportOptions = new LegacyDocImportOptions { ReportUnsupportedContent = false }
+                }));
+
+            Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+            Assert.True(exception.Result.HasDataLoss);
+            Assert.False(File.Exists(destinationPath));
         }
 
         [Fact]

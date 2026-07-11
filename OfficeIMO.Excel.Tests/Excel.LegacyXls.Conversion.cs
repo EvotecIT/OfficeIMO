@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.LegacyXls;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -73,6 +74,48 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Feature", header);
             } finally {
                 TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_Convert_ContentDetectionAppliesImportOptionsDespiteMisleadingExtension() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string sourcePath = WriteTempWorkbook(compound, ".xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                    ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
+                        LossPolicy = ExcelConversionLossPolicy.Allow,
+                        LegacyXlsImportOptions = new LegacyXlsImportOptions { MaxInputBytes = 1 }
+                    }));
+
+                Assert.Contains("configured limit of 1 byte", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.False(File.Exists(destinationPath));
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_Convert_CannotSuppressDiscoveryToBypassLossPolicy() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string sourcePath = WriteTempWorkbook(compound, ".xls");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
+                    ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
+                        LegacyXlsImportOptions = new LegacyXlsImportOptions { ReportUnsupportedContent = false }
+                    }));
+
+                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+                Assert.True(exception.Result.HasDataLoss);
+                Assert.False(File.Exists(destinationPath));
+            } finally {
+                TryDelete(sourcePath);
             }
         }
 
