@@ -47,10 +47,10 @@
         "Visio",
         "Yaml",
         "Rtf",
+        "OpenDocument",
         "AsciiDoc",
         "Latex",
-        "Email",
-        "OpenDocument"
+        "Email"
       ]
     },
     "source": {
