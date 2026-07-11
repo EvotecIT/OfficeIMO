@@ -137,6 +137,37 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
+    [Fact]
+    public void HtmlPdf_RenderedProfile_EmbedsWebFontUsedByPathClippedSvgText() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+        if (font == null
+            || string.IsNullOrWhiteSpace(fontPath)
+            || !string.Equals(Path.GetExtension(fontPath), ".ttf", StringComparison.OrdinalIgnoreCase)) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        if (fontData.LongLength > 10L * 1024L * 1024L) {
+            return;
+        }
+
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 30'><rect width='180' height='30' fill='white'/><text x='4' y='20' font-family='Pdf Svg Demo' font-size='14'>ClippedSvgFontMarker</text></svg>";
+        string html = "<style>@font-face{font-family:'Pdf Svg Demo';src:url(\"data:font/ttf;base64,"
+            + Convert.ToBase64String(fontData)
+            + "\") format('truetype')}</style><img style='width:180px;height:30px;border-radius:10px' src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
+            + "' alt='clipped font sample'>";
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
+
+        byte[] pdf = html.SaveAsPdf(options);
+
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderPathClipGroup);
+        Assert.Contains("ClippedSvgFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
+        Assert.DoesNotContain(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+    }
+
     private static byte[] CreateHtmlRenderTestFont() {
         byte[] cmap = CreateHtmlRenderFormat12Cmap(0x1F600);
         var tables = new List<(string Tag, byte[] Data)> {

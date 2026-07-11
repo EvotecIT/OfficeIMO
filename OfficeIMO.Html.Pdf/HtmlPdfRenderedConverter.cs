@@ -346,9 +346,9 @@ internal static class HtmlPdfRenderedConverter {
 
         var orderedFamilies = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (HtmlRenderText text in rendered.Pages.SelectMany(page => EnumerateVisuals(page.Visuals)).OfType<HtmlRenderText>()) {
+        foreach (string familyNames in EnumerateUsedFontFamilyLists(rendered.Pages.SelectMany(page => page.Visuals))) {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (string family in EnumerateFamilies(text.Font.FamilyName)) {
+            foreach (string family in EnumerateFamilies(familyNames)) {
                 if (byFamily.ContainsKey(family) && seen.Add(family)) {
                     orderedFamilies.Add(family);
                 }
@@ -382,12 +382,34 @@ internal static class HtmlPdfRenderedConverter {
         return mappings;
     }
 
+    private static IEnumerable<string> EnumerateUsedFontFamilyLists(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in EnumerateVisuals(visuals)) {
+            if (visual is HtmlRenderText text) {
+                yield return text.Font.FamilyName;
+            } else if (visual is HtmlRenderDrawing drawing) {
+                foreach (string familyNames in EnumerateDrawingFontFamilyLists(drawing.Drawing.Elements)) yield return familyNames;
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateDrawingFontFamilyLists(IEnumerable<OfficeDrawingElement> elements) {
+        foreach (OfficeDrawingElement element in elements) {
+            if (element is OfficeDrawingText text) {
+                yield return text.Font.FamilyName;
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                foreach (string familyNames in EnumerateDrawingFontFamilyLists(effectGroup.Drawing.Elements)) yield return familyNames;
+            }
+        }
+    }
+
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;
             IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
                 ? clipGroup.Visuals
-                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+                : visual is HtmlRenderPathClipGroup pathClipGroup
+                    ? pathClipGroup.Visuals
+                    : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
