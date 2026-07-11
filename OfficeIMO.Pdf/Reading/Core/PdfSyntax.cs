@@ -51,9 +51,19 @@ internal static partial class PdfSyntax {
                 preliminaryBodyEnd -= 6;
             }
 
-            string preliminaryBody = SafeSlice(text, bodyStart, preliminaryBodyEnd - bodyStart, 1_000_000).Trim();
-            if (preliminaryBody.Length > 0 && preliminaryBody[0] == '[') {
-                var parsedArray = ParseTopLevelObject(preliminaryBody);
+            int preliminaryBodyCharacters = preliminaryBodyEnd - bodyStart;
+            int firstBodyCharacter = bodyStart;
+            while (firstBodyCharacter < preliminaryBodyEnd && char.IsWhiteSpace(text[firstBodyCharacter])) {
+                firstBodyCharacter++;
+            }
+
+            if (firstBodyCharacter < preliminaryBodyEnd && text[firstBodyCharacter] == '[') {
+                if (preliminaryBodyCharacters > limits.MaxObjectCharacters) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, preliminaryBodyCharacters);
+                }
+
+                string preliminaryArrayBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
+                var parsedArray = ParseTopLevelObject(preliminaryArrayBody, limits);
                 if (parsedArray is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsedArray);
                     parsedOffsets[id] = start;
@@ -66,10 +76,15 @@ internal static partial class PdfSyntax {
             if (dictStart >= 0) {
                 int dictEnd = FindDictEnd(text, dictStart, end);
                 if (dictEnd > dictStart) {
-                    string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000); // cap to 1 MB
+                    int dictionaryCharacters = dictEnd - (dictStart + 2);
+                    if (dictionaryCharacters > limits.MaxObjectCharacters) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, dictionaryCharacters);
+                    }
+
+                    string dictText = SafeSlice(text, dictStart + 2, dictionaryCharacters, limits.MaxObjectCharacters);
                     PdfDictionary? dict;
-                    try { dict = ParseDictionary(dictText); }
-                    catch (Exception ex) when (ex is not OutOfMemoryException) { dict = null; }
+                    try { dict = ParseDictionary(dictText, limits); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
                     if (dict is null) {
                         continue;
                     }
@@ -108,7 +123,12 @@ internal static partial class PdfSyntax {
             }
 
             if (!map.ContainsKey(id)) {
-                var parsed = ParseTopLevelObject(preliminaryBody);
+                if (preliminaryBodyCharacters > limits.MaxObjectCharacters) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, preliminaryBodyCharacters);
+                }
+
+                string preliminaryBody = SafeSlice(text, bodyStart, preliminaryBodyCharacters, limits.MaxObjectCharacters).Trim();
+                var parsed = ParseTopLevelObject(preliminaryBody, limits);
                 if (parsed is not null) {
                     map[id] = new PdfIndirectObject(id, gen, parsed);
                     parsedOffsets[id] = start;

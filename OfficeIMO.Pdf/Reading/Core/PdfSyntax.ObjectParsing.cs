@@ -18,8 +18,13 @@ internal static partial class PdfSyntax {
                 return false;
         }
     }
-    private static PdfObject? ParseTopLevelObject(string body) {
+    private static PdfObject? ParseTopLevelObject(string body, PdfReadLimits? limits = null) {
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         if (string.IsNullOrWhiteSpace(body)) return null;
+        if (body.Length > effectiveLimits.MaxObjectCharacters) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, body.Length);
+        }
+
         var s = body.TrimStart();
         if (string.Equals(s, "true", StringComparison.Ordinal)) return new PdfBoolean(true);
         if (string.Equals(s, "false", StringComparison.Ordinal)) return new PdfBoolean(false);
@@ -30,15 +35,22 @@ internal static partial class PdfSyntax {
             if (dictStart >= 0) {
                 int dictEnd = FindDictEnd(body, dictStart, body.Length);
                 if (dictEnd > dictStart) {
-                    string dictText = SafeSlice(body, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
-                    try { return ParseDictionary(dictText); } catch { return null; }
+                    int dictionaryCharacters = dictEnd - (dictStart + 2);
+                    if (dictionaryCharacters > effectiveLimits.MaxObjectCharacters) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, dictionaryCharacters);
+                    }
+
+                    string dictText = SafeSlice(body, dictStart + 2, dictionaryCharacters, effectiveLimits.MaxObjectCharacters);
+                    try { return ParseDictionary(dictText, effectiveLimits); }
+                    catch (PdfReadLimitException) { throw; }
+                    catch { return null; }
                 }
             }
             return null;
         }
         if (s.Length > 0 && s[0] == '[') {
-            var toks = Tokenize(s);
-            var (obj, _) = ParseObject(toks, 0);
+            var toks = Tokenize(s, effectiveLimits);
+            var (obj, _) = ParseObject(toks, 0, effectiveLimits, 0);
             return obj;
         }
         if (s.Length > 0 && s[0] == '(') {
@@ -53,9 +65,9 @@ internal static partial class PdfSyntax {
             return CreateParsedString(PdfTextString.DecodeHexBytes(inner));
         }
         // number or name fallbacks
-        var tokens = Tokenize(s);
+        var tokens = Tokenize(s, effectiveLimits);
         if (tokens.Count > 0) {
-            var (obj0, _) = ParseObject(tokens, 0);
+            var (obj0, _) = ParseObject(tokens, 0, effectiveLimits, 0);
             return obj0;
         }
         return null;
@@ -70,14 +82,19 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static PdfDictionary ParseDictionary(string dict) {
+    private static PdfDictionary ParseDictionary(string dict, PdfReadLimits? limits = null) {
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        if (dict.Length > effectiveLimits.MaxObjectCharacters) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, dict.Length);
+        }
+
         var d = new PdfDictionary();
-        var tokens = Tokenize(dict);
+        var tokens = Tokenize(dict, effectiveLimits);
         for (int i = 0; i < tokens.Count; i++) {
             if (tokens[i].Length > 0 && tokens[i][0] == '/') {
                 string key = DecodeName(tokens[i].Substring(1));
                 if (i + 1 < tokens.Count) {
-                    var (obj, consumed) = ParseObject(tokens, i + 1);
+                    var (obj, consumed) = ParseObject(tokens, i + 1, effectiveLimits, 0);
                     d.Items[key] = obj;
                     i += consumed + 1;
                 }
@@ -86,8 +103,12 @@ internal static partial class PdfSyntax {
         return d;
     }
 
-    private static (PdfObject Obj, int Consumed) ParseObject(List<string> tokens, int i) {
+    private static (PdfObject Obj, int Consumed) ParseObject(List<string> tokens, int i, PdfReadLimits limits, int depth) {
         if (i < 0 || i >= tokens.Count) return (new PdfName(""), 0);
+        if (depth > limits.MaxObjectNestingDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, limits.MaxObjectNestingDepth, depth);
+        }
+
         string tok = tokens[i] ?? string.Empty;
         if (tok == "<<") {
             var dict = new PdfDictionary();
@@ -97,7 +118,7 @@ internal static partial class PdfSyntax {
                 if (keyToken.Length > 0 && keyToken[0] == '/') {
                     string key = DecodeName(keyToken.Substring(1));
                     if (j + 1 < tokens.Count) {
-                        var (obj, consumed) = ParseObject(tokens, j + 1);
+                        var (obj, consumed) = ParseObject(tokens, j + 1, limits, depth + 1);
                         dict.Items[key] = obj;
                         j += consumed + 2;
                         continue;
@@ -110,7 +131,7 @@ internal static partial class PdfSyntax {
         if (tok == "[") {
             var arr = new PdfArray(); int j = i + 1;
             while (j < tokens.Count && tokens[j] != "]") {
-                var (inner, used) = ParseObject(tokens, j);
+                var (inner, used) = ParseObject(tokens, j, limits, depth + 1);
                 arr.Items.Add(inner);
                 j += used + 1;
             }
@@ -136,12 +157,19 @@ internal static partial class PdfSyntax {
         return (new PdfName(tok), 0);
     }
 
-    private static List<string> Tokenize(string s) {
-        // Guardrails for pathological inputs; dictionaries should be small.
-        if (s.Length > 1_000_000) s = s.Substring(0, 1_000_000);
+    private static List<string> Tokenize(string s, PdfReadLimits? limits = null) {
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        if (s.Length > effectiveLimits.MaxObjectCharacters) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, effectiveLimits.MaxObjectCharacters, s.Length);
+        }
+
         var tokens = new List<string>(Math.Min(16384, s.Length / 2 + 8));
         int i = 0;
         while (i < s.Length) {
+            if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
+            }
+
             char c = s[i];
             if (char.IsWhiteSpace(c)) { i++; continue; }
             if (c == '%') {
@@ -166,7 +194,14 @@ internal static partial class PdfSyntax {
                 while (i < s.Length && depth > 0) {
                     char ch = s[i++];
                     if (esc) { sb.Append(ch); esc = false; } else if (ch == '\\') { sb.Append(ch); esc = true; }
-                    else if (ch == '(') { depth++; sb.Append(ch); } else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); } else sb.Append(ch);
+                    else if (ch == '(') {
+                        depth++;
+                        if (depth > effectiveLimits.MaxObjectNestingDepth) {
+                            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, effectiveLimits.MaxObjectNestingDepth, depth);
+                        }
+
+                        sb.Append(ch);
+                    } else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); } else sb.Append(ch);
                 }
                 tokens.Add("(" + sb.ToString() + ")");
                 continue;
@@ -180,9 +215,16 @@ internal static partial class PdfSyntax {
                 tok = s.Substring(i, j - i);
             }
             tokens.Add(tok);
-            if (tokens.Count > 100_000) break; // hard stop
+            if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
+            }
             i = j;
         }
+
+        if (tokens.Count > effectiveLimits.MaxTokensPerObject) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
+        }
+
         return tokens;
     }
 

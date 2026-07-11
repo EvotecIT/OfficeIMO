@@ -16,6 +16,15 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum decoded byte count produced from one filtered stream. Default: 256 MiB.</summary>
     public int MaxDecodedStreamBytes { get; set; } = DefaultMaxDecodedStreamBytes;
 
+    /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
+    public int MaxObjectCharacters { get; set; } = 1_000_000;
+
+    /// <summary>Maximum syntax tokens accepted in one object or dictionary. Default: 100,000.</summary>
+    public int MaxTokensPerObject { get; set; } = 100_000;
+
+    /// <summary>Maximum nested array/dictionary depth accepted by the object parser. Default: 128.</summary>
+    public int MaxObjectNestingDepth { get; set; } = 128;
+
     /// <summary>Maximum wall-clock time spent in the core object parsing pass. Default: 30 seconds.</summary>
     public TimeSpan MaxObjectParsingTime { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -34,6 +43,18 @@ public sealed class PdfReadLimits {
 
         if (MaxDecodedStreamBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxDecodedStreamBytes), MaxDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
+        }
+
+        if (MaxObjectCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxObjectCharacters), MaxObjectCharacters, "Maximum object characters must be positive.");
+        }
+
+        if (MaxTokensPerObject <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTokensPerObject), MaxTokensPerObject, "Maximum tokens per object must be positive.");
+        }
+
+        if (MaxObjectNestingDepth <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxObjectNestingDepth), MaxObjectNestingDepth, "Maximum object nesting depth must be positive.");
         }
 
         if (MaxObjectParsingTime <= TimeSpan.Zero) {

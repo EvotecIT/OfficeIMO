@@ -124,6 +124,39 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void ObjectCharacterAndTokenBudgetsFailWithoutSilentTruncation() {
+        byte[] characterHeavy = BuildObjectPdf("<< /LongValue (abcdefghijklmnopqrstuvwxyz) >>");
+        byte[] tokenHeavy = BuildObjectPdf("[/A 1 /B 2 /C 3 /D 4]");
+        var characterOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectCharacters = 24 }
+        };
+        var tokenOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxTokensPerObject = 4 }
+        };
+
+        PdfReadLimitException characterException = Assert.Throws<PdfReadLimitException>(
+            () => PdfSyntax.ParseObjects(characterHeavy, characterOptions));
+        PdfReadLimitException tokenException = Assert.Throws<PdfReadLimitException>(
+            () => PdfSyntax.ParseObjects(tokenHeavy, tokenOptions));
+
+        Assert.Equal(PdfReadLimitKind.ObjectCharacters, characterException.Kind);
+        Assert.Equal(PdfReadLimitKind.ObjectTokens, tokenException.Kind);
+    }
+
+    [Fact]
+    public void NestedObjectBudgetStopsRecursiveArrayParsing() {
+        byte[] pdf = BuildObjectPdf("[[[[1]]]]");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectNestingDepth = 2 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfSyntax.ParseObjects(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void DeterministicHostileInputMutationsRemainBounded() {
         byte[] source = BuildPdf();
         var random = new Random(0x2062);
@@ -162,6 +195,9 @@ public class PdfReadLimitTests {
     private static byte[] BuildPdf() => PdfDocument.Create()
         .Paragraph(paragraph => paragraph.Text("Bounded parser source"))
         .ToBytes();
+
+    private static byte[] BuildObjectPdf(string body) => System.Text.Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n1 0 obj\n" + body + "\nendobj\ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n0\n%%EOF\n");
 
     private static byte[] PackNineBitCodes(IEnumerable<int> codes) {
         var bits = new List<int>();

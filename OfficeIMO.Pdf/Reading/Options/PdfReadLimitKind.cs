@@ -14,6 +14,15 @@ public enum PdfReadLimitKind {
     /// <summary>Bytes produced while decoding one filtered PDF stream.</summary>
     DecodedStreamBytes,
 
+    /// <summary>Characters scanned for one object or dictionary.</summary>
+    ObjectCharacters,
+
+    /// <summary>Tokens produced for one object or dictionary.</summary>
+    ObjectTokens,
+
+    /// <summary>Nested array/dictionary parsing depth.</summary>
+    ObjectNestingDepth,
+
     /// <summary>Wall-clock time spent in the core object parsing pass.</summary>
     ObjectParsingTime
 }
