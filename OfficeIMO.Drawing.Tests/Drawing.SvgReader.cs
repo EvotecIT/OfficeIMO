@@ -192,6 +192,28 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAlignsAndClipsMeetAndSliceSymbolViewports() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 12'>"
+            + "<defs><symbol id='badge' viewBox='0 0 10 10'><rect x='0' width='5' height='10' fill='red'/><rect x='5' width='5' height='10' fill='blue'/></symbol></defs>"
+            + "<use href='#badge' width='12' height='8' preserveAspectRatio='xMaxYMid meet'/>"
+            + "<use href='#badge' x='16' width='12' height='8' preserveAspectRatio='xMinYMid slice'/>"
+            + "<use href='#badge' x='32' width='8' height='8' preserveAspectRatio='defer xMidYMid meet'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing!);
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(1, 4));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 4));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(16, 4));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(27, 4));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(39, 4));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(28, 4));
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("clip-path=\"url(#officeimo-group-clip-", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesCyclicExternalAndAmbiguousUseReferences() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><g id='loop'><use href='#loop'/></g><rect id='duplicate' width='5' height='5'/><circle id='duplicate' r='2'/></defs>"

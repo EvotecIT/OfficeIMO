@@ -29,11 +29,10 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
 
-        string aspect = (use.Attribute("preserveAspectRatio")?.Value
-            ?? symbol.Attribute("preserveAspectRatio")?.Value
-            ?? "xMidYMid meet").Trim();
-        bool stretch = aspect.Equals("none", StringComparison.OrdinalIgnoreCase);
-        if (!stretch && !aspect.Equals("xMidYMid meet", StringComparison.OrdinalIgnoreCase) && !aspect.Equals("xMidYMid", StringComparison.OrdinalIgnoreCase)) {
+        if (!TryParsePreserveAspectRatio(
+                use.Attribute("preserveAspectRatio")?.Value ?? symbol.Attribute("preserveAspectRatio")?.Value,
+                out SvgAspectAlignment alignment,
+                out bool slice)) {
             unsupported++;
             return;
         }
@@ -43,17 +42,25 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform symbolTransform = ResolveTransform(symbol, OfficeTransform.Identity, viewBox[0], viewBox[1], ref unsupported);
         AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1], ref visited, ref unsupported);
 
-        OfficeTransform placement;
-        if (stretch) {
-            placement = OfficeTransform.Scale(width / viewBox[2], height / viewBox[3])
-                .Then(OfficeTransform.Translate(x, y));
+        OfficeTransform viewportTransform;
+        if (alignment == SvgAspectAlignment.None) {
+            viewportTransform = OfficeTransform.Scale(width / viewBox[2], height / viewBox[3]);
         } else {
-            double scale = Math.Min(width / viewBox[2], height / viewBox[3]);
-            double offsetX = x + ((width - (viewBox[2] * scale)) / 2D);
-            double offsetY = y + ((height - (viewBox[3] * scale)) / 2D);
-            placement = OfficeTransform.Scale(scale, scale).Then(OfficeTransform.Translate(offsetX, offsetY));
+            double scale = slice
+                ? Math.Max(width / viewBox[2], height / viewBox[3])
+                : Math.Min(width / viewBox[2], height / viewBox[3]);
+            double remainingX = width - (viewBox[2] * scale);
+            double remainingY = height - (viewBox[3] * scale);
+            ResolveAlignmentFactors(alignment, out double alignX, out double alignY);
+            viewportTransform = OfficeTransform.Scale(scale, scale)
+                .Then(OfficeTransform.Translate(remainingX * alignX, remainingY * alignY));
         }
-        drawing.AddEffectDrawing(scene, placement.Then(inheritedTransform));
+
+        var viewport = new OfficeDrawing(width, height);
+        viewport.AddEffectDrawing(scene, viewportTransform);
+        var clipped = new OfficeDrawing(width, height);
+        clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));
+        drawing.AddEffectDrawing(clipped, OfficeTransform.Translate(x, y).Then(inheritedTransform));
     }
 
     private static bool TrySymbolLength(XElement use, XElement symbol, string name, double fallback, out double value) {
@@ -63,5 +70,62 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
         return TrySvgLength(text, out value);
+    }
+
+    private static bool TryParsePreserveAspectRatio(string? value, out SvgAspectAlignment alignment, out bool slice) {
+        alignment = SvgAspectAlignment.XMidYMid;
+        slice = false;
+        if (string.IsNullOrWhiteSpace(value)) return true;
+
+        string[] parts = value!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        int index = parts.Length > 0 && parts[0].Equals("defer", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        if (index >= parts.Length || !TryParseAspectAlignment(parts[index++], out alignment)) return false;
+        if (alignment == SvgAspectAlignment.None) return index == parts.Length;
+        if (index == parts.Length) return true;
+        if (index + 1 != parts.Length) return false;
+        if (parts[index].Equals("meet", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!parts[index].Equals("slice", StringComparison.OrdinalIgnoreCase)) return false;
+        slice = true;
+        return true;
+    }
+
+    private static bool TryParseAspectAlignment(string value, out SvgAspectAlignment alignment) {
+        switch (value.ToLowerInvariant()) {
+            case "none": alignment = SvgAspectAlignment.None; return true;
+            case "xminymin": alignment = SvgAspectAlignment.XMinYMin; return true;
+            case "xmidymin": alignment = SvgAspectAlignment.XMidYMin; return true;
+            case "xmaxymin": alignment = SvgAspectAlignment.XMaxYMin; return true;
+            case "xminymid": alignment = SvgAspectAlignment.XMinYMid; return true;
+            case "xmidymid": alignment = SvgAspectAlignment.XMidYMid; return true;
+            case "xmaxymid": alignment = SvgAspectAlignment.XMaxYMid; return true;
+            case "xminymax": alignment = SvgAspectAlignment.XMinYMax; return true;
+            case "xmidymax": alignment = SvgAspectAlignment.XMidYMax; return true;
+            case "xmaxymax": alignment = SvgAspectAlignment.XMaxYMax; return true;
+            default:
+                alignment = default;
+                return false;
+        }
+    }
+
+    private static void ResolveAlignmentFactors(SvgAspectAlignment alignment, out double x, out double y) {
+        x = alignment is SvgAspectAlignment.XMinYMin or SvgAspectAlignment.XMinYMid or SvgAspectAlignment.XMinYMax ? 0D
+            : alignment is SvgAspectAlignment.XMaxYMin or SvgAspectAlignment.XMaxYMid or SvgAspectAlignment.XMaxYMax ? 1D
+            : 0.5D;
+        y = alignment is SvgAspectAlignment.XMinYMin or SvgAspectAlignment.XMidYMin or SvgAspectAlignment.XMaxYMin ? 0D
+            : alignment is SvgAspectAlignment.XMinYMax or SvgAspectAlignment.XMidYMax or SvgAspectAlignment.XMaxYMax ? 1D
+            : 0.5D;
+    }
+
+    private enum SvgAspectAlignment {
+        None,
+        XMinYMin,
+        XMidYMin,
+        XMaxYMin,
+        XMinYMid,
+        XMidYMid,
+        XMaxYMid,
+        XMinYMax,
+        XMidYMax,
+        XMaxYMax
     }
 }
