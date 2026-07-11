@@ -299,7 +299,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     HtmlRenderVisual textVisual = OfficeTextElements.ContainsRightToLeft(segment.Text)
                         ? new HtmlRenderLogicalTextGroup(
-                            segment.Text,
+                            segment.LogicalText,
                             x,
                             textY,
                             Math.Max(0.01D, segment.Width),

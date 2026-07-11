@@ -328,8 +328,10 @@ internal sealed class HtmlInlineRun {
         double paintOffsetX = 0D,
         double paintOffsetY = 0D,
         IElement? ownerElement = null,
-        IElement? positionedMarkerElement = null) {
+        IElement? positionedMarkerElement = null,
+        string? logicalText = null) {
         Text = text;
+        LogicalText = logicalText ?? text;
         Style = style;
         LinkUri = linkUri;
         Source = source;
@@ -351,6 +353,7 @@ internal sealed class HtmlInlineRun {
         bool isReplacedImage = false) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
+        LogicalText = string.Empty;
         Style = style;
         LinkUri = linkUri;
         Source = source;
@@ -371,6 +374,7 @@ internal sealed class HtmlInlineRun {
         IElement ownerElement) {
         FloatingBlock = floatingBlock;
         Text = string.Empty;
+        LogicalText = string.Empty;
         Style = style;
         LinkUri = linkUri;
         Source = source;
@@ -381,6 +385,7 @@ internal sealed class HtmlInlineRun {
     }
 
     internal string Text { get; }
+    internal string LogicalText { get; }
     internal HtmlRenderFlowBlock? AtomicBlock { get; }
     internal HtmlRenderFlowBlock? FloatingBlock { get; }
     internal HtmlRenderBoxStyle Style { get; }

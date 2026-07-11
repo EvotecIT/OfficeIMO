@@ -977,7 +977,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_RenderedProfile_UsesManagedFontFallbacksForUnicodeText() {
-        const string marker = "Café Ω Ж שלום";
+        const string marker = "Café Ω Ж שלום سلام";
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateRenderedProfile();
 
         byte[] pdf = ("<p>" + marker + "</p>").SaveAsPdf(options);
@@ -994,7 +994,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRenderer_PositionsSimpleRtlTextAndDiagnosesOnlyRemainingBidiStages() {
-        const string html = "<div style='width:200px'><p id='declared' dir='rtl'>Latin text</p><p id='hebrew' dir='rtl'>שלום 123</p><p id='arabic' dir='rtl'>سلام</p><p id='control'>abc\u202Edef</p></div>";
+        const string html = "<div style='width:200px'><p id='declared' dir='rtl'>Latin text</p><p id='hebrew' dir='rtl'>שלום 123</p><p id='arabic' dir='rtl'>سلام</p><p id='authored' dir='rtl'>\uFE8F\uFE8F</p><p id='syriac' dir='rtl'>ܫܠܡ</p><p id='control'>abc\u202Edef</p></div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
         IReadOnlyList<HtmlRenderText> text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
@@ -1014,17 +1014,29 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("שלום 123", string.Concat(text.Where(run => Math.Abs(run.Y - number.Y) < 0.001D).OrderBy(run => run.PaintOrder).Select(run => run.Text)));
         Assert.True(number.X < hebrew.Min(run => run.X));
 
+        HtmlRenderLogicalTextGroup arabicGroup = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text == "سلام");
+        Assert.Equal("\uFEB3\uFEE0\uFE8E\uFEE1", string.Concat(arabicGroup.Visuals.OfType<HtmlRenderText>().Select(run => run.Text)));
+        HtmlRenderLogicalTextGroup authoredForms = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
+            group => group.Text == "\uFE8F\uFE8F");
+        Assert.Equal("\uFE91\uFE90", string.Concat(authoredForms.Visuals.OfType<HtmlRenderText>().Select(run => run.Text)));
+        Assert.True(html.ToPng().Length > 8);
+        string svg = html.ToSvg();
+        Assert.All("\uFEB3\uFEE0\uFE8E\uFEE1", character => Assert.Contains(character.ToString(), svg, StringComparison.Ordinal));
+
         Assert.Collection(
             rendered.Diagnostics.Diagnostics
                 .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported)
                 .OrderBy(diagnostic => diagnostic.Source),
             diagnostic => {
-                Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, diagnostic.Code);
-                Assert.Equal("p#arabic", diagnostic.Source);
-            },
-            diagnostic => {
                 Assert.Equal(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, diagnostic.Code);
                 Assert.Equal("p#control", diagnostic.Source);
+            },
+            diagnostic => {
+                Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, diagnostic.Code);
+                Assert.Equal("p#syriac", diagnostic.Source);
             });
         Assert.Contains(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, HtmlRenderDiagnosticCodes.All);
