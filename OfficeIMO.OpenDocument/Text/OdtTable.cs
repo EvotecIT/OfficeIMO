@@ -21,8 +21,9 @@ public sealed class OdtTable {
     }
 
     /// <summary>Rows in source order.</summary>
-    public IReadOnlyList<OdtTableRow> Rows => OdfTableRowElements.Enumerate(_element)
-        .Select(element => new OdtTableRow(_document, element)).ToList();
+    public IReadOnlyList<OdtTableRow> Rows => new OdfRepeatedElementCollection<OdtTableRow>(
+        OdfTableRowElements.Enumerate(_element).ToList(), OdfNamespaces.Table + "number-rows-repeated",
+        (element, _) => new OdtTableRow(_document, element));
 
     /// <summary>Gets a zero-based cell.</summary>
     public OdtTableCell Cell(int row, int column) {

@@ -63,7 +63,10 @@ public static class ExcelOpenDocumentConversionExtensions {
                 bool exactValue = SetOdsValue(converted, cell.Value);
                 if (!exactValue) unsupportedStyles++;
                 if (cell.Hyperlink != null && !string.IsNullOrWhiteSpace(cell.Hyperlink.Target)) {
-                    converted.SetHyperlink(ValueText(cell.Value), cell.Hyperlink.Target);
+                    string href = cell.Hyperlink.IsExternal
+                        ? cell.Hyperlink.Target
+                        : "#" + SpreadsheetAddressConverter.ExcelRangeToOpenAddress(cell.Hyperlink.Target);
+                    converted.SetHyperlink(ValueText(cell.Value), href);
                     hyperlinks++;
                 }
                 if (effective.IncludeBasicStyles && cell.Style != null) {
@@ -226,7 +229,17 @@ public static class ExcelOpenDocumentConversionExtensions {
                                 formulas++;
                             }
                             if (!string.IsNullOrWhiteSpace(cellRun.HyperlinkHref)) {
-                                sheet.SetHyperlink(excelRow, excelColumn, cellRun.HyperlinkHref!, cellRun.Text, style: true);
+                                string href = cellRun.HyperlinkHref!;
+                                if (href.StartsWith("#", StringComparison.Ordinal)) {
+                                    string location = SpreadsheetAddressConverter.OpenAddressToExcel(href.Substring(1));
+                                    sheet.SetInternalLink(excelRow, excelColumn, location, cellRun.Text, style: true);
+                                } else {
+                                    sheet.SetHyperlink(excelRow, excelColumn, href, cellRun.Text, style: true);
+                                }
+                                if (cellRun.Value.Kind != OdsCellValueKind.Empty) _ = SetExcelValue(converted, cellRun.Value);
+                                if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
+                                    converted.SetFormula(SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!));
+                                }
                                 hyperlinks++;
                             }
                             if (effective.IncludeBasicStyles && cellRun.StyleName != null) {

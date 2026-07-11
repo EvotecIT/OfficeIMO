@@ -51,7 +51,8 @@ public sealed class OdtPageLayout {
 
     internal static OdtPageLayout GetOrCreate(OdtDocument document) {
         bool changed = false;
-        XDocument stylesXml = document.GetXml("styles.xml");
+        XDocument stylesXml = document.Package.EnsureXml("styles.xml",
+            OdfPackageTemplates.CreateStyles(document.Version), "text/xml");
         XElement root = stylesXml.Root ?? throw new InvalidDataException("OpenDocument styles have no root element.");
         XElement automatic = root.Element(OdfNamespaces.Office + "automatic-styles") ?? new XElement(OdfNamespaces.Office + "automatic-styles");
         if (automatic.Parent == null) { root.Add(automatic); changed = true; }

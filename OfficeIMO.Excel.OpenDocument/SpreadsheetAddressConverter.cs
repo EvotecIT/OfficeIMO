@@ -54,7 +54,24 @@ internal static class SpreadsheetAddressConverter {
             string referenceEnd = match.Groups["end"].Value;
             return referenceEnd.Length == 0 ? "[." + referenceStart + "]" : "[." + referenceStart + ":." + referenceEnd + "]";
         });
-        output.Append(converted);
+        AppendOpenFormulaSeparators(output, converted);
+    }
+
+    private static void AppendOpenFormulaSeparators(StringBuilder output, string value) {
+        bool quotedSheet = false;
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (character == '\'') {
+                output.Append(character);
+                if (quotedSheet && index + 1 < value.Length && value[index + 1] == '\'') {
+                    output.Append(value[++index]);
+                } else {
+                    quotedSheet = !quotedSheet;
+                }
+            } else {
+                output.Append(character == ',' && !quotedSheet ? ';' : character);
+            }
+        }
     }
 
     internal static string OpenFormulaToExcel(string formula) {

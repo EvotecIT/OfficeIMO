@@ -146,7 +146,13 @@ public sealed class OdsCell {
     /// <summary>Sets a hyperlink display value without fetching its target.</summary>
     public void SetHyperlink(string text, string href) {
         if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
-        SetString(text);
+        EnsureEditable();
+        if (_element.Attribute(OdfNamespaces.Office + "value-type") == null &&
+            _element.Attribute(OdfNamespaces.Table + "formula") == null) {
+            _element.SetAttributeValue(OdfNamespaces.Office + "value-type", "string");
+            _element.SetAttributeValue(OdfNamespaces.Office + "string-value", text);
+        }
+        ReplaceDisplayText(text);
         XElement paragraph = _element.Elements(OdfNamespaces.Text + "p").First();
         paragraph.RemoveNodes();
         var link = new XElement(OdfNamespaces.Text + "a",

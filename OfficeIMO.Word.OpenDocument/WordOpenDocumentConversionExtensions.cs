@@ -111,6 +111,8 @@ public static class WordOpenDocumentConversionExtensions {
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, approximatedRuns = 0;
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
+            source.ContentBlocks.Where(block => block.Table != null).Sum(block => block.Table!.Rows
+                .Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Sum(paragraph => paragraph.Images.Count)))) +
             source.PageLayout.Header.Paragraphs.Sum(paragraph => paragraph.Images.Count) +
             source.PageLayout.Footer.Paragraphs.Sum(paragraph => paragraph.Images.Count);
         WordList? currentList = null;

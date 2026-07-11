@@ -76,6 +76,9 @@ public sealed class OpenDocumentFormulaTests {
     [Theory]
     [InlineData("of:=ROUND(2.5;0)", 3D)]
     [InlineData("of:=ROUND(-2.5;0)", -3D)]
+    [InlineData("of:=ROUND(1234;-2)", 1200D)]
+    [InlineData("of:=ROUND(1250;-2)", 1300D)]
+    [InlineData("of:=ROUND(-1250;-2)", -1300D)]
     public void RoundUsesSpreadsheetMidpointSemantics(string formula, double expected) {
         using OdsDocument document = OdsDocument.Create();
         document.AddSheet("Data");

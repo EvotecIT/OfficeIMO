@@ -166,8 +166,11 @@ internal sealed class OdsFormulaParser {
             case "ROUND":
                 if (arguments.Count < 1 || arguments.Count > 2) return OdsFormulaValue.Error("ROUND expects one or two scalar arguments.");
                 int digits = arguments.Count == 2 ? checked((int)RequireNumber(arguments[1].RequireScalar())) : 0;
-                return Number(Math.Round(RequireNumber(arguments[0].RequireScalar()), Math.Max(0, Math.Min(15, digits)),
-                    MidpointRounding.AwayFromZero));
+                digits = Math.Max(-15, Math.Min(15, digits));
+                double roundValue = RequireNumber(arguments[0].RequireScalar());
+                if (digits >= 0) return Number(Math.Round(roundValue, digits, MidpointRounding.AwayFromZero));
+                double scale = Math.Pow(10D, -digits);
+                return Number(Math.Round(roundValue / scale, 0, MidpointRounding.AwayFromZero) * scale);
             case "POWER":
                 if (arguments.Count != 2) return OdsFormulaValue.Error("POWER expects two scalar arguments.");
                 return Number(Math.Pow(RequireNumber(arguments[0].RequireScalar()), RequireNumber(arguments[1].RequireScalar())));

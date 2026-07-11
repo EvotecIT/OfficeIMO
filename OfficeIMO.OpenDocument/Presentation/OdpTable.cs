@@ -5,8 +5,9 @@ public sealed class OdpTable : OdpShape {
     internal OdpTable(OdpPresentation presentation, XElement element) : base(presentation, element) { }
     private XElement TableElement => Element.Element(OdfNamespaces.Table + "table") ?? throw new InvalidDataException("ODP table frame has no table:table.");
     /// <summary>Table rows.</summary>
-    public IReadOnlyList<OdpTableRow> Rows => OdfTableRowElements.Enumerate(TableElement)
-        .Select(element => new OdpTableRow(Presentation, element)).ToList();
+    public IReadOnlyList<OdpTableRow> Rows => new OdfRepeatedElementCollection<OdpTableRow>(
+        OdfTableRowElements.Enumerate(TableElement).ToList(), OdfNamespaces.Table + "number-rows-repeated",
+        (element, _) => new OdpTableRow(Presentation, element));
     /// <summary>Gets a zero-based table cell.</summary>
     public OdpTableCell Cell(int row, int column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
