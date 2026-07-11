@@ -12,4 +12,18 @@ public sealed partial class PdfDocumentReader {
             interactionOptions,
             ResolveReadOptions(readOptions));
     }
+
+    /// <summary>Creates a shared-Drawing word, line, region, and reading-order diagnostic overlay.</summary>
+    public OfficeIMO.Drawing.OfficeDrawing LayoutDebugOverlay(
+        int pageNumber,
+        PdfLayoutDebugOverlayOptions? overlayOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfReadOptions? readOptions = null) {
+        return PdfLayoutDebugOverlay.CreateDrawing(
+            _document.Snapshot(),
+            pageNumber,
+            overlayOptions,
+            layoutOptions,
+            ResolveReadOptions(readOptions));
+    }
 }

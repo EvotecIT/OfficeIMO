@@ -243,7 +243,7 @@ second parser or renderer.
   headings, lists, and inferred reading order.
 - [ ] Export the same structured model to stable JSON, Markdown, ALTO XML, hOCR,
   and PAGE XML without duplicating extraction algorithms in each exporter.
-- [ ] Add a debug overlay that renders word/line/region boxes and reading order
+- [x] Add a debug overlay that renders word/line/region boxes and reading order
   through the shared Drawing/PDF annotation primitives.
 - [x] Keep OCR as a provider interface and merge contract. Do not ship an OCR
   engine or model in the dependency-light PDF core.
