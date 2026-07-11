@@ -88,12 +88,13 @@ internal static class HtmlPdfRenderedConverter {
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
         double surfaceHeight,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool textAsSpan = false) {
         cancellationToken.ThrowIfCancellationRequested();
         if (visual is HtmlRenderShape shape) {
             AddShape(canvas, shape);
         } else if (visual is HtmlRenderText text) {
-            AddText(canvas, text, webFonts);
+            AddText(canvas, text, webFonts, textAsSpan);
         } else if (visual is HtmlRenderImage image) {
             AddImage(canvas, image);
         } else if (visual is HtmlRenderDrawing drawing) {
@@ -101,29 +102,39 @@ internal static class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderImagePattern imagePattern) {
             AddImagePattern(canvas, imagePattern, cancellationToken);
         } else if (visual is HtmlRenderClipGroup group) {
-            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+            AddClipGroup(canvas, group, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderPathClipGroup pathClipGroup) {
-            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+            AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderEffectGroup effectGroup) {
-            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+            AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
         } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
-            AddSemanticGroup(canvas, semanticGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+            AddSemanticGroup(canvas, semanticGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
         }
     }
 
-    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken) {
+    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
         var options = new PdfCore.PdfCanvasStructureOptions {
             ColumnSpan = group.ColumnSpan,
             RowSpan = group.RowSpan,
             HeaderScope = MapTableHeaderScope(group.HeaderScope)
         };
+        bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, childTextAsSpan);
             }
         }, options);
     }
+
+    private static bool IsTextContentGroup(HtmlRenderSemanticGroupRole role) =>
+        role == HtmlRenderSemanticGroupRole.Paragraph
+        || role == HtmlRenderSemanticGroupRole.Heading1
+        || role == HtmlRenderSemanticGroupRole.Heading2
+        || role == HtmlRenderSemanticGroupRole.Heading3
+        || role == HtmlRenderSemanticGroupRole.Heading4
+        || role == HtmlRenderSemanticGroupRole.Heading5
+        || role == HtmlRenderSemanticGroupRole.Heading6;
 
     private static PdfCore.PdfCanvasTableHeaderScope? MapTableHeaderScope(HtmlRenderTableHeaderScope? scope) {
         if (scope == HtmlRenderTableHeaderScope.Row) return PdfCore.PdfCanvasTableHeaderScope.Row;
@@ -133,7 +144,15 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static PdfCore.PdfCanvasStructureRole MapSemanticGroupRole(HtmlRenderSemanticGroupRole role) {
+        if (role == HtmlRenderSemanticGroupRole.Section) return PdfCore.PdfCanvasStructureRole.Section;
         if (role == HtmlRenderSemanticGroupRole.Division) return PdfCore.PdfCanvasStructureRole.Division;
+        if (role == HtmlRenderSemanticGroupRole.Paragraph) return PdfCore.PdfCanvasStructureRole.Paragraph;
+        if (role == HtmlRenderSemanticGroupRole.Heading1) return PdfCore.PdfCanvasStructureRole.Heading1;
+        if (role == HtmlRenderSemanticGroupRole.Heading2) return PdfCore.PdfCanvasStructureRole.Heading2;
+        if (role == HtmlRenderSemanticGroupRole.Heading3) return PdfCore.PdfCanvasStructureRole.Heading3;
+        if (role == HtmlRenderSemanticGroupRole.Heading4) return PdfCore.PdfCanvasStructureRole.Heading4;
+        if (role == HtmlRenderSemanticGroupRole.Heading5) return PdfCore.PdfCanvasStructureRole.Heading5;
+        if (role == HtmlRenderSemanticGroupRole.Heading6) return PdfCore.PdfCanvasStructureRole.Heading6;
         if (role == HtmlRenderSemanticGroupRole.List) return PdfCore.PdfCanvasStructureRole.List;
         if (role == HtmlRenderSemanticGroupRole.ListItem) return PdfCore.PdfCanvasStructureRole.ListItem;
         if (role == HtmlRenderSemanticGroupRole.ListLabel) return PdfCore.PdfCanvasStructureRole.ListLabel;
@@ -151,7 +170,8 @@ internal static class HtmlPdfRenderedConverter {
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
         double surfaceHeight,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool textAsSpan) {
         OfficeTransform transform = group.Transform;
         var scaled = new OfficeTransform(
             transform.M11,
@@ -163,7 +183,7 @@ internal static class HtmlPdfRenderedConverter {
         canvas.Effect(scaled, group.Opacity, nested => {
             foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
             }
         });
     }
@@ -174,7 +194,8 @@ internal static class HtmlPdfRenderedConverter {
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
         double surfaceHeight,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool textAsSpan) {
         double left = group.ClipHorizontal ? Math.Max(0D, group.ClipX) : 0D;
         double top = group.ClipVertical ? Math.Max(0D, group.ClipY) : 0D;
         double right = group.ClipHorizontal ? Math.Min(surfaceWidth, group.ClipX + group.ClipWidth) : surfaceWidth;
@@ -188,7 +209,7 @@ internal static class HtmlPdfRenderedConverter {
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
                 }
             });
     }
@@ -199,7 +220,8 @@ internal static class HtmlPdfRenderedConverter {
         IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts,
         double surfaceWidth,
         double surfaceHeight,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool textAsSpan) {
         canvas.Clip(
             group.ClipX * PointsPerCssPixel,
             group.ClipY * PointsPerCssPixel,
@@ -207,7 +229,7 @@ internal static class HtmlPdfRenderedConverter {
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+                    AddVisual(clipped, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, textAsSpan);
                 }
             });
     }
@@ -225,7 +247,7 @@ internal static class HtmlPdfRenderedConverter {
             linkContents: visual.LinkUri == null ? null : visual.Source);
     }
 
-    private static void AddText(PdfCore.PdfPageCanvas canvas, HtmlRenderText visual, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts) {
+    private static void AddText(PdfCore.PdfPageCanvas canvas, HtmlRenderText visual, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, bool asSpan) {
         if (visual.Text.Length == 0) return;
         string? link = string.IsNullOrWhiteSpace(visual.Text) ? null : visual.LinkUri;
         var run = new PdfCore.TextRun(
@@ -241,7 +263,7 @@ internal static class HtmlPdfRenderedConverter {
             linkContents: link == null ? null : visual.Text);
         canvas.Text(
             new[] { run },
-            MapStructureRole(visual.SemanticRole),
+            asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
             visual.X * PointsPerCssPixel,
             visual.Y * PointsPerCssPixel,
             visual.Width * PointsPerCssPixel,

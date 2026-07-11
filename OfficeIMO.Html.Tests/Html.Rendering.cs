@@ -897,7 +897,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_RenderedProfile_MapsHeadingsAndParagraphsToTaggedStructure() {
-        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title></head><body><h1>Semantic <em>heading</em></h1><p>Semantic paragraph.</p><h2>Nested detail</h2></body></html>";
+        const string html = "<!doctype html><html lang='pl-PL' dir='rtl'><head><title>Semantic document</title></head><body><main><h1>Semantic <em>heading</em></h1><p>Semantic <strong>paragraph</strong>.</p><h2>Nested detail</h2></main></body></html>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
         byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
 
@@ -927,6 +927,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("H1", tagged.StructureTypes);
         Assert.Contains("H2", tagged.StructureTypes);
         Assert.Contains("P", tagged.StructureTypes);
+        Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "Sect"));
+        Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H1"));
+        Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H2"));
+        Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "P"));
+        HtmlRenderSemanticGroup sectionScene = Assert.Single(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>());
+        Assert.Equal(HtmlRenderSemanticGroupRole.Section, sectionScene.Role);
+        Assert.Contains(sectionScene.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Heading1);
+        Assert.Contains(sectionScene.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Paragraph);
+        PdfCore.PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        Assert.All(
+            tagged.StructureElements.Where(element => element.StructureType == "H1" || element.StructureType == "H2" || element.StructureType == "P"),
+            element => Assert.Contains(element.ObjectNumber, section.ChildElementObjectNumbers));
+        Assert.True(tagged.StructureElements.Count(element => element.StructureType == "Span") >= 5);
         Assert.True(tagged.MarkedContentReferenceCount >= 2);
         PdfCore.PdfOutlineItem outline = Assert.Single(info.Outlines);
         Assert.Equal("Semantic heading", outline.Title);

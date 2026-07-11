@@ -76,6 +76,13 @@ internal static partial class PdfWriter {
         private static string MapCanvasStructureType(PdfCanvasStructureRole role) {
             if (role == PdfCanvasStructureRole.Section) return "Sect";
             if (role == PdfCanvasStructureRole.Division) return "Div";
+            if (role == PdfCanvasStructureRole.Paragraph) return "P";
+            if (role == PdfCanvasStructureRole.Heading1) return "H1";
+            if (role == PdfCanvasStructureRole.Heading2) return "H2";
+            if (role == PdfCanvasStructureRole.Heading3) return "H3";
+            if (role == PdfCanvasStructureRole.Heading4) return "H4";
+            if (role == PdfCanvasStructureRole.Heading5) return "H5";
+            if (role == PdfCanvasStructureRole.Heading6) return "H6";
             if (role == PdfCanvasStructureRole.List) return "L";
             if (role == PdfCanvasStructureRole.ListItem) return "LI";
             if (role == PdfCanvasStructureRole.ListLabel) return "Lbl";

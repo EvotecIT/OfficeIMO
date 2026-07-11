@@ -146,15 +146,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag == "table") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         if (tag == "hr") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
-            flexBlock = ApplyListSemantics(flexBlock, element);
+            flexBlock = ApplyElementSemantics(flexBlock, element);
             return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
         if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
-            gridBlock = ApplyListSemantics(gridBlock, element);
+            gridBlock = ApplyElementSemantics(gridBlock, element);
             return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
         if (TryLayoutMultiColumnContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock columnsBlock)) {
-            columnsBlock = ApplyListSemantics(columnsBlock, element);
+            columnsBlock = ApplyElementSemantics(columnsBlock, element);
             return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
         }
 
@@ -308,7 +308,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             adjustedContinuationGroups,
             adjustedTrailingGroups,
             pageName: pageName);
-        block = ApplyListSemantics(block, element);
+        block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
     }

@@ -12,6 +12,27 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentCanvasTests {
     [Fact]
+    public void CanvasStructure_GroupsFragmentedHeadingAndParagraphTextUnderSection() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Structure(PdfCanvasStructureRole.Section, section => section
+                    .Structure(PdfCanvasStructureRole.Heading1, heading => heading
+                        .Text(new[] { TextRun.Normal("Heading") }, PdfCanvasTextStructureRole.Span, 10D, 10D, 120D, 20D))
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
+                        .Text(new[] { TextRun.Normal("Paragraph") }, PdfCanvasTextStructureRole.Span, 10D, 40D, 120D, 20D))))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        PdfStructureElementInfo heading = Assert.Single(tagged.StructureElements, element => element.StructureType == "H1");
+        PdfStructureElementInfo paragraph = Assert.Single(tagged.StructureElements, element => element.StructureType == "P");
+        Assert.Contains(heading.ObjectNumber, section.ChildElementObjectNumbers);
+        Assert.Contains(paragraph.ObjectNumber, section.ChildElementObjectNumbers);
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Span"));
+    }
+
+    [Fact]
     public void CanvasStructure_BuildsNestedListAndTableHierarchyWithCellAttributes() {
         var headerOptions = new PdfCanvasStructureOptions {
             HeaderScope = PdfCanvasTableHeaderScope.Column,
