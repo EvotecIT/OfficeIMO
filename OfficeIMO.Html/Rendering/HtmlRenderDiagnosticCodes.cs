@@ -18,6 +18,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GradientStopLimitExceeded = "HtmlRenderGradientStopLimitExceeded";
     /// <summary>Layout exceeded the configured nesting-depth limit.</summary>
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
+    /// <summary>The source HTML string exceeded the configured character limit.</summary>
+    public const string InputCharacterLimitExceeded = "HtmlRenderInputCharacterLimitExceeded";
+    /// <summary>The parsed HTML document exceeded the configured DOM node limit.</summary>
+    public const string NodeLimitExceeded = "HtmlNodeLimitExceeded";
     /// <summary>A table contained no renderable rows or cells.</summary>
     public const string EmptyTable = "HtmlRenderEmptyTable";
     /// <summary>An external image requires asynchronous resource resolution.</summary>
@@ -34,7 +38,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
     /// <summary>Right-to-left inline content requires bidi positioning not yet active in the shared renderer.</summary>
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
-    /// <summary>A joining script requires contextual shaping that is not active in shared layout yet.</summary>
+    /// <summary>A joining script is outside the bounded core-Arabic contextual shaper.</summary>
     public const string ComplexTextShapingUnsupported = "HtmlRenderComplexTextShapingUnsupported";
     /// <summary>Flex layout used the documented normal-flow fallback.</summary>
     public const string FlexLayoutPending = "HtmlRenderFlexLayoutPending";
@@ -147,6 +151,8 @@ public static class HtmlRenderDiagnosticCodes {
         BackgroundImageTileLimitExceeded,
         GradientStopLimitExceeded,
         DepthLimitExceeded,
+        InputCharacterLimitExceeded,
+        NodeLimitExceeded,
         EmptyTable,
         ExternalImagePending,
         ExternalStylesheetPending,

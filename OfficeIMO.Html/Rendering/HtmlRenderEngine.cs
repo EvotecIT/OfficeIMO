@@ -16,7 +16,9 @@ public static class HtmlRenderEngine {
 
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
+        HtmlRenderInputGuard.ValidateSource(html, resolved);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        HtmlRenderInputGuard.ValidateDocument(document, resolved, CancellationToken.None);
         var diagnostics = new HtmlDiagnosticReport();
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
@@ -42,7 +44,9 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
+        HtmlRenderInputGuard.ValidateSource(html, resolved);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,

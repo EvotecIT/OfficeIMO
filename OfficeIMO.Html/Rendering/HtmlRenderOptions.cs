@@ -78,6 +78,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum element nesting depth processed by the layout engine.</summary>
     public int MaxLayoutDepth { get; set; } = 256;
 
+    /// <summary>Maximum UTF-16 characters accepted in the source HTML string.</summary>
+    public int MaxInputCharacters { get; set; } = 16 * 1024 * 1024;
+
+    /// <summary>Maximum DOM nodes accepted after parsing and before style or layout work begins.</summary>
+    public int MaxHtmlNodes { get; set; } = 100000;
+
     /// <summary>Maximum total repeated background-image tiles accepted in one render operation.</summary>
     public int MaxBackgroundImageTiles { get; set; } = 16384;
 
@@ -132,6 +138,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
         target.MaxLayoutDepth = MaxLayoutDepth;
+        target.MaxInputCharacters = MaxInputCharacters;
+        target.MaxHtmlNodes = MaxHtmlNodes;
         target.MaxBackgroundImageTiles = MaxBackgroundImageTiles;
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxBoxShadowLayers = MaxBoxShadowLayers;
@@ -168,6 +176,14 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxLayoutDepth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxLayoutDepth), "Maximum layout depth must be positive.");
+        }
+
+        if (MaxInputCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters), "Maximum source HTML character count must be positive.");
+        }
+
+        if (MaxHtmlNodes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxHtmlNodes), "Maximum HTML DOM node count must be positive.");
         }
 
         if (MaxBackgroundImageTiles <= 0) {
