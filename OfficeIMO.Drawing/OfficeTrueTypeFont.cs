@@ -241,14 +241,22 @@ public sealed class OfficeTrueTypeFont {
     /// <summary>Collection index when the font was loaded from a TrueType collection.</summary>
     public int? CollectionIndex => _collectionIndex;
 
-    private bool HasGlyphs(string value) {
+    internal bool HasGlyphs(string value) {
         for (int index = 0; index < value.Length;) {
             int scalar = ReadScalar(value, ref index);
-            if (!IsWhitespaceScalar(scalar) && MapGlyph(scalar) == 0) return false;
+            if (!IsWhitespaceScalar(scalar) && !IsIgnorableCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
         }
 
         return true;
     }
+
+    private static bool IsIgnorableCoverageScalar(int scalar) =>
+        scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
+        || scalar >= 0x200E && scalar <= 0x200F
+        || scalar >= 0x202A && scalar <= 0x202E
+        || scalar >= 0x2066 && scalar <= 0x2069
+        || scalar >= 0xFE00 && scalar <= 0xFE0F
+        || scalar >= 0xE0100 && scalar <= 0xE01EF;
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;

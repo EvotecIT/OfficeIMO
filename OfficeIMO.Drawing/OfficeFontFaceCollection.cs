@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Text;
 
 namespace OfficeIMO.Drawing;
 
@@ -84,13 +85,43 @@ public sealed class OfficeFontFaceCollection {
             return false;
         }
 
-        OfficeTrueTypeFont? font = Resolve(familyNames, style);
+        OfficeTrueTypeFont? font = ResolveForText(text!, familyNames, style, out OfficeFontStyle _);
         if (font == null) {
             return false;
         }
 
         width = font.Measure(text!, fontSize);
         return true;
+    }
+
+    /// <summary>
+    /// Splits text into grapheme-safe runs using the first scoped family whose selected face covers each text element.
+    /// Unresolved elements retain the original family list for platform or adapter fallback.
+    /// </summary>
+    public IReadOnlyList<OfficeFontFallbackRun> PlanFallbackRuns(string? text, string? familyNames, OfficeFontStyle style = OfficeFontStyle.Regular) {
+        if (string.IsNullOrEmpty(text)) return Array.Empty<OfficeFontFallbackRun>();
+
+        string requestedFamilies = familyNames?.Trim() ?? string.Empty;
+        var runs = new List<OfficeFontFallbackRun>();
+        var currentText = new StringBuilder();
+        string? currentFamily = null;
+        foreach (string element in OfficeTextElements.Enumerate(text)) {
+            string family = IsWhitespace(element) && currentFamily != null
+                ? currentFamily
+                : ResolveForText(element, requestedFamilies, style, out OfficeFontFace? face) != null
+                    ? face!.FamilyName
+                    : requestedFamilies;
+            if (currentFamily != null && !string.Equals(currentFamily, family, StringComparison.OrdinalIgnoreCase)) {
+                runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily));
+                currentText.Clear();
+            }
+
+            currentFamily = family;
+            currentText.Append(element);
+        }
+
+        if (currentText.Length > 0) runs.Add(new OfficeFontFallbackRun(currentText.ToString(), currentFamily ?? requestedFamilies));
+        return runs.AsReadOnly();
     }
 
     internal OfficeTrueTypeFont? Resolve(string? familyNames, OfficeFontStyle style) {
@@ -141,6 +172,51 @@ public sealed class OfficeFontFaceCollection {
         }
 
         return null;
+    }
+
+    internal OfficeTrueTypeFont? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
+        OfficeTrueTypeFont? font = ResolveForText(text, familyNames, style, out OfficeFontFace? face);
+        resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
+        return font;
+    }
+
+    private OfficeTrueTypeFont? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontFace? resolvedFace) {
+        resolvedFace = null;
+        if (string.IsNullOrWhiteSpace(familyNames) || _faces.Count == 0) return null;
+
+        OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
+        foreach (string rawFamily in familyNames!.Split(',')) {
+            string family = CleanFamilyName(rawFamily);
+            if (family.Length == 0) continue;
+
+            OfficeFontFace? exact = null;
+            OfficeFontFace? regular = null;
+            OfficeFontFace? first = null;
+            for (int index = _faces.Count - 1; index >= 0; index--) {
+                OfficeFontFace face = _faces[index];
+                if (!string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)) continue;
+                first ??= face;
+                if (face.Style == normalizedStyle) {
+                    exact = face;
+                    break;
+                }
+                if (face.Style == OfficeFontStyle.Regular) regular ??= face;
+            }
+
+            OfficeFontFace? preferred = exact ?? regular ?? first;
+            if (preferred == null || !preferred.ParsedFont.HasGlyphs(text)) continue;
+            resolvedFace = preferred;
+            return preferred.ParsedFont;
+        }
+
+        return null;
+    }
+
+    private static bool IsWhitespace(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (!char.IsWhiteSpace(value[index])) return false;
+        }
+        return value.Length > 0;
     }
 
     private static string CleanFamilyName(string familyName) {

@@ -25,12 +25,48 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
         }
 
+        runs = ApplyScopedFontFallbacks(runs);
+
         if (formattingContainer != null && HtmlRenderHeading.TryGetLevel(parentStyle.SemanticRole, out _)) {
             int semanticNodeId = GetSemanticNodeId(formattingContainer);
             foreach (HtmlInlineRun run in runs) run.AssignSemanticNode(parentStyle.SemanticRole, semanticNodeId);
         }
 
         return LayoutInlineRuns(runs, width, parentStyle, formattingContainer);
+    }
+
+    private List<HtmlInlineRun> ApplyScopedFontFallbacks(IEnumerable<HtmlInlineRun> sourceRuns) {
+        var resolvedRuns = new List<HtmlInlineRun>();
+        foreach (HtmlInlineRun run in sourceRuns) {
+            if (run.Text.Length == 0 || run.AtomicBlock != null || run.FloatingBlock != null || run.PositionedMarkerElement != null) {
+                resolvedRuns.Add(run);
+                continue;
+            }
+
+            IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(run.Text, run.Style.Font.FamilyName, run.Style.Font.Style);
+            if (fallbacks.Count == 1
+                && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
+                && string.Equals(fallbacks[0].FamilyName, run.Style.Font.FamilyName, StringComparison.Ordinal)) {
+                resolvedRuns.Add(run);
+                continue;
+            }
+
+            foreach (OfficeFontFallbackRun fallback in fallbacks) {
+                HtmlRenderBoxStyle style = run.Style.Clone();
+                style.Font = style.Font.WithFamilyName(fallback.FamilyName);
+                resolvedRuns.Add(new HtmlInlineRun(
+                    fallback.Text,
+                    style,
+                    run.LinkUri,
+                    run.Source,
+                    run.PaintOffsetX,
+                    run.PaintOffsetY,
+                    run.OwnerElement,
+                    run.PositionedMarkerElement));
+            }
+        }
+
+        return resolvedRuns;
     }
 
     private void CollectInlineRuns(

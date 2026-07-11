@@ -32,7 +32,7 @@ public sealed partial class OfficeRasterCanvas {
             return cached;
         }
 
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, style);
+        OfficeTrueTypeFont? font = ResolveTextFont(text!, fontFamily, style);
         double measured = font != null
             ? font.Measure(text!, size)
             : MeasureFallbackText(text!, size);
@@ -62,7 +62,7 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double size = Math.Max(6D, Math.Min(fontSize, height - 2D));
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, style, out OfficeFontStyle resolvedStyle);
+        OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, style, out OfficeFontStyle resolvedStyle);
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
             double measured = font.Measure(value, size);
@@ -157,7 +157,7 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
@@ -232,7 +232,7 @@ public sealed partial class OfficeRasterCanvas {
         double fontHeight = Math.Max(1D, height);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
+        OfficeTrueTypeFont? font = ResolveTextFont(value, fontFamily, fontStyle, out OfficeFontStyle resolvedStyle);
         bool simulateBold = bold && (resolvedStyle & OfficeFontStyle.Bold) != OfficeFontStyle.Bold;
         bool simulateItalic = italic && (resolvedStyle & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
@@ -382,13 +382,15 @@ public sealed partial class OfficeRasterCanvas {
         return MeasureStrokeText(text, fontSize);
     }
 
-    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) =>
-        ResolveTextFont(fontFamily, style, out _);
+    private OfficeTrueTypeFont? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style = OfficeFontStyle.Regular) =>
+        ResolveTextFont(text, fontFamily, style, out _);
 
-    private OfficeTrueTypeFont? ResolveTextFont(string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
+    private OfficeTrueTypeFont? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
         if (_fonts != null) {
-            OfficeTrueTypeFont? scoped = _fonts.Resolve(fontFamily, style, out resolvedStyle);
+            OfficeTrueTypeFont? scoped = string.IsNullOrEmpty(text)
+                ? _fonts.Resolve(fontFamily, style, out resolvedStyle)
+                : _fonts.ResolveForText(text!, fontFamily, style, out resolvedStyle);
             if (scoped != null) {
                 return scoped;
             }

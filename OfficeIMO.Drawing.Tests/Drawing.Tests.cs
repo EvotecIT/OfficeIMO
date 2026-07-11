@@ -3286,7 +3286,7 @@ public partial class DrawingTests {
         Assert.NotSame(fontData, fonts.Faces[0].Data);
 
         var canvas = new OfficeRasterCanvas(new OfficeRasterImage(16, 16), fonts: fonts);
-        Assert.Equal(500D, canvas.MeasureText("A", 1000D, "\"Scoped Demo\", sans-serif"));
+        Assert.Equal(500D, canvas.MeasureText(char.ConvertFromUtf32(0x1F600), 1000D, "\"Scoped Demo\", sans-serif"));
 
         var drawing = new OfficeDrawing(120D, 30D);
         drawing.Fonts.AddRange(fonts);
@@ -3295,6 +3295,32 @@ public partial class DrawingTests {
 
         Assert.Contains("@font-face{font-family:\"Scoped Demo\"", svg, StringComparison.Ordinal);
         Assert.Contains(Convert.ToBase64String(fontData), svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollectionPlansGraphemeSafeFallbackRunsByGlyphCoverage() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Emoji Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x1F600)))
+            .Add("Hebrew Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x05D0)));
+
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns(
+            char.ConvertFromUtf32(0x1F600) + "\u05D0 " + char.ConvertFromUtf32(0x1F600),
+            "'Emoji Demo', 'Hebrew Demo', sans-serif");
+
+        Assert.Collection(
+            runs,
+            run => {
+                Assert.Equal(char.ConvertFromUtf32(0x1F600), run.Text);
+                Assert.Equal("Emoji Demo", run.FamilyName);
+            },
+            run => {
+                Assert.Equal("\u05D0 ", run.Text);
+                Assert.Equal("Hebrew Demo", run.FamilyName);
+            },
+            run => {
+                Assert.Equal(char.ConvertFromUtf32(0x1F600), run.Text);
+                Assert.Equal("Emoji Demo", run.FamilyName);
+            });
     }
 
     [Fact]

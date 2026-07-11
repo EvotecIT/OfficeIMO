@@ -9,20 +9,55 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_UsesSharedGlyphCoveragePlanAcrossFontFamilyFallbacks() {
+        string emoji = char.ConvertFromUtf32(0x1F600);
+        byte[] emojiFont = CreateHtmlRenderTestFont(0x1F600);
+        byte[] hebrewFont = CreateHtmlRenderTestFont(0x05D0);
+        string html = "<style>"
+            + "@font-face{font-family:'Emoji Demo';src:url(\"data:font/ttf;base64," + Convert.ToBase64String(emojiFont) + "\")}"
+            + "@font-face{font-family:'Hebrew Demo';src:url(\"data:font/ttf;base64," + Convert.ToBase64String(hebrewFont) + "\")}"
+            + "p{font-family:'Emoji Demo','Hebrew Demo',sans-serif;font-size:20px;line-height:24px}"
+            + "</style><p>" + emoji + "\u05D0" + emoji + "</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        IReadOnlyList<HtmlRenderText> textRuns = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+
+        Assert.Collection(
+            textRuns,
+            run => {
+                Assert.Equal(emoji, run.Text);
+                Assert.Equal("Emoji Demo", run.Font.FamilyName);
+            },
+            run => {
+                Assert.Equal("\u05D0", run.Text);
+                Assert.Equal("Hebrew Demo", run.Font.FamilyName);
+            },
+            run => {
+                Assert.Equal(emoji, run.Text);
+                Assert.Equal("Emoji Demo", run.Font.FamilyName);
+            });
+        string svg = html.ToSvg();
+        Assert.Contains("font-family=\"Emoji Demo\"", svg, StringComparison.Ordinal);
+        Assert.Contains("font-family=\"Hebrew Demo\"", svg, StringComparison.Ordinal);
+        Assert.True(html.ToPng().Length > 8);
+    }
+
+    [Fact]
     public void HtmlRender_ActivatesDataUriFontFacesForLayoutAndImageBackends() {
+        string emoji = char.ConvertFromUtf32(0x1F600);
         byte[] fontData = CreateHtmlRenderTestFont();
         string html = "<style>"
             + "@font-face{font-family:'Scoped Demo';src:url(\"data:font/ttf;base64," + Convert.ToBase64String(fontData) + "\") format('truetype');}"
             + ".scoped{font-family:'Scoped Demo',sans-serif;font-size:100px;line-height:1}"
             + ".fallback{font-family:Arial,sans-serif;font-size:100px;line-height:1}"
-            + "</style><p style='margin:0'><span class='scoped'>AA</span><span class='fallback'>BB</span></p>";
+            + "</style><p style='margin:0'><span class='scoped'>" + emoji + emoji + "</span><span class='fallback'>BB</span></p>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
             ViewportWidth = 500D,
             Margins = HtmlRenderMargins.All(8D)
         });
 
-        HtmlRenderText scoped = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "AA");
+        HtmlRenderText scoped = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == emoji + emoji);
         HtmlRenderText fallback = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "BB");
         Assert.Single(rendered.Fonts.Faces);
         Assert.Single(rendered.Pages[0].Fonts.Faces);
@@ -39,6 +74,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public async Task HtmlRenderAsync_ResolvesAndActivatesExternalFontFacesRelativeToStylesheets() {
+        string emoji = char.ConvertFromUtf32(0x1F600);
         byte[] fontData = CreateHtmlRenderTestFont();
         var requested = new List<string>();
         var options = new HtmlRenderOptions {
@@ -60,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
-            "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><p class='remote'>AA</p>",
+            "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><p class='remote'>" + emoji + emoji + "</p>",
             options);
 
         Assert.Equal(new[] {
@@ -69,7 +105,7 @@ public sealed partial class HtmlRenderingTests {
         }, requested);
         OfficeFontFace face = Assert.Single(rendered.Fonts.Faces);
         Assert.Equal("Remote Demo", face.FamilyName);
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "AA" && text.Font.FamilyName.Contains("Remote Demo", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == emoji + emoji && text.Font.FamilyName.Contains("Remote Demo", StringComparison.Ordinal));
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
@@ -168,8 +204,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(options.RenderDiagnostics!.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
-    private static byte[] CreateHtmlRenderTestFont() {
-        byte[] cmap = CreateHtmlRenderFormat12Cmap(0x1F600);
+    private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {
+        byte[] cmap = CreateHtmlRenderFormat12Cmap(scalar);
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", new byte[4]),
