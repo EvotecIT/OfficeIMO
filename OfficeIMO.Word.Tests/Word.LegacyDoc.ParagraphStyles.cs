@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Body", paragraphs[2].Text);
             Assert.Null(paragraphs[2].Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             WordParagraph[] convertedParagraphs = converted.Paragraphs
                 .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text))
                 .ToArray();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Body", paragraphs[1].Text);
             Assert.Null(paragraphs[1].Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             WordParagraph convertedParagraph = converted.Paragraphs
                 .First(paragraph => paragraph.Text == "Styled Custom");
             Assert.Equal(WordParagraphStyles.Custom, convertedParagraph.Style);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomFormattedBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomFormattedBody");
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomChild", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Styles styles = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Style baseStyle = styles
                 .OfType<Style>()
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomNextSource", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Styles styles = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Style sourceStyle = styles
                 .OfType<Style>()
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Next");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Styles styles = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             Style headingStyle = styles
                 .OfType<Style>()
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomPaginationBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomPaginationBody");
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Pagination");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == headingStyleId);
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomShadedBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomShadedBody");
@@ -269,7 +269,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Shading");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == headingStyleId);
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomLayoutFlagsBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomLayoutFlagsBody");
@@ -328,7 +328,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Layout Flags");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == headingStyleId);
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomFontBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomFontBody");
@@ -387,7 +387,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Font Family");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == headingStyleId);
@@ -412,7 +412,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomLanguageBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomLanguageBody");
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Language");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == headingStyleId);
@@ -458,7 +458,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocCustomItalicUnderlineStrikeSuperMark", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == "LegacyDocCustomItalicUnderlineStrikeSuperMark");
@@ -484,7 +484,7 @@ namespace OfficeIMO.Tests {
                 item => item.Text == "Heading Italic Underline Strike Super Mark");
             Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
                 .OfType<Style>()
                 .First(style => style.StyleId?.Value == headingStyleId);
@@ -515,7 +515,7 @@ namespace OfficeIMO.Tests {
                     .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text))
                     .ToArray();
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(3, paragraphs.Length);
                 Assert.Equal("Heading One", paragraphs[0].Text);
                 Assert.Equal(WordParagraphStyles.Heading1, paragraphs[0].Style);
@@ -557,7 +557,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Native next style source", paragraph.Text);
                 Assert.Equal("LegacyDocNativeDOCNextSource", paragraph.StyleId);
@@ -606,7 +606,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Native custom child", paragraph.Text);
                 Assert.Equal("LegacyDocNativeDOCChild", paragraph.StyleId);
@@ -656,7 +656,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled numbered paragraph", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -714,7 +714,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Native custom explicit off child", paragraph.Text);
                 Assert.Equal("LegacyDocNativeDOCOffChild", paragraph.StyleId);
@@ -771,7 +771,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Native built-in next style source", paragraph.Text);
                 Assert.Equal(heading1StyleId, paragraph.StyleId);
@@ -812,7 +812,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled built-in numbered paragraph", paragraph.Text);
                 Assert.Equal(headingStyleId, paragraph.StyleId);

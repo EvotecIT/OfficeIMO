@@ -4,13 +4,14 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// </summary>
     public sealed class LegacyDocImportOptions {
         /// <summary>
-        /// Maximum size, in bytes, of the extracted WordDocument stream.
+        /// Maximum size, in bytes, of the extracted document input stream.
         /// </summary>
-        public int MaxWordDocumentStreamBytes { get; set; } = 64 * 1024 * 1024;
+        public int MaxInputBytes { get; set; } = 64 * 1024 * 1024;
 
         /// <summary>
-        /// When true, known unsupported legacy features are reported as diagnostics.
+        /// When true, known unsupported legacy content is reported as diagnostics.
         /// </summary>
-        public bool ReportUnsupportedFeatures { get; set; } = true;
+        public bool ReportUnsupportedContent { get; set; } = true;
+
     }
 }

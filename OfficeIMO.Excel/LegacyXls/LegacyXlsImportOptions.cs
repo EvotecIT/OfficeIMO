@@ -4,18 +4,19 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// </summary>
     public sealed class LegacyXlsImportOptions {
         /// <summary>
-        /// Maximum size, in bytes, of the extracted BIFF workbook stream.
+        /// Maximum size, in bytes, of the extracted workbook input stream.
         /// </summary>
-        public int MaxWorkbookStreamBytes { get; set; } = 64 * 1024 * 1024;
+        public int MaxInputBytes { get; set; } = 64 * 1024 * 1024;
 
         /// <summary>
-        /// When true, unsupported BIFF records are reported as warnings.
+        /// When true, unsupported legacy content is reported as warnings.
         /// </summary>
-        public bool ReportUnsupportedRecords { get; set; } = true;
+        public bool ReportUnsupportedContent { get; set; } = true;
 
         /// <summary>
         /// Optional password used to decrypt password-to-open encrypted legacy XLS workbooks.
         /// </summary>
         public string? Password { get; set; }
+
     }
 }

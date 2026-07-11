@@ -306,11 +306,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_SaveAsByteArray_RunsCompatibilityFixerAndStreamReadable() {
+        public void Test_ToDocx_RunsCompatibilityFixerAndStreamReadable() {
             using var document = WordDocument.Create();
             document.AddParagraph("Byte array compatibility");
 
-            byte[] data = document.SaveAsByteArray();
+            byte[] data = document.ToDocx();
 
             using var inspectionStream = new MemoryStream(data);
             using (var package = Package.Open(inspectionStream, FileMode.Open, FileAccess.Read)) {

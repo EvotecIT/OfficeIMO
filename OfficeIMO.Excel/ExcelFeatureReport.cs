@@ -646,7 +646,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void AddLegacyXlsImportFeatures(List<ExcelFeatureFinding> features) {
-            if (!WasLoadedFromLegacyXls) {
+            if (SourceFormat != ExcelFileFormat.Xls) {
                 return;
             }
 

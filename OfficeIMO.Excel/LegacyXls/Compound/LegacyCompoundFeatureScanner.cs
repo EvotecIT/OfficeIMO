@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             LegacyXlsImportOptions options,
             LegacyXlsUnsupportedFeature feature) {
             workbook.MutableUnsupportedFeatures.Add(feature);
-            if (options.ReportUnsupportedRecords) {
+            if (options.ReportUnsupportedContent) {
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Info,
                     feature.Code,

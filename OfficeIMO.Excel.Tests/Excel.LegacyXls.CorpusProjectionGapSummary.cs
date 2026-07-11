@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
 
             foreach (string workbookPath in workbookPaths) {
                 LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true
+                    ReportUnsupportedContent = true
                 });
                 LegacyXlsImportReport report = workbook.CreateImportReport();
                 string fixture = GetProjectionGapRelativePath(corpusDirectory, workbookPath).Replace('\\', '/');

@@ -105,7 +105,7 @@ internal static partial class Paragraphs {
 
             Console.WriteLine("Found paragraphs in document: " + document.Paragraphs.Count);
 
-            document.SaveAs(filePath, openWord);
+            document.SaveCopy(filePath, new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 

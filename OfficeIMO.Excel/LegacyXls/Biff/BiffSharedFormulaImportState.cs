@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             formulaTextProjected |= _sheet.TryReplaceFormulaText(cell.Row, cell.Column, formulaText!);
                         }
                     }
-                } else if (_options.ReportUnsupportedRecords) {
+                } else if (_options.ReportUnsupportedContent) {
                     string failureDescription = failure == null ? "Unsupported array formula tokens" : failure.Description;
                     _diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Info,
@@ -247,7 +247,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal void AddUnresolvedDiagnostics() {
-            if (!_options.ReportUnsupportedRecords) {
+            if (!_options.ReportUnsupportedContent) {
                 return;
             }
 
@@ -310,7 +310,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return;
             }
 
-            if (!_options.ReportUnsupportedRecords) {
+            if (!_options.ReportUnsupportedContent) {
                 return;
             }
 
@@ -356,7 +356,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             definition.ArrayFormulaRecord?.AddMatchedFormulaCell(formulaTextProjected);
 
-            if (!_options.ReportUnsupportedRecords) {
+            if (!_options.ReportUnsupportedContent) {
                 return;
             }
 

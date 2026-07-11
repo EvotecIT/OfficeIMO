@@ -496,6 +496,53 @@ namespace OfficeIMO.Word {
             return word;
         }
 
+        /// <summary>Asynchronously loads a Word document from a readable stream.</summary>
+        /// <param name="stream">Stream containing DOC or DOCX content.</param>
+        /// <param name="readOnly">Open the document in read-only mode.</param>
+        /// <param name="autoSave">Save editable changes back to the caller-owned stream on dispose.</param>
+        /// <param name="overrideStyles">Replace existing styles with library versions when editable.</param>
+        /// <param name="openSettings">Optional Open XML settings.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The loaded document. The caller retains ownership of <paramref name="stream"/>.</returns>
+        public static async Task<WordDocument> LoadAsync(
+            Stream stream,
+            bool readOnly = false,
+            bool autoSave = false,
+            bool overrideStyles = false,
+            OpenSettings? openSettings = null,
+            CancellationToken cancellationToken = default) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            OpenSettings effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+            bool copyBackToSource = effectiveOpenSettings.AutoSave && !readOnly;
+            if (copyBackToSource && !stream.CanWrite) {
+                throw new ArgumentException("Stream must be writable when autoSave is enabled for an editable document.", nameof(stream));
+            }
+            if (copyBackToSource && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when autoSave is enabled for an editable document.", nameof(stream));
+            }
+
+            if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+            var bufferedStream = new MemoryStream();
+            try {
+                await stream.CopyToAsync(bufferedStream, 81920, cancellationToken).ConfigureAwait(false);
+                bufferedStream.Seek(0, SeekOrigin.Begin);
+                WordDocument document = Load(bufferedStream, readOnly, autoSave, overrideStyles, openSettings);
+                if (document.SourceFormat == WordFileFormat.Doc) {
+                    bufferedStream.Dispose();
+                } else {
+                    document._ownedPackageStream = bufferedStream;
+                    document.OriginalStream = stream;
+                }
+
+                return document;
+            } catch {
+                bufferedStream.Dispose();
+                throw;
+            }
+        }
+
         /// <summary>
         /// Load WordDocument from stream
         /// </summary>
@@ -521,11 +568,13 @@ namespace OfficeIMO.Word {
                 long originalPosition = stream.Position;
                 stream.Seek(0, SeekOrigin.Begin);
                 byte[] signature = ReadSignaturePrefix(stream);
-                if (WordDocumentLoadRouting.HasLegacyDocSignature(signature)) {
+                if (WordDocumentLoadRouting.HasOleCompoundSignature(signature)) {
                     stream.Seek(0, SeekOrigin.Begin);
                     byte[] sourceBytes = ReadRemainingBytes(stream);
                     stream.Seek(originalPosition, SeekOrigin.Begin);
-                    return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
+                    if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
+                        return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
+                    }
                 }
 
                 stream.Seek(originalPosition, SeekOrigin.Begin);

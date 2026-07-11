@@ -89,7 +89,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath) =>
-            ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: false);
+            ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: sourcePath != null);
 
         private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath, bool attachSourcePathForSave) {
             LegacyDocImportDiagnostic[] errors = legacyDocument.Diagnostics

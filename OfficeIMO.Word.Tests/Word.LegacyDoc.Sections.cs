@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Section page borders", Assert.Single(reloaded.Paragraphs).Text);
 
                 PageBorders pageBorders = Assert.IsType<PageBorders>(reloaded.Sections[0]._sectionProperties.GetFirstChild<PageBorders>());
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Section page border positioning", Assert.Single(reloaded.Paragraphs).Text);
 
                 PageBorders pageBorders = Assert.IsType<PageBorders>(reloaded.Sections[0]._sectionProperties.GetFirstChild<PageBorders>());
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Section extended page numbering", Assert.Single(reloaded.Paragraphs).Text);
 
                 PageNumberType pageNumberType = reloaded.Sections[0].PageNumberType;
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Extended note numbering", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(NumberFormatValues.DecimalZero, reloaded.Sections[0].FootnoteProperties.NumberingFormat?.Val?.Value);
                 Assert.Equal(NumberFormatValues.NumberInDash, reloaded.Sections[0].EndnoteProperties.NumberingFormat?.Val?.Value);

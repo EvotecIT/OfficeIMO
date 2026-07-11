@@ -298,7 +298,7 @@ public static partial class DocumentReader {
         OpenSettings? openSettings = CreateOpenSettings(opt);
         if (!string.IsNullOrEmpty(opt.OpenPassword)) {
             return ExcelDocument.LoadLegacyXls(path, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true,
+                ReportUnsupportedContent = true,
                 Password = opt.OpenPassword
             });
         }
@@ -311,7 +311,7 @@ public static partial class DocumentReader {
         if (!string.IsNullOrEmpty(opt.OpenPassword)) {
             stream.Position = 0;
             return ExcelDocument.LoadLegacyXls(stream, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true,
+                ReportUnsupportedContent = true,
                 Password = opt.OpenPassword
             });
         }
@@ -358,7 +358,7 @@ public static partial class DocumentReader {
     }
 
     private static IReadOnlyList<string>? BuildLegacyWordWarnings(WordDocument document) {
-        if (!document.WasLoadedFromLegacyDoc) {
+        if (document.SourceFormat != WordFileFormat.Doc) {
             return null;
         }
 
@@ -387,7 +387,7 @@ public static partial class DocumentReader {
     }
 
     private static IReadOnlyList<string>? BuildLegacyExcelWarnings(ExcelDocument document) {
-        if (!document.WasLoadedFromLegacyXls) {
+        if (document.SourceFormat != ExcelFileFormat.Xls) {
             return null;
         }
 

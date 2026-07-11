@@ -39,11 +39,11 @@ namespace OfficeIMO.Tests {
             foreach (string workbookPath in workbookPaths) {
                 string relativePath = GetRelativePath(corpusDirectory, workbookPath);
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true
+                    ReportUnsupportedContent = true
                 });
 
                 Assert.False(result.HasImportErrors, relativePath);
-                if (result.ImportReport.UnsupportedProjectionGapCount > 0) {
+                if (result.HasConversionLoss) {
                     continue;
                 }
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                     result.Document.Save(outputPath);
 
                     using (ExcelDocument converted = ExcelDocument.Load(outputPath)) {
-                        Assert.False(converted.WasLoadedFromLegacyXls);
+                        Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                         Assert.Equal(result.Document.Sheets.Count, converted.Sheets.Count);
                     }
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 "valid.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
                 "external-links.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
                 "objects.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
                 "auto-filter-shapes.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -391,7 +391,7 @@ namespace OfficeIMO.Tests {
                 "data-validation-shapes.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -463,7 +463,7 @@ namespace OfficeIMO.Tests {
                 "conditional-format-shapes.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -555,7 +555,7 @@ namespace OfficeIMO.Tests {
                 "analytics.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
                 "valid.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -649,7 +649,7 @@ namespace OfficeIMO.Tests {
                 "formula-stress.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -714,7 +714,7 @@ namespace OfficeIMO.Tests {
                 "formula-functions.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -767,7 +767,7 @@ namespace OfficeIMO.Tests {
                 "formula-advanced.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -822,7 +822,7 @@ namespace OfficeIMO.Tests {
                 "protection.xls");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -878,7 +878,7 @@ namespace OfficeIMO.Tests {
                 "encrypted-password.xls");
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -909,7 +909,7 @@ namespace OfficeIMO.Tests {
                 "encrypted-password.xls");
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true,
+                ReportUnsupportedContent = true,
                 Password = "wrongpass"
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
@@ -937,7 +937,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true,
+                    ReportUnsupportedContent = true,
                     Password = "openpass"
                 });
                 LegacyXlsWorkbook workbook = result.Workbook;
@@ -959,7 +959,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && Equals(cell.Value, 42d));
 
                 using (ExcelDocument encryptedLoadDocument = ExcelDocument.LoadEncrypted(workbookPath, "openpass")) {
-                    Assert.True(encryptedLoadDocument.WasLoadedFromLegacyXls);
+                    Assert.True(encryptedLoadDocument.SourceFormat == ExcelFileFormat.Xls);
                     Assert.Equal("Encrypted", encryptedLoadDocument.Sheets.Single().Name);
                 }
 
@@ -985,7 +985,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true
+                    ReportUnsupportedContent = true
                 });
                 LegacyXlsWorkbook workbook = result.Workbook;
                 LegacyXlsImportReport report = result.ImportReport;
@@ -1010,7 +1010,7 @@ namespace OfficeIMO.Tests {
                 result.Document.Save(outputPath);
 
                 using (ExcelDocument converted = ExcelDocument.Load(outputPath)) {
-                    Assert.False(converted.WasLoadedFromLegacyXls);
+                    Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                     Assert.Equal(1, converted.Sheets.Count);
                 }
 
@@ -1036,7 +1036,7 @@ namespace OfficeIMO.Tests {
                 "apache-poi-testdata",
                 fileName);
             return ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
         }
 
@@ -1057,7 +1057,7 @@ namespace OfficeIMO.Tests {
             var missingBaselines = new List<string>();
             foreach (string workbookPath in workbookPaths) {
                 LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true
+                    ReportUnsupportedContent = true
                 });
                 string actual = NormalizeBaselineText(workbook.CreateImportReport().ToMarkdown());
                 string baselinePath = Path.ChangeExtension(workbookPath, ".import-report.md");

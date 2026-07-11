@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel {
             }
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportDiagnostic[] errors = workbook.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)
@@ -466,9 +466,10 @@ namespace OfficeIMO.Excel {
         /// <param name="readOnly">Open the file in read-only mode.</param>
         /// <param name="autoSave">Enable auto-save on dispose.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
+        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
             if (filePath == null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -476,7 +477,7 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var bytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
+            var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
             return LoadFromByteArray(bytes, readOnly, autoSave, filePath, log: null, openSettings, preferFilePathOnFallback: true);
         }
 
@@ -488,8 +489,9 @@ namespace OfficeIMO.Excel {
         /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
         /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
+        public static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
@@ -501,7 +503,7 @@ namespace OfficeIMO.Excel {
                 return LoadEncryptedLegacyXls(filePath, password);
             }
 
-            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
+            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
@@ -567,7 +569,7 @@ namespace OfficeIMO.Excel {
         private static ExcelDocument LoadEncryptedLegacyXls(string filePath, string password) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(filePath, new LegacyXlsImportOptions {
                 Password = password,
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }

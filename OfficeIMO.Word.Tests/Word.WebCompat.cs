@@ -23,7 +23,8 @@ namespace OfficeIMO.Tests {
             footerTable.Width = 4000;
 
             document.NormalizeTablesForOnline();
-            document.Save();
+            using var saved = new MemoryStream();
+            document.Save(saved);
 
             var bodyGrid = document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<TableGrid>().FirstOrDefault();
             Assert.NotNull(bodyGrid);
@@ -69,7 +70,8 @@ namespace OfficeIMO.Tests {
             headerTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
 
             document.NormalizeTablesForOnline();
-            document.Save();
+            using var saved = new MemoryStream();
+            document.Save(saved);
 
             var bodyMergedTable = document._wordprocessingDocument.MainDocumentPart!.Document.Body!
                 .Descendants<Table>()

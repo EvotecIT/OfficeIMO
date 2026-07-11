@@ -142,7 +142,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             preservedFeatureRecords.Add(preservedRecord!);
                         }
 
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(diagnostics, type, offset, sheet.Name);
                         }
                     }

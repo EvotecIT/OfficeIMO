@@ -107,7 +107,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                                     $"The OLE custom document property '{name.Value}' uses unsupported VARTYPE 0x{value.Type:X4}; the property is preserved in the source file but is not projected into the OfficeIMO document.",
                                     entryPath: DocumentSummaryInformationStreamName,
                                     detailCode: $"OleProperty:VT=0x{value.Type:X4}"),
-                                options.ReportUnsupportedFeatures);
+                                options.ReportUnsupportedContent);
                         }
                     }
                 }

@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
 
-            using MemoryStream stream = document.SaveAsMemoryStream();
+            using MemoryStream stream = document.ToDocxStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));

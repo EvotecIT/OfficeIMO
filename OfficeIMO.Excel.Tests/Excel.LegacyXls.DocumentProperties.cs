@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using ExcelDocument converted = ExcelDocument.Load(outputPath);
-                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                 AssertLegacyDocumentProperties(converted, created, modified, reviewedAt, binaryPayload, assertModified: false);
             } finally {
                 TryDelete(outputPath);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 CreateDocumentSummaryInformationPropertySetWithUnsupportedCustomProperty());
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.False(result.HasImportErrors);

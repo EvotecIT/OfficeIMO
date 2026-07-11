@@ -21,14 +21,22 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            ExcelDocument.Convert(xlsxPath, xlsPath);
+            ExcelDocumentConversionResult toXls = ExcelDocument.Convert(xlsxPath, xlsPath);
+
+            Assert.True(toXls.OutputCreated);
+            Assert.Equal(ExcelFileFormat.Xlsx, toXls.SourceFormat);
+            Assert.Equal(ExcelFileFormat.Xls, toXls.DestinationFormat);
+            Assert.False(toXls.HasDataLoss);
 
             AssertNativeXlsRoundTrip(xlsPath, expectedRow2Name: "Alice");
 
-            ExcelDocument.Convert(xlsPath, roundTripPath);
+            ExcelDocumentConversionResult toXlsx = ExcelDocument.Convert(xlsPath, roundTripPath);
+
+            Assert.Equal(ExcelFileFormat.Xls, toXlsx.SourceFormat);
+            Assert.Equal(ExcelFileFormat.Xlsx, toXlsx.DestinationFormat);
 
             using ExcelDocument roundTrip = ExcelDocument.Load(roundTripPath);
-            Assert.False(roundTrip.WasLoadedFromLegacyXls);
+            Assert.False(roundTrip.SourceFormat == ExcelFileFormat.Xls);
             Assert.True(roundTrip.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.Equal("Name", header);
             Assert.True(roundTrip.Sheets[0].TryGetCellText(2, 1, out string? name));
@@ -46,22 +54,69 @@ namespace OfficeIMO.Tests {
             string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
 
             try {
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
+                ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
 
-                Assert.Contains("unsupported, preserve-only, or non-projected", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+                Assert.True(exception.Result.HasDataLoss);
                 Assert.False(File.Exists(blockedPath));
 
-                ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
-                    AllowLossyLegacyConversion = true
+                ExcelDocumentConversionResult result = ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
+                    LossPolicy = ExcelConversionLossPolicy.Allow
                 });
 
+                Assert.True(result.HasDataLoss);
+                Assert.True(result.OutputCreated);
+
                 using ExcelDocument converted = ExcelDocument.Load(allowedPath);
-                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? header));
                 Assert.Equal("Feature", header);
             } finally {
                 TryDelete(xlsPath);
             }
+        }
+
+        [Fact]
+        public void LegacyXls_Convert_DefaultConflictPolicyPreservesExistingDestination() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
+            byte[] existing = { 1, 2, 3, 4 };
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Conflict policy");
+                document.Save();
+            }
+            File.WriteAllBytes(destinationPath, existing);
+
+            ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
+                ExcelDocument.Convert(sourcePath, destinationPath));
+
+            Assert.Equal(ExcelDocumentConversionFailureReason.DestinationExists, exception.Reason);
+            Assert.Equal(existing, File.ReadAllBytes(destinationPath));
+
+            ExcelDocumentConversionResult replaced = ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
+                FileConflictPolicy = ExcelConversionFileConflictPolicy.Replace
+            });
+            Assert.True(replaced.ReplacedExistingFile);
+            using ExcelDocument loaded = ExcelDocument.Load(destinationPath);
+            Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
+            Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? value));
+            Assert.Equal("Conflict policy", value);
+        }
+
+        [Fact]
+        public void LegacyXls_Convert_RejectsSamePhysicalFormat() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Already XLSX");
+                document.Save();
+            }
+
+            ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() =>
+                ExcelDocument.Convert(sourcePath, destinationPath));
+
+            Assert.Equal(ExcelDocumentConversionFailureReason.SameFormat, exception.Reason);
+            Assert.False(File.Exists(destinationPath));
         }
 
         [Fact]
@@ -73,17 +128,18 @@ namespace OfficeIMO.Tests {
             string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
 
             try {
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
+                ExcelDocumentConversionException exception = Assert.Throws<ExcelDocumentConversionException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
 
-                Assert.Contains(nameof(ExcelDocument.LegacyXlsCompoundFeatures), exception.Message, StringComparison.Ordinal);
+                Assert.Equal(ExcelDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
+                Assert.Contains(exception.Result.Diagnostics, diagnostic => diagnostic.Code.Contains("Compound", StringComparison.Ordinal));
                 Assert.False(File.Exists(blockedPath));
 
                 ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
-                    AllowLossyLegacyConversion = true
+                    LossPolicy = ExcelConversionLossPolicy.Allow
                 });
 
                 using ExcelDocument converted = ExcelDocument.Load(allowedPath);
-                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? text));
                 Assert.Equal("Name", text);
             } finally {
@@ -108,6 +164,52 @@ namespace OfficeIMO.Tests {
             } finally {
                 TryDelete(xlsPath);
                 TryDelete(convertedPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalSave_BlocksKnownImportLossUnlessExplicitlyAllowed() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string xlsPath = WriteTempWorkbook(compound, ".xls");
+            string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(xlsPath);
+
+                Assert.Throws<NotSupportedException>(() => document.Save(blockedPath));
+                Assert.False(File.Exists(blockedPath));
+
+                document.Save(allowedPath, new ExcelSaveOptions {
+                    LossPolicy = ExcelConversionLossPolicy.Allow
+                });
+
+                using ExcelDocument saved = ExcelDocument.Load(allowedPath);
+                Assert.True(saved.Sheets[0].TryGetCellText(1, 1, out string? text));
+                Assert.Equal("Feature", text);
+            } finally {
+                TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalSave_DoesNotTreatProjectedChartSheetsAsLoss() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateChartOnlyWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string xlsPath = WriteTempWorkbook(compound, ".xls");
+            string xlsxPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Load(xlsPath)) {
+                    document.Save(xlsxPath);
+                }
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(xlsxPath, false);
+                Assert.Single(spreadsheet.WorkbookPart!.ChartsheetParts);
+            } finally {
+                TryDelete(xlsPath);
+                TryDelete(xlsxPath);
             }
         }
     }

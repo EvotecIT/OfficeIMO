@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Threading;
@@ -9,15 +10,19 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private LegacyXlsImportDiagnostic[] _legacyXlsImportDiagnostics = Array.Empty<LegacyXlsImportDiagnostic>();
         private LegacyXlsUnsupportedFeature[] _legacyXlsUnsupportedFeatures = Array.Empty<LegacyXlsUnsupportedFeature>();
+        private LegacyXlsPreservedFeatureRecord[] _legacyXlsPreservedFeatures = Array.Empty<LegacyXlsPreservedFeatureRecord>();
         private LegacyXlsUnsupportedSheet[] _legacyXlsUnsupportedSheets = Array.Empty<LegacyXlsUnsupportedSheet>();
         private LegacyXlsChartSheet[] _legacyXlsChartSheets = Array.Empty<LegacyXlsChartSheet>();
         private LegacyXlsCompoundFeatureRecord[] _legacyXlsCompoundFeatures = Array.Empty<LegacyXlsCompoundFeatureRecord>();
         private string? _legacyXlsSourcePath;
 
-        /// <summary>
-        /// Gets whether this workbook was projected from a legacy binary XLS source through normal loading.
-        /// </summary>
-        public bool WasLoadedFromLegacyXls { get; private set; }
+        /// <summary>Gets the detected physical format of the workbook source.</summary>
+        public ExcelFileFormat SourceFormat { get; private set; } = ExcelFileFormat.Xlsx;
+
+        /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
+        public string? SourcePath => SourceFormat == ExcelFileFormat.Xls
+            ? _legacyXlsSourcePath
+            : string.IsNullOrWhiteSpace(FilePath) ? null : FilePath;
 
         /// <summary>
         /// Gets diagnostics produced while importing a legacy binary XLS source through normal loading.
@@ -28,6 +33,9 @@ namespace OfficeIMO.Excel {
         /// Gets unsupported or preserve-only legacy XLS features discovered during normal loading.
         /// </summary>
         public IReadOnlyList<LegacyXlsUnsupportedFeature> LegacyXlsUnsupportedFeatures => _legacyXlsUnsupportedFeatures;
+
+        /// <summary>Gets preserve-only BIFF feature records that were not projected into the normal workbook model.</summary>
+        public IReadOnlyList<LegacyXlsPreservedFeatureRecord> LegacyXlsPreservedFeatures => _legacyXlsPreservedFeatures;
 
         /// <summary>
         /// Gets legacy XLS sheet entries that were discovered but not projected as normal worksheets.
@@ -47,10 +55,11 @@ namespace OfficeIMO.Excel {
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
-            WasLoadedFromLegacyXls = true;
+            SourceFormat = ExcelFileFormat.Xls;
             _legacyXlsSourcePath = sourcePath;
             _legacyXlsImportDiagnostics = workbook.Diagnostics.ToArray();
             _legacyXlsUnsupportedFeatures = workbook.UnsupportedFeatures.ToArray();
+            _legacyXlsPreservedFeatures = workbook.PreservedFeatureRecords.ToArray();
             _legacyXlsUnsupportedSheets = workbook.UnsupportedSheets.ToArray();
             _legacyXlsChartSheets = workbook.ChartSheets.ToArray();
             _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
@@ -74,7 +83,7 @@ namespace OfficeIMO.Excel {
 
         private void EnsureLegacyBinaryExcelSaveTargetSupported(string path, bool allowNativeXls, ExcelSaveOptions? options = null) {
             if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
-                EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(options);
+                EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true);
 
                 if (allowNativeXls) {
                     return;
@@ -87,7 +96,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (!WasLoadedFromLegacyXls) {
+            if (SourceFormat != ExcelFileFormat.Xls) {
                 throw new NotSupportedException("Native XLS saving currently supports .xls workbook files only. Legacy .xlt, .xla, .xlm, and .xlw save targets are not supported.");
             }
 
@@ -97,24 +106,36 @@ namespace OfficeIMO.Excel {
             throw new NotSupportedException($"Native XLS saving currently supports .xls workbook files only. This workbook was loaded from {source}; legacy .xlt, .xla, .xlm, and .xlw save targets are not supported.");
         }
 
-        private bool HasLossyLegacyXlsImportState() {
+        private bool HasLossyLegacyXlsImportState(bool includeProjectedChartSheets) {
             return _legacyXlsUnsupportedFeatures.Length > 0
                 || _legacyXlsUnsupportedSheets.Length > 0
-                || _legacyXlsChartSheets.Length > 0
-                || _legacyXlsCompoundFeatures.Length > 0;
+                || (includeProjectedChartSheets && _legacyXlsChartSheets.Length > 0)
+                || _legacyXlsCompoundFeatures.Any(feature =>
+                    feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
+                    || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject);
         }
 
-        private void EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(ExcelSaveOptions? options) {
-            if (!WasLoadedFromLegacyXls
-                || !HasLossyLegacyXlsImportState()
-                || options?.AllowLossyLegacyXlsSave == true) {
+        private void EnsureLegacyXlsSaveDoesNotDropImportedContent(ExcelSaveOptions? options, bool includeProjectedChartSheets = false) {
+            if (SourceFormat != ExcelFileFormat.Xls
+                || !HasLossyLegacyXlsImportState(includeProjectedChartSheets)
+                || options?.LossPolicy == ExcelConversionLossPolicy.Allow) {
                 return;
             }
 
             string source = string.IsNullOrWhiteSpace(_legacyXlsSourcePath)
                 ? "a legacy binary .xls source"
                 : $"legacy binary .xls source '{_legacyXlsSourcePath}'";
-            throw new NotSupportedException($"Native XLS saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content. Save to .xlsx, remove the unsupported legacy content, or set ExcelSaveOptions.AllowLossyLegacyXlsSave when that loss is intentional.");
+            string codes = string.Join(", ", _legacyXlsUnsupportedFeatures
+                .Select(feature => feature.Code)
+                .Concat(_legacyXlsUnsupportedSheets.Select(sheet => "UnsupportedSheet:" + sheet.Kind))
+                .Concat(_legacyXlsCompoundFeatures
+                    .Where(feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject)
+                    .Select(feature => "Compound:" + feature.Kind))
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.Ordinal)
+                .Take(8));
+            string details = string.IsNullOrWhiteSpace(codes) ? string.Empty : $" Findings: {codes}.";
+            throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to ExcelConversionLossPolicy.Allow when that loss is intentional.");
         }
 
         private bool TrySaveNativeLegacyXlsToFile(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
@@ -201,12 +222,12 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TrySaveNativeLegacyXlsToStream(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
-            if (options?.StreamFormat != ExcelStreamSaveFormat.LegacyXls) {
+        private bool TrySaveNativeLegacyXlsToStream(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (format != ExcelFileFormat.Xls) {
                 return false;
             }
 
-            EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(options);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
@@ -221,12 +242,12 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private async Task<bool> TrySaveNativeLegacyXlsToStreamAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
-            if (options?.StreamFormat != ExcelStreamSaveFormat.LegacyXls) {
+        private async Task<bool> TrySaveNativeLegacyXlsToStreamAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (format != ExcelFileFormat.Xls) {
                 return false;
             }
 
-            EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(options);
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options, includeProjectedChartSheets: true);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
@@ -259,7 +280,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool ShouldCloseOpenPackageForNativeLegacyXlsFileSave(string path) {
-            if (WasLoadedFromLegacyXls || string.IsNullOrWhiteSpace(FilePath)) {
+            if (SourceFormat == ExcelFileFormat.Xls || string.IsNullOrWhiteSpace(FilePath)) {
                 return false;
             }
 

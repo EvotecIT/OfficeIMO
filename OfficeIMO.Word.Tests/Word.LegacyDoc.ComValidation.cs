@@ -26,16 +26,8 @@ namespace OfficeIMO.Tests {
         private const int WdColorRed = 255;
         private static readonly TimeSpan WordComOpenTimeout = TimeSpan.FromMinutes(2);
 
-        [Fact]
+        [LegacyDocComFact]
         public void LegacyDoc_ComGeneratedDocument_ImportsAndNativeSaveOpensInDesktopWordWhenRequested() {
-            if (GetType() != typeof(Word)) {
-                return;
-            }
-
-            if (!IsLegacyDocComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
 
@@ -51,7 +43,7 @@ namespace OfficeIMO.Tests {
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(sourceDocPath);
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
-            Assert.True(result.Document.WasLoadedFromLegacyDoc);
+            Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "First Word COM paragraph");
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Centered Word COM paragraph" && paragraph.ParagraphAlignment == JustificationValues.Center);
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Right Word COM paragraph" && paragraph.ParagraphAlignment == JustificationValues.Right);
@@ -62,21 +54,13 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native DOC output did not open through desktop Word.");
 
             WordDocument.Convert(sourceDocPath, convertedDocxPath, new WordDocumentConversionOptions {
-                AllowLossyLegacyConversion = true
+                LossPolicy = WordConversionLossPolicy.Allow
             });
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { convertedDocxPath }, "The OfficeIMO converted DOCX output did not open through desktop Word.");
         }
 
-        [Fact]
+        [LegacyDocComFact]
         public void LegacyDoc_NativeFootnoteSaveOpensInDesktopWordWhenRequested() {
-            if (GetType() != typeof(Word)) {
-                return;
-            }
-
-            if (!IsLegacyDocComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
 
@@ -94,16 +78,8 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC footnote output did not open through desktop Word.");
         }
 
-        [Fact]
+        [LegacyDocComFact]
         public void LegacyDoc_NativeEndnoteSaveOpensInDesktopWordWhenRequested() {
-            if (GetType() != typeof(Word)) {
-                return;
-            }
-
-            if (!IsLegacyDocComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
 
@@ -121,16 +97,8 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC endnote output did not open through desktop Word.");
         }
 
-        [Fact]
+        [LegacyDocComFact]
         public void LegacyDoc_ConvertGeneratedDocxToDocOpensInDesktopWordWhenRequested() {
-            if (GetType() != typeof(Word)) {
-                return;
-            }
-
-            if (!IsLegacyDocComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
 
@@ -151,16 +119,8 @@ namespace OfficeIMO.Tests {
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { directDocPath, convertedDocPath }, "One or more OfficeIMO generated native DOC outputs did not open through desktop Word.");
         }
 
-        [Fact]
+        [LegacyDocComFact]
         public void LegacyDoc_ComGeneratedCustomParagraphStyle_ImportsStylesheetStyleWhenRequested() {
-            if (GetType() != typeof(Word)) {
-                return;
-            }
-
-            if (!IsLegacyDocComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
 
@@ -179,7 +139,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocOfficeIMOCustomBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             WordParagraph convertedParagraph = converted.Paragraphs
                 .First(item => item.Text == "Custom style Word COM paragraph");
             Assert.Equal(WordParagraphStyles.Custom, convertedParagraph.Style);
@@ -202,31 +162,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Courier New", runFonts.HighAnsi?.Value);
         }
 
-        [Fact]
+        [LegacyDocComFact]
         public void LegacyDoc_CorpusFixtures_OpenInDesktopWordWhenRequested() {
-            if (GetType() != typeof(Word)) {
-                return;
-            }
-
-            if (!IsLegacyDocComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
             Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
 
             string corpusDirectory = Path.Combine(GetWordTestsProjectRoot(), "Documents", "LegacyDocCorpus");
-            if (!Directory.Exists(corpusDirectory)) {
-                return;
-            }
+            Assert.True(Directory.Exists(corpusDirectory), $"Legacy DOC corpus directory '{corpusDirectory}' was not found.");
 
             string[] documentPaths = Directory.GetFiles(corpusDirectory, "*.doc", SearchOption.AllDirectories)
                 .Where(path => !Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
                 .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            if (documentPaths.Length == 0) {
-                return;
-            }
+            Assert.NotEmpty(documentPaths);
 
             AssertDocumentsOpenViaWordComWhenAvailable(documentPaths, "One or more legacy DOC corpus fixtures failed to open in desktop Word.");
         }

@@ -151,8 +151,9 @@ WordDocument.Convert("openxml-input.docx", "legacy-output.doc");
 
 using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport("legacy-input.doc");
 if (result.HasDocument) {
-    result.Document!.Save("converted-output.docx");
-    string report = result.ImportReport.ToMarkdown();
+    result.EnsureNoConversionLoss();
+    result.Document.Save("converted-output.docx");
+    string report = result.CreateAdvancedImportReport().ToMarkdown();
 }
 ```
 
@@ -204,9 +205,11 @@ nested table shapes,
 richer note body structures, and richer header/footer or section shapes are
 diagnosed or blocked rather than silently flattened. `WordDocument.Convert(...)`
 uses those same load and save paths and blocks legacy sources with unsupported
-or preserve-only content by default; set
-`WordDocumentConversionOptions.AllowLossyLegacyConversion` only when that loss
-has been reviewed and is intentional.
+or preserve-only content by default. Set `LossPolicy` to
+`WordConversionLossPolicy.Allow` on `WordDocumentConversionOptions` or
+`WordSaveOptions` only when that loss has been reviewed and is intentional.
+See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-roadmap.md)
+for the current capability matrix, safety contract, and breaking API migration.
 
 ### Protection
 

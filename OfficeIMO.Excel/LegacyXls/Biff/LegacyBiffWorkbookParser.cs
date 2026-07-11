@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, ToUnsupportedSheetKind(sheet.SheetType));
                         workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
                         AddUnsupportedSheetFeature(workbook, record, unsupportedSheet);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedSheetTypeDiagnostic(workbook.MutableDiagnostics, record, unsupportedSheet);
                         }
                     }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             || LegacyXlsThemePackageReader.TryExtractThemeXml(themeRecord, out _));
                     if (!themeProjectable) {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                         }
                     }
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (BiffTableStyleReader.TryRead(record, workbook, workbook.MutableDiagnostics, out bool projectableTableStyleRecord)) {
                     if (!projectableTableStyleRecord) {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                         }
                     }
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (BiffStyleReader.TryRead(record, workbook, workbook.MutableDiagnostics, out LegacyXlsCellStyleExtension? styleExtension)) {
                     if (styleExtension != null && !styleExtension.IsFullyProjectable) {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                         }
                     }
@@ -149,7 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                    if (options.ReportUnsupportedRecords) {
+                    if (options.ReportUnsupportedContent) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 } else if (BiffDataConsolidationReferenceReader.TryRead(record, workbook.MutableDiagnostics, out LegacyXlsDataConsolidationReference? dataConsolidationReference)) {
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     }
 
-                    if (options.ReportUnsupportedRecords && dataConsolidationReference.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
+                    if (options.ReportUnsupportedContent && dataConsolidationReference.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 } else if (BiffDataConsolidationNameReader.TryRead(record, workbook.MutableDiagnostics, out LegacyXlsDataConsolidationName? dataConsolidationName)) {
@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
                     }
 
-                    if (options.ReportUnsupportedRecords && dataConsolidationName.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
+                    if (options.ReportUnsupportedContent && dataConsolidationName.SourceKind == LegacyXlsDataConsolidationSourceKind.Unknown) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 } else if (BiffExternalQueryConnectionReader.TryRead(record, sheetName: null, workbook.MutableDiagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
@@ -177,7 +177,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     LegacyXlsChartRecord chartRecord = workbook.MutableChartRecords[workbook.MutableChartRecords.Count - 1];
                     if (!chartRecord.HasSupportedChartMetadata) {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                         }
                     }
@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     LegacyXlsPivotTableRecord pivotTableRecord = workbook.MutablePivotTableRecords[workbook.MutablePivotTableRecords.Count - 1];
                     if (!pivotTableRecord.HasSupportedPivotTableMetadata) {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                         }
                     }
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         workbook.MutableDifferentialFormats.Add(differentialFormat!);
                     } else {
                         AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                        if (options.ReportUnsupportedRecords) {
+                        if (options.ReportUnsupportedContent) {
                             BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                         }
                     }
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     ReadCellFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type != (ushort)BiffRecordType.Bof && record.Type != (ushort)BiffRecordType.Eof) {
                     AddUnsupportedRecordFeature(workbook, record, sheetName: null);
-                    if (options.ReportUnsupportedRecords) {
+                    if (options.ReportUnsupportedContent) {
                         BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(workbook.MutableDiagnostics, record.Type, record.Offset, sheetName: null);
                     }
                 }
@@ -480,7 +480,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     workbook.MutablePreservedFeatureRecords.Add(preservedRecord!);
                 }
 
-                if (options.ReportUnsupportedRecords) {
+                if (options.ReportUnsupportedContent) {
                     BiffUnsupportedRecordDiagnostics.AddExternalReferenceDiagnostic(diagnostics, record, reference);
                 }
             }
@@ -1167,7 +1167,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, LegacyXlsUnsupportedSheetKind.DialogSheet);
                 workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
                 workbook.MutableUnsupportedFeatures.Add(BiffUnsupportedRecordDiagnostics.CreateUnsupportedDialogSheetFeature(wsBoolOffset, unsupportedSheet));
-                if (options.ReportUnsupportedRecords) {
+                if (options.ReportUnsupportedContent) {
                     BiffUnsupportedRecordDiagnostics.AddUnsupportedDialogSheetDiagnostic(workbook.MutableDiagnostics, wsBoolOffset, unsupportedSheet);
                 }
             }

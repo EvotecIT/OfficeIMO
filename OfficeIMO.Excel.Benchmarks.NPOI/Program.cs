@@ -402,7 +402,7 @@ static int ReadOfficeImoXlsx(byte[] workbookBytes, int rowCount) {
 }
 
 static int ReadOfficeImoXls(byte[] workbookBytes, int rowCount) {
-    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
     LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
     int expectedCellCount = checked((rowCount + 1) * 5);
     if (worksheet.Cells.Count != expectedCellCount) {
@@ -418,7 +418,7 @@ static int ReadOfficeImoXls(byte[] workbookBytes, int rowCount) {
 }
 
 static int ReadOfficeImoXlsFormulas(byte[] workbookBytes, int rowCount) {
-    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
     LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
     List<LegacyXlsCell> formulaCells = worksheet.Cells
         .Where(cell => cell.IsFormula)
@@ -439,7 +439,7 @@ static int ReadOfficeImoXlsFormulas(byte[] workbookBytes, int rowCount) {
 }
 
 static int ReadOfficeImoXlsMetadata(byte[] workbookBytes, int rowCount) {
-    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
     LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
     int expectedCommentCount = GetMetadataRowCount(rowCount);
     int expectedHyperlinkCount = GetMetadataRowCount(rowCount);
@@ -472,7 +472,7 @@ static int ReadOfficeImoXlsMetadata(byte[] workbookBytes, int rowCount) {
 }
 
 static int ReadOfficeImoXlsConditionalFormatting(byte[] workbookBytes, int rowCount) {
-    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
     LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
     ValidateConditionalFormattingCounts(worksheet.ConditionalFormattings.Count, "OfficeIMO legacy XLS");
 
@@ -489,7 +489,7 @@ static int ReadOfficeImoXlsConditionalFormatting(byte[] workbookBytes, int rowCo
 }
 
 static int ReadOfficeImoXlsAutoFilterRange(byte[] workbookBytes, int rowCount) {
-    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
     LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
     LegacyXlsDefinedName filterName = workbook.DefinedNames.Single(name =>
         string.Equals(name.Name, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
@@ -503,7 +503,7 @@ static int ReadOfficeImoXlsAutoFilterRange(byte[] workbookBytes, int rowCount) {
 }
 
 static int ReadOfficeImoXlsStyles(byte[] workbookBytes, int rowCount) {
-    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+    LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
     LegacyXlsWorksheet worksheet = workbook.Worksheets.Single(sheet => sheet.Name == "Data");
     ValidateStyleCellCount(worksheet.Cells.Count, rowCount, "OfficeIMO legacy XLS");
 
