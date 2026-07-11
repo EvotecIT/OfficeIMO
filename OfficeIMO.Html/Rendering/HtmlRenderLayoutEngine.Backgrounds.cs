@@ -180,6 +180,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         var layerVisuals = new List<HtmlRenderVisual>();
+        OfficeDrawing? svgDrawing = null;
+        if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)
+            && !TryReadSvgDrawing(bytes, diagnosticSourceDescription + ":background-image", out svgDrawing)) {
+            return;
+        }
 
         double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
             ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
@@ -231,13 +236,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 vertical.Step);
             long tileCount = pattern.EstimatedTileCount;
             if (tileCount > 0L && tileCount <= _options.MaxBackgroundImageTiles - _backgroundImageTileCount) {
-                layerVisuals.Add(new HtmlRenderImagePattern(
-                    bytes,
-                    contentType,
-                    pattern,
-                    _options.MaxBackgroundImageTiles,
-                    layerVisuals.Count,
-                    layerVisualSource));
+                if (svgDrawing != null) {
+                    AddBackgroundDrawingPattern(layerVisuals, svgDrawing, pattern, _options.MaxBackgroundImageTiles, layerVisualSource);
+                } else {
+                    layerVisuals.Add(new HtmlRenderImagePattern(
+                        bytes,
+                        contentType,
+                        pattern,
+                        _options.MaxBackgroundImageTiles,
+                        layerVisuals.Count,
+                        layerVisualSource));
+                }
                 _backgroundImageTileCount += tileCount;
             } else if (tileCount > 0L) {
                 _diagnostics.Add(
@@ -247,10 +256,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlDiagnosticSeverity.Error,
                     diagnosticSourceDescription,
                     "tiles=" + tileCount.ToString(CultureInfo.InvariantCulture) + ";limit=" + _options.MaxBackgroundImageTiles.ToString(CultureInfo.InvariantCulture));
-                AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+                if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+                else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
             }
         } else {
-            AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+            if (svgDrawing != null) AddVisibleBackgroundDrawing(layerVisuals, svgDrawing, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
+            else AddVisibleBackgroundImage(layerVisuals, bytes, contentType, tileX, tileY, imageSize.Width, imageSize.Height, areaX, areaY, areaWidth, areaHeight, layerVisualSource);
         }
         AddBoxClipVisuals(
             visuals,

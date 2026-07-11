@@ -45,6 +45,18 @@ public sealed class HtmlRenderDrawing : HtmlRenderVisual {
     /// <summary>Optional alternative text inherited from the source image.</summary>
     public string? AlternativeText { get; }
 
+    internal static HtmlRenderDrawing CreateShared(
+        OfficeDrawing drawing,
+        double x,
+        double y,
+        double width,
+        double height,
+        int paintOrder,
+        string? alternativeText,
+        string? linkUri,
+        string? source) =>
+        new HtmlRenderDrawing(drawing, x, y, width, height, paintOrder, alternativeText, linkUri, source, y, clone: false);
+
     internal OfficeDrawing InnerDrawing => _drawing;
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>

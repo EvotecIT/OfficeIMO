@@ -143,6 +143,45 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlSvgBackgroundRepeat_UsesSharedVectorTilesAcrossPngSvgAndSearchablePdf() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<rect width='5' height='10' fill='red'/><rect x='5' width='5' height='10' fill='blue'/></svg>";
+        string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
+        string html = "<div style=\"width:40px;height:20px;background-image:url('data:image/svg+xml;base64," + data
+            + "');background-size:10px 10px;background-repeat:repeat\"></div><div style='font-size:6px'>SvgBgPdf</div>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 70D,
+            ViewportHeight = 45D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderClipGroup pattern = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(),
+            visual => visual.Source != null && visual.Source.Contains(":background-image:pattern-clip", StringComparison.Ordinal));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(8, pattern.Visuals.OfType<HtmlRenderDrawing>().Count());
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 9));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(14, 9));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 19));
+        Assert.DoesNotContain("data:image/svg+xml", svg, StringComparison.Ordinal);
+        Assert.True(CountBackgroundOccurrences(svg, "<rect") >= 16);
+        Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
     public void HtmlRender_DiagnosesDeterministicBackgroundFallbacks() {
         string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 1));
         string source = "data:image/png;base64," + imageData;

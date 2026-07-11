@@ -36,7 +36,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool addedObject = false;
         if (bytes != null && bytes.Length > 0 && placement.IsVisible) {
             if (string.Equals(contentType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
-                if (OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? svgDrawing, out int unsupportedFeatures) && svgDrawing != null) {
+                if (TryReadSvgDrawing(bytes, sourceDescription, out OfficeDrawing? svgDrawing) && svgDrawing != null) {
                     objectVisuals.Add(new HtmlRenderDrawing(
                         svgDrawing,
                         imageX + placement.X,
@@ -48,23 +48,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         link,
                         sourceDescription));
                     addedObject = true;
-                    if (unsupportedFeatures > 0) {
-                        _diagnostics.Add(
-                            ComponentName,
-                            HtmlRenderDiagnosticCodes.SvgContentUnsupported,
-                            "Unsupported SVG content was omitted while supported vector primitives remained active.",
-                            HtmlDiagnosticSeverity.Warning,
-                            sourceDescription,
-                            "features=" + unsupportedFeatures);
-                    }
-                } else {
-                    _diagnostics.Add(
-                        ComponentName,
-                        HtmlRenderDiagnosticCodes.SvgContentUnsupported,
-                        "The SVG image could not be interpreted as a bounded shared vector scene.",
-                        HtmlDiagnosticSeverity.Warning,
-                        sourceDescription,
-                        contentType);
                 }
             } else {
                 objectVisuals.Add(new HtmlRenderImage(
@@ -122,6 +105,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double ResolveFloatingImageOuterWidth(IElement element, HtmlRenderBoxStyle style) {
         return Math.Max(1D, style.MarginLeft + ResolveReplacedImageBoxWidth(element, style) + style.MarginRight);
+    }
+
+    private bool TryReadSvgDrawing(byte[] bytes, string sourceDescription, out OfficeDrawing? drawing) {
+        if (OfficeSvgDrawingReader.TryRead(bytes, out drawing, out int unsupportedFeatures) && drawing != null) {
+            if (unsupportedFeatures > 0) {
+                _diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.SvgContentUnsupported,
+                    "Unsupported SVG content was omitted while supported vector content remained active.",
+                    HtmlDiagnosticSeverity.Warning,
+                    sourceDescription,
+                    "features=" + unsupportedFeatures);
+            }
+            return true;
+        }
+
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.SvgContentUnsupported,
+            "The SVG image could not be interpreted as a bounded shared vector scene.",
+            HtmlDiagnosticSeverity.Warning,
+            sourceDescription,
+            "image/svg+xml");
+        return false;
     }
 
     private bool TryResolveImageSource(
