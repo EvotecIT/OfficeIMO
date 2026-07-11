@@ -85,6 +85,9 @@ public sealed partial class HtmlRenderingTests {
         });
 
         Assert.Contains("CaptionOnly", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))), StringComparison.Ordinal);
+        HtmlRenderSemanticGroup table = Assert.Single(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>());
+        Assert.Equal(HtmlRenderSemanticGroupRole.Table, table.Role);
+        Assert.Contains(table.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Caption);
         Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable);
     }
 

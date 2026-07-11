@@ -43,7 +43,7 @@ public sealed class HtmlRenderDocument {
     public IReadOnlyList<HtmlRenderHeading> Headings => _headings;
 
     /// <summary>Concatenated searchable text retained by the shared render model.</summary>
-    public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateVisuals(page.Visuals)).OfType<HtmlRenderText>().Select(text => text.Text));
+    public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateVisuals(page.Scene)).OfType<HtmlRenderText>().Select(text => text.Text));
 
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
@@ -52,7 +52,8 @@ public sealed class HtmlRenderDocument {
                 ? clipGroup.Visuals
                 : visual is HtmlRenderPathClipGroup pathClipGroup
                     ? pathClipGroup.Visuals
-                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+                : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
+                : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }
@@ -61,7 +62,7 @@ public sealed class HtmlRenderDocument {
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)>();
         foreach (HtmlRenderPage page in pages) {
-            foreach (HtmlRenderText text in EnumerateVisuals(page.Visuals).OfType<HtmlRenderText>()) {
+            foreach (HtmlRenderText text in EnumerateVisuals(page.Scene).OfType<HtmlRenderText>()) {
                 if (!text.SemanticNodeId.HasValue || !HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level)) continue;
                 fragments.Add((text.SemanticNodeId.Value, level, text.Text, page.PageNumber, text.X, text.Y, text.PaintOrder));
             }

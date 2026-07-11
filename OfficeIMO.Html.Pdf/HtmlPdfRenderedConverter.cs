@@ -76,7 +76,7 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, CancellationToken cancellationToken) {
-        foreach (HtmlRenderVisual visual in page.Visuals.OrderBy(item => item.PaintOrder)) {
+        foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(canvas, visual, webFonts, page.Width, page.Height, cancellationToken);
         }
@@ -106,7 +106,43 @@ internal static class HtmlPdfRenderedConverter {
             AddPathClipGroup(canvas, pathClipGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
         } else if (visual is HtmlRenderEffectGroup effectGroup) {
             AddEffectGroup(canvas, effectGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+        } else if (visual is HtmlRenderSemanticGroup semanticGroup) {
+            AddSemanticGroup(canvas, semanticGroup, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
         }
+    }
+
+    private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken) {
+        var options = new PdfCore.PdfCanvasStructureOptions {
+            ColumnSpan = group.ColumnSpan,
+            RowSpan = group.RowSpan,
+            HeaderScope = MapTableHeaderScope(group.HeaderScope)
+        };
+        canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
+            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken);
+            }
+        }, options);
+    }
+
+    private static PdfCore.PdfCanvasTableHeaderScope? MapTableHeaderScope(HtmlRenderTableHeaderScope? scope) {
+        if (scope == HtmlRenderTableHeaderScope.Row) return PdfCore.PdfCanvasTableHeaderScope.Row;
+        if (scope == HtmlRenderTableHeaderScope.Column) return PdfCore.PdfCanvasTableHeaderScope.Column;
+        if (scope == HtmlRenderTableHeaderScope.Both) return PdfCore.PdfCanvasTableHeaderScope.Both;
+        return null;
+    }
+
+    private static PdfCore.PdfCanvasStructureRole MapSemanticGroupRole(HtmlRenderSemanticGroupRole role) {
+        if (role == HtmlRenderSemanticGroupRole.Division) return PdfCore.PdfCanvasStructureRole.Division;
+        if (role == HtmlRenderSemanticGroupRole.List) return PdfCore.PdfCanvasStructureRole.List;
+        if (role == HtmlRenderSemanticGroupRole.ListItem) return PdfCore.PdfCanvasStructureRole.ListItem;
+        if (role == HtmlRenderSemanticGroupRole.ListLabel) return PdfCore.PdfCanvasStructureRole.ListLabel;
+        if (role == HtmlRenderSemanticGroupRole.ListBody) return PdfCore.PdfCanvasStructureRole.ListBody;
+        if (role == HtmlRenderSemanticGroupRole.Table) return PdfCore.PdfCanvasStructureRole.Table;
+        if (role == HtmlRenderSemanticGroupRole.TableRow) return PdfCore.PdfCanvasStructureRole.TableRow;
+        if (role == HtmlRenderSemanticGroupRole.TableHeaderCell) return PdfCore.PdfCanvasStructureRole.TableHeaderCell;
+        if (role == HtmlRenderSemanticGroupRole.TableCell) return PdfCore.PdfCanvasStructureRole.TableCell;
+        return PdfCore.PdfCanvasStructureRole.Caption;
     }
 
     private static void AddEffectGroup(
@@ -444,7 +480,8 @@ internal static class HtmlPdfRenderedConverter {
                 ? clipGroup.Visuals
                 : visual is HtmlRenderPathClipGroup pathClipGroup
                     ? pathClipGroup.Visuals
-                    : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals : null;
+                    : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
+                    : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals : null;
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
         }

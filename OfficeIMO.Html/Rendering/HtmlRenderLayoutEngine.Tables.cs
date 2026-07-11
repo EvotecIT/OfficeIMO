@@ -29,7 +29,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddBoxOutlinePaint(emptyVisuals, style, style.MarginLeft, tableY, tableWidth, emptyTableHeight, table);
             if (caption != null && caption.Side == "bottom") AppendTableCaption(emptyVisuals, caption, style.MarginLeft, tableY + emptyTableHeight);
             double emptyHeight = style.MarginTop + topCaptionHeight + emptyTableHeight + bottomCaptionHeight + style.MarginBottom;
-            return new HtmlRenderFlowBlock(containingWidth, emptyHeight, emptyVisuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source, pageName: style.PageName);
+            IReadOnlyList<HtmlRenderVisual> semanticEmptyVisuals = new[] {
+                new HtmlRenderSemanticGroup(
+                    HtmlRenderSemanticGroupRole.Table,
+                    style.MarginLeft,
+                    style.MarginTop,
+                    tableWidth,
+                    Math.Max(0.01D, topCaptionHeight + emptyTableHeight + bottomCaptionHeight),
+                    emptyVisuals,
+                    0,
+                    source)
+            };
+            return new HtmlRenderFlowBlock(containingWidth, emptyHeight, semanticEmptyVisuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, source, pageName: style.PageName);
         }
 
         int columnCount = Math.Max(rowColumnCount, DetermineDeclaredColumnCount(table));
@@ -98,6 +109,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             rowLayouts.Add(new TableRowLayout(
+                row,
                 rowStyle,
                 rowGroupElement,
                 rowGroupStyle,
@@ -132,18 +144,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
             TableRowLayout row = rowLayouts[rowIndex];
             int rowVisualStart = visuals.Count;
             if (row.IsFooter && trailingVisuals.Count == 0) trailingStart = rowY;
+            var rowVisuals = new List<HtmlRenderVisual>();
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);
                 HtmlRenderBoxStyle paintStyle = style.BorderCollapse == "collapse" ? CreateCollapsedCellPaintStyle(cell.Style) : cell.Style;
-                AddBoxPaint(visuals, paintStyle, cellX, rowY, cell.Width, cellHeight, cell.Element);
+                var cellVisuals = new List<HtmlRenderVisual>();
+                AddBoxPaint(cellVisuals, paintStyle, cellX, rowY, cell.Width, cellHeight, cell.Element);
                 double textX = cellX + cell.Style.BorderLeftWidth + cell.Style.PaddingLeft;
                 double textY = rowY + cell.Style.BorderTopWidth + cell.Style.PaddingTop;
                 foreach (HtmlRenderVisual visual in cell.Inline.Visuals) {
-                    visuals.Add(visual.Translate(textX, textY, visuals.Count));
+                    cellVisuals.Add(visual.Translate(textX, textY, cellVisuals.Count));
                 }
-                AddBoxOutlinePaint(visuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
+                AddBoxOutlinePaint(cellVisuals, cell.Style, cellX, rowY, cell.Width, cellHeight, cell.Element);
+                bool headerCell = string.Equals(cell.Element.TagName, "th", StringComparison.OrdinalIgnoreCase);
+                rowVisuals.Add(new HtmlRenderSemanticGroup(
+                    headerCell ? HtmlRenderSemanticGroupRole.TableHeaderCell : HtmlRenderSemanticGroupRole.TableCell,
+                    cellX,
+                    rowY,
+                    cell.Width,
+                    cellHeight,
+                    cellVisuals,
+                    rowVisuals.Count,
+                    HtmlRenderStyleResolver.DescribeSource(cell.Element),
+                    cell.Span,
+                    cell.RowSpan,
+                    headerCell ? ResolveTableHeaderScope(cell.Element) : null));
             }
+
+            visuals.Add(new HtmlRenderSemanticGroup(
+                HtmlRenderSemanticGroupRole.TableRow,
+                contentX,
+                rowY,
+                contentWidth,
+                row.Height,
+                rowVisuals,
+                visuals.Count,
+                HtmlRenderStyleResolver.DescribeSource(row.Element)));
 
             if (!row.IsHeader && !row.IsFooter && row.Cells.Count == 1 && row.Cells[0].RowSpan == 1) {
                 TableCellLayout cell = row.Cells[0];
@@ -183,20 +220,57 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double outerHeight = style.MarginTop + topCaptionHeight + tableHeight + bottomCaptionHeight + style.MarginBottom;
         breakOffsets.Add(outerHeight);
+        IReadOnlyList<HtmlRenderVisual> semanticVisuals = new[] {
+            new HtmlRenderSemanticGroup(
+                HtmlRenderSemanticGroupRole.Table,
+                style.MarginLeft,
+                style.MarginTop,
+                tableWidth,
+                Math.Max(0.01D, topCaptionHeight + tableHeight + bottomCaptionHeight),
+                visuals,
+                0,
+                source)
+        };
+        IReadOnlyList<HtmlRenderVisual> semanticContinuationVisuals = continuationVisuals.Count == 0
+            ? Array.Empty<HtmlRenderVisual>()
+            : new[] {
+                new HtmlRenderSemanticGroup(
+                    HtmlRenderSemanticGroupRole.Table,
+                    style.MarginLeft,
+                    0D,
+                    tableWidth,
+                    Math.Max(0.01D, continuationHeight),
+                    continuationVisuals,
+                    0,
+                    source)
+            };
+        IReadOnlyList<HtmlRenderVisual> semanticTrailingVisuals = trailingVisuals.Count == 0
+            ? Array.Empty<HtmlRenderVisual>()
+            : new[] {
+                new HtmlRenderSemanticGroup(
+                    HtmlRenderSemanticGroupRole.Table,
+                    style.MarginLeft,
+                    0D,
+                    tableWidth,
+                    Math.Max(0.01D, trailingHeight),
+                    trailingVisuals,
+                    0,
+                    source)
+            };
         IEnumerable<HtmlRenderTrailingGroup> trailingGroups = trailingVisuals.Count > 0 && trailingHeight > 0D
-            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, outerHeight, outerHeight - trailingStart, trailingVisuals) }
+            ? new[] { new HtmlRenderTrailingGroup(0D, trailingStart, outerHeight, outerHeight - trailingStart, semanticTrailingVisuals) }
             : Array.Empty<HtmlRenderTrailingGroup>();
         return new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
-            visuals,
+            semanticVisuals,
             style.BreakBefore,
             style.BreakAfter,
             true,
             source,
             breakOffsets,
             trailingGroups: trailingGroups,
-            continuationVisuals: continuationVisuals,
+            continuationVisuals: semanticContinuationVisuals,
             continuationHeight: continuationHeight,
             continuationStartsAfter: headerStart + continuationHeight,
             pageName: style.PageName);
@@ -342,6 +416,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(1, Math.Min(span, maximum));
     }
 
+    private static HtmlRenderTableHeaderScope ResolveTableHeaderScope(IElement cell) {
+        string scope = cell.GetAttribute("scope")?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (scope == "row" || scope == "rowgroup") return HtmlRenderTableHeaderScope.Row;
+        if (scope == "both") return HtmlRenderTableHeaderScope.Both;
+        return HtmlRenderTableHeaderScope.Column;
+    }
+
     private TableCaptionLayout? LayoutTableCaption(
         IElement table,
         double tableWidth,
@@ -367,7 +448,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         foreach (HtmlRenderVisual visual in inline.Visuals) visuals.Add(visual.Translate(contentX, contentY, visuals.Count));
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
-        return new TableCaptionLayout(style.CaptionSide, style.MarginTop + boxHeight + style.MarginBottom, visuals);
+        IReadOnlyList<HtmlRenderVisual> semanticVisuals = new[] {
+            new HtmlRenderSemanticGroup(
+                HtmlRenderSemanticGroupRole.Caption,
+                style.MarginLeft,
+                style.MarginTop,
+                boxWidth,
+                boxHeight,
+                visuals,
+                0,
+                HtmlRenderStyleResolver.DescribeSource(element))
+        };
+        return new TableCaptionLayout(style.CaptionSide, style.MarginTop + boxHeight + style.MarginBottom, semanticVisuals);
     }
 
     private void ReportUnsupportedTableValues(IElement element, HtmlRenderBoxStyle style) {
@@ -408,6 +500,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private sealed class TableRowLayout {
         internal TableRowLayout(
+            IElement element,
             HtmlRenderBoxStyle style,
             IElement? groupElement,
             HtmlRenderBoxStyle? groupStyle,
@@ -415,6 +508,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double height,
             bool isHeader,
             bool isFooter) {
+            Element = element;
             Style = style;
             GroupElement = groupElement;
             GroupStyle = groupStyle;
@@ -424,6 +518,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             IsFooter = isFooter;
         }
 
+        internal IElement Element { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal IElement? GroupElement { get; }
         internal HtmlRenderBoxStyle? GroupStyle { get; }

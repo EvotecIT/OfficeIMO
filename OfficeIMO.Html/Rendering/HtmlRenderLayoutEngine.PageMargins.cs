@@ -12,7 +12,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            var visuals = new List<HtmlRenderVisual>(page.Visuals);
+            var visuals = new List<HtmlRenderVisual>(page.Scene);
             foreach (HtmlCssPageMarginTemplate box in boxes.Values.OrderBy(item => item.Position)) {
                 string text = box.Content.Render(page.PageNumber, pages.Count);
                 if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, box.Font.Size, out double x, out double y, out double width, out double height)) continue;

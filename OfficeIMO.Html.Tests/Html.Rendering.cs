@@ -1034,6 +1034,63 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_RenderedProfile_PreservesListItemLabelAndBodySemantics() {
+        const string html = "<ol><li>First item</li><li>Second item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        HtmlRenderSemanticGroup listScene = Assert.Single(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>());
+        Assert.Equal(HtmlRenderSemanticGroupRole.List, listScene.Role);
+        IReadOnlyList<HtmlRenderSemanticGroup> items = listScene.Visuals
+            .OfType<HtmlRenderSemanticGroup>()
+            .Where(group => group.Role == HtmlRenderSemanticGroupRole.ListItem)
+            .ToList();
+        Assert.Equal(2, items.Count);
+        Assert.All(items, item => {
+            Assert.Contains(item.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.ListLabel);
+            Assert.Contains(item.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.ListBody);
+        });
+
+        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+        PdfCore.PdfStructureElementInfo list = Assert.Single(tagged.StructureElements, element => element.StructureType == "L");
+        IReadOnlyList<PdfCore.PdfStructureElementInfo> pdfItems = tagged.StructureElements.Where(element => element.StructureType == "LI").ToList();
+        Assert.Equal(2, pdfItems.Count);
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Lbl"));
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "LBody"));
+        Assert.All(pdfItems, item => Assert.Contains(item.ObjectNumber, list.ChildElementObjectNumbers));
+        Assert.Contains("1. First item", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("2. Second item", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_RenderedProfile_PreservesNestedTableCaptionRowAndCellSemantics() {
+        const string html = "<table><caption>Quarterly status</caption><tr><th scope='row' rowspan='2'>Area</th><th colspan='2'>Status</th></tr><tr><td>Green</td><td>Ready</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        HtmlRenderSemanticGroup tableScene = Assert.Single(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>());
+        Assert.Equal(HtmlRenderSemanticGroupRole.Table, tableScene.Role);
+        Assert.Contains(tableScene.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Caption);
+        Assert.Equal(2, tableScene.Visuals.OfType<HtmlRenderSemanticGroup>().Count(group => group.Role == HtmlRenderSemanticGroupRole.TableRow));
+
+        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        PdfCore.PdfStructureElementInfo table = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
+        PdfCore.PdfStructureElementInfo caption = Assert.Single(tagged.StructureElements, element => element.StructureType == "Caption");
+        IReadOnlyList<PdfCore.PdfStructureElementInfo> rows = tagged.StructureElements.Where(element => element.StructureType == "TR").ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Contains(caption.ObjectNumber, table.ChildElementObjectNumbers);
+        Assert.All(rows, row => Assert.Contains(row.ObjectNumber, table.ChildElementObjectNumbers));
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "TH"));
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "TD"));
+        string raw = Encoding.ASCII.GetString(pdf);
+        Assert.Contains("/Scope /Row", raw, StringComparison.Ordinal);
+        Assert.Contains("/ColSpan 2", raw, StringComparison.Ordinal);
+        Assert.Contains("/RowSpan 2", raw, StringComparison.Ordinal);
+        Assert.Contains("Quarterly status", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));
