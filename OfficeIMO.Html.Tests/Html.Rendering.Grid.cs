@@ -243,6 +243,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_PaginatesInsideOneOversizedItemAtNestedBlockBoundaries() {
+        const string html = """
+            <div id="grid" style="display:grid;grid-template-columns:100px">
+              <div id="oversized" style="background:#eeeeee">
+                <div style="height:20px">One</div><div style="height:20px">Two</div>
+                <div style="height:20px">Three</div><div style="height:20px">Four</div>
+                <div style="height:20px">Five</div><div style="height:20px">Six</div>
+              </div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => Assert.True(page.Visuals.Count > 1));
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_FlowsThroughPngSvgAndSearchablePdf() {
         const string html = """
             <div style="display:grid;width:50px;grid-template-columns:20px 20px;grid-template-rows:20px;column-gap:10px">
