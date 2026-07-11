@@ -1113,7 +1113,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 ApplyOpacity(stop.Color, opacity) ?? stop.Color));
         }
 
-        return new OfficeLinearGradient(
+        return OfficeLinearGradient.CreateImported(
             gradient.StartX,
             gradient.StartY,
             gradient.EndX,

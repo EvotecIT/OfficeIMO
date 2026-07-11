@@ -84,9 +84,9 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlImages_SvgPaintServersStayNativeAcrossPngSvgAndSearchablePdf() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
-            + "<linearGradient id='linear'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
-            + "<radialGradient id='radial'><stop offset='0' stop-color='white'/><stop offset='1' stop-color='navy'/></radialGradient>"
-            + "</defs><rect width='20' height='20' fill='url(#linear)'/><rect x='20' width='20' height='20' fill='url(#radial)'/></svg>";
+            + "<linearGradient id='linear' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='50%' y2='0'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<radialGradient id='radial' gradientUnits='userSpaceOnUse' cx='30' cy='10' r='8' fx='28' fy='10'><stop offset='0' stop-color='white'/><stop offset='1' stop-color='navy'/></radialGradient>"
+            + "</defs><rect width='10' height='20' fill='url(#linear)'/><rect x='10' width='10' height='20' fill='url(#linear)'/><rect x='20' width='20' height='20' fill='url(#radial)'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='paint-server' src='data:image/svg+xml;base64," + data
             + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdfX</div></body>";
@@ -112,8 +112,13 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = html.SaveAsPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[0].Shape.FillGradient);
-        Assert.IsType<OfficeRadialGradient>(visual.Drawing.Shapes[1].Shape.FillRadialGradient);
+        OfficeLinearGradient first = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[0].Shape.FillGradient);
+        OfficeLinearGradient second = Assert.IsType<OfficeLinearGradient>(visual.Drawing.Shapes[1].Shape.FillGradient);
+        Assert.Equal(2D, first.EndX);
+        Assert.Equal(-1D, second.StartX);
+        OfficeRadialGradient radial = Assert.IsType<OfficeRadialGradient>(visual.Drawing.Shapes[2].Shape.FillRadialGradient);
+        Assert.Equal(0.4D, radial.EndRadiusX);
+        Assert.Equal(0.4D, radial.EndRadiusY);
         Assert.True(raster.GetPixel(3, 20).R > raster.GetPixel(3, 20).B);
         Assert.True(raster.GetPixel(37, 20).B > raster.GetPixel(37, 20).R);
         Assert.Contains("<linearGradient", exportedSvg, StringComparison.Ordinal);

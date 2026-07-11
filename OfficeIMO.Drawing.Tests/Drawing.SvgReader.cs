@@ -280,6 +280,39 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderResolvesUserSpacePaintServersPerTargetShape() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs>"
+            + "<linearGradient id='shared' gradientUnits='userSpaceOnUse' x1='0' y1='0' x2='50%' y2='0'>"
+            + "<stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
+            + "<radialGradient id='spot' gradientUnits='userSpaceOnUse' cx='30' cy='10' r='8' fx='28' fy='10'>"
+            + "<stop offset='0' stop-color='white'/><stop offset='1' stop-color='navy'/></radialGradient>"
+            + "</defs><rect width='10' height='20' fill='url(#shared)'/><rect x='10' width='10' height='20' fill='url(#shared)'/>"
+            + "<rect x='20' width='20' height='20' fill='url(#spot)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(3, drawing!.Shapes.Count);
+        OfficeLinearGradient first = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[0].Shape.FillGradient);
+        OfficeLinearGradient second = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[1].Shape.FillGradient);
+        Assert.Equal(0D, first.StartX);
+        Assert.Equal(2D, first.EndX);
+        Assert.Equal(-1D, second.StartX);
+        Assert.Equal(1D, second.EndX);
+        OfficeRadialGradient radial = Assert.IsType<OfficeRadialGradient>(drawing.Shapes[2].Shape.FillRadialGradient);
+        Assert.Equal(0.5D, radial.EndX);
+        Assert.Equal(0.5D, radial.EndY);
+        Assert.Equal(0.4D, radial.EndRadiusX);
+        Assert.Equal(0.4D, radial.EndRadiusY);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(raster.GetPixel(2, 10).R > raster.GetPixel(2, 10).B);
+        Assert.True(raster.GetPixel(18, 10).B > raster.GetPixel(18, 10).R);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("x2=\"200%\"", exported, StringComparison.Ordinal);
+        Assert.Contains("x1=\"-100%\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"

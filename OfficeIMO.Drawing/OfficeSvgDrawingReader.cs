@@ -150,6 +150,8 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
 
+        ApplyDeferredPaint(shape.Shape, style, shape.X, shape.Y, drawing.Width, drawing.Height, viewX, viewY, ref unsupported);
+
         ApplyTransform(shape, transform);
 
         try {
@@ -476,6 +478,34 @@ public static partial class OfficeSvgDrawingReader {
         shape.FillRule = style.FillRule;
     }
 
+    private static void ApplyDeferredPaint(
+        OfficeShape shape,
+        SvgPaintContext style,
+        double shapeX,
+        double shapeY,
+        double viewportWidth,
+        double viewportHeight,
+        double viewX,
+        double viewY,
+        ref int unsupported) {
+        if (style.FillDeferredGradient != null) {
+            if (style.FillDeferredGradient.TryCreateForShape(shape, shapeX, shapeY, viewportWidth, viewportHeight, viewX, viewY, out OfficeLinearGradient? linear, out OfficeRadialGradient? radial)) {
+                shape.FillGradient = linear;
+                shape.FillRadialGradient = radial;
+            } else {
+                unsupported++;
+            }
+        }
+        if (style.StrokeDeferredGradient != null) {
+            if (style.StrokeDeferredGradient.TryCreateForShape(shape, shapeX, shapeY, viewportWidth, viewportHeight, viewX, viewY, out OfficeLinearGradient? linear, out OfficeRadialGradient? radial)) {
+                shape.StrokeGradient = linear;
+                shape.StrokeRadialGradient = radial;
+            } else {
+                unsupported++;
+            }
+        }
+    }
+
     private static double ReadLength(XElement element, string name) => TryLength(element, name, out double value) ? value : 0D;
     private static bool TryLength(XElement element, string name, out double value) => TrySvgLength(element.Attribute(name)?.Value, out value);
 
@@ -521,9 +551,11 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeColor? Fill;
         internal OfficeLinearGradient? FillGradient;
         internal OfficeRadialGradient? FillRadialGradient;
+        internal SvgGradientDefinition? FillDeferredGradient;
         internal OfficeColor? Stroke;
         internal OfficeLinearGradient? StrokeGradient;
         internal OfficeRadialGradient? StrokeRadialGradient;
+        internal SvgGradientDefinition? StrokeDeferredGradient;
         internal double StrokeWidth;
         internal double Opacity;
         internal double FillOpacity;
@@ -542,12 +574,14 @@ public static partial class OfficeSvgDrawingReader {
             Fill = paint.Color;
             FillGradient = paint.LinearGradient;
             FillRadialGradient = paint.RadialGradient;
+            FillDeferredGradient = paint.DeferredGradient;
         }
 
         internal void SetStroke(SvgResolvedPaint paint) {
             Stroke = paint.Color;
             StrokeGradient = paint.LinearGradient;
             StrokeRadialGradient = paint.RadialGradient;
+            StrokeDeferredGradient = paint.DeferredGradient;
         }
 
         internal static SvgPaintContext Default => new SvgPaintContext {

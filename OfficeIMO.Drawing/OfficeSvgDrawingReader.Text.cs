@@ -150,7 +150,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static void AddTextRun(OfficeDrawing drawing, SvgTextRun run, ref int unsupported) {
-        if (run.Style.FillGradient != null || run.Style.FillRadialGradient != null) {
+        if (run.Style.FillGradient != null || run.Style.FillRadialGradient != null || run.Style.FillDeferredGradient != null) {
             unsupported++;
             return;
         }
