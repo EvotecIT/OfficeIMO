@@ -10,7 +10,7 @@ public sealed class HtmlRenderDocument {
     private readonly ReadOnlyCollection<HtmlRenderPage> _pages;
     private readonly OfficeFontFaceCollection _fonts;
 
-    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null) {
+    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null) {
         Mode = mode;
         _pages = new List<HtmlRenderPage>(pages ?? throw new ArgumentNullException(nameof(pages))).AsReadOnly();
         if (_pages.Count == 0) {
@@ -19,6 +19,7 @@ public sealed class HtmlRenderDocument {
 
         Diagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
+        Metadata = metadata ?? new HtmlRenderMetadata(null, null);
     }
 
     /// <summary>Layout mode used to produce the result.</summary>
@@ -32,6 +33,9 @@ public sealed class HtmlRenderDocument {
 
     /// <summary>Independent snapshot of scoped font faces retained for image and PDF backends.</summary>
     public OfficeFontFaceCollection Fonts => _fonts.Clone();
+
+    /// <summary>Source document metadata retained for image and PDF adapters.</summary>
+    public HtmlRenderMetadata Metadata { get; }
 
     /// <summary>Concatenated searchable text retained by the shared render model.</summary>
     public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateVisuals(page.Visuals)).OfType<HtmlRenderText>().Select(text => text.Text));

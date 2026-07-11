@@ -35,6 +35,8 @@ internal static class HtmlPdfRenderedConverter {
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create()
             .TaggedPdfCatalogMarkers();
+        if (rendered.Metadata.Title != null) pdf.Meta(title: rendered.Metadata.Title);
+        if (rendered.Metadata.Language != null) pdf.Language(rendered.Metadata.Language);
         if (options.RenderedFontFamily != null) {
             pdf.UseFontFamily(options.RenderedFontFamily);
         }

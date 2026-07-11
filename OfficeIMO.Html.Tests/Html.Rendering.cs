@@ -885,11 +885,16 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_RenderedProfile_MapsHeadingsAndParagraphsToTaggedStructure() {
-        byte[] pdf = "<h1>SemanticHeading</h1><p>Semantic paragraph.</p>"
-            .SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
+        const string html = "<!doctype html><html lang='pl-PL'><head><title>Semantic document</title></head><body><h1>SemanticHeading</h1><p>Semantic paragraph.</p></body></html>";
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        byte[] pdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateRenderedProfile());
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.Equal("Semantic document", rendered.Metadata.Title);
+        Assert.Equal("pl-PL", rendered.Metadata.Language);
+        Assert.Equal("Semantic document", info.Metadata.Title);
+        Assert.Equal("pl-PL", info.CatalogLanguage);
         Assert.Contains("Document", tagged.StructureTypes);
         Assert.Contains("H1", tagged.StructureTypes);
         Assert.Contains("P", tagged.StructureTypes);

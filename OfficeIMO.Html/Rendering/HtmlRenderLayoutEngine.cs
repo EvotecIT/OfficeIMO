@@ -14,6 +14,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlRenderResourceSet _resources;
     private readonly HtmlCssPageRuleSet _pageRules;
     private readonly OfficeFontFaceCollection _fonts;
+    private readonly HtmlRenderMetadata _metadata;
     private readonly Uri? _baseUri;
     private readonly HtmlUrlPolicy _resourceUrlPolicy;
     private readonly CancellationToken _cancellationToken;
@@ -61,6 +62,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _resources = resources ?? new HtmlRenderResourceSet();
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
+        string? language = document.DocumentElement?.GetAttribute("lang");
+        if (string.IsNullOrWhiteSpace(language)) language = document.DocumentElement?.GetAttribute("xml:lang");
+        _metadata = new HtmlRenderMetadata(document.Title, language);
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
     }
@@ -127,7 +131,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
         ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
-        return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts);
+        return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata);
     }
 
     private HtmlRenderDocument RenderPaged(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
@@ -297,7 +301,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts);
+        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts, _metadata);
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) {

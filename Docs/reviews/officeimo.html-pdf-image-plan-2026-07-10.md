@@ -243,7 +243,7 @@ Exit gate: parsing, CSS, resources, and diagnostics can serve Word/RTF conversio
 - [ ] Complete cascade, inheritance, media, and computed-value handling required by the corpus. Custom-property inheritance/fallback/cycle handling, linked stylesheet order, and preserved font-family fallback lists are implemented.
 - [ ] Build a typed formatting tree separate from the AngleSharp DOM.
 - [ ] Resolve display roles, generated content, counters, replaced elements, pseudo-elements, and stacking contexts. Styled `::before`/`::after` text, attributes, scoped counters, cascade/specificity, inline/block-container placement, nested numeric stacking bands for absolute/fixed/relative/sticky block, root, flex, grid, and inline contexts, block/atomic-inline transform/opacity stacking contexts, and block/flex/grid/float/normal-inline replaced images are implemented; generated images, quote-state tokens, richer pseudo boxes, and normal-inline effect grouping remain.
-- [ ] Preserve source and semantic references needed for diagnostics, links, accessibility, and extraction order.
+- [ ] Preserve source and semantic references needed for diagnostics, links, accessibility, and extraction order. Visuals retain source descriptions, links, paint order, layout ownership, and heading/paragraph roles; the shared render document now retains bounded source title and language metadata for all adapters. Grouped DOM-semantic ownership and reading-order nodes remain.
 
 Exit gate: every rendered node has deterministic computed values or a stable unsupported-value diagnostic.
 
@@ -303,7 +303,7 @@ Exit gate: HTML image output uses only `OfficeIMO.Html` plus existing OfficeIMO 
 - [ ] Complete mapping to PDF structures. Searchable Unicode HTML and positioned/affine SVG tspan text with managed fallback controls, exact explicit spaces, active TrueType web-font embedding, basic shapes, multi-stop axial/radial gradients through native PDF stitching functions, images, external links, affine effect transforms, isolated transparency Form XObjects, tagged document markers, and typed H1-H6/P canvas structure are implemented; more than three simultaneous distinct web-font families currently diagnose and fall back because the PDF writer exposes three semantic generated-font slots, while positioned shaped glyphs and richer list/table/figure semantics remain.
 - [x] Preserve existing semantic/document conversion profiles for users who want those contracts.
 - [x] Add async/cancellable save APIs with explicitly buffered final PDF serialization.
-- [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure.
+- [ ] Validate page geometry, extraction, links, outlines, metadata, encryption, and tagged structure. Rendered PDF now carries retained HTML title and document language into PDF metadata/catalog and emits typed H1-H6/P marked content; outlines, richer structure, and encryption-profile coverage remain.
 
 Exit gate: PDF and image output agree on layout while PDF preserves text and document semantics.
 
