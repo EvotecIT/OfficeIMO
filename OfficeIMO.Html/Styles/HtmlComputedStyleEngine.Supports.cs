@@ -1,18 +1,11 @@
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
-    private static bool IsSupportsRule(AngleSharp.Css.Dom.ICssRule rule) {
-        string name = rule.GetType().Name;
-        string? fullName = rule.GetType().FullName;
-        return name.IndexOf("Supports", StringComparison.OrdinalIgnoreCase) >= 0
-            || (fullName != null && fullName.IndexOf("Supports", StringComparison.OrdinalIgnoreCase) >= 0);
-    }
+    private static bool IsSupportsRule(AngleSharp.Css.Dom.ICssRule rule) =>
+        rule is AngleSharp.Css.Dom.ICssSupportsRule;
 
-    private static string GetConditionText(AngleSharp.Css.Dom.ICssRule rule) {
-        var property = rule.GetType().GetProperty("ConditionText");
-        object? value = property?.GetValue(rule, null);
-        return value as string ?? string.Empty;
-    }
+    private static string GetConditionText(AngleSharp.Css.Dom.ICssRule rule) =>
+        (rule as AngleSharp.Css.Dom.ICssSupportsRule)?.ConditionText ?? string.Empty;
 
     /// <summary>
     /// Evaluates whether a CSS supports condition is active for the OfficeIMO CSS subset.

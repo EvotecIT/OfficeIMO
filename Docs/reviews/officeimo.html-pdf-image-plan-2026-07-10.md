@@ -319,7 +319,7 @@ Exit gate: every accepted feature has corpus proof and every unimplemented featu
 ### Phase 10 - Hardening and release readiness
 
 - [ ] Add fuzz/hostile-input, resource-budget, timeout, cancellation, and deterministic-output tests.
-- [ ] Add executable NativeAOT and trimming smoke tests for the dependency-free PDF core and compatible renderer surfaces.
+- [x] Add an executable NativeAOT/trimming smoke that parses and lays out HTML, emits dependency-free SVG and PNG, creates rendered searchable PDF, reads the PDF marker back, and runs in the existing AOT/trim CI lane. The smoke has no package references; it consumes only the repository projects.
 - [ ] Benchmark parse, style, layout, paint, image export, and PDF export independently.
 - [ ] Publish a generated support matrix from profile contracts and diagnostic catalogs.
 - [ ] Document platform/target-framework differences and memory limits.
