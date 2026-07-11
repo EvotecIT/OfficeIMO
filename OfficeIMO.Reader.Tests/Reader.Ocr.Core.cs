@@ -214,7 +214,9 @@ public sealed class ReaderOcrCoreTests {
             Assert.NotSame(engine.SecondCallStarted, earlyStart);
 
             engine.CompleteFirstCall();
-            await second.WaitAsync(TimeSpan.FromSeconds(2));
+            Task completed = await Task.WhenAny(second, Task.Delay(TimeSpan.FromSeconds(2)));
+            Assert.Same(second, completed);
+            await second;
 
             Assert.Equal(1, engine.MaximumConcurrentCalls);
         } finally {
