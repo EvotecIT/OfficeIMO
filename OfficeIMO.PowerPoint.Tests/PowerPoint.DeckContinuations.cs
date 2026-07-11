@@ -38,19 +38,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddSlidesWithContinuation_RendersAllProcessStepsAcrossValidSlides() {
+        public void Compose_RendersAllProcessStepsAcrossValidContinuationSlides() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            PowerPointDeckComposer deck = presentation.UseDesigner(
-                PowerPointDeckDesign.FromBrand("#2463EB", "continuation-test"));
             var plan = new PowerPointDeckPlan().AddProcess("Twelve steps", null,
                 Enumerable.Range(1, 12)
                     .Select(index => new PowerPointProcessStep("Step " + index, "Body " + index)));
 
-            var slides = deck.AddSlidesWithContinuation(plan);
+            PowerPointCompositionResult result = presentation.Compose(plan,
+                PowerPointCompositionOptions.FromDesign(
+                    PowerPointDeckDesign.FromBrand("#2463EB", "continuation-test")));
 
-            Assert.Equal(3, slides.Count);
-            string allText = string.Join("\n", slides.SelectMany(slide => slide.TextBoxes).Select(box => box.Text));
+            Assert.Equal(3, result.Slides.Count);
+            string allText = string.Join("\n", result.Slides.SelectMany(slide => slide.TextBoxes).Select(box => box.Text));
             for (int index = 1; index <= 12; index++) {
                 Assert.Contains("Step " + index, allText);
             }
@@ -58,22 +58,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddSlidesWithReport_ReturnsSharedPreflightContract() {
+        public void Compose_ReturnsSharedPreflightContract() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            PowerPointDeckComposer deck = presentation.UseDesigner(
-                PowerPointDeckDesign.FromBrand("#2463EB", "report-test"));
             var plan = new PowerPointDeckPlan().AddSection("Measured deck", "Designer report");
 
-            PowerPointDeckGenerationResult result = deck.AddSlidesWithReport(plan,
-                preflightOptions: new PowerPointDeckPreflightOptions {
-                    DetectShapeCollisions = false,
-                    IncludeVisualSnapshotDiagnostics = false
-                });
+            PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(
+                PowerPointDeckDesign.FromBrand("#2463EB", "report-test"));
+            options.Preflight = new PowerPointDeckPreflightOptions {
+                DetectShapeCollisions = false,
+                IncludeVisualSnapshotDiagnostics = false
+            };
+            PowerPointCompositionResult result = presentation.Compose(plan, options);
 
             Assert.Single(result.Slides);
-            Assert.Equal(presentation.Slides.Count, result.Report.SlideCount);
-            Assert.Contains("\"schemaVersion\": 1", result.Report.ToJson());
+            Assert.Equal(presentation.Slides.Count, result.Preflight.SlideCount);
+            Assert.Contains("\"schemaVersion\": 1", result.Preflight.ToJson());
         }
     }
 }

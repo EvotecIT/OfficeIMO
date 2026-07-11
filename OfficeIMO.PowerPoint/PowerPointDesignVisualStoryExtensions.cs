@@ -4,7 +4,7 @@ using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>Adds a screenshot story with semantic crop, alternative text, caption, provenance, and annotations.</summary>
         public static PowerPointSlide AddDesignerScreenshotStorySlide(this PowerPointPresentation presentation,
             string title, string? subtitle, PowerPointImageAsset image, IEnumerable<string>? narrative = null,

@@ -238,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
 
     public sealed partial class PowerPointPresentation {
         /// <summary>Creates structural, extraction, accessibility, PNG, SVG, and snapshot proof for every slide.</summary>
-        public PowerPointVisualProofReport CreateVisualProofReport(string sourceKind = "generated") {
+        public PowerPointVisualProofReport InspectVisuals(string sourceKind = "generated") {
             if (string.IsNullOrWhiteSpace(sourceKind)) throw new ArgumentException("Source kind cannot be empty.", nameof(sourceKind));
             PowerPointAccessibilityReport accessibility = InspectAccessibility();
             List<PowerPointExtractChunk> chunks = this.ExtractMarkdownChunks(
@@ -265,5 +265,8 @@ namespace OfficeIMO.PowerPoint {
             }
             return new PowerPointVisualProofReport(sourceKind.Trim(), slides, accessibility);
         }
+
+        internal PowerPointVisualProofReport CreateVisualProofReport(string sourceKind = "generated") =>
+            InspectVisuals(sourceKind);
     }
 }

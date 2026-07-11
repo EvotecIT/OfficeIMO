@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -270,13 +271,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape chartPanel = AddPanel(slide, 1.3, 3.1, 16.2, 9.9, "Chart Surface");
             chartPanel.SetShadow("000000", blurPoints: 7, distancePoints: 2, angleDegrees: 90, transparencyPercent: 84);
 
-            PowerPointChartData data = new(
+            OfficeChartData data = new(
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
                 new[] {
-                    new PowerPointChartSeries("Sales", new[] { 10d, 12d, 16d, 19d, 24d, 27d }),
-                    new PowerPointChartSeries("Profit", new[] { 4d, 5d, 7d, 9d, 11d, 13d })
+                    new OfficeChartSeries("Sales", new[] { 10d, 12d, 16d, 19d, 24d, 27d }),
+                    new OfficeChartSeries("Profit", new[] { 4d, 5d, 7d, 9d, 11d, 13d })
                 });
-            PowerPointChart chart = slide.AddChartCm(data, 1.8, 3.7, 15.1, 8.5);
+            PowerPointChart chart = slide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.8, 3.7, 15.1, 8.5);
             chart.SetTitle("Sales vs Profit")
                 .SetLegend(C.LegendPositionValues.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
@@ -327,10 +328,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             chartPanel.FillColor = "FFFFFF";
             chartPanel.SetShadow("000000", blurPoints: 7, distancePoints: 2, angleDegrees: 90, transparencyPercent: 84);
 
-            PowerPointChartData data = new(
+            OfficeChartData data = new(
                 new[] { "Direct", "Partner", "Online", "Events" },
-                new[] { new PowerPointChartSeries("Share", new[] { 42d, 27d, 22d, 9d }) });
-            PowerPointChart chart = slide.AddDoughnutChartCm(data, 2.2, 3.9, 13.4, 7.8);
+                new[] { new OfficeChartSeries("Share", new[] { 42d, 27d, 22d, 9d }) });
+            PowerPointChart chart = slide.AddChartCm(OfficeChartKind.Doughnut, data, 2.2, 3.9, 13.4, 7.8);
             chart.SetTitle("Revenue Share by Channel")
                 .SetLegend(C.LegendPositionValues.Bottom)
                 .SetDataLabels(showPercent: true)
@@ -366,13 +367,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             chartPanel.FillColor = "FFFFFF";
             chartPanel.SetShadow("000000", blurPoints: 7, distancePoints: 2, angleDegrees: 90, transparencyPercent: 84);
 
-            PowerPointChartData data = new(
+            OfficeChartData data = new(
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
                 new[] {
-                    new PowerPointChartSeries("Sales", new[] { 10d, 14d, 18d, 21d, 25d, 28d }),
-                    new PowerPointChartSeries("Profit", new[] { 4d, 6d, 8d, 10d, 12d, 14d })
+                    new OfficeChartSeries("Sales", new[] { 10d, 14d, 18d, 21d, 25d, 28d }),
+                    new OfficeChartSeries("Profit", new[] { 4d, 6d, 8d, 10d, 12d, 14d })
                 });
-            PowerPointChart chart = slide.AddLineChartCm(data, 2.8, 3.8, 19.5, 8.4);
+            PowerPointChart chart = slide.AddChartCm(OfficeChartKind.Line, data, 2.8, 3.8, 19.5, 8.4);
             chart.SetTitle("Momentum Over Time")
                 .SetLegend(C.LegendPositionValues.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")

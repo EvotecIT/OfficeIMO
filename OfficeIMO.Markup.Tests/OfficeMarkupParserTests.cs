@@ -622,7 +622,7 @@ Explain the revenue trend.
         Assert.Contains("Transition speed: @\"fast\"", code, StringComparison.Ordinal);
         Assert.Contains("Transition advance-on-click: @\"false\"", code, StringComparison.Ordinal);
         Assert.Contains("Transition advance-after: @\"5\"", code, StringComparison.Ordinal);
-        Assert.Contains("new PowerPointChartData", code, StringComparison.Ordinal);
+        Assert.Contains("new OfficeChartData", code, StringComparison.Ordinal);
         Assert.Contains("new PowerPointChartSeries(@\"Revenue\"", code, StringComparison.Ordinal);
         Assert.Contains("var chart1 = slide1.AddChart(chartData1)", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetTitle(@\"Revenue\")", code, StringComparison.Ordinal);

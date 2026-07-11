@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         private static void AddSubtleLightBackground(PowerPointSlide slide, PowerPointDesignTheme theme,
             double slideWidthCm, double slideHeightCm) {
             PowerPointAutoShape diagonal = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, slideWidthCm * 0.28, 0,

@@ -10,9 +10,9 @@ public sealed partial class OfficeMarkupCSharpEmitter {
 
         var dataVariable = $"chartData{chartIndex}";
         EmitPowerPointChartData(chart, dataVariable, sb);
-        var method = ToPowerPointChartMethod(chart.ChartType);
+        var kind = ToPowerPointChartKind(chart.ChartType);
         var chartVariable = $"chart{chartIndex}";
-        sb.AppendLine($"var {chartVariable} = {slideVariable}.{method}({dataVariable});");
+        sb.AppendLine($"var {chartVariable} = {slideVariable}.AddChart(OfficeChartKind.{kind}, {dataVariable});");
         if (!string.IsNullOrWhiteSpace(chart.Title)) {
             sb.AppendLine($"{chartVariable}.SetTitle({CsString(chart.Title!)});");
         }
@@ -85,13 +85,13 @@ public sealed partial class OfficeMarkupCSharpEmitter {
     private static void EmitPowerPointChartData(OfficeMarkupChartBlock chart, string variableName, StringBuilder sb) {
         var headers = chart.Data[0];
         var categories = chart.Data.Skip(1).Select(row => row.Count > 0 ? row[0] : string.Empty).ToList();
-        sb.AppendLine($"var {variableName} = new PowerPointChartData(");
+        sb.AppendLine($"var {variableName} = new OfficeChartData(");
         sb.AppendLine($"    new[] {{ {string.Join(", ", categories.Select(CsString))} }},");
         sb.AppendLine("    new[] {");
         for (int seriesIndex = 1; seriesIndex < headers.Count; seriesIndex++) {
             var values = chart.Data.Skip(1).Select(row => NumericLiteral(row.Count > seriesIndex ? row[seriesIndex] : "0"));
             var comma = seriesIndex == headers.Count - 1 ? string.Empty : ",";
-            sb.AppendLine($"        new PowerPointChartSeries({CsString(headers[seriesIndex])}, new[] {{ {string.Join(", ", values)} }}){comma}");
+            sb.AppendLine($"        new OfficeChartSeries({CsString(headers[seriesIndex])}, new[] {{ {string.Join(", ", values)} }}){comma}");
         }
 
         sb.AppendLine("    });");

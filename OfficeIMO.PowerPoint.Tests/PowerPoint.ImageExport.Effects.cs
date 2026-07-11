@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 90);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
             PowerPointAutoShape shape = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 20, 20, 60, 30);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 90);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
             PowerPointAutoShape shape = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 32, 24, 48, 28);

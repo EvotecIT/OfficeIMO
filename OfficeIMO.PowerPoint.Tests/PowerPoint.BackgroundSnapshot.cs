@@ -9,7 +9,7 @@ public class PowerPointBackgroundSnapshotTests {
     public void GetBackground_ReturnsReusableSolidGradientAndImageSnapshots() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
 
         slide.BackgroundColor = "112233";
         PowerPointSlideBackground solid = slide.GetBackground();
@@ -40,7 +40,7 @@ public class PowerPointBackgroundSnapshotTests {
     public void GetBackground_PreservesImageSourceCrop() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
         slide.SetBackgroundImage(imagePath);
         A.BlipFill blipFill = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.GetFirstChild<A.BlipFill>()!;

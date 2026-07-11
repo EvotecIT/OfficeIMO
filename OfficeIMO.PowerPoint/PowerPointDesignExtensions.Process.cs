@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         internal static void AddProcessTimeline(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointProcessStep> steps, PowerPointProcessSlideOptions options,
             double slideWidthCm, double slideHeightCm) {

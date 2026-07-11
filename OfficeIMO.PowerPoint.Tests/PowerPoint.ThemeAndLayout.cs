@@ -29,11 +29,8 @@ namespace OfficeIMO.Tests {
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 Assert.Equal("Office Theme", presentation.ThemeName);
                 presentation.ThemeName = "My Theme";
-                Assert.Single(presentation.Slides);
-                Assert.Equal(0, presentation.Slides[0].LayoutIndex);
-
-                // Consume the initial slide so subsequent calls create new slides.
-                presentation.AddSlide();
+                Assert.Empty(presentation.Slides);
+                Assert.Equal(0, presentation.AddSlide().LayoutIndex);
 
                 for (int i = 1; i < expectedLayouts.Count; i++) {
                     PowerPointSlide slide = presentation.AddSlide(layoutIndex: i);

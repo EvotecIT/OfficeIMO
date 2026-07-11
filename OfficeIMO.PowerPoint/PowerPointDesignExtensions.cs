@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     High-level slide composition helpers for building polished decks without hand-placing every shape.
     /// </summary>
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>
         ///     Applies the designer theme colors and fonts to all slide masters.
         /// </summary>

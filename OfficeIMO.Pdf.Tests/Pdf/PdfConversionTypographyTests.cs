@@ -327,7 +327,7 @@ Zażółć gęślą jaźń
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(520, 320);
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox title = slide.AddTextBoxPoints("Converter typography report", 32, 26, 280, 28);
         title.FontSize = 14;
         PowerPointTextBox polish = slide.AddTextBoxPoints("Zażółć gęślą jaźń", 32, 70, 250, 28);
@@ -415,7 +415,7 @@ Zażółć gęślą jaźń
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(520, 320);
-        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("office cafe\u0301", 32, 32, 220, 32);
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("office cafe\u0301", 32, 32, 220, 32);
         textBox.FontSize = 14;
 
         var options = new PowerPointPdfSaveOptions {
@@ -487,7 +487,7 @@ Zażółć gęślą jaźń
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(520, 320);
-        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(text, 32, 32, 220, 32);
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(text, 32, 32, 220, 32);
         textBox.FontSize = 14;
 
         var options = new PowerPointPdfSaveOptions();

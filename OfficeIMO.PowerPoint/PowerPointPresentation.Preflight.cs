@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Inspects authored slide bounds, measured text fit, peer collisions, image relationships, and
         ///     shared visual-snapshot diagnostics without changing the presentation.
         /// </summary>
-        public PowerPointDeckPreflightReport Preflight(PowerPointDeckPreflightOptions? options = null) {
+        public PowerPointDeckPreflightReport InspectPreflight(PowerPointDeckPreflightOptions? options = null) {
             ThrowIfDisposed();
             PowerPointDeckPreflightOptions resolved = options?.Clone() ?? new PowerPointDeckPreflightOptions();
             var findings = new List<PowerPointDeckPreflightFinding>();
@@ -27,9 +27,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Runs deck preflight and saves only when no finding meets the configured failure threshold.
         /// </summary>
-        public PowerPointDeckPreflightReport SaveWithPreflight(PowerPointDeckPreflightOptions? options = null) {
+        internal PowerPointDeckPreflightReport SaveWithPreflight(PowerPointDeckPreflightOptions? options = null) {
             PowerPointDeckPreflightOptions resolved = options?.Clone() ?? new PowerPointDeckPreflightOptions();
-            PowerPointDeckPreflightReport report = Preflight(resolved);
+            PowerPointDeckPreflightReport report = InspectPreflight(resolved);
             if (report.HasFindingsAtOrAbove(resolved.FailureSeverity)) {
                 _discardChangesOnDispose = true;
             }
@@ -37,6 +37,9 @@ namespace OfficeIMO.PowerPoint {
             Save();
             return report;
         }
+
+        internal PowerPointDeckPreflightReport Preflight(PowerPointDeckPreflightOptions? options = null) =>
+            InspectPreflight(options);
 
         private static void InspectSlide(PowerPointSlide slide, int slideIndex, long slideWidth, long slideHeight,
             PowerPointDeckPreflightOptions options, IList<PowerPointDeckPreflightFinding> findings) {

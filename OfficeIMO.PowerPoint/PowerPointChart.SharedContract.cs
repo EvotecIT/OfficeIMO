@@ -9,6 +9,24 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
+        /// <summary>Updates the native chart from the shared OfficeIMO chart contract.</summary>
+        public PowerPointChart UpdateData(OfficeChartData data) {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            OfficeChartKind chartKind = TryGetOfficeSnapshot(out OfficeChartSnapshot current)
+                ? current.ChartKind
+                : OfficeChartKind.ColumnClustered;
+            PowerPointUtils.ValidateSharedChartData(data, chartKind);
+
+            if (chartKind == OfficeChartKind.Scatter) {
+                UpdateData(PowerPointUtils.ToPowerPointScatterChartData(data));
+            } else {
+                UpdateData(PowerPointUtils.ToPowerPointChartData(data));
+            }
+            PowerPointUtils.ApplySharedChartSeriesStyle(GetChartPart(), data, chartKind);
+            Save();
+            return this;
+        }
+
         /// <summary>Creates a deterministic plain-text summary suitable for accessibility review or sidecar output.</summary>
         public static string CreateDataSummary(OfficeChartKind chartKind, OfficeChartData data) {
             if (data == null) throw new ArgumentNullException(nameof(data));

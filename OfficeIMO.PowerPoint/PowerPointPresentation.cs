@@ -7,7 +7,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.PowerPoint.Fluent;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -29,7 +28,6 @@ namespace OfficeIMO.PowerPoint {
         private string? _signedPackageOpenFingerprint;
         private bool _leaveSourceStreamOpen = true;
         private PowerPointSlideSize? _slideSize;
-        private bool _initialSlideUntouched = false;
         private bool _disposed = false;
         private const int StreamBufferSize = 4096;
         private const string P14Namespace = "http://schemas.microsoft.com/office/powerpoint/2010/main";
@@ -60,8 +58,7 @@ namespace OfficeIMO.PowerPoint {
                 PresentationRoot = new Presentation();
                 InitializeDefaultParts();
 
-                // After initialization, we have one slide created by PowerPointUtils
-                // Track it and mark it as untouched
+                // InitializeDefaultParts creates the native master/layout scaffolding and one temporary slide.
                 if (PresentationRoot.SlideIdList != null) {
                     foreach (SlideId slideId in PresentationRoot.SlideIdList.Elements<SlideId>()) {
                         string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
@@ -71,11 +68,12 @@ namespace OfficeIMO.PowerPoint {
                         }
                     }
                 }
-                _initialSlideUntouched = isNewPresentation && _slides.Count == 1;
+                if (isNewPresentation) {
+                    ClearSlides();
+                }
             } else {
                 // Loading existing presentation
                 LoadExistingSlides();
-                _initialSlideUntouched = false; // Existing files don't have untouched initial slide
             }
 
             PowerPointChartAxisIdGenerator.Initialize(_presentationPart);
@@ -145,14 +143,6 @@ namespace OfficeIMO.PowerPoint {
                 count += slide.ReplaceText(oldValue, newValue, includeTables, includeNotes);
             }
             return count;
-        }
-
-        /// <summary>
-        ///     Creates a fluent wrapper for this presentation.
-        /// </summary>
-        public PowerPointFluentPresentation AsFluent() {
-            ThrowIfDisposed();
-            return new PowerPointFluentPresentation(this);
         }
 
         private void ThrowIfDisposed() {

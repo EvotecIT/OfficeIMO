@@ -98,11 +98,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void RemovingLastSlideThrows() {
+        public void RemovingLastSlideLeavesAValidEmptyPresentation() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create(Path.GetTempFileName());
             presentation.AddSlide();
 
-            Assert.Throws<InvalidOperationException>(() => presentation.RemoveSlide(0));
+            presentation.RemoveSlide(0);
+
+            Assert.Empty(presentation.Slides);
+            Assert.Empty(presentation.ValidateDocument());
         }
 
         [Fact]

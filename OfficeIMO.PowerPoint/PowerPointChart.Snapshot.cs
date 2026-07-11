@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
-        public bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
+        internal bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
             TryGetSnapshot(null, out snapshot);
 
         internal bool TryGetSnapshot(A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {

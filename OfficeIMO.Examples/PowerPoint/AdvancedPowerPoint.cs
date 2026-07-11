@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -119,13 +120,14 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide4 = presentation.AddSlide();
             slide4.AddTitle("KPI Chart", titleBox);
             slide4.Transition = SlideTransition.CombHorizontal;
-            PowerPointChartData chartData = PowerPointChartData.From(
-                kpis,
-                k => k.Metric,
-                new PowerPointChartSeriesDefinition<KpiRow>("Current", k => k.Current),
-                new PowerPointChartSeriesDefinition<KpiRow>("Target", k => k.Target));
+            OfficeChartData chartData = new OfficeChartData(
+                kpis.Select(k => k.Metric),
+                new[] {
+                    new OfficeChartSeries("Current", kpis.Select(k => (double)k.Current)),
+                    new OfficeChartSeries("Target", kpis.Select(k => (double)k.Target))
+                });
             PowerPointChart chart = slide4.AddChartCm(
-                chartData,
+                OfficeChartKind.ColumnClustered, chartData,
                 bodyBox.LeftCm,
                 bodyBox.TopCm,
                 bodyBox.WidthCm,

@@ -22,12 +22,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                 "#008C95", "designer-example", name: "OfficeIMO Teal", eyebrow: "OfficeIMO.PowerPoint",
                 footerLeft: "OFFICEIMO", footerRight: "The Good Slides");
             PowerPointDeckDesign design = alternatives[0];
-            PowerPointDeckComposer deck = presentation.UseDesigner(design);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan();
 
-            deck.AddSectionSlide("Case Study", "Project portfolio", "section",
+            plan.AddSection("Case Study", "Project portfolio", "section",
                 options => options.SectionVariant = PowerPointSectionLayoutVariant.Poster);
 
-            deck.AddCaseStudySlide("Randstad - print environment rollout",
+            plan.AddCaseStudy("Randstad - print environment rollout",
                 new[] {
                     new PowerPointCaseStudySection("Client",
                         "A distributed organization needed one clear story for service delivery and operational support."),
@@ -50,7 +50,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.VisualFrameVariant = PowerPointVisualFrameVariant.DeviceMockup;
                 });
 
-            deck.AddProcessSlide("How we work",
+            plan.AddProcess("How we work",
                 "Transparent phases reduce risk and speed up delivery",
                 new[] {
                     new PowerPointProcessStep("Analysis", "Understand the environment, needs, and business constraints."),
@@ -62,7 +62,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 "process",
                 options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns);
 
-            deck.AddCardGridSlide("Scope of services",
+            plan.AddCardGrid("Scope of services",
                 "Reusable cards choose the placement grid for you.",
                 new[] {
                     new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot", "Policy baseline" }),
@@ -76,7 +76,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.Variant = PowerPointCardGridLayoutVariant.SoftTiles;
                 });
 
-            deck.AddLogoWallSlide("Competence proof",
+            plan.AddLogoWall("Competence proof",
                 "Logo and certification walls stay editable, but can still feel designed.",
                 new[] {
                     new PowerPointLogoItem("Xerox", "Authorized service"),
@@ -94,7 +94,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.SupportingText = "Use real logo image paths when available; otherwise names remain editable.";
                 });
 
-            deck.AddCoverageSlide("Service coverage",
+            plan.AddCoverage("Service coverage",
                 "Normalized pins create a map-like layout without needing a custom map asset.",
                 new[] {
                     new PowerPointCoverageLocation("Gdansk", 0.55, 0.18),
@@ -112,7 +112,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.MapLabel = "8 editable locations";
                 });
 
-            deck.AddCapabilitySlide("Service capability",
+            plan.AddCapability("Service capability",
                 "Structured text plus visual support for content-heavy service slides.",
                 new[] {
                     new PowerPointCapabilitySection("Warranty and post-warranty service",
@@ -137,7 +137,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.Metrics.Add(new PowerPointMetric("8", "locations"));
                 });
 
-            deck.ComposeSlide(composer => {
+            plan.AddCustom("Raw composition", composer => {
                 composer.AddTitle("Raw composition", "Use primitives when the slide needs its own structure.");
                 PowerPointLayoutBox[] rows = composer.ContentRows(2, gutterCm: 0.55, topCm: 3.75);
                 composer.AddCardGrid(new[] {
@@ -158,6 +158,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }, lowerColumns[1].TakeTopCm(1.45));
             }, "composed", options => options.FooterRight = "Composable");
 
+            presentation.Compose(plan, PowerPointCompositionOptions.FromDesign(design));
             presentation.Save();
 
             List<ValidationErrorInfo> errors = presentation.ValidateDocument();

@@ -167,7 +167,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a custom slide request that can use raw composition primitives inside the same semantic plan.
         /// </summary>
-        public PowerPointDeckPlan AddCustom(string title, Action<PowerPointSlideComposer> compose,
+        public PowerPointDeckPlan AddCustom(string title, Action<PowerPointSlideCompositionContext> compose,
             string? seed = null, Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
             return Add(new PowerPointCustomPlanSlide(title, compose, seed, configure, dark));
         }

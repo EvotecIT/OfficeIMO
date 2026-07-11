@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 Assert.Contains("Chart kind: ColumnClustered", File.ReadAllText(summaryPath));
-                using (PowerPointPresentation reopened = PowerPointPresentation.Open(output)) {
+                using (PowerPointPresentation reopened = PowerPointPresentation.Open(output, PowerPointOpenMode.ReadOnly)) {
                     Assert.Equal(kinds.Length, reopened.Slides.Count);
                     for (int index = 0; index < kinds.Length; index++) {
                         PowerPointChart chart = Assert.Single(reopened.Slides[index].Charts);
@@ -125,8 +125,8 @@ namespace OfficeIMO.Tests {
                     showMarkers: false, showInLegend: false)
             });
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointSlide slide = presentation.Slides[0];
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
             PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
 
             C.Legend legend = slide.SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             });
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
-                    PowerPointSlide slide = presentation.Slides[0];
+                    PowerPointSlide slide = presentation.AddSlide();
                     slide.AddChart(OfficeChartKind.ColumnClustered, data);
                     ChartPart chartPart = slide.SlidePart.ChartParts.Single();
                     C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.OpenRead(output);
+                using PowerPointPresentation reopened = PowerPointPresentation.Open(output, PowerPointOpenMode.ReadOnly);
                 PowerPointChart chart = Assert.Single(reopened.Slides[0].Charts);
                 Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
                 Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
@@ -190,9 +190,9 @@ namespace OfficeIMO.Tests {
                 new OfficeChartSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })
             });
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
 
-            PowerPointChart chart = presentation.Slides[0].AddChart(
+            PowerPointChart chart = presentation.AddSlide().AddChart(
                 OfficeChartKind.Scatter, data);
 
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -202,8 +202,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void GeneratedChartSummaryCarriesAccessibilityMarker() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointChart chart = presentation.Slides[0].AddChart(
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointChart chart = presentation.AddSlide().AddChart(
                 OfficeChartKind.ColumnClustered, CreateData(OfficeChartKind.ColumnClustered),
                 accessibility: new PowerPointChartAccessibilityOptions());
 

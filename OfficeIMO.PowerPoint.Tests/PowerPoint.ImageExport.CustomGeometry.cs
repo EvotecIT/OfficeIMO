@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 30, 24, 88, 56);
             freeform.FillColor = "C084FC";
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 140);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 20, 30, 120, 72);
             freeform.FillColor = "22C55E";
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(190, 150);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 32, 28, 120, 90);
             freeform.FillColor = "F59E0B";
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(190, 150);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 36, 30, 120, 80);
             freeform.FillColor = "38BDF8";
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(190, 150);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 34, 26, 100, 100);
             freeform.FillColor = "A3E635";
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(190, 150);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointAutoShape freeform = slide.AddShapePoints(A.ShapeTypeValues.Rectangle, 30, 22, 100, 100);
             freeform.FillColor = "F472B6";

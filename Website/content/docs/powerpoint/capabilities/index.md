@@ -10,7 +10,7 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 | Capability | Author or edit | Preserve on unrelated edits | PNG/SVG and PDF proof | Notes |
 |---|---|---|---|---|
 | Slides, ordering, sections, size, metadata | Yes | Yes | Yes | Includes duplicate and cross-deck slide import workflows. |
-| Text boxes, rich runs, bullets, links, notes | Yes | Yes | Yes | `Preflight()` measures bounds and reports clipped or unreadably reduced text. |
+| Text boxes, rich runs, bullets, links, notes | Yes | Yes | Yes | `InspectPreflight()` measures bounds and reports clipped or unreadably reduced text. |
 | Auto shapes, lines, connectors, groups | Yes | Yes | Yes, within reported renderer limits | Custom geometry and effects may be approximated in fixed-layout exports. |
 | Pictures and SVG assets | Yes | Yes | Yes | Crop and transforms are supported; broken image relationships are preflight errors. |
 | Native tables | Yes | Yes | Yes | `AddTableSlides(...)` creates deterministic continuation pages and repeats headers. |
@@ -30,13 +30,15 @@ OfficeIMO.PowerPoint is strongest when the output must stay editable and the wor
 ## Generation checks
 
 ```csharp
-PowerPointDeckPreflightReport report = presentation.Preflight();
+PowerPointDeckPreflightReport report = presentation.InspectPreflight();
 report.SaveJson("deck.preflight.json");
 
-// Use this when errors should stop the output pipeline before Save().
-presentation.SaveWithPreflight(new PowerPointDeckPreflightOptions {
+var options = new PowerPointDeckPreflightOptions {
     FailureSeverity = PowerPointDeckPreflightSeverity.Error
-});
+};
+PowerPointDeckPreflightReport gate = presentation.InspectPreflight(options);
+gate.ThrowIfFindings(options.FailureSeverity);
+presentation.Save();
 ```
 
 The preflight report is the same contract returned by designer generation and `OfficeIMO.Markup.PowerPoint`. Stable finding codes are intended for CI policy; human messages are supporting context.

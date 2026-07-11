@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void SemanticStoryFamilies_RenderBothVariantsAsValidEditableSlides() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
-            PowerPointChartData chartData = CreateChartData();
+            OfficeChartData chartData = CreateChartData();
             PowerPointArchitectureContent architecture = CreateArchitecture();
             var image = new PowerPointImageAsset(imagePath, "Product dashboard showing deployment progress") {
                 Caption = "Deployment dashboard",
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
             try {
                 using var stream = new MemoryStream();
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
                 var image = new PowerPointImageAsset(imagePath, "Geometry test image") {
                     Placement = placement
                 }.Annotate(new PowerPointImageAnnotation(annotationX, annotationY, "Anchor"));
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
                     .Select(index => new PowerPointMetric(index.ToString(), "Metric " + index)),
                 Array.Empty<PowerPointCardContent>());
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
                 presentation.AddDesignerExecutiveSummarySlide("Summary", null, content,
@@ -246,14 +246,14 @@ namespace OfficeIMO.Tests {
                 new PowerPointCardContent("Evidence", new[] { "Editable native output" })
             }, "A reusable semantic layer closes the largest quality gap.");
 
-        private static PowerPointChartData CreateChartData() => new(
+        private static OfficeChartData CreateChartData() => new(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
-                new PowerPointChartSeries("Adoption", new[] { 28D, 42D, 61D, 72D }),
-                new PowerPointChartSeries("Target", new[] { 35D, 50D, 65D, 80D })
+                new OfficeChartSeries("Adoption", new[] { 28D, 42D, 61D, 72D }),
+                new OfficeChartSeries("Target", new[] { 35D, 50D, 65D, 80D })
             });
 
-        private static PowerPointChartStoryContent CreateChartStory(PowerPointChartData data) =>
+        private static PowerPointChartStoryContent CreateChartStory(OfficeChartData data) =>
             new(OfficeChartKind.ColumnClustered, data,
                 new[] { "Adoption increased every quarter.", "The current gap to target is eight points." }) {
                 Caption = "Quarterly product adoption",

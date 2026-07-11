@@ -11,21 +11,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a basic clustered column chart with default data.
         /// </summary>
-        public PowerPointChart AddChart() {
+        internal PowerPointChart AddChart() {
             return AddChartInternal(PowerPointChartKind.ClusteredColumn, null, 0L, 0L, 5486400L, 3200400L);
         }
 
         /// <summary>
         ///     Adds a basic clustered column chart with default data at a specific position.
         /// </summary>
-        public PowerPointChart AddChart(long left, long top, long width, long height) {
+        internal PowerPointChart AddChart(long left, long top, long width, long height) {
             return AddChartInternal(PowerPointChartKind.ClusteredColumn, null, left, top, width, height);
         }
 
         /// <summary>
         ///     Adds a basic clustered column chart with default data using centimeter measurements.
         /// </summary>
-        public PowerPointChart AddChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+        internal PowerPointChart AddChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
             return AddChart(
                 PowerPointUnits.FromCentimeters(leftCm),
                 PowerPointUnits.FromCentimeters(topCm),
@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a basic clustered column chart with default data using inch measurements.
         /// </summary>
-        public PowerPointChart AddChartInches(double leftInches, double topInches, double widthInches,
+        internal PowerPointChart AddChartInches(double leftInches, double topInches, double widthInches,
             double heightInches) {
             return AddChart(
                 PowerPointUnits.FromInches(leftInches),
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a basic clustered column chart with default data using point measurements.
         /// </summary>
-        public PowerPointChart AddChartPoints(double leftPoints, double topPoints, double widthPoints,
+        internal PowerPointChart AddChartPoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints) {
             return AddChart(
                 PowerPointUnits.FromPoints(leftPoints),
@@ -60,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using the supplied data.
         /// </summary>
-        public PowerPointChart AddChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+        internal PowerPointChart AddChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
@@ -72,7 +72,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using the supplied data with centimeter measurements.
         /// </summary>
-        public PowerPointChart AddChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+        internal PowerPointChart AddChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
             double heightCm) {
             return AddChart(data,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using the supplied data with inch measurements.
         /// </summary>
-        public PowerPointChart AddChartInches(PowerPointChartData data, double leftInches, double topInches,
+        internal PowerPointChart AddChartInches(PowerPointChartData data, double leftInches, double topInches,
             double widthInches, double heightInches) {
             return AddChart(data,
                 PowerPointUnits.FromInches(leftInches),
@@ -96,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using the supplied data with point measurements.
         /// </summary>
-        public PowerPointChart AddChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+        internal PowerPointChart AddChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
             double widthPoints, double heightPoints) {
             return AddChart(data,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -108,7 +108,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using object data selectors.      
         /// </summary>
-        public PowerPointChart AddChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
         }
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using object data selectors (centimeters).
         /// </summary>
-        public PowerPointChart AddChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+        internal PowerPointChart AddChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
             double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddChart(items, categorySelector,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -129,7 +129,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using object data selectors (inches).
         /// </summary>
-        public PowerPointChart AddChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftInches, double topInches, double widthInches, double heightInches,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddChart(items, categorySelector,
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using object data selectors (points).
         /// </summary>
-        public PowerPointChart AddChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftPoints, double topPoints, double widthPoints, double heightPoints,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddChart(items, categorySelector,
@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a clustered column chart using object data selectors at a specific position.
         /// </summary>
-        public PowerPointChart AddChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             long left, long top, long width, long height,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
@@ -167,21 +167,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart with default data.
         /// </summary>
-        public PowerPointChart AddLineChart() {
+        internal PowerPointChart AddLineChart() {
             return AddChartInternal(PowerPointChartKind.Line, null, 0L, 0L, 5486400L, 3200400L);
         }
 
         /// <summary>
         ///     Adds a line chart with default data at a specific position.
         /// </summary>
-        public PowerPointChart AddLineChart(long left, long top, long width, long height) {
+        internal PowerPointChart AddLineChart(long left, long top, long width, long height) {
             return AddChartInternal(PowerPointChartKind.Line, null, left, top, width, height);
         }
 
         /// <summary>
         ///     Adds a line chart with default data using centimeter measurements.
         /// </summary>
-        public PowerPointChart AddLineChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+        internal PowerPointChart AddLineChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
             return AddLineChart(
                 PowerPointUnits.FromCentimeters(leftCm),
                 PowerPointUnits.FromCentimeters(topCm),
@@ -192,7 +192,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart with default data using inch measurements.
         /// </summary>
-        public PowerPointChart AddLineChartInches(double leftInches, double topInches, double widthInches,
+        internal PowerPointChart AddLineChartInches(double leftInches, double topInches, double widthInches,
             double heightInches) {
             return AddLineChart(
                 PowerPointUnits.FromInches(leftInches),
@@ -204,7 +204,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart with default data using point measurements.
         /// </summary>
-        public PowerPointChart AddLineChartPoints(double leftPoints, double topPoints, double widthPoints,
+        internal PowerPointChart AddLineChartPoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints) {
             return AddLineChart(
                 PowerPointUnits.FromPoints(leftPoints),
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using the supplied data.
         /// </summary>
-        public PowerPointChart AddLineChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+        internal PowerPointChart AddLineChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
@@ -228,7 +228,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using the supplied data with centimeter measurements.
         /// </summary>
-        public PowerPointChart AddLineChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+        internal PowerPointChart AddLineChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
             double heightCm) {
             return AddLineChart(data,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -240,7 +240,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using the supplied data with inch measurements.
         /// </summary>
-        public PowerPointChart AddLineChartInches(PowerPointChartData data, double leftInches, double topInches,
+        internal PowerPointChart AddLineChartInches(PowerPointChartData data, double leftInches, double topInches,
             double widthInches, double heightInches) {
             return AddLineChart(data,
                 PowerPointUnits.FromInches(leftInches),
@@ -252,7 +252,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using the supplied data with point measurements.
         /// </summary>
-        public PowerPointChart AddLineChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+        internal PowerPointChart AddLineChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
             double widthPoints, double heightPoints) {
             return AddLineChart(data,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -264,7 +264,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using object data selectors.
         /// </summary>
-        public PowerPointChart AddLineChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddLineChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddLineChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
         }
@@ -272,7 +272,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using object data selectors (centimeters).
         /// </summary>
-        public PowerPointChart AddLineChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+        internal PowerPointChart AddLineChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
             double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddLineChart(items, categorySelector,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -285,7 +285,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using object data selectors (inches).
         /// </summary>
-        public PowerPointChart AddLineChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddLineChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftInches, double topInches, double widthInches, double heightInches,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddLineChart(items, categorySelector,
@@ -299,7 +299,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using object data selectors (points).
         /// </summary>
-        public PowerPointChart AddLineChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddLineChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftPoints, double topPoints, double widthPoints, double heightPoints,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddLineChart(items, categorySelector,
@@ -313,7 +313,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a line chart using object data selectors at a specific position.
         /// </summary>
-        public PowerPointChart AddLineChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddLineChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             long left, long top, long width, long height,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
@@ -323,21 +323,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart with default data.
         /// </summary>
-        public PowerPointChart AddScatterChart() {
+        internal PowerPointChart AddScatterChart() {
             return AddScatterChartInternal(null, 0L, 0L, 5486400L, 3200400L);
         }
 
         /// <summary>
         ///     Adds a scatter chart with default data at a specific position.
         /// </summary>
-        public PowerPointChart AddScatterChart(long left, long top, long width, long height) {
+        internal PowerPointChart AddScatterChart(long left, long top, long width, long height) {
             return AddScatterChartInternal(null, left, top, width, height);
         }
 
         /// <summary>
         ///     Adds a scatter chart with default data using centimeter measurements.
         /// </summary>
-        public PowerPointChart AddScatterChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+        internal PowerPointChart AddScatterChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
             return AddScatterChart(
                 PowerPointUnits.FromCentimeters(leftCm),
                 PowerPointUnits.FromCentimeters(topCm),
@@ -348,7 +348,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart with default data using inch measurements.
         /// </summary>
-        public PowerPointChart AddScatterChartInches(double leftInches, double topInches, double widthInches,
+        internal PowerPointChart AddScatterChartInches(double leftInches, double topInches, double widthInches,
             double heightInches) {
             return AddScatterChart(
                 PowerPointUnits.FromInches(leftInches),
@@ -360,7 +360,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart with default data using point measurements.
         /// </summary>
-        public PowerPointChart AddScatterChartPoints(double leftPoints, double topPoints, double widthPoints,
+        internal PowerPointChart AddScatterChartPoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints) {
             return AddScatterChart(
                 PowerPointUnits.FromPoints(leftPoints),
@@ -372,7 +372,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using the supplied data.
         /// </summary>
-        public PowerPointChart AddScatterChart(PowerPointScatterChartData data, long left = 0L, long top = 0L,
+        internal PowerPointChart AddScatterChart(PowerPointScatterChartData data, long left = 0L, long top = 0L,
             long width = 5486400L, long height = 3200400L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
@@ -384,7 +384,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using the supplied data with centimeter measurements.
         /// </summary>
-        public PowerPointChart AddScatterChartCm(PowerPointScatterChartData data, double leftCm, double topCm, double widthCm,
+        internal PowerPointChart AddScatterChartCm(PowerPointScatterChartData data, double leftCm, double topCm, double widthCm,
             double heightCm) {
             return AddScatterChart(data,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -396,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using the supplied data with inch measurements.
         /// </summary>
-        public PowerPointChart AddScatterChartInches(PowerPointScatterChartData data, double leftInches, double topInches,
+        internal PowerPointChart AddScatterChartInches(PowerPointScatterChartData data, double leftInches, double topInches,
             double widthInches, double heightInches) {
             return AddScatterChart(data,
                 PowerPointUnits.FromInches(leftInches),
@@ -408,7 +408,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using the supplied data with point measurements.
         /// </summary>
-        public PowerPointChart AddScatterChartPoints(PowerPointScatterChartData data, double leftPoints, double topPoints,
+        internal PowerPointChart AddScatterChartPoints(PowerPointScatterChartData data, double leftPoints, double topPoints,
             double widthPoints, double heightPoints) {
             return AddScatterChart(data,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -420,7 +420,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using object data selectors.
         /// </summary>
-        public PowerPointChart AddScatterChart<T>(IEnumerable<T> items, Func<T, double> xSelector,
+        internal PowerPointChart AddScatterChart<T>(IEnumerable<T> items, Func<T, double> xSelector,
             params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddScatterChart(items, xSelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
         }
@@ -428,7 +428,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using object data selectors (centimeters).
         /// </summary>
-        public PowerPointChart AddScatterChartCm<T>(IEnumerable<T> items, Func<T, double> xSelector, double leftCm,
+        internal PowerPointChart AddScatterChartCm<T>(IEnumerable<T> items, Func<T, double> xSelector, double leftCm,
             double topCm, double widthCm, double heightCm, params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddScatterChart(items, xSelector,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -441,7 +441,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using object data selectors (inches).
         /// </summary>
-        public PowerPointChart AddScatterChartInches<T>(IEnumerable<T> items, Func<T, double> xSelector,
+        internal PowerPointChart AddScatterChartInches<T>(IEnumerable<T> items, Func<T, double> xSelector,
             double leftInches, double topInches, double widthInches, double heightInches,
             params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddScatterChart(items, xSelector,
@@ -455,7 +455,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using object data selectors (points).
         /// </summary>
-        public PowerPointChart AddScatterChartPoints<T>(IEnumerable<T> items, Func<T, double> xSelector,
+        internal PowerPointChart AddScatterChartPoints<T>(IEnumerable<T> items, Func<T, double> xSelector,
             double leftPoints, double topPoints, double widthPoints, double heightPoints,
             params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddScatterChart(items, xSelector,
@@ -469,7 +469,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a scatter chart using object data selectors at a specific position.
         /// </summary>
-        public PowerPointChart AddScatterChart<T>(IEnumerable<T> items, Func<T, double> xSelector,
+        internal PowerPointChart AddScatterChart<T>(IEnumerable<T> items, Func<T, double> xSelector,
             long left, long top, long width, long height,
             params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
             var data = PowerPointScatterChartData.From(items, xSelector, seriesDefinitions);
@@ -479,21 +479,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart with default data.
         /// </summary>
-        public PowerPointChart AddPieChart() {
+        internal PowerPointChart AddPieChart() {
             return AddChartInternal(PowerPointChartKind.Pie, null, 0L, 0L, 5486400L, 3200400L);
         }
 
         /// <summary>
         ///     Adds a pie chart with default data at a specific position.
         /// </summary>
-        public PowerPointChart AddPieChart(long left, long top, long width, long height) {
+        internal PowerPointChart AddPieChart(long left, long top, long width, long height) {
             return AddChartInternal(PowerPointChartKind.Pie, null, left, top, width, height);
         }
 
         /// <summary>
         ///     Adds a pie chart with default data using centimeter measurements.
         /// </summary>
-        public PowerPointChart AddPieChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+        internal PowerPointChart AddPieChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
             return AddPieChart(
                 PowerPointUnits.FromCentimeters(leftCm),
                 PowerPointUnits.FromCentimeters(topCm),
@@ -504,7 +504,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart with default data using inch measurements.
         /// </summary>
-        public PowerPointChart AddPieChartInches(double leftInches, double topInches, double widthInches,
+        internal PowerPointChart AddPieChartInches(double leftInches, double topInches, double widthInches,
             double heightInches) {
             return AddPieChart(
                 PowerPointUnits.FromInches(leftInches),
@@ -516,7 +516,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart with default data using point measurements.
         /// </summary>
-        public PowerPointChart AddPieChartPoints(double leftPoints, double topPoints, double widthPoints,
+        internal PowerPointChart AddPieChartPoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints) {
             return AddPieChart(
                 PowerPointUnits.FromPoints(leftPoints),
@@ -528,7 +528,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using the supplied data.
         /// </summary>
-        public PowerPointChart AddPieChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+        internal PowerPointChart AddPieChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
@@ -540,7 +540,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using the supplied data with centimeter measurements.
         /// </summary>
-        public PowerPointChart AddPieChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+        internal PowerPointChart AddPieChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
             double heightCm) {
             return AddPieChart(data,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -552,7 +552,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using the supplied data with inch measurements.
         /// </summary>
-        public PowerPointChart AddPieChartInches(PowerPointChartData data, double leftInches, double topInches,
+        internal PowerPointChart AddPieChartInches(PowerPointChartData data, double leftInches, double topInches,
             double widthInches, double heightInches) {
             return AddPieChart(data,
                 PowerPointUnits.FromInches(leftInches),
@@ -564,7 +564,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using the supplied data with point measurements.
         /// </summary>
-        public PowerPointChart AddPieChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+        internal PowerPointChart AddPieChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
             double widthPoints, double heightPoints) {
             return AddPieChart(data,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -576,7 +576,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using object data selectors.
         /// </summary>
-        public PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddPieChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
         }
@@ -584,7 +584,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using object data selectors (centimeters).
         /// </summary>
-        public PowerPointChart AddPieChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+        internal PowerPointChart AddPieChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
             double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddPieChart(items, categorySelector,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -597,7 +597,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using object data selectors (inches).
         /// </summary>
-        public PowerPointChart AddPieChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddPieChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftInches, double topInches, double widthInches, double heightInches,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddPieChart(items, categorySelector,
@@ -611,7 +611,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using object data selectors (points).
         /// </summary>
-        public PowerPointChart AddPieChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddPieChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftPoints, double topPoints, double widthPoints, double heightPoints,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddPieChart(items, categorySelector,
@@ -625,7 +625,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a pie chart using object data selectors at a specific position.
         /// </summary>
-        public PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddPieChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             long left, long top, long width, long height,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);
@@ -635,21 +635,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart with default data.
         /// </summary>
-        public PowerPointChart AddDoughnutChart() {
+        internal PowerPointChart AddDoughnutChart() {
             return AddChartInternal(PowerPointChartKind.Doughnut, null, 0L, 0L, 5486400L, 3200400L);
         }
 
         /// <summary>
         ///     Adds a doughnut chart with default data at a specific position.
         /// </summary>
-        public PowerPointChart AddDoughnutChart(long left, long top, long width, long height) {
+        internal PowerPointChart AddDoughnutChart(long left, long top, long width, long height) {
             return AddChartInternal(PowerPointChartKind.Doughnut, null, left, top, width, height);
         }
 
         /// <summary>
         ///     Adds a doughnut chart with default data using centimeter measurements.
         /// </summary>
-        public PowerPointChart AddDoughnutChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
+        internal PowerPointChart AddDoughnutChartCm(double leftCm, double topCm, double widthCm, double heightCm) {
             return AddDoughnutChart(
                 PowerPointUnits.FromCentimeters(leftCm),
                 PowerPointUnits.FromCentimeters(topCm),
@@ -660,7 +660,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart with default data using inch measurements.
         /// </summary>
-        public PowerPointChart AddDoughnutChartInches(double leftInches, double topInches, double widthInches,
+        internal PowerPointChart AddDoughnutChartInches(double leftInches, double topInches, double widthInches,
             double heightInches) {
             return AddDoughnutChart(
                 PowerPointUnits.FromInches(leftInches),
@@ -672,7 +672,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart with default data using point measurements.
         /// </summary>
-        public PowerPointChart AddDoughnutChartPoints(double leftPoints, double topPoints, double widthPoints,
+        internal PowerPointChart AddDoughnutChartPoints(double leftPoints, double topPoints, double widthPoints,
             double heightPoints) {
             return AddDoughnutChart(
                 PowerPointUnits.FromPoints(leftPoints),
@@ -684,7 +684,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using the supplied data.
         /// </summary>
-        public PowerPointChart AddDoughnutChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
+        internal PowerPointChart AddDoughnutChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
@@ -696,7 +696,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using the supplied data with centimeter measurements.
         /// </summary>
-        public PowerPointChart AddDoughnutChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
+        internal PowerPointChart AddDoughnutChartCm(PowerPointChartData data, double leftCm, double topCm, double widthCm,
             double heightCm) {
             return AddDoughnutChart(data,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -708,7 +708,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using the supplied data with inch measurements.
         /// </summary>
-        public PowerPointChart AddDoughnutChartInches(PowerPointChartData data, double leftInches, double topInches,
+        internal PowerPointChart AddDoughnutChartInches(PowerPointChartData data, double leftInches, double topInches,
             double widthInches, double heightInches) {
             return AddDoughnutChart(data,
                 PowerPointUnits.FromInches(leftInches),
@@ -720,7 +720,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using the supplied data with point measurements.
         /// </summary>
-        public PowerPointChart AddDoughnutChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
+        internal PowerPointChart AddDoughnutChartPoints(PowerPointChartData data, double leftPoints, double topPoints,
             double widthPoints, double heightPoints) {
             return AddDoughnutChart(data,
                 PowerPointUnits.FromPoints(leftPoints),
@@ -732,7 +732,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using object data selectors.
         /// </summary>
-        public PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddDoughnutChart(items, categorySelector, 0L, 0L, 5486400L, 3200400L, seriesDefinitions);
         }
@@ -740,7 +740,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using object data selectors (centimeters).
         /// </summary>
-        public PowerPointChart AddDoughnutChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
+        internal PowerPointChart AddDoughnutChartCm<T>(IEnumerable<T> items, Func<T, string> categorySelector, double leftCm,
             double topCm, double widthCm, double heightCm, params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddDoughnutChart(items, categorySelector,
                 PowerPointUnits.FromCentimeters(leftCm),
@@ -753,7 +753,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using object data selectors (inches).
         /// </summary>
-        public PowerPointChart AddDoughnutChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddDoughnutChartInches<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftInches, double topInches, double widthInches, double heightInches,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddDoughnutChart(items, categorySelector,
@@ -767,7 +767,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using object data selectors (points).
         /// </summary>
-        public PowerPointChart AddDoughnutChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddDoughnutChartPoints<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             double leftPoints, double topPoints, double widthPoints, double heightPoints,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             return AddDoughnutChart(items, categorySelector,
@@ -781,7 +781,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a doughnut chart using object data selectors at a specific position.
         /// </summary>
-        public PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
+        internal PowerPointChart AddDoughnutChart<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             long left, long top, long width, long height,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
             var data = PowerPointChartData.From(items, categorySelector, seriesDefinitions);

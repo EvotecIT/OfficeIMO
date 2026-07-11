@@ -11,7 +11,7 @@ Use a template workflow when the organization already owns the slide master, lay
 
 ```csharp
 PowerPointTemplateInventory inventory =
-    PowerPointPresentation.InspectTemplate("Corporate.potx");
+    PowerPointTemplate.Inspect("Corporate.potx");
 
 foreach (PowerPointTemplateMasterInfo master in inventory.Masters)
 {
@@ -38,7 +38,7 @@ Semantic lookup is deliberately strict. If two layouts or placeholders match, `P
 ## Create from PPTX or POTX
 
 ```csharp
-using var presentation = PowerPointPresentation.CreateFromTemplate(
+using var presentation = PowerPointTemplate.CreatePresentation(
     "Corporate.potx",
     "Quarterly Review.pptx",
     new PowerPointTemplateCreationOptions {
@@ -65,11 +65,14 @@ var plan = new PowerPointDeckPlan()
     .AddProcess("Implementation", null, steps)
     .AddCapability("Operating model", null, capabilities);
 
-presentation.UseTemplateDesigner(inventory, map, "qbr-seed")
-    .AddSlidesWithContinuation(plan);
+PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(
+    inventory.CreateDesignBrief("qbr-seed", "quarterly business review"));
+composition.TemplateLayouts = map;
+composition.ApplyTheme = false;
+presentation.Compose(plan, composition);
 ```
 
-The template remains the package owner. `UseTemplateDesigner(...)` imports its brand tokens into the design brief while preserving the copied native theme by default. A caller can opt into applying generated theme tokens, but template consumption does not require rewriting the corporate master.
+The template remains the package owner. `CreateDesignBrief(...)` imports its brand tokens while `TemplateLayouts` maps semantic intent to named native layouts. Keeping `ApplyTheme` false preserves the copied corporate theme; callers can opt into applying generated theme tokens explicitly.
 
 ## Brand reuse without copying the template
 
