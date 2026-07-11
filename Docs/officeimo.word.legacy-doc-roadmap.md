@@ -45,7 +45,7 @@ The defaults are intentionally conservative:
 
 - content, not only the extension, determines the source format;
 - same-format conversion is rejected;
-- an existing destination is not replaced unless `Replace` is selected;
+- an existing destination is not replaced unless `Replace` is selected, and a read-only destination is never replaced;
 - known conversion loss blocks conversion and normal saves;
 - output is staged and committed atomically, so a failed save does not expose a partial file;
 - cross-family OLE input, such as XLS passed to Word, is rejected with a format-specific error.

@@ -74,6 +74,8 @@ namespace OfficeIMO.Word {
                     $"The destination file '{paths.Destination}' already exists. Set FileConflictPolicy to Replace to replace it atomically.");
             }
 
+            EnsureDestinationFileWritable(paths.Destination);
+
             OfficeFileConversion.EnsureDestinationDirectory(paths.Destination);
             string stagingPath = OfficeFileCommit.CreateStagingPath(paths.Destination);
             try {

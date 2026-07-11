@@ -125,6 +125,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_Convert_ReplacePreservesReadOnlyDestination() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            byte[] originalBytes = { 1, 2, 3, 4 };
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Read-only conversion target");
+                document.Save(sourcePath);
+            }
+            File.WriteAllBytes(destinationPath, originalBytes);
+            var destination = new FileInfo(destinationPath) { IsReadOnly = true };
+
+            try {
+                Assert.Throws<IOException>(() => WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
+                    FileConflictPolicy = WordConversionFileConflictPolicy.Replace
+                }));
+
+                Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
+            } finally {
+                destination.IsReadOnly = false;
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_Convert_RejectsSamePhysicalFormat() {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");

@@ -84,10 +84,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets whether the legacy XLS import discovered unsupported or preserve-only features.
         /// </summary>
-        public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0;
+        public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0 || PreservedFeatures.Count > 0;
 
         /// <summary>Gets whether conversion to XLSX would omit known legacy content.</summary>
         public bool HasConversionLoss => UnsupportedFeatures.Count > 0
+            || PreservedFeatures.Count > 0
             || UnsupportedSheets.Count > 0
             || CompoundFeatures.Any(feature =>
                 feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
@@ -109,7 +110,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// </summary>
         public LegacyXlsLoadResult EnsureNoUnsupportedFeatures() {
             if (HasUnsupportedFeatures) {
-                throw new InvalidOperationException("Legacy XLS import discovered unsupported or preserve-only features: " + FormatUnsupportedFeatures(UnsupportedFeatures));
+                throw new InvalidOperationException(
+                    "Legacy XLS import discovered unsupported or preserve-only features: "
+                    + FormatUnsupportedFeatures(UnsupportedFeatures, PreservedFeatures));
             }
 
             return this;
@@ -118,7 +121,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Throws when conversion to XLSX would omit known legacy content.</summary>
         public LegacyXlsLoadResult EnsureNoConversionLoss() {
             if (HasConversionLoss) {
-                throw new InvalidOperationException("Legacy XLS import contains unsupported sheets, unsupported features, VBA, or OLE content that cannot be projected to XLSX without loss.");
+                throw new InvalidOperationException("Legacy XLS import contains unsupported sheets, unsupported or preserve-only features, VBA, or OLE content that cannot be projected to XLSX without loss.");
             }
 
             return this;
@@ -135,13 +138,20 @@ namespace OfficeIMO.Excel.LegacyXls {
             return string.Join("; ", diagnostics.Take(8).Select(diagnostic => diagnostic.ToString()));
         }
 
-        private static string FormatUnsupportedFeatures(IEnumerable<LegacyXlsUnsupportedFeature> features) {
-            return string.Join("; ", features.Take(8).Select(feature => {
+        private static string FormatUnsupportedFeatures(
+            IEnumerable<LegacyXlsUnsupportedFeature> features,
+            IEnumerable<LegacyXlsPreservedFeatureRecord> preservedFeatures) {
+            IEnumerable<string> unsupported = features.Select(feature => {
                 string sheet = feature.SheetName == null ? string.Empty : $" [{feature.SheetName}]";
                 string record = feature.RecordType == null ? string.Empty : $" record=0x{feature.RecordType.Value:X4}";
                 string offset = feature.RecordOffset == null ? string.Empty : $" offset={feature.RecordOffset.Value}";
                 return $"{feature.Code}{sheet}{record}{offset}: {feature.Description}";
-            }));
+            });
+            IEnumerable<string> preserved = preservedFeatures.Select(feature => {
+                string sheet = feature.SheetName == null ? string.Empty : $" [{feature.SheetName}]";
+                return $"{feature.Code}{sheet} record=0x{feature.RecordType:X4} offset={feature.RecordOffset}: {feature.Description}";
+            });
+            return string.Join("; ", unsupported.Concat(preserved).Distinct(StringComparer.Ordinal).Take(8));
         }
     }
 }

@@ -45,7 +45,7 @@ The defaults are conservative:
 
 - content determines the source format even when an extension is misleading;
 - same-format conversion is rejected;
-- existing output is preserved unless `Replace` is selected;
+- existing output is preserved unless `Replace` is selected, and a read-only destination is never replaced;
 - known conversion loss blocks conversion and normal saves;
 - output is staged and atomically committed;
 - cross-family OLE input, such as DOC passed to Excel, is rejected clearly.

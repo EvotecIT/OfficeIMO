@@ -39,6 +39,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_LoadResult_CountsPreservedOnlyRecordsAsConversionLoss() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
+            Assert.NotEmpty(result.PreservedFeatures);
+
+            result.Workbook.MutableUnsupportedFeatures.Clear();
+            Assert.Empty(result.UnsupportedFeatures);
+
+            Assert.True(result.HasUnsupportedFeatures);
+            Assert.True(result.HasConversionLoss);
+            Assert.True(result.Summary.HasConversionLoss);
+            Assert.Throws<InvalidOperationException>(() => result.EnsureNoUnsupportedFeatures());
+            Assert.Throws<InvalidOperationException>(() => result.EnsureNoConversionLoss());
+        }
+
+        [Fact]
         public void Load_WhenInputIsLegacyWord_ReportsFormatMismatch() {
             string path = Path.Combine(
                 AppContext.BaseDirectory,

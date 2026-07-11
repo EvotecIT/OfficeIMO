@@ -19,9 +19,7 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("SaveCopy supports .xlsx and .xls destinations. Use Save for macro-enabled or template formats.");
             }
 
-            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);
             byte[] bytes = format == ExcelFileFormat.Xls ? ToXls(options) : ToXlsx(options);
             OfficeFileCommit.WriteAllBytes(filePath, bytes);

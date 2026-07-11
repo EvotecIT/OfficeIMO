@@ -76,6 +76,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void EnsureDestinationFileWritable(string path) {
+            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
+                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
+            }
+        }
+
         /// <summary>
         /// Saves the document without opening it.
         /// </summary>
@@ -122,9 +128,7 @@ namespace OfficeIMO.Excel {
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
 
             // Ensure target directory is writable
-            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
-                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
             if (TrySaveNativeLegacyXlsToFile(path, openExcel, options)) {
@@ -212,9 +216,7 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
-            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
-                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
             var payload = PreparePackageForSave(saveOptions);
@@ -317,9 +319,7 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
-            if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
-                throw new IOException($"Failed to save to '{target}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
             if (await TrySaveNativeLegacyXlsToFileAsync(target, openExcel, options, cancellationToken).ConfigureAwait(false)) {

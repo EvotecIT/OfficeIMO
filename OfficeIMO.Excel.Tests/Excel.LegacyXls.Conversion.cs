@@ -148,6 +148,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Convert_ReplacePreservesReadOnlyDestination() {
+            string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
+            byte[] originalBytes = { 1, 2, 3, 4 };
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Read-only conversion target");
+                document.Save();
+            }
+            File.WriteAllBytes(destinationPath, originalBytes);
+            var destination = new FileInfo(destinationPath) { IsReadOnly = true };
+
+            try {
+                Assert.Throws<IOException>(() => ExcelDocument.Convert(sourcePath, destinationPath, new ExcelDocumentConversionOptions {
+                    FileConflictPolicy = ExcelConversionFileConflictPolicy.Replace
+                }));
+
+                Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
+            } finally {
+                destination.IsReadOnly = false;
+            }
+        }
+
+        [Fact]
         public void LegacyXls_Convert_RejectsSamePhysicalFormat() {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
