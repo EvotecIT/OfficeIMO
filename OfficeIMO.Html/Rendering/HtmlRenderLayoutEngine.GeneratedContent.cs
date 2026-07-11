@@ -95,6 +95,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement element,
         string source) {
+        if (!style.PaintVisible) return;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, element, source);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, element, source);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, style.BorderInsets, radii, element, source, source);
@@ -111,6 +112,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement element,
         string source) {
+        if (!style.PaintVisible) return;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, element, source);
         AddOutlinePaint(visuals, style, x, y, width, height, radii, element, source);
     }

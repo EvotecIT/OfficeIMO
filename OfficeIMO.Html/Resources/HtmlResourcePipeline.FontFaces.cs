@@ -31,7 +31,7 @@ internal sealed class HtmlCssFontFaceDefinition {
 }
 
 public static partial class HtmlResourcePipeline {
-    internal static IReadOnlyList<HtmlCssFontFaceDefinition> ExtractFontFaces(string css, HtmlCssMediaContext mediaContext) {
+    internal static IReadOnlyList<HtmlCssFontFaceDefinition> ExtractFontFaces(string css, HtmlResourcePipelineOptions options) {
         var definitions = new List<HtmlCssFontFaceDefinition>();
         if (string.IsNullOrWhiteSpace(css)) {
             return definitions.AsReadOnly();
@@ -40,7 +40,7 @@ public static partial class HtmlResourcePipeline {
         var parser = new CssParser();
         ICssStyleSheet stylesheet = parser.ParseStyleSheet(css);
         foreach (ICssRule rule in stylesheet.Rules) {
-            AddFontFaces(rule, mediaContext, definitions);
+            AddFontFaces(rule, options, definitions);
         }
 
         return definitions.AsReadOnly();
@@ -108,8 +108,8 @@ public static partial class HtmlResourcePipeline {
         return builder.ToString();
     }
 
-    private static void AddFontFaces(ICssRule rule, HtmlCssMediaContext mediaContext, ICollection<HtmlCssFontFaceDefinition> definitions) {
-        if (rule is ICssMediaRule mediaRule && !HtmlComputedStyleEngine.IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
+    private static void AddFontFaces(ICssRule rule, HtmlResourcePipelineOptions options, ICollection<HtmlCssFontFaceDefinition> definitions) {
+        if (rule is ICssMediaRule mediaRule && !IsApplicableMedia(mediaRule.ConditionText, options)) {
             return;
         }
 
@@ -128,7 +128,7 @@ public static partial class HtmlResourcePipeline {
 
         if (rule is ICssGroupingRule groupingRule) {
             foreach (ICssRule child in groupingRule.Rules) {
-                AddFontFaces(child, mediaContext, definitions);
+                AddFontFaces(child, options, definitions);
             }
         }
     }

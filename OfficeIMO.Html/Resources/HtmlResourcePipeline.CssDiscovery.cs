@@ -30,10 +30,10 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {
-        Dictionary<string, List<CssCustomPropertyDefinition>> documentCustomPropertyDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options.MediaContext);
+        Dictionary<string, List<CssCustomPropertyDefinition>> documentCustomPropertyDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
         Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options.MediaContext)) {
+            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) {
                 continue;
             }
 
@@ -44,7 +44,7 @@ public static partial class HtmlResourcePipeline {
             int sourceOrderBase = inlineSourceOrders.TryGetValue(element, out int inlineSourceOrder)
                 ? inlineSourceOrder
                 : GetDocumentCssSourceOrder(document);
-            Dictionary<string, List<CssCustomPropertyDefinition>> inheritedDefinitions = ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options.MediaContext, includeSelf: false);
+            Dictionary<string, List<CssCustomPropertyDefinition>> inheritedDefinitions = ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false);
             Dictionary<string, List<CssCustomPropertyDefinition>> ambientDefinitions = MergeCustomPropertyDefinitions(documentCustomPropertyDefinitions, inheritedDefinitions);
             AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, ambientDefinitions, inlineSourceOrders, sourceOrderBase, includeLocalDefinitions: true, baseUri, options, document);
         }
@@ -68,7 +68,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         css = StripCssCommentsOutsideStrings(css);
-        List<SourceRange> inactiveMediaRanges = GetInactiveCssRuleRanges(css, options.MediaContext);
+        List<SourceRange> inactiveMediaRanges = GetInactiveCssRuleRanges(css, options);
         bool scanImports = !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase);
         IElement? inlineUseElement = string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)
             ? element
@@ -82,7 +82,7 @@ public static partial class HtmlResourcePipeline {
                 string source = reference.Source;
                 if (!string.IsNullOrWhiteSpace(source)
                     && !IsInRanges(reference.Start, inactiveMediaRanges)
-                    && IsApplicableCssImport(reference.ConditionText, options.MediaContext)) {
+                    && IsApplicableCssImport(reference.ConditionText, options)) {
                     importRanges.Add(new SourceRange(reference.Start, reference.End));
                     AddRaw(manifest, HtmlResourceKind.Stylesheet, element, attributeName + "-import", DecodeCssEscapes(source), baseUri, options);
                 }

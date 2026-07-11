@@ -403,7 +403,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         shape.StrokeWidth = 0D;
         double height = style.MarginTop + lineWidth + style.MarginBottom;
         var visual = new HtmlRenderShape(shape, style.MarginLeft, style.MarginTop, 0, source: HtmlRenderStyleResolver.DescribeSource(element));
-        return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), new[] { visual }, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), pageName: style.PageName);
+        IReadOnlyList<HtmlRenderVisual> visuals = style.PaintVisible ? new[] { visual } : Array.Empty<HtmlRenderVisual>();
+        return new HtmlRenderFlowBlock(containingWidth, Math.Max(height, 0.01D), visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, HtmlRenderStyleResolver.DescribeSource(element), pageName: style.PageName);
     }
 
     private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {

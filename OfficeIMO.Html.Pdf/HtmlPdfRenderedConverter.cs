@@ -11,22 +11,23 @@ internal static class HtmlPdfRenderedConverter {
     private const double PointsPerCssPixel = 72D / HtmlRenderOptions.CssPixelsPerInch;
 
     internal static PdfCore.PdfDocument Convert(string html, HtmlPdfSaveOptions options) {
-        HtmlRenderOptions renderOptions = options.RenderOptions?.Clone() ?? new HtmlRenderOptions {
-            Mode = HtmlRenderMode.Paged
-        };
-        options.RenderOptions = renderOptions;
+        HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, renderOptions);
         return CreatePdf(rendered, options, CancellationToken.None);
     }
 
     internal static async Task<PdfCore.PdfDocument> ConvertAsync(string html, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
-        HtmlRenderOptions renderOptions = options.RenderOptions?.Clone() ?? new HtmlRenderOptions {
-            Mode = HtmlRenderMode.Paged
-        };
-        options.RenderOptions = renderOptions;
+        HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, renderOptions, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return CreatePdf(rendered, options, cancellationToken);
+    }
+
+    private static HtmlRenderOptions ResolveRenderOptions(HtmlPdfSaveOptions options) {
+        HtmlRenderOptions renderOptions = options.RenderOptions?.Clone() ?? new HtmlRenderOptions();
+        renderOptions.Mode = HtmlRenderMode.Paged;
+        options.RenderOptions = renderOptions;
+        return renderOptions;
     }
 
     private static PdfCore.PdfDocument CreatePdf(HtmlRenderDocument rendered, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
@@ -141,6 +142,7 @@ internal static class HtmlPdfRenderedConverter {
     }
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, IReadOnlyDictionary<string, PdfCore.PdfStandardFont> webFonts, double surfaceWidth, double surfaceHeight, CancellationToken cancellationToken, bool textAsSpan) {
+        if (!group.Visuals.Any(ContainsPaintableVisual)) return;
         var options = new PdfCore.PdfCanvasStructureOptions {
             ColumnSpan = group.ColumnSpan,
             RowSpan = group.RowSpan,
@@ -153,6 +155,15 @@ internal static class HtmlPdfRenderedConverter {
                 AddVisual(nested, child, webFonts, surfaceWidth, surfaceHeight, cancellationToken, childTextAsSpan);
             }
         }, options);
+    }
+
+    private static bool ContainsPaintableVisual(HtmlRenderVisual visual) {
+        if (visual is HtmlRenderSemanticGroup semanticGroup) return semanticGroup.Visuals.Any(ContainsPaintableVisual);
+        if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) return logicalTextGroup.Visuals.Any(ContainsPaintableVisual);
+        if (visual is HtmlRenderClipGroup clipGroup) return clipGroup.Visuals.Any(ContainsPaintableVisual);
+        if (visual is HtmlRenderPathClipGroup pathClipGroup) return pathClipGroup.Visuals.Any(ContainsPaintableVisual);
+        if (visual is HtmlRenderEffectGroup effectGroup) return effectGroup.Visuals.Any(ContainsPaintableVisual);
+        return true;
     }
 
     private static bool IsTextContentGroup(HtmlRenderSemanticGroupRole role) =>

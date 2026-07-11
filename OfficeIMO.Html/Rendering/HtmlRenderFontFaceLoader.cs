@@ -16,14 +16,23 @@ internal static class HtmlRenderFontFaceLoader {
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.UrlPolicy);
         var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pipelineOptions = new HtmlResourcePipelineOptions {
+            MediaContext = options.MediaContext,
+            MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
+            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
+        };
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)
-                || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options.MediaContext)) {
+                || !HtmlComputedStyleEngine.IsApplicableMedia(
+                    styleElement.GetAttribute("media") ?? string.Empty,
+                    pipelineOptions.MediaContext,
+                    pipelineOptions.MediaWidth!.Value,
+                    pipelineOptions.MediaHeight!.Value)) {
                 continue;
             }
 
-            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(styleElement.TextContent, options.MediaContext)) {
+            foreach (HtmlCssFontFaceDefinition definition in HtmlResourcePipeline.ExtractFontFaces(styleElement.TextContent, pipelineOptions)) {
                 LoadDefinition(
                     definition,
                     baseUri,

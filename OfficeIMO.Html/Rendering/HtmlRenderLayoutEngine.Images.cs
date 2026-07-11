@@ -6,8 +6,18 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
-        string? source = element.GetAttribute("src");
-        TryResolveImageSource(source, sourceDescription, out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo);
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(element, _baseUri, _resourceUrlPolicy);
+        string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
+        byte[]? bytes = null;
+        string contentType = string.Empty;
+        OfficeImageInfo? imageInfo = null;
+        foreach (string candidate in candidates) {
+            if (TryResolveImageSource(candidate, sourceDescription, out bytes, out contentType, out imageInfo, reportDiagnostics: false)) {
+                source = candidate;
+                break;
+            }
+        }
+        if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
         double intrinsicWidth = hasIntrinsicSize
             ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
@@ -92,6 +102,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             sourceDescription + ":content-clip");
         ReportReplacedElementFallbacks(style, element);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        if (!style.PaintVisible) visuals.Clear();
 
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);

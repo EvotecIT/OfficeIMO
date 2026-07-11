@@ -147,7 +147,7 @@ public static partial class HtmlResourcePipeline {
             if (string.Equals(sibling.TagName, "source", StringComparison.OrdinalIgnoreCase)
                 && HasPictureSourceCandidate(sibling)
                 && HasAllowedPictureSourceCandidate(sibling, baseUri, options)
-                && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options.MediaContext)
+                && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options)
                 && IsSupportedPictureSourceType(sibling.GetAttribute("type"))) {
                 return true;
             }
@@ -162,7 +162,7 @@ public static partial class HtmlResourcePipeline {
             case "picture":
                 if (IsFirstApplicablePictureSource(element, baseUri, options)
                     && HasPictureSourceCandidate(element)
-                    && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options.MediaContext)
+                    && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)
                     && IsSupportedPictureSourceType(element.GetAttribute("type"))) {
                     AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                     AddAttribute(manifest, HtmlResourceKind.Image, element, "data-src", baseUri, options);
@@ -204,7 +204,7 @@ public static partial class HtmlResourcePipeline {
 
             if (HasPictureSourceCandidate(sibling)
                 && HasAllowedPictureSourceCandidate(sibling, baseUri, options)
-                && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options.MediaContext)
+                && IsApplicableMedia(sibling.GetAttribute("media") ?? string.Empty, options)
                 && IsSupportedPictureSourceType(sibling.GetAttribute("type"))) {
                 return false;
             }
@@ -320,7 +320,7 @@ public static partial class HtmlResourcePipeline {
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
         bool isStylesheet = relTokens.Contains("stylesheet");
-        if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options.MediaContext)) {
+        if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)) {
             return;
         }
 
@@ -363,6 +363,14 @@ public static partial class HtmlResourcePipeline {
 
     private static bool IsApplicableMedia(string mediaText, HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
         return HtmlComputedStyleEngine.IsApplicableMedia(mediaText, mediaContext);
+    }
+
+    private static bool IsApplicableMedia(string mediaText, HtmlResourcePipelineOptions options) {
+        if (options.MediaWidth.HasValue && options.MediaHeight.HasValue) {
+            return HtmlComputedStyleEngine.IsApplicableMedia(mediaText, options.MediaContext, options.MediaWidth.Value, options.MediaHeight.Value);
+        }
+
+        return IsApplicableMedia(mediaText, options.MediaContext);
     }
 
     private static bool ContainsMediaType(string mediaQuery, string mediaType) {

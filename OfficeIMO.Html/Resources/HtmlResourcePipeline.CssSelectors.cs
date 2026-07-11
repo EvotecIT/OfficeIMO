@@ -82,7 +82,7 @@ public static partial class HtmlResourcePipeline {
         IElement useElement,
         HtmlResourcePipelineOptions options,
         string useSelector) {
-        Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, options.MediaContext, includeSelf: true);
+        Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, options, includeSelf: true);
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
             ? customPropertyDefinitions
             : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);

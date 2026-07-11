@@ -209,24 +209,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlInlineRun run = placement.Run;
                 HtmlRenderFlowBlock block = run.FloatingBlock!;
                 RecordInlineOwnerGeometry(run, formattingContainer, placement.X, placement.Y, placement.Width, placement.Height, inlineBounds);
-                foreach (HtmlRenderVisual visual in block.Visuals) {
-                    AddInlineOwnedVisual(
-                        visuals,
-                        ownedVisuals,
-                        visual.Translate(placement.X, placement.Y, visuals.Count),
-                        run.OwnerElement,
-                        formattingContainer);
-                }
-                if (run.LinkUri != null) {
-                    OfficeShape linkArea = OfficeShape.Rectangle(placement.Width, placement.Height);
-                    linkArea.FillColor = null;
-                    linkArea.StrokeWidth = 0D;
-                    AddInlineOwnedVisual(
-                        visuals,
-                        ownedVisuals,
-                        new HtmlRenderShape(linkArea, placement.X, placement.Y, visuals.Count, run.LinkUri, run.Source),
-                        run.OwnerElement,
-                        formattingContainer);
+                if (run.Style.PaintVisible) {
+                    foreach (HtmlRenderVisual visual in block.Visuals) {
+                        AddInlineOwnedVisual(
+                            visuals,
+                            ownedVisuals,
+                            visual.Translate(placement.X, placement.Y, visuals.Count),
+                            run.OwnerElement,
+                            formattingContainer);
+                    }
+                    if (run.LinkUri != null) {
+                        OfficeShape linkArea = OfficeShape.Rectangle(placement.Width, placement.Height);
+                        linkArea.FillColor = null;
+                        linkArea.StrokeWidth = 0D;
+                        AddInlineOwnedVisual(
+                            visuals,
+                            ownedVisuals,
+                            new HtmlRenderShape(linkArea, placement.X, placement.Y, visuals.Count, run.LinkUri, run.Source),
+                            run.OwnerElement,
+                            formattingContainer);
+                    }
                 }
             }
         }
@@ -253,22 +255,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomic.Height);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
-                    foreach (HtmlRenderVisual visual in atomic.Visuals) {
-                        HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
-                        if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
-                            translated = translated.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                    if (segment.Run.Style.PaintVisible) {
+                        foreach (HtmlRenderVisual visual in atomic.Visuals) {
+                            HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
+                            if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
+                                translated = translated.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                            }
+                            AddInlineOwnedVisual(visuals, ownedVisuals, translated, segment.Run.OwnerElement, formattingContainer);
                         }
-                        AddInlineOwnedVisual(visuals, ownedVisuals, translated, segment.Run.OwnerElement, formattingContainer);
-                    }
-                    if (segment.Run.LinkUri != null) {
-                        OfficeShape linkArea = OfficeShape.Rectangle(Math.Max(0.01D, segment.Width), Math.Max(0.01D, atomic.Height));
-                        linkArea.FillColor = null;
-                        linkArea.StrokeWidth = 0D;
-                        HtmlRenderVisual linkVisual = new HtmlRenderShape(linkArea, x, atomicY, visuals.Count, segment.Run.LinkUri, segment.Run.Source);
-                        if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
-                            linkVisual = linkVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                        if (segment.Run.LinkUri != null) {
+                            OfficeShape linkArea = OfficeShape.Rectangle(Math.Max(0.01D, segment.Width), Math.Max(0.01D, atomic.Height));
+                            linkArea.FillColor = null;
+                            linkArea.StrokeWidth = 0D;
+                            HtmlRenderVisual linkVisual = new HtmlRenderShape(linkArea, x, atomicY, visuals.Count, segment.Run.LinkUri, segment.Run.Source);
+                            if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
+                                linkVisual = linkVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
+                            }
+                            AddInlineOwnedVisual(visuals, ownedVisuals, linkVisual, segment.Run.OwnerElement, formattingContainer);
                         }
-                        AddInlineOwnedVisual(visuals, ownedVisuals, linkVisual, segment.Run.OwnerElement, formattingContainer);
                     }
                 } else if (segment.Text.Length > 0 && segment.Width > 0D) {
                     double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
@@ -276,6 +280,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
                         : lineY;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, segment.Width, textLineHeight, inlineBounds);
+                    if (!segment.Run.Style.PaintVisible) {
+                        cursor += rightToLeftLine ? -segment.Width : segment.Width;
+                        continue;
+                    }
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
                     IReadOnlyList<InlinePaintSegment> paintSegments = ResolveInlinePaintSegments(segment, x);
                     var textVisuals = new List<HtmlRenderVisual>(paintSegments.Count);

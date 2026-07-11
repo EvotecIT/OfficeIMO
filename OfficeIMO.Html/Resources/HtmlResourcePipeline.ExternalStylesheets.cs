@@ -55,10 +55,10 @@ public static partial class HtmlResourcePipeline {
                 import.Start,
                 import.End,
                 reference,
-                IsApplicableCssImport(import.ConditionText, options.MediaContext)));
+                IsApplicableCssImport(import.ConditionText, options)));
         }
 
-        foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options.MediaContext)) {
+        foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options)) {
             foreach (string source in ExtractFontFaceUrls(definition.Source)) {
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
                 bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Font, resolved);
@@ -73,7 +73,7 @@ public static partial class HtmlResourcePipeline {
             }
         }
 
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(normalized, options.MediaContext);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(normalized, options);
         List<SourceRange> importRanges = imports.Select(import => new SourceRange(import.Start, import.End)).ToList();
         foreach (System.Text.RegularExpressions.Match match in CssUrlExpression.Matches(normalized)) {
             if (!IsCssFunctionNameAt(normalized, match.Index, "url")

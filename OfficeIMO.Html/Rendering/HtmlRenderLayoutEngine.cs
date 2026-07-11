@@ -114,7 +114,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        IReadOnlyList<HtmlRenderFlowBlock> blocks = BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        IReadOnlyList<HtmlRenderFlowBlock> blocks = rootStyle.Display == "none"
+            ? Array.Empty<HtmlRenderFlowBlock>()
+            : BuildChildBlocks(root, contentWidth, rootStyle, 0);
         HtmlRenderDocument rendered = _options.Mode == HtmlRenderMode.Paged
             ? RenderPaged(blocks)
             : RenderContinuous(blocks);
@@ -334,7 +336,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) {
         var visuals = new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
-        if (_surfaceRootElement == null || _surfaceRootStyle == null) return visuals;
+        if (_surfaceRootElement == null || _surfaceRootStyle == null || !_surfaceRootStyle.PaintVisible || _surfaceRootStyle.Display == "none") return visuals;
 
         var rootBackground = new List<HtmlRenderVisual>();
         AddBoxBackground(

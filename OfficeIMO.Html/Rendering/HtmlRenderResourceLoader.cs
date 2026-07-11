@@ -108,7 +108,9 @@ internal static class HtmlRenderResourceLoader {
 
         var resourceOptions = new HtmlResourcePipelineOptions {
             UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
-            MediaContext = options.MediaContext
+            MediaContext = options.MediaContext,
+            MediaWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
+            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D
         };
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();

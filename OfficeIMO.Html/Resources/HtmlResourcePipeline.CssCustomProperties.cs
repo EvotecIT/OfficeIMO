@@ -5,18 +5,18 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
-    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractDocumentCustomPropertyDefinitions(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractDocumentCustomPropertyDefinitions(IHtmlDocument document, HtmlResourcePipelineOptions options) {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
         int sourceOrderBase = 0;
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             string css = styleElement.TextContent;
-            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext) || string.IsNullOrWhiteSpace(css)) {
+            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options) || string.IsNullOrWhiteSpace(css)) {
                 sourceOrderBase += css.Length + 1;
                 continue;
             }
 
             css = StripCssCommentsOutsideStrings(css);
-            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, mediaContext), sourceOrderBase, isInline: false, inlineOwner: null));
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: false, inlineOwner: null));
             sourceOrderBase += css.Length + 1;
         }
 
@@ -43,7 +43,7 @@ public static partial class HtmlResourcePipeline {
         return sourceOrders;
     }
 
-    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractInlineCustomPropertyDefinitions(IElement element, IReadOnlyDictionary<IElement, int> inlineSourceOrders, HtmlCssMediaContext mediaContext, bool includeSelf) {
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractInlineCustomPropertyDefinitions(IElement element, IReadOnlyDictionary<IElement, int> inlineSourceOrders, HtmlResourcePipelineOptions options, bool includeSelf) {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
         for (IElement? current = includeSelf ? element : element.ParentElement; current != null; current = current.ParentElement) {
             string style = current.GetAttribute("style") ?? string.Empty;
@@ -52,7 +52,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             string css = StripCssCommentsOutsideStrings(style);
-            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, mediaContext), sourceOrderBase, isInline: true, inlineOwner: current));
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: true, inlineOwner: current));
         }
 
         return definitions;
@@ -214,13 +214,13 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
-    private static List<SourceRange> GetInactiveCssRuleRanges(string css, HtmlCssMediaContext mediaContext) {
-        List<SourceRange> ranges = GetInactiveMediaRanges(css, mediaContext);
+    private static List<SourceRange> GetInactiveCssRuleRanges(string css, HtmlResourcePipelineOptions options) {
+        List<SourceRange> ranges = GetInactiveMediaRanges(css, options);
         ranges.AddRange(GetInactiveSupportsRanges(css));
         return ranges;
     }
 
-    private static List<SourceRange> GetInactiveMediaRanges(string css, HtmlCssMediaContext mediaContext) {
+    private static List<SourceRange> GetInactiveMediaRanges(string css, HtmlResourcePipelineOptions options) {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
@@ -246,7 +246,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             string mediaText = css.Substring(preludeStart, open - preludeStart).Trim();
-            if (!IsApplicableMedia(mediaText, mediaContext)) {
+            if (!IsApplicableMedia(mediaText, options)) {
                 ranges.Add(new SourceRange(open + 1, close));
                 index = close + 1;
             } else {
@@ -418,7 +418,7 @@ public static partial class HtmlResourcePipeline {
                 IElement[] matchedElements = GetElementsMatchingSelectorList(document, useSelector).ToArray();
                 if (matchedElements.Length > 0) {
                     foreach (IElement matchedElement in matchedElements) {
-                        Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(matchedElement, inlineSourceOrders, options.MediaContext, includeSelf: true);
+                        Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(matchedElement, inlineSourceOrders, options, includeSelf: true);
                         Dictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
                             ? CloneCustomPropertyDefinitions(customPropertyDefinitions)
                             : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);

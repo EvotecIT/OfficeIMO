@@ -13,7 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         IElement source) {
-        if (width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -31,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         double height,
         IElement source) {
-        if (width <= 0.0001D || height <= 0.0001D) return;
+        if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
         AddOutlinePaint(visuals, style, x, y, width, height, radii, source, sourceDescription);
@@ -48,6 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
+        if (!style.PaintVisible) return;
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, diagnosticSourceDescription);
         AddOuterBoxShadows(visuals, style, x, y, width, height, radii, source, diagnosticSourceDescription);
         AddBoxBackgroundCore(visuals, style, x, y, width, height, HtmlRenderBorderInsets.Uniform(borderWidth), radii, source, diagnosticSourceDescription, visualSourceDescription);

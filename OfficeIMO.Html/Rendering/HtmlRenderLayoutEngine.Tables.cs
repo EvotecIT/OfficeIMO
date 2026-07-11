@@ -145,6 +145,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int rowVisualStart = visuals.Count;
             if (row.IsFooter && trailingVisuals.Count == 0) trailingStart = rowY;
             var rowVisuals = new List<HtmlRenderVisual>();
+            double rowPaintX = contentX + horizontalSpacing;
+            double rowPaintWidth = Math.Max(0.01D, contentWidth - horizontalSpacing * 2D);
+            bool startsRowGroup = row.GroupElement != null
+                && (rowIndex == 0 || !ReferenceEquals(rowLayouts[rowIndex - 1].GroupElement, row.GroupElement));
+            if (startsRowGroup && row.GroupStyle != null) {
+                int groupRowCount = rowLayouts.Skip(rowIndex).TakeWhile(candidate => ReferenceEquals(candidate.GroupElement, row.GroupElement)).Count();
+                double groupHeight = rowLayouts.Skip(rowIndex).Take(groupRowCount).Sum(candidate => candidate.Height)
+                    + verticalSpacing * Math.Max(0, groupRowCount - 1);
+                string groupSource = HtmlRenderStyleResolver.DescribeSource(row.GroupElement!);
+                AddBoxBackground(rowVisuals, row.GroupStyle, rowPaintX, rowY, rowPaintWidth, groupHeight, 0D, row.GroupElement!, groupSource, groupSource);
+            }
+            string rowSource = HtmlRenderStyleResolver.DescribeSource(row.Element);
+            AddBoxBackground(rowVisuals, row.Style, rowPaintX, rowY, rowPaintWidth, row.Height, 0D, row.Element, rowSource, rowSource);
             foreach (TableCellLayout cell in row.Cells) {
                 double cellX = contentX + horizontalSpacing + columnOffsets[cell.Column] + horizontalSpacing * cell.Column;
                 double cellHeight = GetSpanningHeight(rowLayouts, rowIndex, cell.RowSpan, verticalSpacing);

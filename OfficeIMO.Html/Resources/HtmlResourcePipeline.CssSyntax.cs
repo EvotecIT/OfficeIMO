@@ -187,7 +187,7 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
-    private static bool IsApplicableCssImport(string conditionText, HtmlCssMediaContext mediaContext) {
+    private static bool IsApplicableCssImport(string conditionText, HtmlResourcePipelineOptions options) {
         string remaining = conditionText.Trim();
         if (remaining.Length == 0) {
             return true;
@@ -216,7 +216,7 @@ public static partial class HtmlResourcePipeline {
             break;
         }
 
-        return remaining.Length == 0 || IsApplicableMedia(remaining, mediaContext);
+        return remaining.Length == 0 || IsApplicableMedia(remaining, options);
     }
 
     private static bool TryConsumeCssImportFunctionCondition(string text, string functionName, out string argument, out string remaining) {

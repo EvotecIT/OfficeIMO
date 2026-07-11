@@ -59,6 +59,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(tag, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
+            PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
             Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction),
@@ -84,6 +85,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyTable(computed, style);
         ApplyBreaks(computed, style);
         return style;
+    }
+
+    private static bool ResolvePaintVisibility(string value, HtmlRenderBoxStyle? parent) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return parent?.PaintVisible ?? true;
+        return normalized != "hidden" && normalized != "collapse";
     }
 
     private void ApplyOverflow(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
