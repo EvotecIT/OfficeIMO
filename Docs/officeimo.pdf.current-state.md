@@ -232,7 +232,7 @@ second parser or renderer.
 
 ### P2 - Deepen Document Understanding
 
-- [ ] Split text understanding into pluggable stages: glyph decoding, word
+- [x] Split text understanding into pluggable stages: glyph decoding, word
   grouping, line grouping, page segmentation, reading order, and semantic
   classification.
 - [ ] Add strategies for rotated text, arbitrary baselines, multiple columns,
