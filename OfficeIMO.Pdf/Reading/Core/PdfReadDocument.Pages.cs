@@ -17,13 +17,13 @@ public sealed partial class PdfReadDocument {
                 if (cnt is not null) {
                     int cc = (int)cnt.Value; if (cc > 0) target = cc;
                 }
-                TraversePagesNodeDeepLimited(pagesNode, visitedNodes, visitedPages, result, target);
+                TraversePagesNodeDeepLimited(pagesNode, visitedNodes, visitedPages, result, target, depth: 1);
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
                     var reachable = CollectReachableLeafCandidates(pagesNode);
                     foreach (var id in reachable) {
                         if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
-                            result.Add(new PdfReadPage(id, dict, _objects, _options.Limits.MaxDecodedStreamBytes));
+                            AddPageWithinBudget(result, new PdfReadPage(id, dict, _objects, _options.Limits));
                             if (target.HasValue && result.Count >= target.Value) break;
                         }
                         if (target.HasValue && result.Count >= target.Value) break;
@@ -36,31 +36,11 @@ public sealed partial class PdfReadDocument {
         // Fallback: scan all dictionaries; accept leaf candidates whose Parent chain leads to a /Pages node
         foreach (var kv in _objects) {
             if (kv.Value.Value is PdfDictionary dict) {
-                if (IsLeafPageByParent(dict)) result.Add(new PdfReadPage(kv.Key, dict, _objects, _options.Limits.MaxDecodedStreamBytes));
+                if (IsLeafPageByParent(dict)) AddPageWithinBudget(result, new PdfReadPage(kv.Key, dict, _objects, _options.Limits));
             }
         }
         result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
         return result;
-    }
-
-    private void TraversePagesNode(PdfDictionary node, List<PdfReadPage> outList) {
-        var type = node.Get<PdfName>("Type")?.Name;
-        if (type == "Page" || (type is null && IsLikelyPage(node))) {
-            // Find this node's object number
-            int objNum = FindObjectNumberFor(node);
-            outList.Add(new PdfReadPage(objNum, node, _objects, _options.Limits.MaxDecodedStreamBytes));
-            return;
-        }
-        var kidsObj = node.Items.TryGetValue("Kids", out var kidsValue) ? kidsValue : null;
-        if (type == "Pages" || (type is null && ResolveArray(kidsObj) is not null)) {
-            var kids = ResolveArray(kidsObj);
-            if (kids is null) return;
-            foreach (var kid in kids.Items) {
-                var d = ResolveDict(kid);
-                if (d is null) { continue; }
-                TraversePagesNode(d, outList);
-            }
-        }
     }
 
     private bool IsLikelyPage(PdfDictionary d) {
@@ -72,9 +52,16 @@ public sealed partial class PdfReadDocument {
         return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
-    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit) {
+    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit, int depth) {
+        if (depth > _options.Limits.MaxPageTreeDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeDepth, _options.Limits.MaxPageTreeDepth, depth);
+        }
+
         if (!visitedNodes.Add(node)) {
             return;
+        }
+        if (visitedNodes.Count > _options.Limits.MaxPageTreeNodes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeNodes, _options.Limits.MaxPageTreeNodes, visitedNodes.Count);
         }
 
         var type = node.Get<PdfName>("Type")?.Name;
@@ -82,7 +69,7 @@ public sealed partial class PdfReadDocument {
             int objNum = FindObjectNumberFor(node);
             if (objNum > 0 && visitedPages.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
-                    outList.Add(new PdfReadPage(objNum, node, _objects, _options.Limits.MaxDecodedStreamBytes));
+                    AddPageWithinBudget(outList, new PdfReadPage(objNum, node, _objects, _options.Limits));
                 }
             }
             return;
@@ -94,12 +81,12 @@ public sealed partial class PdfReadDocument {
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
-            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visitedNodes, visitedPages, outList, limit);
+            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visitedNodes, visitedPages, outList, limit, depth + 1);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = FindObjectNumberFor(d);
                 if (on > 0 && visitedPages.Add(on)) {
-                    outList.Add(new PdfReadPage(on, d, _objects, _options.Limits.MaxDecodedStreamBytes));
+                    AddPageWithinBudget(outList, new PdfReadPage(on, d, _objects, _options.Limits));
                     if (limit.HasValue && outList.Count >= limit.Value) return;
                 }
             }
@@ -108,25 +95,47 @@ public sealed partial class PdfReadDocument {
 
     private HashSet<int> CollectReachableLeafCandidates(PdfDictionary pagesRoot) {
         var set = new HashSet<int>();
-        var stack = new Stack<PdfDictionary>();
-        stack.Push(pagesRoot);
-        int guard = 0;
-        while (stack.Count > 0 && guard++ < 10000) {
-            var cur = stack.Pop();
+        var visited = new HashSet<PdfDictionary>();
+        var stack = new Stack<(PdfDictionary Node, int Depth)>();
+        stack.Push((pagesRoot, 1));
+        while (stack.Count > 0) {
+            (PdfDictionary cur, int depth) = stack.Pop();
+            if (depth > _options.Limits.MaxPageTreeDepth) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeDepth, _options.Limits.MaxPageTreeDepth, depth);
+            }
+
+            if (!visited.Add(cur)) {
+                continue;
+            }
+
+            if (visited.Count > _options.Limits.MaxPageTreeNodes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PageTreeNodes, _options.Limits.MaxPageTreeNodes, visited.Count);
+            }
+
             var kids = ResolveArray(cur.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
             if (kids is null) continue;
             foreach (var k in kids.Items) {
                 var d = ResolveDict(k);
                 if (d is null) continue;
                 var t = d.Get<PdfName>("Type")?.Name;
-                if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) stack.Push(d);
+                if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) stack.Push((d, depth + 1));
                 else if (IsLikelyPage(d) || IsLeafPageByParent(d)) {
                     int on = FindObjectNumberFor(d);
-                    if (on > 0) set.Add(on);
+                    if (on > 0 && set.Add(on) && set.Count > _options.Limits.MaxPages) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, _options.Limits.MaxPages, set.Count);
+                    }
                 }
             }
         }
         return set;
+    }
+
+    private void AddPageWithinBudget(List<PdfReadPage> pages, PdfReadPage page) {
+        if (pages.Count >= _options.Limits.MaxPages) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, _options.Limits.MaxPages, pages.Count + 1L);
+        }
+
+        pages.Add(page);
     }
     private bool IsLeafPageByParent(PdfDictionary d) {
         if (!IsLikelyPage(d)) return false;

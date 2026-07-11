@@ -157,6 +157,159 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void RevisionBudgetStopsIncrementalMarkerScanning() {
+        byte[] pdf = System.Text.Encoding.ASCII.GetBytes(
+            System.Text.Encoding.ASCII.GetString(BuildPdf()) + "\nstartxref\n0\n%%EOF\n");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxRevisions = 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.Revisions, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void PageAndPageTreeBudgetsStopTraversal() {
+        byte[] twoPages = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second"))
+            .ToBytes();
+        byte[] nestedTree = BuildNestedPageTreePdf();
+
+        PdfReadLimitException pageException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(
+            twoPages,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxPages = 1 } }));
+        PdfReadLimitException nodeException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(
+            nestedTree,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxPageTreeNodes = 1 } }));
+        PdfReadLimitException depthException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(
+            nestedTree,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxPageTreeDepth = 1 } }));
+
+        Assert.Equal(PdfReadLimitKind.Pages, pageException.Kind);
+        Assert.Equal(PdfReadLimitKind.PageTreeNodes, nodeException.Kind);
+        Assert.Equal(PdfReadLimitKind.PageTreeDepth, depthException.Kind);
+    }
+
+    [Fact]
+    public void FormFieldCountAndDepthBudgetsStopFieldTreeTraversal() {
+        byte[] twoFields = PdfDocument.Create()
+            .TextField("First", width: 100, height: 20)
+            .TextField("Second", width: 100, height: 20)
+            .ToBytes();
+        byte[] nestedFields = BuildNestedFormFieldPdf();
+
+        PdfReadLimitException countException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(
+            twoFields,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxFormFields = 1 } }));
+        PdfReadLimitException depthException = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(
+            nestedFields,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxFormFieldDepth = 1 } }));
+
+        Assert.Equal(PdfReadLimitKind.FormFields, countException.Kind);
+        Assert.Equal(PdfReadLimitKind.FormFieldDepth, depthException.Kind);
+    }
+
+    [Fact]
+    public void AnnotationAndContentOperationBudgetsStopPageParsing() {
+        byte[] annotations = BuildAnnotatedPagePdf();
+        byte[] content = BuildPdf();
+        PdfReadDocument annotationDocument = PdfReadDocument.Load(
+            annotations,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxAnnotationsPerPage = 1 } });
+        PdfReadDocument contentDocument = PdfReadDocument.Load(
+            content,
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxContentOperations = 1 } });
+
+        PdfReadLimitException annotationException = Assert.Throws<PdfReadLimitException>(() => annotationDocument.Pages[0].GetAnnotations());
+        PdfReadLimitException contentException = Assert.Throws<PdfReadLimitException>(() => contentDocument.Pages[0].ExtractText());
+        PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() => contentDocument.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.AnnotationsPerPage, annotationException.Kind);
+        Assert.Equal(PdfReadLimitKind.ContentOperations, contentException.Kind);
+        Assert.Equal(PdfReadLimitKind.ContentOperations, drawingException.Kind);
+    }
+
+    [Fact]
+    public void ContentNestingBudgetStopsDeepFormXObjects() {
+        PdfReadDocument document = PdfReadDocument.Load(
+            BuildNestedFormXObjectPdf(),
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxContentNestingDepth = 1 } });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void DeterministicSubsystemFuzzingRemainsWithinDeclaredBudgets() {
+        byte[][] seeds = {
+            BuildPdf(),
+            BuildNestedPageTreePdf(),
+            BuildNestedFormFieldPdf(),
+            BuildAnnotatedPagePdf(),
+            BuildNestedFormXObjectPdf()
+        };
+        var random = new Random(0x50F1);
+        var timer = Stopwatch.StartNew();
+        var options = new PdfReadOptions {
+            ParsingMode = PdfParsingMode.Strict,
+            Limits = new PdfReadLimits {
+                MaxInputBytes = 1024 * 1024,
+                MaxIndirectObjects = 1_000,
+                MaxRawStreamBytes = 256 * 1024,
+                MaxDecodedStreamBytes = 256 * 1024,
+                MaxObjectCharacters = 64 * 1024,
+                MaxTokensPerObject = 8_000,
+                MaxObjectNestingDepth = 32,
+                MaxObjectParsingTime = TimeSpan.FromMilliseconds(500),
+                MaxRevisions = 32,
+                MaxPageTreeNodes = 256,
+                MaxPageTreeDepth = 32,
+                MaxPages = 128,
+                MaxFormFields = 128,
+                MaxFormFieldDepth = 32,
+                MaxAnnotationsPerPage = 128,
+                MaxContentOperations = 2_000,
+                MaxContentNestingDepth = 16
+            }
+        };
+
+        for (int caseNumber = 0; caseNumber < 64; caseNumber++) {
+            byte[] seed = seeds[caseNumber % seeds.Length];
+            int length = random.Next(1, seed.Length + 33);
+            var candidate = new byte[length];
+            Buffer.BlockCopy(seed, 0, candidate, 0, Math.Min(seed.Length, candidate.Length));
+            for (int mutation = 0; mutation < 12; mutation++) {
+                candidate[random.Next(candidate.Length)] = (byte)random.Next(256);
+            }
+
+            ExerciseCandidate(candidate, options);
+        }
+
+        string[] filters = { "FlateDecode", "RunLengthDecode", "LZWDecode" };
+        for (int caseNumber = 0; caseNumber < 32; caseNumber++) {
+            var encoded = new byte[random.Next(1, 129)];
+            random.NextBytes(encoded);
+            var dictionary = new PdfDictionary();
+            dictionary.Items["Filter"] = new PdfName(filters[caseNumber % filters.Length]);
+            try {
+                _ = StreamDecoder.Decode(dictionary, encoded, maxOutputBytes: 256);
+            } catch (Exception exception) when (IsExpectedMalformedInputException(exception)) {
+                // Decoder failures are expected for random payloads; resource use remains bounded.
+            }
+        }
+
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10), "Subsystem fuzz pass exceeded the test budget: " + timer.Elapsed + ".");
+    }
+
+    [Fact]
     public void DeterministicHostileInputMutationsRemainBounded() {
         byte[] source = BuildPdf();
         var random = new Random(0x2062);
@@ -198,6 +351,73 @@ public class PdfReadLimitTests {
 
     private static byte[] BuildObjectPdf(string body) => System.Text.Encoding.ASCII.GetBytes(
         "%PDF-1.7\n1 0 obj\n" + body + "\nendobj\ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildNestedPageTreePdf() => BuildPdfObjects(
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Pages /Parent 2 0 R /Count 1 /Kids [4 0 R] >>",
+        "<< /Type /Page /Parent 3 0 R /MediaBox [0 0 200 200] /Contents 5 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream");
+
+    private static byte[] BuildNestedFormFieldPdf() => BuildPdfObjects(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< >>",
+        "<< /Fields [7 0 R] >>",
+        "<< /T (Parent) /Kids [8 0 R] >>",
+        "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /T (Child) /FT /Tx /Rect [10 10 100 30] >>");
+
+    private static byte[] BuildAnnotatedPagePdf() => BuildPdfObjects(
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R 6 0 R] >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Type /Annot /Subtype /Text /Rect [10 10 20 20] /Contents (First) >>",
+        "<< /Type /Annot /Subtype /Text /Rect [30 30 40 40] /Contents (Second) >>");
+
+    private static byte[] BuildNestedFormXObjectPdf() => BuildPdfObjects(
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>",
+        "<< /Length 7 >>\nstream\n/Fm1 Do\nendstream",
+        "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Fm2 6 0 R >> >> /Length 7 >>\nstream\n/Fm2 Do\nendstream",
+        "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 0 >>\nstream\n\nendstream");
+
+    private static void ExerciseCandidate(byte[] candidate, PdfReadOptions options) {
+        try {
+            _ = PdfSyntax.ParseObjects(candidate, options);
+            PdfReadDocument document = PdfReadDocument.Load(candidate, options);
+            for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+                PdfReadPage page = document.Pages[pageIndex];
+                _ = page.GetTextSpans();
+                _ = page.GetAnnotations();
+                _ = page.GetImagePlacements();
+            }
+        } catch (Exception exception) when (IsExpectedMalformedInputException(exception)) {
+            // Strict parsing rejects malformed mutations; typed limits stop hostile resource growth.
+        }
+    }
+
+    private static bool IsExpectedMalformedInputException(Exception exception) =>
+        exception is ArgumentException ||
+        exception is FormatException ||
+        exception is InvalidOperationException ||
+        exception is IOException ||
+        exception is System.Text.RegularExpressions.RegexMatchTimeoutException;
+
+    private static byte[] BuildPdfObjects(params string[] bodies) {
+        var builder = new System.Text.StringBuilder("%PDF-1.7\n");
+        for (int i = 0; i < bodies.Length; i++) {
+            builder.Append(i + 1).Append(" 0 obj\n").Append(bodies[i]).Append("\nendobj\n");
+        }
+
+        builder.Append("trailer\n<< /Root 1 0 R /Size ")
+            .Append(bodies.Length + 1)
+            .Append(" >>\nstartxref\n0\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(builder.ToString());
+    }
 
     private static byte[] PackNineBitCodes(IEnumerable<int> codes) {
         var bits = new List<int>();

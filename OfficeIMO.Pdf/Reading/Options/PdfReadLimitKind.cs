@@ -24,5 +24,32 @@ public enum PdfReadLimitKind {
     ObjectNestingDepth,
 
     /// <summary>Wall-clock time spent in the core object parsing pass.</summary>
-    ObjectParsingTime
+    ObjectParsingTime,
+
+    /// <summary>Cross-reference revisions discovered in the input.</summary>
+    Revisions,
+
+    /// <summary>Page-tree dictionaries traversed while discovering pages.</summary>
+    PageTreeNodes,
+
+    /// <summary>Nested page-tree depth.</summary>
+    PageTreeDepth,
+
+    /// <summary>Pages discovered in the document.</summary>
+    Pages,
+
+    /// <summary>AcroForm field-tree nodes or terminal fields.</summary>
+    FormFields,
+
+    /// <summary>Nested AcroForm field-tree depth.</summary>
+    FormFieldDepth,
+
+    /// <summary>Annotations declared on one page.</summary>
+    AnnotationsPerPage,
+
+    /// <summary>Operators parsed from one page or form content stream.</summary>
+    ContentOperations,
+
+    /// <summary>Nested form XObjects traversed while parsing page content.</summary>
+    ContentNestingDepth
 }

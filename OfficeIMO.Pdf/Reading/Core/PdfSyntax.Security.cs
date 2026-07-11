@@ -13,15 +13,20 @@ internal static partial class PdfSyntax {
 
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
+        PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
+        limits.Validate();
+        if (pdf.LongLength > limits.MaxInputBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.LongLength);
+        }
 
         string text = PdfEncoding.Latin1GetString(pdf);
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
         bool hasEncryption = encryptObjectNumber.HasValue;
         bool hasSignatures = HasSignatureMarkers(pdf);
-        IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text);
+        IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
-        IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev");
+        IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev", limits.MaxRevisions);
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
         bool hasXrefStreams = ContainsPdfName(text, "XRef") && ContainsPdfName(text, "W");
@@ -449,18 +454,21 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static IReadOnlyList<int> ReadStartXrefOffsets(string text) {
+    private static IReadOnlyList<int> ReadStartXrefOffsets(string text, int maxRevisions) {
         var offsets = new List<int>();
         foreach (Match match in StartXrefRegex.Matches(text)) {
             if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int offset)) {
                 offsets.Add(offset);
+                if (offsets.Count > maxRevisions) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxRevisions, offsets.Count);
+                }
             }
         }
 
         return offsets.Count == 0 ? Array.Empty<int>() : offsets.AsReadOnly();
     }
 
-    private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key) {
+    private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key, int maxValues) {
 #if NET8_0_OR_GREATER
         var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
 #else
@@ -470,6 +478,9 @@ internal static partial class PdfSyntax {
         foreach (Match match in regex.Matches(text)) {
             if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value)) {
                 values.Add(value);
+                if (values.Count > maxValues) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
+                }
             }
         }
 

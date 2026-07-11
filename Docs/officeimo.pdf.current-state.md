@@ -87,18 +87,18 @@ security proof.
 - [ ] Replace operation-specific safety guesses with shared capability records
   for page-tree changes, content changes, catalog changes, form changes,
   annotations, metadata, attachments, encryption, and signatures.
-- [ ] Build a curated interoperability corpus containing classic xref tables,
+- [x] Build a curated interoperability corpus containing classic xref tables,
   xref streams, object streams, hybrid references, incremental revisions,
   unusual generations, linearized files, signed/certified files, encrypted
   files, tagged PDFs, optional-content layers, attachments, name trees,
   output intents, active content, and complex forms.
-- [ ] Run every rewrite scenario through `PdfRewritePreservationMatrix` and
+- [x] Run every rewrite scenario through `PdfRewritePreservationMatrix` and
   retain the original blocker or preservation report. Expected blockers must be
   distinguishable from regressions.
 - [ ] Add external development-time checks for syntax, rendering, signatures,
   and the selected compliance profile. External tools remain test/build proof,
   not runtime dependencies.
-- [ ] Fuzz the tokenizer, object parser, stream decoders, page-tree traversal,
+- [x] Fuzz the tokenizer, object parser, stream decoders, page-tree traversal,
   content parser, form/annotation parsers, and incremental revision reader with
   strict input, recursion, object-count, decoded-byte, and time budgets.
 
@@ -112,14 +112,14 @@ or refuse the input, and the decision is exercised against the curated corpus.
   generations, emit classic or xref-stream revisions, maintain `/Prev`, trailer
   references, file identifiers, and encryption context, and leave all prior
   bytes unchanged.
-- [ ] Model DocMDP and FieldMDP permissions per requested operation and target,
+- [x] Model DocMDP and FieldMDP permissions per requested operation and target,
   not only as document-wide flags.
-- [ ] Add before/after signature reports that identify which signatures still
+- [x] Add before/after signature reports that identify which signatures still
   cover which revisions and whether the requested change is permitted.
 - [ ] Add operations incrementally: metadata/XMP first, then supported form
   updates, annotation updates, permitted stamps, DSS/LTV material, and finally
   other catalog changes that have fixture-backed proof.
-- [ ] Never route page deletion, page import, destructive redaction, encryption
+- [x] Never route page deletion, page import, destructive redaction, encryption
   changes, or other structurally incompatible operations through append-only
   mode merely to keep an old signature object present.
 
@@ -253,13 +253,13 @@ why content was ordered or classified, and export a standard interchange model.
 
 ### P2 - Parser And Repair Diagnostics
 
-- [ ] Add a strict/lenient parsing policy with a repair report. Lenient mode may
+- [x] Add a strict/lenient parsing policy with a repair report. Lenient mode may
   recover known structural defects but must never silently change semantic or
   security behavior.
 - [ ] Diagnose and, where safe, rebuild broken xref tables/streams, malformed
   page trees, incorrect stream lengths, orphaned objects, duplicate object
   identifiers, invalid name trees, and broken destinations.
-- [ ] Add decoded-stream and object-count budgets before allocating large
+- [x] Add decoded-stream and object-count budgets before allocating large
   buffers; report compressed and decoded sizes separately.
 - [ ] Add a PDF debugger dump for objects, revisions, page resources, content
   operators, reachability, and optionally decoded streams or a decompressed

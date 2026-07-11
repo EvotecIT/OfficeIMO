@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Resource budgets applied while parsing PDF syntax and object graphs.</summary>
 public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
+    internal const int DefaultMaxContentOperations = 1_000_000;
 
     /// <summary>Maximum input byte count accepted before text/object scanning. Default: 512 MiB.</summary>
     public long MaxInputBytes { get; set; } = 512L * 1024L * 1024L;
@@ -27,6 +28,33 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum wall-clock time spent in the core object parsing pass. Default: 30 seconds.</summary>
     public TimeSpan MaxObjectParsingTime { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>Maximum cross-reference revisions discovered in one input. Default: 10,000.</summary>
+    public int MaxRevisions { get; set; } = 10_000;
+
+    /// <summary>Maximum page-tree dictionaries traversed. Default: 100,000.</summary>
+    public int MaxPageTreeNodes { get; set; } = 100_000;
+
+    /// <summary>Maximum nested page-tree depth. Default: 1,024.</summary>
+    public int MaxPageTreeDepth { get; set; } = 1_024;
+
+    /// <summary>Maximum pages discovered in one document. Default: 100,000.</summary>
+    public int MaxPages { get; set; } = 100_000;
+
+    /// <summary>Maximum AcroForm field-tree nodes or terminal fields. Default: 100,000.</summary>
+    public int MaxFormFields { get; set; } = 100_000;
+
+    /// <summary>Maximum nested AcroForm field-tree depth. Default: 256.</summary>
+    public int MaxFormFieldDepth { get; set; } = 256;
+
+    /// <summary>Maximum annotations declared on one page. Default: 100,000.</summary>
+    public int MaxAnnotationsPerPage { get; set; } = 100_000;
+
+    /// <summary>Maximum operators parsed from one page or form content stream. Default: 1,000,000.</summary>
+    public int MaxContentOperations { get; set; } = DefaultMaxContentOperations;
+
+    /// <summary>Maximum nested form XObject depth while parsing page content. Default: 128.</summary>
+    public int MaxContentNestingDepth { get; set; } = 128;
 
     internal void Validate() {
         if (MaxInputBytes <= 0) {
@@ -59,6 +87,22 @@ public sealed class PdfReadLimits {
 
         if (MaxObjectParsingTime <= TimeSpan.Zero) {
             throw new ArgumentOutOfRangeException(nameof(MaxObjectParsingTime), MaxObjectParsingTime, "Maximum object parsing time must be positive.");
+        }
+
+        ValidatePositive(MaxRevisions, nameof(MaxRevisions), "Maximum revisions must be positive.");
+        ValidatePositive(MaxPageTreeNodes, nameof(MaxPageTreeNodes), "Maximum page-tree nodes must be positive.");
+        ValidatePositive(MaxPageTreeDepth, nameof(MaxPageTreeDepth), "Maximum page-tree depth must be positive.");
+        ValidatePositive(MaxPages, nameof(MaxPages), "Maximum pages must be positive.");
+        ValidatePositive(MaxFormFields, nameof(MaxFormFields), "Maximum form fields must be positive.");
+        ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
+        ValidatePositive(MaxAnnotationsPerPage, nameof(MaxAnnotationsPerPage), "Maximum annotations per page must be positive.");
+        ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
+        ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
+    }
+
+    private static void ValidatePositive(int value, string parameterName, string message) {
+        if (value <= 0) {
+            throw new ArgumentOutOfRangeException(parameterName, value, message);
         }
     }
 }
