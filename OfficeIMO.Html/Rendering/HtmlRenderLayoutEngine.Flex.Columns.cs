@@ -97,12 +97,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals);
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
-        IEnumerable<double>? breakOffsets = lines.Count != 1 || lines[0].Items.Count < 2
+        IEnumerable<double>? breakOffsets = lines.Count != 1
             ? null
-            : lines[0].Items.Select(item => contentY + item.MainOffset)
+            : lines[0].Items.SelectMany(item =>
+                    new[] { contentY + item.MainOffset }
+                        .Concat(item.Block!.BreakOffsets.Select(offset => contentY + item.MainOffset + offset)))
                 .Distinct()
-                .OrderBy(offset => offset)
-                .Skip(1);
+                .OrderBy(offset => offset);
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
