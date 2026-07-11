@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Extension methods enabling HTML conversions for OfficeIMO PowerPoint presentations.
 /// </summary>
-public static class PowerPointHtmlConverterExtensions {
+public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>
     /// Converts a presentation to HTML.
     /// </summary>
@@ -25,7 +25,7 @@ public static class PowerPointHtmlConverterExtensions {
     /// </summary>
     public static void SaveAsHtml(this PptCore.PowerPointPresentation presentation, string path, PowerPointHtmlSaveOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        File.WriteAllText(path, presentation.ToHtml(options), Encoding.UTF8);
+        HtmlTextIO.Write(path, presentation.ToHtml(options));
     }
 
     private static string ConvertSemantic(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options) {
@@ -80,28 +80,7 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append('>');
         body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 
-        foreach (PptCore.PowerPointTextBox textBox in slide.TextBoxes) {
-            if (!options.IncludeHiddenShapes && textBox.Hidden) {
-                continue;
-            }
-
-            string text = NormalizeText(textBox.Text);
-            if (text.Length == 0) {
-                continue;
-            }
-
-            body.Append("<p>").Append(OfficeHtmlText.Escape(text)).Append("</p>");
-        }
-
-        if (options.IncludeTables) {
-            foreach (PptCore.PowerPointTable table in slide.Tables) {
-                if (!options.IncludeHiddenShapes && table.Hidden) {
-                    continue;
-                }
-
-                AppendTable(body, table);
-            }
-        }
+        AppendSemanticShapes(body, slide, options);
 
         AppendSlideFeatureInventory(body, slide, options);
         AppendExtractionProof(body, extractionProof, options);
@@ -594,12 +573,31 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("</div>");
     }
 
-    private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table) {
-        body.Append("<table class=\"officeimo-table\"><tbody>");
+    private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table, bool includeShapeMetadata = false) {
+        body.Append("<table class=\"officeimo-table\"");
+        if (includeShapeMetadata) {
+            AppendSemanticShapeAttributes(body, table, "table");
+        }
+
+        body.Append("><tbody>");
         foreach (PptCore.PowerPointTableRow row in table.RowItems) {
             body.Append("<tr>");
             foreach (PptCore.PowerPointTableCell cell in row.Cells) {
-                body.Append("<td>").Append(OfficeHtmlText.Escape(NormalizeText(cell.Text))).Append("</td>");
+                if (cell.IsMergedCell) {
+                    continue;
+                }
+
+                body.Append("<td");
+                (int rows, int columns) = cell.Merge;
+                if (rows > 1) {
+                    body.Append(" rowspan=\"").Append(rows.ToString(CultureInfo.InvariantCulture)).Append('"');
+                }
+
+                if (columns > 1) {
+                    body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
+                }
+
+                body.Append('>').Append(OfficeHtmlText.Escape(NormalizeText(cell.Text))).Append("</td>");
             }
 
             body.Append("</tr>");

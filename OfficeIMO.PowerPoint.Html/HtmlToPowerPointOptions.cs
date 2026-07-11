@@ -5,6 +5,11 @@ namespace OfficeIMO.PowerPoint.Html;
 /// </summary>
 public sealed class HtmlToPowerPointOptions {
     /// <summary>
+    /// Maximum rectangular table size imported from one HTML table, including merged spans.
+    /// </summary>
+    public int MaxTableCells { get; set; } = 50_000;
+
+    /// <summary>
     /// Imports semantic slide tables as native PowerPoint tables.
     /// </summary>
     public bool ImportTables { get; set; } = true;

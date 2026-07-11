@@ -28,10 +28,16 @@ public static class HtmlConversionDocumentBuilder {
             ? HtmlNormalizer.Normalize(document, ConfigureNormalization(document, options))
             : string.Empty;
         string adapterHtml = HtmlNormalizer.Normalize(document, ConfigureAdapterNormalization(document, options));
+        IHtmlDocument adapterDocument = HtmlDocumentParser.ParseDocument(adapterHtml);
+        HtmlActiveMediaFilter.Filter(adapterDocument, mediaContext);
+        adapterHtml = adapterDocument.DocumentElement?.OuterHtml ?? adapterHtml;
 
         return new HtmlConversionDocument(
             html,
+            document,
+            adapterDocument,
             HtmlConversionProfileContracts.Get(options.Profile),
+            options.Trust,
             logical,
             styles,
             styleSummary,

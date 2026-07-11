@@ -306,6 +306,7 @@ public partial class Html {
         });
 
         Assert.Equal(HtmlConversionProfile.Document, conversion.ProfileContract.Profile);
+        Assert.Equal(HtmlInputTrust.Untrusted, conversion.Trust);
         Assert.Contains("forms", conversion.LogicalDocument.Capabilities);
         Assert.Contains("images", conversion.LogicalDocument.Capabilities);
         Assert.Contains("font-family", conversion.StyleSummary.PropertyNames);
@@ -341,8 +342,13 @@ public partial class Html {
         string markdown = conversion.ToMarkdown();
         Assert.Contains("# Canonical Contract", markdown);
         HtmlToWordOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(conversion.ProfileContract.Profile);
-        Assert.Equal(ImageProcessingMode.Embed, sharedWordDefaults.ImageProcessing);
-        Assert.True(sharedWordDefaults.AllowDocumentStylesheetLinks);
+        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, sharedWordDefaults.ImageProcessing);
+        Assert.False(sharedWordDefaults.AllowDocumentStylesheetLinks);
+        HtmlToWordOptions trustedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(
+            conversion.ProfileContract.Profile,
+            HtmlInputTrust.Trusted);
+        Assert.Equal(ImageProcessingMode.Embed, trustedWordDefaults.ImageProcessing);
+        Assert.True(trustedWordDefaults.AllowDocumentStylesheetLinks);
         using var wordDocument = WordHtmlConverterExtensions.ToWordDocument(conversion);
         Assert.NotNull(wordDocument);
 
@@ -461,8 +467,8 @@ public partial class Html {
         Assert.DoesNotContain(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-future.png");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
 
-        string screenWordHtml = WordHtmlConverterExtensions.PrepareHtmlForSharedWordConversion(screen);
-        string printWordHtml = WordHtmlConverterExtensions.PrepareHtmlForSharedWordConversion(print);
+        string screenWordHtml = screen.DocumentForConversion.DocumentElement?.OuterHtml ?? string.Empty;
+        string printWordHtml = print.DocumentForConversion.DocumentElement?.OuterHtml ?? string.Empty;
         Assert.Contains("https://example.test/images/screen-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/print-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/screen-chart.png", printWordHtml);

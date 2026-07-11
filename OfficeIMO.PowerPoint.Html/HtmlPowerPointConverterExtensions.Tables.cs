@@ -1,0 +1,190 @@
+using AngleSharp.Dom;
+using OfficeIMO.Html;
+using PptCore = OfficeIMO.PowerPoint;
+
+namespace OfficeIMO.PowerPoint.Html;
+
+public static partial class HtmlPowerPointConverterExtensions {
+    private static double ImportTable(
+        IElement tableElement,
+        PptCore.PowerPointSlide slide,
+        double top,
+        HtmlToPowerPointOptions options,
+        HtmlToPowerPointResult result) {
+        if (options.MaxTableCells <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells), "MaxTableCells must be greater than zero.");
+        }
+
+        PowerPointHtmlTableGrid grid = BuildTableGrid(tableElement, options.MaxTableCells, result);
+        if (grid.Rows == 0 || grid.Columns == 0) {
+            return top;
+        }
+
+        double fallbackWidth = Math.Max(240D, grid.Columns * 150D);
+        double fallbackHeight = Math.Max(70D, grid.Rows * 34D);
+        ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight,
+            out double left, out double tableTop, out double width, out double height);
+        PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
+        foreach (PowerPointHtmlTableCell cell in grid.Cells) {
+            table.GetCell(cell.Row, cell.Column).Text = cell.Text;
+            if (cell.RowSpan > 1 || cell.ColumnSpan > 1) {
+                table.MergeCells(cell.Row, cell.Column, cell.Row + cell.RowSpan - 1, cell.Column + cell.ColumnSpan - 1);
+                result.MergedRanges++;
+            }
+        }
+
+        ApplyShapeTransforms(tableElement, table);
+        result.Tables++;
+        return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
+    }
+
+    private static PowerPointHtmlTableGrid BuildTableGrid(IElement table, int maxTableCells, HtmlToPowerPointResult result) {
+        var cells = new List<PowerPointHtmlTableCell>();
+        var occupied = new HashSet<long>();
+        int rowIndex = 0;
+        int rowExtent = 0;
+        int columnExtent = 0;
+
+        foreach (IElement row in EnumerateDirectTableRows(table)) {
+            int columnIndex = 0;
+            foreach (IElement element in row.Children.Where(IsPowerPointTableCell)) {
+                while (occupied.Contains(GetTableCellKey(rowIndex, columnIndex))) {
+                    columnIndex++;
+                }
+
+                int rowSpan = ReadPowerPointSpan(element, "rowspan", result);
+                int columnSpan = ReadPowerPointSpan(element, "colspan", result);
+                if ((long)rowSpan * columnSpan > maxTableCells) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                    rowSpan = 1;
+                    columnSpan = 1;
+                }
+
+                long candidateRowsLong = Math.Max((long)rowExtent, (long)rowIndex + rowSpan);
+                long candidateColumnsLong = Math.Max((long)columnExtent, (long)columnIndex + columnSpan);
+                if (candidateRowsLong * candidateColumnsLong > maxTableCells) {
+                    rowSpan = 1;
+                    columnSpan = 1;
+                    int candidateRows = Math.Max(rowExtent, rowIndex + 1);
+                    int candidateColumns = Math.Max(columnExtent, columnIndex + 1);
+                    if ((long)candidateRows * candidateColumns > maxTableCells) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                            "HTML table exceeded the configured MaxTableCells limit; remaining cells were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                        return new PowerPointHtmlTableGrid(rowExtent, columnExtent, cells);
+                    }
+
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                        "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                }
+
+                if (PowerPointSpanOverlaps(occupied, rowIndex, columnIndex, rowSpan, columnSpan)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
+                        "An HTML table cell contained an overlapping span; the span was ignored.", lossKind: HtmlConversionLossKind.Approximation);
+                    rowSpan = 1;
+                    columnSpan = 1;
+                }
+
+                ReservePowerPointSpan(occupied, rowIndex, columnIndex, rowSpan, columnSpan);
+                cells.Add(new PowerPointHtmlTableCell(
+                    rowIndex,
+                    columnIndex,
+                    rowSpan,
+                    columnSpan,
+                    PreserveText(element.TextContent)));
+                rowExtent = Math.Max(rowExtent, rowIndex + rowSpan);
+                columnExtent = Math.Max(columnExtent, columnIndex + columnSpan);
+                columnIndex += columnSpan;
+            }
+
+            rowIndex++;
+            rowExtent = Math.Max(rowExtent, rowIndex);
+            if ((long)Math.Max(1, rowExtent) * Math.Max(1, columnExtent) > maxTableCells) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                    "HTML table exceeded the configured MaxTableCells limit; remaining rows were skipped.", lossKind: HtmlConversionLossKind.Omission);
+                break;
+            }
+        }
+
+        return new PowerPointHtmlTableGrid(rowExtent, columnExtent, cells);
+    }
+
+    private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {
+        foreach (IElement child in table.Children) {
+            if (IsElement(child, "tr")) {
+                yield return child;
+            } else if (IsElement(child, "thead") || IsElement(child, "tbody") || IsElement(child, "tfoot")) {
+                foreach (IElement row in child.Children.Where(element => IsElement(element, "tr"))) {
+                    yield return row;
+                }
+            }
+        }
+    }
+
+    private static bool IsPowerPointTableCell(IElement element) => IsElement(element, "th") || IsElement(element, "td");
+
+    private static int ReadPowerPointSpan(IElement cell, string attributeName, HtmlToPowerPointResult result) {
+        string? raw = cell.GetAttribute(attributeName);
+        if (string.IsNullOrWhiteSpace(raw)) {
+            return 1;
+        }
+
+        if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int span) || span <= 0) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TableSpanInvalid,
+                "An HTML table cell contained an invalid " + attributeName + " value; a span of 1 was used.", lossKind: HtmlConversionLossKind.Approximation);
+            return 1;
+        }
+
+        return span;
+    }
+
+    private static bool PowerPointSpanOverlaps(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
+        for (int currentRow = row; currentRow < row + rowSpan; currentRow++) {
+            for (int currentColumn = column; currentColumn < column + columnSpan; currentColumn++) {
+                if (occupied.Contains(GetTableCellKey(currentRow, currentColumn))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static void ReservePowerPointSpan(HashSet<long> occupied, int row, int column, int rowSpan, int columnSpan) {
+        for (int currentRow = row; currentRow < row + rowSpan; currentRow++) {
+            for (int currentColumn = column; currentColumn < column + columnSpan; currentColumn++) {
+                occupied.Add(GetTableCellKey(currentRow, currentColumn));
+            }
+        }
+    }
+
+    private static long GetTableCellKey(int row, int column) => ((long)row << 32) | (uint)column;
+
+    private sealed class PowerPointHtmlTableGrid {
+        internal PowerPointHtmlTableGrid(int rows, int columns, IReadOnlyList<PowerPointHtmlTableCell> cells) {
+            Rows = rows;
+            Columns = columns;
+            Cells = cells;
+        }
+
+        internal int Rows { get; }
+        internal int Columns { get; }
+        internal IReadOnlyList<PowerPointHtmlTableCell> Cells { get; }
+    }
+
+    private sealed class PowerPointHtmlTableCell {
+        internal PowerPointHtmlTableCell(int row, int column, int rowSpan, int columnSpan, string text) {
+            Row = row;
+            Column = column;
+            RowSpan = rowSpan;
+            ColumnSpan = columnSpan;
+            Text = text;
+        }
+
+        internal int Row { get; }
+        internal int Column { get; }
+        internal int RowSpan { get; }
+        internal int ColumnSpan { get; }
+        internal string Text { get; }
+    }
+}

@@ -7,13 +7,21 @@ namespace OfficeIMO.Excel.Html;
 /// <summary>
 /// Extension methods for importing semantic OfficeIMO Excel HTML.
 /// </summary>
-public static class HtmlExcelConverterExtensions {
+public static partial class HtmlExcelConverterExtensions {
     /// <summary>
     /// Imports semantic OfficeIMO Excel HTML into a native workbook.
     /// </summary>
     /// <example><code>using ExcelDocument workbook = html.ToExcelDocument();</code></example>
-    public static ExcelDocument ToExcelDocument(this string html, HtmlToExcelOptions? options = null) =>
-        ToExcelDocumentResult(html, options).Workbook;
+    public static ExcelDocument ToExcelDocument(this string html, HtmlToExcelOptions? options = null) {
+        return GetWorkbookOrThrow(ToExcelDocumentResult(html, options));
+    }
+
+    /// <summary>
+    /// Imports a prepared shared HTML conversion document into a native workbook without reparsing its adapter DOM.
+    /// </summary>
+    public static ExcelDocument ToExcelDocument(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
+        return GetWorkbookOrThrow(ToExcelDocumentResult(document, options));
+    }
 
     /// <summary>
     /// Imports semantic OfficeIMO Excel HTML into a native workbook and returns import evidence.
@@ -21,16 +29,26 @@ public static class HtmlExcelConverterExtensions {
     /// <example><code>HtmlToExcelResult result = html.ToExcelDocumentResult();</code></example>
     public static HtmlToExcelResult ToExcelDocumentResult(this string html, HtmlToExcelOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        options ??= new HtmlToExcelOptions();
+        return ImportDocument(HtmlDocumentParser.ParseDocument(html), options ?? new HtmlToExcelOptions());
+    }
 
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+    /// <summary>
+    /// Imports a prepared shared HTML conversion document and returns the workbook plus structured evidence.
+    /// </summary>
+    public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return ImportDocument(document.DocumentForConversion, options ?? new HtmlToExcelOptions());
+    }
+
+    private static HtmlToExcelResult ImportDocument(IHtmlDocument document, HtmlToExcelOptions options) {
         var stream = new MemoryStream();
         ExcelDocument workbook = ExcelDocument.Create(stream);
         var result = new HtmlToExcelResult(workbook);
 
         List<IElement> sheetSections = document.QuerySelectorAll("section.officeimo-sheet").ToList();
         if (sheetSections.Count == 0) {
-            result.Diagnostics.Add("No semantic Excel sheet sections were found.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
+                "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
             workbook.AddWorkSheet("Imported");
             return result;
         }
@@ -39,7 +57,7 @@ public static class HtmlExcelConverterExtensions {
         foreach (IElement section in sheetSections) {
             ExcelSheet sheet = workbook.AddWorkSheet(GetUniqueSheetName(GetSheetName(section), usedNames));
             result.Sheets++;
-            ImportTable(section, sheet, result);
+            ImportTable(section, sheet, result, options);
             if (options.ImportFormulas) {
                 ImportFormulas(section, sheet, result);
             }
@@ -58,6 +76,15 @@ public static class HtmlExcelConverterExtensions {
         return result;
     }
 
+    private static ExcelDocument GetWorkbookOrThrow(HtmlToExcelResult result) {
+        if (result.Succeeded) {
+            return result.Workbook;
+        }
+
+        result.Workbook.Dispose();
+        throw new HtmlConversionException(result.Diagnostics.Diagnostics);
+    }
+
     private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {
         string? visibility = section.GetAttribute("data-officeimo-visibility");
         if (string.IsNullOrWhiteSpace(visibility)) {
@@ -71,29 +98,16 @@ public static class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ImportTable(IElement section, ExcelSheet sheet, HtmlToExcelResult result) {
+    private static void ImportTable(IElement section, ExcelSheet sheet, HtmlToExcelResult result, HtmlToExcelOptions options) {
         IElement? table = section.Children.FirstOrDefault(child => IsElement(child, "table"));
         if (table == null) {
-            result.Diagnostics.Add("Sheet '" + sheet.Name + "' did not contain a direct semantic table.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticBlockMissing,
+                "Sheet '" + sheet.Name + "' did not contain a direct semantic table.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 
         ReadRangeOrigin(section.GetAttribute("data-officeimo-range"), out int firstRow, out int firstColumn);
-        int rowIndex = firstRow;
-        foreach (IElement row in table.QuerySelectorAll("tr")) {
-            int columnIndex = firstColumn;
-            foreach (IElement cell in row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td"))) {
-                string text = NormalizeText(cell.TextContent);
-                if (!IsSemanticEmptyCell(cell) && (text.Length > 0 || cell.GetAttribute("data-officeimo-value") != null)) {
-                    SetCellValue(sheet, rowIndex, columnIndex, cell, text, result);
-                    result.Cells++;
-                }
-
-                columnIndex++;
-            }
-
-            rowIndex++;
-        }
+        ImportTableGrid(table, sheet, result, options, firstRow, firstColumn);
     }
 
     private static void ReadRangeOrigin(string? range, out int row, out int column) {
@@ -140,7 +154,8 @@ public static class HtmlExcelConverterExtensions {
                 return;
             }
 
-            result.Diagnostics.Add("Cell " + BuildCellReference(row, column) + " contained a semantic number value that could not be parsed and was imported as text.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+                "Cell " + BuildCellReference(row, column) + " contained a semantic number value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
         } else if (kind.Equals("boolean", StringComparison.OrdinalIgnoreCase)) {
             if (rawValue.Equals("1", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase)) {
                 sheet.CellValue(row, column, true);
@@ -152,10 +167,19 @@ public static class HtmlExcelConverterExtensions {
                 return;
             }
 
-            result.Diagnostics.Add("Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+                "Cell " + BuildCellReference(row, column) + " contained a semantic boolean value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
         } else if (kind.Equals("text", StringComparison.OrdinalIgnoreCase)) {
             sheet.CellValue(row, column, rawValue);
             return;
+        } else if (kind.Equals("date-time", StringComparison.OrdinalIgnoreCase)) {
+            if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime dateTime)) {
+                sheet.CellValue(row, column, dateTime);
+                return;
+            }
+
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
+                "Cell " + BuildCellReference(row, column) + " contained a semantic date/time value that could not be parsed and was imported as text.", lossKind: HtmlConversionLossKind.Approximation);
         } else if (kind.Equals("formula", StringComparison.OrdinalIgnoreCase)) {
             sheet.CellFormula(row, column, rawValue);
             return;
@@ -219,7 +243,8 @@ public static class HtmlExcelConverterExtensions {
         }
 
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            result.Diagnostics.Add("Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "Image inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 
@@ -234,7 +259,8 @@ public static class HtmlExcelConverterExtensions {
         if (IsAbsoluteImageAnchor(item) && TryReadIntAttribute(item, "data-officeimo-x", out int xPixels) && TryReadIntAttribute(item, "data-officeimo-y", out int yPixels)) {
             importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, dataUri.MediaType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsAbsoluteImageAnchor(item)) {
-            result.Diagnostics.Add("Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: HtmlConversionLossKind.Approximation);
             importedImage = sheet.AddImage(row, column, bytes, dataUri.MediaType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsTwoCellImageAnchor(item)) {
             importedImage = AddTwoCellImage(item, sheet, result, bytes, dataUri.MediaType, row, column, width, height, offsetX, offsetY, name, description);
@@ -283,7 +309,8 @@ public static class HtmlExcelConverterExtensions {
             return importedImage;
         }
 
-        result.Diagnostics.Add("Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.");
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+            "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.", lossKind: HtmlConversionLossKind.Approximation);
         return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
     }
 
@@ -297,14 +324,17 @@ public static class HtmlExcelConverterExtensions {
             } else if (!string.IsNullOrWhiteSpace(range) && !string.Equals(range, "A1", StringComparison.OrdinalIgnoreCase)) {
                 sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
             } else {
-                result.Diagnostics.Add("Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.");
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item '" + title + "' on sheet '" + sheet.Name + "' did not contain semantic chart data and no usable table range was available.", lossKind: HtmlConversionLossKind.Omission);
                 return;
             }
 
             result.Charts++;
             chartIndex++;
         } catch (Exception ex) {
-            result.Diagnostics.Add("Chart inventory item '" + title + "' could not be restored as a native chart: " + ex.Message);
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ArtifactCreationFailed,
+                "Chart inventory item '" + title + "' could not be restored as a native chart: " + ex.Message,
+                lossKind: HtmlConversionLossKind.Omission, detail: ex.GetType().Name);
         }
     }
 

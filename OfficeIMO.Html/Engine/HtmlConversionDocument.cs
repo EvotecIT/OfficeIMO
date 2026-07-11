@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
 
 namespace OfficeIMO.Html;
 
@@ -8,7 +9,10 @@ namespace OfficeIMO.Html;
 public sealed class HtmlConversionDocument {
     internal HtmlConversionDocument(
         string sourceHtml,
+        IHtmlDocument sourceDocument,
+        IHtmlDocument documentForConversion,
         HtmlConversionProfileContract profileContract,
+        HtmlInputTrust trust,
         HtmlLogicalDocument logicalDocument,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
         HtmlComputedStyleSummary styleSummary,
@@ -17,7 +21,10 @@ public sealed class HtmlConversionDocument {
         string normalizedHtml,
         string adapterHtml) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
+        SourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
+        DocumentForConversion = documentForConversion ?? throw new ArgumentNullException(nameof(documentForConversion));
         ProfileContract = profileContract ?? throw new ArgumentNullException(nameof(profileContract));
+        Trust = trust;
         LogicalDocument = logicalDocument ?? throw new ArgumentNullException(nameof(logicalDocument));
         ComputedStyles = computedStyles ?? throw new ArgumentNullException(nameof(computedStyles));
         StyleSummary = styleSummary ?? throw new ArgumentNullException(nameof(styleSummary));
@@ -30,8 +37,17 @@ public sealed class HtmlConversionDocument {
     /// <summary>Original HTML supplied by the caller.</summary>
     public string SourceHtml { get; }
 
+    /// <summary>Parsed source DOM used by logical, style, and resource analysis.</summary>
+    public IHtmlDocument SourceDocument { get; }
+
+    /// <summary>Policy-normalized DOM prepared for read-only target adapter consumption.</summary>
+    public IHtmlDocument DocumentForConversion { get; }
+
     /// <summary>Profile contract advertised to target adapters and galleries.</summary>
     public HtmlConversionProfileContract ProfileContract { get; }
+
+    /// <summary>Caller-assigned input trust boundary used by downstream adapters.</summary>
+    public HtmlInputTrust Trust { get; }
 
     /// <summary>Normalized logical structure used for semantic scoring and adapter planning.</summary>
     public HtmlLogicalDocument LogicalDocument { get; }

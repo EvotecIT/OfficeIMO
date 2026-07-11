@@ -5,11 +5,11 @@ namespace OfficeIMO.Html;
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders a shared HTML conversion document to PNG bytes.</summary>
     public static byte[] ToPng(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        GetHtml(document).ToPng(options, pageIndex);
+        document.ToPngResult(options, pageIndex).Bytes;
 
     /// <summary>Renders a shared HTML conversion document to SVG text.</summary>
     public static string ToSvg(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        GetHtml(document).ToSvg(options, pageIndex);
+        Encoding.UTF8.GetString(document.ToSvgResult(options, pageIndex).Bytes);
 
     /// <summary>Reads UTF-8 HTML from a stream and renders it to PNG bytes.</summary>
     public static byte[] ToPng(this Stream htmlStream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
@@ -21,11 +21,11 @@ public static partial class HtmlImageExportExtensions {
 
     /// <summary>Asynchronously renders a shared HTML conversion document to PNG bytes.</summary>
     public static Task<byte[]> ToPngAsync(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        GetHtml(document).ToPngAsync(options, pageIndex, cancellationToken);
+        ToPngDocumentAsync(document, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously renders a shared HTML conversion document to SVG text.</summary>
     public static Task<string> ToSvgAsync(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        GetHtml(document).ToSvgAsync(options, pageIndex, cancellationToken);
+        ToSvgDocumentAsync(document, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously reads UTF-8 HTML from a stream and renders it to PNG bytes.</summary>
     public static async Task<byte[]> ToPngAsync(this Stream htmlStream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
@@ -37,19 +37,19 @@ public static partial class HtmlImageExportExtensions {
 
     /// <summary>Saves a shared HTML conversion document as a PNG file.</summary>
     public static void SaveAsPng(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        GetHtml(document).SaveAsPng(path, options, pageIndex);
+        WriteFile(path, document.ToPng(options, pageIndex));
 
     /// <summary>Saves a shared HTML conversion document as an SVG file.</summary>
     public static void SaveAsSvg(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        GetHtml(document).SaveAsSvg(path, options, pageIndex);
+        WriteFile(path, Encoding.UTF8.GetBytes(document.ToSvg(options, pageIndex)));
 
     /// <summary>Writes a shared HTML conversion document as PNG to a stream.</summary>
     public static void SaveAsPng(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        GetHtml(document).SaveAsPng(stream, options, pageIndex);
+        WriteStream(stream, document.ToPng(options, pageIndex));
 
     /// <summary>Writes a shared HTML conversion document as SVG to a stream.</summary>
     public static void SaveAsSvg(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        GetHtml(document).SaveAsSvg(stream, options, pageIndex);
+        WriteStream(stream, Encoding.UTF8.GetBytes(document.ToSvg(options, pageIndex)));
 
     /// <summary>Reads UTF-8 HTML from a stream and saves it as a PNG file.</summary>
     public static void SaveAsPng(this Stream htmlStream, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
@@ -69,19 +69,19 @@ public static partial class HtmlImageExportExtensions {
 
     /// <summary>Asynchronously saves a shared HTML conversion document as a PNG file.</summary>
     public static Task SaveAsPngAsync(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        GetHtml(document).SaveAsPngAsync(path, options, pageIndex, cancellationToken);
+        SaveDocumentPngAsync(document, path, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously saves a shared HTML conversion document as an SVG file.</summary>
     public static Task SaveAsSvgAsync(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        GetHtml(document).SaveAsSvgAsync(path, options, pageIndex, cancellationToken);
+        SaveDocumentSvgAsync(document, path, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously writes a shared HTML conversion document as PNG to a stream.</summary>
     public static Task SaveAsPngAsync(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        GetHtml(document).SaveAsPngAsync(stream, options, pageIndex, cancellationToken);
+        SaveDocumentPngAsync(document, stream, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously writes a shared HTML conversion document as SVG to a stream.</summary>
     public static Task SaveAsSvgAsync(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
-        GetHtml(document).SaveAsSvgAsync(stream, options, pageIndex, cancellationToken);
+        SaveDocumentSvgAsync(document, stream, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously reads UTF-8 HTML and saves it as a PNG file.</summary>
     public static async Task SaveAsPngAsync(this Stream htmlStream, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
@@ -99,10 +99,28 @@ public static partial class HtmlImageExportExtensions {
     public static async Task SaveAsSvgAsync(this Stream htmlStream, Stream svgStream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
         await (await ReadHtmlAsync(htmlStream, cancellationToken).ConfigureAwait(false)).SaveAsSvgAsync(svgStream, options, pageIndex, cancellationToken).ConfigureAwait(false);
 
-    private static string GetHtml(HtmlConversionDocument document) {
+    private static AngleSharp.Html.Dom.IHtmlDocument GetDocument(HtmlConversionDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.HtmlForConversion;
+        return document.DocumentForConversion;
     }
+
+    private static async Task<byte[]> ToPngDocumentAsync(HtmlConversionDocument document, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>
+        (await document.ToPngResultAsync(options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes;
+
+    private static async Task<string> ToSvgDocumentAsync(HtmlConversionDocument document, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>
+        Encoding.UTF8.GetString((await document.ToSvgResultAsync(options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes);
+
+    private static async Task SaveDocumentPngAsync(HtmlConversionDocument document, string path, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>
+        await WriteFileAsync(path, await document.ToPngAsync(options, pageIndex, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    private static async Task SaveDocumentSvgAsync(HtmlConversionDocument document, string path, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>
+        await WriteFileAsync(path, Encoding.UTF8.GetBytes(await document.ToSvgAsync(options, pageIndex, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
+
+    private static async Task SaveDocumentPngAsync(HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>
+        await WriteStreamAsync(stream, await document.ToPngAsync(options, pageIndex, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    private static async Task SaveDocumentSvgAsync(HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options, int pageIndex, CancellationToken cancellationToken) =>
+        await WriteStreamAsync(stream, Encoding.UTF8.GetBytes(await document.ToSvgAsync(options, pageIndex, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
 
     private static string ReadHtml(Stream htmlStream) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));

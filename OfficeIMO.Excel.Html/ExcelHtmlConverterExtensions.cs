@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Html;
 /// <summary>
 /// Extension methods enabling HTML conversions for OfficeIMO Excel documents.
 /// </summary>
-public static class ExcelHtmlConverterExtensions {
+public static partial class ExcelHtmlConverterExtensions {
     /// <summary>
     /// Converts a workbook to HTML.
     /// </summary>
@@ -34,7 +34,7 @@ public static class ExcelHtmlConverterExtensions {
     /// </summary>
     public static void SaveAsHtml(this ExcelDocument workbook, string path, ExcelHtmlSaveOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        File.WriteAllText(path, workbook.ToHtml(options), Encoding.UTF8);
+        HtmlTextIO.Write(path, workbook.ToHtml(options));
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ public static class ExcelHtmlConverterExtensions {
     /// </summary>
     public static void SaveAsHtml(this ExcelSheet sheet, string path, ExcelHtmlSaveOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        File.WriteAllText(path, sheet.ToHtml(options), Encoding.UTF8);
+        HtmlTextIO.Write(path, sheet.ToHtml(options));
     }
 
     private static string ConvertWorkbookSemantic(ExcelDocument workbook, ExcelHtmlSaveOptions options) {
@@ -103,7 +103,8 @@ public static class ExcelHtmlConverterExtensions {
     }
 
     private static void AppendSheetTable(StringBuilder body, ExcelSheet sheet, ExcelHtmlSaveOptions options) {
-        string usedRange = sheet.GetUsedRangeA1();
+        IReadOnlyList<ExcelMergedRangeSnapshot> mergedRanges = sheet.GetMergedRanges();
+        string usedRange = ExpandUsedRangeForMerges(sheet, sheet.GetUsedRangeA1(), mergedRanges);
         body.Append("<section class=\"officeimo-sheet\" data-officeimo-sheet=\"")
             .Append(OfficeHtmlText.EscapeAttribute(sheet.Name))
             .Append("\" data-officeimo-range=\"")
@@ -117,23 +118,50 @@ public static class ExcelHtmlConverterExtensions {
         int maxRows = options.MaxRowsPerSheet.HasValue
             ? Math.Min(rowCount, options.MaxRowsPerSheet.Value)
             : rowCount;
-        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || !SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount)) {
+        ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, columnCount);
+        if (rowCount == 0 || columnCount == 0 || maxRows == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount) && mergeMap.Count == 0)) {
             body.Append("<p class=\"officeimo-muted\">No used cells.</p>");
             AppendSheetFeatureInventory(body, sheet, GetFeatureInventoryWindow(firstRow, maxRows, rowCount));
             body.Append("</section>");
             return;
         }
 
-        body.Append("<table class=\"officeimo-table\"><tbody>");
+        bool firstRowIsHeader = options.HeaderMode == ExcelHtmlHeaderMode.FirstRow;
+        body.Append("<table class=\"officeimo-table\">");
+        if (firstRowIsHeader) {
+            body.Append("<thead>");
+        } else {
+            body.Append("<tbody>");
+        }
+
         for (int row = 0; row < maxRows; row++) {
+            if (row == 1 && firstRowIsHeader) {
+                body.Append("</thead><tbody>");
+            }
+
             body.Append("<tr>");
             for (int column = 0; column < columnCount; column++) {
-                string tag = row == 0 ? "th" : "td";
+                string tag = firstRowIsHeader && row == 0 ? "th" : "td";
                 int cellRow = firstRow + row;
                 int cellColumn = firstColumn + column;
+                if (mergeMap.IsCoveredCell(cellRow, cellColumn)) {
+                    continue;
+                }
+
                 bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
-                body.Append('<').Append(tag);
+                body.Append('<').Append(tag)
+                    .Append(" data-officeimo-cell=\"")
+                    .Append(OfficeHtmlText.EscapeAttribute(A1.CellReference(cellRow, cellColumn)))
+                    .Append('"');
+                if (mergeMap.TryGetOrigin(cellRow, cellColumn, out ExcelMergeExportRange merge)) {
+                    AppendMergeAttributes(body, merge);
+                }
+
+                if (tag == "th") {
+                    body.Append(" scope=\"col\"");
+                }
+
                 if (hasSnapshot) {
                     ExcelCellValueSnapshot cellSnapshot = snapshot!;
                     body.Append(" data-officeimo-value-kind=\"")
@@ -153,7 +181,7 @@ public static class ExcelHtmlConverterExtensions {
             body.Append("</tr>");
         }
 
-        body.Append("</tbody></table>");
+        body.Append(firstRowIsHeader && maxRows == 1 ? "</thead></table>" : "</tbody></table>");
         if (maxRows < rowCount) {
             body.Append("<p class=\"officeimo-diagnostic\">Rows truncated: ")
                 .Append(maxRows.ToString(CultureInfo.InvariantCulture))
@@ -658,6 +686,7 @@ public static class ExcelHtmlConverterExtensions {
             ExcelCellValueKind.Boolean => "boolean",
             ExcelCellValueKind.Error => "error",
             ExcelCellValueKind.Formula => "formula",
+            ExcelCellValueKind.DateTime => "date-time",
             ExcelCellValueKind.Other => "other",
             _ => "text"
         };
@@ -666,7 +695,9 @@ public static class ExcelHtmlConverterExtensions {
         ShouldUseDisplayTextRawValue(snapshot, cellText) ? "text" : ToHtmlValueKind(snapshot.Kind);
 
     private static string ToHtmlRawValue(ExcelCellValueSnapshot snapshot, string cellText) =>
-        ShouldUseDisplayTextRawValue(snapshot, cellText) ? cellText : snapshot.RawValue;
+        snapshot.Kind == ExcelCellValueKind.DateTime && snapshot.DateTimeValue.HasValue
+            ? snapshot.DateTimeValue.Value.ToString("O", CultureInfo.InvariantCulture)
+            : ShouldUseDisplayTextRawValue(snapshot, cellText) ? cellText : snapshot.RawValue;
 
     private static bool ShouldUseDisplayTextRawValue(ExcelCellValueSnapshot snapshot, string cellText) =>
         snapshot.Kind == ExcelCellValueKind.Text ||

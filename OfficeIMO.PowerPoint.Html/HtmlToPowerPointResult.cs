@@ -1,3 +1,4 @@
+using OfficeIMO.Html;
 using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Html;
@@ -5,15 +6,13 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Summary of a semantic PowerPoint HTML import.
 /// </summary>
-public sealed class HtmlToPowerPointResult {
-    internal HtmlToPowerPointResult(PptCore.PowerPointPresentation presentation) {
-        Presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
-    }
+public sealed class HtmlToPowerPointResult : HtmlConversionResult<PptCore.PowerPointPresentation> {
+    internal HtmlToPowerPointResult(PptCore.PowerPointPresentation presentation) : base(presentation) { }
 
     /// <summary>
     /// Imported presentation.
     /// </summary>
-    public PptCore.PowerPointPresentation Presentation { get; }
+    public PptCore.PowerPointPresentation Presentation => Artifact;
 
     /// <summary>
     /// Number of imported slides.
@@ -31,6 +30,11 @@ public sealed class HtmlToPowerPointResult {
     public int Tables { get; internal set; }
 
     /// <summary>
+    /// Number of merged table ranges restored from HTML row and column spans.
+    /// </summary>
+    public int MergedRanges { get; internal set; }
+
+    /// <summary>
     /// Number of imported pictures.
     /// </summary>
     public int Pictures { get; internal set; }
@@ -45,8 +49,4 @@ public sealed class HtmlToPowerPointResult {
     /// </summary>
     public int Notes { get; internal set; }
 
-    /// <summary>
-    /// Import diagnostics for skipped or approximate rich content.
-    /// </summary>
-    public IList<string> Diagnostics { get; } = new List<string>();
 }

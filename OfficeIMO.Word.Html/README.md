@@ -29,6 +29,19 @@ string html = document.ToHtml(new WordToHtmlOptions {
 
 HTML can also be appended to an existing body, header, or footer with `AddHtmlToBody`, `AddHtmlToHeader`, and `AddHtmlToFooter`.
 
+Use the result API when conversion evidence matters:
+
+```csharp
+HtmlToWordResult result = html.ToWordDocumentResult(options);
+using WordDocument document = result.GetArtifactOrThrow();
+
+foreach (HtmlDiagnostic diagnostic in result.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.LossKind}");
+}
+```
+
+String, stream, async, and prepared `HtmlConversionDocument` overloads expose the same result shape. A prepared document reuses the shared adapter DOM. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion; the static `StyleMissing` event remains a compatibility fallback.
+
 ## What it maps
 
 - HTML headings, paragraphs, inline formatting, links, images, SVG, lists, tables, captions, form controls, notes, headers, footers, and sections into Word content where supported.

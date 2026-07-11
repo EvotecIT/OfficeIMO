@@ -257,7 +257,19 @@ namespace OfficeIMO.Excel {
                 string rawValue = kind == ExcelCellValueKind.Formula
                     ? cell.CellFormula?.Text ?? string.Empty
                     : cell.CellValue?.InnerText ?? text;
-                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType);
+                DateTime? dateTimeValue = null;
+                if (kind == ExcelCellValueKind.Number
+                    && double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double serial)
+                    && GetCellStyle(row, column).IsDateLike) {
+                    try {
+                        dateTimeValue = ExcelDateSystemConverter.FromSerial(serial, _excelDocument.DateSystem);
+                        kind = ExcelCellValueKind.DateTime;
+                    } catch (ArgumentException) {
+                        // Retain the numeric kind when the serial cannot be represented by DateTime.
+                    }
+                }
+
+                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType, dateTimeValue);
                 return true;
             } catch {
                 return false;

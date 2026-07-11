@@ -67,14 +67,14 @@ public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts a shared HTML conversion document to a PDF document plus diagnostics.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfResult(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.HtmlForConversion.ToPdfResult(options);
+        HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(document.DocumentForConversion, Normalize(options));
+        return CreateResult(rendered);
     }
 
     /// <summary>Reads UTF-8 HTML from a stream and converts it to a PDF document plus diagnostics.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfResult(this Stream htmlStream, HtmlPdfSaveOptions? options = null) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
-        using var reader = new StreamReader(htmlStream, Encoding.UTF8, true, 4096, true);
-        return reader.ReadToEnd().ToPdfResult(options);
+        return HtmlTextIO.Read(htmlStream).ToPdfResult(options);
     }
 
     /// <summary>Asynchronously converts HTML to a PDF document plus an immutable diagnostics snapshot.</summary>
@@ -87,15 +87,18 @@ public static partial class HtmlPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously converts a shared HTML conversion document to a PDF document plus diagnostics.</summary>
-    public static Task<PdfCore.PdfDocumentConversionResult> ToPdfResultAsync(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfResultAsync(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.HtmlForConversion.ToPdfResultAsync(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlPdfRenderResult rendered = await HtmlPdfRenderedConverter.ConvertAsync(document.DocumentForConversion, Normalize(options), cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return CreateResult(rendered);
     }
 
     /// <summary>Asynchronously reads UTF-8 HTML from a stream and converts it to a PDF document plus diagnostics.</summary>
     public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfResultAsync(this Stream htmlStream, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
-        string html = await ReadHtmlAsync(htmlStream, cancellationToken).ConfigureAwait(false);
+        string html = await HtmlTextIO.ReadAsync(htmlStream, cancellationToken).ConfigureAwait(false);
         return await html.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false);
     }
 
@@ -132,14 +135,4 @@ public static partial class HtmlPdfConverterExtensions {
         _ => PdfCore.PdfConversionWarningSeverity.Warning
     };
 
-    private static async Task<string> ReadHtmlAsync(Stream stream, CancellationToken cancellationToken) {
-        using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, true);
-#if NET8_0_OR_GREATER
-        return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-#else
-        string html = await reader.ReadToEndAsync().ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return html;
-#endif
-    }
 }
