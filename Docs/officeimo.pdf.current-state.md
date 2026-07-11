@@ -107,7 +107,7 @@ or refuse the input, and the decision is exercised against the curated corpus.
 
 ### P0 - Generalize Append-Only Updates
 
-- [ ] Extract the current metadata, form, and signature revision logic into one
+- [x] Extract the current metadata, form, and signature revision logic into one
   append-only writer that can add and replace indirect objects, preserve object
   generations, emit classic or xref-stream revisions, maintain `/Prev`, trailer
   references, file identifiers, and encryption context, and leave all prior

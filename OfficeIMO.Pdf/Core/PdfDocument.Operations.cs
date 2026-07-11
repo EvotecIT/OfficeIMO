@@ -235,7 +235,7 @@ public sealed partial class PdfDocument {
     /// Appends a metadata-only incremental revision without rewriting the existing PDF bytes.
     /// </summary>
     public PdfDocument AppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
-        return FromBytes(PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords));
+        return AppendMetadataRevision(title, author, subject, keywords, ReadOptions);
     }
 
     /// <summary>
@@ -246,9 +246,19 @@ public sealed partial class PdfDocument {
             "Append metadata revision",
             PdfPreflightCapability.AppendMetadataRevision,
             PdfMutationOperation.UpdateMetadata,
-            _ => AppendMetadataRevision(title, author, subject, keywords),
+            _ => AppendMetadataRevision(title, author, subject, keywords, options ?? ReadOptions),
             options: options,
             executionPreference: PdfMutationExecutionPreference.RequireAppendOnly);
+    }
+
+    private PdfDocument AppendMetadataRevision(
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        PdfReadOptions? readOptions) {
+        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords, readOptions);
+        return FromBytes(updated, readOptions);
     }
 
     /// <summary>
@@ -294,7 +304,7 @@ public sealed partial class PdfDocument {
             PdfPreflightCapability.ManipulatePages,
             PdfMutationOperation.UpdateMetadata,
             mode => mode == PdfMutationExecutionMode.AppendOnly
-                ? AppendMetadataRevision(title, author, subject, keywords)
+                ? AppendMetadataRevision(title, author, subject, keywords, options ?? ReadOptions)
                 : UpdateMetadata(title, author, subject, keywords),
             options: options);
     }

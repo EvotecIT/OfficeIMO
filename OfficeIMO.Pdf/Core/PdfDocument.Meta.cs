@@ -203,6 +203,11 @@ public sealed partial class PdfDocument : IDisposable {
         return new PdfDocument(pdf);
     }
 
+    internal static PdfDocument FromBytes(byte[] pdf, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return new PdfDocument(pdf, readOptions);
+    }
+
     /// <inheritdoc />
     public void Dispose() {
         // No unmanaged resources are held. IDisposable keeps the document ergonomic beside stream-backed workflows.

@@ -18,7 +18,8 @@ internal static class PdfIncrementalObjectWriter {
         IEnumerable<int>? changedObjectNumbers = null,
         IReadOnlyList<(int ObjectNumber, byte[] Bytes)>? rawObjects = null,
         int? infoObjectNumberOverride = null,
-        PdfIncrementalXrefFormat format = PdfIncrementalXrefFormat.Automatic) {
+        PdfIncrementalXrefFormat format = PdfIncrementalXrefFormat.Automatic,
+        PdfStandardSecurityHandler? encryptionHandler = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(security, nameof(security));
@@ -32,12 +33,16 @@ internal static class PdfIncrementalObjectWriter {
             throw new InvalidOperationException("PDF startxref offset is required for an incremental update.");
         }
 
-        if (security.HasEncryption) {
-            throw new NotSupportedException("Appending objects in an encrypted PDF requires encryption-context serialization, which is not supported yet.");
+        if (security.HasEncryption && encryptionHandler is null) {
+            throw new NotSupportedException("Appending objects in an encrypted PDF requires an authenticated encryption context.");
         }
 
         IReadOnlyList<(int ObjectNumber, byte[] Bytes)> effectiveRawObjects = rawObjects ?? Array.Empty<(int ObjectNumber, byte[] Bytes)>();
-        List<SerializedObject> serialized = SerializeObjects(objects, changedObjectNumbers, effectiveRawObjects);
+        if (security.HasEncryption && effectiveRawObjects.Count > 0) {
+            throw new NotSupportedException("Raw incremental objects cannot be appended to an encrypted PDF. Supply typed PDF objects so strings and streams are encrypted with their object keys.");
+        }
+
+        List<SerializedObject> serialized = SerializeObjects(objects, changedObjectNumbers, effectiveRawObjects, encryptionHandler);
         if (serialized.Count == 0) {
             throw new ArgumentException("At least one changed or new indirect object is required for an incremental update.", nameof(changedObjectNumbers));
         }
@@ -74,7 +79,8 @@ internal static class PdfIncrementalObjectWriter {
     private static List<SerializedObject> SerializeObjects(
         Dictionary<int, PdfIndirectObject> objects,
         IEnumerable<int>? changedObjectNumbers,
-        IReadOnlyList<(int ObjectNumber, byte[] Bytes)> rawObjects) {
+        IReadOnlyList<(int ObjectNumber, byte[] Bytes)> rawObjects,
+        PdfStandardSecurityHandler? encryptionHandler) {
         var contextObjects = new Dictionary<int, PdfIndirectObject>(objects);
         for (int i = 0; i < rawObjects.Count; i++) {
             if (!contextObjects.ContainsKey(rawObjects[i].ObjectNumber)) {
@@ -102,7 +108,8 @@ internal static class PdfIncrementalObjectWriter {
             pagesObjectId: 0,
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             contextObjects,
-            preserveReferenceGenerations: true);
+            preserveReferenceGenerations: true,
+            preserveRawStringBytes: encryptionHandler is not null);
         var serialized = new List<SerializedObject>(objectNumbers.Length);
         for (int i = 0; i < objectNumbers.Length; i++) {
             int objectNumber = objectNumbers[i];
@@ -115,13 +122,16 @@ internal static class PdfIncrementalObjectWriter {
                 throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was changed but could not be found.");
             }
 
+            PdfObject value = encryptionHandler is null
+                ? indirect.Value
+                : encryptionHandler.EncryptObject(objectNumber, indirect.Generation, indirect.Value);
             serialized.Add(new SerializedObject(
                 objectNumber,
                 indirect.Generation,
                 PdfObjectBytes.WrapIndirectObject(
                     objectNumber,
                     indirect.Generation,
-                    PdfPageExtractor.SerializeObject(indirect.Value, context))));
+                    PdfPageExtractor.SerializeObject(value, context))));
         }
 
         return serialized;
@@ -233,6 +243,7 @@ internal static class PdfIncrementalObjectWriter {
         int infoObjectNumber) =>
         " /Root " + BuildExistingReference(objects, security.RootObjectNumber!.Value) +
         (infoObjectNumber > 0 ? " /Info " + BuildExistingReference(objects, infoObjectNumber) : string.Empty) +
+        (security.EncryptObjectNumber.HasValue ? " /Encrypt " + BuildExistingReference(objects, security.EncryptObjectNumber.Value) : string.Empty) +
         " /Prev " + security.LastStartXrefOffset!.Value.ToString(CultureInfo.InvariantCulture) +
         ReadTrailerIdEntry(trailerRaw);
 

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static bool TryCreateDecryptor(
+    internal static bool TryCreateDecryptor(
         Dictionary<int, PdfIndirectObject> map,
         string trailerRaw,
         PdfReadOptions? options,

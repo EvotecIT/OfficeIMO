@@ -128,6 +128,24 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void Plan_ChoosesEncryptedAppendWithOwnerAuthorization() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted owner planner source"))
+            .ToBytes();
+        var ownerOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata, ownerOptions);
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(source)
+            .TryUpdateMetadata(title: "Owner-planned update", options: ownerOptions);
+
+        Assert.True(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+        Assert.True(plan.AppendOnlyAvailable);
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        Assert.Equal("Owner-planned update", result.Value!.Read.Metadata(ownerOptions).Title);
+    }
+
+    [Fact]
     public void Plan_BlocksPageTreeMutationWhenSourceStructureCannotBePreserved() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 

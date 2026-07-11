@@ -8,8 +8,13 @@ public static partial class PdfIncrementalUpdater {
     /// Analyzes append-only mutation support for a PDF byte array.
     /// </summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf) {
+        return AnalyzeAppendOnlyMutation(pdf, null);
+    }
+
+    /// <summary>Analyzes append-only mutation support using optional password and parsing settings.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf));
+        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions));
     }
 
     /// <summary>
@@ -46,13 +51,19 @@ public static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Appends a metadata-only revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
-    public static byte[] UpdateMetadata(byte[] pdf, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public static byte[] UpdateMetadata(
+        byte[] pdf,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.UpdateMetadata);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         if (!security.RootObjectNumber.HasValue) {
             throw new InvalidOperationException("PDF root catalog reference is required for an incremental metadata update.");
         }
@@ -61,7 +72,7 @@ public static partial class PdfIncrementalUpdater {
             throw new InvalidOperationException("PDF startxref offset is required for an incremental metadata update.");
         }
 
-        PdfMetadata existing = PdfInspector.Inspect(pdf).Metadata;
+        PdfMetadata existing = PdfInspector.Inspect(pdf, readOptions).Metadata;
         var updated = new PdfMetadata {
             Title = title ?? existing.Title,
             Author = author ?? existing.Author,
@@ -70,18 +81,31 @@ public static partial class PdfIncrementalUpdater {
         };
 
         int newInfoObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        byte[] infoObject = PdfObjectBytes.WrapIndirectObject(newInfoObjectNumber, PdfInfoDictionaryBuilder.Build(updated));
+        objects[newInfoObjectNumber] = new PdfIndirectObject(newInfoObjectNumber, 0, PdfInfoDictionaryBuilder.BuildDictionary(updated));
+        PdfStandardSecurityHandler? encryptionHandler = null;
+        if (security.HasEncryption &&
+            !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler)) {
+            throw new PdfUnsupportedEncryptionException("PDF encryption context could not be created for the incremental update.");
+        }
+
         return PdfIncrementalObjectWriter.Append(
             pdf,
             objects,
             security,
             trailerRaw,
-            rawObjects: new[] { (newInfoObjectNumber, infoObject) },
-            infoObjectNumberOverride: newInfoObjectNumber);
+            changedObjectNumbers: new[] { newInfoObjectNumber },
+            infoObjectNumberOverride: newInfoObjectNumber,
+            encryptionHandler: encryptionHandler);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF stream.</summary>
-    public static byte[] UpdateMetadata(Stream input, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public static byte[] UpdateMetadata(
+        Stream input,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
@@ -89,14 +113,21 @@ public static partial class PdfIncrementalUpdater {
 
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
-        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords);
+        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords, readOptions);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
-    public static void UpdateMetadata(string inputPath, string outputPath, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public static void UpdateMetadata(
+        string inputPath,
+        string outputPath,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords));
+        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions));
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
@@ -106,7 +137,7 @@ public static partial class PdfIncrementalUpdater {
         var longTermValidationBlockers = new List<string>();
         var annotationBlockers = new List<string>();
         var warnings = new List<string>();
-        if (security.HasEncryption) {
+        if (security.HasEncryption && !security.HasOwnerAuthorization) {
             commonBlockers.Add("Encrypted");
         }
 

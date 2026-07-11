@@ -6,6 +6,64 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIncrementalUpdaterTests {
+    [Theory]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
+    [InlineData(PdfStandardEncryptionAlgorithm.LegacyRc4)]
+    public void UpdateMetadata_AppendsEncryptedRevisionWithOwnerAuthorization(PdfStandardEncryptionAlgorithm algorithm) {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            Algorithm = algorithm
+        };
+        byte[] original = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Meta(title: "Encrypted original", author: "Encrypted author")
+            .Paragraph(paragraph => paragraph.Text("Encrypted incremental body"))
+            .ToBytes();
+        var ownerOptions = new PdfReadOptions { Password = "owner" };
+        var userOptions = new PdfReadOptions { Password = "open" };
+        PdfDocumentSecurityInfo before = PdfSyntax.ReadDocumentSecurityInfo(original, ownerOptions);
+
+        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(
+            original,
+            title: "Encrypted updated",
+            readOptions: ownerOptions);
+
+        Assert.True(updated.AsSpan(0, original.Length).SequenceEqual(original));
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfInspector.Inspect(updated));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(updated, new PdfReadOptions { Password = "wrong" }));
+        PdfDocumentInfo userInfo = PdfInspector.Inspect(updated, userOptions);
+        PdfDocumentSecurityInfo after = PdfSyntax.ReadDocumentSecurityInfo(updated, ownerOptions);
+        Assert.Equal("Encrypted updated", userInfo.Metadata.Title);
+        Assert.Equal("Encrypted author", userInfo.Metadata.Author);
+        Assert.Contains(
+            "Encrypted incremental body",
+            PdfTextExtractor.ExtractAllText(updated, (PdfTextLayoutOptions?)null, userOptions),
+            StringComparison.Ordinal);
+        Assert.True(after.HasEncryption);
+        Assert.Equal(before.EncryptObjectNumber, after.EncryptObjectNumber);
+        Assert.True(after.HasTrailerId);
+        Assert.True(after.HasIncrementalUpdates);
+        Assert.Equal(before.LastStartXrefOffset, after.Revisions[after.Revisions.Count - 1].PreviousXrefOffset);
+        string appended = PdfEncoding.Latin1GetString(updated, original.Length, updated.Length - original.Length);
+        Assert.Contains("/Encrypt " + before.EncryptObjectNumber + " 0 R", appended, StringComparison.Ordinal);
+        Assert.Contains("/ID [", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FluentAppendMetadataRevision_ReusesEncryptedDocumentReadOptions() {
+        byte[] original = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Meta(title: "Before fluent append")
+            .Paragraph(paragraph => paragraph.Text("Fluent encrypted body"))
+            .ToBytes();
+        var ownerOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfDocument updated = PdfDocument.Open(original, ownerOptions)
+            .AppendMetadataRevision(title: "After fluent append");
+
+        Assert.Equal("After fluent append", updated.Read.Metadata().Title);
+        Assert.Contains("Fluent encrypted body", updated.Read.Text(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void UpdateMetadata_AppendsIncrementalRevisionAndPreservesContent() {
         byte[] original = PdfDocument.Create()
