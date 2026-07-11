@@ -47,10 +47,12 @@ public static partial class OfficeSvgDrawingReader {
 
             var result = new OfficeDrawing(width, height);
             int visited = 0;
-            SvgPaintServerRegistry paintServers = SvgPaintServerRegistry.Create(root);
+            SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
+            var paintServers = new SvgPaintServerRegistry(definitions);
+            var references = new SvgElementReferenceRegistry(definitions);
             var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
-            AddChildren(root, result, context, paintServers, rootTransform, viewX, viewY, ref visited, ref unsupportedFeatureCount);
+            AddChildren(root, result, context, paintServers, references, rootTransform, viewX, viewY, ref visited, ref unsupportedFeatureCount);
             if (visited > MaximumElements) return false;
             drawing = result;
             return true;
@@ -88,52 +90,72 @@ public static partial class OfficeSvgDrawingReader {
         OfficeDrawing drawing,
         SvgPaintContext inherited,
         SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
         OfficeTransform inheritedTransform,
         double viewX,
         double viewY,
         ref int visited,
         ref int unsupported) {
         foreach (XElement element in parent.Elements()) {
-            visited++;
+            AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY, ref visited, ref unsupported);
             if (visited > MaximumElements) return;
-            string name = element.Name.LocalName.ToLowerInvariant();
-            if (name is "title" or "desc" or "metadata") continue;
-            if (name == "defs") continue;
+        }
+    }
 
-            SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
-            if (!style.Visible) continue;
-            OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
-            if (name is "g" or "svg" or "a" or "switch") {
-                AddChildren(element, drawing, style, paintServers, transform, viewX, viewY, ref visited, ref unsupported);
-                continue;
-            }
-            if (name == "text") {
-                AddText(element, drawing, style, transform, viewX, viewY, ref unsupported);
-                continue;
-            }
+    private static void AddElement(
+        XElement element,
+        OfficeDrawing drawing,
+        SvgPaintContext inherited,
+        SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        OfficeTransform inheritedTransform,
+        double viewX,
+        double viewY,
+        ref int visited,
+        ref int unsupported) {
+        visited++;
+        if (visited > MaximumElements) return;
+        string name = element.Name.LocalName.ToLowerInvariant();
+        if (name is "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return;
+        if (name == "defs") return;
 
-            OfficeDrawingShape? shape = name switch {
-                "rect" => CreateRectangle(element, style, viewX, viewY, ref unsupported),
-                "circle" => CreateCircle(element, style, viewX, viewY),
-                "ellipse" => CreateEllipse(element, style, viewX, viewY),
-                "line" => CreateLine(element, style, viewX, viewY),
-                "polygon" => CreatePolygon(element, style, viewX, viewY, close: true),
-                "polyline" => CreatePolygon(element, style, viewX, viewY, close: false),
-                "path" => CreatePath(element, style, viewX, viewY),
-                _ => null
-            };
-            if (shape == null) {
-                unsupported++;
-                continue;
-            }
+        SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
+        if (!style.Visible) return;
+        OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
+        if (name is "g" or "svg" or "a" or "switch") {
+            AddChildren(element, drawing, style, paintServers, references, transform, viewX, viewY, ref visited, ref unsupported);
+            return;
+        }
+        if (name == "use") {
+            AddReferencedElement(element, drawing, style, paintServers, references, transform, viewX, viewY, ref visited, ref unsupported);
+            return;
+        }
+        if (name == "text") {
+            AddText(element, drawing, style, transform, viewX, viewY, ref unsupported);
+            return;
+        }
 
-            ApplyTransform(shape, transform);
+        OfficeDrawingShape? shape = name switch {
+            "rect" => CreateRectangle(element, style, viewX, viewY, ref unsupported),
+            "circle" => CreateCircle(element, style, viewX, viewY),
+            "ellipse" => CreateEllipse(element, style, viewX, viewY),
+            "line" => CreateLine(element, style, viewX, viewY),
+            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true),
+            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false),
+            "path" => CreatePath(element, style, viewX, viewY),
+            _ => null
+        };
+        if (shape == null) {
+            unsupported++;
+            return;
+        }
 
-            try {
-                drawing.AddShape(shape.Shape, shape.X, shape.Y);
-            } catch (ArgumentOutOfRangeException) {
-                unsupported++;
-            }
+        ApplyTransform(shape, transform);
+
+        try {
+            drawing.AddShape(shape.Shape, shape.X, shape.Y);
+        } catch (ArgumentOutOfRangeException) {
+            unsupported++;
         }
     }
 

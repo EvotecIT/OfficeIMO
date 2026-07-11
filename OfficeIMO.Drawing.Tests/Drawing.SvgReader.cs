@@ -112,6 +112,41 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderExpandsBoundedLocalUseReferencesWithInheritedPaintAndPlacement() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 40 20'>"
+            + "<defs><g id='badge'><rect width='10' height='10'/><circle cx='5' cy='5' r='3' fill='white'/></g></defs>"
+            + "<use href='#badge' x='2' y='2' fill='red'/><use xlink:href='#badge' x='22' y='5' fill='blue'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(4, drawing!.Shapes.Count);
+        Assert.Equal(OfficeColor.Red, drawing.Shapes[0].Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, drawing.Shapes[2].Shape.FillColor);
+        Assert.All(drawing.Shapes, item => Assert.True(item.Shape.Transform.HasValue));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(3, 3));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(23, 6));
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.DoesNotContain("<use", exported, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderDiagnosesCyclicExternalAndAmbiguousUseReferences() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
+            + "<defs><g id='loop'><use href='#loop'/></g><rect id='duplicate' width='5' height='5'/><circle id='duplicate' r='2'/></defs>"
+            + "<use href='#loop'/><use href='https://example.test/shape'/><use href='#duplicate'/><rect x='30' width='10' height='10' fill='lime'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(3, unsupported);
+        OfficeDrawingShape shape = Assert.Single(drawing!.Shapes);
+        Assert.Equal(OfficeColor.Lime, shape.Shape.FillColor);
+        Assert.Equal(OfficeColor.Lime, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(35, 5));
+    }
+
+    [Fact]
     public void SvgReaderResolvesInheritedLinearPaintServersWithoutRasterFallback() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'>"
             + "<defs><linearGradient id='base'><stop offset='20%' stop-color='red'/><stop offset='80%' stop-color='blue'/></linearGradient>"

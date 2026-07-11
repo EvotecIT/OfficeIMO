@@ -47,37 +47,18 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private sealed class SvgPaintServerRegistry {
-        private readonly IReadOnlyDictionary<string, XElement> _definitions;
-        private readonly ISet<string> _ambiguousIds;
+        private readonly SvgDefinitionRegistry _definitions;
 
-        private SvgPaintServerRegistry(IReadOnlyDictionary<string, XElement> definitions, ISet<string> ambiguousIds) {
+        internal SvgPaintServerRegistry(SvgDefinitionRegistry definitions) {
             _definitions = definitions;
-            _ambiguousIds = ambiguousIds;
-        }
-
-        internal static SvgPaintServerRegistry Create(XElement root) {
-            var definitions = new Dictionary<string, XElement>(StringComparer.Ordinal);
-            var ambiguousIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (XElement element in root.Descendants()) {
-                string name = element.Name.LocalName;
-                if (!name.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
-                    && !name.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)) continue;
-                string? id = element.Attribute("id")?.Value.Trim();
-                if (string.IsNullOrEmpty(id)) continue;
-                if (definitions.ContainsKey(id!)) {
-                    ambiguousIds.Add(id!);
-                    continue;
-                }
-                definitions.Add(id!, element);
-            }
-            return new SvgPaintServerRegistry(definitions, ambiguousIds);
         }
 
         internal bool TryResolve(string value, out SvgResolvedPaint paint) {
             paint = default;
             if (!TryReadLocalReference(value, requireUrl: true, out string id)
-                || _ambiguousIds.Contains(id)
-                || !_definitions.TryGetValue(id, out XElement? element)) return false;
+                || !_definitions.TryGetUnique(id, out XElement? element)
+                || (!element!.Name.LocalName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
+                    && !element.Name.LocalName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase))) return false;
 
             var resolving = new HashSet<string>(StringComparer.Ordinal);
             if (!TryResolveDefinition(id, element, resolving, 0, out SvgGradientDefinition? definition)) return false;
@@ -121,8 +102,8 @@ public static partial class OfficeSvgDrawingReader {
                 XAttribute? href = element.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
                 if (href != null) {
                     if (!TryReadLocalReference(href.Value, requireUrl: false, out string inheritedId)
-                        || _ambiguousIds.Contains(inheritedId)
-                        || !_definitions.TryGetValue(inheritedId, out XElement? inheritedElement)
+                        || !_definitions.TryGetUnique(inheritedId, out XElement? inheritedElement)
+                        || inheritedElement == null
                         || !inheritedElement.Name.LocalName.Equals(element.Name.LocalName, StringComparison.OrdinalIgnoreCase)
                         || !TryResolveDefinition(inheritedId, inheritedElement, resolving, depth + 1, out inherited)) return false;
                 }

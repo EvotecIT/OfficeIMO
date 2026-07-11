@@ -34,8 +34,8 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImages_SvgPrimitivesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
-        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><rect width='2' height='2' fill='lime' transform='translate(18 8) scale(2)'/><text x='20' y='18' font-size='4' text-anchor='middle' fill='black'>SvgLabelX</text></svg>";
+    public void HtmlImages_SvgPrimitivesAndLocalReferencesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><defs><rect id='marker' width='2' height='2' fill='lime'/></defs><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/><path d='M22 10A8 6 30 0 1 38 10' fill='none' stroke='black'/><use href='#marker' transform='translate(18 8) scale(2)'/><text x='20' y='18' font-size='4' text-anchor='middle' fill='black'>SvgLabelX</text></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
         var options = new HtmlImageExportOptions {
