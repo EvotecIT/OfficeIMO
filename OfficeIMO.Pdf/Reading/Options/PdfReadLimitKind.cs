@@ -11,6 +11,9 @@ public enum PdfReadLimitKind {
     /// <summary>Raw bytes in one PDF stream before decoding.</summary>
     RawStreamBytes,
 
+    /// <summary>Bytes produced while decoding one filtered PDF stream.</summary>
+    DecodedStreamBytes,
+
     /// <summary>Wall-clock time spent in the core object parsing pass.</summary>
     ObjectParsingTime
 }

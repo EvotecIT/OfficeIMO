@@ -23,7 +23,7 @@ public sealed partial class PdfReadDocument {
                     var reachable = CollectReachableLeafCandidates(pagesNode);
                     foreach (var id in reachable) {
                         if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
-                            result.Add(new PdfReadPage(id, dict, _objects));
+                            result.Add(new PdfReadPage(id, dict, _objects, _options.Limits.MaxDecodedStreamBytes));
                             if (target.HasValue && result.Count >= target.Value) break;
                         }
                         if (target.HasValue && result.Count >= target.Value) break;
@@ -36,7 +36,7 @@ public sealed partial class PdfReadDocument {
         // Fallback: scan all dictionaries; accept leaf candidates whose Parent chain leads to a /Pages node
         foreach (var kv in _objects) {
             if (kv.Value.Value is PdfDictionary dict) {
-                if (IsLeafPageByParent(dict)) result.Add(new PdfReadPage(kv.Key, dict, _objects));
+                if (IsLeafPageByParent(dict)) result.Add(new PdfReadPage(kv.Key, dict, _objects, _options.Limits.MaxDecodedStreamBytes));
             }
         }
         result.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
@@ -48,7 +48,7 @@ public sealed partial class PdfReadDocument {
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
             // Find this node's object number
             int objNum = FindObjectNumberFor(node);
-            outList.Add(new PdfReadPage(objNum, node, _objects));
+            outList.Add(new PdfReadPage(objNum, node, _objects, _options.Limits.MaxDecodedStreamBytes));
             return;
         }
         var kidsObj = node.Items.TryGetValue("Kids", out var kidsValue) ? kidsValue : null;
@@ -82,7 +82,7 @@ public sealed partial class PdfReadDocument {
             int objNum = FindObjectNumberFor(node);
             if (objNum > 0 && visitedPages.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
-                    outList.Add(new PdfReadPage(objNum, node, _objects));
+                    outList.Add(new PdfReadPage(objNum, node, _objects, _options.Limits.MaxDecodedStreamBytes));
                 }
             }
             return;
@@ -99,7 +99,7 @@ public sealed partial class PdfReadDocument {
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = FindObjectNumberFor(d);
                 if (on > 0 && visitedPages.Add(on)) {
-                    outList.Add(new PdfReadPage(on, d, _objects));
+                    outList.Add(new PdfReadPage(on, d, _objects, _options.Limits.MaxDecodedStreamBytes));
                     if (limit.HasValue && outList.Count >= limit.Value) return;
                 }
             }

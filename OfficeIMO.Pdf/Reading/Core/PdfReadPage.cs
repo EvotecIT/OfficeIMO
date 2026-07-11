@@ -9,9 +9,20 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private readonly PdfDictionary _pageDict;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
+    private readonly int _maxDecodedStreamBytes;
 
-    internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects) {
-        ObjectNumber = objectNumber; _pageDict = pageDict; _objects = objects;
+    internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
+        : this(objectNumber, pageDict, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes) { }
+
+    internal PdfReadPage(
+        int objectNumber,
+        PdfDictionary pageDict,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes) {
+        ObjectNumber = objectNumber;
+        _pageDict = pageDict;
+        _objects = objects;
+        _maxDecodedStreamBytes = maxDecodedStreamBytes;
     }
 
     /// <summary>Underlying object number for the page.</summary>
@@ -1320,6 +1331,6 @@ public sealed partial class PdfReadPage {
     }
 
     private byte[] DecodeIfNeeded(PdfStream s) {
-        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects);
+        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects, _maxDecodedStreamBytes);
     }
 }

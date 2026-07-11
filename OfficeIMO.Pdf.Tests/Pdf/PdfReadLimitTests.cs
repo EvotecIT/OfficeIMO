@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Filters;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -60,6 +62,58 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void FlateDecoderStopsWhileOutputExceedsBudget() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        byte[] encoded;
+        using (var buffer = new MemoryStream()) {
+            using (var compressor = new DeflateStream(buffer, CompressionLevel.Optimal, leaveOpen: true)) {
+                compressor.Write(new byte[4096], 0, 4096);
+            }
+
+            encoded = buffer.ToArray();
+        }
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(
+            () => StreamDecoder.Decode(dictionary, encoded, maxOutputBytes: 64));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(64, exception.Limit);
+    }
+
+    [Fact]
+    public void RunLengthAndLzwDecodersStopWhileOutputExceedsBudget() {
+        var runLengthDictionary = new PdfDictionary();
+        runLengthDictionary.Items["Filter"] = new PdfName("RunLengthDecode");
+        var lzwDictionary = new PdfDictionary();
+        lzwDictionary.Items["Filter"] = new PdfName("LZWDecode");
+        byte[] lzw = PackNineBitCodes(
+            new[] { 256 }.Concat(Enumerable.Repeat(65, 64)).Concat(new[] { 257 }));
+
+        PdfReadLimitException runLengthException = Assert.Throws<PdfReadLimitException>(
+            () => StreamDecoder.Decode(runLengthDictionary, new byte[] { 129, (byte)'A', 128 }, maxOutputBytes: 32));
+        PdfReadLimitException lzwException = Assert.Throws<PdfReadLimitException>(
+            () => StreamDecoder.Decode(lzwDictionary, lzw, maxOutputBytes: 32));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, runLengthException.Kind);
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, lzwException.Kind);
+    }
+
+    [Fact]
+    public void PageContentUsesCallerDecodedStreamBudget() {
+        byte[] pdf = BuildPdf();
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 }
+        };
+        PdfReadDocument document = PdfReadDocument.Load(pdf, options);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ExtractText());
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(8, exception.Limit);
+    }
+
+    [Fact]
     public void InvalidReadBudgetsAreRejectedExplicitly() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {
@@ -108,4 +162,20 @@ public class PdfReadLimitTests {
     private static byte[] BuildPdf() => PdfDocument.Create()
         .Paragraph(paragraph => paragraph.Text("Bounded parser source"))
         .ToBytes();
+
+    private static byte[] PackNineBitCodes(IEnumerable<int> codes) {
+        var bits = new List<int>();
+        foreach (int code in codes) {
+            for (int bit = 8; bit >= 0; bit--) {
+                bits.Add((code >> bit) & 1);
+            }
+        }
+
+        var bytes = new byte[(bits.Count + 7) / 8];
+        for (int i = 0; i < bits.Count; i++) {
+            bytes[i / 8] |= (byte)(bits[i] << (7 - (i % 8)));
+        }
+
+        return bytes;
+    }
 }

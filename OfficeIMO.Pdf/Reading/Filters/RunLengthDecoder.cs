@@ -2,8 +2,17 @@ namespace OfficeIMO.Pdf.Filters;
 
 internal static class RunLengthDecoder {
     public static byte[] Decode(byte[] data) {
+        if (!TryDecode(data, int.MaxValue, out byte[] output)) {
+            throw new InvalidOperationException("RunLengthDecode output exceeded the configured limit.");
+        }
+
+        return output;
+    }
+
+    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] outputBytes) {
         if (data == null || data.Length == 0) {
-            return Array.Empty<byte>();
+            outputBytes = Array.Empty<byte>();
+            return true;
         }
 
         using var output = new MemoryStream();
@@ -20,6 +29,11 @@ internal static class RunLengthDecoder {
                     throw new FormatException("RunLengthDecode literal run exceeds input length.");
                 }
 
+                if (output.Length + literalCount > maxOutputBytes) {
+                    outputBytes = Array.Empty<byte>();
+                    return false;
+                }
+
                 output.Write(data, i, literalCount);
                 i += literalCount;
                 continue;
@@ -31,11 +45,17 @@ internal static class RunLengthDecoder {
             }
 
             byte value = data[i++];
+            if (output.Length + repeatCount > maxOutputBytes) {
+                outputBytes = Array.Empty<byte>();
+                return false;
+            }
+
             for (int j = 0; j < repeatCount; j++) {
                 output.WriteByte(value);
             }
         }
 
-        return output.ToArray();
+        outputBytes = output.ToArray();
+        return true;
     }
 }

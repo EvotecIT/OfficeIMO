@@ -8,8 +8,17 @@ internal static class LzwDecoder {
     private const int MaximumCodeSize = 12;
 
     public static byte[] Decode(byte[] data, int earlyChange = 1) {
+        if (!TryDecode(data, int.MaxValue, out byte[] output, earlyChange)) {
+            throw new InvalidOperationException("LZWDecode output exceeded the configured limit.");
+        }
+
+        return output;
+    }
+
+    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] outputBytes, int earlyChange = 1) {
         if (data == null || data.Length == 0) {
-            return Array.Empty<byte>();
+            outputBytes = Array.Empty<byte>();
+            return true;
         }
 
         earlyChange = earlyChange == 0 ? 0 : 1;
@@ -47,6 +56,11 @@ internal static class LzwDecoder {
                 throw new FormatException("Invalid LZWDecode code.");
             }
 
+            if (output.Length + entry.Length > maxOutputBytes) {
+                outputBytes = Array.Empty<byte>();
+                return false;
+            }
+
             output.Write(entry, 0, entry.Length);
 
             if (previous is not null && nextCode <= MaximumCodeValue) {
@@ -60,7 +74,8 @@ internal static class LzwDecoder {
             previous = entry;
         }
 
-        return output.ToArray();
+        outputBytes = output.ToArray();
+        return true;
     }
 
     private static List<byte[]?> CreateInitialDictionary() {

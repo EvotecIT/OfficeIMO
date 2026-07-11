@@ -23,6 +23,11 @@ internal static class FlateDecoder {
     }
 
     public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] output) {
+        return TryDecode(data, maxOutputBytes, out output, out _);
+    }
+
+    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] output, out bool limitExceeded) {
+        limitExceeded = false;
         if (maxOutputBytes < 0) {
             output = Array.Empty<byte>();
             return false;
@@ -35,6 +40,7 @@ internal static class FlateDecoder {
         }
 
         if (zlibLimitExceeded) {
+            limitExceeded = true;
             output = Array.Empty<byte>();
             return false;
         }
@@ -46,6 +52,7 @@ internal static class FlateDecoder {
         }
 
         if (inflateLimitExceeded) {
+            limitExceeded = true;
             output = Array.Empty<byte>();
             return false;
         }
@@ -59,6 +66,7 @@ internal static class FlateDecoder {
             }
 
             if (slicedLimitExceeded) {
+                limitExceeded = true;
                 output = Array.Empty<byte>();
                 return false;
             }
