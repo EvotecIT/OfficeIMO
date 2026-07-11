@@ -317,6 +317,85 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SharedChartUpdate_PreservesImportedDateAxisSemantics() {
+            var initial = new OfficeChartData(new[] { "2026-01-01", "2026-02-01", "2026-03-01" }, new[] {
+                new OfficeChartSeries("Revenue", new[] { 12D, 18D, 25D })
+            });
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Revenue", new[] { 15D, 22D, 31D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Line, initial)
+                .SetCategoryAxisTitle("Month");
+            ChartPart chartPart = slide.SlidePart.ChartParts.Single();
+            C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.DateAxis importedDateAxis = ReplaceWithDateAxis(plotArea,
+                Assert.Single(plotArea.Elements<C.CategoryAxis>()));
+            importedDateAxis.NumberingFormat = new C.NumberingFormat {
+                FormatCode = "mmm-yy",
+                SourceLinked = false
+            };
+            importedDateAxis.AddChild(new C.BaseTimeUnit { Val = C.TimeUnitValues.Days }, true);
+            importedDateAxis.AddChild(new C.MajorUnit { Val = 2D }, true);
+            importedDateAxis.AddChild(new C.MajorTimeUnit { Val = C.TimeUnitValues.Months }, true);
+            chartPart.ChartSpace.Save();
+
+            chart.UpdateData(updated);
+
+            plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+            Assert.Empty(plotArea.Elements<C.CategoryAxis>());
+            C.DateAxis dateAxis = Assert.Single(plotArea.Elements<C.DateAxis>());
+            Assert.Equal("Month", string.Concat(dateAxis.Descendants<A.Text>().Select(text => text.Text)));
+            Assert.Equal("mmm-yy", dateAxis.NumberingFormat!.FormatCode!.Value);
+            Assert.Equal(C.TimeUnitValues.Days, dateAxis.GetFirstChild<C.BaseTimeUnit>()!.Val!.Value);
+            Assert.Equal(2D, dateAxis.GetFirstChild<C.MajorUnit>()!.Val!.Value);
+            Assert.Equal(C.TimeUnitValues.Months, dateAxis.GetFirstChild<C.MajorTimeUnit>()!.Val!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
+        public void SharedChartUpdate_RefreshesEveryImportedScatterLayer() {
+            var initial = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 12D, 14D }, new[] { 1D, 2D, 3D }),
+                new OfficeChartSeries("Forecast", new[] { 11D, 13D, 15D }, new[] { 1D, 2D, 3D })
+            });
+            var updated = new OfficeChartData(initial.Categories, new[] {
+                new OfficeChartSeries("Actual", new[] { 20D, 24D, 28D }, new[] { 1D, 2D, 3D }),
+                new OfficeChartSeries("Forecast", new[] { 21D, 25D, 29D }, new[] { 1D, 2D, 3D })
+            });
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointChart chart = slide.AddChart(OfficeChartKind.Scatter, initial);
+            ChartPart chartPart = slide.SlidePart.ChartParts.Single();
+            C.PlotArea plotArea = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!
+                .GetFirstChild<C.PlotArea>()!;
+            C.ScatterChart firstLayer = Assert.Single(plotArea.Elements<C.ScatterChart>());
+            var secondLayer = (C.ScatterChart)firstLayer.CloneNode(true);
+            firstLayer.Elements<C.ScatterChartSeries>().Last().Remove();
+            secondLayer.Elements<C.ScatterChartSeries>().First().Remove();
+            plotArea.InsertAfter(secondLayer, firstLayer);
+            chartPart.ChartSpace.Save();
+
+            chart.UpdateData(updated);
+
+            C.ScatterChart[] layers = plotArea.Elements<C.ScatterChart>().ToArray();
+            Assert.Equal(2, layers.Length);
+            Assert.Equal(0U, Assert.Single(layers[0].Elements<C.ScatterChartSeries>()).Index!.Val!.Value);
+            Assert.Equal(1U, Assert.Single(layers[1].Elements<C.ScatterChartSeries>()).Index!.Val!.Value);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(2, snapshot.Data.Series.Count);
+            Assert.Equal(new[] { 20D, 24D, 28D }, snapshot.Data.Series[0].Values);
+            Assert.Equal(new[] { 21D, 25D, 29D }, snapshot.Data.Series[1].Values);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void SharedChartUpdate_RejectsUnsupportedNativeChartWithoutMutation() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
@@ -509,6 +588,21 @@ namespace OfficeIMO.Tests {
                     OfficeColor.Parse("#4CAF50"), null, showMarkers: true,
                     markerSize: 7, strokeWidth: 1.8, strokeDashStyle: OfficeStrokeDashStyle.Dash)
             });
+        }
+
+        private static C.DateAxis ReplaceWithDateAxis(C.PlotArea plotArea, C.CategoryAxis categoryAxis) {
+            var dateAxis = new C.DateAxis();
+            foreach (var child in categoryAxis.ChildElements) {
+                if (child is C.AxisId or C.Scaling or C.Delete or C.AxisPosition or
+                    C.MajorGridlines or C.MinorGridlines or C.Title or C.NumberingFormat or
+                    C.MajorTickMark or C.MinorTickMark or C.TickLabelPosition or
+                    C.ChartShapeProperties or C.TextProperties or C.CrossingAxis or
+                    C.Crosses or C.CrossesAt or C.AutoLabeled or C.LabelOffset) {
+                    dateAxis.AddChild(child.CloneNode(true), true);
+                }
+            }
+            plotArea.ReplaceChild(dateAxis, categoryAxis);
+            return dateAxis;
         }
 
         private static OfficeChartData CreateComboData() => new(

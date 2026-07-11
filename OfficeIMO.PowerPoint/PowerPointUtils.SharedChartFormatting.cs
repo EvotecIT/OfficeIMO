@@ -57,9 +57,11 @@ namespace OfficeIMO.PowerPoint {
             C.PlotArea plotArea) {
             C.AxisId? categoryReference = chartLayer.Elements<C.AxisId>().FirstOrDefault();
             if (categoryReference?.Val == null) return false;
-            C.CategoryAxis? categoryAxis = plotArea.Elements<C.CategoryAxis>().FirstOrDefault(axis =>
-                axis.AxisId?.Val?.Value == categoryReference.Val.Value);
-            return categoryAxis?.Delete?.Val?.Value == true;
+            OpenXmlCompositeElement? categoryAxis = plotArea.ChildElements
+                .OfType<OpenXmlCompositeElement>()
+                .FirstOrDefault(axis => IsSharedCategoryAxis(axis) &&
+                    axis.GetFirstChild<C.AxisId>()?.Val?.Value == categoryReference.Val.Value);
+            return categoryAxis?.GetFirstChild<C.Delete>()?.Val?.Value == true;
         }
 
         private static void ReplaceSharedSeriesData(OpenXmlCompositeElement preserved,
@@ -125,8 +127,22 @@ namespace OfficeIMO.PowerPoint {
 
         private static void PreserveSharedAxes(C.PlotArea source, C.PlotArea replacement) {
             if (UsesHorizontalSharedAxes(source) != UsesHorizontalSharedAxes(replacement)) return;
-            PreserveSharedAxes<C.CategoryAxis>(source, replacement);
+            PreserveSharedCategoryAxes(source, replacement);
             PreserveSharedAxes<C.ValueAxis>(source, replacement);
+        }
+
+        private static bool IsSharedCategoryAxis(OpenXmlCompositeElement axis) =>
+            axis is C.CategoryAxis || axis is C.DateAxis;
+
+        private static void PreserveSharedCategoryAxes(C.PlotArea source, C.PlotArea replacement) {
+            List<OpenXmlCompositeElement> sourceAxes = source.ChildElements
+                .OfType<OpenXmlCompositeElement>().Where(IsSharedCategoryAxis).ToList();
+            List<OpenXmlCompositeElement> replacementAxes = replacement.ChildElements
+                .OfType<OpenXmlCompositeElement>().Where(IsSharedCategoryAxis).ToList();
+            int count = Math.Min(sourceAxes.Count, replacementAxes.Count);
+            for (int index = 0; index < count; index++) {
+                ReplaceSharedAxis(replacement, sourceAxes[index], replacementAxes[index]);
+            }
         }
 
         private static bool UsesHorizontalSharedAxes(C.PlotArea plotArea) =>
@@ -139,20 +155,24 @@ namespace OfficeIMO.PowerPoint {
             List<TAxis> replacementAxes = replacement.Elements<TAxis>().ToList();
             int count = Math.Min(sourceAxes.Count, replacementAxes.Count);
             for (int index = 0; index < count; index++) {
-                TAxis generated = replacementAxes[index];
-                TAxis preserved = (TAxis)sourceAxes[index].CloneNode(true);
-                C.AxisId? generatedId = generated.GetFirstChild<C.AxisId>();
-                C.CrossingAxis? generatedCrossing = generated.GetFirstChild<C.CrossingAxis>();
-                if (generatedId != null) {
-                    preserved.GetFirstChild<C.AxisId>()?.Remove();
-                    preserved.PrependChild((C.AxisId)generatedId.CloneNode(true));
-                }
-                if (generatedCrossing != null) {
-                    C.CrossingAxis? crossing = preserved.GetFirstChild<C.CrossingAxis>();
-                    if (crossing != null) crossing.Val = generatedCrossing.Val;
-                }
-                replacement.ReplaceChild(preserved, generated);
+                ReplaceSharedAxis(replacement, sourceAxes[index], replacementAxes[index]);
             }
+        }
+
+        private static void ReplaceSharedAxis(C.PlotArea replacement, OpenXmlCompositeElement source,
+            OpenXmlCompositeElement generated) {
+            var preserved = (OpenXmlCompositeElement)source.CloneNode(true);
+            C.AxisId? generatedId = generated.GetFirstChild<C.AxisId>();
+            C.CrossingAxis? generatedCrossing = generated.GetFirstChild<C.CrossingAxis>();
+            if (generatedId != null) {
+                preserved.GetFirstChild<C.AxisId>()?.Remove();
+                preserved.PrependChild((C.AxisId)generatedId.CloneNode(true));
+            }
+            if (generatedCrossing != null) {
+                C.CrossingAxis? crossing = preserved.GetFirstChild<C.CrossingAxis>();
+                if (crossing != null) crossing.Val = generatedCrossing.Val;
+            }
+            replacement.ReplaceChild(preserved, generated);
         }
     }
 }
