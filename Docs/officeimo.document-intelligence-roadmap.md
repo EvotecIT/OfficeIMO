@@ -166,6 +166,7 @@ This branch starts the shared model and adapter path:
 - Reader instances can freeze an ordered processor pipeline with explicit throw, continue-with-diagnostic, or stop-with-diagnostic failure policy. Sync and async document, chunk, JSON, structured, and bounded batch reads use the same configured pipeline; folder chunk enumeration remains unchanged.
 - Opt-in shared-model processors now normalize blocks, list and heading levels, tables, and links; classify repeated page-boundary artifacts; and filter assets together with dependent OCR candidates. Hosts can add typed sync or async processors without adding format-specific behavior to the facade.
 - Bounded structured extraction now exposes metadata, forms, key/value and Path/Type/Value rows, Visio Shape Data, heading sections, named tables, chart summaries, quality/readiness summaries, and source diagnostics through a deterministic non-generic result and JSON serializer.
+- Token-aware hierarchical chunking now keeps `ReaderChunk` as the leaf contract while adding document, page/slide/sheet, and heading nodes; exact source character spans; deterministic IDs/hashes; configurable overlap and context; host token counters; structured bounds diagnostics; and an independently versioned JSON sidecar.
 - Document-level metadata entries now carry stable catalog, outline, destination, open-action, viewer-preference, and form-summary facts without making the shared Reader model depend on PDF-specific types.
 - PDF source preflight capability flags now flow into metadata, and read/rewrite blockers flow into shared diagnostics as stable `pdf-read-blocker` and `pdf-rewrite-blocker` entries for file and stream readback.
 - OCR readiness is represented as `OcrCandidates` plus `ocr-needed` diagnostics for image-only PDF pages and embedded Office image assets, without adding an OCR engine or service dependency to the core.
@@ -197,7 +198,7 @@ Render through `OfficeIMO.Markdown` for portable document output. Use direct HTM
 
 ### Chunks
 
-Keep `ReaderChunk` as the ingestion contract. Add richer source maps and optional block/table/image/form/diagram references rather than replacing the existing chunk model.
+Keep `ReaderChunk` as the ingestion contract. Token-aware hierarchy is an opt-in sidecar around those leaves, so stable v5 transport does not need another chunk model or breaking fields. Continue improving source maps and optional block/table/image/form/diagram references in owning adapters.
 
 ### Assets
 

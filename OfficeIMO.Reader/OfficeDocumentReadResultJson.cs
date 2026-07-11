@@ -605,6 +605,7 @@ public static partial class OfficeDocumentReadResultJson {
             normalizedStartLine = location.NormalizedStartLine,
             normalizedEndLine = location.NormalizedEndLine,
             headingPath = location.HeadingPath,
+            hierarchyHeadingPath = location.HierarchyHeadingPath,
             headingSlug = location.HeadingSlug,
             sourceBlockKind = location.SourceBlockKind,
             blockAnchor = location.BlockAnchor,

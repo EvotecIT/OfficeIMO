@@ -61,6 +61,24 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_PreservesLiteralHeadingDisplayAndHierarchy() {
+        const string title = "Q1 > Q2\\Back";
+        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: "<html><body><h1>Q1 &gt; Q2\\Back</h1><p>Body.</p></body></html>",
+            sourceName: "literal-heading.html",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
+
+        ReaderChunk chunk = Assert.Single(chunks);
+        Assert.Equal(title, chunk.Location.HeadingPath);
+
+        ReaderChunkHierarchyResult hierarchy = ReaderHierarchicalChunker.Chunk(chunks);
+        ReaderChunkHierarchyNode heading = Assert.Single(
+            hierarchy.Nodes,
+            node => node.Kind == ReaderChunkHierarchyNodeKind.Heading);
+        Assert.Equal(title, heading.Title);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_CanDisableHeadingChunking() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p><h2>Second</h2><p>More.</p></body></html>";
 

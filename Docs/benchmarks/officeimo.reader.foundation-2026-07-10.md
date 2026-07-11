@@ -66,6 +66,17 @@ Bounded detection completed between 2.0 μs and 151.9 μs for the Markdown, PDF,
 
 Schema version 5 transport measured 977.9 μs / 877.69 KB to serialize and 2.022 ms / 1.10 MB to deserialize the representative Markdown rich result.
 
+## Hierarchical chunking
+
+The token-aware hierarchy lane uses the same deterministic 80-section Markdown result, a 512-token chunk cap, 64-token overlap, hierarchy context, and the built-in heuristic token counter. A focused short run measured:
+
+| Lane | Mean | Allocated |
+| --- | ---: | ---: |
+| Build chunk hierarchy | 286.2 μs | 1.10 MB |
+| Serialize hierarchy JSON | 1.174 ms | 969.53 KB |
+
+The hierarchy builder run includes deterministic SHA-256 leaf IDs and hashes, source-span evidence, context accounting, and flattened document/heading nodes. These values establish regression evidence for the first implementation; they are not tokenizer-independent throughput claims. Exact host tokenizers should be benchmarked through their `IReaderTokenCounter` implementation.
+
 ## Next performance targets
 
 The evidence identifies three owner-level allocation priorities:
