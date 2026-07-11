@@ -131,7 +131,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name == "text") {
-            AddText(element, drawing, style, transform, viewX, viewY, ref unsupported);
+            AddText(element, drawing, style, paintServers, transform, viewX, viewY, ref unsupported);
             return;
         }
 
@@ -154,53 +154,6 @@ public static partial class OfficeSvgDrawingReader {
 
         try {
             drawing.AddShape(shape.Shape, shape.X, shape.Y);
-        } catch (ArgumentOutOfRangeException) {
-            unsupported++;
-        }
-    }
-
-    private static void AddText(
-        XElement element,
-        OfficeDrawing drawing,
-        SvgPaintContext style,
-        OfficeTransform transform,
-        double viewX,
-        double viewY,
-        ref int unsupported) {
-        if (element.HasElements) unsupported++;
-        if (transform != OfficeTransform.Identity) unsupported++;
-        if (element.Attribute("textLength") != null || element.Attribute("lengthAdjust") != null) unsupported++;
-        string raw = string.Concat(element.Nodes().OfType<XText>().Select(node => node.Value));
-        bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
-        string text = preserve ? raw : string.Join(" ", raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        if (text.Length == 0) return;
-        if (style.FillGradient != null || style.FillRadialGradient != null) {
-            unsupported++;
-            return;
-        }
-        if (!style.Fill.HasValue) return;
-
-        double x = ReadFirstLength(element, "x") + ReadFirstLength(element, "dx") - viewX;
-        double baseline = ReadFirstLength(element, "y") + ReadFirstLength(element, "dy") - viewY;
-        double fontSize = Math.Max(0.1D, style.FontSize);
-        double width = Math.Max(0.1D, text.Length * fontSize * 0.62D);
-        if (style.TextAnchor == "middle") x -= width / 2D;
-        else if (style.TextAnchor == "end") x -= width;
-        double y = baseline - fontSize;
-        double height = fontSize * 1.25D;
-        if (x < 0D || y < 0D || x >= drawing.Width || y >= drawing.Height) {
-            unsupported++;
-            return;
-        }
-        width = Math.Min(width, drawing.Width - x);
-        height = Math.Min(height, drawing.Height - y);
-        if (width <= 0D || height <= 0D) return;
-        var font = new OfficeFontInfo(style.FontFamily, fontSize, style.FontStyle);
-        OfficeColor baseColor = style.Fill.Value;
-        double opacity = Math.Max(0D, Math.Min(1D, style.FillOpacity * style.Opacity));
-        OfficeColor color = OfficeColor.FromRgba(baseColor.R, baseColor.G, baseColor.B, (byte)Math.Round(baseColor.A * opacity));
-        try {
-            drawing.AddText(text, x, y, width, height, font, color, OfficeTextAlignment.Left, height);
         } catch (ArgumentOutOfRangeException) {
             unsupported++;
         }

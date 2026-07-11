@@ -112,6 +112,45 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderKeepsAffineTransformedTextAsNativeDrawingText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20' fill='navy'>"
+            + "<text x='4' y='12' font-size='5' transform='translate(3 -1) skewX(8)'>AffineLabel</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingEffectGroup group = Assert.Single(drawing!.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeDrawingText text = Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("AffineLabel", text.Text);
+        Assert.NotEqual(OfficeTransform.Identity, group.Transform);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("transform=\"matrix(", exported, StringComparison.Ordinal);
+        Assert.Contains(">AffineLabel</text>", exported, StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderMapsNestedTspanRunsWithInheritedStyleAndPositioning() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 24' fill='navy' font-family='Arial'>"
+            + "<text x='25' y='10' font-size='4' text-anchor='middle'>One<tspan fill='red' font-weight='bold'> Two</tspan>"
+            + "<tspan x='5' y='20' dx='2' font-style='italic' text-anchor='start'>Three</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.Equal(new[] { "One", " Two", "Three" }, runs.Select(run => run.Text));
+        Assert.Equal(OfficeColor.Navy, runs[0].Color);
+        Assert.Equal(OfficeColor.Red, runs[1].Color);
+        Assert.True(runs[1].Font.IsBold);
+        Assert.True(runs[2].Font.IsItalic);
+        Assert.True(runs[0].X < 25D);
+        Assert.Equal(7D, runs[2].X, 3);
+        Assert.Contains(">One</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+        OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
     public void SvgReaderExpandsBoundedLocalUseReferencesWithInheritedPaintAndPlacement() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 40 20'>"
             + "<defs><g id='badge'><rect width='10' height='10'/><circle cx='5' cy='5' r='3' fill='white'/></g></defs>"
