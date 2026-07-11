@@ -343,6 +343,11 @@ public sealed partial class PdfDocument {
             executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
     }
 
+    /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
+    public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null) {
+        return PdfSanitizer.Sanitize(Snapshot(), options);
+    }
+
     /// <summary>
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>

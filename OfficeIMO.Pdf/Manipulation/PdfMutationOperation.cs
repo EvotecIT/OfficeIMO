@@ -51,5 +51,8 @@ public enum PdfMutationOperation {
     EnrichLongTermValidation,
 
     /// <summary>Synchronize document information metadata with catalog XMP metadata.</summary>
-    SynchronizeMetadata
+    SynchronizeMetadata,
+
+    /// <summary>Remove or quarantine active content and embedded payloads according to an explicit policy.</summary>
+    Sanitize
 }

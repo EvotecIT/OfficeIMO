@@ -48,5 +48,8 @@ public enum PdfMutationProof {
     RedactionResidue,
 
     /// <summary>DSS/VRI certificate, OCSP, CRL, and timestamp references must match after readback.</summary>
-    LongTermValidationReadback
+    LongTermValidationReadback,
+
+    /// <summary>The post-save active-content and embedded-payload inventory must match the sanitization policy.</summary>
+    SanitizationReadback
 }

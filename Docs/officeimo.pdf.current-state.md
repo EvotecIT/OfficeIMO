@@ -175,7 +175,7 @@ permissions, and later revisions.
 - [ ] Add attachment editing for embedded files and associated files, including
   relationship, description, MIME type, dates, checksum, replace, rename,
   remove, and safe file-name extraction.
-- [ ] Add a sanitization workflow that can remove or quarantine JavaScript,
+- [x] Add a sanitization workflow that can remove or quarantine JavaScript,
   launch actions, remote navigation, submit/import actions, embedded files,
   rich media, and unsafe URI schemes, then prove the active-content inventory
   is empty or matches an allow list.
