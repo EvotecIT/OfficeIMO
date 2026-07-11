@@ -91,9 +91,10 @@ public partial class PdfInspectorTests {
         Assert.True(report.CanPrepareExternalSignatureRevision);
         Assert.True(policy.CanAppendMetadata);
         Assert.True(policy.CanPrepareExternalSignature);
+        Assert.True(policy.CanAppendAnnotations);
         Assert.Contains("Metadata", policy.SupportedActions);
         Assert.Contains("SignaturePrepare", policy.SupportedActions);
-        Assert.Contains("Annotations", policy.BlockedActions);
+        Assert.Contains("Annotations", policy.SupportedActions);
         Assert.Empty(policy.Blockers);
         Assert.Empty(policy.Warnings);
         Assert.Contains("full rewrites may also be possible", policy.Summary, System.StringComparison.Ordinal);

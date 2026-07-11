@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Edits or removes PDF annotations without third-party dependencies.</summary>
-public static class PdfAnnotationEditor {
+public static partial class PdfAnnotationEditor {
     private static readonly HashSet<string> KnownAnnotationSubtypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Text",
         "Link",
@@ -34,10 +34,19 @@ public static class PdfAnnotationEditor {
     /// <summary>Removes annotations matching the supplied filters and returns rewritten PDF bytes.</summary>
     public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
 
         PdfAnnotationRemovalOptions effectiveOptions = options ?? new PdfAnnotationRemovalOptions();
         ValidateRemovalOptions(effectiveOptions);
+        PdfMutationPlan mutationPlan = PdfMutationPlanner.Plan(
+            pdf,
+            PdfMutationOperation.ModifyAnnotations,
+            executionPreference: effectiveOptions.ExecutionPreference);
+        EnsureMutationCanExecute(mutationPlan);
+        if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
+            return RemoveAnnotationsIncrementally(pdf, effectiveOptions, mutationPlan);
+        }
+
+        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
@@ -104,12 +113,12 @@ public static class PdfAnnotationEditor {
         }
 
         if (!changed && removed.Count == 0) {
-            return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0);
+            return CreateFullRewriteResult(pdf, (byte[])pdf.Clone(), 0, mutationPlan, annotationsChanged: false);
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
-        return new PdfAnnotationEditResult(rewritten, Math.Max(removed.Count, 1));
+        return CreateFullRewriteResult(pdf, rewritten, Math.Max(removed.Count, 1), mutationPlan, annotationsChanged: true);
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
@@ -121,6 +130,15 @@ public static class PdfAnnotationEditor {
         }
 
         ValidateUpdateOptions(options);
+        PdfMutationPlan mutationPlan = PdfMutationPlanner.Plan(
+            pdf,
+            PdfMutationOperation.ModifyAnnotations,
+            executionPreference: options.ExecutionPreference);
+        EnsureMutationCanExecute(mutationPlan);
+        if (mutationPlan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
+            return UpdateAnnotationIncrementally(pdf, objectNumber, options, mutationPlan);
+        }
+
         PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
@@ -138,7 +156,7 @@ public static class PdfAnnotationEditor {
         ApplyUpdates(annotation, options);
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
-        return new PdfAnnotationEditResult(rewritten, 1);
+        return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false);
     }
 
     /// <summary>Removes annotations from a PDF file and writes the result to another file.</summary>

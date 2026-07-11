@@ -32,6 +32,9 @@ public sealed class PdfAppendOnlyMutationReport {
     /// <summary>True when the document structure permits append-only DSS/VRI enrichment.</summary>
     public bool CanAppendLongTermValidation => SupportedActions.Contains("LongTermValidation", StringComparer.Ordinal);
 
+    /// <summary>True when the document structure and DocMDP policy permit append-only annotation changes.</summary>
+    public bool CanAppendAnnotations => SupportedActions.Contains("Annotations", StringComparer.Ordinal);
+
     /// <summary>True when any append-only action can currently be applied by OfficeIMO.Pdf.</summary>
     public bool CanAppendAny => SupportedActions.Count > 0;
 

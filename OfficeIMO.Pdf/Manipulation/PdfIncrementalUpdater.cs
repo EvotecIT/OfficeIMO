@@ -111,6 +111,7 @@ public static partial class PdfIncrementalUpdater {
         var metadataBlockers = new List<string>();
         var formBlockers = new List<string>();
         var longTermValidationBlockers = new List<string>();
+        var annotationBlockers = new List<string>();
         var warnings = new List<string>();
         if (security.HasEncryption) {
             commonBlockers.Add("Encrypted");
@@ -132,6 +133,7 @@ public static partial class PdfIncrementalUpdater {
         metadataBlockers.AddRange(commonBlockers);
         formBlockers.AddRange(commonBlockers);
         longTermValidationBlockers.AddRange(commonBlockers);
+        annotationBlockers.AddRange(commonBlockers);
         bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {
@@ -140,6 +142,10 @@ public static partial class PdfIncrementalUpdater {
                 formBlockers.Add("Signed");
             } else {
                 warnings.Add("SignedDocMDPFormFill");
+            }
+
+            if (!security.HasDocMDPPermissions) {
+                warnings.Add("SignedApprovalAnnotationChange");
             }
         }
 
@@ -156,6 +162,11 @@ public static partial class PdfIncrementalUpdater {
             }
 
             warnings.Add("DocMDPDssMaintenance");
+            if (security.DocMDPPermissionLevel == 3) {
+                warnings.Add("DocMDPAllowsAnnotations");
+            } else {
+                annotationBlockers.Add("DocMDP");
+            }
         }
 
         if (blockedBySignatureFieldLock) {
@@ -183,6 +194,10 @@ public static partial class PdfIncrementalUpdater {
             supported.Add("LongTermValidation");
         }
 
+        if (annotationBlockers.Count == 0) {
+            supported.Add("Annotations");
+        }
+
         bool canPrepareSignature =
             commonBlockers.Count == 0 &&
             !hasSignatureContent &&
@@ -208,7 +223,10 @@ public static partial class PdfIncrementalUpdater {
             blocked.Add("LongTermValidation");
         }
 
-        blocked.Add("Annotations");
+        if (annotationBlockers.Count > 0) {
+            blocked.Add("Annotations");
+        }
+
         blocked.Add("PageTree");
         blocked.Add("Attachments");
 

@@ -8,11 +8,12 @@ public static class PdfSignatureMutationAnalyzer {
         byte[] after,
         PdfMutationOperation operation,
         IEnumerable<string>? fieldNames = null,
-        PdfReadOptions? readOptions = null) {
+        PdfReadOptions? readOptions = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(before, nameof(before));
         Guard.NotNull(after, nameof(after));
 
-        PdfMutationPlan plan = PdfMutationPlanner.Plan(before, operation, readOptions, fieldNames);
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(before, operation, readOptions, fieldNames, executionPreference);
         PdfSignatureValidationReport beforeValidation = PdfSignatureValidator.Validate(before, readOptions);
         PdfSignatureValidationReport afterValidation = PdfSignatureValidator.Validate(after, readOptions);
         bool prefixPreserved = HasExactPrefix(after, before);

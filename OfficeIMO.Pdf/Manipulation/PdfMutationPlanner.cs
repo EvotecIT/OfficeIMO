@@ -146,6 +146,8 @@ public static class PdfMutationPlanner {
                 return report.CanPrepareExternalSignature;
             case PdfMutationOperation.EnrichLongTermValidation:
                 return report.CanAppendLongTermValidation;
+            case PdfMutationOperation.ModifyAnnotations:
+                return report.CanAppendAnnotations;
             default:
                 return false;
         }
@@ -161,7 +163,8 @@ public static class PdfMutationPlanner {
         return operation == PdfMutationOperation.UpdateMetadata ||
             operation == PdfMutationOperation.FillFormFields ||
             operation == PdfMutationOperation.PrepareExternalSignature ||
-            operation == PdfMutationOperation.EnrichLongTermValidation;
+            operation == PdfMutationOperation.EnrichLongTermValidation ||
+            operation == PdfMutationOperation.ModifyAnnotations;
     }
 
     private static bool RequiresAppendOnlyByDefinition(PdfMutationOperation operation) =>
