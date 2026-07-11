@@ -993,20 +993,59 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRenderer_DiagnosesRightToLeftContentUntilManagedBidiLayoutIsActive() {
-        const string html = "<p id='declared' dir='rtl'>Latin text</p><p id='script'>שלום</p><p id='ltr'>Left to right</p>";
+    public void HtmlRenderer_PositionsSimpleRtlTextAndDiagnosesOnlyRemainingBidiStages() {
+        const string html = "<div style='width:200px'><p id='declared' dir='rtl'>Latin text</p><p id='hebrew' dir='rtl'>שלום 123</p><p id='arabic' dir='rtl'>سلام</p><p id='control'>abc\u202Edef</p></div>";
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
-        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics.Diagnostics
-            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported)
+        IReadOnlyList<HtmlRenderText> text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+        IReadOnlyList<HtmlRenderText> hebrew = text
+            .Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal))
+            .OrderBy(run => run.PaintOrder)
             .ToList();
 
+        Assert.Equal(4, hebrew.Count);
+        Assert.Equal("שלום", string.Concat(hebrew.Select(run => run.Text)));
+        for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
+        HtmlRenderText number = Assert.Single(text, run => run.Text == "123");
+        Assert.Equal("שלום 123", string.Concat(text.Where(run => Math.Abs(run.Y - number.Y) < 0.001D).OrderBy(run => run.PaintOrder).Select(run => run.Text)));
+        Assert.True(number.X < hebrew.Min(run => run.X));
+
         Assert.Collection(
-            diagnostics.OrderBy(diagnostic => diagnostic.Source),
-            diagnostic => Assert.Equal("p#declared", diagnostic.Source),
-            diagnostic => Assert.Equal("p#script", diagnostic.Source));
+            rendered.Diagnostics.Diagnostics
+                .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported)
+                .OrderBy(diagnostic => diagnostic.Source),
+            diagnostic => {
+                Assert.Equal(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, diagnostic.Code);
+                Assert.Equal("p#arabic", diagnostic.Source);
+            },
+            diagnostic => {
+                Assert.Equal(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, diagnostic.Code);
+                Assert.Equal("p#control", diagnostic.Source);
+            });
         Assert.Contains(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.Contains(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BidiLayoutUnsupported, out _));
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported, out _));
+    }
+
+    [Fact]
+    public void HtmlRenderer_PositionsHebrewRunInsideLtrTextWithoutChangingLogicalSceneOrder() {
+        const string html = "<p style='margin:0;width:240px'>Left שלום 42</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        IReadOnlyList<HtmlRenderText> runs = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().OrderBy(run => run.PaintOrder).ToList();
+        IReadOnlyList<HtmlRenderText> hebrew = runs.Where(run => run.Text.Length == 1 && "שלום".Contains(run.Text, StringComparison.Ordinal)).ToList();
+        HtmlRenderText left = Assert.Single(runs, run => run.Text == "Left ");
+        HtmlRenderText number = Assert.Single(runs, run => run.Text == "42");
+
+        Assert.Equal("Left שלום 42", string.Concat(runs.Select(run => run.Text)));
+        Assert.Equal(4, hebrew.Count);
+        Assert.True(left.X < hebrew.Min(run => run.X));
+        Assert.True(number.X > hebrew.Max(run => run.X));
+        for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        Assert.True(html.ToPng().Length > 8);
+        Assert.Contains("ש", html.ToSvg(), StringComparison.Ordinal);
     }
 
     [Fact]

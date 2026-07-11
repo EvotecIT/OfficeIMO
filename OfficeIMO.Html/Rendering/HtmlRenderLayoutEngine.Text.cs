@@ -167,17 +167,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportUnsupportedBidi(IText textNode, HtmlRenderBoxStyle style) {
         IElement? element = textNode.ParentElement;
         if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedBidiElements.Contains(element)) return;
-        bool declaredRightToLeft = string.Equals(style.Direction, "rtl", StringComparison.Ordinal);
-        bool containsRightToLeftText = OfficeTextElements.ContainsRightToLeft(textNode.Data);
-        if (!declaredRightToLeft && !containsRightToLeftText) return;
+        bool joiningScript = OfficeTextElements.ContainsJoiningScript(textNode.Data);
+        bool bidiControl = OfficeTextElements.ContainsBidiControl(textNode.Data);
+        if (!joiningScript && !bidiControl) return;
         _reportedBidiElements.Add(element);
         _diagnostics.Add(
             ComponentName,
-            HtmlRenderDiagnosticCodes.BidiLayoutUnsupported,
-            "Right-to-left inline content used logical source order because managed bidi positioning is not active yet.",
+            joiningScript ? HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported : HtmlRenderDiagnosticCodes.BidiLayoutUnsupported,
+            joiningScript
+                ? "A joining script used scalar glyphs because contextual shaping is not active yet."
+                : "Explicit Unicode bidi controls require an embedding or isolate stage that is not active yet.",
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
-            declaredRightToLeft ? "direction=rtl" : "right-to-left-script");
+            joiningScript ? "joining-script" : "bidi-control");
     }
 
     private HtmlInlineLayout LayoutInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle, IElement? formattingContainer = null) {

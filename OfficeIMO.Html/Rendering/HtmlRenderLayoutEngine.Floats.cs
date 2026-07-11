@@ -239,9 +239,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double availableWidth = current.HasExplicitPlacement ? current.AvailableWidth : width;
             double lineX = current.HasExplicitPlacement ? current.X : 0D;
             double offsetX = ResolveLineOffset(paragraphStyle.Alignment, availableWidth, current.Width);
-            double x = lineX + offsetX;
+            double lineStart = lineX + offsetX;
             double lineRight = lineX + availableWidth;
+            bool rightToLeftLine = string.Equals(paragraphStyle.Direction, "rtl", StringComparison.Ordinal)
+                && current.Segments.Any(segment => OfficeTextElements.ContainsRightToLeft(segment.Text));
+            double cursor = rightToLeftLine ? lineStart + current.Width : lineStart;
             foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
+                double x = rightToLeftLine ? cursor - segment.Width : cursor;
                 if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
@@ -273,30 +277,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         : lineY;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, segment.Width, textLineHeight, inlineBounds);
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
-                    double frameWidth = Math.Min(Math.Max(0.01D, lineRight - x), segment.Width + frameTolerance);
-                    HtmlRenderVisual visual = new HtmlRenderText(
-                        segment.Text,
-                        x,
-                        textY,
-                        Math.Max(0.01D, frameWidth),
-                        Math.Max(0.01D, textLineHeight),
-                        segment.Run.Style.Font,
-                        segment.Run.Style.Color,
-                        OfficeTextAlignment.Left,
-                        textLineHeight,
-                        visuals.Count,
-                        segment.Run.LinkUri,
-                        segment.Run.Source,
-                        segment.Run.SemanticRole,
-                        semanticNodeId: segment.Run.SemanticNodeId);
-                    AddInlineOwnedVisual(
-                        visuals,
-                        ownedVisuals,
-                        visual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
-                        segment.Run.OwnerElement,
-                        formattingContainer);
+                    foreach (InlinePaintSegment paintSegment in ResolveInlinePaintSegments(segment, x)) {
+                        double frameWidth = Math.Min(Math.Max(0.01D, lineRight - paintSegment.X), paintSegment.Width + frameTolerance);
+                        HtmlRenderVisual visual = new HtmlRenderText(
+                            paintSegment.Text,
+                            paintSegment.X,
+                            textY,
+                            Math.Max(0.01D, frameWidth),
+                            Math.Max(0.01D, textLineHeight),
+                            segment.Run.Style.Font,
+                            segment.Run.Style.Color,
+                            OfficeTextAlignment.Left,
+                            textLineHeight,
+                            visuals.Count,
+                            segment.Run.LinkUri,
+                            segment.Run.Source,
+                            segment.Run.SemanticRole,
+                            semanticNodeId: segment.Run.SemanticNodeId);
+                        AddInlineOwnedVisual(
+                            visuals,
+                            ownedVisuals,
+                            visual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
+                            segment.Run.OwnerElement,
+                            formattingContainer);
+                    }
                 }
-                x += segment.Width;
+                cursor += rightToLeftLine ? -segment.Width : segment.Width;
             }
 
             flowY = Math.Max(flowY, lineY + lineHeight);
