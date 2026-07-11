@@ -302,4 +302,41 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, shape.Shape.PathCommands[0].Point.X, 3);
         Assert.Equal(40D - (20D * 2D / 3D), shape.Shape.PathCommands[1].Point.X, 3);
     }
+
+    [Fact]
+    public void HtmlBorders_OversizedAsymmetricPathContinuesThroughClippedPageFragments() {
+        const string html = "<html style='margin:0'><body style='margin:0'><div id='tall-path' style='box-sizing:border-box;width:40px;height:90px;border-radius:12px 3px 8px 5px / 4px 9px 2px 7px;background:#ff0000'></div></body></html>";
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        IReadOnlyList<OfficeImageExportResult> pngPages = html.ExportImages(OfficeImageExportFormat.Png, options);
+        IReadOnlyList<OfficeImageExportResult> svgPages = html.ExportImages(OfficeImageExportFormat.Svg, options);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => {
+            HtmlRenderClipGroup fragment = Assert.Single(page.Visuals.OfType<HtmlRenderClipGroup>(), group =>
+                group.Source == "div#tall-path"
+                && group.Visuals.OfType<HtmlRenderShape>().Any(shape => shape.Shape.Kind == OfficeShapeKind.Path));
+            Assert.Single(fragment.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.Kind == OfficeShapeKind.Path);
+        });
+        for (int index = 0; index < 3; index++) {
+            Assert.True(OfficePngReader.TryDecode(pngPages[index].Bytes, out OfficeRasterImage? raster));
+            Assert.True(raster!.GetPixel(20, index < 2 ? 20 : 5).R > 240);
+            string svg = Encoding.UTF8.GetString(svgPages[index].Bytes);
+            Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+            Assert.Contains("<path", svg, StringComparison.Ordinal);
+        }
+        Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
 }
