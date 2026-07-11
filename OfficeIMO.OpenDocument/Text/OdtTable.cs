@@ -21,7 +21,7 @@ public sealed class OdtTable {
     }
 
     /// <summary>Rows in source order.</summary>
-    public IReadOnlyList<OdtTableRow> Rows => _element.Elements(OdfNamespaces.Table + "table-row")
+    public IReadOnlyList<OdtTableRow> Rows => OdfTableRowElements.Enumerate(_element)
         .Select(element => new OdtTableRow(_document, element)).ToList();
 
     /// <summary>Gets a zero-based cell.</summary>

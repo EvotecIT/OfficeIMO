@@ -120,7 +120,10 @@ public sealed class OdsSheet {
         var added = new XElement(OdfNamespaces.Table + "table-column");
         OdsRepeatModel.Set(added, OdfNamespaces.Table + "number-columns-repeated", required);
         XElement? firstRow = RowElements().FirstOrDefault();
-        if (firstRow == null) Element.Add(added); else firstRow.AddBeforeSelf(added);
+        XElement? insertionPoint = firstRow?.Parent?.Name == OdfNamespaces.Table + "table-header-rows"
+            ? firstRow.Parent
+            : firstRow;
+        if (insertionPoint == null) Element.Add(added); else insertionPoint.AddBeforeSelf(added);
         XElement result = OdsRepeatModel.Split(added, OdfNamespaces.Table + "number-columns-repeated", required - 1);
         Dirty();
         return new OdsColumn(_document, result);
@@ -242,14 +245,7 @@ public sealed class OdsSheet {
         return result;
     }
 
-    private IEnumerable<XElement> RowElements() {
-        foreach (XElement child in Element.Elements()) {
-            if (child.Name == OdfNamespaces.Table + "table-row") yield return child;
-            else if (child.Name == OdfNamespaces.Table + "table-header-rows") {
-                foreach (XElement row in child.Elements(OdfNamespaces.Table + "table-row")) yield return row;
-            }
-        }
-    }
+    private IEnumerable<XElement> RowElements() => OdfTableRowElements.Enumerate(Element);
     internal static IEnumerable<XElement> CellElements(XElement row) => row.Elements()
         .Where(element => element.Name == OdfNamespaces.Table + "table-cell" || element.Name == OdfNamespaces.Table + "covered-table-cell");
     private void Dirty() => _document.MarkPartDirty("content.xml");

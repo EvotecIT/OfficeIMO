@@ -145,8 +145,12 @@ internal sealed class OdfPackage {
 
         string? versionToken = (string?)manifestRoot.Attribute(OdfNamespaces.Manifest + "version")
             ?? (string?)packageRootEntry?.Attribute(OdfNamespaces.Manifest + "version");
-        if (!OdfVersionExtensions.TryParse(versionToken, out OdfVersion version)) {
+        bool manifestVersionRecognized = OdfVersionExtensions.TryParse(versionToken, out OdfVersion version);
+        string? partVersionToken = null;
+        if (!manifestVersionRecognized && !TryReadPartVersion(loaded, effective, out version, out partVersionToken)) {
             version = OdfVersion.V1_4;
+        } else if (!manifestVersionRecognized) {
+            versionToken = partVersionToken;
         }
 
         var package = new OdfPackage(kind, version, effective);
@@ -158,11 +162,25 @@ internal sealed class OdfPackage {
         if (manifestRoot.Descendants(OdfNamespaces.Manifest + "encryption-data").Any()) {
             throw new OdfEncryptedPackageException("Encrypted OpenDocument packages are detected but not yet supported for native editing.");
         }
-        if (!OdfVersionExtensions.TryParse(versionToken, out _)) {
+        if (!manifestVersionRecognized && version == OdfVersion.V1_4 && !OdfVersionExtensions.TryParse(versionToken, out _)) {
             package._diagnostics.Add(new OdfDiagnostic("ODF003", OdfDiagnosticSeverity.Warning,
                 $"OpenDocument version '{versionToken ?? "<missing>"}' is not recognized; ODF 1.4 compatibility rules are used.", "META-INF/manifest.xml"));
         }
         return package;
+    }
+
+    private static bool TryReadPartVersion(IEnumerable<OdfPackageEntry> entries, OdfOpenOptions options,
+        out OdfVersion version, out string? versionToken) {
+        foreach (string path in new[] { "content.xml", "styles.xml" }) {
+            OdfPackageEntry? entry = entries.FirstOrDefault(candidate => candidate.Name == path);
+            if (entry == null) continue;
+            XDocument document = entry.GetXml(options.MaxXmlCharacters, options.MaxXmlDepth);
+            versionToken = (string?)document.Root?.Attribute(OdfNamespaces.Office + "version");
+            if (OdfVersionExtensions.TryParse(versionToken, out version)) return true;
+        }
+        version = OdfVersion.V1_4;
+        versionToken = null;
+        return false;
     }
 
     internal bool ContainsEntry(string name) => _entriesByName.TryGetValue(name, out OdfPackageEntry? entry) && !entry.IsRemoved;

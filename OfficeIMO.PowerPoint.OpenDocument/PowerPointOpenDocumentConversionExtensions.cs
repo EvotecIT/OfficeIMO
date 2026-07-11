@@ -153,6 +153,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
 
         int textBoxes = 0, paragraphs = 0, textRuns = 0, pictures = 0, tables = 0, basicShapes = 0;
         int notes = 0, transitions = 0, unsupportedTransitions = 0, unsupportedShapes = 0, unsupportedPictures = 0, transformedShapes = 0;
+        int listParagraphs = 0, approximatedRuns = 0;
         foreach (OdpSlide sourceSlide in source.Slides) {
             PowerPointSlide targetSlide = target.AddSlide();
             targetSlide.Hidden = sourceSlide.Hidden;
@@ -163,6 +164,7 @@ public static class PowerPointOpenDocumentConversionExtensions {
             foreach (OdpShape shape in sourceSlide.Shapes) {
                 if (shape is OdpTextBox textBox) {
                     IReadOnlyList<OdpParagraph> sourceParagraphs = textBox.Paragraphs;
+                    listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
                     string text = string.Join(Environment.NewLine, sourceParagraphs.Select(paragraph => paragraph.Text));
                     PowerPointTextBox converted = targetSlide.AddTextBox(text, ToPowerPointBox(textBox.Bounds));
                     converted.Name = textBox.Name;
@@ -180,7 +182,8 @@ public static class PowerPointOpenDocumentConversionExtensions {
                                 ApplyOdpRun(runs[runIndex], added, effective);
                             }
                             textRuns += runs.Count;
-                        } else if (sourceParagraph.Bold == true || sourceParagraph.FontSize.HasValue) {
+                        } else {
+                            if (runs.Count > 0) approximatedRuns++;
                             PowerPointTextRun? run = targetParagraph.Runs.FirstOrDefault();
                             if (run != null) {
                                 run.Bold = sourceParagraph.Bold == true;
@@ -261,6 +264,10 @@ public static class PowerPointOpenDocumentConversionExtensions {
         AddConverted(report, "speaker-notes", notes);
         if (transitions > 0) report.Add("slide-transitions", OdfConversionMappingStatus.Approximated, transitions,
             "Common ODF transition styles are mapped to PowerPoint transition families.");
+        if (listParagraphs > 0) report.Add("text-lists", OdfConversionMappingStatus.Approximated, listParagraphs,
+            "ODP list text is retained as paragraphs; PowerPoint bullet and numbering definitions are not translated.");
+        if (approximatedRuns > 0) report.Add("inline-formatting", OdfConversionMappingStatus.Approximated, approximatedRuns,
+            "Mixed plain text and styled ODP spans are flattened when their exact inline order cannot be represented by the typed surface.");
         AddUnsupported(report, "slide-transitions", unsupportedTransitions, "The ODF transition family is not supported by the PowerPoint adapter.");
         AddUnsupported(report, "images", unsupportedPictures, "Images disabled by options or using an unsupported PowerPoint image format were skipped.");
         AddUnsupported(report, "shapes", unsupportedShapes, "Groups and unsupported ODF drawing elements are not translated.");

@@ -36,7 +36,7 @@ public abstract class OdpShape {
     }
     /// <summary>Solid shape fill color.</summary>
     public OdfColor? FillColor {
-        get => ReadGraphicColor(OdfNamespaces.Draw + "fill-color");
+        get => ReadGraphicColor(OdfNamespaces.Draw + "fill", OdfNamespaces.Draw + "fill-color");
         set {
             OdfStyle style = EnsureGraphicStyle();
             style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "fill", value.HasValue ? "solid" : "none");
@@ -45,7 +45,7 @@ public abstract class OdpShape {
     }
     /// <summary>Solid shape stroke color.</summary>
     public OdfColor? StrokeColor {
-        get => ReadGraphicColor(OdfNamespaces.Svg + "stroke-color");
+        get => ReadGraphicColor(OdfNamespaces.Draw + "stroke", OdfNamespaces.Svg + "stroke-color");
         set {
             OdfStyle style = EnsureGraphicStyle();
             style.SetProperty(OdfNamespaces.Style + "graphic-properties", OdfNamespaces.Draw + "stroke", value.HasValue ? "solid" : "none");
@@ -101,8 +101,10 @@ public abstract class OdpShape {
         string? name = (string?)Element.Attribute(OdfNamespaces.Draw + "style-name");
         return name == null ? null : Presentation.Styles.Find(OdfStyleFamily.Graphic, name);
     }
-    private OdfColor? ReadGraphicColor(XName name) {
-        string? value = (string?)GetGraphicStyle()?.Element.Element(OdfNamespaces.Style + "graphic-properties")?.Attribute(name);
+    private OdfColor? ReadGraphicColor(XName modeName, XName colorName) {
+        XElement? properties = GetGraphicStyle()?.Element.Element(OdfNamespaces.Style + "graphic-properties");
+        if (string.Equals((string?)properties?.Attribute(modeName), "none", StringComparison.Ordinal)) return null;
+        string? value = (string?)properties?.Attribute(colorName);
         return value == null ? (OdfColor?)null : OdfColor.Parse(value);
     }
     private OdfLength ReadLength(string localName) => OdfLength.Parse((string?)Element.Attribute(OdfNamespaces.Svg + localName) ?? "0cm");

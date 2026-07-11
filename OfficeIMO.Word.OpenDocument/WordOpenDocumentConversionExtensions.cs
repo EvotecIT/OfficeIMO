@@ -16,7 +16,7 @@ public static class WordOpenDocumentConversionExtensions {
         var report = new OdfConversionReport("DOCX", "ODT");
 
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, unsupportedImages = 0, bookmarks = 0;
-        int unsupportedFootnotes = 0;
+        int unsupportedFootnotes = 0, nestedListLevels = 0;
         IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
         int paragraphFormatting = sourceParagraphs.Count(HasUnsupportedParagraphFormatting);
         int runFormatting = sourceParagraphs.SelectMany(paragraph => paragraph.Runs).Count(HasUnsupportedRunFormatting);
@@ -39,6 +39,7 @@ public static class WordOpenDocumentConversionExtensions {
                         }
                         OdtParagraph listParagraph = currentList.AddItem().Paragraphs[0];
                         CopyParagraph(paragraph, listParagraph, effective, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
+                        if (paragraph.ListLevel > 0) nestedListLevels++;
                         paragraphs++;
                         continue;
                     }
@@ -95,6 +96,8 @@ public static class WordOpenDocumentConversionExtensions {
             "Image descriptions, titles, and advanced wrapping are not represented by the current ODT adapter.");
         if (unsupportedFootnotes > 0) report.Add("footnotes", OdfConversionMappingStatus.Unsupported, unsupportedFootnotes,
             "Footnote references are omitted from the current ODT adapter.");
+        if (nestedListLevels > 0) report.Add("list-levels", OdfConversionMappingStatus.Approximated, nestedListLevels,
+            "Nested Word list items are retained as top-level ODT list items because hierarchical list emission is not yet supported.");
         AddUnmappedWordFindings(source.InspectFeatures(), report, images, hyperlinks, bookmarks);
         return new OdfConversionResult<OdtDocument>(target, report);
     }
@@ -107,7 +110,9 @@ public static class WordOpenDocumentConversionExtensions {
         WordDocument target = WordDocument.Create();
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, approximatedRuns = 0;
-        int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count);
+        int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
+            source.PageLayout.Header.Paragraphs.Sum(paragraph => paragraph.Images.Count) +
+            source.PageLayout.Footer.Paragraphs.Sum(paragraph => paragraph.Images.Count);
         WordList? currentList = null;
         bool? currentOrdered = null;
 

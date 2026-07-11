@@ -10,7 +10,7 @@ public abstract partial class OdfDocument {
         root.SetAttributeValue(OdfNamespaces.Office + "mimetype", OdfMediaTypes.ForKind(Kind));
 
         XDocument content = GetXml("content.xml");
-        XDocument styles = GetXml("styles.xml");
+        XDocument styles = Package.ContainsEntry("styles.xml") ? GetXml("styles.xml") : OdfPackageTemplates.CreateStyles(Version);
         XDocument meta = Package.ContainsEntry("meta.xml") ? GetXml("meta.xml") : OdfPackageTemplates.CreateMetadata(Version);
         XDocument settings = Package.ContainsEntry("settings.xml") ? GetXml("settings.xml") : OdfPackageTemplates.CreateSettings(Version);
         AddClone(root, meta.Root?.Element(OdfNamespaces.Office + "meta"));
@@ -138,7 +138,8 @@ public abstract partial class OdfDocument {
             try { data = Convert.FromBase64String(new string(binary.Value.Where(character => !char.IsWhiteSpace(character)).ToArray())); }
             catch (FormatException ex) { throw new InvalidDataException("Flat OpenDocument image contains invalid base64 data.", ex); }
             if (data.LongLength > options.MaxEntryUncompressedBytes) throw new InvalidDataException("Flat OpenDocument image exceeds MaxEntryUncompressedBytes.");
-            string extension = DetectImageExtension(data);
+            string? mediaType = (string?)image.Attribute(OdfNamespaces.Draw + "mime-type");
+            string extension = ImageExtension(mediaType, data);
             string path = "Pictures/flat-image" + index++.ToString(CultureInfo.InvariantCulture) + extension;
             package.AddOrReplaceEntry(path, data, ImageMediaType(extension));
             image.SetAttributeValue(OdfNamespaces.XLink + "href", path);
@@ -157,12 +158,26 @@ public abstract partial class OdfDocument {
         return ".bin";
     }
 
+    private static string ImageExtension(string? mediaType, byte[] data) {
+        switch ((mediaType ?? string.Empty).Trim().ToLowerInvariant()) {
+            case "image/png": return ".png";
+            case "image/jpeg": return ".jpg";
+            case "image/gif": return ".gif";
+            case "image/svg+xml": return ".svg";
+            case "image/bmp": return ".bmp";
+            case "image/webp": return ".webp";
+            default: return DetectImageExtension(data);
+        }
+    }
+
     private static string ImageMediaType(string extension) {
         switch (extension) {
             case ".png": return "image/png";
             case ".jpg": return "image/jpeg";
             case ".gif": return "image/gif";
+            case ".svg": return "image/svg+xml";
             case ".bmp": return "image/bmp";
+            case ".webp": return "image/webp";
             default: return "application/octet-stream";
         }
     }
@@ -235,7 +250,7 @@ public abstract partial class OdfDocument {
             "mimetype", "content.xml", "styles.xml", "meta.xml", "settings.xml", "META-INF/manifest.xml"
         };
         XDocument content = GetXml("content.xml");
-        XDocument styles = GetXml("styles.xml");
+        XDocument styles = Package.ContainsEntry("styles.xml") ? GetXml("styles.xml") : OdfPackageTemplates.CreateStyles(Version);
         AddRepresentedImages(content, represented);
         AddRepresentedImages(styles, represented);
 

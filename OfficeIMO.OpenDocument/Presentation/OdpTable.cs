@@ -5,7 +5,7 @@ public sealed class OdpTable : OdpShape {
     internal OdpTable(OdpPresentation presentation, XElement element) : base(presentation, element) { }
     private XElement TableElement => Element.Element(OdfNamespaces.Table + "table") ?? throw new InvalidDataException("ODP table frame has no table:table.");
     /// <summary>Table rows.</summary>
-    public IReadOnlyList<OdpTableRow> Rows => TableElement.Elements(OdfNamespaces.Table + "table-row")
+    public IReadOnlyList<OdpTableRow> Rows => OdfTableRowElements.Enumerate(TableElement)
         .Select(element => new OdpTableRow(Presentation, element)).ToList();
     /// <summary>Gets a zero-based table cell.</summary>
     public OdpTableCell Cell(int row, int column) {
