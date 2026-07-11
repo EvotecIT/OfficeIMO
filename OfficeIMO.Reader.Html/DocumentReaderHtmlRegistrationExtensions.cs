@@ -73,6 +73,17 @@ public static class DocumentReaderHtmlRegistrationExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlDocument(
+                htmlPath: path,
+                readerOptions: readerOptions,
+                htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
+                cancellationToken: ct),
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlDocument(
+                htmlStream: stream,
+                sourceName: sourceName,
+                readerOptions: readerOptions,
+                htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
         };
     }

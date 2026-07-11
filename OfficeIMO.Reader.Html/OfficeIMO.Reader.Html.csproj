@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

@@ -235,6 +235,22 @@ OfficeDocumentReadResult result = reader.ReadDocument(
 
 Seekable stream probes restore the original position. Prefix probing is capped at 4 MiB, and ZIP-based Office/Visio/EPUB inspection walks at most 4,096 local entries without decompressing archive payloads. Detection mismatches, detected unknown inputs, parser failures, limits, truncation, unsupported content, read failures, and OCR readiness are exposed through `OfficeDocumentDiagnostic` with stable `Category`, `Code`, `Source`, `IsRecoverable`, and `Attributes` fields.
 
+## Rich built-in document mappings
+
+Word, Excel, and PowerPoint rich reads use the format packages' public inspection models instead of reparsing Open XML in the Reader facade:
+
+```csharp
+OfficeDocumentReadResult word = DocumentReader.ReadDocument("policy.docx");
+OfficeDocumentReadResult workbook = DocumentReader.ReadDocument("forecast.xlsx");
+OfficeDocumentReadResult deck = DocumentReader.ReadDocument("briefing.pptx");
+
+Console.WriteLine($"{word.Blocks.Count} semantic Word blocks");
+Console.WriteLine($"{workbook.Tables.Count} named Excel tables");
+Console.WriteLine($"{deck.Visuals.Count} PowerPoint chart snapshots");
+```
+
+The Word mapping preserves headings, lists, links, tables, and header/footer content. Excel exposes worksheet locations, formal tables, cell links, formula/comment/named-range counts, and workbook properties. PowerPoint exposes slide-local blocks and tables, run and shape links, chart snapshots, and point-based geometry. Modular HTML, EPUB, RTF, and Visio adapters register the same native v5 result surface when their packages are installed.
+
 ## Host examples
 
 ### Capability discovery
@@ -293,6 +309,8 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 ```
 
 `reader.ReadDocument(...)` dispatches directly to these delegates. Existing `reader.Read(...)` calls remain usable by projecting the returned result's `Chunks` collection. A handler may continue to register `ReadPath` and `ReadStream` when chunk production is its native contract.
+
+Adapter authors can call `DocumentReader.CreateDocumentResult(...)` to create the common v5 source, chunks, assets, diagnostics, and baseline collections, then replace or enrich format-owned blocks, pages, tables, links, forms, visuals, and metadata.
 
 ## Host contracts
 

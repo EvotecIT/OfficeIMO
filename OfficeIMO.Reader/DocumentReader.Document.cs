@@ -50,7 +50,10 @@ public static partial class DocumentReader {
             ? Array.Empty<OfficeDocumentAsset>()
             : ReadOpenXmlImageAssets(path, kind, opt, cancellationToken);
         ReaderInputKind fallbackKind = customPathReaderOwnsExtension ? customPathHandler.Kind : kind;
-        return BuildChunkDocumentResult(chunks, path, fallbackKind, BuildPathDocumentSource(path, chunks), assets, detection);
+        OfficeDocumentReadResult result = BuildChunkDocumentResult(chunks, path, fallbackKind, BuildPathDocumentSource(path, chunks), assets, detection);
+        return customPathReaderOwnsExtension
+            ? result
+            : EnrichBuiltInDocumentResult(path, kind, opt, result, cancellationToken);
     }
 
     /// <summary>
@@ -106,13 +109,19 @@ public static partial class DocumentReader {
                 ? Array.Empty<OfficeDocumentAsset>()
                 : ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);
             ReaderInputKind fallbackKind = customStreamReaderOwnsExtension ? customStreamHandler.Kind : kind;
-            return BuildChunkDocumentResult(
+            OfficeDocumentReadResult result = BuildChunkDocumentResult(
                 chunks,
                 logicalSourceName,
                 fallbackKind,
                 BuildStreamDocumentSource(snapshot, logicalSourceName, chunks),
                 assets,
                 detection);
+            if (customStreamReaderOwnsExtension) {
+                return result;
+            }
+
+            snapshot.Position = 0;
+            return EnrichBuiltInDocumentResult(snapshot, logicalSourceName, kind, opt, result, cancellationToken);
         } finally {
             if (ownsReadStream) {
                 readStream.Dispose();
@@ -324,12 +333,14 @@ public static partial class DocumentReader {
         var slideNumbers = chunks
             .Where(static chunk => chunk.Location.Slide.HasValue)
             .Select(static chunk => chunk.Location.Slide!.Value)
+            .Concat(tables.Where(static table => table.Location?.Slide != null).Select(static table => table.Location!.Slide!.Value))
             .Concat(assets.Where(static asset => asset.Location.Slide.HasValue).Select(static asset => asset.Location.Slide!.Value))
             .Concat(ocrCandidates.Where(static candidate => candidate.Location.Slide.HasValue).Select(static candidate => candidate.Location.Slide!.Value))
             .Distinct()
             .OrderBy(static slide => slide);
         foreach (int slideNumber in slideNumbers) {
             ReaderLocation location = chunks.FirstOrDefault(chunk => chunk.Location.Slide == slideNumber)?.Location
+                ?? tables.FirstOrDefault(table => table.Location?.Slide == slideNumber)?.Location
                 ?? assets.FirstOrDefault(asset => asset.Location.Slide == slideNumber)?.Location
                 ?? ocrCandidates.First(candidate => candidate.Location.Slide == slideNumber).Location;
             pages.Add(BuildChunkPage(
@@ -337,7 +348,7 @@ public static partial class DocumentReader {
                 name: null,
                 location: BuildContainerLocation(location, "slide"),
                 blocks: blocks.Where(block => block.Location.Slide == slideNumber).ToArray(),
-                tables: Array.Empty<ReaderTable>(),
+                tables: tables.Where(table => table.Location?.Slide == slideNumber).ToArray(),
                 assets: assets.Where(asset => asset.Location.Slide == slideNumber).ToArray(),
                 ocrCandidates: ocrCandidates.Where(candidate => candidate.Location.Slide == slideNumber).ToArray()));
         }

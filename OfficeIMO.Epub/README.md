@@ -34,6 +34,23 @@ foreach (string warning in book.Warnings) {
 }
 ```
 
+### Inspect bounded manifest resources
+
+```csharp
+EpubDocument book = EpubReader.Read("book.epub", new EpubReadOptions {
+    IncludeResourceData = true,
+    MaxResources = 500,
+    MaxResourceBytes = 4L * 1024L * 1024L,
+    MaxTotalResourceBytes = 32L * 1024L * 1024L
+});
+
+foreach (EpubResource resource in book.Resources) {
+    Console.WriteLine($"{resource.Path} ({resource.MediaType}, {resource.LengthBytes} bytes)");
+}
+```
+
+Manifest metadata is returned even when payload loading is disabled. Payload inclusion is opt-in and bounded per resource, in total, and by resource count; skipped payloads produce warnings.
+
 ## What it does
 
 - Opens EPUB files as ZIP containers.
@@ -41,6 +58,7 @@ foreach (string warning in book.Warnings) {
 - Follows OPF manifest and spine ordering.
 - Reads nav/NCX labels for chapter titles when available.
 - Extracts chapter text from XHTML/XML ASTs.
+- Returns deterministic OPF manifest resources with optional bounded payloads.
 - Emits extraction warnings for malformed or unreadable content.
 
 ## Examples
@@ -106,7 +124,7 @@ foreach (string warning in book.Warnings) {
 
 - This package owns reusable EPUB parsing primitives.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- It is still conservative while fuller OPF, spine, and navigation semantics evolve.
+- The parser is read-only and does not attempt CSS layout, scripting, DRM, or package mutation.
 
 ## Targets and license
 
