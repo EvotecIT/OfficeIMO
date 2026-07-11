@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -24,7 +28,12 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocument? document = _document;
             try {
                 if (document != null) {
-                    if (!_discardChangesOnDispose && (_copyPackageToSourceOnDispose || _saveOnDispose)) {
+                    bool shouldSave = _copyPackageToSourceOnDispose || _saveOnDispose;
+                    if (shouldSave && _signedPackageOpenFingerprint != null) {
+                        shouldSave = !string.Equals(_signedPackageOpenFingerprint,
+                            CreatePackageFingerprint(document), StringComparison.Ordinal);
+                    }
+                    if (!_discardChangesOnDispose && shouldSave) {
                         Save();
                     }
                 }
@@ -44,6 +53,7 @@ namespace OfficeIMO.PowerPoint {
                     pendingException = ex;
                 }
                 _saveOnDispose = false;
+                _signedPackageOpenFingerprint = null;
                 _discardChangesOnDispose = false;
                 _disposed = true;
             }
@@ -100,7 +110,48 @@ namespace OfficeIMO.PowerPoint {
                 new OpenSettings { AutoSave = false });
             PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
             presentation._saveOnDispose = true;
+            if (document.DigitalSignatureOriginPart != null ||
+                document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
+            }
             return presentation;
+        }
+
+        private static string CreatePackageFingerprint(PresentationDocument document) {
+            var parts = new HashSet<OpenXmlPart>();
+            foreach (IdPartPair pair in document.Parts) CollectPackageParts(pair.OpenXmlPart, parts);
+
+            var content = new StringBuilder();
+            foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(),
+                         StringComparer.Ordinal)) {
+                content.Append(part.Uri).Append('|').Append(part.ContentType).Append('|');
+                try {
+                    OpenXmlPartRootElement? root = part.RootElement;
+                    if (root != null) {
+                        content.Append(root.OuterXml);
+                    } else {
+                        using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                        using var memory = new MemoryStream();
+                        stream.CopyTo(memory);
+                        content.Append(Convert.ToBase64String(memory.ToArray()));
+                    }
+                } catch (InvalidDataException) {
+                    content.Append("unreadable");
+                }
+                foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId,
+                             StringComparer.Ordinal)) {
+                    content.Append('|').Append(relationship.RelationshipId).Append('=')
+                        .Append(relationship.OpenXmlPart.Uri);
+                }
+            }
+
+            using SHA256 sha = SHA256.Create();
+            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())));
+        }
+
+        private static void CollectPackageParts(OpenXmlPart part, ISet<OpenXmlPart> parts) {
+            if (!parts.Add(part)) return;
+            foreach (IdPartPair child in part.Parts) CollectPackageParts(child.OpenXmlPart, parts);
         }
 
         /// <summary>

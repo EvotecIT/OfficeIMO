@@ -212,6 +212,38 @@ public class DrawingChartAxisLayoutTests {
     }
 
     [Fact]
+    public void OfficeChartDrawingRenderer_UsesIndependentSecondaryRangeForHorizontalBars() {
+        OfficeColor primaryColor = OfficeColor.ParseHex("#2563EB");
+        OfficeColor secondaryColor = OfficeColor.ParseHex("#DC2626");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Horizontal secondary axis",
+            "Horizontal Secondary Axis",
+            OfficeChartKind.BarClustered,
+            new OfficeChartData(
+                new[] { "North", "South" },
+                new[] {
+                    new OfficeChartSeries("Primary", new[] { 100D, 200D }, null, primaryColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.BarClustered),
+                    new OfficeChartSeries("Secondary", new[] { 1D, 2D }, null, secondaryColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.BarClustered,
+                        axisGroup: OfficeChartAxisGroup.Secondary)
+                }),
+            widthPoints: 360D,
+            heightPoints: 220D,
+            layout: new OfficeChartLayout(showLegend: false)));
+
+        OfficeDrawingShape[] secondaryBars = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                            shape.Shape.FillColor == secondaryColor)
+            .ToArray();
+        Assert.Equal(2, secondaryBars.Length);
+        Assert.True(secondaryBars.Max(shape => shape.Shape.Width) > 100D,
+            "Secondary horizontal bars should use their own 0-2 scale rather than the primary 0-200 scale.");
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "200");
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "2");
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_UsesAssignedAxisRangeForScatterSeries() {
         OfficeColor primaryColor = OfficeColor.ParseHex("#2563EB");
         OfficeColor secondaryColor = OfficeColor.ParseHex("#DC2626");

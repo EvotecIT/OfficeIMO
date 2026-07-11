@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
@@ -116,7 +117,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
         pdf.Canvas(canvas => {
-            if (options.UseSharedVisualSnapshot && CanUseSharedVisualSnapshot(options)) {
+            if (options.UseSharedVisualSnapshot && CanUseSharedVisualSnapshot(slide, options)) {
                 PptCore.PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
                     new PptCore.PowerPointImageExportOptions {
                         IncludeSlideBackground = options.IncludeSlideBackgrounds,
@@ -282,10 +283,33 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static bool CanUseSharedVisualSnapshot(PowerPointPdfSaveOptions options) =>
+    private static bool CanUseSharedVisualSnapshot(PptCore.PowerPointSlide slide,
+        PowerPointPdfSaveOptions options) =>
         options.IncludePictures && options.IncludeAutoShapes && options.IncludeTextBoxes &&
         options.IncludeTables && options.IncludeCharts && options.PictureFit == OfficeImageFit.Stretch &&
-        options.ChartStyle == null && options.ChartLayout == null;
+        options.ChartStyle == null && options.ChartLayout == null && options.MaxGroupShapeDepth == 32 &&
+        !ContainsHyperlinks(slide);
+
+    private static bool ContainsHyperlinks(PptCore.PowerPointSlide slide) {
+        var slideRoot = slide.SlidePart.Slide;
+        if (slideRoot != null &&
+            (slideRoot.Descendants<A.HyperlinkOnClick>().Any() ||
+             slideRoot.Descendants<A.HyperlinkOnHover>().Any())) {
+            return true;
+        }
+
+        var layoutPart = slide.SlidePart.SlideLayoutPart;
+        if (layoutPart?.SlideLayout != null &&
+            (layoutPart.SlideLayout.Descendants<A.HyperlinkOnClick>().Any() ||
+             layoutPart.SlideLayout.Descendants<A.HyperlinkOnHover>().Any())) {
+            return true;
+        }
+
+        var master = layoutPart?.SlideMasterPart?.SlideMaster;
+        return master != null &&
+               (master.Descendants<A.HyperlinkOnClick>().Any() ||
+                master.Descendants<A.HyperlinkOnHover>().Any());
+    }
 
     private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, int groupDepth) {
         foreach (PptCore.PowerPointShape shape in shapes) {

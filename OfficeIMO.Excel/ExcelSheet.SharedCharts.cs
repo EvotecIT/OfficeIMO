@@ -13,7 +13,10 @@ namespace OfficeIMO.Excel {
             int widthPixels = 640, int heightPixels = 360, string? title = null) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             ExcelChartData excelData = ToExcelChartData(data, chartKind);
-            return AddChart(excelData, row, column, widthPixels, heightPixels, MapChartKind(chartKind), title);
+            ExcelChart chart = AddChart(excelData, row, column, widthPixels, heightPixels,
+                MapChartKind(chartKind), title);
+            chart.ApplyAuthoredSeriesStyles(excelData.Series);
+            return chart;
         }
 
         private static ExcelChartData ToExcelChartData(OfficeChartData data, OfficeChartKind defaultKind) {

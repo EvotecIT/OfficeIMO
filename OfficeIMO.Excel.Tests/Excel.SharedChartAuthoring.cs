@@ -120,5 +120,62 @@ namespace OfficeIMO.Tests {
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal(new[] { 1.25D, 2.75D }, Assert.Single(snapshot.Data.Series).XValues);
         }
+
+        [Fact]
+        public void Test_ExcelCharts_SharedContractPersistsAuthoredSeriesStyles() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.Styles.xlsx");
+            var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                new OfficeChartSeries("Styled", new[] { 12D, 18D }, xValues: null,
+                    color: OfficeColor.ParseHex("#2563EB"),
+                    pointColors: new OfficeColor?[] { OfficeColor.ParseHex("#DC2626"), OfficeColor.ParseHex("#16A34A") },
+                    showMarkers: true, connectLine: true, markerSize: 9,
+                    markerShape: OfficeChartMarkerShape.Diamond,
+                    markerOutlineColor: OfficeColor.ParseHex("#111827"), markerOutlineWidth: 1.5D,
+                    strokeWidth: 2.25D, strokeDashStyle: OfficeStrokeDashStyle.Dash,
+                    renderKind: OfficeChartKind.Line)
+            });
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                sheet.AddChart(OfficeChartKind.Line, sharedData, row: 1, column: 5);
+                document.Save();
+            }
+
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
+            Assert.Equal("2563EB", series.SeriesColorArgb);
+            Assert.Equal(2.25D, series.SeriesLineWidth);
+            Assert.Equal(OfficeStrokeDashStyle.Dash, series.SeriesLineDashStyle);
+            Assert.Equal(new[] { "DC2626", "16A34A" }, series.PointColorArgb);
+            Assert.Equal(9, series.MarkerSize);
+            Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
+            Assert.Equal("111827", series.MarkerOutlineColorArgb);
+            Assert.Equal(1.5D, series.MarkerOutlineWidth);
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_UpdateRejectsScatterMixedWithCategoryCharts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.ScatterCombo.xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Shared");
+            ExcelChart chart = sheet.AddChart(new ExcelChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new ExcelChartSeries("Columns", new[] { 1D, 2D }, ExcelChartType.ColumnClustered),
+                    new ExcelChartSeries("Trend", new[] { 2D, 3D }, ExcelChartType.Line)
+                }),
+                row: 1, column: 5, type: ExcelChartType.ColumnClustered);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => chart.UpdateData(
+                new ExcelChartData(new[] { "Q1", "Q2" }, new[] {
+                    new ExcelChartSeries("Scatter", new[] { 2D, 4D }, new[] { 1D, 2D },
+                        ExcelChartType.Scatter),
+                    new ExcelChartSeries("Line", new[] { 3D, 5D }, ExcelChartType.Line)
+                })));
+
+            Assert.Equal("Scatter charts cannot be combined with other chart types.", exception.Message);
+        }
     }
 }

@@ -258,6 +258,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void UntouchedSignedPresentationCanBeInspectedThroughEditableOpen() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                    presentation.Slides[0].AddTitle("Signed inspection");
+                    presentation.Save();
+                }
+                AddSyntheticSignature(path);
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(path)) {
+                    Assert.True(presentation.InspectSignatures().HasSignatureMetadata);
+                    Assert.Equal("Signed inspection", presentation.Slides[0].TextBoxes.First().Text);
+                }
+
+                using PresentationDocument signed = PresentationDocument.Open(path, false);
+                Assert.NotNull(signed.DigitalSignatureOriginPart);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void SmartArtDeckCanUseOptInPowerPointDesktopReferenceLane() {
             if (!string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_POWERPOINT_DESKTOP_REFERENCE"),
                     "1", StringComparison.Ordinal)) return;
@@ -275,6 +297,26 @@ namespace OfficeIMO.Tests {
                 Assert.NotEmpty(result.ImagePaths);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
+                if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void DesktopReferenceLaneRemovesOnlyStalePowerPointSlideImages() {
+            string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.ReferenceCleanup",
+                Guid.NewGuid().ToString("N"));
+            try {
+                Directory.CreateDirectory(output);
+                File.WriteAllBytes(Path.Combine(output, "Slide1.png"), new byte[] { 1 });
+                File.WriteAllBytes(Path.Combine(output, "slide12.PNG"), new byte[] { 2 });
+                File.WriteAllBytes(Path.Combine(output, "comparison.png"), new byte[] { 3 });
+
+                PowerPointDesktopReferenceRenderer.ClearExistingSlideImages(output);
+
+                Assert.False(File.Exists(Path.Combine(output, "Slide1.png")));
+                Assert.False(File.Exists(Path.Combine(output, "slide12.PNG")));
+                Assert.True(File.Exists(Path.Combine(output, "comparison.png")));
+            } finally {
                 if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
             }
         }

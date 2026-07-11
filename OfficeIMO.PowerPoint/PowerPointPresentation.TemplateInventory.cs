@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
             int? layoutIndex, IList<PowerPointTemplateAssetInfo> assets) {
             if (tree == null) return;
             foreach (DocumentFormat.OpenXml.Presentation.Picture picture in
-                     tree.Elements<DocumentFormat.OpenXml.Presentation.Picture>()) {
+                     tree.Descendants<DocumentFormat.OpenXml.Presentation.Picture>()) {
                 NonVisualDrawingProperties? properties = picture.NonVisualPictureProperties?
                     .NonVisualDrawingProperties;
                 string name = properties?.Name?.Value ?? string.Empty;

@@ -92,7 +92,7 @@ public static partial class OfficeChartDrawingRenderer {
         bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
             (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
         SecondaryAxisRenderContext secondaryAxis = CreateSecondaryAxisRenderContext(
-            snapshot, layout, barChart, showVerticalAxisLabels);
+            snapshot, layout, barChart, barChart ? showHorizontalAxisLabels : showVerticalAxisLabels);
         bool hasSecondaryAxis = secondaryAxis.HasSeries;
         ValueRange axisRange = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondaryAxis);
         ValueRange secondaryAxisRange = secondaryAxis.Range;
@@ -108,11 +108,12 @@ public static partial class OfficeChartDrawingRenderer {
             ? GetVerticalAxisLabelBandWidth(snapshot, axisRange, valueAxisMajorTicks, layout, valueAxisUsesPercentDefaults, horizontalValueAxis: barChart)
             : 28D;
         double horizontalValueAxisLabelWidth = GetHorizontalValueAxisLabelWidth(axisRange, valueAxisMajorTicks, layout, valueAxisUsesPercentDefaults);
-        double horizontalAxisTopLabelHeight = showHorizontalAxisLabels && horizontalAxisLabelsHigh ? 15D : 0D;
+        double horizontalAxisTopLabelHeight = showHorizontalAxisLabels &&
+            (horizontalAxisLabelsHigh || (barChart && hasSecondaryAxis)) ? 15D : 0D;
         double secondaryAxisLabelBandWidth = secondaryAxis.LabelBandWidth;
         double verticalAxisRightLabelWidth = Math.Max(
             showVerticalAxisLabels && verticalAxisLabelsHigh ? verticalAxisLabelBandWidth + 8D : 0D,
-            secondaryAxisLabelBandWidth > 0D ? secondaryAxisLabelBandWidth + 8D : 0D);
+            !barChart && secondaryAxisLabelBandWidth > 0D ? secondaryAxisLabelBandWidth + 8D : 0D);
         double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight + horizontalAxisTopLabelHeight;
         double legendWidth = GetSeriesLegendWidth(legendSeries, width, layout);
@@ -248,9 +249,14 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        if (hasSecondaryAxis && showVerticalAxis) {
-            AddSecondaryValueAxis(drawing, secondaryAxis, plotLeft + plotWidth, plotTop, plotHeight,
-                style, layout);
+        if (hasSecondaryAxis && (barChart ? showHorizontalAxis : showVerticalAxis)) {
+            if (barChart) {
+                AddHorizontalSecondaryValueAxis(drawing, secondaryAxis, plotLeft, plotTop, plotWidth,
+                    style, layout);
+            } else {
+                AddSecondaryValueAxis(drawing, secondaryAxis, plotLeft + plotWidth, plotTop, plotHeight,
+                    style, layout);
+            }
         }
 
         if (GetShowCategoryMinorGridLines(style)) {
@@ -438,6 +444,10 @@ public static partial class OfficeChartDrawingRenderer {
                     style,
                     layout,
                     valueAxisUsesPercentDefaults);
+            }
+            if (hasSecondaryAxis && layout.ShowValueAxis && layout.ShowValueAxisLabels) {
+                AddHorizontalSecondaryValueAxisLabels(drawing, secondaryAxis, plotLeft, plotTop,
+                    plotWidth, style, layout);
             }
             AddAxisTitles(drawing, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, layout.ShowValueAxis ? layout.ValueAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         } else {

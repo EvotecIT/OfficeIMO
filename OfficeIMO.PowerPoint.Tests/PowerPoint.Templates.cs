@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public class PowerPointTemplateWorkflowTests {
@@ -47,6 +48,46 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("0B7FAB", target.GetThemeColor(PowerPointThemeColor.Accent1));
             } finally {
                 Delete(templatePath, targetPath);
+            }
+        }
+
+        [Fact]
+        public void InspectTemplate_InventoriesPicturesNestedInsideGroups() {
+            string templatePath = CreateTemplatePresentation();
+            try {
+                using (PresentationDocument document = PresentationDocument.Open(templatePath, true)) {
+                    SlideLayoutPart layoutPart = document.PresentationPart!.SlideMasterParts.First()
+                        .SlideLayoutParts.First();
+                    ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+                    tree.Append(new GroupShape(
+                        new NonVisualGroupShapeProperties(
+                            new NonVisualDrawingProperties { Id = 900U, Name = "Brand Group" },
+                            new NonVisualGroupShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new GroupShapeProperties(new A.TransformGroup(
+                            new A.Offset { X = 0L, Y = 0L },
+                            new A.Extents { Cx = 1000000L, Cy = 500000L },
+                            new A.ChildOffset { X = 0L, Y = 0L },
+                            new A.ChildExtents { Cx = 1000000L, Cy = 500000L })),
+                        new DocumentFormat.OpenXml.Presentation.Picture(
+                            new NonVisualPictureProperties(
+                                new NonVisualDrawingProperties { Id = 901U, Name = "Grouped Logo" },
+                                new NonVisualPictureDrawingProperties(),
+                                new ApplicationNonVisualDrawingProperties()),
+                            new BlipFill(new A.Blip(), new A.Stretch(new A.FillRectangle())),
+                            new ShapeProperties(
+                                new A.Transform2D(
+                                    new A.Offset { X = 0L, Y = 0L },
+                                    new A.Extents { Cx = 1000000L, Cy = 500000L }),
+                                new A.PresetGeometry { Preset = A.ShapeTypeValues.Rectangle }))));
+                    layoutPart.SlideLayout.Save();
+                }
+
+                PowerPointTemplateInventory inventory = PowerPointPresentation.InspectTemplate(templatePath);
+                Assert.Contains(inventory.Assets, asset => asset.Name == "Grouped Logo" &&
+                    asset.Kind == PowerPointTemplateAssetKind.Logo);
+            } finally {
+                Delete(templatePath);
             }
         }
 

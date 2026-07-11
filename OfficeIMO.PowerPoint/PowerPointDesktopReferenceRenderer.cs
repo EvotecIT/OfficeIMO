@@ -71,6 +71,7 @@ namespace OfficeIMO.PowerPoint {
 
             string fullOutput = Path.GetFullPath(outputDirectory);
             Directory.CreateDirectory(fullOutput);
+            ClearExistingSlideImages(fullOutput);
             object? application = null;
             object? presentations = null;
             object? presentation = null;
@@ -100,6 +101,27 @@ namespace OfficeIMO.PowerPoint {
                 ReleaseComObject(presentation);
                 ReleaseComObject(presentations);
                 ReleaseComObject(application);
+            }
+        }
+
+        internal static void ClearExistingSlideImages(string outputDirectory) {
+            foreach (string path in Directory.EnumerateFiles(outputDirectory)) {
+                if (!string.Equals(Path.GetExtension(path), ".png", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                string name = Path.GetFileNameWithoutExtension(path);
+                if (name.Length <= 5 || !name.StartsWith("Slide", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                bool numericSuffix = true;
+                for (int index = 5; index < name.Length; index++) {
+                    if (!char.IsDigit(name[index])) {
+                        numericSuffix = false;
+                        break;
+                    }
+                }
+                if (numericSuffix) File.Delete(path);
             }
         }
 

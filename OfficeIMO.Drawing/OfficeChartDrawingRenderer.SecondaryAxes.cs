@@ -24,21 +24,23 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static SecondaryAxisRenderContext CreateSecondaryAxisRenderContext(
         OfficeChartSnapshot snapshot, OfficeChartLayout layout, bool barChart, bool showLabels) {
-        bool hasSeries = !barChart && snapshot.Data.Series.Any(series =>
+        bool hasSeries = snapshot.Data.Series.Any(series =>
             series.AxisGroup == OfficeChartAxisGroup.Secondary);
         if (!hasSeries) {
             return new SecondaryAxisRenderContext(false, GetCartesianValueRange(snapshot),
                 Array.Empty<double>(), false, 0D);
         }
 
-        ValueRange range = GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary);
+        ValueRange range = ApplyValueAxisScale(
+            GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary), layout,
+            horizontal: barChart);
         bool usesPercentDefaults = snapshot.Data.Series.Any(series =>
             series.AxisGroup == OfficeChartAxisGroup.Secondary &&
             IsPercentKind(GetEffectiveSeriesKind(snapshot, series)));
         IReadOnlyList<double> majorTicks = GetValueAxisMajorTicks(range, majorUnit: null);
         double labelBandWidth = showLabels
             ? MeasureValueAxisLabelBandWidth(range, majorTicks, layout, usesPercentDefaults,
-                horizontalValueAxis: false)
+                horizontalValueAxis: barChart)
             : 0D;
         return new SecondaryAxisRenderContext(true, range, majorTicks, usesPercentDefaults, labelBandWidth);
     }
@@ -46,7 +48,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static ValueRange GetPrimaryValueAxisRange(OfficeChartSnapshot snapshot,
         OfficeChartLayout layout, bool barChart, bool hasSecondaryAxis) => hasSecondaryAxis
         ? ApplyValueAxisScale(GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Primary), layout,
-            horizontal: false)
+            horizontal: barChart)
         : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: barChart);
 
     private static bool IsPercentKind(OfficeChartKind kind) =>
@@ -67,6 +69,24 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout) {
         AddValueAxisLabels(drawing, axis.Range, plotTop, plotHeight, labelLeft, labelWidth,
             OfficeTextAlignment.Left, style, layout, axis.UsesPercentDefaults);
+    }
+
+    private static void AddHorizontalSecondaryValueAxis(OfficeDrawing drawing,
+        SecondaryAxisRenderContext axis, double plotLeft, double axisY, double plotWidth,
+        OfficeChartStyle style, OfficeChartLayout layout) {
+        AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, axisY,
+            null, GetValueAxisColor(style), GetValueAxisLineWidth(style), GetValueAxisLineDashStyle(style));
+        AddHorizontalValueAxisMajorTickMarks(drawing, plotLeft, axisY, plotWidth, axis.Range,
+            axis.MajorTicks, layout.HorizontalAxisMajorTickMark, GetValueAxisColor(style),
+            GetValueAxisLineWidth(style), positiveOutside: false);
+    }
+
+    private static void AddHorizontalSecondaryValueAxisLabels(OfficeDrawing drawing,
+        SecondaryAxisRenderContext axis, double plotLeft, double plotTop, double plotWidth,
+        OfficeChartStyle style, OfficeChartLayout layout) {
+        AddHorizontalValueAxisLabels(drawing, axis.Range, plotLeft, plotTop - 13D, plotWidth,
+            Math.Max(12D, axis.LabelBandWidth), labelsAbovePlot: true, style, layout,
+            axis.UsesPercentDefaults);
     }
 
     private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot,
