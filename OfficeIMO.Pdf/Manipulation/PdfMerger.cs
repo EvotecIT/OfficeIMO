@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides first-party PDF merge helpers for PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
-public static class PdfMerger {
+public static partial class PdfMerger {
     /// <summary>
     /// Merges all pages from the supplied PDFs into one new PDF.
     /// </summary>
@@ -31,7 +31,7 @@ public static class PdfMerger {
     /// Merges all pages from the supplied PDFs into one new PDF.
     /// </summary>
     public static byte[] Merge(IEnumerable<byte[]> pdfs) {
-        return MergeCore(pdfs, primarySourceIndex: 0, options: null);
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null).ToBytes();
     }
 
     /// <summary>
@@ -39,11 +39,22 @@ public static class PdfMerger {
     /// </summary>
     public static byte[] Merge(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
+        return MergeCore(pdfs, primarySourceIndex: 0, options).ToBytes();
+    }
+
+    /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
+    public static PdfMergeResult MergeWithReport(PdfMergeOptions options, params byte[][] pdfs) {
+        return MergeWithReport(options, (IEnumerable<byte[]>)pdfs);
+    }
+
+    /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
+    public static PdfMergeResult MergeWithReport(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+        Guard.NotNull(options, nameof(options));
         return MergeCore(pdfs, primarySourceIndex: 0, options);
     }
 
     internal static byte[] MergeWithPrimarySource(int primarySourceIndex, params byte[][] pdfs) {
-        return MergeCore(pdfs, primarySourceIndex, options: null);
+        return MergeCore(pdfs, primarySourceIndex, options: null).ToBytes();
     }
 
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
@@ -93,7 +104,7 @@ public static class PdfMerger {
         return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder);
     }
 
-    private static byte[] MergeCore(IEnumerable<byte[]> pdfs, int primarySourceIndex, PdfMergeOptions? options) {
+    private static PdfMergeResult MergeCore(IEnumerable<byte[]> pdfs, int primarySourceIndex, PdfMergeOptions? options) {
         Guard.NotNull(pdfs, nameof(pdfs));
 
         var sources = pdfs.ToArray();
@@ -118,7 +129,8 @@ public static class PdfMerger {
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
-        return WriteMerged(importedSources, primarySourceIndex);
+        byte[] merged = WriteMerged(importedSources, primarySourceIndex);
+        return ApplyMergePolicy(merged, importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy());
     }
 
     /// <summary>
@@ -419,7 +431,7 @@ public static class PdfMerger {
         collector.CollectObjectGraph(catalogState.EmbeddedFiles);
         collector.CollectObjectGraph(catalogState.AssociatedFiles);
         collector.CollectObjectGraph(catalogState.OptionalContent);
-        return new ImportedSource(objects, document.Metadata, pageObjectNumbers, collector, catalogState);
+        return new ImportedSource(objects, document, pageObjectNumbers, collector, catalogState);
     }
 
     private static byte[] WriteMerged(
@@ -495,12 +507,12 @@ public static class PdfMerger {
     private sealed class ImportedSource {
         public ImportedSource(
             Dictionary<int, PdfIndirectObject> objects,
-            PdfMetadata metadata,
+            PdfReadDocument document,
             int[] pageObjectNumbers,
             PdfPageExtractor.ObjectCollector collector,
             PdfPageExtractor.CatalogRewriteState catalogState) {
             Objects = objects;
-            Metadata = metadata;
+            Document = document;
             PageObjectNumbers = pageObjectNumbers;
             Collector = collector;
             CatalogState = catalogState;
@@ -508,7 +520,9 @@ public static class PdfMerger {
 
         public Dictionary<int, PdfIndirectObject> Objects { get; }
 
-        public PdfMetadata Metadata { get; }
+        public PdfReadDocument Document { get; }
+
+        public PdfMetadata Metadata => Document.Metadata;
 
         public int[] PageObjectNumbers { get; }
 
