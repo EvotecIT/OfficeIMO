@@ -144,6 +144,24 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_FailedSerializationPreservesRecordedDiagnostics() {
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            report);
+
+        Assert.ThrowsAny<ArgumentException>(() => result.ToBytes());
+
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "unsupported-bidirectional-text-layout" &&
+            warning.Converter == "OfficeIMO.Tests");
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "unsupported-complex-script-shaping" &&
+            warning.Converter == "OfficeIMO.Tests");
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesTextWarningsAndProcessedDocument() {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(
