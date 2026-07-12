@@ -65,6 +65,12 @@ internal static class MsgWriter {
                     .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
                     streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
                 }
+            } else if (method == 5 && attachment.Content != null) {
+                streams.Add(new OfficeCompoundStream(
+                    MsgBinary.CombinePath(objectStorage, "CONTENTS"), attachment.Content));
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_OPAQUE_EMBEDDED_CONTENT_WRAPPED",
+                    "Opaque embedded attachment bytes were retained in the MSG object storage because the payload could not be projected as a nested message.",
+                    EmailDiagnosticSeverity.Warning, objectStorage));
             } else if (method == 6) {
                 WriteStructuredAttachment(attachment, objectStorage, streams, diagnostics);
             }

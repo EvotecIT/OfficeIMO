@@ -114,17 +114,19 @@ internal static class MsgReader {
             attachment.Length = total;
             state.CountAttachment(total);
             if (nestedDepth >= state.Options.MaxNestedMessageDepth) {
-                if (state.Options.IncludeAttachmentContent) {
-                    string storagePrefix = string.Concat(objectStorage, "/");
-                    foreach (KeyValuePair<string, byte[]> stream in compound.Streams.Where(item =>
-                        item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
-                        attachment.StructuredStorageStreams[stream.Key.Substring(storagePrefix.Length)] = stream.Value;
-                    }
-                }
+                RetainStorageStreams(compound, objectStorage, attachment, state);
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_NESTED_MESSAGE_LIMIT",
                     state.Options.IncludeAttachmentContent
                         ? "The embedded MSG was retained as opaque storage but not projected because the nested-message limit was reached."
                         : "The embedded MSG was not projected because the nested-message limit was reached and attachment content retention is disabled.",
+                    EmailDiagnosticSeverity.Warning, objectStorage));
+            } else if (!compound.Streams.ContainsKey(
+                MsgBinary.CombinePath(objectStorage, "__properties_version1.0"))) {
+                RetainStorageStreams(compound, objectStorage, attachment, state);
+                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_EMBEDDED_STORAGE_INVALID",
+                    state.Options.IncludeAttachmentContent
+                        ? "The embedded MSG storage was retained but not projected because its property stream is missing."
+                        : "The embedded MSG storage was not projected because its property stream is missing and attachment content retention is disabled.",
                     EmailDiagnosticSeverity.Warning, objectStorage));
             } else {
                 attachment.EmbeddedDocument = ReadMessage(compound, objectStorage, MsgPropertyStreamKind.EmbeddedMessage,
@@ -164,6 +166,17 @@ internal static class MsgReader {
             }
         }
         document.Attachments.Add(attachment);
+    }
+
+    private static void RetainStorageStreams(OfficeCompoundFile compound, string storagePath,
+        EmailAttachment attachment, MsgParserState state) {
+        if (!state.Options.IncludeAttachmentContent) return;
+        string storagePrefix = string.Concat(storagePath, "/");
+        foreach (KeyValuePair<string, byte[]> stream in compound.Streams.Where(item =>
+            item.Key.StartsWith(storagePrefix, StringComparison.OrdinalIgnoreCase))) {
+            state.ThrowIfCancellationRequested();
+            attachment.StructuredStorageStreams[stream.Key.Substring(storagePrefix.Length)] = stream.Value;
+        }
     }
 
     private static long GetStorageLength(OfficeCompoundFile compound, string storagePath) {

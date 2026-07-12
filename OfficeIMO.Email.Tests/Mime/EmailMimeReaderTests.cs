@@ -364,4 +364,27 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("<p>default root</p>", document.Body.Html!.Trim());
         Assert.Equal("logo", Assert.Single(document.Attachments).ContentId);
     }
+
+    [Fact]
+    public void KeepsRelatedTextWithContentLocationAsAnInlineAttachment() {
+        const string eml = "Subject: related text resource\r\nContent-Type: multipart/related; boundary=outer\r\n\r\n" +
+            "--outer\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<a href=\"caption.txt\">root</a>\r\n" +
+            "--outer\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Location: caption.txt\r\n\r\n" +
+            "inline caption\r\n--outer--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("<a href=\"caption.txt\">root</a>", document.Body.Html!.Trim());
+        Assert.Null(document.Body.Text);
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Equal("caption.txt", attachment.ContentLocation);
+        Assert.True(attachment.IsInline);
+        Assert.Equal("inline caption", Encoding.UTF8.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(document)).Document;
+        EmailAttachment roundTripAttachment = Assert.Single(roundTrip.Attachments);
+        Assert.Equal("caption.txt", roundTripAttachment.ContentLocation);
+        Assert.True(roundTripAttachment.IsInline);
+    }
 }

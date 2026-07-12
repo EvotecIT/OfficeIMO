@@ -353,7 +353,7 @@ public sealed class EmailMimeWriterTests {
     [Fact]
     public void GroupsReferencedContentLocationResourcesInsideMultipartRelated() {
         var document = new EmailDocument { Subject = "location related resource" };
-        document.Body.Html = "<html><img src=\"image001.png\"></html>";
+        document.Body.Html = "<picture><source srcset=\"image001.png 1x, image002.png 2x\"></picture>";
         document.Attachments.Add(new EmailAttachment {
             FileName = "image001.png",
             ContentType = "image/png",

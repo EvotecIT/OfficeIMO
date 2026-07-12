@@ -36,14 +36,17 @@ internal static class MimeRelatedResourceReference {
         while (searchStart < html.Length) {
             int equals = html.IndexOf('=', searchStart);
             if (equals < 0) break;
-            if (!IsReferenceAttribute(html, equals)) {
+            string? attributeName = GetReferenceAttributeName(html, equals);
+            if (attributeName == null) {
                 searchStart = equals + 1;
                 continue;
             }
             int valueStart = SkipWhitespace(html, equals + 1);
-            if (TryReadValue(html, valueStart, out string value, out int valueEnd) &&
-                MatchesDecoded(value, expected, StringComparison.Ordinal)) {
-                return true;
+            if (TryReadValue(html, valueStart, out string value, out int valueEnd)) {
+                bool matches = string.Equals(attributeName, "srcset", StringComparison.OrdinalIgnoreCase)
+                    ? ContainsSrcSetCandidate(value, expected)
+                    : MatchesDecoded(value, expected, StringComparison.Ordinal);
+                if (matches) return true;
             }
             searchStart = Math.Max(valueEnd, equals + 1);
         }
@@ -58,6 +61,29 @@ internal static class MimeRelatedResourceReference {
                 return true;
             }
             searchStart = Math.Max(valueEnd, marker + 4);
+        }
+        return false;
+    }
+
+    private static bool ContainsSrcSetCandidate(string value, string expected) {
+        int candidateStart = 0;
+        while (candidateStart < value.Length) {
+            while (candidateStart < value.Length &&
+                (char.IsWhiteSpace(value[candidateStart]) || value[candidateStart] == ',')) {
+                candidateStart++;
+            }
+            int candidateEnd = candidateStart;
+            while (candidateEnd < value.Length &&
+                !char.IsWhiteSpace(value[candidateEnd]) && value[candidateEnd] != ',') {
+                candidateEnd++;
+            }
+            if (candidateEnd > candidateStart && MatchesDecoded(
+                    value.Substring(candidateStart, candidateEnd - candidateStart), expected,
+                    StringComparison.Ordinal)) {
+                return true;
+            }
+            while (candidateEnd < value.Length && value[candidateEnd] != ',') candidateEnd++;
+            candidateStart = candidateEnd + 1;
         }
         return false;
     }
@@ -117,7 +143,7 @@ internal static class MimeRelatedResourceReference {
         return start;
     }
 
-    private static bool IsReferenceAttribute(string html, int equals) {
+    private static string? GetReferenceAttributeName(string html, int equals) {
         int end = equals - 1;
         while (end >= 0 && char.IsWhiteSpace(html[end])) end--;
         int start = end;
@@ -135,7 +161,9 @@ internal static class MimeRelatedResourceReference {
             string.Equals(name, "cite", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "longdesc", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "usemap", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(name, "srcset", StringComparison.OrdinalIgnoreCase);
+            string.Equals(name, "srcset", StringComparison.OrdinalIgnoreCase)
+                ? name
+                : null;
     }
 
     private static bool IsSchemeCharacter(char value) {

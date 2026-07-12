@@ -251,6 +251,34 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void WriterRetainsOpaqueMethodFiveContentInsideObjectStorage() {
+        byte[] opaque = Encoding.ASCII.GetBytes("not-a-readable-embedded-message");
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "opaque embedded" };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "embedded.msg",
+            MapiAttachMethod = 5,
+            Content = opaque,
+            Length = opaque.Length
+        });
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+            source, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
+        EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
+        EmailAttachment roundTrip = Assert.Single(readResult.Document.Attachments);
+
+        Assert.Null(roundTrip.EmbeddedDocument);
+        Assert.Equal(opaque, roundTrip.StructuredStorageStreams["CONTENTS"]);
+        Assert.Contains(writeResult.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MSG_OPAQUE_EMBEDDED_CONTENT_WRAPPED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.Contains(readResult.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MSG_EMBEDDED_STORAGE_INVALID" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.DoesNotContain(writeResult.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+    }
+
+    [Fact]
     public void LogicalAttachmentNamesDoNotUseFilesystemPathValidation() {
         var diagnostics = new List<EmailDiagnostic>();
         var attachment = new EmailAttachment { FileName = "report|2026.txt", Content = new byte[] { 1 }, Length = 1 };
