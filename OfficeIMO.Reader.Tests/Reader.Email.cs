@@ -205,6 +205,18 @@ public sealed class ReaderEmailTests {
     }
 
     [Fact]
+    public void OversizedUnknownSeekableStreamsFallBackWithoutEmailProbeFailure() {
+        using var chunkStream = new LengthOnlySeekableStream(EmailReaderOptions.Default.MaxInputBytes + 1);
+        using var documentStream = new LengthOnlySeekableStream(EmailReaderOptions.Default.MaxInputBytes + 1);
+
+        ReaderChunk[] chunks = DocumentReader.Read(chunkStream, "oversized.bin").ToArray();
+        OfficeDocumentReadResult document = DocumentReader.ReadDocument(documentStream, "oversized.bin");
+
+        Assert.Empty(chunks);
+        Assert.Equal(ReaderInputKind.Unknown, document.Kind);
+    }
+
+    [Fact]
     public void DefaultFolderIngestionIncludesWinmailDatWithoutClaimingOtherDatFiles() {
         string folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-winmail-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

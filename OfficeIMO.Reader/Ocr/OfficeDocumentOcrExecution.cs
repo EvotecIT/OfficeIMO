@@ -149,12 +149,20 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                     outcomes.Add(await task.ConfigureAwait(false));
                 }
             } catch {
-                foreach (Task<CandidateOutcome> task in running) ObserveBackgroundFailure(task);
+                await AwaitRemainingCandidatesAsync(running).ConfigureAwait(false);
                 throw;
             }
         }
 
         return outcomes.ToArray();
+    }
+
+    private static async Task AwaitRemainingCandidatesAsync(IEnumerable<Task<CandidateOutcome>> running) {
+        try {
+            await Task.WhenAll(running).ConfigureAwait(false);
+        } catch {
+            // Preserve the first fail-fast exception after observing every already-started candidate.
+        }
     }
 
     private static async Task<CandidateOutcome> ExecuteCandidateAsync(

@@ -138,6 +138,10 @@ public static partial class DocumentReader {
             EmailFileFormat format = EmailDocumentReader.DetectFormat(bytes);
             return format != EmailFileFormat.Unknown &&
                 (format != EmailFileFormat.Eml || HasDistinctiveEmailHeader(bytes));
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (IOException) {
+            return false;
         } finally {
             stream.Position = position;
         }

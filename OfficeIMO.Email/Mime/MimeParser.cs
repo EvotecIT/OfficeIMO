@@ -24,7 +24,8 @@ internal static class MimeParser {
 
     private static void ParseEntity(IReadOnlyList<EmailHeader> headers, byte[] data, int offset, int count,
         EmailDocument document, MimeParserState state, int mimeDepth, int nestedMessageDepth, string location,
-        string defaultContentType = "text/plain", string? preferredBodyContentId = null) {
+        string defaultContentType = "text/plain", string? preferredBodyContentId = null,
+        bool isRelatedSibling = false) {
         if (mimeDepth > state.Options.MaxMimeDepth) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxMimeDepth), mimeDepth, state.Options.MaxMimeDepth);
         }
@@ -45,7 +46,7 @@ internal static class MimeParser {
 
         if (contentType.Value.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase) &&
             !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            (string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody)) {
+            (!isRelatedSibling || string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody)) {
             string? boundary = contentType.GetParameter("boundary");
             if (string.IsNullOrEmpty(boundary)) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_MISSING",
@@ -76,13 +77,13 @@ internal static class MimeParser {
                 }
                 ParseEntity(partHeaders, data, partBodyOffset, Math.Max(0, partEnd - partBodyOffset),
                     document, state, mimeDepth + 1, nestedMessageDepth, partLocation, childDefaultContentType,
-                    partPreferredBodyContentId);
+                    partPreferredBodyContentId, isRelated);
             }
             return;
         }
 
         bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
-            (string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody) &&
+            (!isRelatedSibling || string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));

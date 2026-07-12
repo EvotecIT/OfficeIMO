@@ -214,6 +214,20 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void TreatsCidTextPartsOutsideMultipartRelatedAsBodies() {
+        const string eml = "Subject: alternative\r\nContent-Type: multipart/alternative; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\nContent-ID: <plain>\r\n\r\nplain body\r\n" +
+            "--x\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <html>\r\n\r\n<p>html body</p>\r\n" +
+            "--x--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("plain body", document.Body.Text!.Trim());
+        Assert.Equal("<p>html body</p>", document.Body.Html!.Trim());
+        Assert.Empty(document.Attachments);
+    }
+
+    [Fact]
     public void TreatsInlineTextWithoutAttachmentIdentityAsBody() {
         const string eml = "Subject: inline body\r\nContent-Type: text/plain; charset=utf-8\r\n" +
             "Content-Disposition: inline\r\n\r\nbody text";

@@ -302,6 +302,32 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
+    public async Task ApplyOcrAsync_WaitsForStartedCandidatesAfterParallelFailFastFailure() {
+        var engine = new FailFastConcurrentOcrEngine();
+        Task<OfficeDocumentOcrExecutionResult> execution = CreateDocument(3).ApplyOcrAsync(
+            engine,
+            new OfficeDocumentOcrExecutionOptions {
+                ContinueOnError = false,
+                MaxDegreeOfParallelism = 2
+            });
+
+        try {
+            await engine.TwoCallsStarted;
+            engine.FailFirstCall();
+            await Task.Delay(50);
+
+            Assert.False(execution.IsCompleted);
+            Assert.Equal(2, engine.CallCount);
+
+            engine.CompleteRemainingCalls();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
+            Assert.True(engine.RemainingCallsCompleted.IsCompletedSuccessfully);
+        } finally {
+            engine.CompleteRemainingCalls();
+        }
+    }
+
+    [Fact]
     public async Task OfficeDocumentOcrProcessor_FreezesOptionsForReaderPipeline() {
         var options = new OfficeDocumentOcrExecutionOptions { MaxCandidates = 1 };
         var processor = new OfficeDocumentOcrProcessor(new RecordingOcrEngine(), options);
@@ -445,6 +471,9 @@ public sealed class ReaderOcrCoreTests {
     private sealed class FailFastConcurrentOcrEngine : IOfficeOcrEngine {
         private readonly TaskCompletionSource<object?> _failFirstCall = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource<object?> _firstCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _remainingCallsCompleted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _releaseRemainingCalls = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _twoCallsStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _callCount;
 
         public string Id => "fail-fast-concurrent-fixture";
@@ -458,6 +487,14 @@ public sealed class ReaderOcrCoreTests {
 
         internal Task FirstCallStarted => _firstCallStarted.Task;
 
+        internal Task RemainingCallsCompleted => _remainingCallsCompleted.Task;
+
+        internal Task TwoCallsStarted => _twoCallsStarted.Task;
+
+        internal void CompleteRemainingCalls() {
+            _releaseRemainingCalls.TrySetResult(null);
+        }
+
         internal void FailFirstCall() {
             _failFirstCall.TrySetResult(null);
         }
@@ -469,8 +506,13 @@ public sealed class ReaderOcrCoreTests {
                 await _failFirstCall.Task.ConfigureAwait(false);
                 throw new InvalidOperationException("Provider failure.");
             }
-            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
-            return new OfficeOcrEngineResult { Text = "recognized" };
+            _twoCallsStarted.TrySetResult(null);
+            try {
+                await _releaseRemainingCalls.Task.ConfigureAwait(false);
+                return new OfficeOcrEngineResult { Text = "recognized" };
+            } finally {
+                _remainingCallsCompleted.TrySetResult(null);
+            }
         }
     }
 
