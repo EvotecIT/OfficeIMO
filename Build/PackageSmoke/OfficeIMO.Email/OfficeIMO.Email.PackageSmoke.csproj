@@ -7,6 +7,7 @@
     <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
     <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">0.1.0</OfficeIMOEmailPackageVersion>
     <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
