@@ -159,9 +159,10 @@ permissions, and later revisions.
   composing selected page ranges without bypassing the shared import engine.
 - [x] Add `SetCropBox(...)`, `SetTrimBox(...)`, and related named page-box APIs,
   followed by crop-and-translate and explicitly destructive content cropping.
-- [ ] Add a bookmark editor for add/remove/rename/move/nest/retarget/rebuild,
-  plus broken-target validation and destination-conflict handling during page
-  edits and merges.
+- [x] Add a bookmark editor for add/remove/rename/move/nest/retarget/rebuild,
+  plus broken-target validation.
+- [ ] Add destination-conflict handling for bookmarks during page edits and
+  merges.
 - [ ] Expand annotation editing to create annotations on existing pages,
   update rectangles/quads/vertices/ink paths/line endings/popups/replies,
   regenerate appearances, remove actions, flatten selected annotations, and use
