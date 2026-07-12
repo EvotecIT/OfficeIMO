@@ -61,6 +61,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelHttpDocumentLoadRejectsSaveOnDisposeBeforeDownloading() {
+            int requestCount = 0;
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
+                requestCount++;
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(
+                new Uri("https://example.test/workbook.xlsx"),
+                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
+                new ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
+
+            Assert.Equal("options", exception.ParamName);
+            Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, requestCount);
+        }
+
+        [Fact]
+        public async Task ExcelHttpDocumentLoadAsyncRejectsSaveOnDisposeBeforeDownloading() {
+            int requestCount = 0;
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
+                requestCount++;
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(
+                new Uri("https://example.test/workbook.xlsx"),
+                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
+                new ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
+
+            Assert.Equal("options", exception.ParamName);
+            Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, requestCount);
+        }
+
+        [Fact]
         public async Task ExcelHttpLoadRejectsContentLengthOverLimitBeforeCopying() {
             byte[] workbookBytes = CreateRemoteWorkbookBytes();
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
