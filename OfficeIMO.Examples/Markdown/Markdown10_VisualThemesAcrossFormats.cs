@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 
 namespace OfficeIMO.Examples.Markdown {
@@ -53,7 +54,7 @@ var theme = MarkdownVisualTheme.Report()
 doc.SaveAsHtml(htmlPath, new HtmlOptions { VisualTheme = theme });
 doc.SaveAsPdf(pdfPath, new MarkdownPdfSaveOptions { Theme = theme });
 using var word = doc.ToWordDocument(new MarkdownToWordOptions { Theme = theme });
-word.SaveAs(docxPath);
+word.SaveCopy(docxPath);
 """);
 
             string mdPath = Path.Combine(mdFolder, "Markdown_SharedVisualTheme.md");
@@ -78,7 +79,7 @@ word.SaveAs(docxPath);
                 Theme = theme,
                 FontFamily = "Aptos"
             });
-            word.SaveAs(docxPath, openWord);
+            word.SaveCopy(docxPath, new WordSaveOptions { OpenAfterSave = openWord });
 
             Console.WriteLine($"✓ Markdown: {mdPath}");
             Console.WriteLine($"✓ HTML:     {htmlPath}");

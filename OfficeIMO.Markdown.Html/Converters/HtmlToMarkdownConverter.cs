@@ -33,6 +33,14 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     /// <summary>
+    /// Converts a prepared HTML DOM into Markdown text without reparsing source text.
+    /// </summary>
+    public string Convert(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
+        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+        return ConvertToDocument(document, effectiveOptions).ToMarkdown(effectiveOptions.MarkdownWriteOptions);
+    }
+
+    /// <summary>
     /// Converts HTML into a Markdown document model.
     /// </summary>
     /// <param name="html">HTML fragment or document to convert.</param>
@@ -46,6 +54,23 @@ public sealed partial class HtmlToMarkdownConverter {
         if (html == null) throw new ArgumentNullException(nameof(html));
         var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
         IHtmlDocument document = ParseFilteredDocumentCore(html, effectiveOptions);
+        return ConvertFilteredDocument(document, effectiveOptions);
+    }
+
+    /// <summary>
+    /// Converts a prepared HTML DOM into a Markdown document without mutating the caller's DOM.
+    /// </summary>
+    public MarkdownDoc ConvertToDocument(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+        IHtmlDocument filteredDocument = HtmlDocumentParser.CloneDocument(document);
+        string source = filteredDocument.DocumentElement?.OuterHtml ?? string.Empty;
+        ValidateInputLength(source, effectiveOptions.MaxInputCharacters, nameof(document));
+        ApplyHtmlFilters(filteredDocument.DocumentElement, effectiveOptions);
+        return ConvertFilteredDocument(filteredDocument, effectiveOptions);
+    }
+
+    private MarkdownDoc ConvertFilteredDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
         effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         var context = new ConversionContext(effectiveOptions);
 

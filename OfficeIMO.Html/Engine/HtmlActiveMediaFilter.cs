@@ -28,42 +28,7 @@ public static class HtmlActiveMediaFilter {
             IHtmlDocument parsed = HtmlDocumentParser.ParseDocument(isFragment
                 ? "<html><body><" + FragmentRootElementName + ">" + html + "</" + FragmentRootElementName + "></body></html>"
                 : html);
-            bool changed = false;
-            foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
-                if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
-                    && !HtmlComputedStyleEngine.IsApplicableMedia(linkElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
-                    linkElement.Remove();
-                    changed = true;
-                }
-            }
-
-            foreach (IElement sourceElement in parsed.QuerySelectorAll("picture > source")) {
-                if (!HtmlComputedStyleEngine.IsApplicableMedia(sourceElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
-                    sourceElement.Remove();
-                    changed = true;
-                    continue;
-                }
-
-                if (!HtmlPictureSourceSupport.IsSupportedConversionContentType(sourceElement.GetAttribute("type"))) {
-                    sourceElement.Remove();
-                    changed = true;
-                }
-            }
-
-            foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
-                if (!IsCssStyleElement(styleElement)
-                    || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
-                    styleElement.Remove();
-                    changed = true;
-                    continue;
-                }
-
-                string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, out bool stylesheetChanged);
-                if (stylesheetChanged) {
-                    styleElement.TextContent = expanded;
-                    changed = true;
-                }
-            }
+            bool changed = FilterDocument(parsed, mediaContext);
 
             if (!changed) {
                 return html;
@@ -77,6 +42,56 @@ public static class HtmlActiveMediaFilter {
         } catch {
             return html;
         }
+    }
+
+    /// <summary>
+    /// Removes inactive media content from a prepared DOM in place without serializing and reparsing it.
+    /// </summary>
+    /// <returns>Whether the document was changed.</returns>
+    public static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return FilterDocument(document, mediaContext);
+    }
+
+    private static bool FilterDocument(IHtmlDocument parsed, HtmlCssMediaContext mediaContext) {
+        bool changed = false;
+        foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
+            if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
+                && !HtmlComputedStyleEngine.IsApplicableMedia(linkElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+                linkElement.Remove();
+                changed = true;
+            }
+        }
+
+        foreach (IElement sourceElement in parsed.QuerySelectorAll("picture > source")) {
+            if (!HtmlComputedStyleEngine.IsApplicableMedia(sourceElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+                sourceElement.Remove();
+                changed = true;
+                continue;
+            }
+
+            if (!HtmlPictureSourceSupport.IsSupportedConversionContentType(sourceElement.GetAttribute("type"))) {
+                sourceElement.Remove();
+                changed = true;
+            }
+        }
+
+        foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
+            if (!IsCssStyleElement(styleElement)
+                || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
+                styleElement.Remove();
+                changed = true;
+                continue;
+            }
+
+            string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, out bool stylesheetChanged);
+            if (stylesheetChanged) {
+                styleElement.TextContent = expanded;
+                changed = true;
+            }
+        }
+
+        return changed;
     }
 
     private static bool ContainsHtmlDocumentElement(string html) {

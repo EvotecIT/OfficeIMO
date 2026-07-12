@@ -108,13 +108,16 @@ var scenario = new HtmlCapabilityGalleryScenario(
     "HTML import, DOCX validation, and round-trip export proof");
 ```
 
-`HtmlDiagnosticReport` and the capability-gallery contracts provide a common shape for HTML converters, PDF bridges, readers, tests, and future documentation generators. Format-specific packages can keep their existing compatibility APIs while also publishing shared diagnostics and artifact metadata for market-facing proof galleries.
+`HtmlDiagnosticReport` and the capability-gallery contracts provide a common shape for HTML converters, PDF bridges, readers, tests, and documentation generators.
+
+Native adapters use `HtmlConversionResult<TArtifact>` when callers need conversion evidence. Each diagnostic has a stable code, severity, and `LossKind` (`Approximation`, `Omission`, or `Failure`). Convenience methods still return the native artifact directly; they throw `HtmlConversionException` when required semantic content is missing. Result methods retain the artifact and diagnostics so applications can decide how to handle the failure.
 
 ## Conversion Document And Normalized HTML
 
 ```csharp
 var conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
     Profile = HtmlConversionProfile.Document,
+    Trust = HtmlInputTrust.Untrusted,
     BaseUri = new Uri("https://example.com/reports/"),
     UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
 });
@@ -124,9 +127,11 @@ var resources = conversion.ResourcePlan.GetSummary(HtmlResourceKind.Image);
 var styles = conversion.StyleSummary;
 ```
 
-`HtmlConversionDocument` is the shared conversion contract for OfficeIMO HTML workflows. It keeps the original source HTML together with the logical document model, computed-style summary, resource manifest, resource dependency plan, normalized HTML, and profile contract.
+`HtmlConversionDocument` is the shared conversion contract for OfficeIMO HTML workflows. It parses once and keeps the source DOM, policy-normalized adapter DOM, logical document model, computed-style summary, resource manifest, resource dependency plan, normalized HTML, profile contract, and caller-assigned trust boundary.
 
-Target packages can accept this shared document while keeping target-specific conversion in their owning packages. For example, `OfficeIMO.Word.Html` converts it to `WordDocument`, `OfficeIMO.Markdown.Html` converts it to `MarkdownDoc`, and `OfficeIMO.Html.Pdf` renders it directly to PDF.
+Target packages accept this shared document while keeping target-specific conversion in their owning packages. The prepared DOM can be sent to Word, Markdown, RTF, PDF, PNG, and SVG without reparsing it for every adapter. Excel and PowerPoint accept prepared documents when the HTML contains their semantic sheet or slide envelopes.
+
+Conversion profile and trust are separate decisions. A `Document` or `HighFidelityPrint` profile does not make external resources trusted. Leave `Trust` as `Untrusted` for user-supplied HTML; set it to `Trusted` only when the caller controls the document and resource locations.
 
 Normalized HTML output is policy-aware: URL-bearing attributes are resolved against the configured base URI, disallowed URLs are removed, boolean attributes are normalized, event-handler attributes are stripped by default, and non-document executable elements are skipped. It is intended for clean review, gallery proof, and downstream adapter input selection, not for pretending OfficeIMO is a browser layout engine.
 

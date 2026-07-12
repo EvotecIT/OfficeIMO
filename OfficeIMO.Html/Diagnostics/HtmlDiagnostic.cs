@@ -13,13 +13,22 @@ public sealed class HtmlDiagnostic {
     /// <param name="severity">Diagnostic severity.</param>
     /// <param name="source">Optional HTML, resource, or artifact source associated with the diagnostic.</param>
     /// <param name="detail">Optional low-level detail, such as an exception type, status text, or limit data.</param>
-    public HtmlDiagnostic(string component, string code, string message, HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning, string? source = null, string? detail = null) {
+    /// <param name="lossKind">Conversion fidelity impact represented by the diagnostic.</param>
+    public HtmlDiagnostic(
+        string component,
+        string code,
+        string message,
+        HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
+        string? source = null,
+        string? detail = null,
+        HtmlConversionLossKind lossKind = HtmlConversionLossKind.None) {
         Component = component ?? throw new ArgumentNullException(nameof(component));
         Code = code ?? throw new ArgumentNullException(nameof(code));
         Message = message ?? throw new ArgumentNullException(nameof(message));
         Severity = severity;
         Source = source;
         Detail = detail;
+        LossKind = lossKind;
     }
 
     /// <summary>
@@ -51,6 +60,11 @@ public sealed class HtmlDiagnostic {
     /// Optional low-level detail, such as an exception type, status text, or limit data.
     /// </summary>
     public string? Detail { get; }
+
+    /// <summary>
+    /// Describes whether this diagnostic represents approximation, omission, or complete conversion failure.
+    /// </summary>
+    public HtmlConversionLossKind LossKind { get; }
 
     /// <inheritdoc />
     public override string ToString() {

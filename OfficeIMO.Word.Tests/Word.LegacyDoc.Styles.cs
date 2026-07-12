@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled built-in layout flags", paragraph.Text);
                 Assert.Equal(headingStyleId, paragraph.StyleId);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(
                     new[] {
                         "Built-in caps paragraph",
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Built-in explicit off child", paragraph.Text);
                 Assert.Equal(childStyleId, paragraph.StyleId);
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled built-in borders and shading", paragraph.Text);
                 Assert.Equal(headingStyleId, paragraph.StyleId);
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled built-in tabs", paragraph.Text);
                 Assert.Equal(headingStyleId, paragraph.StyleId);

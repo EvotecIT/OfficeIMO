@@ -1,134 +1,250 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls;
-using System.Runtime.InteropServices;
+using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Shared;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Controls file-to-file Excel workbook conversion.
-    /// </summary>
-    public sealed class ExcelDocumentConversionOptions {
-        /// <summary>
-        /// Gets or sets whether an existing destination file may be overwritten. Defaults to <c>true</c>.
-        /// </summary>
-        public bool Overwrite { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets whether to open Excel after saving the converted file.
-        /// </summary>
-        public bool OpenExcel { get; set; }
-
-        /// <summary>
-        /// Gets or sets optional Open XML load settings for `.xlsx` sources.
-        /// </summary>
-        public OpenSettings? OpenSettings { get; set; }
-
-        /// <summary>
-        /// Gets or sets optional legacy `.xls` import settings.
-        /// </summary>
-        public LegacyXlsImportOptions? LegacyXlsImportOptions { get; set; }
-
-        /// <summary>
-        /// Gets or sets optional save settings for the destination file.
-        /// </summary>
-        public ExcelSaveOptions? SaveOptions { get; set; }
-
-        /// <summary>
-        /// Gets or sets whether conversion may continue when the legacy `.xls` importer reports unsupported or preserve-only content.
-        /// </summary>
-        public bool AllowLossyLegacyConversion { get; set; }
-    }
-
     public partial class ExcelDocument {
         private static readonly string[] SupportedExcelConversionExtensions = { ".xls", ".xlsx" };
 
         /// <summary>
-        /// Converts an Excel workbook between `.xls` and `.xlsx` using the normal OfficeIMO load and save paths.
+        /// Converts an Excel file between XLS and XLSX and returns format and fidelity diagnostics.
         /// </summary>
-        /// <param name="sourcePath">Path to the source `.xls` or `.xlsx` file.</param>
-        /// <param name="destinationPath">Path to the destination `.xls` or `.xlsx` file.</param>
+        /// <param name="sourcePath">Path to the source XLS or XLSX file.</param>
+        /// <param name="destinationPath">Path to the destination XLS or XLSX file.</param>
         /// <param name="options">Optional conversion policy settings.</param>
-        public static void Convert(string sourcePath, string destinationPath, ExcelDocumentConversionOptions? options = null) {
+        /// <returns>The completed conversion result.</returns>
+        public static ExcelDocumentConversionResult Convert(
+            string sourcePath,
+            string destinationPath,
+            ExcelDocumentConversionOptions? options = null) {
+            return ConvertAsync(sourcePath, destinationPath, options).GetAwaiter().GetResult();
+        }
+
+        /// <summary>Asynchronously converts an Excel file between XLS and XLSX.</summary>
+        /// <param name="sourcePath">Path to the source XLS or XLSX file.</param>
+        /// <param name="destinationPath">Path to the destination XLS or XLSX file.</param>
+        /// <param name="options">Optional conversion policy settings.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The completed conversion result.</returns>
+        public static async Task<ExcelDocumentConversionResult> ConvertAsync(
+            string sourcePath,
+            string destinationPath,
+            ExcelDocumentConversionOptions? options = null,
+            CancellationToken cancellationToken = default) {
             options ??= new ExcelDocumentConversionOptions();
-            ValidateExcelConversionPaths(sourcePath, destinationPath, options.Overwrite);
-            EnsureExcelConversionDirectory(destinationPath);
+            OfficeFileConversion.Paths paths = OfficeFileConversion.ValidatePaths(
+                sourcePath,
+                destinationPath,
+                SupportedExcelConversionExtensions,
+                "Excel workbook");
 
-            using ExcelDocument document = LoadExcelConversionSource(sourcePath, options);
-            EnsureExcelLegacyConversionIsSafe(document, options);
-            document.Save(destinationPath, options.OpenExcel, options.SaveOptions);
+            using ExcelDocument document = await LoadExcelConversionSourceAsync(paths.Source, options, cancellationToken).ConfigureAwait(false);
+            ExcelFileFormat sourceFormat = document.SourceFormat;
+            ExcelFileFormat destinationFormat = GetExcelFormat(paths.Destination);
+            List<ExcelConversionDiagnostic> diagnostics = CreateExcelConversionDiagnostics(document, paths.Source, sourceFormat);
+            ExcelDocumentConversionResult assessment = CreateExcelConversionResult(
+                paths,
+                sourceFormat,
+                destinationFormat,
+                diagnostics,
+                outputCreated: false,
+                replacedExistingFile: false);
+
+            if (sourceFormat == destinationFormat) {
+                throw new ExcelDocumentConversionException(
+                    ExcelDocumentConversionFailureReason.SameFormat,
+                    assessment,
+                    $"The source is already {sourceFormat}. Convert requires different physical source and destination formats.");
+            }
+
+            if (assessment.HasDataLoss && options.LossPolicy == ExcelConversionLossPolicy.Block) {
+                throw new ExcelDocumentConversionException(
+                    ExcelDocumentConversionFailureReason.DataLossBlocked,
+                    assessment,
+                    $"Excel conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss)} source feature(s) would not survive conversion. Inspect Result.Diagnostics or set LossPolicy to Allow when that loss is intentional.");
+            }
+
+            if (File.Exists(paths.Destination)
+                && options.FileConflictPolicy == ExcelConversionFileConflictPolicy.FailIfExists) {
+                throw new ExcelDocumentConversionException(
+                    ExcelDocumentConversionFailureReason.DestinationExists,
+                    assessment,
+                    $"The destination file '{paths.Destination}' already exists. Set FileConflictPolicy to Replace to replace it atomically.");
+            }
+
+            EnsureDestinationFileWritable(paths.Destination);
+
+            OfficeFileConversion.EnsureDestinationDirectory(paths.Destination);
+            string stagingPath = OfficeFileCommit.CreateStagingPath(paths.Destination);
+            try {
+                try {
+                    ExcelSaveOptions conversionSaveOptions = (options.SaveOptions ?? new ExcelSaveOptions()).WithLossPolicy(options.LossPolicy);
+                    await document.SaveAsync(stagingPath, openExcel: false, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
+                } catch (NotSupportedException exception) {
+                    diagnostics.Add(new ExcelConversionDiagnostic(
+                        "Excel.DestinationFeatureUnsupported",
+                        ExcelConversionDiagnosticCategory.DestinationFormat,
+                        ExcelConversionDiagnosticSeverity.Error,
+                        exception.Message,
+                        representsDataLoss: false));
+                    throw new ExcelDocumentConversionException(
+                        ExcelDocumentConversionFailureReason.DestinationFeatureUnsupported,
+                        CreateExcelConversionResult(paths, sourceFormat, destinationFormat, diagnostics, false, false),
+                        $"The workbook contains content that cannot be written as {destinationFormat}. See Result.Diagnostics for the specific unsupported feature.",
+                        exception);
+                }
+
+                bool replacesExistingFile = File.Exists(paths.Destination);
+                try {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    OfficeFileCommit.CommitTemporaryFile(
+                        stagingPath,
+                        paths.Destination,
+                        options.FileConflictPolicy == ExcelConversionFileConflictPolicy.Replace
+                            ? OfficeFileCommit.ConflictPolicy.Replace
+                            : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                    stagingPath = string.Empty;
+                } catch (IOException exception) when (
+                    options.FileConflictPolicy == ExcelConversionFileConflictPolicy.FailIfExists
+                    && File.Exists(paths.Destination)) {
+                    throw new ExcelDocumentConversionException(
+                        ExcelDocumentConversionFailureReason.DestinationExists,
+                        assessment,
+                        $"The destination file '{paths.Destination}' was created while conversion was running and was not replaced.",
+                        exception);
+                }
+
+                if (options.OpenAfterSave) document.Open(paths.Destination, true);
+                return CreateExcelConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
+            } finally {
+                OfficeFileCommit.DeleteIfExists(stagingPath);
+            }
         }
 
-        private static ExcelDocument LoadExcelConversionSource(string sourcePath, ExcelDocumentConversionOptions options) {
-            if (options.LegacyXlsImportOptions != null && ExcelDocumentLoadRouting.HasLegacyXlsExtension(sourcePath)) {
-                return LoadLegacyXls(sourcePath, options.LegacyXlsImportOptions);
+        private static async Task<ExcelDocument> LoadExcelConversionSourceAsync(
+            string sourcePath,
+            ExcelDocumentConversionOptions options,
+            CancellationToken cancellationToken) {
+            if (options.LegacyXlsImportOptions != null) {
+                byte[] sourceBytes = await OfficeFileConversion.ReadAllBytesAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+                if (ExcelDocumentLoadRouting.IsLegacyXls(sourceBytes, sourcePath)) {
+                    LegacyXlsImportOptions importOptions = CreateConversionImportOptions(options.LegacyXlsImportOptions);
+                    return LoadLegacyXlsFromNormalFlow(
+                        sourceBytes,
+                        readOnly: false,
+                        autoSave: false,
+                        filePath: sourcePath,
+                        openSettings: null,
+                        importOptions: importOptions);
+                }
             }
 
-            return Load(sourcePath, readOnly: false, autoSave: false, openSettings: options.OpenSettings);
+            return await LoadAsync(
+                sourcePath,
+                readOnly: false,
+                autoSave: false,
+                openSettings: CreateConversionOpenSettings(options.OpenSettings),
+                cancellationToken).ConfigureAwait(false);
         }
 
-        private static void EnsureExcelLegacyConversionIsSafe(ExcelDocument document, ExcelDocumentConversionOptions options) {
-            if (!document.WasLoadedFromLegacyXls || options.AllowLossyLegacyConversion) {
-                return;
+        private static OpenSettings? CreateConversionOpenSettings(OpenSettings? openSettings) {
+            if (openSettings == null) {
+                return null;
             }
 
-            int lossyFeatureCount = document.LegacyXlsUnsupportedFeatures.Count
-                + document.LegacyXlsUnsupportedSheets.Count
-                + document.LegacyXlsCompoundFeatures.Count(feature =>
-                    feature.Kind == LegacyXls.Model.LegacyXlsCompoundFeatureRecordKind.VbaProject
-                    || feature.Kind == LegacyXls.Model.LegacyXlsCompoundFeatureRecordKind.OleObject);
-            if (lossyFeatureCount == 0) {
-                return;
-            }
-
-            throw new NotSupportedException($"Legacy XLS conversion is blocked because the source contains {lossyFeatureCount} unsupported, preserve-only, or non-projected feature(s). Review LegacyXlsUnsupportedFeatures, LegacyXlsUnsupportedSheets, LegacyXlsChartSheets, and LegacyXlsCompoundFeatures or set ExcelDocumentConversionOptions.AllowLossyLegacyConversion when that loss is intentional.");
+            return new OpenSettings {
+                AutoSave = false,
+                CompatibilityLevel = openSettings.CompatibilityLevel,
+                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
+                MaxCharactersInPart = openSettings.MaxCharactersInPart,
+            };
         }
 
-        private static void ValidateExcelConversionPaths(string sourcePath, string destinationPath, bool overwrite) {
-            ValidateExcelConversionPath(sourcePath, nameof(sourcePath), SupportedExcelConversionExtensions);
-            ValidateExcelConversionPath(destinationPath, nameof(destinationPath), SupportedExcelConversionExtensions);
-
-            string sourceFullPath = Path.GetFullPath(sourcePath);
-            string destinationFullPath = Path.GetFullPath(destinationPath);
-
-            if (!File.Exists(sourceFullPath)) {
-                throw new FileNotFoundException("The source Excel workbook was not found.", sourceFullPath);
-            }
-
-            if (PathsReferToSameFile(sourceFullPath, destinationFullPath)) {
-                throw new IOException("The source and destination paths must be different for conversion.");
-            }
-
-            if (!overwrite && File.Exists(destinationFullPath)) {
-                throw new IOException($"The destination file '{destinationFullPath}' already exists.");
-            }
+        private static LegacyXlsImportOptions CreateConversionImportOptions(LegacyXlsImportOptions options) {
+            return new LegacyXlsImportOptions {
+                MaxInputBytes = options.MaxInputBytes,
+                Password = options.Password,
+                // Conversion loss policy depends on complete unsupported-content discovery.
+                ReportUnsupportedContent = true
+            };
         }
 
-        private static void ValidateExcelConversionPath(string path, string parameterName, IReadOnlyCollection<string> supportedExtensions) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("A file path is required.", parameterName);
+        private static List<ExcelConversionDiagnostic> CreateExcelConversionDiagnostics(
+            ExcelDocument document,
+            string sourcePath,
+            ExcelFileFormat detectedFormat) {
+            var diagnostics = new List<ExcelConversionDiagnostic>();
+            ExcelFileFormat declaredFormat = GetExcelFormat(sourcePath);
+            if (declaredFormat != detectedFormat) {
+                diagnostics.Add(new ExcelConversionDiagnostic(
+                    "Excel.SourceExtensionMismatch",
+                    ExcelConversionDiagnosticCategory.SourceFormat,
+                    ExcelConversionDiagnosticSeverity.Warning,
+                    $"The source extension declares {declaredFormat}, but its content is {detectedFormat}. Content detection was used.",
+                    representsDataLoss: false));
             }
 
-            string extension = Path.GetExtension(path);
-            if (!supportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase)) {
-                throw new NotSupportedException($"Excel conversion supports .xls and .xlsx files. The path '{path}' uses '{extension}'.");
+            foreach (LegacyXlsUnsupportedFeature feature in document.LegacyXlsUnsupportedFeatures) {
+                diagnostics.Add(CreateExcelDataLossDiagnostic(feature.Code, feature.Description));
             }
-        }
-
-        private static void EnsureExcelConversionDirectory(string destinationPath) {
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(destinationPath));
-            if (!string.IsNullOrEmpty(directory)) {
-                Directory.CreateDirectory(directory);
+            foreach (LegacyXlsPreservedFeatureRecord feature in document.LegacyXlsPreservedFeatures) {
+                diagnostics.Add(CreateExcelDataLossDiagnostic(feature.Code, feature.Description));
             }
+            foreach (LegacyXlsUnsupportedSheet sheet in document.LegacyXlsUnsupportedSheets) {
+                diagnostics.Add(CreateExcelDataLossDiagnostic(
+                    $"Excel.LegacyXls.UnsupportedSheet.{sheet.Kind}",
+                    $"Legacy sheet '{sheet.Name}' ({sheet.Kind}) was not projected as a normal worksheet."));
+            }
+            foreach (LegacyXlsCompoundFeatureRecord feature in document.LegacyXlsCompoundFeatures.Where(IsLossyExcelCompoundFeature)) {
+                diagnostics.Add(CreateExcelDataLossDiagnostic(
+                    $"Excel.LegacyXls.Compound.{feature.Kind}",
+                    $"Legacy compound feature '{feature.Kind}' with {feature.Entries.Count} entr{(feature.Entries.Count == 1 ? "y" : "ies")} is not projected into XLSX."));
+            }
+
+            return diagnostics
+                .GroupBy(diagnostic => diagnostic.Code + "\0" + diagnostic.Message, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .ToList();
         }
 
-        private static bool PathsReferToSameFile(string left, string right) {
-            StringComparison comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? StringComparison.OrdinalIgnoreCase
-                : StringComparison.Ordinal;
-            return string.Equals(NormalizeConversionPath(left), NormalizeConversionPath(right), comparison);
+        private static bool IsLossyExcelCompoundFeature(LegacyXlsCompoundFeatureRecord feature) {
+            return feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
+                || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject;
         }
 
-        private static string NormalizeConversionPath(string path) {
-            return path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        private static ExcelConversionDiagnostic CreateExcelDataLossDiagnostic(string code, string message) {
+            return new ExcelConversionDiagnostic(
+                code,
+                ExcelConversionDiagnosticCategory.DataLoss,
+                ExcelConversionDiagnosticSeverity.Warning,
+                message,
+                representsDataLoss: true);
+        }
+
+        private static ExcelDocumentConversionResult CreateExcelConversionResult(
+            OfficeFileConversion.Paths paths,
+            ExcelFileFormat sourceFormat,
+            ExcelFileFormat destinationFormat,
+            IReadOnlyList<ExcelConversionDiagnostic> diagnostics,
+            bool outputCreated,
+            bool replacedExistingFile) {
+            return new ExcelDocumentConversionResult(
+                paths.Source,
+                paths.Destination,
+                sourceFormat,
+                destinationFormat,
+                diagnostics.ToArray(),
+                outputCreated,
+                replacedExistingFile);
+        }
+
+        private static ExcelFileFormat GetExcelFormat(string path) {
+            return string.Equals(Path.GetExtension(path), ".xls", StringComparison.OrdinalIgnoreCase)
+                ? ExcelFileFormat.Xls
+                : ExcelFileFormat.Xlsx;
         }
     }
 }

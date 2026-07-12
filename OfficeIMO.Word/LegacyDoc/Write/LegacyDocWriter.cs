@@ -86,10 +86,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
-        internal static byte[] WriteDocument(WordDocument document) {
+        internal static byte[] WriteDocument(WordDocument document, WordSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
-            ThrowIfUnsupportedLegacyDocImportState(document);
+            ThrowIfUnsupportedLegacyDocImportState(document, options);
 
             LegacyDocWritableBody body = BuildBody(document);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body));
@@ -106,11 +106,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return OfficeCompoundFileWriter.Write(streams);
         }
 
-        private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document) {
-            if (!document.WasLoadedFromLegacyDoc
+        private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document, WordSaveOptions? options) {
+            if (document.SourceFormat != WordFileFormat.Doc
                 || (document.LegacyDocUnsupportedFeatures.Count == 0
                     && document.LegacyDocPreservedFeatures.Count == 0
-                    && document.LegacyDocCompoundFeatures.Count == 0)) {
+                    && document.LegacyDocCompoundFeatures.Count == 0)
+                || options?.LossPolicy == WordConversionLossPolicy.Allow) {
                 return;
             }
 

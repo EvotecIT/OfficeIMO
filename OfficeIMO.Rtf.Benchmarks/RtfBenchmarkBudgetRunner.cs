@@ -118,7 +118,7 @@ internal static class RtfBenchmarkBudgetRunner {
             outputBytes = 0;
         } else if (string.Equals(operation, "Word", StringComparison.OrdinalIgnoreCase)) {
             using WordDocument word = preparedDocument!.ToWordDocument();
-            using MemoryStream stream = word.SaveAsMemoryStream();
+            using MemoryStream stream = word.ToDocxStream();
             outputBytes = stream.Length;
         } else {
             ReaderChunk[] chunks = DocumentReaderRtfExtensions.ReadRtfDocument(preparedDocument!).ToArray();

@@ -28,17 +28,25 @@ public static class HtmlConversionDocumentBuilder {
             ? HtmlNormalizer.Normalize(document, ConfigureNormalization(document, options))
             : string.Empty;
         string adapterHtml = HtmlNormalizer.Normalize(document, ConfigureAdapterNormalization(document, options));
+        IHtmlDocument adapterDocument = HtmlDocumentParser.ParseDocument(adapterHtml);
+        IHtmlDocument documentForConversion = HtmlDocumentParser.CloneDocument(adapterDocument);
+        HtmlActiveMediaFilter.Filter(documentForConversion, mediaContext);
+        string filteredAdapterHtml = documentForConversion.DocumentElement?.OuterHtml ?? adapterHtml;
 
         return new HtmlConversionDocument(
             html,
+            document,
+            adapterDocument,
+            documentForConversion,
             HtmlConversionProfileContracts.Get(options.Profile),
+            options.Trust,
             logical,
             styles,
             styleSummary,
             manifest,
             resourcePlan,
             normalized,
-            adapterHtml);
+            filteredAdapterHtml);
     }
 
     private static HtmlNormalizationOptions ConfigureNormalization(IHtmlDocument document, HtmlConversionDocumentOptions options) {

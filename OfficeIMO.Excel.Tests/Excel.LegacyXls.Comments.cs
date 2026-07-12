@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 });
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             ExcelCommentInfo projectedComment = Assert.Single(document.Sheets[0].GetComments());
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             LegacyXlsComment comment = Assert.Single(Assert.Single(legacy.Worksheets).Comments);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Comments By Anchor Range", report.ToMarkdown());
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             using var output = new MemoryStream();
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             using var output = new MemoryStream();

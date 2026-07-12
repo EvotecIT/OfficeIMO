@@ -24,6 +24,12 @@ public sealed class ExcelHtmlSaveOptions {
     /// <summary>Text used for empty cells.</summary>
     public string EmptyCellText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Controls worksheet header semantics. Defaults to <see cref="ExcelHtmlHeaderMode.FirstRow"/>
+    /// for compatibility with earlier OfficeIMO HTML output.
+    /// </summary>
+    public ExcelHtmlHeaderMode HeaderMode { get; set; } = ExcelHtmlHeaderMode.FirstRow;
+
     /// <summary>Options used by the existing Excel SVG visual export lane.</summary>
     public ExcelWorkbookImageExportOptions? VisualOptions { get; set; }
 }

@@ -220,7 +220,7 @@ namespace OfficeIMO.Word.Html {
                     break;
                 }
 
-                var args = WordHtmlConverterExtensions.OnStyleMissing(paragraph, cls);
+                var args = WordHtmlConverterExtensions.OnStyleMissing(options, paragraph, cls);
                 if (args.Style.HasValue) {
                     paragraph.Style = args.Style.Value;
                     break;

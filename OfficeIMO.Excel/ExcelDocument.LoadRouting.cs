@@ -1,15 +1,27 @@
+using OfficeIMO.Shared;
+
 namespace OfficeIMO.Excel {
     internal static class ExcelDocumentLoadRouting {
         private static readonly byte[] ZipSignature = { 0x50, 0x4B };
-        private static readonly byte[] OleCompoundSignature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
 
         internal static bool IsLegacyXls(byte[] bytes, string? filePath) {
-            if (HasOleCompoundSignature(bytes)) {
-                return true;
+            if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
+                return RouteCompoundDocument(bytes, encryptedLoad: false, filePath);
             }
 
             if (HasZipSignature(bytes)) {
                 return false;
+            }
+
+            return HasLegacyXlsExtension(filePath);
+        }
+
+        /// <summary>
+        /// Distinguishes an encrypted legacy workbook from an encrypted Open XML package by its OLE root streams.
+        /// </summary>
+        internal static bool IsEncryptedLegacyXls(byte[] bytes, string? filePath) {
+            if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
+                return RouteCompoundDocument(bytes, encryptedLoad: true, filePath);
             }
 
             return HasLegacyXlsExtension(filePath);
@@ -39,18 +51,25 @@ namespace OfficeIMO.Excel {
                 && bytes[1] == ZipSignature[1];
         }
 
-        private static bool HasOleCompoundSignature(byte[] bytes) {
-            if (bytes.Length < OleCompoundSignature.Length) {
-                return false;
+        private static bool RouteCompoundDocument(byte[] bytes, bool encryptedLoad, string? filePath) {
+            OfficeCompoundDocumentDetector.DocumentKind kind = OfficeCompoundDocumentDetector.Detect(bytes, out _);
+            switch (kind) {
+                case OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook:
+                    return true;
+                case OfficeCompoundDocumentDetector.DocumentKind.WordDocument:
+                    throw new InvalidDataException("The input contains a legacy Word document, not an Excel workbook. Load it with OfficeIMO.Word.WordDocument.");
+                case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
+                    if (encryptedLoad) {
+                        return false;
+                    }
+                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use ExcelDocument.LoadEncrypted and provide its password.");
+                case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:
+                    throw new InvalidDataException("The OLE compound file contains more than one root Office document stream and cannot be routed safely.");
+                default:
+                    // Normal loads retain their legacy-reader diagnostics. Encrypted loads
+                    // fall back to the extension only when the compound root is unknown.
+                    return !encryptedLoad || HasLegacyXlsExtension(filePath);
             }
-
-            for (int i = 0; i < OleCompoundSignature.Length; i++) {
-                if (bytes[i] != OleCompoundSignature[i]) {
-                    return false;
-                }
-            }
-
-            return true;
         }
     }
 }

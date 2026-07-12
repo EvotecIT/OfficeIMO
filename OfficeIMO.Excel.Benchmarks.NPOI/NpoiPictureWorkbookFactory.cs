@@ -43,7 +43,7 @@ internal static class NpoiPictureWorkbookFactory {
 
 internal static class NpoiPictureComparison {
     internal static int ReadOfficeImoXlsPictures(byte[] workbookBytes, int expectedPictureCount, Func<int, object?, int> addValueMetric) {
-        LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedRecords = true });
+        LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookBytes, new LegacyXlsImportOptions { ReportUnsupportedContent = true });
         List<LegacyXlsDrawingBlipStoreEntry> blipEntries = workbook.DrawingRecords
             .SelectMany(record => record.BlipStoreEntries)
             .ToList();

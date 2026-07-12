@@ -1,17 +1,17 @@
+using OfficeIMO.Html;
+
 namespace OfficeIMO.Excel.Html;
 
 /// <summary>
 /// Summary of a semantic Excel HTML import.
 /// </summary>
-public sealed class HtmlToExcelResult {
-    internal HtmlToExcelResult(ExcelDocument workbook) {
-        Workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
-    }
+public sealed class HtmlToExcelResult : HtmlConversionResult<ExcelDocument> {
+    internal HtmlToExcelResult(ExcelDocument workbook) : base(workbook) { }
 
     /// <summary>
     /// Imported workbook.
     /// </summary>
-    public ExcelDocument Workbook { get; }
+    public ExcelDocument Workbook => Artifact;
 
     /// <summary>
     /// Number of imported worksheets.
@@ -22,6 +22,11 @@ public sealed class HtmlToExcelResult {
     /// Number of imported worksheet table cells.
     /// </summary>
     public int Cells { get; internal set; }
+
+    /// <summary>
+    /// Number of merged worksheet ranges restored from the HTML table grid.
+    /// </summary>
+    public int MergedRanges { get; internal set; }
 
     /// <summary>
     /// Number of formulas restored from semantic formula inventory.
@@ -43,8 +48,4 @@ public sealed class HtmlToExcelResult {
     /// </summary>
     public int Charts { get; internal set; }
 
-    /// <summary>
-    /// Import diagnostics for skipped or approximate rich content.
-    /// </summary>
-    public IList<string> Diagnostics { get; } = new List<string>();
 }

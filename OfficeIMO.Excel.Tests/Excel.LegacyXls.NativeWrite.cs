@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("StreamXls");
                 sheet.CellValue(1, 1, "Native stream XLS");
 
-                document.Save(stream, new ExcelSaveOptions { StreamFormat = ExcelStreamSaveFormat.LegacyXls });
+                document.Save(stream, ExcelFileFormat.Xls);
             }
 
             AssertLegacyXlsStreamCell(stream, 1, 1, "Native stream XLS");
@@ -156,12 +156,12 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Empty(document.LegacyXlsUnsupportedFeatures);
                 Assert.NotEmpty(document.LegacyXlsChartSheets);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
-                Assert.Contains(nameof(ExcelSaveOptions.AllowLossyLegacyXlsSave), exception.Message);
+                Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
                 Assert.False(File.Exists(xlsOutputPath));
             } finally {
                 TryDelete(xlsOutputPath);
@@ -176,13 +176,13 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Empty(document.LegacyXlsUnsupportedFeatures);
                 LegacyXlsCompoundFeatureRecord feature = Assert.Single(document.LegacyXlsCompoundFeatures);
                 Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, feature.Kind);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
-                Assert.Contains(nameof(ExcelSaveOptions.AllowLossyLegacyXlsSave), exception.Message);
+                Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
                 Assert.False(File.Exists(xlsOutputPath));
             } finally {
                 TryDelete(xlsOutputPath);
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument loaded = ExcelDocument.Load(xlsOutputPath);
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
 
-                Assert.True(loaded.WasLoadedFromLegacyXls);
+                Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(11d, loadedSheet.DefaultColumnWidth);
                 Assert.Equal(18.5d, loadedSheet.DefaultRowHeight);
                 Assert.True(loadedSheet.DefaultRowsHidden);
@@ -732,7 +732,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument loaded = ExcelDocument.Load(xlsOutputPath);
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
 
-                Assert.True(loaded.WasLoadedFromLegacyXls);
+                Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
 
                 ExcelSheetPageSetup pageSetup = loadedSheet.GetPageSetup();
                 Assert.Equal(ExcelPageOrientation.Landscape, pageSetup.Orientation);
@@ -884,7 +884,7 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetupProperties>()!;
                 DocumentFormat.OpenXml.Spreadsheet.PrintOptions loadedPrintOptions = loadedWorksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PrintOptions>()!;
 
-                Assert.True(loaded.WasLoadedFromLegacyXls);
+                Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(loadedOutline.ApplyStyles!.Value);
                 Assert.False(loadedOutline.SummaryBelow!.Value);
                 Assert.True(loadedOutline.SummaryRight!.Value);
@@ -2632,15 +2632,15 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Streamed");
                 sheet.CellValue(1, 1, "Sync");
                 sheet.CellValue(2, 1, 42d);
-                var options = new ExcelSaveOptions { StreamFormat = ExcelStreamSaveFormat.LegacyXls };
+                var options = new ExcelSaveOptions();
 
                 using var syncStream = new MemoryStream();
-                document.Save(syncStream, options);
+                document.Save(syncStream, ExcelFileFormat.Xls, options);
                 AssertLegacyXlsStreamCell(syncStream, 1, 1, "Sync");
 
                 sheet.CellValue(1, 1, "Async");
                 using var asyncStream = new MemoryStream();
-                await document.SaveAsync(asyncStream, options);
+                await document.SaveAsync(asyncStream, ExcelFileFormat.Xls, options);
                 AssertLegacyXlsStreamCell(asyncStream, 1, 1, "Async");
             } finally {
                 TryDelete(openXmlPath);

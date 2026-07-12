@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
 
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(sourcePath, document.FilePath);
                 Assert.DoesNotContain(document.LegacyXlsImportDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
                 Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? header));
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 document.Save(outputPath);
 
                 using ExcelDocument converted = ExcelDocument.Load(outputPath);
-                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(converted.Sheets[0].TryGetCellText(2, 2, out string? amount));
                 Assert.Equal("42", amount);
             } finally {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = await ExcelDocument.LoadAsync(sourcePath);
 
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(document.Sheets[0].TryGetCellText(2, 2, out string? amount));
                 Assert.Equal("42", amount);
             } finally {
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.LoadEncrypted(sourcePath, "openpass");
 
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(string.Empty, document.FilePath);
                 Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
                 Assert.Throws<InvalidOperationException>(() => document.Save());
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = await ExcelDocument.LoadEncryptedAsync(sourcePath, "openpass");
 
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(string.Empty, document.FilePath);
                 Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
                 Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
@@ -88,6 +88,62 @@ namespace OfficeIMO.Tests {
             } finally {
                 TryDelete(sourcePath);
             }
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        public async Task EncryptedLoad_RoutesMisleadingExtensionsByContent(bool legacyPayload, bool asyncLoad) {
+            const string password = "openpass";
+            byte[] encryptedBytes;
+            string misleadingExtension;
+
+            if (legacyPayload) {
+                byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream(password);
+                encryptedBytes = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+                misleadingExtension = ".xlsx";
+            } else {
+                using var sourceStream = new MemoryStream();
+                using ExcelDocument source = ExcelDocument.Create(sourceStream);
+                source.AddWorkSheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
+                using var encrypted = new MemoryStream();
+                source.SaveEncrypted(encrypted, password);
+                encryptedBytes = encrypted.ToArray();
+                misleadingExtension = ".xls";
+            }
+
+            string sourcePath = WriteTempWorkbook(encryptedBytes, misleadingExtension);
+            try {
+                using ExcelDocument document = asyncLoad
+                    ? await ExcelDocument.LoadEncryptedAsync(sourcePath, password)
+                    : ExcelDocument.LoadEncrypted(sourcePath, password);
+
+                Assert.Equal(legacyPayload ? ExcelFileFormat.Xls : ExcelFileFormat.Xlsx, document.SourceFormat);
+                Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal(legacyPayload ? "RC4 secret" : "Encrypted Open XML", value);
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task EncryptedLoad_StreamRoutesLegacyXlsByContent(bool asyncLoad) {
+            const string password = "openpass";
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream(password);
+            byte[] encryptedBytes = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            using var source = new MemoryStream(encryptedBytes);
+
+            using ExcelDocument document = asyncLoad
+                ? await ExcelDocument.LoadEncryptedAsync(source, password)
+                : ExcelDocument.LoadEncrypted(source, password);
+
+            Assert.Equal(ExcelFileFormat.Xls, document.SourceFormat);
+            Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
+            Assert.Equal("RC4 secret", value);
         }
 
         [Fact]
@@ -101,7 +157,7 @@ namespace OfficeIMO.Tests {
             output.Position = 0;
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(output, false);
 
-            Assert.True(document.WasLoadedFromLegacyXls);
+            Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
             Assert.NotNull(spreadsheet.WorkbookPart);
         }
 
@@ -117,7 +173,7 @@ namespace OfficeIMO.Tests {
                 await document.SaveAsync(outputPath, openExcel: false);
 
                 using ExcelDocument converted = ExcelDocument.Load(outputPath);
-                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? header));
                 Assert.Equal("Name", header);
                 Assert.True(converted.Sheets[0].TryGetCellText(2, 2, out string? amount));
@@ -139,7 +195,7 @@ namespace OfficeIMO.Tests {
 
             output.Position = 0;
             using ExcelDocument converted = ExcelDocument.Load(output);
-            Assert.False(converted.WasLoadedFromLegacyXls);
+            Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
             Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.Equal("Name", header);
             Assert.True(converted.Sheets[0].TryGetCellText(2, 2, out string? amount));
@@ -160,7 +216,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.ThrowsAny<Exception>(() => SpreadsheetDocument.Open(outputPath, false).Dispose());
                 using ExcelDocument decrypted = ExcelDocument.LoadEncrypted(outputPath, password);
-                Assert.False(decrypted.WasLoadedFromLegacyXls);
+                Assert.False(decrypted.SourceFormat == ExcelFileFormat.Xls);
                 Assert.True(decrypted.Sheets[0].TryGetCellText(1, 1, out string? header));
                 Assert.Equal("Name", header);
                 Assert.True(decrypted.Sheets[0].TryGetCellText(2, 2, out string? amount));
@@ -186,7 +242,7 @@ namespace OfficeIMO.Tests {
 
             output.Position = 0;
             using ExcelDocument decrypted = ExcelDocument.LoadEncrypted(output, password);
-            Assert.False(decrypted.WasLoadedFromLegacyXls);
+            Assert.False(decrypted.SourceFormat == ExcelFileFormat.Xls);
             Assert.True(decrypted.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.Equal("Name", header);
             Assert.True(decrypted.Sheets[0].TryGetCellText(2, 2, out string? amount));
@@ -208,7 +264,7 @@ namespace OfficeIMO.Tests {
                 File.Copy(openXmlPath, renamedPath);
 
                 using ExcelDocument renamed = ExcelDocument.Load(renamedPath);
-                Assert.False(renamed.WasLoadedFromLegacyXls);
+                Assert.False(renamed.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(renamedPath, renamed.FilePath);
                 Assert.True(renamed.Sheets[0].TryGetCellText(1, 1, out string? value));
                 Assert.Equal("Open XML payload", value);
@@ -268,7 +324,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = await ExcelDocument.LoadAsync(new MemoryStream(compound));
 
-            Assert.True(document.WasLoadedFromLegacyXls);
+            Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
             Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.Equal("Name", header);
         }
@@ -320,7 +376,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
 
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(sourcePath, document.FilePath);
                 Assert.Throws<NotSupportedException>(() => document.Save());
                 Assert.Throws<NotSupportedException>(() => document.Save(outputPath));
@@ -342,7 +398,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.LoadLegacyXls(sourcePath)) {
-                    Assert.True(document.WasLoadedFromLegacyXls);
+                    Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                     Assert.Equal(sourcePath, document.FilePath);
 
                     AssertLegacyBinarySaveTargetRejected(() => document.Save());
@@ -350,7 +406,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(sourcePath)) {
-                    Assert.True(result.Document.WasLoadedFromLegacyXls);
+                    Assert.True(result.Document.SourceFormat == ExcelFileFormat.Xls);
                     Assert.Equal(sourcePath, result.Document.FilePath);
 
                     AssertLegacyBinarySaveTargetRejected(() => result.Document.Save());
@@ -371,7 +427,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.LoadLegacyXls(sourcePath);
 
-                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Equal(sourcePath, document.FilePath);
                 document.Save();
                 AssertNativeXlsRoundTrip(sourcePath);
@@ -392,7 +448,7 @@ namespace OfficeIMO.Tests {
             try {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
 
-                Assert.True(result.Document.WasLoadedFromLegacyXls);
+                Assert.True(result.Document.SourceFormat == ExcelFileFormat.Xls);
                 result.Document.Save(xlsOutputPath);
                 AssertNativeXlsRoundTrip(xlsOutputPath);
             } finally {
@@ -433,7 +489,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument normal = ExcelDocument.Load(new MemoryStream(compound));
                 using ExcelDocument explicitLoad = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
 
-                Assert.True(normal.WasLoadedFromLegacyXls);
+                Assert.True(normal.SourceFormat == ExcelFileFormat.Xls);
                 Assert.Empty(normal.LegacyXlsUnsupportedSheets);
                 Assert.Empty(normal.LegacyXlsUnsupportedFeatures);
                 Assert.Equal("ChartOnly", Assert.Single(normal.LegacyXlsChartSheets).Name);
@@ -544,7 +600,7 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
 
-            Assert.True(document.WasLoadedFromLegacyXls);
+            Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
             Assert.NotEmpty(document.LegacyXlsUnsupportedFeatures);
 
             ExcelFeatureReport report = document.InspectFeatures();
@@ -563,7 +619,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             result.EnsureNoImportErrors();
@@ -595,7 +651,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0xe0, bytes[3]);
 
             using ExcelDocument normal = ExcelDocument.Load(path);
-            Assert.True(normal.WasLoadedFromLegacyXls);
+            Assert.True(normal.SourceFormat == ExcelFileFormat.Xls);
             Assert.True(normal.Sheets[0].TryGetCellText(1, 1, out string? name));
             Assert.Equal(expectedName, name);
             if (expectedRow2Name != null) {
@@ -609,7 +665,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedFlag, flag);
 
             using ExcelDocument explicitLoad = ExcelDocument.LoadLegacyXls(path);
-            Assert.True(explicitLoad.WasLoadedFromLegacyXls);
+            Assert.True(explicitLoad.SourceFormat == ExcelFileFormat.Xls);
             Assert.True(explicitLoad.Sheets[0].TryGetCellText(1, 1, out string? explicitName));
             Assert.Equal(expectedName, explicitName);
         }

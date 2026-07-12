@@ -77,6 +77,12 @@ public static partial class HtmlRtfConverterExtensions {
         return RtfHtmlReader.Read(html, options ?? new HtmlToRtfOptions());
     }
 
+    /// <summary>Loads a prepared shared HTML conversion document into an RTF document model without reparsing.</summary>
+    public static RtfDocument ToRtfDocument(this HtmlConversionDocument document, HtmlToRtfOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return RtfHtmlReader.Read(document.DocumentForConversion, options ?? new HtmlToRtfOptions());
+    }
+
     /// <summary>Loads encoded semantic HTML bytes into an RTF document model.</summary>
     public static RtfDocument ToRtfDocument(this byte[] htmlBytes, HtmlToRtfOptions? options = null, Encoding? encoding = null) {
         if (htmlBytes == null) {

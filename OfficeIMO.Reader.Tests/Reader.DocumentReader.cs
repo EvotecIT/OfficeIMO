@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -97,6 +98,41 @@ public sealed class ReaderDocumentReaderTests {
         Assert.Equal(ReaderInputKind.Excel, result.Kind);
         Assert.NotEmpty(result.Tables);
         Assert.Empty(result.Assets);
+    }
+
+    [Fact]
+    public void DocumentReader_LegacyXlsWarningsIncludePreservedRecords() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using ExcelDocument document = ExcelDocument.Create(path, autoSave: false);
+            document.AddWorkSheet("Data").CellValue(1, 1, "Preserved record warning");
+
+            typeof(ExcelDocument)
+                .GetProperty(nameof(ExcelDocument.SourceFormat))!
+                .SetValue(document, ExcelFileFormat.Xls);
+            typeof(ExcelDocument)
+                .GetField("_legacyXlsPreservedFeatures", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(document, new[] {
+                    new LegacyXlsPreservedFeatureRecord(
+                        LegacyXlsUnsupportedFeatureKind.Comment,
+                        "XLS-BIFF-FEATURE-COMMENT-UNSUPPORTED",
+                        "Comment metadata was not projected.",
+                        "Data",
+                        recordOffset: 42,
+                        recordType: 0x001c,
+                        payloadLength: 12,
+                        detailCode: "Comment:Record0x001C")
+                });
+
+            IReadOnlyList<string> warnings = DocumentReader.BuildLegacyExcelWarnings(document)!;
+
+            string warning = Assert.Single(warnings);
+            Assert.Contains("Legacy XLS preserved feature", warning, StringComparison.Ordinal);
+            Assert.Contains("XLS-BIFF-FEATURE-COMMENT-UNSUPPORTED", warning, StringComparison.Ordinal);
+            Assert.Contains("Comment metadata was not projected", warning, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]

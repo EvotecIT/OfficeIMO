@@ -1,20 +1,5 @@
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Selects the physical document format for stream saves, where no file extension is available.
-    /// </summary>
-    public enum WordStreamSaveFormat {
-        /// <summary>
-        /// Save streams as the standard Office Open XML package format.
-        /// </summary>
-        OpenXml = 0,
-
-        /// <summary>
-        /// Save streams as a native Word 97-2003 legacy .doc compound file.
-        /// </summary>
-        LegacyDoc = 1
-    }
-
-    /// <summary>
     /// Describes how save operations should handle documents carrying digital-signature metadata.
     /// </summary>
     public enum WordSignedDocumentSavePolicy {
@@ -33,11 +18,14 @@ namespace OfficeIMO.Word {
     /// Optional behaviors applied during Word document save operations.
     /// </summary>
     public sealed class WordSaveOptions {
+        /// <summary>Gets or sets whether to open the saved file after a successful file commit.</summary>
+        public bool OpenAfterSave { get; set; }
+
         /// <summary>
-        /// Selects the physical document format for <see cref="WordDocument.Save(System.IO.Stream, WordSaveOptions?)"/>.
-        /// File-path saves continue to use the destination extension.
+        /// Controls saves of documents projected from legacy DOC files when known legacy-only
+        /// content cannot be represented by the selected output format. The default blocks the save.
         /// </summary>
-        public WordStreamSaveFormat StreamFormat { get; set; }
+        public WordConversionLossPolicy LossPolicy { get; set; } = WordConversionLossPolicy.Block;
 
         /// <summary>
         /// Gets or sets how save operations handle documents carrying digital-signature metadata.
@@ -53,6 +41,14 @@ namespace OfficeIMO.Word {
         /// Returns an options instance with all optional behaviors disabled.
         /// </summary>
         public static WordSaveOptions None => new();
+
+        internal WordSaveOptions WithLossPolicy(WordConversionLossPolicy lossPolicy) {
+            return new WordSaveOptions {
+                OpenAfterSave = OpenAfterSave,
+                LossPolicy = lossPolicy,
+                SignedDocumentPolicy = SignedDocumentPolicy
+            };
+        }
     }
 
     /// <summary>

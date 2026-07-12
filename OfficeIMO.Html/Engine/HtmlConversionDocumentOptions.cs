@@ -7,6 +7,11 @@ public sealed class HtmlConversionDocumentOptions {
     /// <summary>Conversion profile the document should advertise to downstream adapters.</summary>
     public HtmlConversionProfile Profile { get; set; } = HtmlConversionProfile.Semantic;
 
+    /// <summary>
+    /// Caller-assigned input trust boundary. This is independent from the semantic or visual fidelity profile.
+    /// </summary>
+    public HtmlInputTrust Trust { get; set; } = HtmlInputTrust.Untrusted;
+
     /// <summary>Optional base URI used for URL normalization and resource planning.</summary>
     public Uri? BaseUri { get; set; }
 

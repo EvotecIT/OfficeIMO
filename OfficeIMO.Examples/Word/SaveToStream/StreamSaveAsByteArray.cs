@@ -12,15 +12,15 @@ namespace OfficeIMO.Examples.Word {
         /// </summary>
         /// <param name="folderPath">Directory to store the file.</param>
         /// <param name="openWord">Opens Word when <c>true</c>.</param>
-        public static void Example_SaveAsByteArray(string folderPath, bool openWord) {
+        public static void Example_ToDocx(string folderPath, bool openWord) {
             Console.WriteLine("[*] Saving document as a byte array");
             byte[] bytes;
             using (var document = WordDocument.Create()) {
                 document.AddParagraph("Saved to byte array");
-                bytes = document.SaveAsByteArray();
+                bytes = document.ToDocx();
             }
 
-            string filePath = Path.Combine(folderPath, "SaveAsByteArray.docx");
+            string filePath = Path.Combine(folderPath, "ToDocx.docx");
             File.WriteAllBytes(filePath, bytes);
             Helpers.Open(filePath, openWord);
         }
@@ -30,14 +30,14 @@ namespace OfficeIMO.Examples.Word {
         /// </summary>
         /// <param name="folderPath">Directory to store the file.</param>
         /// <param name="openWord">Opens Word when <c>true</c>.</param>
-        public static void Example_SaveAsMemoryStream(string folderPath, bool openWord) {
+        public static void Example_ToDocxStream(string folderPath, bool openWord) {
             Console.WriteLine("[*] Saving document to a MemoryStream");
             using var document = WordDocument.Create();
             document.AddParagraph("Saved to memory stream");
 
-            using MemoryStream stream = document.SaveAsMemoryStream();
+            using MemoryStream stream = document.ToDocxStream();
 
-            string filePath = Path.Combine(folderPath, "SaveAsMemoryStream.docx");
+            string filePath = Path.Combine(folderPath, "ToDocxStream.docx");
             using (var file = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {
                 stream.CopyTo(file);
             }
@@ -55,7 +55,7 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("Cloned into stream");
 
             using var stream = new MemoryStream();
-            using var cloned = document.SaveAs(stream);
+            using var cloned = document.SaveCopy(stream);
 
             string filePath = Path.Combine(folderPath, "SaveAsStream.docx");
             using (var file = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {

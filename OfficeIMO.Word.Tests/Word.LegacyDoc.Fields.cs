@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 AssertBookmarkRoundTrip(reloaded, "BodySimpleFieldBookmark");
                 AssertBookmarkRoundTrip(reloaded, "CellSimpleFieldBookmark");
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 AssertBookmarkRoundTrip(reloaded, "InteriorSimpleFieldBookmark");
                 AssertBookmarkRoundTrip(reloaded, "InteriorFootnoteSimpleFieldBookmark");
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 AssertBookmarkRoundTrip(reloaded, "BodyComplexFieldBookmark");
                 AssertBookmarkRoundTrip(reloaded, "CellComplexFieldBookmark");
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
                 SimpleField[] dateFields = GetReloadedDateTimeFields(mainPart).ToArray();
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 SimpleField[] dateTimeFields = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!
                     .Descendants<SimpleField>()
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 SimpleField[] fields = GetReloadedDateTimeFields(reloaded._wordprocessingDocument!.MainDocumentPart!).ToArray();
                 AssertFieldResultInlineContent(fields, "DATE", "BodyTextSoftHyphenHardHyphenWrap", BreakValues.TextWrapping);
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
                 SimpleField[] documentPropertyFields = GetReloadedDocumentPropertyFields(mainPart).ToArray();
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
                 SimpleField[] dateTimeFields = GetReloadedDateTimeFields(mainPart).ToArray();

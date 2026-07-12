@@ -85,8 +85,11 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum element nesting depth processed by the layout engine.</summary>
     public int MaxLayoutDepth { get; set; } = 256;
 
-    /// <summary>Maximum UTF-16 characters accepted in the source HTML string.</summary>
-    public int MaxInputCharacters { get; set; } = 16 * 1024 * 1024;
+    /// <summary>
+    /// Maximum UTF-16 characters accepted in the source HTML string. The default leaves enough room for
+    /// the default total resource budget when resources are embedded as base64 data URIs.
+    /// </summary>
+    public int MaxInputCharacters { get; set; } = 72 * 1024 * 1024;
 
     /// <summary>Maximum DOM nodes accepted after parsing and before style or layout work begins.</summary>
     public int MaxHtmlNodes { get; set; } = 100000;

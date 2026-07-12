@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             LegacyXlsImportReport report = result.ImportReport;
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsWorkbook workbook = result.Workbook;
             LegacyXlsImportReport report = result.ImportReport;
@@ -524,7 +524,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -667,7 +667,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -1320,7 +1320,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -1400,7 +1400,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsWorkbook workbook = result.Workbook;
             LegacyXlsImportReport report = result.ImportReport;
@@ -1446,7 +1446,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -2728,7 +2728,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -2749,7 +2749,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -2815,7 +2815,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -2860,7 +2860,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -2898,7 +2898,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
@@ -2920,7 +2920,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithVbaProjectStorage(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.False(result.HasImportErrors);
@@ -3096,7 +3096,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithOleObjectStorage(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.False(result.HasImportErrors);
@@ -3130,7 +3130,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithDigitalSignatureStream(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.False(result.HasImportErrors);

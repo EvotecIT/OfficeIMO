@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(originalPath, document.FilePath);
 
-                using var newDoc = document.SaveAs(copyPath);
+                using var newDoc = document.SaveCopy(copyPath);
                 Assert.Equal(originalPath, document.FilePath);
                 Assert.Equal(copyPath, newDoc.FilePath);
                 Assert.True(File.Exists(copyPath));

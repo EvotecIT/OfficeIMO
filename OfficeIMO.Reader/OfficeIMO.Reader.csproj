@@ -59,4 +59,8 @@
     <Using Include="System.Linq" />
     <Using Include="System.Text" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
 </Project>

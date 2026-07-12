@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(TableRowAlignmentValues.Right, reloadedTable.Alignment);
                 Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("ffff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal("ffff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph paragraph = Assert.Single(Assert.Single(reloadedTable.Rows).Cells[0].Paragraphs);
                 Assert.Equal("Inherited text", paragraph.Text);
@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("Header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);

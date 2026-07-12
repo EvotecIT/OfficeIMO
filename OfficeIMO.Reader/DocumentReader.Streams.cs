@@ -302,7 +302,7 @@ public static partial class DocumentReader {
         OpenSettings? openSettings = CreateOpenSettings(opt);
         if (!string.IsNullOrEmpty(opt.OpenPassword)) {
             return ExcelDocument.LoadLegacyXls(path, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true,
+                ReportUnsupportedContent = true,
                 Password = opt.OpenPassword
             });
         }
@@ -315,7 +315,7 @@ public static partial class DocumentReader {
         if (!string.IsNullOrEmpty(opt.OpenPassword)) {
             stream.Position = 0;
             return ExcelDocument.LoadLegacyXls(stream, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true,
+                ReportUnsupportedContent = true,
                 Password = opt.OpenPassword
             });
         }
@@ -362,7 +362,7 @@ public static partial class DocumentReader {
     }
 
     private static IReadOnlyList<string>? BuildLegacyWordWarnings(WordDocument document) {
-        if (!document.WasLoadedFromLegacyDoc) {
+        if (document.SourceFormat != WordFileFormat.Doc) {
             return null;
         }
 
@@ -390,8 +390,8 @@ public static partial class DocumentReader {
         return warnings.Count == 0 ? null : warnings;
     }
 
-    private static IReadOnlyList<string>? BuildLegacyExcelWarnings(ExcelDocument document) {
-        if (!document.WasLoadedFromLegacyXls) {
+    internal static IReadOnlyList<string>? BuildLegacyExcelWarnings(ExcelDocument document) {
+        if (document.SourceFormat != ExcelFileFormat.Xls) {
             return null;
         }
 
@@ -406,6 +406,11 @@ public static partial class DocumentReader {
             document.LegacyXlsUnsupportedFeatures.Select(static feature => $"Legacy XLS unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
             maxItems: 8,
             overflowMessage: "Additional legacy XLS unsupported features were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyXlsPreservedFeatures.Select(static feature => $"Legacy XLS preserved feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy XLS preserved features were omitted.");
         AddBoundedWarnings(
             warnings,
             document.LegacyXlsUnsupportedSheets.Select(static sheet => $"Legacy XLS unsupported sheet: {sheet.Name} ({sheet.Kind}, {sheet.VisibilityName})"),

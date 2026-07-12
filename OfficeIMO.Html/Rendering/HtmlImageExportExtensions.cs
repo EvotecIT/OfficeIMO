@@ -1,10 +1,49 @@
 using System.Text;
+using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html;
 
 /// <summary>Direct HTML-to-PNG and HTML-to-SVG helpers backed by the shared HTML render scene.</summary>
 public static partial class HtmlImageExportExtensions {
+    /// <summary>Exports one selected surface from a prepared HTML DOM as PNG or SVG.</summary>
+    public static OfficeImageExportResult ExportImage(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
+        HtmlRenderOptions resolved = Normalize(options, pageIndex);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved);
+        if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
+        return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.Diagnostics, CancellationToken.None);
+    }
+
+    /// <summary>Exports all surfaces from a prepared HTML DOM as PNG or SVG.</summary>
+    public static IReadOnlyList<OfficeImageExportResult> ExportImages(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null) {
+        HtmlRenderOptions resolved = Normalize(options, 0);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, resolved);
+        var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
+        foreach (HtmlRenderPage page in rendered.Pages) results.Add(RenderPage(page, format, resolved, rendered.Diagnostics, CancellationToken.None));
+        return results.AsReadOnly();
+    }
+
+    /// <summary>Asynchronously exports one selected surface from a prepared HTML DOM.</summary>
+    public static async Task<OfficeImageExportResult> ExportImageAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
+        HtmlRenderOptions resolved = Normalize(options, pageIndex);
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (pageIndex >= rendered.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex), "The selected HTML render page does not exist.");
+        return RenderPage(rendered.Pages[pageIndex], format, resolved, rendered.Diagnostics, cancellationToken);
+    }
+
+    /// <summary>Asynchronously exports all surfaces from a prepared HTML DOM.</summary>
+    public static async Task<IReadOnlyList<OfficeImageExportResult>> ExportImagesAsync(this IHtmlDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+        HtmlRenderOptions resolved = Normalize(options, 0);
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, resolved, cancellationToken).ConfigureAwait(false);
+        var results = new List<OfficeImageExportResult>(rendered.Pages.Count);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            cancellationToken.ThrowIfCancellationRequested();
+            results.Add(RenderPage(page, format, resolved, rendered.Diagnostics, cancellationToken));
+        }
+        return results.AsReadOnly();
+    }
+
     /// <summary>Exports one selected HTML surface as PNG or SVG.</summary>
     public static OfficeImageExportResult ExportImage(this string html, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
         HtmlRenderOptions resolved = Normalize(options, pageIndex);

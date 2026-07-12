@@ -469,7 +469,11 @@ public class HtmlOfficeAdapters {
         imported.Save();
 
         Assert.Equal("Imported", importedSheet.Name);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Contains("No semantic Excel sheet sections", StringComparison.Ordinal));
+        HtmlDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
+        Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(HtmlConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Contains("No semantic Excel sheet sections", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -847,7 +851,7 @@ public class HtmlOfficeAdapters {
         });
 
         Assert.Contains("data-officeimo-profile=\"PowerPointSemanticSlides\"", html, StringComparison.Ordinal);
-        Assert.Contains("<p>Roadmap</p>", html, StringComparison.Ordinal);
+        Assert.Contains(">Roadmap</p>", html, StringComparison.Ordinal);
         Assert.Contains("HTML end to end", html, StringComparison.Ordinal);
         Assert.Contains("Presenter reminder", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-source-markdown", html, StringComparison.Ordinal);
@@ -1105,7 +1109,7 @@ public class HtmlOfficeAdapters {
         Assert.Equal(1, result.Pictures);
         Assert.Equal(1, result.Charts);
         Assert.Equal(1, result.Notes);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Contains("placeholder values", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Roundtrip Roadmap", StringComparison.Ordinal));
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("HTML end to end", StringComparison.Ordinal));
         Assert.Contains(importedSlide.Tables, importedTable => importedTable.GetCell(1, 1).Text == "Rich proof");
@@ -1367,7 +1371,7 @@ public class HtmlOfficeAdapters {
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { "Q1", string.Empty, "Q3" }, snapshot.Data.Categories);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Contains("placeholder values", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -1437,7 +1441,7 @@ public class HtmlOfficeAdapters {
         Assert.Equal(1, result.Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
     }
 
     [Fact]

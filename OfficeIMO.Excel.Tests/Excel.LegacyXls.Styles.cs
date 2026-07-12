@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, legacy.CellFormats[1].FillPattern);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             using var output = new MemoryStream();
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             LegacyXlsCellFormat effectiveFormat = legacy.GetEffectiveCellFormat(1)!;
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0x0008, effectiveFormat.FillForegroundColorIndex);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
 
             using var output = new MemoryStream();

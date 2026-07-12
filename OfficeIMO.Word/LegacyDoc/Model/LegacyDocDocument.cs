@@ -121,8 +121,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             byte[] wordDocumentStream = wordDocumentStreamCandidate!;
-            if (wordDocumentStream.Length > options.MaxWordDocumentStreamBytes) {
-                AddError("DOC-WORDDOCUMENT-TOO-LARGE", $"The WordDocument stream is {wordDocumentStream.Length} bytes, which exceeds the configured limit of {options.MaxWordDocumentStreamBytes} bytes.");
+            if (wordDocumentStream.Length > options.MaxInputBytes) {
+                AddError("DOC-WORDDOCUMENT-TOO-LARGE", $"The WordDocument stream is {wordDocumentStream.Length} bytes, which exceeds the configured limit of {options.MaxInputBytes} bytes.");
                 return;
             }
 
@@ -194,9 +194,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
             var bookmarkProjection = new LegacyDocBookmarkProjectionTracker(Bookmarks);
 
-            AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedFeatures);
+            AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedContent);
 
-            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, bookmarkProjection, options.ReportUnsupportedFeatures);
+            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, bookmarkProjection, options.ReportUnsupportedContent);
             Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? footnoteWarning);
             if (footnoteWarning != null) {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
@@ -213,7 +213,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, bookmarkProjection);
-            AddKnownUnsupportedFeatureDiagnostics(compoundFile, tableStream, fib, options.ReportUnsupportedFeatures);
+            AddKnownUnsupportedFeatureDiagnostics(compoundFile, tableStream, fib, options.ReportUnsupportedContent);
 
             HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
@@ -223,7 +223,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "DOC-HEADER-FOOTER-STORIES-PRESENT",
                     "The legacy DOC contains header or footer story text with an unsupported header/footer story PLC. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
                     detailCode: "Fib:PlcfHdd"),
-                    options.ReportUnsupportedFeatures);
+                    options.ReportUnsupportedContent);
             }
 
             ReportRemainingUnprojectedBookmarks(bookmarkProjection);

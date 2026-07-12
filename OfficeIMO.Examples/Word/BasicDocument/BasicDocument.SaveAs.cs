@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
             // We're checking if the file is locked (it shouldn't be - yet)
             Console.WriteLine("File: " + filePathOutput + " is locked: " + filePathOutput.IsFileLocked());
 
-            document.SaveAs(filePathOutput, false);
+            document.SaveCopy(filePathOutput);
 
             // both files should not be locked
             Console.WriteLine("File: " + filePath + " is locked: " + filePath.IsFileLocked());
@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Word {
             WordDocument document1 = WordDocument.Load(filePathOutput);
 
             document1.AddParagraph("This is my test in document 2");
-            document1.SaveAs(filePathOutput2, openWord);
+            document1.SaveCopy(filePathOutput2, new WordSaveOptions { OpenAfterSave = openWord });
         }
 
 
@@ -63,7 +63,7 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This is my test in document");
 
-            document.SaveAs(filePath, openWord);
+            document.SaveCopy(filePath, new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         public static void Example_BasicDocumentSaveAs3(string folderPath, bool openWord) {
@@ -79,15 +79,15 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This is my test in document 1");
 
-            document.SaveAs(filePath1);
+            document.SaveCopy(filePath1);
 
             document.AddParagraph("This is my test in document 2");
 
-            document.SaveAs(filePath2);
+            document.SaveCopy(filePath2);
 
             document.AddParagraph("This is my test in document 3");
 
-            document.SaveAs(filePath3, openWord);
+            document.SaveCopy(filePath3, new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }
