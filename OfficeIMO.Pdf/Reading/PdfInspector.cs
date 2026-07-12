@@ -8,7 +8,7 @@ public static class PdfInspector {
     /// Inspects a PDF from a byte array.
     /// </summary>
     public static PdfDocumentInfo Inspect(byte[] pdf, PdfReadOptions? options = null) {
-        PdfDocumentProbe probe = Probe(pdf);
+        PdfDocumentProbe probe = Probe(pdf, options);
         var document = PdfReadDocument.Load(pdf, options);
         return FromReadDocument(document, probe);
     }
@@ -25,7 +25,7 @@ public static class PdfInspector {
     /// </summary>
     public static PdfDocumentInfo InspectPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfDocumentProbe probe = Probe(pdf);
+        PdfDocumentProbe probe = Probe(pdf, options);
         var document = PdfReadDocument.Load(pdf, options);
         int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
         return FromReadDocument(document, probe, pageNumbers);
@@ -89,7 +89,7 @@ public static class PdfInspector {
     /// Reports whether OfficeIMO.Pdf can read or safely rewrite a PDF from a byte array.
     /// </summary>
     public static PdfDocumentPreflight Preflight(byte[] pdf, PdfReadOptions? options = null) {
-        PdfDocumentProbe probe = Probe(pdf);
+        PdfDocumentProbe probe = Probe(pdf, options);
         var diagnostics = new List<string>();
         var readBlockers = new List<PdfReadBlocker>();
         var rewriteBlockers = new List<PdfRewriteBlocker>();
@@ -101,7 +101,7 @@ public static class PdfInspector {
         }
 
         if (probe.HasEncryption) {
-            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Encryption, "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.");
         }
 
         bool canRead = readBlockers.Count == 0;
@@ -152,27 +152,27 @@ public static class PdfInspector {
             AddRewriteBlocker(PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOutlines && PdfSyntax.HasUnsupportedOutlineRewriteMarkers(pdf)) {
+        if (probe.HasOutlines && PdfSyntax.HasUnsupportedOutlineRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.Outlines, "PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasPageLabels && PdfSyntax.HasUnsupportedPageLabelRewriteMarkers(pdf)) {
+        if (probe.HasPageLabels && PdfSyntax.HasUnsupportedPageLabelRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.PageLabels, "PDF page labels are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasCatalogNameTrees && PdfSyntax.HasUnsupportedCatalogNameTreeRewriteMarkers(pdf)) {
+        if (probe.HasCatalogNameTrees && PdfSyntax.HasUnsupportedCatalogNameTreeRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.CatalogNameTrees, "PDF catalog name trees are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasNamedDestinations && PdfSyntax.HasUnsupportedNamedDestinationRewriteMarkers(pdf)) {
+        if (probe.HasNamedDestinations && PdfSyntax.HasUnsupportedNamedDestinationRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.NamedDestinations, "PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOpenActions && PdfSyntax.HasUnsupportedOpenActionRewriteMarkers(pdf)) {
+        if (probe.HasOpenActions && PdfSyntax.HasUnsupportedOpenActionRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.OpenActions, "PDF open actions are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasViewerPreferences && PdfSyntax.HasUnsupportedViewerPreferenceRewriteMarkers(pdf)) {
+        if (probe.HasViewerPreferences && PdfSyntax.HasUnsupportedViewerPreferenceRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.ViewerPreferences, "PDF viewer preferences are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -180,23 +180,23 @@ public static class PdfInspector {
             AddRewriteBlocker(PdfRewriteBlockerKind.TaggedContent, "PDF tagged content structure is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasXmpMetadata && PdfSyntax.HasUnsupportedXmpMetadataRewriteMarkers(pdf)) {
+        if (probe.HasXmpMetadata && PdfSyntax.HasUnsupportedXmpMetadataRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.XmpMetadata, "PDF XMP metadata is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasCatalogUri && PdfSyntax.HasUnsupportedCatalogUriRewriteMarkers(pdf)) {
+        if (probe.HasCatalogUri && PdfSyntax.HasUnsupportedCatalogUriRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.CatalogUri, "PDF catalog URI dictionaries are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOutputIntents && PdfSyntax.HasUnsupportedOutputIntentRewriteMarkers(pdf)) {
+        if (probe.HasOutputIntents && PdfSyntax.HasUnsupportedOutputIntentRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.OutputIntents, "PDF output intents are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasEmbeddedFiles && PdfSyntax.HasUnsupportedEmbeddedFileRewriteMarkers(pdf)) {
+        if (probe.HasEmbeddedFiles && PdfSyntax.HasUnsupportedEmbeddedFileRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.EmbeddedFiles, "PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
-        if (probe.HasOptionalContent && PdfSyntax.HasUnsupportedOptionalContentRewriteMarkers(pdf)) {
+        if (probe.HasOptionalContent && PdfSyntax.HasUnsupportedOptionalContentRewriteMarkers(pdf, options)) {
             AddRewriteBlocker(PdfRewriteBlockerKind.OptionalContent, "PDF optional content layers are not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
@@ -290,10 +290,10 @@ public static class PdfInspector {
     /// <summary>
     /// Reads lightweight PDF markers from a byte array without full document parsing.
     /// </summary>
-    public static PdfDocumentProbe Probe(byte[] pdf) {
+    public static PdfDocumentProbe Probe(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, options);
         return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
             security.HasEncryption,
@@ -309,7 +309,7 @@ public static class PdfInspector {
             PdfSyntax.HasViewerPreferenceMarkers(pdf),
             PdfSyntax.HasTaggedContentMarkers(pdf),
             PdfSyntax.HasXmpMetadataMarkers(pdf),
-            PdfSyntax.HasCatalogUriMarkers(pdf),
+            PdfSyntax.HasCatalogUriMarkers(pdf, options),
             PdfSyntax.HasOutputIntentMarkers(pdf),
             PdfSyntax.HasEmbeddedFileMarkers(pdf),
             PdfSyntax.HasOptionalContentMarkers(pdf),
@@ -320,21 +320,21 @@ public static class PdfInspector {
     /// <summary>
     /// Reads lightweight PDF markers from a file path without full document parsing.
     /// </summary>
-    public static PdfDocumentProbe Probe(string path) {
+    public static PdfDocumentProbe Probe(string path, PdfReadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Probe(File.ReadAllBytes(path));
+        return Probe(File.ReadAllBytes(path), options);
     }
 
     /// <summary>
     /// Reads lightweight PDF markers from the current position of a readable stream without full document parsing.
     /// </summary>
-    public static PdfDocumentProbe Probe(Stream stream) {
+    public static PdfDocumentProbe Probe(Stream stream, PdfReadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
-        return Probe(buffer.ToArray());
+        return Probe(buffer.ToArray(), options);
     }
 
     internal static PdfDocumentInfo FromReadDocument(PdfReadDocument document, PdfDocumentProbe probe, int[]? pageNumbers = null) {

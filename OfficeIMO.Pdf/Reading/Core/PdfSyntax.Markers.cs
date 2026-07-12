@@ -402,7 +402,7 @@ internal static partial class PdfSyntax {
         }
     }
 
-    internal static bool HasCatalogUriMarkers(byte[] pdf) {
+    internal static bool HasCatalogUriMarkers(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
@@ -411,7 +411,7 @@ internal static partial class PdfSyntax {
         }
 
         try {
-            var (objects, trailerRaw) = ParseObjects(pdf);
+            var (objects, trailerRaw) = ParseObjects(pdf, options);
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             return catalog?.Items.ContainsKey("URI") == true;
         } catch (Exception ex) when (ex is not PdfEncryptionException && ex is not OutOfMemoryException && ex is not StackOverflowException) {

@@ -16,6 +16,17 @@ internal static class PdfInfoDictionaryBuilder {
         return Build(metadata.Title, metadata.Author, metadata.Subject, metadata.Keywords);
     }
 
+    internal static PdfDictionary BuildDictionary(PdfMetadata metadata) {
+        Guard.NotNull(metadata, nameof(metadata));
+        var dictionary = new PdfDictionary();
+        AddInfoString(dictionary, "Title", metadata.Title);
+        AddInfoString(dictionary, "Author", metadata.Author);
+        AddInfoString(dictionary, "Subject", metadata.Subject);
+        AddInfoString(dictionary, "Keywords", metadata.Keywords);
+        dictionary.Items["Producer"] = new PdfStringObj("OfficeIMO.Pdf");
+        return dictionary;
+    }
+
     private static void AppendInfoString(StringBuilder sb, string key, string? value) {
         if (string.IsNullOrEmpty(value)) {
             return;
@@ -26,5 +37,11 @@ internal static class PdfInfoDictionaryBuilder {
             .Append(' ')
             .Append(PdfSyntaxEscaper.LiteralString(value!))
             .Append(' ');
+    }
+
+    private static void AddInfoString(PdfDictionary dictionary, string key, string? value) {
+        if (!string.IsNullOrEmpty(value)) {
+            dictionary.Items[key] = new PdfStringObj(value!);
+        }
     }
 }

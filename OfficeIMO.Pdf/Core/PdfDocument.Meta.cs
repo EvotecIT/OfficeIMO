@@ -25,6 +25,9 @@ public sealed partial class PdfDocument : IDisposable {
         Read = new PdfDocumentReader(this);
         Stamp = new PdfDocumentStamper(this);
         Forms = new PdfDocumentForms(this);
+        Attachments = new PdfDocumentAttachments(this);
+        Bookmarks = new PdfDocumentBookmarks(this);
+        Annotations = new PdfDocumentAnnotations(this);
     }
 
     private PdfDocument(byte[] pdf, PdfReadOptions? readOptions = null) : this() {
@@ -108,6 +111,15 @@ public sealed partial class PdfDocument : IDisposable {
     /// Readback operations for this PDF.
     /// </summary>
     public PdfDocumentReader Read { get; }
+
+    /// <summary>Existing-document embedded and associated file editing operations.</summary>
+    public PdfDocumentAttachments Attachments { get; }
+
+    /// <summary>Existing-document bookmark editing operations.</summary>
+    public PdfDocumentBookmarks Bookmarks { get; }
+
+    /// <summary>Existing-document annotation editing operations.</summary>
+    public PdfDocumentAnnotations Annotations { get; }
 
     /// <summary>
     /// Text and image stamping operations for this PDF.
@@ -201,6 +213,11 @@ public sealed partial class PdfDocument : IDisposable {
     internal static PdfDocument FromBytes(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
         return new PdfDocument(pdf);
+    }
+
+    internal static PdfDocument FromBytes(byte[] pdf, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return new PdfDocument(pdf, readOptions);
     }
 
     /// <inheritdoc />

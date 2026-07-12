@@ -45,12 +45,13 @@ internal static class PdfPageContentVisualParser {
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
-        OfficeStrokeLineJoin? initialStrokeLineJoin = null) {
+        OfficeStrokeLineJoin? initialStrokeLineJoin = null,
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations);
         return parser.Parse();
     }
 
@@ -85,6 +86,8 @@ internal static class PdfPageContentVisualParser {
         private int _currentSubpathStartIndex = -1;
         private bool _currentSubpathHasDraw;
         private int _index;
+        private readonly int _maxOperations;
+        private int _operationCount;
 
         public Parser(
             string content,
@@ -108,7 +111,8 @@ internal static class PdfPageContentVisualParser {
             double? initialStrokeWidth,
             OfficeStrokeDashStyle? initialStrokeDashStyle,
             OfficeStrokeLineCap? initialStrokeLineCap,
-            OfficeStrokeLineJoin? initialStrokeLineJoin) {
+            OfficeStrokeLineJoin? initialStrokeLineJoin,
+            int maxOperations) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -120,6 +124,7 @@ internal static class PdfPageContentVisualParser {
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
             _paintOrderOffset = paintOrderOffset;
+            _maxOperations = maxOperations;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
                 : GraphicsState.Default;
@@ -187,6 +192,9 @@ internal static class PdfPageContentVisualParser {
                     if (op.Length == 0) {
                         _index++;
                     } else {
+                        if (++_operationCount > _maxOperations) {
+                            throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, _maxOperations, _operationCount);
+                        }
                         ApplyOperator(op, paintOrder);
                     }
                 }

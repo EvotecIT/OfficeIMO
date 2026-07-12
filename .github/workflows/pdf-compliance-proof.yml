@@ -9,6 +9,7 @@ on:
       - 'OfficeIMO.Drawing/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
@@ -22,6 +23,7 @@ on:
       - 'OfficeIMO.Drawing/**'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
@@ -100,6 +102,13 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore OfficeIMO.sln
+
+      - name: Install external PDF proof tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes qpdf poppler-utils
 
       - name: Prepare veraPDF validator
         if: github.event_name != 'workflow_dispatch' || inputs.verapdf_path == '' || inputs.pdfua_validator_path == ''
@@ -195,6 +204,45 @@ jobs:
 
           ./Build/Export-PdfComplianceProof.ps1 @parameters
 
+      - name: Generate PDF engine proof fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${PROOF_PATH}/engine"
+          OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT="$(pwd)/${PROOF_PATH}/engine" \
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj \
+              --configuration "${BUILD_CONFIGURATION}" \
+              --framework net8.0 \
+              --no-restore \
+              --filter 'FullyQualifiedName~PdfExternalEngineProofTests' \
+              --verbosity minimal
+
+      - name: Validate syntax rendering and signatures externally
+        shell: bash
+        run: |
+          set -euo pipefail
+          export LC_ALL=C
+          engine_dir="${PROOF_PATH}/engine"
+
+          qpdf --version > "${engine_dir}/qpdf-version.txt"
+          pdftoppm -v > "${engine_dir}/pdftoppm-version.txt" 2>&1
+          pdfsig -v > "${engine_dir}/pdfsig-version.txt" 2>&1
+
+          while IFS= read -r pdf; do
+            name="$(basename "${pdf}" .pdf)"
+            qpdf --check "${pdf}" > "${engine_dir}/qpdf-${name}.txt" 2>&1
+          done < <(find "${PROOF_PATH}" -maxdepth 2 -type f -name '*.pdf' -print | sort)
+
+          pdftoppm -f 1 -l 1 -singlefile -png \
+            "${engine_dir}/officeimo-engine-rewrite.pdf" \
+            "${engine_dir}/officeimo-engine-rewrite-page-1"
+          test -s "${engine_dir}/officeimo-engine-rewrite-page-1.png"
+
+          pdfsig -nocert "${engine_dir}/officeimo-engine-signed.pdf" \
+            > "${engine_dir}/pdfsig-officeimo-engine-signed.txt" 2>&1
+          grep -Eq 'Signature Validation:[[:space:]]+Signature is Valid' \
+            "${engine_dir}/pdfsig-officeimo-engine-signed.txt"
+
       - name: Validate proof bundle
         shell: pwsh
         run: ./.github/scripts/Assert-PdfComplianceProof.ps1 -ProofPath '${{ env.PROOF_PATH }}'
@@ -266,3 +314,6 @@ jobs:
             ${{ env.PROOF_PATH }}/officeimo-profile-proof-contract.json
             ${{ env.PROOF_PATH }}/*.pdf
             ${{ env.PROOF_PATH }}/*.txt
+            ${{ env.PROOF_PATH }}/engine/*.pdf
+            ${{ env.PROOF_PATH }}/engine/*.png
+            ${{ env.PROOF_PATH }}/engine/*.txt

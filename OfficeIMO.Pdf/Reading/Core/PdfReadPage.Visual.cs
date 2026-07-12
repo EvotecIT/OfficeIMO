@@ -296,7 +296,9 @@ public sealed partial class PdfReadPage {
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
-        OfficeStrokeLineJoin? initialStrokeLineJoin = null) {
+        OfficeStrokeLineJoin? initialStrokeLineJoin = null,
+        int contentNestingDepth = 0) {
+        EnsureContentNestingBudget(contentNestingDepth);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         primitives.AddRange(PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -320,7 +322,8 @@ public sealed partial class PdfReadPage {
             initialStrokeWidth,
             initialStrokeDashStyle,
             initialStrokeLineCap,
-            initialStrokeLineJoin));
+            initialStrokeLineJoin,
+            maxOperations: _limits.MaxContentOperations));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -342,7 +345,8 @@ public sealed partial class PdfReadPage {
                       initialStrokeWidth: initialStrokeWidth,
                       initialStrokeDashStyle: initialStrokeDashStyle,
                       initialStrokeLineCap: initialStrokeLineCap,
-                      initialStrokeLineJoin: initialStrokeLineJoin)) {
+                      initialStrokeLineJoin: initialStrokeLineJoin,
+                      maxOperations: _limits.MaxContentOperations)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }
@@ -376,7 +380,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeWidth: invocation.StrokeWidth,
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
-                    initialStrokeLineJoin: invocation.StrokeLineJoin);
+                    initialStrokeLineJoin: invocation.StrokeLineJoin,
+                    contentNestingDepth: contentNestingDepth + 1);
             } finally {
                 activeForms.Remove(formStream);
             }

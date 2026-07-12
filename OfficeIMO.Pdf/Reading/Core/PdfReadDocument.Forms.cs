@@ -13,8 +13,12 @@ public sealed partial class PdfReadDocument {
         var visited = new HashSet<int>();
         var widgetPageNumbers = BuildWidgetPageNumberLookup();
         PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(AcroFormDefaultAppearance, AcroFormQuadding);
+        if (fields.Items.Count > _options.Limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, _options.Limits.MaxFormFields, fields.Items.Count);
+        }
+
         for (int i = 0; i < fields.Items.Count; i++) {
-            ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers);
+            ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers, depth: 1);
         }
 
         return result.Count == 0 ? Array.Empty<PdfFormField>() : result.AsReadOnly();
@@ -185,7 +189,11 @@ public sealed partial class PdfReadDocument {
         return widgetPageNumbers;
     }
 
-    private void ReadFormField(PdfObject fieldObject, string? parentName, PdfFormFieldInheritedState inherited, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers) {
+    private void ReadFormField(PdfObject fieldObject, string? parentName, PdfFormFieldInheritedState inherited, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers, int depth) {
+        if (depth > _options.Limits.MaxFormFieldDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, _options.Limits.MaxFormFieldDepth, depth);
+        }
+
         PdfObject? resolved = ResolveObject(fieldObject);
         if (resolved is not PdfDictionary field) {
             return;
@@ -205,6 +213,10 @@ public sealed partial class PdfReadDocument {
                     return;
                 }
             }
+        }
+
+        if (visited.Count > _options.Limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, _options.Limits.MaxFormFields, visited.Count);
         }
 
         string? partialName = TryReadText(field, "T");
@@ -249,6 +261,10 @@ public sealed partial class PdfReadDocument {
 
         bool hasTerminalShape = isWidget || fieldKids.Count == 0;
         if (hasTerminalShape && (fullName != null || hasReadableFieldState || defaultValues.Count > 0 || alternateName != null || mappingName != null || maxLength.HasValue || defaultAppearance != null || quadding.HasValue || options.Count > 0)) {
+            if (result.Count >= _options.Limits.MaxFormFields) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, _options.Limits.MaxFormFields, result.Count + 1L);
+            }
+
             result.Add(new PdfFormField(
                 objectNumber: objectNumber,
                 name: fullName,
@@ -274,7 +290,7 @@ public sealed partial class PdfReadDocument {
 
         var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, defaultValue, defaultValues, flags, maxLength, defaultAppearance, quadding, options);
         for (int i = 0; i < fieldKids.Count; i++) {
-            ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers);
+            ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers, depth + 1);
         }
     }
 

@@ -26,20 +26,17 @@ public static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        return FillFieldsCore(pdf, fieldValues, options, requireMutationPlan: true);
+    }
+
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null) {
+        return FillFieldsCore(pdf, fieldValues, options, requireMutationPlan: false);
+    }
+
+    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
-
-        if (PdfSyntax.HasSignatureMarkers(pdf)) {
-            throw new NotSupportedException("Signed PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
-        }
-
-        if (PdfSyntax.HasEncryptionMarkers(pdf)) {
-            throw new NotSupportedException("Encrypted PDF files are not supported for form filling by OfficeIMO.Pdf yet.");
-        }
-
-        if (PdfSyntax.HasActiveContentMarkers(pdf)) {
-            throw new NotSupportedException("PDF active content is not supported for form filling by OfficeIMO.Pdf yet.");
-        }
+        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, fieldNames: fieldValues.Keys);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
@@ -269,14 +266,7 @@ public static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
-
-        if (PdfSyntax.HasSignatureMarkers(pdf)) {
-            throw new NotSupportedException("Signed PDF files are not supported for form flattening by OfficeIMO.Pdf yet.");
-        }
-
-        if (PdfSyntax.HasActiveContentMarkers(pdf)) {
-            throw new NotSupportedException("PDF active content is not supported for form flattening by OfficeIMO.Pdf yet.");
-        }
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
@@ -316,6 +306,79 @@ public static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
 
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with only the named simple text, choice, and button AcroForm fields painted into page content and removed from the form tree.
+    /// </summary>
+    public static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
+        return FlattenFieldsCore(pdf, fieldNames, options, requireMutationPlan: true);
+    }
+
+    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
+        return FlattenFieldsCore(pdf, fieldNames, options, requireMutationPlan: false);
+    }
+
+    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, bool requireMutationPlan) {
+        Guard.NotNull(pdf, nameof(pdf));
+        ValidateFlattenFieldNames(fieldNames);
+        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, fieldNames: fieldNames);
+
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
+        if (catalogObjectNumber == 0 ||
+            objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
+            !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
+            ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm ||
+            !acroForm.Items.TryGetValue("Fields", out var fieldsObject) ||
+            ResolveObject(objects, fieldsObject) is not PdfArray fields) {
+            throw new ArgumentException("PDF does not contain a readable AcroForm field tree.", nameof(pdf));
+        }
+
+        var requested = new HashSet<string>(fieldNames, StringComparer.Ordinal);
+        var matched = new HashSet<string>(StringComparer.Ordinal);
+        var widgets = new Dictionary<int, FlattenWidgetState>();
+        var removableObjects = new HashSet<int>();
+        int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        CollectSelectedFlattenFields(
+            objects,
+            fields,
+            requested,
+            matched,
+            inheritedFieldType: null,
+            inheritedFlags: 0,
+            inheritedMaxLength: null,
+            inheritedDefaultResources: TryReadDefaultResources(objects, acroForm),
+            inheritedDefaultAppearance: TryReadText(objects, acroForm, "DA"),
+            inheritedDisplayValue: null,
+            inheritedRichAppearanceRuns: null,
+            inheritedName: null,
+            inheritedChoiceOptions: null,
+            options,
+            widgets,
+            removableObjects,
+            ref nextObjectNumber);
+
+        if (matched.Count != requested.Count) {
+            throw new ArgumentException("PDF form field was not found: " + string.Join(", ", requested.Where(name => !matched.Contains(name))), nameof(fieldNames));
+        }
+        if (widgets.Count == 0) {
+            throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
+        }
+
+        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber);
+        if (flattenedWidgetCount != widgets.Count) {
+            throw new NotSupportedException(UnsupportedFlattenAnnotationMessage);
+        }
+
+        FilterCalculationOrder(objects, acroForm, removableObjects);
+        if (fields.Items.Count == 0) {
+            catalog.Items.Remove("AcroForm");
+            if (acroFormObject is PdfReference acroFormReference) removableObjects.Add(acroFormReference.ObjectNumber);
+        }
+
+        foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 

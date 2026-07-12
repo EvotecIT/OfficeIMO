@@ -89,7 +89,7 @@ public partial class PdfReadStreamTests {
         byte[] catalogUriPdf = BuildComplexCatalogUriPdf();
 
         static void AssertCatalogUri(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF catalog URI dictionaries are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
@@ -159,7 +159,7 @@ public partial class PdfReadStreamTests {
         byte[] pageLabelPdf = BuildComplexPageLabelPdf();
 
         static void AssertPageLabels(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("page labels", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 

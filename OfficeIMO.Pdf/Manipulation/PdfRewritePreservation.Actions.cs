@@ -25,6 +25,7 @@ public static partial class PdfRewritePreservation {
         CompareNullableDouble(issues, "OpenAction.DestinationLeft", original.DestinationLeft, rewritten.DestinationLeft);
         CompareNullableDouble(issues, "OpenAction.DestinationBottom", original.DestinationBottom, rewritten.DestinationBottom);
         CompareNullableDouble(issues, "OpenAction.DestinationRight", original.DestinationRight, rewritten.DestinationRight);
+        CompareNullableDouble(issues, "OpenAction.DestinationZoom", original.DestinationZoom, rewritten.DestinationZoom);
     }
 
     private static void CompareViewerPreferences(List<PdfRewritePreservationIssue> issues, PdfViewerPreferences? original, PdfViewerPreferences? rewritten, PdfRewritePreservationOptions options) {

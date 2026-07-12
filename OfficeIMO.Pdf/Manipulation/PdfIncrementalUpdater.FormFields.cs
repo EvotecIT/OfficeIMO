@@ -58,6 +58,11 @@ public static partial class PdfIncrementalUpdater {
         return UpdateFormFields(pdf, ToIncrementalFormFieldValues(fieldValues), options);
     }
 
+    /// <summary>Appends a form-field revision using optional password and parsing settings.</summary>
+    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+        return UpdateFormFields(pdf, ToIncrementalFormFieldValues(fieldValues), options, readOptions);
+    }
+
     /// <summary>
     /// Appends a simple AcroForm field-value revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
@@ -72,14 +77,23 @@ public static partial class PdfIncrementalUpdater {
     /// Appends a simple AcroForm field-value revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
     public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
+        return UpdateFormFields(pdf, fieldValues, options, readOptions: null);
+    }
+
+    /// <summary>Appends a form-field revision using optional password and parsing settings.</summary>
+    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
         PdfIncrementalFormFieldUpdateOptions effectiveOptions = options ?? new PdfIncrementalFormFieldUpdateOptions();
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            pdf,
+            PdfMutationOperation.FillFormFields,
+            readOptions,
+            fieldNames: fieldValues.Keys);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateAppendOnlyFormInput(security, fieldValues.Keys);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
             rootObject.Value is not PdfDictionary catalog ||
@@ -134,7 +148,13 @@ public static partial class PdfIncrementalUpdater {
             throw new ArgumentException("No supported AcroForm fields were updated.", nameof(fieldValues));
         }
 
-        return AppendIncrementalObjects(pdf, objects, security, trailerRaw, changedObjectNumbers);
+        PdfStandardSecurityHandler? encryptionHandler = null;
+        if (security.HasEncryption &&
+            !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler)) {
+            throw new PdfUnsupportedEncryptionException("PDF encryption context could not be created for the incremental form update.");
+        }
+
+        return AppendIncrementalObjects(pdf, objects, security, trailerRaw, changedObjectNumbers, encryptionHandler);
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a readable PDF stream.</summary>
@@ -150,6 +170,11 @@ public static partial class PdfIncrementalUpdater {
         return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues), options);
     }
 
+    /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+        return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues), options, readOptions);
+    }
+
     /// <summary>Appends a simple AcroForm field-value revision to a readable PDF stream.</summary>
     public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, bool keepNeedAppearances = true) {
         return UpdateFormFields(input, fieldValues, new PdfIncrementalFormFieldUpdateOptions {
@@ -160,6 +185,11 @@ public static partial class PdfIncrementalUpdater {
 
     /// <summary>Appends a simple AcroForm field-value revision to a readable PDF stream.</summary>
     public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
+        return UpdateFormFields(input, fieldValues, options, readOptions: null);
+    }
+
+    /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
@@ -167,7 +197,7 @@ public static partial class PdfIncrementalUpdater {
 
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
-        return UpdateFormFields(buffer.ToArray(), fieldValues, options);
+        return UpdateFormFields(buffer.ToArray(), fieldValues, options, readOptions);
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -183,6 +213,11 @@ public static partial class PdfIncrementalUpdater {
         UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues), options);
     }
 
+    /// <summary>Appends a form-field revision to a PDF file using optional password and parsing settings.</summary>
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+        UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues), options, readOptions);
+    }
+
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
     public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, bool keepNeedAppearances = true) {
         UpdateFormFields(inputPath, outputPath, fieldValues, new PdfIncrementalFormFieldUpdateOptions {
@@ -193,21 +228,14 @@ public static partial class PdfIncrementalUpdater {
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
     public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        File.WriteAllBytes(outputPath, UpdateFormFields(File.ReadAllBytes(inputPath), fieldValues, options));
+        UpdateFormFields(inputPath, outputPath, fieldValues, options, readOptions: null);
     }
 
-    private static void ValidateAppendOnlyFormInput(PdfDocumentSecurityInfo security, IEnumerable<string> fieldNames) {
-        string? lockedFieldName = GetFirstLockedFormFieldName(security, fieldNames);
-        if (lockedFieldName is not null) {
-            throw new NotSupportedException("Incremental form field updates are not supported for field " + lockedFieldName + " because it is locked by a signature field lock.");
-        }
-
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames);
-        if (!report.SupportedActions.Contains("FormFill", StringComparer.Ordinal)) {
-            throw new NotSupportedException("Incremental form field updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
-        }
+    /// <summary>Appends a form-field revision to a PDF file using optional password and parsing settings.</summary>
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
+        File.WriteAllBytes(outputPath, UpdateFormFields(File.ReadAllBytes(inputPath), fieldValues, options, readOptions));
     }
 
     private static Dictionary<string, PdfFormFieldValue> ToIncrementalFormFieldValues(IReadOnlyDictionary<string, string> fieldValues) {
@@ -1097,63 +1125,15 @@ public static partial class PdfIncrementalUpdater {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         string trailerRaw,
-        HashSet<int> changedObjectNumbers) {
-        if (!security.RootObjectNumber.HasValue) {
-            throw new InvalidOperationException("PDF root catalog reference is required for an incremental update.");
-        }
-
-        if (!security.LastStartXrefOffset.HasValue) {
-            throw new InvalidOperationException("PDF startxref offset is required for an incremental update.");
-        }
-
-        var identityMap = objects.Keys.ToDictionary(static objectNumber => objectNumber, static objectNumber => objectNumber);
-        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects, preserveReferenceGenerations: true);
-        int[] objectNumbers = changedObjectNumbers.OrderBy(static objectNumber => objectNumber).ToArray();
-        var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
-        foreach (int objectNumber in objectNumbers) {
-            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)) {
-                throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was changed but could not be found.");
-            }
-
-            serialized.Add((objectNumber, indirect.Generation, PdfObjectBytes.WrapIndirectObject(objectNumber, indirect.Generation, PdfPageExtractor.SerializeObject(indirect.Value, context))));
-        }
-
-        using var output = new MemoryStream(pdf.Length + serialized.Sum(static item => item.Bytes.Length) + (serialized.Count * 32) + 256);
-        output.Write(pdf, 0, pdf.Length);
-        if (pdf.Length == 0 || (pdf[pdf.Length - 1] != (byte)'\n' && pdf[pdf.Length - 1] != (byte)'\r')) {
-            output.WriteByte((byte)'\n');
-        }
-
-        var offsets = new Dictionary<int, long>();
-        foreach (var item in serialized) {
-            offsets[item.ObjectNumber] = output.Position;
-            output.Write(item.Bytes, 0, item.Bytes.Length);
-        }
-
-        long xrefOffset = output.Position;
-        int size = Math.Max(objects.Keys.Max(), objectNumbers.Max()) + 1;
-
-        using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
-        writer.WriteLine("xref");
-        foreach (int objectNumber in objectNumbers) {
-            int generation = serialized.First(item => item.ObjectNumber == objectNumber).Generation;
-            writer.WriteLine(objectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " " + generation.ToString("00000", CultureInfo.InvariantCulture) + " n ");
-        }
-
-        writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
-            (security.InfoObjectNumber.HasValue ? " /Info " + BuildExistingTrailerReference(objects, security.InfoObjectNumber.Value) : string.Empty) +
-            " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
-            ReadTrailerIdEntry(trailerRaw) +
-            " >>");
-        writer.WriteLine("startxref");
-        writer.WriteLine(xrefOffset.ToString(CultureInfo.InvariantCulture));
-        writer.WriteLine("%%EOF");
-        writer.Flush();
-
-        return output.ToArray();
+        HashSet<int> changedObjectNumbers,
+        PdfStandardSecurityHandler? encryptionHandler) {
+        return PdfIncrementalObjectWriter.Append(
+            pdf,
+            objects,
+            security,
+            trailerRaw,
+            changedObjectNumbers,
+            encryptionHandler: encryptionHandler);
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) =>

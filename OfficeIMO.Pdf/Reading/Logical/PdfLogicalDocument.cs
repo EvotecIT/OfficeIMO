@@ -857,6 +857,12 @@ public sealed partial class PdfLogicalDocument {
         return From(PdfReadDocument.Load(pdf), options);
     }
 
+    /// <summary>Loads a PDF from bytes with explicit read limits or credentials and returns the logical read model.</summary>
+    public static PdfLogicalDocument Load(byte[] pdf, PdfTextLayoutOptions? options, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return From(PdfReadDocument.Load(pdf, readOptions), options);
+    }
+
     /// <summary>Loads a PDF from a file path and returns the logical read model.</summary>
     public static PdfLogicalDocument Load(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));

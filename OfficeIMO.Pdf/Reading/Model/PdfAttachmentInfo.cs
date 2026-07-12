@@ -15,7 +15,9 @@ public sealed class PdfAttachmentInfo {
         int fileSpecObjectNumber,
         int embeddedFileObjectNumber,
         int sizeBytes,
-        string source) {
+        string source,
+        DateTimeOffset? creationDate,
+        DateTimeOffset? modificationDate) {
         Name = name;
         FileName = fileName;
         UnicodeFileName = unicodeFileName;
@@ -27,6 +29,8 @@ public sealed class PdfAttachmentInfo {
         EmbeddedFileObjectNumber = embeddedFileObjectNumber;
         SizeBytes = sizeBytes;
         Source = source;
+        CreationDate = creationDate;
+        ModificationDate = modificationDate;
     }
 
     /// <summary>Name-tree key or associated-file fallback name for this attachment.</summary>
@@ -61,6 +65,10 @@ public sealed class PdfAttachmentInfo {
 
     /// <summary>Catalog source that referenced this attachment, for example Names/EmbeddedFiles or AF.</summary>
     public string Source { get; }
+    /// <summary>Embedded-file creation date, when readable.</summary>
+    public DateTimeOffset? CreationDate { get; }
+    /// <summary>Embedded-file modification date, when readable.</summary>
+    public DateTimeOffset? ModificationDate { get; }
 
     /// <summary>True when the attachment was referenced from the catalog /AF associated-files array.</summary>
     public bool IsAssociatedFile => string.Equals(Source, "AF", StringComparison.Ordinal);

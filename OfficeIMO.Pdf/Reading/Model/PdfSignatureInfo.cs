@@ -21,6 +21,7 @@ public sealed class PdfSignatureInfo {
         IReadOnlyList<long> byteRangeValues,
         int byteRangeValueCount,
         bool hasContents,
+        byte[]? contentsBytes,
         int? contentsSizeBytes,
         int? contentsEncodedSizeBytes,
         int referenceCount) {
@@ -40,6 +41,7 @@ public sealed class PdfSignatureInfo {
         ByteRangeValues = byteRangeValues;
         ByteRangeValueCount = byteRangeValueCount;
         HasContents = hasContents;
+        ContentsBytes = contentsBytes;
         ContentsSizeBytes = contentsSizeBytes;
         ContentsEncodedSizeBytes = contentsEncodedSizeBytes;
         ReferenceCount = referenceCount;
@@ -120,6 +122,9 @@ public sealed class PdfSignatureInfo {
     /// <summary>True when the signature dictionary contains a /Contents value.</summary>
     public bool HasContents { get; }
 
+    /// <summary>Decoded `/Contents` bytes, including reserved padding, when readable.</summary>
+    public byte[]? ContentsBytes { get; }
+
     /// <summary>Decoded /Contents byte count when the value could be read as a PDF string.</summary>
     public int? ContentsSizeBytes { get; }
 
@@ -128,6 +133,12 @@ public sealed class PdfSignatureInfo {
 
     /// <summary>True when /Contents contains at least one decoded byte.</summary>
     public bool HasNonEmptyContents => ContentsSizeBytes.GetValueOrDefault() > 0;
+
+    /// <summary>True when /Contents is a non-empty all-zero reservation ready for external signature bytes.</summary>
+    public bool HasUnsignedContentsPlaceholder =>
+        HasByteRange &&
+        ContentsBytes is { Length: > 0 } &&
+        ContentsBytes.All(static value => value == 0);
 
     /// <summary>Number of entries in the signature dictionary /Reference array, when readable.</summary>
     public int ReferenceCount { get; }

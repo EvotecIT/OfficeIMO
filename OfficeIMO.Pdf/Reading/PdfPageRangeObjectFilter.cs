@@ -222,6 +222,7 @@ internal static class PdfPageRangeObjectFilter {
             keepOwnDestination ? outline.DestinationMode : null,
             keepOwnDestination ? outline.DestinationLeft : null,
             keepOwnDestination ? outline.DestinationBottom : null,
-            keepOwnDestination ? outline.DestinationRight : null);
+            keepOwnDestination ? outline.DestinationRight : null,
+            keepOwnDestination ? outline.DestinationZoom : null);
     }
 }

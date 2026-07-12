@@ -120,24 +120,25 @@ public partial class PdfReadStreamTests {
         AssertSigned(() => PdfStamper.StampText(signed, "STAMP"));
 
         static void AssertSigned(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
     }
 
     [Fact]
-    public void RewriteApis_RejectFormPdfsWithClearUnsupportedDiagnostic() {
-        byte[] form = BuildFormPdfMarker();
+    public void RewriteApis_RouteFormPdfsByOperationCapability() {
+        byte[] form = PdfDocument.Create().TextField("Name", value: "OfficeIMO").ToBytes();
 
-        AssertForm(() => PdfPageExtractor.ExtractPages(form, 1));
-        AssertForm(() => PdfPageExtractor.SplitPages(form));
-        AssertForm(() => PdfPageEditor.DeletePages(form, 1));
-        AssertForm(() => PdfMetadataEditor.UpdateMetadata(form, title: "Updated"));
-        AssertForm(() => PdfMerger.Merge(form));
-        AssertForm(() => PdfStamper.StampText(form, "STAMP"));
+        AssertFormBlocked(() => PdfPageExtractor.ExtractPages(form, 1));
+        AssertFormBlocked(() => PdfPageExtractor.SplitPages(form));
+        AssertFormBlocked(() => PdfPageEditor.DeletePages(form, 1));
+        AssertFormBlocked(() => PdfMetadataEditor.UpdateMetadata(form, title: "Updated"));
+        AssertFormPreserved(PdfMerger.Merge(form));
+        AssertFormBlocked(() => PdfStamper.StampText(form, "STAMP"));
 
-        static void AssertForm(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+        static void AssertFormPreserved(byte[] rewritten) => Assert.Single(PdfInspector.Inspect(rewritten).FormFields);
+        static void AssertFormBlocked(Action action) {
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
     }

@@ -9,6 +9,7 @@ internal static class PdfFileAssembler {
 
         PdfEncryptionAssembly? encryptionAssembly = null;
         if (encryption != null) {
+            fileVersion = RequireAtLeast(fileVersion, GetMinimumEncryptionVersion(encryption.Algorithm));
             encryptionAssembly = PdfStandardSecurityWriter.Encrypt(objects, encryption);
             objects = encryptionAssembly.Objects;
         }
@@ -34,7 +35,10 @@ internal static class PdfFileAssembler {
         }
 
         writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) + " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) + BuildTrailerSecurityEntries(encryptionAssembly) + " >>");
+        writer.WriteLine("<< /Size " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture) +
+            " /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) +
+            (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty) +
+            BuildTrailerSecurityEntries(encryptionAssembly) + " >>");
         writer.WriteLine("startxref");
         writer.WriteLine(xrefPos.ToString(CultureInfo.InvariantCulture));
         writer.WriteLine("%%EOF");
@@ -51,6 +55,19 @@ internal static class PdfFileAssembler {
         string id = PdfSyntaxEscaper.HexString(encryptionAssembly.FileId);
         return " /Encrypt " + PdfSyntaxEscaper.IndirectReference(encryptionAssembly.EncryptionObjectNumber) +
             " /ID [" + id + " " + id + "]";
+    }
+
+    private static PdfFileVersion GetMinimumEncryptionVersion(PdfStandardEncryptionAlgorithm algorithm) {
+        switch (algorithm) {
+            case PdfStandardEncryptionAlgorithm.Aes256:
+                return PdfFileVersion.Pdf20;
+            case PdfStandardEncryptionAlgorithm.Aes128:
+                return PdfFileVersion.Pdf16;
+            case PdfStandardEncryptionAlgorithm.LegacyRc4:
+                return PdfFileVersion.Pdf14;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unsupported PDF Standard encryption algorithm.");
+        }
     }
 
     internal static string GetHeaderVersion(PdfFileVersion fileVersion) {

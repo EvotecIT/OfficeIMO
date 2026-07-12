@@ -29,7 +29,7 @@ internal static partial class PdfSyntax {
             encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
             encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
             encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-            encryptionPermissions = TryReadInteger(parsedEncryptionDictionary, "P");
+            encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
             encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
         }
 
@@ -138,6 +138,7 @@ internal static partial class PdfSyntax {
             encryptionLengthBits,
             encryptionPermissions,
             encryptMetadata,
+            fallback.PasswordAuthenticationRole,
             fallback.HasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
             signatureFieldObjectNumbers.Count == 0 ? Array.Empty<int>() : signatureFieldObjectNumbers.AsReadOnly(),
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),

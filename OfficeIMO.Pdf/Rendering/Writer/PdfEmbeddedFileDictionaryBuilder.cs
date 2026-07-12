@@ -22,8 +22,10 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
             .Append(length.ToString(CultureInfo.InvariantCulture))
             .Append(" /CheckSum ")
             .Append(PdfSyntaxEscaper.HexString(ComputePdfEmbeddedFileChecksum(data)))
-            .Append(" >>")
-            .Append(" >>");
+            ;
+        if (file.CreationDate.HasValue) sb.Append(" /CreationDate ").Append(PdfSyntaxEscaper.TextString(FormatPdfDate(file.CreationDate.Value)));
+        if (file.ModificationDate.HasValue) sb.Append(" /ModDate ").Append(PdfSyntaxEscaper.TextString(FormatPdfDate(file.ModificationDate.Value)));
+        sb.Append(" >>").Append(" >>");
         return sb.ToString();
     }
 
@@ -105,4 +107,10 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
         }
     }
     #pragma warning restore CA5351, CA1850
+
+    private static string FormatPdfDate(DateTimeOffset value) {
+        string sign = value.Offset < TimeSpan.Zero ? "-" : "+";
+        TimeSpan offset = value.Offset.Duration();
+        return "D:" + value.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + sign + offset.Hours.ToString("00", CultureInfo.InvariantCulture) + "'" + offset.Minutes.ToString("00", CultureInfo.InvariantCulture) + "'";
+    }
 }

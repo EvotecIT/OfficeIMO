@@ -89,7 +89,7 @@ internal static class PdfRewritePreservationMatrixScenarioSupport {
         };
     }
 
-    private static byte[] BuildPageActiveContentProofPdf() {
+    internal static byte[] BuildPageActiveContentProofPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj",

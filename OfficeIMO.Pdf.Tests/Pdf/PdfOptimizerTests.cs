@@ -116,7 +116,8 @@ public class PdfOptimizerTests {
             "%%EOF"
         }));
 
-        Assert.Throws<NotSupportedException>(() => PdfOptimizer.Optimize(signed));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfOptimizer.Optimize(signed));
+        Assert.Equal(PdfMutationOperation.Optimize, exception.Plan.Operation);
     }
 
     private static byte[] BuildPdfWithUncompressedTextStream(string streamContent) {

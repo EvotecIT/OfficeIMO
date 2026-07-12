@@ -185,7 +185,7 @@ public partial class PdfReadStreamTests {
         byte[] outline = BuildUriActionOutlinePdf();
 
         static void AssertOutline(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 

@@ -1686,8 +1686,8 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.False(readablePreflight.CanRewrite);
         Assert.True(info.Security.HasEncryption);
         Assert.Equal("Standard", info.Security.EncryptionFilter);
-        Assert.Equal(3, info.Security.EncryptionRevision);
-        Assert.Equal(128, info.Security.EncryptionLengthBits);
+        Assert.Equal(6, info.Security.EncryptionRevision);
+        Assert.Equal(256, info.Security.EncryptionLengthBits);
         Assert.Contains("Credential protected marker", text, StringComparison.Ordinal);
         Assert.Contains("Credential protected marker", opened.Read.Text(), StringComparison.Ordinal);
         Assert.False(PdfCore.PdfInspector.Probe(extractedPage).HasEncryption);

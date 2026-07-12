@@ -13,15 +13,20 @@ internal static partial class PdfSyntax {
 
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
+        PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
+        limits.Validate();
+        if (pdf.LongLength > limits.MaxInputBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, pdf.LongLength);
+        }
 
         string text = PdfEncoding.Latin1GetString(pdf);
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
         bool hasEncryption = encryptObjectNumber.HasValue;
         bool hasSignatures = HasSignatureMarkers(pdf);
-        IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text);
+        IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
-        IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev");
+        IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev", limits.MaxRevisions);
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
         bool hasXrefStreams = ContainsPdfName(text, "XRef") && ContainsPdfName(text, "W");
@@ -41,6 +46,7 @@ internal static partial class PdfSyntax {
         int? encryptionLengthBits = null;
         int? encryptionPermissions = null;
         bool? encryptMetadata = null;
+        PdfPasswordAuthenticationRole passwordAuthenticationRole = PdfPasswordAuthenticationRole.None;
 
         if (encryptObjectNumber.HasValue &&
             TryReadObjectDictionary(text, encryptObjectNumber.Value, out PdfDictionary? encryptionDictionary) &&
@@ -50,7 +56,7 @@ internal static partial class PdfSyntax {
             encryptionVersion = TryReadInteger(encryptionDictionary, "V");
             encryptionRevision = TryReadInteger(encryptionDictionary, "R");
             encryptionLengthBits = TryReadInteger(encryptionDictionary, "Length");
-            encryptionPermissions = TryReadInteger(encryptionDictionary, "P");
+            encryptionPermissions = TryReadPermissionMask(encryptionDictionary);
             encryptMetadata = TryReadBoolean(encryptionDictionary, "EncryptMetadata");
         }
 
@@ -102,8 +108,12 @@ internal static partial class PdfSyntax {
                 encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
                 encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
                 encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-                encryptionPermissions = TryReadInteger(parsedEncryptionDictionary, "P");
+                encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
                 encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+                if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler) &&
+                    authenticatedHandler is not null) {
+                    passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
+                }
             }
 
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
@@ -195,6 +205,7 @@ internal static partial class PdfSyntax {
             encryptionLengthBits,
             encryptionPermissions,
             encryptMetadata,
+            passwordAuthenticationRole,
             hasSignatures || signatureFieldObjectNumbers.Count > 0 || signatureValueCount > 0,
             signatureFieldObjectNumbers.Count == 0 ? Array.Empty<int>() : signatureFieldObjectNumbers.AsReadOnly(),
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),
@@ -301,6 +312,7 @@ internal static partial class PdfSyntax {
             byteRangeValues,
             byteRangeValues.Count,
             hasContents,
+            TryReadContentsBytes(objects, dictionary),
             contentsSizeBytes,
             contentsEncodedSizeBytes,
             referenceCount);
@@ -442,18 +454,21 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static IReadOnlyList<int> ReadStartXrefOffsets(string text) {
+    private static IReadOnlyList<int> ReadStartXrefOffsets(string text, int maxRevisions) {
         var offsets = new List<int>();
         foreach (Match match in StartXrefRegex.Matches(text)) {
             if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int offset)) {
                 offsets.Add(offset);
+                if (offsets.Count > maxRevisions) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxRevisions, offsets.Count);
+                }
             }
         }
 
         return offsets.Count == 0 ? Array.Empty<int>() : offsets.AsReadOnly();
     }
 
-    private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key) {
+    private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key, int maxValues) {
 #if NET8_0_OR_GREATER
         var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
 #else
@@ -463,6 +478,9 @@ internal static partial class PdfSyntax {
         foreach (Match match in regex.Matches(text)) {
             if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value)) {
                 values.Add(value);
+                if (values.Count > maxValues) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
+                }
             }
         }
 
@@ -616,6 +634,20 @@ internal static partial class PdfSyntax {
             : null;
     }
 
+    private static int? TryReadPermissionMask(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("P", out PdfObject? value) || value is not PdfNumber number) {
+            return null;
+        }
+
+        if (Math.Truncate(number.Value) != number.Value || number.Value < int.MinValue || number.Value > uint.MaxValue) {
+            return null;
+        }
+
+        return number.Value > int.MaxValue
+            ? unchecked((int)(uint)number.Value)
+            : (int)number.Value;
+    }
+
     private static int? TryReadInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
             ResolveObject(objects, value) is PdfNumber number
@@ -668,6 +700,13 @@ internal static partial class PdfSyntax {
         return dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
             ResolveObject(objects, contentsObject) is PdfStringObj contents
             ? contents.RawBytes.Length
+            : null;
+    }
+
+    private static byte[]? TryReadContentsBytes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
+        return dictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject) &&
+            ResolveObject(objects, contentsObject) is PdfStringObj contents
+            ? (byte[])contents.RawBytes.Clone()
             : null;
     }
 

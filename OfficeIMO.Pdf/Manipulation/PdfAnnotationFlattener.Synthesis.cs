@@ -1,6 +1,17 @@
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfAnnotationFlattener {
+    internal static int RegenerateNormalAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        string subtype = TryReadName(objects, annotation, "Subtype") ?? throw new NotSupportedException(UnsupportedVisualAnnotationMessage);
+        if (!IsSupportedVisualAnnotation(subtype) || !TryReadRectCoordinates(objects, annotation, out double x, out double y, out double width, out double height)) {
+            throw new NotSupportedException(UnsupportedVisualAnnotationMessage);
+        }
+        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        PdfReference appearance = CreateSyntheticAppearanceReference(objects, annotation, subtype, x, y, width, height, ref nextObjectNumber);
+        var appearanceDictionary = new PdfDictionary(); appearanceDictionary.Items["N"] = appearance; annotation.Items["AP"] = appearanceDictionary;
+        return appearance.ObjectNumber;
+    }
+
     private static PdfReference CreateSyntheticAppearanceReference(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary annotation,

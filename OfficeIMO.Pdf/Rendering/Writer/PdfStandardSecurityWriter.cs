@@ -15,7 +15,7 @@ internal sealed class PdfEncryptionAssembly {
     public byte[] FileId { get; }
 }
 
-internal static class PdfStandardSecurityWriter {
+internal static partial class PdfStandardSecurityWriter {
     private static readonly byte[] PasswordPadding = new byte[] {
         0x28, 0xBF, 0x4E, 0x5E, 0x4E, 0x75, 0x8A, 0x41,
         0x64, 0x00, 0x4E, 0x56, 0xFF, 0xFA, 0x01, 0x08,
@@ -29,6 +29,20 @@ internal static class PdfStandardSecurityWriter {
     internal static PdfEncryptionAssembly Encrypt(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options) {
         Guard.NotNull(sourceObjects, nameof(sourceObjects));
         Guard.NotNull(options, nameof(options));
+
+        switch (options.Algorithm) {
+            case PdfStandardEncryptionAlgorithm.Aes256:
+                return EncryptAes256(sourceObjects, options);
+            case PdfStandardEncryptionAlgorithm.Aes128:
+                return EncryptAes128(sourceObjects, options);
+            case PdfStandardEncryptionAlgorithm.LegacyRc4:
+                return EncryptLegacyRc4(sourceObjects, options);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(options), options.Algorithm, "Unsupported PDF Standard encryption algorithm.");
+        }
+    }
+
+    private static PdfEncryptionAssembly EncryptLegacyRc4(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options) {
 
         byte[] fileId = CreateFileId();
         string ownerPassword = options.OwnerPassword ?? options.UserPassword;

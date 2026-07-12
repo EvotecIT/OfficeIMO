@@ -25,6 +25,7 @@ public sealed class PdfDocumentSecurityInfo {
         int? encryptionLengthBits,
         int? encryptionPermissions,
         bool? encryptMetadata,
+        PdfPasswordAuthenticationRole passwordAuthenticationRole,
         bool hasSignatures,
         IReadOnlyList<int> signatureFieldObjectNumbers,
         IReadOnlyList<string> signatureFieldNames,
@@ -63,6 +64,7 @@ public sealed class PdfDocumentSecurityInfo {
         EncryptionLengthBits = encryptionLengthBits;
         EncryptionPermissions = encryptionPermissions;
         EncryptMetadata = encryptMetadata;
+        PasswordAuthenticationRole = passwordAuthenticationRole;
         HasSignatures = hasSignatures;
         SignatureFieldObjectNumbers = signatureFieldObjectNumbers;
         SignatureFieldNames = signatureFieldNames;
@@ -118,8 +120,20 @@ public sealed class PdfDocumentSecurityInfo {
     /// <summary>Raw standard-security-handler permission bits from /P, when readable.</summary>
     public int? EncryptionPermissions { get; }
 
+    /// <summary>Typed Standard security permissions, when a raw `/P` mask is present.</summary>
+    public PdfStandardPermissions? AllowedStandardPermissions =>
+        EncryptionPermissions.HasValue
+            ? PdfStandardEncryptionOptions.FromRawPermissions(EncryptionPermissions.Value)
+            : (PdfStandardPermissions?)null;
+
     /// <summary>Encryption /EncryptMetadata flag, when readable.</summary>
     public bool? EncryptMetadata { get; }
+
+    /// <summary>Role established by the supplied Standard-security password, or <see cref="PdfPasswordAuthenticationRole.None"/> when no authentication was performed.</summary>
+    public PdfPasswordAuthenticationRole PasswordAuthenticationRole { get; }
+
+    /// <summary>True when the supplied password authenticated as the Standard-security owner password.</summary>
+    public bool HasOwnerAuthorization => PasswordAuthenticationRole == PdfPasswordAuthenticationRole.Owner;
 
     /// <summary>True when the encryption dictionary exposed at least one readable setting.</summary>
     public bool HasReadableEncryptionSettings =>
@@ -283,8 +297,7 @@ public sealed class PdfDocumentSecurityInfo {
         HasEncryption ||
         HasSignatures ||
         HasDocMDPPermissions ||
-        HasUsageRights ||
-        HasXrefStreams;
+        HasUsageRights;
 
     /// <summary>True when OfficeIMO.Pdf should avoid safe full-rewrite mutation for this input.</summary>
     public bool BlocksOfficeIMOFullRewriteMutation =>

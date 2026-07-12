@@ -42,7 +42,7 @@ public partial class PdfReadStreamTests {
         byte[] viewerPreferencePdf = BuildComplexViewerPreferencePdf();
 
         static void AssertViewerPreferences(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF viewer preferences are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
@@ -66,7 +66,7 @@ public partial class PdfReadStreamTests {
         AssertTagged(() => PdfStamper.StampText(taggedPdf, "STAMP"));
 
         static void AssertTagged(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF tagged content structure is not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
     }
@@ -100,7 +100,7 @@ public partial class PdfReadStreamTests {
         byte[] xmpMetadataPdf = BuildComplexXmpMetadataPdf();
 
         static void AssertXmpMetadata(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF XMP metadata is not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
@@ -140,7 +140,7 @@ public partial class PdfReadStreamTests {
         byte[] outputIntentPdf = BuildComplexOutputIntentPdf();
 
         static void AssertOutputIntents(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF output intents are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 

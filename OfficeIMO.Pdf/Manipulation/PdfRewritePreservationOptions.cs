@@ -7,6 +7,12 @@ public sealed class PdfRewritePreservationOptions {
     private readonly List<string> _requiredTextMarkers = new List<string>();
     private readonly HashSet<string> _allowedMetadataChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Read options used to inspect the original document, including its password when encrypted.</summary>
+    public PdfReadOptions? OriginalReadOptions { get; set; }
+
+    /// <summary>Read options used to inspect the rewritten document, including its new password when encrypted.</summary>
+    public PdfReadOptions? RewrittenReadOptions { get; set; }
+
     /// <summary>True when the rewritten PDF must keep the original page count.</summary>
     public bool PreservePageCount { get; set; } = true;
 

@@ -138,9 +138,9 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
 
-        Assert.Contains("PDF form fields are not supported", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
     }
 
 
@@ -156,7 +156,7 @@ public class PdfEncryptedReadTests {
         Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Encryption);
         Assert.Contains(
-            "Encrypted PDF files can be read when the password is valid, but rewriting encrypted PDFs is not supported yet.",
+            "General encrypted-document rewrites remain blocked; the dedicated owner-authorized security editor can decrypt or re-encrypt supported unsigned PDFs.",
             preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
     }
 

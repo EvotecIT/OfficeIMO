@@ -10,22 +10,41 @@ public static partial class PdfAnnotationFlattener {
     /// Returns a new PDF with supported visual annotations painted into page content and removed from page annotations.
     /// </summary>
     public static byte[] FlattenVisualAnnotations(byte[] pdf) {
-        Guard.NotNull(pdf, nameof(pdf));
-        PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
+        return FlattenVisualAnnotations(pdf, (PdfAnnotationFlattenOptions?)null);
+    }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+    /// <summary>Flattens only supported visual annotations matching the supplied selector.</summary>
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options) =>
+        FlattenVisualAnnotations(pdf, options, readOptions: null);
+
+    /// <summary>Flattens matching supported visual annotations using explicit read limits or credentials.</summary>
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfReadOptions? readOptions) {
+        Guard.NotNull(pdf, nameof(pdf));
+        ValidateFlattenOptions(options);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
+
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber);
+        PdfReadDocument read = PdfReadDocument.Load(pdf, readOptions);
+        var pageNumbers = new Dictionary<int, int>();
+        for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
+        int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber, options, pageNumbers);
         if (flattenedCount == 0) {
             return pdf.ToArray();
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, read.Metadata);
+    }
+
+    private static void ValidateFlattenOptions(PdfAnnotationFlattenOptions? options) {
+        if (options?.ObjectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Annotation object number must be positive.");
+        if (options?.PageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Page number must be positive.");
+        if (options?.Subtype != null) Guard.NotNullOrWhiteSpace(options.Subtype, nameof(options.Subtype));
     }
 
     /// <summary>

@@ -15,11 +15,28 @@ public sealed partial class PdfDocument {
         return PdfInspector.Preflight(Snapshot(), options ?? ReadOptions);
     }
 
+    /// <summary>Chooses a full-rewrite, append-only, or blocked path for an existing-document mutation.</summary>
+    public PdfMutationPlan PlanMutation(
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames = null,
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
+        return PdfMutationPlanner.Plan(Preflight(options), operation, fieldNames, executionPreference);
+    }
+
     /// <summary>
     /// Validates signature structure, byte ranges, and preservation markers for this PDF.
     /// </summary>
     public PdfSignatureValidationReport ValidateSignatures(PdfReadOptions? options = null) {
         return PdfSignatureValidator.Validate(Snapshot(), options ?? ReadOptions);
+    }
+
+    /// <summary>Validates signature structure and delegates CMS, trust, timestamp, and revocation policy to an optional provider.</summary>
+    public PdfSignatureValidationReport ValidateSignatures(
+        IPdfSignatureCryptographyProvider cryptographyProvider,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        return PdfSignatureValidator.Validate(Snapshot(), cryptographyProvider, options ?? ReadOptions);
     }
 
     /// <summary>
@@ -36,12 +53,23 @@ public sealed partial class PdfDocument {
         return PdfDiagnostics.Analyze(Snapshot(), options ?? ReadOptions);
     }
 
+    /// <summary>Creates a bounded debugger projection of objects, revisions, pages, resources, and content operators.</summary>
+    public PdfDebuggerReport Debug(PdfDebuggerOptions? options = null, PdfReadOptions? readOptions = null) {
+        return PdfDebugger.Dump(Snapshot(), options, readOptions ?? ReadOptions);
+    }
+
     /// <summary>
     /// Builds an optimization opportunity report for this document without modifying it.
     /// </summary>
     public PdfOptimizationReport AnalyzeOptimization(PdfReadOptions? options = null) {
         return PdfDiagnostics.AnalyzeOptimization(Snapshot(), options ?? ReadOptions);
     }
+
+    /// <summary>Applies dependency-free lossless optimization and returns the candidate with action and preservation reports.</summary>
+    public PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) => PdfOptimizer.Optimize(Snapshot(), options);
+
+    /// <summary>Applies a named deterministic lossless optimization profile.</summary>
+    public PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) => PdfOptimizer.Optimize(Snapshot(), profile);
 
     /// <summary>
     /// Plans rectangle-based redaction impact without modifying the PDF.
@@ -50,6 +78,9 @@ public sealed partial class PdfDocument {
         return PdfRedactionPlanner.Plan(Snapshot(), areas, layoutOptions, options ?? ReadOptions);
     }
 
+    /// <summary>Derives a reviewable redaction plan from literal text, regex, logical kinds, and form-field names.</summary>
+    public PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => PdfRedactionPlanner.Search(Snapshot(), search, layoutOptions, options ?? ReadOptions);
+
     /// <summary>
     /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
     /// </summary>
@@ -57,12 +88,20 @@ public sealed partial class PdfDocument {
         return FromBytes(PdfRedactionApplier.Apply(Snapshot(), areas, applyOptions, layoutOptions, options ?? ReadOptions));
     }
 
+    /// <summary>Applies a reviewed redaction plan, including exact field removal for field-derived areas.</summary>
+    public PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => FromBytes(PdfRedactionApplier.Apply(Snapshot(), plan, applyOptions, layoutOptions, options ?? ReadOptions));
+
     /// <summary>
     /// Attempts to apply rectangle-based redactions, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
         Guard.NotNull(areas, nameof(areas));
-        return TryOperation("Apply redactions", PdfPreflightCapability.ManipulatePages, () => ApplyRedactions(areas, applyOptions, layoutOptions, options), options ?? ReadOptions);
+        return TryMutationOperation(
+            "Apply redactions",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.Redact,
+            _ => ApplyRedactions(areas, applyOptions, layoutOptions, options),
+            options: options ?? ReadOptions);
     }
 
     internal PdfOperationResult<T> TryOperation<T>(
@@ -85,6 +124,46 @@ public sealed partial class PdfDocument {
         }
     }
 
+    internal PdfOperationResult<T> TryMutationOperation<T>(
+        string operationName,
+        PdfPreflightCapability capability,
+        PdfMutationOperation mutationOperation,
+        Func<PdfMutationExecutionMode, T> operation,
+        IEnumerable<string>? fieldNames = null,
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
+        Guard.NotNullOrWhiteSpace(operationName, nameof(operationName));
+        Guard.NotNull(operation, nameof(operation));
+
+        PdfMutationPlan plan = PlanMutation(mutationOperation, fieldNames, options, executionPreference);
+        if (!plan.CanExecute) {
+            return PdfOperationResult<T>.MutationBlocked(operationName, capability, plan);
+        }
+
+        try {
+            return PdfOperationResult<T>.MutationSuccess(operationName, capability, plan, operation(plan.ExecutionMode));
+        } catch (Exception ex) {
+            return PdfOperationResult<T>.MutationFailed(operationName, capability, plan, ex);
+        }
+    }
+
+    internal PdfOperationResult<T> TryMutationOperation<T>(
+        string operationName,
+        PdfPreflightCapability capability,
+        PdfMutationOperation mutationOperation,
+        Func<T> operation,
+        PdfReadOptions? options = null,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) where T : class {
+        Guard.NotNull(operation, nameof(operation));
+        return TryMutationOperation(
+            operationName,
+            capability,
+            mutationOperation,
+            _ => operation(),
+            options: options,
+            executionPreference: executionPreference);
+    }
+
     /// <summary>
     /// Creates a new PDF by merging this PDF with another loaded or generated PDF.
     /// </summary>
@@ -98,7 +177,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(PdfDocument document, PdfReadOptions? options = null) {
         Guard.NotNull(document, nameof(document));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(document), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(document), options: options);
     }
 
     /// <summary>
@@ -114,7 +193,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(pdf), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(pdf), options: options);
     }
 
     /// <summary>
@@ -130,7 +209,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(string path, PdfReadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(path), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(path), options: options);
     }
 
     /// <summary>
@@ -152,35 +231,63 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(Stream stream, PdfReadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
-        return TryOperation("Merge documents", PdfPreflightCapability.ManipulatePages, () => MergeWith(stream), options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(stream), options: options);
     }
 
     /// <summary>
     /// Creates a new PDF with visual annotation appearance streams painted into page content where supported.
     /// </summary>
     public PdfDocument FlattenVisualAnnotations() {
-        return FromBytes(PdfAnnotationFlattener.FlattenVisualAnnotations(Snapshot()));
+        return FromBytes(PdfAnnotationFlattener.FlattenVisualAnnotations(Snapshot(), options: null, readOptions: ReadOptions));
     }
 
     /// <summary>
     /// Attempts to flatten visual annotation appearance streams, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFlattenVisualAnnotations(PdfReadOptions? options = null) {
-        return TryOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, FlattenVisualAnnotations, options);
+        return TryMutationOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyAnnotations, _ => FlattenVisualAnnotations(), options: options);
     }
 
     /// <summary>
     /// Appends a metadata-only incremental revision without rewriting the existing PDF bytes.
     /// </summary>
-    public PdfDocument AppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
-        return FromBytes(PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords));
+    public PdfDocument AppendMetadataRevision(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        bool createXmpMetadata = false) {
+        return AppendMetadataRevision(title, author, subject, keywords, ReadOptions, createXmpMetadata);
     }
 
     /// <summary>
     /// Attempts to append a metadata-only incremental revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {
-        return TryOperation("Append metadata revision", PdfPreflightCapability.AppendMetadataRevision, () => AppendMetadataRevision(title, author, subject, keywords), options);
+    public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? options = null,
+        bool createXmpMetadata = false) {
+        return TryMutationOperation(
+            "Append metadata revision",
+            PdfPreflightCapability.AppendMetadataRevision,
+            PdfMutationOperation.UpdateMetadata,
+            _ => AppendMetadataRevision(title, author, subject, keywords, options ?? ReadOptions, createXmpMetadata),
+            options: options,
+            executionPreference: PdfMutationExecutionPreference.RequireAppendOnly);
+    }
+
+    private PdfDocument AppendMetadataRevision(
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        PdfReadOptions? readOptions,
+        bool createXmpMetadata = false) {
+        byte[] updated = PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords, readOptions, createXmpMetadata);
+        return FromBytes(updated, readOptions);
     }
 
     /// <summary>
@@ -190,11 +297,24 @@ public sealed partial class PdfDocument {
         return PdfIncrementalUpdater.PrepareExternalSignature(Snapshot(), signatureOptions);
     }
 
+    /// <summary>Prepares, externally signs, and applies a PDF signature without placing key-storage logic in OfficeIMO.Pdf.</summary>
+    public PdfExternalSignatureCompletion SignExternal(
+        IPdfExternalSigner signer,
+        PdfExternalSignatureOptions? signatureOptions = null) {
+        Guard.NotNull(signer, nameof(signer));
+        return PdfIncrementalUpdater.SignExternal(Snapshot(), signer, signatureOptions);
+    }
+
     /// <summary>
     /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfReadOptions? options = null) {
-        return TryOperation("Prepare external signature", PdfPreflightCapability.PrepareExternalSignatureRevision, () => PrepareExternalSignature(signatureOptions), options);
+        return TryMutationOperation(
+            "Prepare external signature",
+            PdfPreflightCapability.PrepareExternalSignatureRevision,
+            PdfMutationOperation.PrepareExternalSignature,
+            _ => PrepareExternalSignature(signatureOptions),
+            options: options);
     }
 
     /// <summary>
@@ -205,10 +325,53 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
+    /// Creates a normalized full-rewrite PDF whose Info dictionary and XMP packet share the supplied common fields.
+    /// Null values preserve existing values and empty strings clear them.
+    /// </summary>
+    public PdfDocument SynchronizeMetadata(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        bool createXmpMetadata = true) {
+        return FromBytes(PdfMetadataEditor.SynchronizeMetadata(
+            Snapshot(), title, author, subject, keywords, createXmpMetadata));
+    }
+
+    /// <summary>Attempts a full-rewrite Info/XMP synchronization and returns planner diagnostics when blocked.</summary>
+    public PdfOperationResult<PdfDocument> TrySynchronizeMetadata(
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        bool createXmpMetadata = true,
+        PdfReadOptions? options = null) {
+        return TryMutationOperation(
+            "Synchronize Info and XMP metadata",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.SynchronizeMetadata,
+            _ => SynchronizeMetadata(title, author, subject, keywords, createXmpMetadata),
+            options: options,
+            executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
+    }
+
+    /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
+    public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null) {
+        return PdfSanitizer.Sanitize(Snapshot(), options);
+    }
+
+    /// <summary>
     /// Attempts to create a new PDF with updated metadata, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> TryUpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {
-        return TryOperation("Update metadata", PdfPreflightCapability.ManipulatePages, () => UpdateMetadata(title, author, subject, keywords), options);
+        return TryMutationOperation(
+            "Update metadata",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.UpdateMetadata,
+            mode => mode == PdfMutationExecutionMode.AppendOnly
+                ? AppendMetadataRevision(title, author, subject, keywords, options ?? ReadOptions)
+                : UpdateMetadata(title, author, subject, keywords),
+            options: options);
     }
 
     /// <summary>
@@ -224,6 +387,12 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryReplaceMetadata(PdfMetadata metadata, PdfReadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
-        return TryOperation("Replace metadata", PdfPreflightCapability.ManipulatePages, () => ReplaceMetadata(metadata), options);
+        return TryMutationOperation(
+            "Replace metadata",
+            PdfPreflightCapability.ManipulatePages,
+            PdfMutationOperation.UpdateMetadata,
+            _ => ReplaceMetadata(metadata),
+            options: options,
+            executionPreference: PdfMutationExecutionPreference.RequireFullRewrite);
     }
 }

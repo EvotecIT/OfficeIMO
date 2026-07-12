@@ -4,6 +4,22 @@ namespace OfficeIMO.Pdf;
 public static class PdfSignatureValidator {
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a PDF byte array.</summary>
     public static PdfSignatureValidationReport Validate(byte[] pdf, PdfReadOptions? options = null) {
+        return ValidateCore(pdf, cryptographyProvider: null, options);
+    }
+
+    /// <summary>Validates PDF signature structure and delegates CMS, trust, timestamp, and revocation policy to an optional provider.</summary>
+    public static PdfSignatureValidationReport Validate(
+        byte[] pdf,
+        IPdfSignatureCryptographyProvider cryptographyProvider,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        return ValidateCore(pdf, cryptographyProvider, options);
+    }
+
+    private static PdfSignatureValidationReport ValidateCore(
+        byte[] pdf,
+        IPdfSignatureCryptographyProvider? cryptographyProvider,
+        PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
 
         PdfDocumentSecurityInfo security;
@@ -34,10 +50,10 @@ public static class PdfSignatureValidator {
 
         var signatureResults = new List<PdfSignatureValidationResult>(security.Signatures.Count);
         foreach (PdfSignatureInfo signature in security.Signatures) {
-            signatureResults.Add(ValidateSignature(signature, pdf.LongLength, findings));
+            signatureResults.Add(ValidateSignature(signature, pdf, security, cryptographyProvider, findings));
         }
 
-        AddDocumentLevelFindings(security, findings);
+        AddDocumentLevelFindings(security, findings, cryptographyProvider is not null);
 
         return new PdfSignatureValidationReport(
             security,
@@ -54,6 +70,16 @@ public static class PdfSignatureValidator {
         return Validate(File.ReadAllBytes(path), options);
     }
 
+    /// <summary>Validates PDF signatures in a file through an optional cryptography provider.</summary>
+    public static PdfSignatureValidationReport Validate(
+        string path,
+        IPdfSignatureCryptographyProvider cryptographyProvider,
+        PdfReadOptions? options = null) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        return Validate(File.ReadAllBytes(path), cryptographyProvider, options);
+    }
+
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a readable PDF stream.</summary>
     public static PdfSignatureValidationReport Validate(Stream stream, PdfReadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
@@ -66,10 +92,29 @@ public static class PdfSignatureValidator {
         return Validate(buffer.ToArray(), options);
     }
 
+    /// <summary>Validates PDF signatures from a readable stream through an optional cryptography provider.</summary>
+    public static PdfSignatureValidationReport Validate(
+        Stream stream,
+        IPdfSignatureCryptographyProvider cryptographyProvider,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(stream, nameof(stream));
+        Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
+        if (!stream.CanRead) {
+            throw new ArgumentException("Stream must be readable.", nameof(stream));
+        }
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return Validate(buffer.ToArray(), cryptographyProvider, options);
+    }
+
     private static PdfSignatureValidationResult ValidateSignature(
         PdfSignatureInfo signature,
-        long fileLength,
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        IPdfSignatureCryptographyProvider? cryptographyProvider,
         List<PdfSignatureValidationFinding> aggregateFindings) {
+        long fileLength = pdf.LongLength;
         var findings = new List<PdfSignatureValidationFinding>();
         IReadOnlyList<long> values = signature.ByteRangeValues;
         bool completeShape = signature.HasByteRange && values.Count == 4;
@@ -153,6 +198,18 @@ public static class PdfSignatureValidator {
             AddSignatureFinding(findings, signature, PdfDiagnosticSeverity.Warning, "SignatureMissingOwningField", "Signature value is not linked from a readable AcroForm signature field.");
         }
 
+        PdfSignatureCryptographicResult? cryptographicResult = null;
+        if (cryptographyProvider is not null) {
+            cryptographicResult = ValidateCryptographically(
+                pdf,
+                security,
+                signature,
+                completeShape,
+                ordered,
+                findings,
+                cryptographyProvider);
+        }
+
         aggregateFindings.AddRange(findings);
         return new PdfSignatureValidationResult(
             signature,
@@ -164,15 +221,90 @@ public static class PdfSignatureValidator {
             gapLength,
             unsignedByteCount,
             byteRangeCoverageRatio,
+            cryptographicResult,
             findings.AsReadOnly());
     }
 
-    private static void AddDocumentLevelFindings(PdfDocumentSecurityInfo security, List<PdfSignatureValidationFinding> findings) {
-        if (security.HasSignatures) {
+    private static PdfSignatureCryptographicResult? ValidateCryptographically(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        PdfSignatureInfo signature,
+        bool completeShape,
+        bool ordered,
+        List<PdfSignatureValidationFinding> findings,
+        IPdfSignatureCryptographyProvider provider) {
+        if (!completeShape || !ordered || signature.ContentsBytes is null || signature.ContentsBytes.Length == 0) {
+            AddSignatureFinding(
+                findings,
+                signature,
+                PdfDiagnosticSeverity.Error,
+                "CryptographicValidationInputUnavailable",
+                "Cryptographic validation requires a valid four-value /ByteRange and non-empty decoded /Contents bytes.",
+                isCryptographic: true);
+            return null;
+        }
+
+        try {
+            byte[] signedContent = ReadSignedContent(pdf, signature.ByteRangeValues);
+            var input = new PdfSignatureCryptographyInput(
+                signature,
+                signedContent,
+                (byte[])signature.ContentsBytes.Clone(),
+                pdf.LongLength,
+                security.DocumentSecurityStore);
+            PdfSignatureCryptographicResult result = provider.Verify(input) ??
+                throw new InvalidOperationException("Signature cryptography provider returned no result.");
+            for (int i = 0; i < result.Findings.Count; i++) {
+                PdfSignatureCryptographicFinding finding = result.Findings[i];
+                AddSignatureFinding(findings, signature, finding.Severity, finding.Code, finding.Message, isCryptographic: true);
+            }
+
+            return result;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            AddSignatureFinding(
+                findings,
+                signature,
+                PdfDiagnosticSeverity.Error,
+                "CryptographicProviderFailed",
+                provider.Name + " could not validate the signature: " + ex.Message,
+                isCryptographic: true);
+            return new PdfSignatureCryptographicResult(
+                provider.Name,
+                PdfCryptographicValidationStatus.Error,
+                PdfCryptographicValidationStatus.Error,
+                PdfCryptographicValidationStatus.Error,
+                PdfCryptographicValidationStatus.Error,
+                PdfCryptographicValidationStatus.Error);
+        }
+    }
+
+    private static byte[] ReadSignedContent(byte[] pdf, IReadOnlyList<long> byteRangeValues) {
+        long totalLength = byteRangeValues[1] + byteRangeValues[3];
+        if (totalLength > int.MaxValue) {
+            throw new InvalidOperationException("Signed byte ranges exceed the current in-memory validation limit.");
+        }
+
+        var content = new byte[(int)totalLength];
+        int destinationOffset = 0;
+        for (int i = 0; i < byteRangeValues.Count; i += 2) {
+            int sourceOffset = checked((int)byteRangeValues[i]);
+            int count = checked((int)byteRangeValues[i + 1]);
+            Buffer.BlockCopy(pdf, sourceOffset, content, destinationOffset, count);
+            destinationOffset += count;
+        }
+
+        return content;
+    }
+
+    private static void AddDocumentLevelFindings(
+        PdfDocumentSecurityInfo security,
+        List<PdfSignatureValidationFinding> findings,
+        bool cryptographicValidationRequested) {
+        if (security.HasSignatures && !cryptographicValidationRequested) {
             findings.Add(new PdfSignatureValidationFinding(
                 PdfDiagnosticSeverity.Info,
                 "CryptographicTrustNotVerified",
-                "Signature structure was inspected, but certificate-chain trust, revocation, digest, and CMS cryptographic verification are not performed by OfficeIMO.Pdf."));
+                "Signature structure was inspected without an optional cryptography provider; CMS math, trust, revocation, digest, and timestamp policy were not evaluated."));
         }
 
         if (security.AcroFormAppendOnly) {
@@ -220,12 +352,14 @@ public static class PdfSignatureValidator {
         PdfSignatureInfo signature,
         PdfDiagnosticSeverity severity,
         string code,
-        string message) {
+        string message,
+        bool isCryptographic = false) {
         findings.Add(new PdfSignatureValidationFinding(
             severity,
             code,
             message,
             signature.ObjectNumber,
-            signature.FieldObjectNumber));
+            signature.FieldObjectNumber,
+            isCryptographic));
     }
 }

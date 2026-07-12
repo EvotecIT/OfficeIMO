@@ -87,7 +87,7 @@ public partial class PdfReadStreamTests {
         byte[] nameTreePdf = BuildUnsupportedCatalogNameTreePdf();
 
         static void AssertCatalogNameTrees(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("catalog name trees", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -104,7 +104,7 @@ public partial class PdfReadStreamTests {
         byte[] embeddedFilePdf = BuildComplexEmbeddedFilePdf();
 
         static void AssertEmbeddedFiles(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
@@ -121,7 +121,7 @@ public partial class PdfReadStreamTests {
         byte[] associatedFilePdf = BuildComplexAssociatedFilePdf();
 
         static void AssertEmbeddedFiles(Action action) {
-            var exception = Assert.Throws<NotSupportedException>(action);
+            var exception = Assert.ThrowsAny<NotSupportedException>(action);
             Assert.Contains("PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 

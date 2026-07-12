@@ -11,7 +11,8 @@ public sealed class PdfDocumentOpenAction {
         PdfOpenActionDestinationMode? destinationMode = null,
         double? destinationLeft = null,
         double? destinationBottom = null,
-        double? destinationRight = null) {
+        double? destinationRight = null,
+        double? destinationZoom = null) {
         ActionType = actionType;
         PageNumber = pageNumber;
         DestinationTop = destinationTop;
@@ -19,6 +20,7 @@ public sealed class PdfDocumentOpenAction {
         DestinationLeft = destinationLeft;
         DestinationBottom = destinationBottom;
         DestinationRight = destinationRight;
+        DestinationZoom = destinationZoom;
     }
 
     /// <summary>Open action type, for example Destination or GoTo.</summary>
@@ -41,4 +43,7 @@ public sealed class PdfDocumentOpenAction {
 
     /// <summary>Viewer destination mode when the open action uses a supported destination array.</summary>
     public PdfOpenActionDestinationMode? DestinationMode { get; }
+
+    /// <summary>Zoom factor of an XYZ destination when present.</summary>
+    public double? DestinationZoom { get; }
 }

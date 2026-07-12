@@ -9,9 +9,22 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private readonly PdfDictionary _pageDict;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
+    private readonly int _maxDecodedStreamBytes;
+    private readonly PdfReadLimits _limits;
 
-    internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects) {
-        ObjectNumber = objectNumber; _pageDict = pageDict; _objects = objects;
+    internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
+        : this(objectNumber, pageDict, objects, new PdfReadLimits()) { }
+
+    internal PdfReadPage(
+        int objectNumber,
+        PdfDictionary pageDict,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits) {
+        ObjectNumber = objectNumber;
+        _pageDict = pageDict;
+        _objects = objects;
+        _limits = limits;
+        _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
     }
 
     /// <summary>Underlying object number for the page.</summary>
@@ -53,6 +66,15 @@ public sealed partial class PdfReadPage {
         };
 
         return Matrix2D.Multiply(rotation, cropOrigin);
+    }
+
+    internal (double Width, double Height) GetInteractionPageSize() => GetVisualPageSize();
+
+    internal (double X, double Y) TransformPointToVisual(double x, double y) => GetVisualPageTransform().Transform(x, y);
+
+    internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() {
+        (double Width, double Height) size = GetVisualPageSize();
+        return GetVisualTextSpans(size.Height, GetVisualPageTransform());
     }
 
     private PdfPageBox GetPageBoundaryBox() {
@@ -118,6 +140,7 @@ public sealed partial class PdfReadPage {
         if (annotations is null) {
             return Array.Empty<PdfLinkAnnotation>();
         }
+        EnsureAnnotationBudget(annotations);
 
         var result = new List<PdfLinkAnnotation>();
         foreach (var item in annotations.Items) {
@@ -179,6 +202,7 @@ public sealed partial class PdfReadPage {
         if (annotations is null) {
             return Array.Empty<PdfAnnotation>();
         }
+        EnsureAnnotationBudget(annotations);
 
         var result = new List<PdfAnnotation>();
         foreach (var item in annotations.Items) {
@@ -251,6 +275,7 @@ public sealed partial class PdfReadPage {
         if (annotations is null) {
             return Array.Empty<int>();
         }
+        EnsureAnnotationBudget(annotations);
 
         var result = new List<int>();
         foreach (var item in annotations.Items) {
@@ -265,6 +290,15 @@ public sealed partial class PdfReadPage {
         }
 
         return result.Count == 0 ? Array.Empty<int>() : result.AsReadOnly();
+    }
+
+    private void EnsureAnnotationBudget(PdfArray annotations) {
+        if (annotations.Items.Count > _limits.MaxAnnotationsPerPage) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.AnnotationsPerPage,
+                _limits.MaxAnnotationsPerPage,
+                annotations.Items.Count);
+        }
     }
 
     /// <summary>Extracts image XObjects referenced by this page.</summary>
@@ -360,8 +394,10 @@ public sealed partial class PdfReadPage {
         string content,
         PdfDictionary? resources,
         List<string> unsupported,
-        HashSet<PdfStream> activeForms) {
-        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
+        HashSet<PdfStream> activeForms,
+        int contentNestingDepth = 0) {
+        EnsureContentNestingBudget(contentNestingDepth);
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(content, maxOperations: _limits.MaxContentOperations)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -377,7 +413,7 @@ public sealed partial class PdfReadPage {
                 }
 
                 var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formResources, unsupported, activeForms);
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formResources, unsupported, activeForms, contentNestingDepth + 1);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -412,7 +448,9 @@ public sealed partial class PdfReadPage {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
-        bool useLogicalTextFilters = true) {
+        bool useLogicalTextFilters = true,
+        int contentNestingDepth = 0) {
+        EnsureContentNestingBudget(contentNestingDepth);
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
@@ -443,7 +481,8 @@ public sealed partial class PdfReadPage {
             initialStrokeOpacity: initialStrokeOpacity,
             initialTextRenderingMode: initialTextRenderingMode,
             initialClipPath: initialClipPath,
-            useLogicalTextFilters: useLogicalTextFilters));
+            useLogicalTextFilters: useLogicalTextFilters,
+            maxOperations: _limits.MaxContentOperations));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -461,7 +500,8 @@ public sealed partial class PdfReadPage {
                      initialFillOpacity,
                      initialStrokeOpacity,
                      initialTextRenderingMode,
-                     initialClipPath)) {
+                     initialClipPath,
+                     maxOperations: _limits.MaxContentOperations)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -499,7 +539,8 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
-                    useLogicalTextFilters);
+                    useLogicalTextFilters,
+                    contentNestingDepth + 1);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -520,7 +561,9 @@ public sealed partial class PdfReadPage {
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        int contentNestingDepth = 0) {
+        EnsureContentNestingBudget(contentNestingDepth);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -534,7 +577,8 @@ public sealed partial class PdfReadPage {
                       paintOrderBase,
                       paintOrderScale,
                       paintOrderOffset,
-                      initialClipPath)) {
+                      initialClipPath,
+                      maxOperations: _limits.MaxContentOperations)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(
@@ -583,10 +627,20 @@ public sealed partial class PdfReadPage {
                     invocation.FillOpacity,
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
-                    initialClipPath: invocation.ClipPath);
+                    initialClipPath: invocation.ClipPath,
+                    contentNestingDepth: contentNestingDepth + 1);
             } finally {
                 activeForms.Remove(formStream);
             }
+        }
+    }
+
+    private void EnsureContentNestingBudget(int contentNestingDepth) {
+        if (contentNestingDepth > _limits.MaxContentNestingDepth) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.ContentNestingDepth,
+                _limits.MaxContentNestingDepth,
+                contentNestingDepth);
         }
     }
 
@@ -1320,6 +1374,6 @@ public sealed partial class PdfReadPage {
     }
 
     private byte[] DecodeIfNeeded(PdfStream s) {
-        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects);
+        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects, _maxDecodedStreamBytes);
     }
 }

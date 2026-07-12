@@ -475,12 +475,13 @@ public class PdfITextInspiredCoverageTests {
 
         Assert.False(plan.CanAppendFormFields);
         Assert.Contains("DocMDP", plan.Blockers);
-        Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
         }, new PdfIncrementalFormFieldUpdateOptions {
             GenerateAppearanceStreams = true,
             KeepNeedAppearances = false
         }));
+        Assert.Contains("AppendOnly.DocMDP", exception.Plan.BlockerCodes);
     }
 
     [Fact]
@@ -489,11 +490,11 @@ public class PdfITextInspiredCoverageTests {
             permissionLevel: 2,
             lockDictionary: "<< /Type /SigFieldLock /Action /Include /Fields [(Name)] >>");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Name"] = "Grace"
         }));
 
-        Assert.Contains("locked by a signature field lock", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("AppendOnly.SignatureFieldLock", exception.Plan.BlockerCodes);
     }
 
     [Fact]
@@ -572,6 +573,29 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal(14, geometry.TrimBox.Bottom);
         Assert.Equal(222, geometry.TrimBox.Right);
         Assert.Equal(244, geometry.TrimBox.Top);
+    }
+
+    [Fact]
+    public void PageEditor_NamedAndFluentBoundaryBoxApisUseSharedEngine() {
+        byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
+
+        PdfDocument updated = PdfDocument.Open(pdf)
+            .Pages.SetMediaBox(0, 0, 260, 280)
+            .Pages.SetCropBox(5, 6, 250, 270)
+            .Pages.SetBleedBox(7, 8, 248, 268)
+            .Pages.SetTrimBox(9, 10, 246, 266)
+            .Pages.SetArtBox(11, 12, 244, 264);
+        PdfPageGeometry geometry = updated.Inspect().Pages[0].Geometry!;
+        PdfPageGeometry typed = PdfInspector.Inspect(
+            PdfPageEditor.SetPageBox(pdf, PdfPageBoundaryBox.CropBox, 13, 14, 230, 240)).Pages[0].Geometry!;
+
+        Assert.Equal(260, geometry.MediaBox.Width);
+        Assert.Equal(5, geometry.CropBox!.Left);
+        Assert.Equal(7, geometry.BleedBox!.Left);
+        Assert.Equal(9, geometry.TrimBox!.Left);
+        Assert.Equal(11, geometry.ArtBox!.Left);
+        Assert.Equal(13, typed.CropBox!.Left);
+        Assert.Equal(240, typed.CropBox.Top);
     }
 
     [Fact]
@@ -1061,7 +1085,7 @@ public class PdfITextInspiredCoverageTests {
         return pdf.Substring(start, end - start);
     }
 
-    private static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null, string fieldName = "Name") {
+    internal static byte[] BuildDocMdpFormPdf(int permissionLevel, string? lockDictionary = null, string fieldName = "Name") {
         string lockEntry = string.IsNullOrWhiteSpace(lockDictionary) ? string.Empty : " /Lock " + lockDictionary;
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R /Perms << /DocMDP 7 0 R >> >>",

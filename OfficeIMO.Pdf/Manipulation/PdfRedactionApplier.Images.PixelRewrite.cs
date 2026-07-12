@@ -1,18 +1,19 @@
 using OfficeIMO.Pdf.Filters;
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.IO.Compression;
 
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfRedactionApplier {
-    private const double ImagePixelRewriteTransformTolerance = 0.001D;
+    private const double ImagePixelRewriteTransformTolerance = 0.0000001D;
 
     private static bool RewriteMatchedImagePixels(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
         PdfObject contentsObject,
         ImageRedactionTarget[] targets,
-        PdfColor fillColor,
+        PdfRedactionApplyOptions options,
         IReadOnlyDictionary<int, int> referenceCounts,
         List<PdfRedactionMatch> removedMatches,
         ref int nextObjectNumber) {
@@ -37,7 +38,7 @@ public static partial class PdfRedactionApplier {
             }
 
             string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
-            ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, fillColor, Matrix2D.Identity, referenceCounts, new HashSet<int>(), removedMatches, ref nextObjectNumber);
+            ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, Matrix2D.Identity, referenceCounts, new HashSet<int>(), removedMatches, ref nextObjectNumber);
             if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
                 PdfReference targetReference = reference;
                 if (IsSharedReference(referenceCounts, reference)) {
@@ -63,7 +64,7 @@ public static partial class PdfRedactionApplier {
         PdfDictionary xObjects,
         string content,
         ImageRedactionTarget[] targets,
-        PdfColor fillColor,
+        PdfRedactionApplyOptions options,
         Matrix2D baseTransform,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
@@ -98,7 +99,7 @@ public static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                if (TryRewriteImageStreamPixels(objects, imageReference, imageStream, target, fillColor, ref nextObjectNumber)) {
+                if (TryRewriteImageStreamPixels(objects, resources, invocation.Name, imageReference, imageStream, target, invocationTransform, options, ref nextObjectNumber)) {
                     AddRemovedImageTargets(new[] { target }, removedMatches, null);
                     changed = true;
                 }
@@ -122,7 +123,7 @@ public static partial class PdfRedactionApplier {
                     xObjects.Items[resourceName] = formReference;
                     formStream = (PdfStream)objects[formReference.ObjectNumber].Value;
 
-                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, formReference, formStream, targets, fillColor, invocationTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber);
+                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber);
                     if (repeatedResult.HasChanges) {
                         rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
                         changed = true;
@@ -139,7 +140,7 @@ public static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = RewriteImagePixelsInForm(objects, formReference, formStream, targets, fillColor, invocationTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber).HasChanges || changed;
+                changed = RewriteImagePixelsInForm(objects, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber).HasChanges || changed;
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
@@ -153,7 +154,7 @@ public static partial class PdfRedactionApplier {
         PdfReference formReference,
         PdfStream formStream,
         ImageRedactionTarget[] targets,
-        PdfColor fillColor,
+        PdfRedactionApplyOptions options,
         Matrix2D invocationTransform,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
@@ -163,7 +164,7 @@ public static partial class PdfRedactionApplier {
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.Decode(formStream.Dictionary, formStream.Data, objects));
-        ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, fillColor, formTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber);
+        ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, formTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber);
         if (!string.Equals(result.Content, formContent, StringComparison.Ordinal)) {
             objects[formReference.ObjectNumber] = new PdfIndirectObject(formReference.ObjectNumber, formReference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
         }
@@ -329,38 +330,40 @@ public static partial class PdfRedactionApplier {
     }
 
     private static bool CanRewriteImagePlacementPixels(Matrix2D transform) {
-        return Math.Abs(transform.B) <= ImagePixelRewriteTransformTolerance &&
-            Math.Abs(transform.C) <= ImagePixelRewriteTransformTolerance &&
-            transform.A > ImagePixelRewriteTransformTolerance &&
-            transform.D > ImagePixelRewriteTransformTolerance;
+        return Math.Abs((transform.A * transform.D) - (transform.B * transform.C)) > ImagePixelRewriteTransformTolerance;
     }
 
     private static bool TryRewriteImageStreamPixels(
         Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary resources,
+        string resourceName,
         PdfReference imageReference,
         PdfStream imageStream,
         ImageRedactionTarget target,
-        PdfColor fillColor,
+        Matrix2D transform,
+        PdfRedactionApplyOptions options,
         ref int nextObjectNumber) {
-        if (!TryGetSimpleWritableImage(imageStream, objects, out int width, out int height, out int components, out ImageSampleRewriteEncoder imageEncoder, out ImageSoftMaskRewriteTarget softMask)) {
-            return false;
+        if (!TryGetSimpleWritableImage(imageStream, objects, options.MaximumDecodedImageBytes, out int width, out int height, out int components, out ImageSampleRewriteEncoder imageEncoder, out ImageSoftMaskRewriteTarget softMask)) {
+            return TryRewriteNormalizedImagePixels(objects, resources, resourceName, imageReference, imageStream, target, transform, options, ref nextObjectNumber);
         }
 
-        byte[] pixels = StreamDecoder.Decode(imageStream.Dictionary, imageStream.Data, objects);
         long expectedLengthLong = (long)width * height * components;
-        if (expectedLengthLong <= 0 || expectedLengthLong > int.MaxValue || pixels.Length < expectedLengthLong) {
+        if (expectedLengthLong <= 0 || expectedLengthLong > options.MaximumDecodedImageBytes || expectedLengthLong > int.MaxValue) {
             return false;
         }
 
-        if (!TryGetRedactionPixelBounds(target, width, height, out int x0, out int y0, out int x1, out int y1)) {
+        byte[] pixels = StreamDecoder.Decode(imageStream.Dictionary, imageStream.Data, objects, options.MaximumDecodedImageBytes);
+        if (pixels.Length < expectedLengthLong) return false;
+
+        if (!TryGetRedactionPixelBounds(target.Match.Area, transform, width, height, out int x0, out int y0, out int x1, out int y1)) {
             return false;
         }
 
         byte[] rewritten = (byte[])pixels.Clone();
-        byte red = imageEncoder.EncodeSample(0, fillColor.R);
-        byte green = imageEncoder.EncodeSample(1, fillColor.G);
-        byte blue = imageEncoder.EncodeSample(2, fillColor.B);
-        byte gray = imageEncoder.EncodeSample(0, ToGray(fillColor.R, fillColor.G, fillColor.B));
+        byte red = imageEncoder.EncodeSample(0, options.FillColor.R);
+        byte green = imageEncoder.EncodeSample(1, options.FillColor.G);
+        byte blue = imageEncoder.EncodeSample(2, options.FillColor.B);
+        byte gray = imageEncoder.EncodeSample(0, ToGray(options.FillColor.R, options.FillColor.G, options.FillColor.B));
 
         for (int row = y0; row < y1; row++) {
             int rowOffset = row * width * components;
@@ -379,7 +382,7 @@ public static partial class PdfRedactionApplier {
         PdfDictionary dictionary = CleanStreamDictionary(imageStream.Dictionary);
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
         if (softMask.HasMask &&
-            TryRewriteSoftMaskPixels(objects, softMask, x0, y0, x1, y1, ref nextObjectNumber, out PdfReference rewrittenSoftMaskReference)) {
+            TryRewriteSoftMaskPixels(objects, softMask, x0, y0, x1, y1, options.MaximumDecodedImageBytes, ref nextObjectNumber, out PdfReference rewrittenSoftMaskReference)) {
             dictionary.Items["SMask"] = rewrittenSoftMaskReference;
         } else if (softMask.HasMask) {
             return false;
@@ -390,9 +393,159 @@ public static partial class PdfRedactionApplier {
         return true;
     }
 
+    private static bool TryRewriteNormalizedImagePixels(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary resources,
+        string resourceName,
+        PdfReference imageReference,
+        PdfStream imageStream,
+        ImageRedactionTarget target,
+        Matrix2D transform,
+        PdfRedactionApplyOptions options,
+        ref int nextObjectNumber) {
+        PdfExtractedImage extracted = ResourceResolver.BuildExtractedImage(
+            0,
+            resourceName,
+            imageReference.ObjectNumber,
+            0,
+            imageStream,
+            objects,
+            resources: resources);
+        if (!TryDecodeRedactionRaster(extracted, imageStream, objects, options, out int width, out int height, out byte[] rgba) ||
+            !TryGetRedactionPixelBounds(target.Match.Area, transform, width, height, out int x0, out int y0, out int x1, out int y1)) {
+            return false;
+        }
+
+        byte red = ToColorByte(options.FillColor.R);
+        byte green = ToColorByte(options.FillColor.G);
+        byte blue = ToColorByte(options.FillColor.B);
+        for (int row = y0; row < y1; row++) {
+            int rowOffset = row * width * 4;
+            for (int column = x0; column < x1; column++) {
+                int offset = rowOffset + column * 4;
+                rgba[offset] = red;
+                rgba[offset + 1] = green;
+                rgba[offset + 2] = blue;
+                rgba[offset + 3] = 255;
+            }
+        }
+
+        byte[] rgb = new byte[checked(width * height * 3)];
+        byte[] alpha = new byte[checked(width * height)];
+        bool hasTransparency = false;
+        for (int pixel = 0; pixel < alpha.Length; pixel++) {
+            int source = pixel * 4;
+            int destination = pixel * 3;
+            rgb[destination] = rgba[source];
+            rgb[destination + 1] = rgba[source + 1];
+            rgb[destination + 2] = rgba[source + 2];
+            alpha[pixel] = rgba[source + 3];
+            hasTransparency = hasTransparency || alpha[pixel] != 255;
+        }
+
+        PdfDictionary dictionary = CleanStreamDictionary(imageStream.Dictionary);
+        dictionary.Items.Remove("Decode");
+        dictionary.Items.Remove("ImageMask");
+        dictionary.Items.Remove("Mask");
+        dictionary.Items.Remove("SMask");
+        dictionary.Items["Width"] = new PdfNumber(width);
+        dictionary.Items["Height"] = new PdfNumber(height);
+        dictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        if (hasTransparency) {
+            int maskObjectNumber = AllocateObjectNumber(objects, ref nextObjectNumber);
+            dictionary.Items["SMask"] = new PdfReference(maskObjectNumber, 0);
+            var maskDictionary = new PdfDictionary();
+            maskDictionary.Items["Type"] = new PdfName("XObject");
+            maskDictionary.Items["Subtype"] = new PdfName("Image");
+            maskDictionary.Items["Width"] = new PdfNumber(width);
+            maskDictionary.Items["Height"] = new PdfNumber(height);
+            maskDictionary.Items["ColorSpace"] = new PdfName("DeviceGray");
+            maskDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+            maskDictionary.Items["Filter"] = new PdfName("FlateDecode");
+            objects[maskObjectNumber] = new PdfIndirectObject(maskObjectNumber, 0, new PdfStream(maskDictionary, CompressFlate(alpha)));
+        }
+
+        objects[imageReference.ObjectNumber] = new PdfIndirectObject(imageReference.ObjectNumber, imageReference.Generation, new PdfStream(dictionary, CompressFlate(rgb)));
+        return true;
+    }
+
+    private static bool TryDecodeRedactionRaster(
+        PdfExtractedImage extracted,
+        PdfStream imageStream,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfRedactionApplyOptions options,
+        out int width,
+        out int height,
+        out byte[] rgba) {
+        width = extracted.Width;
+        height = extracted.Height;
+        rgba = Array.Empty<byte>();
+        long expectedLength = (long)width * height * 4;
+        if (width <= 0 || height <= 0 || expectedLength > options.MaximumDecodedImageBytes || expectedLength > int.MaxValue) {
+            return false;
+        }
+
+        if (extracted.IsImageFile &&
+            string.Equals(extracted.FileExtension, "png", StringComparison.OrdinalIgnoreCase) &&
+            OfficeRasterImageDecoder.TryDecode(extracted.Bytes, out OfficeRasterImage? raster) &&
+            raster is not null) {
+            width = raster.Width;
+            height = raster.Height;
+            rgba = raster.GetPixels();
+        } else if (options.ImageDecoder is not null &&
+            options.ImageDecoder.TryDecode(new PdfRedactionImageDecodeRequest(extracted), out PdfRedactionDecodedImage? decoded) &&
+            decoded is not null) {
+            width = decoded.Width;
+            height = decoded.Height;
+            rgba = decoded.GetRgbaPixels();
+        } else {
+            return false;
+        }
+
+        if (width != extracted.Width ||
+            height != extracted.Height ||
+            (long)width * height * 4 != rgba.Length ||
+            rgba.Length > options.MaximumDecodedImageBytes) {
+            rgba = Array.Empty<byte>();
+            return false;
+        }
+
+        if (!extracted.HasUnresolvedTransparencyMask) {
+            return true;
+        }
+
+        if (!string.Equals(extracted.TransparencyMaskKind, "explicit-mask-image", StringComparison.Ordinal) ||
+            !imageStream.Dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject) ||
+            PdfObjectLookup.Resolve(objects, maskObject) is not PdfStream maskStream ||
+            !PdfImageMaskNormalizer.TryBuildPngFile(width, height, maskStream, objects, out byte[] maskPng) ||
+            !OfficeRasterImageDecoder.TryDecode(maskPng, out OfficeRasterImage? maskRaster) ||
+            maskRaster is null ||
+            maskRaster.Width != width ||
+            maskRaster.Height != height) {
+            rgba = Array.Empty<byte>();
+            return false;
+        }
+
+        byte[] maskPixels = maskRaster.GetPixels();
+        for (int pixel = 0; pixel < width * height; pixel++) {
+            rgba[pixel * 4 + 3] = maskPixels[pixel * 4 + 3];
+        }
+
+        return true;
+    }
+
+    private static int AllocateObjectNumber(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber) {
+        int objectNumber = nextObjectNumber++;
+        while (objects.ContainsKey(objectNumber)) objectNumber = nextObjectNumber++;
+        return objectNumber;
+    }
+
     private static bool TryGetSimpleWritableImage(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maximumDecodedImageBytes,
         out int width,
         out int height,
         out int components,
@@ -423,7 +576,7 @@ public static partial class PdfRedactionApplier {
         }
 
         if (!TryCreateImageSampleRewriteEncoder(stream.Dictionary, components, objects, out imageEncoder) ||
-            !TryGetWritableSoftMask(stream, objects, width, height, out softMask)) {
+            !TryGetWritableSoftMask(stream, objects, width, height, maximumDecodedImageBytes, out softMask)) {
             return false;
         }
 
@@ -435,6 +588,7 @@ public static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         int width,
         int height,
+        int maximumDecodedImageBytes,
         out ImageSoftMaskRewriteTarget softMask) {
         softMask = default;
         if (!imageStream.Dictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) {
@@ -467,11 +621,13 @@ public static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] maskPixels = StreamDecoder.Decode(softMaskStream.Dictionary, softMaskStream.Data, objects);
         long expectedLengthLong = (long)width * height;
-        if (expectedLengthLong <= 0 || expectedLengthLong > int.MaxValue || maskPixels.Length < expectedLengthLong) {
+        if (expectedLengthLong <= 0 || expectedLengthLong > maximumDecodedImageBytes || expectedLengthLong > int.MaxValue) {
             return false;
         }
+
+        byte[] maskPixels = StreamDecoder.Decode(softMaskStream.Dictionary, softMaskStream.Data, objects, maximumDecodedImageBytes);
+        if (maskPixels.Length < expectedLengthLong) return false;
 
         softMask = new ImageSoftMaskRewriteTarget(softMaskReference, softMaskStream, width, height, maskEncoder);
         return true;
@@ -484,6 +640,7 @@ public static partial class PdfRedactionApplier {
         int y0,
         int x1,
         int y1,
+        int maximumDecodedImageBytes,
         ref int nextObjectNumber,
         out PdfReference rewrittenSoftMaskReference) {
         rewrittenSoftMaskReference = default!;
@@ -491,11 +648,13 @@ public static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] pixels = StreamDecoder.Decode(softMask.Stream.Dictionary, softMask.Stream.Data, objects);
         long expectedLengthLong = (long)softMask.Width * softMask.Height;
-        if (expectedLengthLong <= 0 || expectedLengthLong > int.MaxValue || pixels.Length < expectedLengthLong) {
+        if (expectedLengthLong <= 0 || expectedLengthLong > maximumDecodedImageBytes || expectedLengthLong > int.MaxValue) {
             return false;
         }
+
+        byte[] pixels = StreamDecoder.Decode(softMask.Stream.Dictionary, softMask.Stream.Data, objects, maximumDecodedImageBytes);
+        if (pixels.Length < expectedLengthLong) return false;
 
         byte[] rewritten = (byte[])pixels.Clone();
         for (int row = y0; row < y1; row++) {
@@ -517,27 +676,46 @@ public static partial class PdfRedactionApplier {
         return true;
     }
 
-    private static bool TryGetRedactionPixelBounds(ImageRedactionTarget target, int width, int height, out int x0, out int y0, out int x1, out int y1) {
-        PdfRedactionArea area = target.Match.Area;
-        double left = Math.Max(area.X, target.X);
-        double right = Math.Min(area.X + area.Width, target.X + target.Width);
-        double bottom = Math.Max(area.Y, target.Y);
-        double top = Math.Min(area.Y + area.Height, target.Y + target.Height);
-        if (right <= left || top <= bottom || target.Width <= 0D || target.Height <= 0D) {
+    private static bool TryGetRedactionPixelBounds(PdfRedactionArea area, Matrix2D transform, int width, int height, out int x0, out int y0, out int x1, out int y1) {
+        double determinant = (transform.A * transform.D) - (transform.B * transform.C);
+        if (Math.Abs(determinant) <= ImagePixelRewriteTransformTolerance) {
             x0 = y0 = x1 = y1 = 0;
             return false;
         }
 
-        double leftFraction = ClampUnit((left - target.X) / target.Width);
-        double rightFraction = ClampUnit((right - target.X) / target.Width);
-        double bottomFraction = ClampUnit((bottom - target.Y) / target.Height);
-        double topFraction = ClampUnit((top - target.Y) / target.Height);
+        double leftFraction = double.PositiveInfinity;
+        double rightFraction = double.NegativeInfinity;
+        double bottomFraction = double.PositiveInfinity;
+        double topFraction = double.NegativeInfinity;
+        AddInversePoint(area.X, area.Y);
+        AddInversePoint(area.X + area.Width, area.Y);
+        AddInversePoint(area.X, area.Y + area.Height);
+        AddInversePoint(area.X + area.Width, area.Y + area.Height);
+        leftFraction = ClampUnit(leftFraction);
+        rightFraction = ClampUnit(rightFraction);
+        bottomFraction = ClampUnit(bottomFraction);
+        topFraction = ClampUnit(topFraction);
+        if (rightFraction <= leftFraction || topFraction <= bottomFraction) {
+            x0 = y0 = x1 = y1 = 0;
+            return false;
+        }
 
         x0 = ClampPixel((int)Math.Floor(leftFraction * width), width);
         x1 = ClampPixel((int)Math.Ceiling(rightFraction * width), width);
         y0 = ClampPixel((int)Math.Floor((1D - topFraction) * height), height);
         y1 = ClampPixel((int)Math.Ceiling((1D - bottomFraction) * height), height);
         return x1 > x0 && y1 > y0;
+
+        void AddInversePoint(double pageX, double pageY) {
+            double translatedX = pageX - transform.E;
+            double translatedY = pageY - transform.F;
+            double unitX = ((transform.D * translatedX) - (transform.C * translatedY)) / determinant;
+            double unitY = ((-transform.B * translatedX) + (transform.A * translatedY)) / determinant;
+            leftFraction = Math.Min(leftFraction, unitX);
+            rightFraction = Math.Max(rightFraction, unitX);
+            bottomFraction = Math.Min(bottomFraction, unitY);
+            topFraction = Math.Max(topFraction, unitY);
+        }
     }
 
     private static PdfDictionary EnsureFormResources(Dictionary<int, PdfIndirectObject> objects, PdfStream formStream) {

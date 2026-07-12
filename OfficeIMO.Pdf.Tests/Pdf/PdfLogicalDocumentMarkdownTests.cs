@@ -169,6 +169,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.True(data.Diagnostics.Width > 0);
         Assert.True(data.Diagnostics.Height > 0);
         Assert.True(data.Diagnostics.Confidence >= 0.95D);
+        Assert.NotEmpty(data.Diagnostics.Evidence);
         Assert.Equal(1D, data.Diagnostics.SchemaConfidence, 3);
         Assert.Equal(1D, data.Diagnostics.CellCompleteness, 3);
         Assert.Equal(1D, data.Diagnostics.ColumnGeometryConfidence, 3);

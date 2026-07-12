@@ -14,7 +14,8 @@ public sealed class PdfOutlineItem {
         PdfOpenActionDestinationMode? destinationMode = null,
         double? destinationLeft = null,
         double? destinationBottom = null,
-        double? destinationRight = null) {
+        double? destinationRight = null,
+        double? destinationZoom = null) {
         Title = title;
         Level = level;
         PageNumber = pageNumber;
@@ -25,6 +26,7 @@ public sealed class PdfOutlineItem {
         DestinationLeft = destinationLeft;
         DestinationBottom = destinationBottom;
         DestinationRight = destinationRight;
+        DestinationZoom = destinationZoom;
     }
 
     /// <summary>Bookmark text shown by PDF readers.</summary>
@@ -50,6 +52,9 @@ public sealed class PdfOutlineItem {
 
     /// <summary>Viewer destination mode when the outline uses a supported destination array.</summary>
     public PdfOpenActionDestinationMode? DestinationMode { get; }
+
+    /// <summary>Zoom factor of an XYZ destination when present.</summary>
+    public double? DestinationZoom { get; }
 
     /// <summary>Whether this outline entry is expanded according to its PDF count state.</summary>
     public bool IsExpanded { get; }

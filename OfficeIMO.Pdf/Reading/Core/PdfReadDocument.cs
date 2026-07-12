@@ -11,10 +11,16 @@ public sealed partial class PdfReadDocument {
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
 
-    private PdfReadDocument(Dictionary<int, PdfIndirectObject> objects, string trailerRaw, PdfDocumentSecurityInfo security, PdfReadOptions? options) {
+    private PdfReadDocument(
+        Dictionary<int, PdfIndirectObject> objects,
+        string trailerRaw,
+        PdfDocumentSecurityInfo security,
+        PdfRepairReport repairReport,
+        PdfReadOptions? options) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
         Security = security;
         Pages = CollectPages();
+        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
         Metadata = ExtractMetadata();
         PageLabels = ExtractPageLabels();
         NamedDestinations = ExtractNamedDestinations();
@@ -95,4 +101,7 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Security, signature, and revision markers read from the source PDF bytes.</summary>
     public PdfDocumentSecurityInfo Security { get; }
+
+    /// <summary>Structural recoveries applied while loading this document.</summary>
+    public PdfRepairReport RepairReport { get; }
 }

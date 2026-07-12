@@ -132,7 +132,8 @@ internal static class TextContentParser {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
-        bool useLogicalTextFilters = true) {
+        bool useLogicalTextFilters = true,
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -153,6 +154,7 @@ internal static class TextContentParser {
         // Operand buffer (tokens collected since last operator)
         var args = new List<object>(8);
         int i = 0; int n = content.Length;
+        int operationCount = 0;
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
         var sbOutGlobal = new StringBuilder();
@@ -177,6 +179,9 @@ internal static class TextContentParser {
             double paintOrder = GetPaintOrder(i);
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
+            if (++operationCount > maxOperations) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, maxOperations, operationCount);
+            }
 
             switch (op) {
                 case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; args.Clear(); break;
@@ -1068,7 +1073,8 @@ internal static class TextContentParser {
         double? initialFillOpacity = null,
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        int maxOperations = PdfReadLimits.DefaultMaxContentOperations) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1085,6 +1091,7 @@ internal static class TextContentParser {
         var args = new List<object>(8);
         int i = 0;
         int n = content.Length;
+        int operationCount = 0;
 
         while (i < n) {
             SkipWs();
@@ -1114,6 +1121,9 @@ internal static class TextContentParser {
             double paintOrder = GetPaintOrder(i);
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
+            if (++operationCount > maxOperations) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, maxOperations, operationCount);
+            }
 
             switch (op) {
                 case "q":

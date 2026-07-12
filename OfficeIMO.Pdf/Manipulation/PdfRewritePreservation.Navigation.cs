@@ -23,6 +23,7 @@ public static partial class PdfRewritePreservation {
             CompareNullableDouble(issues, prefix + ".DestinationLeft", before.DestinationLeft, after.DestinationLeft);
             CompareNullableDouble(issues, prefix + ".DestinationBottom", before.DestinationBottom, after.DestinationBottom);
             CompareNullableDouble(issues, prefix + ".DestinationRight", before.DestinationRight, after.DestinationRight);
+            CompareNullableDouble(issues, prefix + ".DestinationZoom", before.DestinationZoom, after.DestinationZoom);
         }
     }
 

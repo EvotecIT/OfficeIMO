@@ -14,9 +14,10 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNull(pdf, nameof(pdf));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         ValidateExternalSignatureOptions(effectiveOptions);
+        PdfSignatureProfile signatureProfile = ResolveSignatureProfile(effectiveOptions);
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.PrepareExternalSignature);
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateExternalSignatureInput(security);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         if (!security.RootObjectNumber.HasValue ||
@@ -42,7 +43,18 @@ public static partial class PdfIncrementalUpdater {
         signatureField.Items["V"] = new PdfReference(signatureObjectNumber, 0);
         signatureField.Items["Ff"] = new PdfNumber(0);
         objects[signatureFieldObjectNumber] = new PdfIndirectObject(signatureFieldObjectNumber, 0, signatureField);
-
+        var profileChangedObjects = new HashSet<int>();
+        ApplySignatureProfile(
+            pdf,
+            objects,
+            catalog,
+            signatureField,
+            signatureObjectNumber,
+            effectiveOptions,
+            signatureProfile,
+            ref nextObjectNumber,
+            ref catalogChanged,
+            profileChangedObjects);
         var changedObjects = new HashSet<int> { signatureFieldObjectNumber };
         if (catalogChanged) {
             changedObjects.Add(security.RootObjectNumber.Value);
@@ -54,6 +66,10 @@ public static partial class PdfIncrementalUpdater {
 
         if (fieldsArrayObjectNumber.HasValue) {
             changedObjects.Add(fieldsArrayObjectNumber.Value);
+        }
+
+        foreach (int objectNumber in profileChangedObjects) {
+            changedObjects.Add(objectNumber);
         }
 
         byte[] signatureBytes = PdfObjectBytes.WrapIndirectObject(
@@ -96,6 +112,9 @@ public static partial class PdfIncrementalUpdater {
     public static byte[] ApplyExternalSignature(PdfExternalSignaturePreparation preparation, byte[] signatureContents) {
         Guard.NotNull(preparation, nameof(preparation));
         Guard.NotNull(signatureContents, nameof(signatureContents));
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            preparation.PreparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature);
         return ApplyExternalSignature(
             preparation.PreparedPdf,
             signatureContents,
@@ -107,6 +126,9 @@ public static partial class PdfIncrementalUpdater {
     public static byte[] ApplyExternalSignature(byte[] preparedPdf, byte[] signatureContents) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
+        _ = PdfMutationPlanner.RequireAppendOnly(
+            preparedPdf,
+            PdfMutationOperation.FinalizeExternalSignature);
         if (!TryFindZeroFilledSignatureContents(preparedPdf, out int contentsHexOffset, out int contentsHexLength)) {
             throw new ArgumentException("PDF does not contain a zero-filled external signature /Contents placeholder.", nameof(preparedPdf));
         }
@@ -129,37 +151,9 @@ public static partial class PdfIncrementalUpdater {
         if (string.IsNullOrWhiteSpace(options.Filter)) {
             throw new ArgumentException("Signature filter cannot be empty.", nameof(options));
         }
-    }
 
-    private static void ValidateExternalSignatureInput(PdfDocumentSecurityInfo security) {
-        var blockers = new List<string>();
-        if (security.HasEncryption) {
-            blockers.Add("Encrypted");
-        }
-
-        if (security.HasXrefStreams) {
-            blockers.Add("XrefStream");
-        }
-
-        if (!security.RootObjectNumber.HasValue) {
-            blockers.Add("MissingRoot");
-        }
-
-        if (!security.LastStartXrefOffset.HasValue) {
-            blockers.Add("MissingStartXref");
-        }
-
-        if (security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange) {
-            blockers.Add("Signed");
-        }
-
-        if (security.HasDocMDPPermissions) {
-            blockers.Add("DocMDP");
-        }
-
-        if (blockers.Count > 0) {
-            throw new NotSupportedException("External signature preparation is not supported for this PDF: " + string.Join(", ", blockers));
-        }
+        ResolveSignatureProfile(options);
+        ResolveSignatureSubFilter(options);
     }
 
     private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName) {
@@ -229,12 +223,14 @@ public static partial class PdfIncrementalUpdater {
     }
 
     private static string BuildSignaturePlaceholderDictionary(PdfExternalSignatureOptions options) {
+        PdfSignatureProfile profile = ResolveSignatureProfile(options);
+        PdfExternalSignatureSubFilter subFilter = ResolveSignatureSubFilter(options);
         string zeros = new string('0', options.ReservedSignatureContentsBytes * 2);
         var builder = new StringBuilder();
         builder.Append("<< /Type /");
-        builder.Append(options.SubFilter == PdfExternalSignatureSubFilter.DocumentTimestamp ? "DocTimeStamp" : "Sig");
+        builder.Append(profile == PdfSignatureProfile.DocumentTimestamp ? "DocTimeStamp" : "Sig");
         builder.Append(" /Filter /").Append(PdfSyntaxEscaper.Name(options.Filter));
-        builder.Append(" /SubFilter /").Append(PdfSyntaxEscaper.Name(ToSubFilterName(options.SubFilter)));
+        builder.Append(" /SubFilter /").Append(PdfSyntaxEscaper.Name(ToSubFilterName(subFilter)));
         builder.Append(" /ByteRange [").Append(SignatureByteRangePlaceholder).Append(']');
         builder.Append(" /Contents <").Append(zeros).Append('>');
         AppendSignatureTextEntry(builder, "Name", options.Name);
@@ -242,6 +238,11 @@ public static partial class PdfIncrementalUpdater {
         AppendSignatureTextEntry(builder, "Location", options.Location);
         AppendSignatureTextEntry(builder, "ContactInfo", options.ContactInfo);
         builder.Append(" /M ").Append(PdfSyntaxEscaper.TextString(FormatSignatureDate(options.SigningTime ?? DateTimeOffset.UtcNow)));
+        if (profile == PdfSignatureProfile.Certification) {
+            builder.Append(" /Reference [<< /Type /SigRef /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /P ")
+                .Append(((int)options.CertificationPermission).ToString(CultureInfo.InvariantCulture))
+                .Append(" /V /1.2 >> >>]");
+        }
         builder.Append(" >>\n");
         return builder.ToString();
     }
@@ -326,7 +327,8 @@ public static partial class PdfIncrementalUpdater {
             output,
             options.FieldName,
             options.Filter,
-            ToSubFilterName(options.SubFilter),
+            ToSubFilterName(ResolveSignatureSubFilter(options)),
+            ResolveSignatureProfile(options),
             ranges,
             contentsLiteralStart + 1,
             options.ReservedSignatureContentsBytes * 2,
@@ -480,79 +482,12 @@ public static partial class PdfIncrementalUpdater {
         string trailerRaw,
         HashSet<int> changedObjectNumbers,
         IReadOnlyList<(int ObjectNumber, byte[] Bytes)> rawObjects) {
-        if (!security.RootObjectNumber.HasValue) {
-            throw new InvalidOperationException("PDF root catalog reference is required for an incremental update.");
-        }
-
-        if (!security.LastStartXrefOffset.HasValue) {
-            throw new InvalidOperationException("PDF startxref offset is required for an incremental update.");
-        }
-
-        var contextObjects = new Dictionary<int, PdfIndirectObject>(objects);
-        foreach (var rawObject in rawObjects) {
-            if (!contextObjects.ContainsKey(rawObject.ObjectNumber)) {
-                contextObjects[rawObject.ObjectNumber] = new PdfIndirectObject(rawObject.ObjectNumber, 0, PdfNull.Instance);
-            }
-        }
-
-        var identityMap = contextObjects.Keys.ToDictionary(static objectNumber => objectNumber, static objectNumber => objectNumber);
-        var context = new PdfPageExtractor.SerializationContext(identityMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), contextObjects, preserveReferenceGenerations: true);
-        int[] objectNumbers = changedObjectNumbers
-            .Concat(rawObjects.Select(static item => item.ObjectNumber))
-            .Distinct()
-            .OrderBy(static objectNumber => objectNumber)
-            .ToArray();
-
-        var rawByObjectNumber = rawObjects.ToDictionary(static item => item.ObjectNumber, static item => item.Bytes);
-        var serialized = new List<(int ObjectNumber, int Generation, byte[] Bytes)>(objectNumbers.Length);
-        foreach (int objectNumber in objectNumbers) {
-            if (rawByObjectNumber.TryGetValue(objectNumber, out byte[]? rawBytes)) {
-                serialized.Add((objectNumber, 0, rawBytes));
-                continue;
-            }
-
-            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)) {
-                throw new InvalidOperationException("PDF object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was changed but could not be found.");
-            }
-
-            serialized.Add((objectNumber, indirect.Generation, PdfObjectBytes.WrapIndirectObject(objectNumber, indirect.Generation, PdfPageExtractor.SerializeObject(indirect.Value, context))));
-        }
-
-        using var output = new MemoryStream(pdf.Length + serialized.Sum(static item => item.Bytes.Length) + (serialized.Count * 32) + 256);
-        output.Write(pdf, 0, pdf.Length);
-        if (pdf.Length == 0 || (pdf[pdf.Length - 1] != (byte)'\n' && pdf[pdf.Length - 1] != (byte)'\r')) {
-            output.WriteByte((byte)'\n');
-        }
-
-        var offsets = new Dictionary<int, long>();
-        foreach (var item in serialized) {
-            offsets[item.ObjectNumber] = output.Position;
-            output.Write(item.Bytes, 0, item.Bytes.Length);
-        }
-
-        long xrefOffset = output.Position;
-        int size = Math.Max(objects.Keys.Concat(rawObjects.Select(static item => item.ObjectNumber)).Max(), objectNumbers.Max()) + 1;
-
-        using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
-        writer.WriteLine("xref");
-        foreach (int objectNumber in objectNumbers) {
-            int generation = serialized.First(item => item.ObjectNumber == objectNumber).Generation;
-            writer.WriteLine(objectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-            writer.WriteLine(offsets[objectNumber].ToString("0000000000", CultureInfo.InvariantCulture) + " " + generation.ToString("00000", CultureInfo.InvariantCulture) + " n ");
-        }
-
-        writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
-            (security.InfoObjectNumber.HasValue ? " /Info " + BuildExistingTrailerReference(objects, security.InfoObjectNumber.Value) : string.Empty) +
-            " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
-            ReadTrailerIdEntry(trailerRaw) +
-            " >>");
-        writer.WriteLine("startxref");
-        writer.WriteLine(xrefOffset.ToString(CultureInfo.InvariantCulture));
-        writer.WriteLine("%%EOF");
-        writer.Flush();
-
-        return output.ToArray();
+        return PdfIncrementalObjectWriter.Append(
+            pdf,
+            objects,
+            security,
+            trailerRaw,
+            changedObjectNumbers,
+            rawObjects);
     }
 }

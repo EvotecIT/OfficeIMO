@@ -50,6 +50,8 @@ public sealed class PdfLogicalHeading {
         Text = text;
         FontSize = fontSize;
         Line = line;
+        Confidence = 0.82D;
+        Evidence = new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) };
     }
 
     /// <summary>One-based source page number.</summary>
@@ -66,6 +68,10 @@ public sealed class PdfLogicalHeading {
 
     /// <summary>Line-level text block that produced the heading.</summary>
     public PdfLogicalTextBlock Line { get; }
+    /// <summary>Normalized heading-classification confidence.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting the heading classification.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 }
 
 /// <summary>
@@ -78,6 +84,8 @@ public sealed class PdfLogicalListItem {
         Marker = marker;
         Text = text;
         Line = line;
+        Confidence = string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D;
+        Evidence = new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) };
     }
 
     /// <summary>One-based source page number.</summary>
@@ -94,6 +102,10 @@ public sealed class PdfLogicalListItem {
 
     /// <summary>Line-level text block that produced the list item.</summary>
     public PdfLogicalTextBlock Line { get; }
+    /// <summary>Normalized list-classification confidence.</summary>
+    public double Confidence { get; }
+    /// <summary>Evidence supporting the list classification.</summary>
+    public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 }
 
 /// <summary>

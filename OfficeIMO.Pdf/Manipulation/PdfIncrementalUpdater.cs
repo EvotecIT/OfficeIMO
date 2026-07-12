@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -10,8 +8,13 @@ public static partial class PdfIncrementalUpdater {
     /// Analyzes append-only mutation support for a PDF byte array.
     /// </summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf) {
+        return AnalyzeAppendOnlyMutation(pdf, null);
+    }
+
+    /// <summary>Analyzes append-only mutation support using optional password and parsing settings.</summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf));
+        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions));
     }
 
     /// <summary>
@@ -20,6 +23,11 @@ public static partial class PdfIncrementalUpdater {
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(PdfDocumentSecurityInfo security) {
         Guard.NotNull(security, nameof(security));
         return BuildAppendOnlyMutationReport(security, fieldNames: null);
+    }
+
+    internal static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
+        Guard.NotNull(security, nameof(security));
+        return BuildAppendOnlyMutationReport(security, fieldNames);
     }
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>
@@ -43,13 +51,20 @@ public static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Appends a metadata-only revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
-    public static byte[] UpdateMetadata(byte[] pdf, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public static byte[] UpdateMetadata(
+        byte[] pdf,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = false) {
         Guard.NotNull(pdf, nameof(pdf));
+        _ = PdfMutationPlanner.RequireAppendOnly(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        ValidateAppendOnlyMetadataInput(security);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         if (!security.RootObjectNumber.HasValue) {
             throw new InvalidOperationException("PDF root catalog reference is required for an incremental metadata update.");
         }
@@ -58,49 +73,45 @@ public static partial class PdfIncrementalUpdater {
             throw new InvalidOperationException("PDF startxref offset is required for an incremental metadata update.");
         }
 
-        PdfMetadata existing = PdfInspector.Inspect(pdf).Metadata;
+        PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, readOptions);
+        PdfMetadata existing = documentInfo.Metadata;
+        PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
         var updated = new PdfMetadata {
-            Title = title ?? existing.Title,
-            Author = author ?? existing.Author,
-            Subject = subject ?? existing.Subject,
-            Keywords = keywords ?? existing.Keywords
+            Title = title ?? existing.Title ?? existingXmp?.Title,
+            Author = author ?? existing.Author ?? existingXmp?.Creator,
+            Subject = subject ?? existing.Subject ?? existingXmp?.Description,
+            Keywords = keywords ?? existing.Keywords ?? existingXmp?.Keywords
         };
 
         int newInfoObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        int size = newInfoObjectNumber + 1;
-        byte[] infoObject = PdfObjectBytes.WrapIndirectObject(newInfoObjectNumber, PdfInfoDictionaryBuilder.Build(updated));
-
-        using var output = new MemoryStream(pdf.Length + infoObject.Length + 256);
-        output.Write(pdf, 0, pdf.Length);
-        if (pdf.Length == 0 || (pdf[pdf.Length - 1] != (byte)'\n' && pdf[pdf.Length - 1] != (byte)'\r')) {
-            output.WriteByte((byte)'\n');
+        objects[newInfoObjectNumber] = new PdfIndirectObject(newInfoObjectNumber, 0, PdfInfoDictionaryBuilder.BuildDictionary(updated));
+        var changedObjectNumbers = new List<int> { newInfoObjectNumber };
+        SynchronizeXmpMetadata(objects, security, existingXmp, updated, createXmpMetadata, changedObjectNumbers);
+        PdfStandardSecurityHandler? encryptionHandler = null;
+        if (security.HasEncryption &&
+            !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler)) {
+            throw new PdfUnsupportedEncryptionException("PDF encryption context could not be created for the incremental update.");
         }
 
-        long objectOffset = output.Position;
-        output.Write(infoObject, 0, infoObject.Length);
-        long xrefOffset = output.Position;
-
-        using var writer = new StreamWriter(output, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
-        writer.WriteLine("xref");
-        writer.WriteLine(newInfoObjectNumber.ToString(CultureInfo.InvariantCulture) + " 1");
-        writer.WriteLine(objectOffset.ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n ");
-        writer.WriteLine("trailer");
-        writer.WriteLine("<< /Size " + size.ToString(CultureInfo.InvariantCulture) +
-            " /Root " + BuildExistingTrailerReference(objects, security.RootObjectNumber.Value) +
-            " /Info " + PdfSyntaxEscaper.IndirectReference(newInfoObjectNumber) +
-            " /Prev " + security.LastStartXrefOffset.Value.ToString(CultureInfo.InvariantCulture) +
-            ReadTrailerIdEntry(trailerRaw) +
-            " >>");
-        writer.WriteLine("startxref");
-        writer.WriteLine(xrefOffset.ToString(CultureInfo.InvariantCulture));
-        writer.WriteLine("%%EOF");
-        writer.Flush();
-
-        return output.ToArray();
+        return PdfIncrementalObjectWriter.Append(
+            pdf,
+            objects,
+            security,
+            trailerRaw,
+            changedObjectNumbers: changedObjectNumbers,
+            infoObjectNumberOverride: newInfoObjectNumber,
+            encryptionHandler: encryptionHandler);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF stream.</summary>
-    public static byte[] UpdateMetadata(Stream input, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public static byte[] UpdateMetadata(
+        Stream input,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = false) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
@@ -108,39 +119,90 @@ public static partial class PdfIncrementalUpdater {
 
         using var buffer = new MemoryStream();
         input.CopyTo(buffer);
-        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords);
+        return UpdateMetadata(buffer.ToArray(), title, author, subject, keywords, readOptions, createXmpMetadata);
     }
 
     /// <summary>Appends a metadata-only revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
-    public static void UpdateMetadata(string inputPath, string outputPath, string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public static void UpdateMetadata(
+        string inputPath,
+        string outputPath,
+        string? title = null,
+        string? author = null,
+        string? subject = null,
+        string? keywords = null,
+        PdfReadOptions? readOptions = null,
+        bool createXmpMetadata = false) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords));
+        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions, createXmpMetadata));
     }
 
-    private static void ValidateAppendOnlyMetadataInput(PdfDocumentSecurityInfo security) {
-        PdfAppendOnlyMutationReport report = BuildAppendOnlyMutationReport(security, fieldNames: null);
-        if (!report.CanAppendMetadata) {
-            throw new NotSupportedException("Incremental metadata updates are not supported for this PDF: " + string.Join(", ", report.Blockers));
+    private static void SynchronizeXmpMetadata(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDocumentSecurityInfo security,
+        PdfXmpMetadataInfo? existingXmp,
+        PdfMetadata updated,
+        bool createXmpMetadata,
+        List<int> changedObjectNumbers) {
+        if (!security.RootObjectNumber.HasValue ||
+            !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
+            catalogObject.Value is not PdfDictionary catalog) {
+            throw new InvalidOperationException("PDF root catalog dictionary is required for XMP metadata synchronization.");
         }
+
+        PdfReference? metadataReference = catalog.Get<PdfReference>("Metadata");
+        if (metadataReference is null && !createXmpMetadata) {
+            return;
+        }
+
+        byte[] xml;
+        PdfDictionary streamDictionary;
+        int metadataObjectNumber;
+        int metadataGeneration;
+        if (metadataReference is not null &&
+            PdfObjectLookup.TryGet(objects, metadataReference, out PdfIndirectObject? metadataObject) &&
+            metadataObject.Value is PdfStream metadataStream) {
+            if (existingXmp is null || existingXmp.RawXml is null || !existingXmp.IsWellFormedXml || existingXmp.HasUnsupportedFilters) {
+                throw new InvalidOperationException("The existing XMP metadata stream cannot be decoded and preserved safely.");
+            }
+
+            xml = PdfXmpMetadataSynchronizer.Synchronize(existingXmp.RawXml, updated);
+            streamDictionary = PdfXmpMetadataSynchronizer.CloneUnfilteredMetadataDictionary(metadataStream.Dictionary);
+            metadataObjectNumber = metadataObject.ObjectNumber;
+            metadataGeneration = metadataObject.Generation;
+        } else {
+            xml = PdfXmpMetadataBuilder.Build(updated.Title, updated.Author, updated.Subject, updated.Keywords);
+            streamDictionary = new PdfDictionary();
+            streamDictionary.Items["Type"] = new PdfName("Metadata");
+            streamDictionary.Items["Subtype"] = new PdfName("XML");
+            metadataObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
+            metadataGeneration = 0;
+            catalog.Items["Metadata"] = new PdfReference(metadataObjectNumber, metadataGeneration);
+            changedObjectNumbers.Add(catalogObject.ObjectNumber);
+        }
+
+        objects[metadataObjectNumber] = new PdfIndirectObject(
+            metadataObjectNumber,
+            metadataGeneration,
+            new PdfStream(streamDictionary, xml));
+        changedObjectNumbers.Add(metadataObjectNumber);
     }
 
     private static PdfAppendOnlyMutationReport BuildAppendOnlyMutationReport(PdfDocumentSecurityInfo security, IEnumerable<string>? fieldNames) {
         var commonBlockers = new List<string>();
         var metadataBlockers = new List<string>();
         var formBlockers = new List<string>();
+        var signaturePreparationBlockers = new List<string>();
+        var longTermValidationBlockers = new List<string>();
+        var annotationBlockers = new List<string>();
         var warnings = new List<string>();
-        if (security.HasEncryption) {
+        if (security.HasEncryption && !security.HasOwnerAuthorization) {
             commonBlockers.Add("Encrypted");
         }
 
         bool hasSignatureContent = security.SignatureFieldCount > 0 || security.SignatureCount > 0 || security.HasByteRange;
         if (security.HasUsageRights) {
             commonBlockers.Add("UsageRights");
-        }
-
-        if (security.HasXrefStreams) {
-            commonBlockers.Add("XrefStream");
         }
 
         if (!security.RootObjectNumber.HasValue) {
@@ -153,6 +215,12 @@ public static partial class PdfIncrementalUpdater {
 
         metadataBlockers.AddRange(commonBlockers);
         formBlockers.AddRange(commonBlockers);
+        signaturePreparationBlockers.AddRange(commonBlockers);
+        longTermValidationBlockers.AddRange(commonBlockers);
+        annotationBlockers.AddRange(commonBlockers);
+        if (security.HasEncryption) {
+            signaturePreparationBlockers.Add("EncryptedRawSignatureObject");
+        }
         bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {
@@ -162,6 +230,14 @@ public static partial class PdfIncrementalUpdater {
             } else {
                 warnings.Add("SignedDocMDPFormFill");
             }
+
+            if (!security.HasDocMDPPermissions) {
+                warnings.Add("SignedApprovalAnnotationChange");
+            }
+        }
+
+        if (!hasSignatureContent) {
+            longTermValidationBlockers.Add("Unsigned");
         }
 
         if (security.HasDocMDPPermissions) {
@@ -170,6 +246,13 @@ public static partial class PdfIncrementalUpdater {
                 formBlockers.Add("DocMDP");
             } else {
                 warnings.Add("DocMDPAllowsFormFill");
+            }
+
+            warnings.Add("DocMDPDssMaintenance");
+            if (security.DocMDPPermissionLevel == 3) {
+                warnings.Add("DocMDPAllowsAnnotations");
+            } else {
+                annotationBlockers.Add("DocMDP");
             }
         }
 
@@ -194,8 +277,16 @@ public static partial class PdfIncrementalUpdater {
             supported.Add("FormFill");
         }
 
+        if (longTermValidationBlockers.Count == 0) {
+            supported.Add("LongTermValidation");
+        }
+
+        if (annotationBlockers.Count == 0) {
+            supported.Add("Annotations");
+        }
+
         bool canPrepareSignature =
-            commonBlockers.Count == 0 &&
+            signaturePreparationBlockers.Count == 0 &&
             !hasSignatureContent &&
             !security.HasDocMDPPermissions;
         if (canPrepareSignature) {
@@ -215,7 +306,14 @@ public static partial class PdfIncrementalUpdater {
             blocked.Add("SignaturePrepare");
         }
 
-        blocked.Add("Annotations");
+        if (longTermValidationBlockers.Count > 0) {
+            blocked.Add("LongTermValidation");
+        }
+
+        if (annotationBlockers.Count > 0) {
+            blocked.Add("Annotations");
+        }
+
         blocked.Add("PageTree");
         blocked.Add("Attachments");
 
@@ -335,66 +433,4 @@ public static partial class PdfIncrementalUpdater {
             (fieldLock.LocksAllExceptListedFields && fieldLock.Fields.Count == 0));
     }
 
-    private static string ReadTrailerIdEntry(string trailerRaw) {
-        int nameIndex = IndexOfName(trailerRaw, "ID");
-        if (nameIndex < 0) {
-            return string.Empty;
-        }
-
-        int start = trailerRaw.IndexOf('[', nameIndex);
-        if (start < 0) {
-            return string.Empty;
-        }
-
-        int depth = 0;
-        for (int i = start; i < trailerRaw.Length; i++) {
-            if (trailerRaw[i] == '[') {
-                depth++;
-            } else if (trailerRaw[i] == ']') {
-                depth--;
-                if (depth == 0) {
-                    return " /ID " + trailerRaw.Substring(start, i - start + 1).Trim();
-                }
-            }
-        }
-
-        return string.Empty;
-    }
-
-    private static string BuildExistingTrailerReference(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
-        int generation = objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect)
-            ? indirect.Generation
-            : 0;
-        return PdfSyntaxEscaper.IndirectReference(objectNumber, generation);
-    }
-
-    private static int IndexOfName(string value, string name) {
-        string token = "/" + name;
-        int index = 0;
-        while (index < value.Length) {
-            int found = value.IndexOf(token, index, StringComparison.Ordinal);
-            if (found < 0) {
-                return -1;
-            }
-
-            int after = found + token.Length;
-            if (after >= value.Length || IsDelimiter(value[after])) {
-                return found;
-            }
-
-            index = after;
-        }
-
-        return -1;
-    }
-
-    private static bool IsDelimiter(char value) =>
-        char.IsWhiteSpace(value) ||
-        value == '/' ||
-        value == '<' ||
-        value == '>' ||
-        value == '[' ||
-        value == ']' ||
-        value == '(' ||
-        value == ')';
 }
