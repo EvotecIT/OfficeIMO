@@ -45,10 +45,16 @@ internal static class StreamDecoder {
                         current = ApplyDecodeParms(dict, filterIndex, current, objects);
                         break;
                     case DecodeFilterKind.AsciiHex:
-                        current = AsciiHexDecoder.Decode(current);
+                        if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                            throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
+                        }
+
                         break;
                     case DecodeFilterKind.Ascii85:
-                        current = Ascii85Decoder.Decode(current);
+                        if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current)) {
+                            throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
+                        }
+
                         break;
                     case DecodeFilterKind.RunLength:
                         if (!RunLengthDecoder.TryDecode(current, maxOutputBytes, out current)) {

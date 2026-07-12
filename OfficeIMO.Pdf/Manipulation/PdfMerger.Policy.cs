@@ -21,12 +21,14 @@ public static partial class PdfMerger {
         if (options?.FlattenVisualAnnotations == true) decisions.Add(new PdfMergeDecision("SourceAnnotations", PdfMergeStructureMode.Combine, "Flattened supported visual annotations before import; links, forms, and unsupported shapes remained live."));
         if (options?.ResizePages != null) decisions.Add(new PdfMergeDecision("PageSizeNormalization", PdfMergeStructureMode.Combine, "Normalized every source page through the requested resize mode before import."));
 
+        // Form imports rely on the source-to-output object map produced by the initial merge.
+        // Apply them before any policy editor can rewrite and renumber the object graph.
+        merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions);
         merged = ApplyCatalogStatePolicy(merged, sources, primarySourceIndex, policy.CatalogState, decisions);
         merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions);
         merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions);
         merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions);
         merged = ApplyOutlinePolicy(merged, sources, primarySourceIndex, policy.Outlines, decisions);
-        merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions);
         merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions);
         merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions);
 

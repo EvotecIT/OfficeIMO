@@ -432,7 +432,8 @@ public static partial class PdfMerger {
         collector.CollectObjectGraph(catalogState.EmbeddedFiles);
         collector.CollectObjectGraph(catalogState.AssociatedFiles);
         collector.CollectObjectGraph(catalogState.OptionalContent);
-        return new ImportedSource(objects, document, pageObjectNumbers, collector, catalogState);
+        int[] formFieldRootObjectNumbers = CollectAcroFormFieldRoots(objects, document, collector);
+        return new ImportedSource(objects, document, pageObjectNumbers, collector, catalogState, formFieldRootObjectNumbers);
     }
 
     private static byte[] WriteMerged(
@@ -450,6 +451,7 @@ public static partial class PdfMerger {
                 numberMap[sourceId] = nextObjectId++;
             }
 
+            source.OutputNumberMap = numberMap;
             plans.Add(new SourceWritePlan(source, numberMap));
         }
 
@@ -511,12 +513,14 @@ public static partial class PdfMerger {
             PdfReadDocument document,
             int[] pageObjectNumbers,
             PdfPageExtractor.ObjectCollector collector,
-            PdfPageExtractor.CatalogRewriteState catalogState) {
+            PdfPageExtractor.CatalogRewriteState catalogState,
+            int[] formFieldRootObjectNumbers) {
             Objects = objects;
             Document = document;
             PageObjectNumbers = pageObjectNumbers;
             Collector = collector;
             CatalogState = catalogState;
+            FormFieldRootObjectNumbers = formFieldRootObjectNumbers;
         }
 
         public Dictionary<int, PdfIndirectObject> Objects { get; }
@@ -530,6 +534,10 @@ public static partial class PdfMerger {
         public PdfPageExtractor.ObjectCollector Collector { get; }
 
         public PdfPageExtractor.CatalogRewriteState CatalogState { get; }
+
+        public int[] FormFieldRootObjectNumbers { get; }
+
+        public IReadOnlyDictionary<int, int>? OutputNumberMap { get; set; }
     }
 
     private sealed class SourceWritePlan {

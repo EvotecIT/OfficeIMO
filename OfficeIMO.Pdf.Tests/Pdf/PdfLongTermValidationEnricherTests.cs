@@ -22,6 +22,9 @@ public class PdfLongTermValidationEnricherTests {
 
         PdfLongTermValidationEnrichmentResult result = PdfLongTermValidationEnricher.Enrich(signedPdf, evidence, provider);
 
+        byte[] signatureValue = TrimDerContainer(signature.Signature.ContentsBytes!);
+        string expectedVriKey = Convert.ToHexString(SHA1.HashData(signatureValue));
+
         Assert.True(result.IsVerifiedAppendOnlyEnrichment);
         Assert.True(result.MutationReport.OriginalBytesArePrefix);
         Assert.True(result.MutationReport.RevisionChainExtended);
@@ -30,6 +33,7 @@ public class PdfLongTermValidationEnricherTests {
         Assert.Contains(PdfMutationProof.LongTermValidationReadback, result.MutationReport.MutationPlan.RequiredProofs);
         Assert.Equal(40, result.VriKey.Length);
         Assert.Equal(result.VriKey.ToUpperInvariant(), result.VriKey);
+        Assert.Equal(expectedVriKey, result.VriKey);
         Assert.True(result.ValidationAfter.HasOfflineLongTermValidationReadiness);
         Assert.True(result.ValidationAfter.MathematicalSignaturesVerified);
         Assert.True(result.ValidationAfter.DigestVerified);
@@ -107,6 +111,21 @@ public class PdfLongTermValidationEnricherTests {
 
     private static PdfPkcsSignatureCryptographyProvider CreateProvider() =>
         new(new PdfPkcsSignatureValidationOptions { ChainEvaluator = (_, _) => true });
+
+    private static byte[] TrimDerContainer(byte[] value) {
+        int offset = 1;
+        int firstLength = value[offset++];
+        int contentLength = firstLength;
+        if ((firstLength & 0x80) != 0) {
+            int lengthBytes = firstLength & 0x7F;
+            contentLength = 0;
+            for (int index = 0; index < lengthBytes; index++) contentLength = (contentLength << 8) | value[offset++];
+        }
+
+        var result = new byte[offset + contentLength];
+        Buffer.BlockCopy(value, 0, result, 0, result.Length);
+        return result;
+    }
 
     private static X509Certificate2 CreateSigningCertificate() {
         using RSA rsa = RSA.Create(2048);

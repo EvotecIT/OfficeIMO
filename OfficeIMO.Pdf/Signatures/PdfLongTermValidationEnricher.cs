@@ -44,7 +44,7 @@ public static class PdfLongTermValidationEnricher {
         AppendTopLevelReferences(objects, dss, "OCSPs", ocspObjects);
         AppendTopLevelReferences(objects, dss, "CRLs", crlObjects);
 
-        string vriKey = ComputeVriKey(pdf, target);
+        string vriKey = ComputeVriKey(target);
         PdfDictionary vri = CloneResolvedDictionary(objects, dss.Items.TryGetValue("VRI", out PdfObject? currentVri) ? currentVri : null);
         PdfDictionary vriEntry = CloneResolvedDictionary(objects, vri.Items.TryGetValue(vriKey, out PdfObject? currentVriEntry) ? currentVriEntry : null);
         vriEntry.Items["Type"] = new PdfName("VRI");
@@ -61,12 +61,19 @@ public static class PdfLongTermValidationEnricher {
         AddEtsiExtension(objects, catalog);
         changedObjects.Add(security.RootObjectNumber.Value);
 
+        PdfStandardSecurityHandler? encryptionHandler = null;
+        if (security.HasEncryption &&
+            !PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out encryptionHandler)) {
+            throw new PdfUnsupportedEncryptionException("PDF encryption context could not be created for DSS/VRI enrichment.");
+        }
+
         byte[] enriched = PdfIncrementalObjectWriter.Append(
             pdf,
             objects,
             security,
             trailerRaw,
-            changedObjects);
+            changedObjects,
+            encryptionHandler: encryptionHandler);
         PdfSignatureValidationReport after = PdfSignatureValidator.Validate(enriched, cryptographyProvider, readOptions);
         PdfSignatureMutationReport mutation = PdfSignatureMutationAnalyzer.Analyze(
             pdf,
@@ -260,25 +267,17 @@ public static class PdfLongTermValidationEnricher {
     }
 
     #pragma warning disable CA5350 // ETSI EN 319 142-1 mandates SHA-1 only as the VRI dictionary key identifier.
-    private static string ComputeVriKey(byte[] pdf, PdfSignatureValidationResult signature) {
-        IReadOnlyList<long> byteRange = signature.Signature.ByteRangeValues;
-        int start = checked((int)(byteRange[0] + byteRange[1]));
-        int end = checked((int)byteRange[2]);
-        while (start < end && IsPdfWhitespace(pdf[start])) start++;
-        while (end > start && IsPdfWhitespace(pdf[end - 1])) end--;
-        if (end - start < 2 || pdf[start] != (byte)'<' || pdf[end - 1] != (byte)'>') {
-            throw new NotSupportedException("PAdES VRI keys require a hexadecimal signature /Contents value.");
-        }
-
-        var contentsToken = new byte[end - start];
-        Buffer.BlockCopy(pdf, start, contentsToken, 0, contentsToken.Length);
+    private static string ComputeVriKey(PdfSignatureValidationResult signature) {
+        byte[] contents = signature.Signature.ContentsBytes ??
+            throw new InvalidOperationException("PAdES VRI keys require decoded signature /Contents bytes.");
+        byte[] contentsValue = TrimDerContainer(contents);
         byte[] hash;
 #if NET5_0_OR_GREATER
-        hash = SHA1.HashData(contentsToken);
+        hash = SHA1.HashData(contentsValue);
         return Convert.ToHexString(hash);
 #else
         using (SHA1 sha1 = SHA1.Create()) {
-            hash = sha1.ComputeHash(contentsToken);
+            hash = sha1.ComputeHash(contentsValue);
         }
 
         const string hex = "0123456789ABCDEF";
@@ -293,6 +292,35 @@ public static class PdfLongTermValidationEnricher {
     }
     #pragma warning restore CA5350
 
-    private static bool IsPdfWhitespace(byte value) =>
-        value == 0 || value == 9 || value == 10 || value == 12 || value == 13 || value == 32;
+    private static byte[] TrimDerContainer(byte[] value) {
+        if (value.Length < 2 || value[0] != 0x30) {
+            throw new NotSupportedException("PAdES VRI keys require a DER-encoded signature /Contents value.");
+        }
+
+        int offset = 1;
+        int firstLength = value[offset++];
+        long contentLength;
+        if ((firstLength & 0x80) == 0) {
+            contentLength = firstLength;
+        } else {
+            int lengthBytes = firstLength & 0x7F;
+            if (lengthBytes == 0 || lengthBytes > 4 || offset + lengthBytes > value.Length) {
+                throw new NotSupportedException("PAdES VRI keys require a finite DER signature length.");
+            }
+
+            contentLength = 0;
+            for (int i = 0; i < lengthBytes; i++) {
+                contentLength = (contentLength << 8) | value[offset++];
+            }
+        }
+
+        long totalLength = offset + contentLength;
+        if (totalLength <= 0 || totalLength > value.Length || totalLength > int.MaxValue) {
+            throw new NotSupportedException("PAdES VRI keys require one complete DER signature value.");
+        }
+
+        var trimmed = new byte[(int)totalLength];
+        Buffer.BlockCopy(value, 0, trimmed, 0, trimmed.Length);
+        return trimmed;
+    }
 }

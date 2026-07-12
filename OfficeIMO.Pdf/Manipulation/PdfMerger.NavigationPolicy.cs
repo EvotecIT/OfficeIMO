@@ -11,6 +11,7 @@ public static partial class PdfMerger {
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.Document.NamedDestinations.Count);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
+                merged = RewriteNamedDestinationLinksOnly(merged, GetIncomingPageIndexes(sources, primarySourceIndex));
                 decisions.Add(new PdfMergeDecision("NamedDestinations", mode, "Kept primary named destinations.", droppedCount: incomingCount));
                 return merged;
             case PdfMergeStructureMode.RejectIncoming:
@@ -18,16 +19,18 @@ public static partial class PdfMerger {
                 decisions.Add(new PdfMergeDecision("NamedDestinations", mode, "No incoming named destinations were present."));
                 return merged;
             case PdfMergeStructureMode.Drop:
-                merged = RewriteNamedDestinationNavigation(merged, Array.Empty<MergedNamedDestination>(), null, removeNamedDestinationLinks: true);
+                merged = RewriteNamedDestinationNavigation(merged, Array.Empty<MergedNamedDestination>(), null, null, removeNamedDestinationLinks: true);
                 decisions.Add(new PdfMergeDecision("NamedDestinations", mode, "Removed named destinations and links that depended on them."));
                 return merged;
             case PdfMergeStructureMode.Combine:
                 var renamed = new List<string>();
                 int dropped = 0;
                 Dictionary<int, Dictionary<string, string>> renamesBySource;
-                IReadOnlyList<MergedNamedDestination> destinations = CombineNamedDestinations(sources, collisionMode, renamed, ref dropped, out renamesBySource);
+                Dictionary<int, HashSet<string>> droppedBySource;
+                IReadOnlyList<MergedNamedDestination> destinations = CombineNamedDestinations(sources, collisionMode, renamed, ref dropped, out renamesBySource, out droppedBySource);
                 Dictionary<int, Dictionary<string, string>> renamesByPage = ExpandDestinationRenamesByPage(sources, renamesBySource);
-                merged = RewriteNamedDestinationNavigation(merged, destinations, renamesByPage, removeNamedDestinationLinks: false);
+                Dictionary<int, HashSet<string>> droppedByPage = ExpandDestinationDropsByPage(sources, droppedBySource);
+                merged = RewriteNamedDestinationNavigation(merged, destinations, renamesByPage, droppedByPage, removeNamedDestinationLinks: false);
                 ValidateNamedDestinations(merged, destinations);
                 decisions.Add(new PdfMergeDecision("NamedDestinations", mode, "Combined named destinations, retargeted pages, and updated renamed incoming links.", incomingCount - dropped, dropped, renamed.AsReadOnly()));
                 return merged;
@@ -71,10 +74,12 @@ public static partial class PdfMerger {
         PdfMergeCollisionMode collisionMode,
         List<string> renamed,
         ref int dropped,
-        out Dictionary<int, Dictionary<string, string>> renamesBySource) {
+        out Dictionary<int, Dictionary<string, string>> renamesBySource,
+        out Dictionary<int, HashSet<string>> droppedBySource) {
         var result = new List<MergedNamedDestination>();
         var names = new HashSet<string>(StringComparer.Ordinal);
         renamesBySource = new Dictionary<int, Dictionary<string, string>>();
+        droppedBySource = new Dictionary<int, HashSet<string>>();
         int pageOffset = 0;
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
             foreach (PdfNamedDestination destination in sources[sourceIndex].Document.NamedDestinations) {
@@ -82,7 +87,16 @@ public static partial class PdfMerger {
                 string name = destination.Name;
                 if (!names.Add(name)) {
                     if (collisionMode == PdfMergeCollisionMode.Reject) throw new InvalidOperationException("PDF named destination collision: " + name);
-                    if (collisionMode == PdfMergeCollisionMode.KeepFirst) { dropped++; continue; }
+                    if (collisionMode == PdfMergeCollisionMode.KeepFirst) {
+                        if (!droppedBySource.TryGetValue(sourceIndex, out HashSet<string>? sourceDropped)) {
+                            sourceDropped = new HashSet<string>(StringComparer.Ordinal);
+                            droppedBySource[sourceIndex] = sourceDropped;
+                        }
+
+                        sourceDropped.Add(name);
+                        dropped++;
+                        continue;
+                    }
                     string renamedName = GetUniqueDestinationName(name, sourceIndex, names);
                     if (!renamesBySource.TryGetValue(sourceIndex, out Dictionary<string, string>? sourceRenames)) {
                         sourceRenames = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -126,6 +140,40 @@ public static partial class PdfMerger {
         return result;
     }
 
+    private static Dictionary<int, HashSet<string>> ExpandDestinationDropsByPage(
+        IReadOnlyList<ImportedSource> sources,
+        Dictionary<int, HashSet<string>> dropsBySource) {
+        var result = new Dictionary<int, HashSet<string>>();
+        int pageOffset = 0;
+        for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            if (dropsBySource.TryGetValue(sourceIndex, out HashSet<string>? drops)) {
+                for (int pageIndex = 0; pageIndex < sources[sourceIndex].PageObjectNumbers.Length; pageIndex++) {
+                    result[pageOffset + pageIndex] = drops;
+                }
+            }
+
+            pageOffset += sources[sourceIndex].PageObjectNumbers.Length;
+        }
+
+        return result;
+    }
+
+    private static HashSet<int> GetIncomingPageIndexes(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+        var result = new HashSet<int>();
+        int pageOffset = 0;
+        for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            if (sourceIndex != primarySourceIndex) {
+                for (int pageIndex = 0; pageIndex < sources[sourceIndex].PageObjectNumbers.Length; pageIndex++) {
+                    result.Add(pageOffset + pageIndex);
+                }
+            }
+
+            pageOffset += sources[sourceIndex].PageObjectNumbers.Length;
+        }
+
+        return result;
+    }
+
     private static System.Collections.ObjectModel.ReadOnlyCollection<MergedPageLabel> BuildMergedPageLabels(IReadOnlyList<ImportedSource> sources) {
         var result = new List<MergedPageLabel>();
         int pageOffset = 0;
@@ -155,13 +203,22 @@ public static partial class PdfMerger {
         byte[] merged,
         IReadOnlyList<MergedNamedDestination> destinations,
         Dictionary<int, Dictionary<string, string>>? renamesByPage,
+        Dictionary<int, HashSet<string>>? droppedByPage,
         bool removeNamedDestinationLinks) {
         PdfReadDocument document = PdfReadDocument.Load(merged);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
             RewriteNamedDestinationCatalog(objects, catalog, document, destinations);
-            if (renamesByPage is not null && renamesByPage.Count > 0) RewriteNamedDestinationLinks(objects, document, renamesByPage, remove: false);
-            if (removeNamedDestinationLinks) RewriteNamedDestinationLinks(objects, document, null, remove: true);
+            RewriteNamedDestinationLinks(objects, document, renamesByPage, droppedByPage, removeNamedDestinationLinks, null);
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
+        });
+    }
+
+    private static byte[] RewriteNamedDestinationLinksOnly(byte[] merged, HashSet<int> removeAllOnPages) {
+        if (removeAllOnPages.Count == 0) return merged;
+        PdfReadDocument document = PdfReadDocument.Load(merged);
+        return PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
+            RewriteNamedDestinationLinks(objects, document, null, null, removeAll: false, removeAllOnPages: removeAllOnPages);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
     }
@@ -226,19 +283,25 @@ public static partial class PdfMerger {
     private static void RewriteNamedDestinationLinks(
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadDocument document,
-        Dictionary<int, Dictionary<string, string>>? renamesBySource,
-        bool remove) {
+        Dictionary<int, Dictionary<string, string>>? renamesByPage,
+        Dictionary<int, HashSet<string>>? droppedByPage,
+        bool removeAll,
+        HashSet<int>? removeAllOnPages) {
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             Dictionary<string, string>? renames = null;
-            if (!remove && (renamesBySource == null || !renamesBySource.TryGetValue(pageIndex, out renames))) continue;
+            HashSet<string>? dropped = null;
+            bool removePageLinks = removeAll || (removeAllOnPages is not null && removeAllOnPages.Contains(pageIndex));
+            renamesByPage?.TryGetValue(pageIndex, out renames);
+            droppedByPage?.TryGetValue(pageIndex, out dropped);
+            if (!removePageLinks && renames is null && dropped is null) continue;
             PdfReadPage page = document.Pages[pageIndex];
             if (!objects.TryGetValue(page.ObjectNumber, out PdfIndirectObject? pageObject) || pageObject.Value is not PdfDictionary pageDictionary ||
                 !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) || ResolveObject(objects, annotationsObject) is not PdfArray annotations) continue;
             var rewritten = new PdfArray();
             foreach (PdfObject annotationObject in annotations.Items) {
                 PdfDictionary? annotation = ResolveDictionary(objects, annotationObject);
-                if (annotation != null && TryRewriteNamedDestinationLink(objects, annotation, renames, remove)) {
-                    if (!remove) rewritten.Items.Add(annotationObject);
+                if (annotation != null && TryRewriteNamedDestinationLink(objects, annotation, renames, dropped, removePageLinks, out bool removeAnnotation)) {
+                    if (!removeAnnotation) rewritten.Items.Add(annotationObject);
                 } else {
                     rewritten.Items.Add(annotationObject);
                 }
@@ -247,26 +310,44 @@ public static partial class PdfMerger {
         }
     }
 
-    private static bool TryRewriteNamedDestinationLink(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, Dictionary<string, string>? renames, bool remove) {
+    private static bool TryRewriteNamedDestinationLink(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary annotation,
+        Dictionary<string, string>? renames,
+        HashSet<string>? dropped,
+        bool remove,
+        out bool removeAnnotation) {
+        removeAnnotation = false;
         if (annotation.Get<PdfName>("Subtype")?.Name != "Link") return false;
-        if (annotation.Items.TryGetValue("Dest", out PdfObject? direct) && TryRewriteDestinationToken(objects, direct, renames, remove, out PdfObject? replacement)) {
-            if (!remove) annotation.Items["Dest"] = replacement!;
+        if (annotation.Items.TryGetValue("Dest", out PdfObject? direct) && TryRewriteDestinationToken(objects, direct, renames, dropped, remove, out PdfObject? replacement, out removeAnnotation)) {
+            if (!removeAnnotation) annotation.Items["Dest"] = replacement!;
             return true;
         }
         if (annotation.Items.TryGetValue("A", out PdfObject? actionObject) && ResolveDictionary(objects, actionObject) is PdfDictionary action &&
             action.Get<PdfName>("S")?.Name == "GoTo" && action.Items.TryGetValue("D", out PdfObject? actionDestination) &&
-            TryRewriteDestinationToken(objects, actionDestination, renames, remove, out replacement)) {
-            if (!remove) action.Items["D"] = replacement!;
+            TryRewriteDestinationToken(objects, actionDestination, renames, dropped, remove, out replacement, out removeAnnotation)) {
+            if (!removeAnnotation) action.Items["D"] = replacement!;
             return true;
         }
         return false;
     }
 
-    private static bool TryRewriteDestinationToken(Dictionary<int, PdfIndirectObject> objects, PdfObject token, Dictionary<string, string>? renames, bool remove, out PdfObject? replacement) {
+    private static bool TryRewriteDestinationToken(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject token,
+        Dictionary<string, string>? renames,
+        HashSet<string>? dropped,
+        bool remove,
+        out PdfObject? replacement,
+        out bool removeToken) {
         PdfObject? resolved = ResolveObject(objects, token); string? name = resolved is PdfStringObj text ? text.Value : resolved is PdfName pdfName ? pdfName.Name : null;
         replacement = null;
+        removeToken = false;
         if (name == null) return false;
-        if (remove) return true;
+        if (remove || (dropped is not null && dropped.Contains(name))) {
+            removeToken = true;
+            return true;
+        }
         if (renames == null || !renames.TryGetValue(name, out string? renamed)) return false;
         replacement = resolved is PdfName ? new PdfName(renamed) : new PdfStringObj(renamed, true);
         return true;

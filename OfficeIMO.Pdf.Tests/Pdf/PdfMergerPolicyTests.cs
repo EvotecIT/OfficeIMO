@@ -84,6 +84,42 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void Merge_DefaultPolicyRemovesIncomingLinksToDroppedNamedDestinations() {
+        byte[] first = BuildNavigationPdf("First", PdfPageNumberStyle.Arabic, "first-");
+        byte[] second = BuildNavigationPdf("Second", PdfPageNumberStyle.Arabic, "second-");
+
+        PdfDocumentInfo info = PdfInspector.Inspect(PdfMerger.Merge(first, second));
+
+        PdfNamedDestination destination = Assert.Single(info.NamedDestinations);
+        Assert.Equal("Shared", destination.Name);
+        Assert.Equal(1, destination.PageNumber);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal("Shared", link.DestinationName);
+    }
+
+    [Fact]
+    public void Merge_KeepFirstDestinationCollisionRemovesSilentlyRetargetedIncomingLinks() {
+        byte[] first = BuildNavigationPdf("First", PdfPageNumberStyle.Arabic, "first-");
+        byte[] second = BuildNavigationPdf("Second", PdfPageNumberStyle.Arabic, "second-");
+        var options = new PdfMergeOptions {
+            Policy = new PdfMergePolicy {
+                NamedDestinations = PdfMergeStructureMode.Combine,
+                NamedDestinationCollisions = PdfMergeCollisionMode.KeepFirst
+            }
+        };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
+        PdfDocumentInfo info = PdfInspector.Inspect(result.ToBytes());
+
+        Assert.Single(info.NamedDestinations);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal(1, link.PageNumber);
+        PdfMergeDecision decision = Assert.Single(result.Report.Decisions, static item => item.Structure == "NamedDestinations");
+        Assert.Equal(1, decision.DroppedCount);
+    }
+
+    [Fact]
     public void MergeWithReport_CombinesSimpleAcroFormsAndRenamesIncomingFields() {
         byte[] first = PdfDocument.Create().TextField("Shared", value: "first").ToBytes();
         byte[] second = PdfDocument.Create().TextField("Shared", value: "second").ToBytes();
@@ -137,6 +173,30 @@ public class PdfMergerPolicyTests {
         Assert.Equal("Primary", field.Name);
         Assert.Equal(new[] { 1 }, field.PageNumbers);
         Assert.Empty(PdfInspector.Inspect(merged).GetFormWidgets(2));
+    }
+
+    [Fact]
+    public void Merge_DefaultPolicyPreservesPrimaryFieldsWithoutPageWidgets() {
+        byte[] primary = BuildHiddenFormFieldPdf();
+        byte[] incoming = PdfDocument.Create().TextField("Incoming", value: "second").ToBytes();
+
+        PdfReadDocument readback = PdfReadDocument.Load(PdfMerger.Merge(primary, incoming));
+
+        PdfFormField field = Assert.Single(readback.FormFields);
+        Assert.Equal("Hidden", field.Name);
+        Assert.Equal("secret", field.Value);
+        Assert.Empty(field.PageNumbers);
+    }
+
+    [Fact]
+    public void Merge_PreservesSiblingFieldsUnderHierarchicalAcroFormRoot() {
+        byte[] source = BuildHierarchicalSiblingFormPdf();
+
+        IReadOnlyList<PdfFormField> fields = PdfReadDocument.Load(PdfMerger.Merge(source)).FormFields;
+
+        Assert.Collection(fields.OrderBy(static field => field.Name, StringComparer.Ordinal),
+            field => { Assert.Equal("Parent.First", field.Name); Assert.Equal("one", field.Value); },
+            field => { Assert.Equal("Parent.Second", field.Name); Assert.Equal("two", field.Value); });
     }
 
     [Fact]
@@ -240,5 +300,37 @@ public class PdfMergerPolicyTests {
             .ChoiceField("Region", new[] { "EU", "US" }, value: marker == "first" ? "EU" : "US")
             .RadioButtonGroup("Plan", new[] { "Basic", "Pro" }, value: marker == "first" ? "Basic" : "Pro")
             .ToBytes();
+    }
+
+    private static byte[] BuildHiddenFormFieldPdf() => BuildRawPdf(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Fields [6 0 R] >>",
+        "<< /FT /Tx /T (Hidden) /V (secret) >>");
+
+    private static byte[] BuildHierarchicalSiblingFormPdf() => BuildRawPdf(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R /Annots [9 0 R 10 0 R] >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Fields [6 0 R] >>",
+        "<< /T (Parent) /Kids [7 0 R 8 0 R] >>",
+        "<< /FT /Tx /T (First) /V (one) /Parent 6 0 R /Kids [9 0 R] >>",
+        "<< /FT /Tx /T (Second) /V (two) /Parent 6 0 R /Kids [10 0 R] >>",
+        "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [10 70 100 90] >>",
+        "<< /Type /Annot /Subtype /Widget /Parent 8 0 R /Rect [10 30 100 50] >>");
+
+    private static byte[] BuildRawPdf(params string[] objectBodies) {
+        var builder = new StringBuilder("%PDF-1.7\n");
+        for (int objectIndex = 0; objectIndex < objectBodies.Length; objectIndex++) {
+            builder.Append(objectIndex + 1).Append(" 0 obj\n")
+                .Append(objectBodies[objectIndex]).Append("\nendobj\n");
+        }
+
+        builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objectBodies.Length + 1)
+            .Append(" >>\nstartxref\n0\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(builder.ToString());
     }
 }

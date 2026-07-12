@@ -100,6 +100,51 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void AsciiDecodersStopBeforeMaterializingOutputBeyondBudget() {
+        var hexDictionary = new PdfDictionary();
+        hexDictionary.Items["Filter"] = new PdfName("ASCIIHexDecode");
+        var ascii85Dictionary = new PdfDictionary();
+        ascii85Dictionary.Items["Filter"] = new PdfName("ASCII85Decode");
+
+        PdfReadLimitException hexException = Assert.Throws<PdfReadLimitException>(() =>
+            StreamDecoder.Decode(hexDictionary, Enumerable.Repeat((byte)'A', 64).ToArray(), maxOutputBytes: 8));
+        PdfReadLimitException ascii85Exception = Assert.Throws<PdfReadLimitException>(() =>
+            StreamDecoder.Decode(ascii85Dictionary, Enumerable.Repeat((byte)'z', 4).ToArray(), maxOutputBytes: 8));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, hexException.Kind);
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, ascii85Exception.Kind);
+        Assert.Equal(8, hexException.Limit);
+        Assert.Equal(8, ascii85Exception.Limit);
+    }
+
+    [Fact]
+    public void IndirectStreamLengthCannotBypassRawStreamBudget() {
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxRawStreamBytes = 16 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfSyntax.ParseObjects(BuildIndirectLengthBudgetPdf(), options));
+
+        Assert.Equal(PdfReadLimitKind.RawStreamBytes, exception.Kind);
+        Assert.Equal(16, exception.Limit);
+        Assert.Equal(128, exception.Actual);
+    }
+
+    [Fact]
+    public void XrefStreamUsesCallerDecodedStreamBudget() {
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = 16 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfSyntax.ParseObjects(BuildCompressedXrefStreamPdf(), options));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(16, exception.Limit);
+    }
+
+    [Fact]
     public void PageContentUsesCallerDecodedStreamBudget() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {
@@ -351,6 +396,43 @@ public class PdfReadLimitTests {
 
     private static byte[] BuildObjectPdf(string body) => System.Text.Encoding.ASCII.GetBytes(
         "%PDF-1.7\n1 0 obj\n" + body + "\nendobj\ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildIndirectLengthBudgetPdf() => System.Text.Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>\nendobj\n" +
+        "4 0 obj\n<< /Length 6 0 R >>\nstream\nABCD\nendstream\nendobj\n" +
+        "%" + new string('P', 192) + "\n" +
+        "6 0 obj\n128\nendobj\ntrailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildCompressedXrefStreamPdf() {
+        byte[] decoded = new byte[70];
+        byte[] encoded;
+        using (var compressed = new MemoryStream()) {
+            using (var compressor = new DeflateStream(compressed, CompressionLevel.Optimal, leaveOpen: true)) {
+                compressor.Write(decoded, 0, decoded.Length);
+            }
+
+            encoded = compressed.ToArray();
+        }
+
+        using var output = new MemoryStream();
+        void Write(string value) {
+            byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        Write("%PDF-1.5\n");
+        Write("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        Write("2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        Write("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\n");
+        int xrefOffset = checked((int)output.Position);
+        Write("5 0 obj\n<< /Type /XRef /Size 10 /Root 1 0 R /W [1 4 2] /Index [0 10] /Filter /FlateDecode /Length " + encoded.Length + " >>\nstream\n");
+        output.Write(encoded, 0, encoded.Length);
+        Write("\nendstream\nendobj\nstartxref\n" + xrefOffset + "\n%%EOF\n");
+        return output.ToArray();
+    }
 
     private static byte[] BuildNestedPageTreePdf() => BuildPdfObjects(
         "<< /Type /Catalog /Pages 2 0 R >>",

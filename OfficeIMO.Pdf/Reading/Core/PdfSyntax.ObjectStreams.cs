@@ -1,7 +1,12 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, HashSet<int>? allowedObjectStreamNumbers) {
+    private static void ExpandObjectStreams(
+        Dictionary<int, PdfIndirectObject> map,
+        byte[] pdf,
+        Dictionary<int, int> parsedOffsets,
+        HashSet<int>? allowedObjectStreamNumbers,
+        PdfReadLimits limits) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
         keys.Sort((left, right) => GetSourceOffset(left).CompareTo(GetSourceOffset(right)));
@@ -19,7 +24,7 @@ internal static partial class PdfSyntax {
             int objectStreamOffset = GetSourceOffset(id);
 
             // Decode object stream bytes (flate only for now)
-            var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, map);
+            var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, map, limits.MaxDecodedStreamBytes);
             int n = (int)(s.Dictionary.Get<PdfNumber>("N")?.Value ?? 0);
             int first = (int)(s.Dictionary.Get<PdfNumber>("First")?.Value ?? 0);
             if (n <= 0 || first <= 0 || first > data.Length) continue;

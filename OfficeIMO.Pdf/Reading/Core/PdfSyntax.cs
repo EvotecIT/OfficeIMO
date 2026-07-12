@@ -188,10 +188,10 @@ internal static partial class PdfSyntax {
             }
         }
         ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics);
-        ResolveIndirectStreamLengths(map, pdf, streamLocations);
+        ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
         var activeClassicObjectNumbers = new HashSet<int>();
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, out bool appliedClassicEntries);
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets) || appliedXrefStreamEntries;
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, limits, out bool appliedClassicEntries);
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits) || appliedXrefStreamEntries;
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
             foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {
@@ -207,14 +207,14 @@ internal static partial class PdfSyntax {
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value);
                 if (appliedXrefStreamEntries) {
-                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets);
+                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits);
                 }
             }
         }
 
         if (!appliedXrefStreamEntries) {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null);
+            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits);
         }
 
         if (decryptor is null) {

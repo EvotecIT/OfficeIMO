@@ -24,6 +24,22 @@ public class PdfRedactionImageCoverageTests {
     }
 
     [Fact]
+    public void Apply_EnforcesDecodedImageBudgetBeforeSimplePixelRewrite() {
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode",
+            Compress(CreateRgbPixels()));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfRedactionApplier.Apply(
+                source,
+                new[] { LeftHalfArea(source) },
+                new PdfRedactionApplyOptions { MaximumDecodedImageBytes = 8 }));
+
+        Assert.Contains("intersects image placement", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_NormalizesIndexedAndColorKeyImagesBeforePartialRewrite() {
         byte[] indexed = BuildImagePdf(
             "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",

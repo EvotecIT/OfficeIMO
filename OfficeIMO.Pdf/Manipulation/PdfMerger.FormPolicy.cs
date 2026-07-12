@@ -47,6 +47,28 @@ public static partial class PdfMerger {
         }
     }
 
+    private static int[] CollectAcroFormFieldRoots(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadDocument document,
+        PdfPageExtractor.ObjectCollector collector) {
+        if (!document.Security.RootObjectNumber.HasValue ||
+            !objects.TryGetValue(document.Security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
+            catalogObject.Value is not PdfDictionary catalog ||
+            !catalog.Items.TryGetValue("AcroForm", out PdfObject? acroFormObject) ||
+            ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm ||
+            !acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsObject) ||
+            ResolveObject(objects, fieldsObject) is not PdfArray fields) {
+            return Array.Empty<int>();
+        }
+
+        collector.CollectObjectGraph(acroFormObject);
+        return fields.Items
+            .OfType<PdfReference>()
+            .Select(static reference => reference.ObjectNumber)
+            .Distinct()
+            .ToArray();
+    }
+
     private static byte[] RewriteForms(
         byte[] merged,
         IReadOnlyList<ImportedSource> sources,
@@ -57,12 +79,11 @@ public static partial class PdfMerger {
         ref int dropped,
         out IReadOnlyList<string> expectedNames) {
         PdfReadDocument document = PdfReadDocument.Load(merged);
-        int[] sourceByPage = BuildSourceByPage(sources);
         var names = new List<string>();
         int localDropped = dropped;
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
-            List<MergedFormRoot> roots = FindFormRoots(objects, document, sourceByPage);
+            List<MergedFormRoot> roots = FindFormRoots(objects, sources);
             var selected = new List<MergedFormRoot>();
             var fieldNames = new HashSet<string>(StringComparer.Ordinal);
             var droppedWidgetObjectNumbers = new HashSet<int>();
@@ -80,12 +101,12 @@ public static partial class PdfMerger {
                         continue;
                     }
                     string renamedField = GetUniqueFormFieldName(fieldName, root.SourceIndex, fieldNames);
-                    RenameFormRoot(root, renamedField);
                     renamed.Add("source " + root.SourceIndex + ": " + fieldName + " -> " + renamedField);
                     fieldName = renamedField;
                     fieldNames.Add(fieldName);
                 }
                 root.FieldName = fieldName;
+                PrepareFormRoot(objects, root);
                 selected.Add(root);
                 names.Add(fieldName);
             }
@@ -100,52 +121,76 @@ public static partial class PdfMerger {
         return output;
     }
 
-    private static int[] BuildSourceByPage(IReadOnlyList<ImportedSource> sources) {
-        var result = new List<int>();
-        for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
-            for (int page = 0; page < sources[sourceIndex].PageObjectNumbers.Length; page++) result.Add(sourceIndex);
-        }
-        return result.ToArray();
-    }
-
-    private static List<MergedFormRoot> FindFormRoots(Dictionary<int, PdfIndirectObject> objects, PdfReadDocument document, int[] sourceByPage) {
+    private static List<MergedFormRoot> FindFormRoots(
+        Dictionary<int, PdfIndirectObject> objects,
+        IReadOnlyList<ImportedSource> sources) {
         var byRoot = new Dictionary<int, MergedFormRoot>();
-        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
-            PdfReadPage page = document.Pages[pageIndex];
-            if (!objects.TryGetValue(page.ObjectNumber, out PdfIndirectObject? pageObject) || pageObject.Value is not PdfDictionary pageDictionary ||
-                !pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) || ResolveObject(objects, annotationsObject) is not PdfArray annotations) continue;
-            foreach (PdfObject annotationObject in annotations.Items) {
-                if (annotationObject is not PdfReference widgetReference || ResolveDictionary(objects, widgetReference) is not PdfDictionary widget || widget.Get<PdfName>("Subtype")?.Name != "Widget") continue;
-                MergedFormRoot discovered = FindFormRoot(objects, widgetReference, sourceByPage[pageIndex]);
-                if (!byRoot.TryGetValue(discovered.RootObjectNumber, out MergedFormRoot? existing)) {
-                    byRoot[discovered.RootObjectNumber] = discovered;
-                    existing = discovered;
-                } else if (!string.Equals(existing.FieldName, discovered.FieldName, StringComparison.Ordinal)) {
-                    throw new NotSupportedException("Combining a hierarchical AcroForm root with multiple terminal field names is not supported yet.");
+        var visited = new HashSet<int>();
+        for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
+            ImportedSource source = sources[sourceIndex];
+            IReadOnlyDictionary<int, int> numberMap = source.OutputNumberMap ??
+                throw new InvalidOperationException("PDF merge form mapping was not initialized.");
+            for (int rootIndex = 0; rootIndex < source.FormFieldRootObjectNumbers.Length; rootIndex++) {
+                if (numberMap.TryGetValue(source.FormFieldRootObjectNumbers[rootIndex], out int mappedRoot)) {
+                    CollectFormTerminals(objects, sourceIndex, mappedRoot, string.Empty, byRoot, visited);
                 }
-                if (!existing.WidgetObjectNumbers.Contains(widgetReference.ObjectNumber)) existing.WidgetObjectNumbers.Add(widgetReference.ObjectNumber);
             }
         }
+
         return byRoot.Values.OrderBy(static root => root.SourceIndex).ThenBy(static root => root.RootObjectNumber).ToList();
     }
 
-    private static MergedFormRoot FindFormRoot(Dictionary<int, PdfIndirectObject> objects, PdfReference widgetReference, int sourceIndex) {
-        PdfReference current = widgetReference;
-        PdfDictionary currentDictionary = ResolveDictionary(objects, current) ?? throw new InvalidOperationException("PDF widget field dictionary is not readable.");
-        PdfDictionary? renameDictionary = null;
-        var parts = new List<string>();
-        while (true) {
-            if (currentDictionary.Items.TryGetValue("T", out PdfObject? nameObject) && ResolveObject(objects, nameObject) is PdfStringObj name && !string.IsNullOrEmpty(name.Value)) {
-                renameDictionary ??= currentDictionary;
-                parts.Add(name.Value);
-            }
-            if (!currentDictionary.Items.TryGetValue("Parent", out PdfObject? parentObject) || parentObject is not PdfReference parentReference || ResolveDictionary(objects, parentReference) is not PdfDictionary parent) break;
-            current = parentReference; currentDictionary = parent;
+    private static void CollectFormTerminals(
+        Dictionary<int, PdfIndirectObject> objects,
+        int sourceIndex,
+        int fieldObjectNumber,
+        string parentName,
+        Dictionary<int, MergedFormRoot> byRoot,
+        HashSet<int> visited) {
+        if (!visited.Add(fieldObjectNumber) ||
+            !objects.TryGetValue(fieldObjectNumber, out PdfIndirectObject? indirect) ||
+            indirect.Value is not PdfDictionary field) {
+            return;
         }
-        parts.Reverse();
-        string fieldName = string.Join(".", parts);
-        if (fieldName.Length == 0 || renameDictionary == null) throw new NotSupportedException("Combining unnamed AcroForm fields is not supported.");
-        return new MergedFormRoot(sourceIndex, current.ObjectNumber, fieldName, renameDictionary, new List<int> { widgetReference.ObjectNumber });
+
+        string partialName = field.Items.TryGetValue("T", out PdfObject? nameObject) && ResolveObject(objects, nameObject) is PdfStringObj name
+            ? name.Value
+            : string.Empty;
+        string fullName = string.IsNullOrEmpty(parentName)
+            ? partialName
+            : string.IsNullOrEmpty(partialName) ? parentName : parentName + "." + partialName;
+        var fieldChildren = new List<PdfReference>();
+        var widgets = new List<int>();
+        if (field.Items.TryGetValue("Kids", out PdfObject? kidsObject) && ResolveObject(objects, kidsObject) is PdfArray kids) {
+            foreach (PdfObject kidObject in kids.Items) {
+                if (kidObject is not PdfReference kidReference || ResolveDictionary(objects, kidReference) is not PdfDictionary kid) continue;
+                bool pureWidget = kid.Get<PdfName>("Subtype")?.Name == "Widget" &&
+                    !kid.Items.ContainsKey("T") &&
+                    !kid.Items.ContainsKey("FT") &&
+                    !kid.Items.ContainsKey("Kids");
+                if (pureWidget) widgets.Add(kidReference.ObjectNumber); else fieldChildren.Add(kidReference);
+            }
+        }
+
+        if (fieldChildren.Count > 0) {
+            for (int childIndex = 0; childIndex < fieldChildren.Count; childIndex++) {
+                CollectFormTerminals(objects, sourceIndex, fieldChildren[childIndex].ObjectNumber, fullName, byRoot, visited);
+            }
+
+            return;
+        }
+
+        if (field.Get<PdfName>("Subtype")?.Name == "Widget") widgets.Add(fieldObjectNumber);
+        if (string.IsNullOrEmpty(fullName)) throw new NotSupportedException("Combining unnamed AcroForm fields is not supported.");
+        var discovered = new MergedFormRoot(sourceIndex, fieldObjectNumber, fullName, field, widgets);
+        if (!byRoot.TryGetValue(fieldObjectNumber, out MergedFormRoot? existing)) {
+            byRoot[fieldObjectNumber] = discovered;
+            return;
+        }
+
+        foreach (int widgetObjectNumber in widgets) {
+            if (!existing.WidgetObjectNumbers.Contains(widgetObjectNumber)) existing.WidgetObjectNumbers.Add(widgetObjectNumber);
+        }
     }
 
     private static string GetUniqueFormFieldName(string fieldName, int sourceIndex, HashSet<string> names) {
@@ -158,15 +203,27 @@ public static partial class PdfMerger {
         }
     }
 
-    private static void RenameFormRoot(MergedFormRoot root, string fullName) {
-        string oldFullName = root.FieldName;
-        string oldPartial = oldFullName.Substring(oldFullName.LastIndexOf('.') + 1);
-#pragma warning disable CA1845 // Span-based string.Concat is unavailable on every target framework.
-        string newPartial = fullName.StartsWith(oldFullName, StringComparison.Ordinal)
-            ? oldPartial + fullName.Substring(oldFullName.Length)
-            : fullName;
-#pragma warning restore CA1845
-        root.RenameDictionary.Items["T"] = new PdfStringObj(newPartial, true);
+    private static void PrepareFormRoot(Dictionary<int, PdfIndirectObject> objects, MergedFormRoot root) {
+        MaterializeInheritedFormAttributes(objects, root.FieldDictionary);
+        root.FieldDictionary.Items.Remove("Parent");
+        root.FieldDictionary.Items["T"] = new PdfStringObj(root.FieldName, true);
+    }
+
+    private static void MaterializeInheritedFormAttributes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
+        string[] inheritedKeys = { "FT", "Ff", "V", "DV", "DA", "Q", "Opt", "MaxLen", "AA" };
+        PdfDictionary current = field;
+        var visited = new HashSet<int>();
+        while (current.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
+            parentObject is PdfReference parentReference &&
+            visited.Add(parentReference.ObjectNumber) &&
+            ResolveDictionary(objects, parentReference) is PdfDictionary parent) {
+            for (int keyIndex = 0; keyIndex < inheritedKeys.Length; keyIndex++) {
+                string key = inheritedKeys[keyIndex];
+                if (!field.Items.ContainsKey(key) && parent.Items.TryGetValue(key, out PdfObject? value)) field.Items[key] = value;
+            }
+
+            current = parent;
+        }
     }
 
     private static void RemoveDroppedWidgets(Dictionary<int, PdfIndirectObject> objects, PdfReadDocument document, HashSet<int> droppedWidgets) {
@@ -198,8 +255,8 @@ public static partial class PdfMerger {
     }
 
     private sealed class MergedFormRoot {
-        internal MergedFormRoot(int sourceIndex, int rootObjectNumber, string fieldName, PdfDictionary renameDictionary, List<int> widgetObjectNumbers) { SourceIndex = sourceIndex; RootObjectNumber = rootObjectNumber; FieldName = fieldName; RenameDictionary = renameDictionary; WidgetObjectNumbers = widgetObjectNumbers; }
+        internal MergedFormRoot(int sourceIndex, int rootObjectNumber, string fieldName, PdfDictionary fieldDictionary, List<int> widgetObjectNumbers) { SourceIndex = sourceIndex; RootObjectNumber = rootObjectNumber; FieldName = fieldName; FieldDictionary = fieldDictionary; WidgetObjectNumbers = widgetObjectNumbers; }
         internal int SourceIndex { get; } internal int RootObjectNumber { get; } internal string FieldName { get; set; }
-        internal PdfDictionary RenameDictionary { get; } internal List<int> WidgetObjectNumbers { get; }
+        internal PdfDictionary FieldDictionary { get; } internal List<int> WidgetObjectNumbers { get; }
     }
 }

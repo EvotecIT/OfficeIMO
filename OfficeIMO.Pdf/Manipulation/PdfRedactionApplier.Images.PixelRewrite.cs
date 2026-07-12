@@ -343,15 +343,17 @@ public static partial class PdfRedactionApplier {
         Matrix2D transform,
         PdfRedactionApplyOptions options,
         ref int nextObjectNumber) {
-        if (!TryGetSimpleWritableImage(imageStream, objects, out int width, out int height, out int components, out ImageSampleRewriteEncoder imageEncoder, out ImageSoftMaskRewriteTarget softMask)) {
+        if (!TryGetSimpleWritableImage(imageStream, objects, options.MaximumDecodedImageBytes, out int width, out int height, out int components, out ImageSampleRewriteEncoder imageEncoder, out ImageSoftMaskRewriteTarget softMask)) {
             return TryRewriteNormalizedImagePixels(objects, resources, resourceName, imageReference, imageStream, target, transform, options, ref nextObjectNumber);
         }
 
-        byte[] pixels = StreamDecoder.Decode(imageStream.Dictionary, imageStream.Data, objects);
         long expectedLengthLong = (long)width * height * components;
-        if (expectedLengthLong <= 0 || expectedLengthLong > int.MaxValue || pixels.Length < expectedLengthLong) {
+        if (expectedLengthLong <= 0 || expectedLengthLong > options.MaximumDecodedImageBytes || expectedLengthLong > int.MaxValue) {
             return false;
         }
+
+        byte[] pixels = StreamDecoder.Decode(imageStream.Dictionary, imageStream.Data, objects, options.MaximumDecodedImageBytes);
+        if (pixels.Length < expectedLengthLong) return false;
 
         if (!TryGetRedactionPixelBounds(target.Match.Area, transform, width, height, out int x0, out int y0, out int x1, out int y1)) {
             return false;
@@ -380,7 +382,7 @@ public static partial class PdfRedactionApplier {
         PdfDictionary dictionary = CleanStreamDictionary(imageStream.Dictionary);
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
         if (softMask.HasMask &&
-            TryRewriteSoftMaskPixels(objects, softMask, x0, y0, x1, y1, ref nextObjectNumber, out PdfReference rewrittenSoftMaskReference)) {
+            TryRewriteSoftMaskPixels(objects, softMask, x0, y0, x1, y1, options.MaximumDecodedImageBytes, ref nextObjectNumber, out PdfReference rewrittenSoftMaskReference)) {
             dictionary.Items["SMask"] = rewrittenSoftMaskReference;
         } else if (softMask.HasMask) {
             return false;
@@ -543,6 +545,7 @@ public static partial class PdfRedactionApplier {
     private static bool TryGetSimpleWritableImage(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maximumDecodedImageBytes,
         out int width,
         out int height,
         out int components,
@@ -573,7 +576,7 @@ public static partial class PdfRedactionApplier {
         }
 
         if (!TryCreateImageSampleRewriteEncoder(stream.Dictionary, components, objects, out imageEncoder) ||
-            !TryGetWritableSoftMask(stream, objects, width, height, out softMask)) {
+            !TryGetWritableSoftMask(stream, objects, width, height, maximumDecodedImageBytes, out softMask)) {
             return false;
         }
 
@@ -585,6 +588,7 @@ public static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         int width,
         int height,
+        int maximumDecodedImageBytes,
         out ImageSoftMaskRewriteTarget softMask) {
         softMask = default;
         if (!imageStream.Dictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) {
@@ -617,11 +621,13 @@ public static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] maskPixels = StreamDecoder.Decode(softMaskStream.Dictionary, softMaskStream.Data, objects);
         long expectedLengthLong = (long)width * height;
-        if (expectedLengthLong <= 0 || expectedLengthLong > int.MaxValue || maskPixels.Length < expectedLengthLong) {
+        if (expectedLengthLong <= 0 || expectedLengthLong > maximumDecodedImageBytes || expectedLengthLong > int.MaxValue) {
             return false;
         }
+
+        byte[] maskPixels = StreamDecoder.Decode(softMaskStream.Dictionary, softMaskStream.Data, objects, maximumDecodedImageBytes);
+        if (maskPixels.Length < expectedLengthLong) return false;
 
         softMask = new ImageSoftMaskRewriteTarget(softMaskReference, softMaskStream, width, height, maskEncoder);
         return true;
@@ -634,6 +640,7 @@ public static partial class PdfRedactionApplier {
         int y0,
         int x1,
         int y1,
+        int maximumDecodedImageBytes,
         ref int nextObjectNumber,
         out PdfReference rewrittenSoftMaskReference) {
         rewrittenSoftMaskReference = default!;
@@ -641,11 +648,13 @@ public static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte[] pixels = StreamDecoder.Decode(softMask.Stream.Dictionary, softMask.Stream.Data, objects);
         long expectedLengthLong = (long)softMask.Width * softMask.Height;
-        if (expectedLengthLong <= 0 || expectedLengthLong > int.MaxValue || pixels.Length < expectedLengthLong) {
+        if (expectedLengthLong <= 0 || expectedLengthLong > maximumDecodedImageBytes || expectedLengthLong > int.MaxValue) {
             return false;
         }
+
+        byte[] pixels = StreamDecoder.Decode(softMask.Stream.Dictionary, softMask.Stream.Data, objects, maximumDecodedImageBytes);
+        if (pixels.Length < expectedLengthLong) return false;
 
         byte[] rewritten = (byte[])pixels.Clone();
         for (int row = y0; row < y1; row++) {
