@@ -17,6 +17,7 @@ dotnet add package OfficeIMO.PowerPoint
 
 ```csharp
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Core;
 
 using var presentation = PowerPointPresentation.Create("deck.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -35,19 +36,21 @@ presentation.Save();
 `Create(...)` starts with zero slides, and each `AddSlide()` call creates exactly one. This keeps creation and
 editing deterministic; there is no hidden placeholder slide to reuse.
 
-Open an existing deck in edit or read-only mode explicitly. Stream persistence uses named options rather than
-positional booleans:
+Load operations are detached from their source. Persistence is explicit by default, and read-only intent or
+save-on-dispose behavior uses the same shared lifecycle options as Word and Excel:
 
 ```csharp
-using var edited = PowerPointPresentation.Open("deck.pptx");
+using var edited = PowerPointPresentation.Load("deck.pptx");
 edited.ReplaceText("Draft", "Approved");
 edited.Save();
 
-using var inspected = PowerPointPresentation.Open("deck.pptx", PowerPointOpenMode.ReadOnly);
+using var inspected = PowerPointPresentation.Load("deck.pptx",
+    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 
 using var output = new MemoryStream();
-using var streamed = PowerPointPresentation.Create(output,
-    new PowerPointStreamCreateOptions { AutoSave = true });
+using var streamed = PowerPointPresentation.Create(output);
+streamed.AddSlide().AddTitle("Stream-backed deck");
+streamed.Save();
 ```
 
 ## What it does
@@ -59,7 +62,7 @@ using var streamed = PowerPointPresentation.Create(output,
 - Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
 - Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
 - Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
-- Supports encrypted presentation save/open workflows.
+- Supports encrypted presentation save/load workflows.
 - Uses Open XML directly, making it suitable for services, build agents, desktop apps, and automation hosts.
 
 ## Runnable samples
@@ -283,7 +286,7 @@ duplicate.Notes.Text = "Backup slide for Q&A.";
 Use `InspectFeatures()` before broad edits or automated round trips when input decks may contain package features outside the editable OfficeIMO surface:
 
 ```csharp
-using var presentation = PowerPointPresentation.Open("incoming.pptx");
+using var presentation = PowerPointPresentation.Load("incoming.pptx");
 
 PowerPointFeatureReport report = presentation.InspectFeatures();
 report.EnsureNoUnsupportedFeatures();
@@ -298,7 +301,8 @@ foreach (PowerPointFeatureFinding feature in report.PreservedFeatures) {
 Generated and imported decks can be inspected with structured policies before they enter CI or a publishing workflow:
 
 ```csharp
-using var presentation = PowerPointPresentation.Open("incoming.pptx", PowerPointOpenMode.ReadOnly);
+using var presentation = PowerPointPresentation.Load("incoming.pptx",
+    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 
 var options = new PowerPointInspectionOptions {
     InspectFeatures = true,

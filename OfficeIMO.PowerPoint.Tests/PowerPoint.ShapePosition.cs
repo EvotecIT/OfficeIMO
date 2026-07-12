@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
                 PowerPointPicture picture = slide.Pictures.First();
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
 

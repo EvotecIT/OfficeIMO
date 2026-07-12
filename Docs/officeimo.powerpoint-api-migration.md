@@ -7,7 +7,7 @@ composition, templates, inspection, and exports follow one ownership model.
 
 | Capability | Public owner |
 | --- | --- |
-| Create, open, save, slides, sections, masters, and themes | `PowerPointPresentation` |
+| Create, load, save, slides, sections, masters, and themes | `PowerPointPresentation` |
 | Concrete content and editing | `PowerPointSlide` and concrete `PowerPointShape` types |
 | Semantic story intent | `PowerPointDeckPlan` |
 | Semantic rendering | `PowerPointPresentation.Compose(...)` |
@@ -26,39 +26,43 @@ another standalone composer entry point.
 
 ## Lifecycle
 
-File-backed editing stays simple:
+Creation and loading are detached from their destinations. `Save()` writes to the associated path or stream,
+while disposal only persists when `SaveOnDispose` is explicitly requested:
 
 ```csharp
-using PowerPointPresentation presentation = PowerPointPresentation.Open("deck.pptx");
+using PowerPointPresentation presentation = PowerPointPresentation.Load("deck.pptx");
 presentation.ReplaceText("Draft", "Approved");
 presentation.Save();
 ```
 
-Read-only intent is now an enum instead of another method name:
+Read-only intent uses the shared lifecycle contract:
 
 ```csharp
-using PowerPointPresentation presentation = PowerPointPresentation.Open(
-    "deck.pptx", PowerPointOpenMode.ReadOnly);
+using PowerPointPresentation presentation = PowerPointPresentation.Load(
+    "deck.pptx", new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 ```
 
-Stream behavior uses named options instead of `readOnly` and `autoSave` booleans:
+Stream behavior uses the same typed options. The caller retains stream ownership, and its position is preserved
+when loading:
 
 ```csharp
 using var stream = new MemoryStream();
-using (PowerPointPresentation created = PowerPointPresentation.Create(stream,
-           new PowerPointStreamCreateOptions { AutoSave = true })) {
+using (PowerPointPresentation created = PowerPointPresentation.Create(stream)) {
     created.AddSlide().AddTitle("Stream-backed deck");
+    created.Save();
 }
 
-using PowerPointPresentation inspected = PowerPointPresentation.Open(stream,
-    new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+using PowerPointPresentation inspected = PowerPointPresentation.Load(stream,
+    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
 ```
 
 | Before | After |
 | --- | --- |
-| `OpenRead(path)` | `Open(path, PowerPointOpenMode.ReadOnly)` |
-| `Open(stream, readOnly: true, autoSave: false)` | `Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly })` |
-| `Create(stream, autoSave: false)` | `Create(stream, new PowerPointStreamCreateOptions { AutoSave = false })` |
+| `Open(path)` | `Load(path)` |
+| `OpenRead(path)` | `Load(path, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })` |
+| `Open(stream, readOnly: true, autoSave: false)` | `Load(stream, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })` |
+| `Create(stream, autoSave: false)` | `Create(stream)` |
+| implicit save on dispose | `PersistenceMode = DocumentPersistenceMode.SaveOnDispose` |
 
 ## Concrete editing
 

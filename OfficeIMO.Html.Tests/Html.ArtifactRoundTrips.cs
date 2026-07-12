@@ -65,9 +65,9 @@ public class HtmlArtifactRoundTrips {
         HtmlToPowerPointResult powerPointResult = sourcePresentation.ToHtml().ToPowerPointPresentationResult();
         using var pptx = new MemoryStream();
         powerPointResult.Presentation.Save(pptx);
-        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Open(
+        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Load(
             new MemoryStream(pptx.ToArray()),
-            new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
         ExcelSheet reopenedSheet = Assert.Single(reopenedWorkbook.Sheets);
         Assert.True(reopenedSheet.TryGetCellText(2, 1, out string excelText));

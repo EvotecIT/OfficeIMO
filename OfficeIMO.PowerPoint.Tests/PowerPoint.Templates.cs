@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(outputPath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
                 Assert.Single(reopened.Slides);
                 Assert.Equal("Corporate Test Theme", reopened.ThemeName);
                 Assert.NotEmpty(reopened.GetSlideLayouts());
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(outputPath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
                 Assert.Single(reopened.Slides);
                 Assert.True(reopened.Slides[0].Hidden);
             } finally {
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(outputPath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(outputPath);
                 PowerPointSlide slide = Assert.Single(reopened.Slides);
                 Assert.Equal(namedLayout.LayoutIndex, slide.LayoutIndex);
                 Assert.Contains(slide.TextBoxes, box => box.Text == "Mapped process");

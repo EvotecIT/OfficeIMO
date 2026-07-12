@@ -77,7 +77,7 @@ public sealed class OpenDocumentConversionContracts {
 
     [Fact]
     public void PowerPointAndOdpRoundTripSlidesShapesTablesNotesAndTransitions() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false });
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         PowerPointTextBox title = slide.AddTextBoxPoints("OpenDocument deck", 24, 20, 240, 40);
         title.Paragraphs[0].Runs[0].Bold = true;

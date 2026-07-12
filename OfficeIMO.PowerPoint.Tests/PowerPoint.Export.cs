@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                     presentation.ExportSlide(1, exportedPath);
                 }
 
-                using PowerPointPresentation exported = PowerPointPresentation.Open(exportedPath);
+                using PowerPointPresentation exported = PowerPointPresentation.Load(exportedPath);
                 Assert.Single(exported.Slides);
                 Assert.Contains(exported.Slides[0].TextBoxes, box => box.Text == "Export me");
                 PowerPointSmartArt smartArt = Assert.Single(exported.Slides[0].SmartArts);

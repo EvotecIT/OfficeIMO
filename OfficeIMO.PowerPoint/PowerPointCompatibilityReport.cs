@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OfficeIMO.Core;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Status of one presentation compatibility lane.</summary>
@@ -123,7 +124,8 @@ namespace OfficeIMO.PowerPoint {
             Directory.CreateDirectory(output);
 
             var lanes = new List<PowerPointCompatibilityLaneResult>();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(fullPath, PowerPointOpenMode.ReadOnly)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(fullPath,
+                       new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
                 var validation = presentation.ValidateDocument();
                 lanes.Add(new PowerPointCompatibilityLaneResult("OpenXml", validation.Count == 0
                     ? PowerPointCompatibilityStatus.Passed : PowerPointCompatibilityStatus.Failed,

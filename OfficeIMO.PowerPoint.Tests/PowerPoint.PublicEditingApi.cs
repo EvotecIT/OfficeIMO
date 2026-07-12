@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Equal(2, presentation.Slides.Count);
                     Assert.Equal("Second slide", presentation.Slides[0].TextBoxes.First().Text);
                     Assert.Equal("Notes text", presentation.Slides[1].Notes.Text);
@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(filePath,
-                    PowerPointOpenMode.ReadOnly);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath,
+                    new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
                 Assert.Contains(reopened.Slides[1].TextBoxes, textBox => textBox.Text == "Edited title");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);

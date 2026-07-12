@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Equal("Slide 1", presentation.Slides[0].TextBoxes.First().Text);
                 Assert.Equal("Slide 3", presentation.Slides[1].TextBoxes.First().Text);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Single(presentation.Slides);
                 Assert.True(presentation.DocumentIsValid);
             }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Equal(3, presentation.Slides.Count);
                 Assert.Equal("Slide 2", presentation.Slides[0].TextBoxes.First().Text);
                 Assert.Equal("Slide 3", presentation.Slides[1].TextBoxes.First().Text);
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(presentation.ValidateDocument());
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.True(presentation.Slides[1].Hidden);
                 Assert.Equal("Source slide", presentation.Slides[1].TextBoxes.First().Text);
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Single(presentation.Slides[0].Charts);
                 Assert.Single(presentation.Slides[1].Charts);
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            using (PowerPointPresentation target = PowerPointPresentation.Open(targetPath)) {
+            using (PowerPointPresentation target = PowerPointPresentation.Load(targetPath)) {
                 Assert.Single(target.Slides);
                 Assert.Equal("Imported slide", target.Slides[0].TextBoxes.First().Text);
                 Assert.Single(target.Slides[0].Pictures);
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests {
                     Assert.False(hiddenSlidePart.Slide!.Show!.Value);
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.False(presentation.Slides[0].Hidden);
                     Assert.True(presentation.Slides[1].Hidden);
                 }
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
                     notesPart.NotesSlide.Save();
                 }
 
-                using (PowerPointPresentation source = PowerPointPresentation.Open(sourcePath))
+                using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath))
                 using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
                     PowerPointSlide imported = target.ImportSlide(source, 0);
 

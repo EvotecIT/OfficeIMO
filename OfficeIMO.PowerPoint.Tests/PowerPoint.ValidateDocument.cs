@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (var presentation = PowerPointPresentation.Open(filePath)) {
+            using (var presentation = PowerPointPresentation.Load(filePath)) {
                 var errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 Assert.True(presentation.DocumentIsValid);

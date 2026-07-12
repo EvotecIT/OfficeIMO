@@ -301,7 +301,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
     private static IReadOnlyList<ConversionCapability> Capabilities { get; } = [
         new ConversionCapability("DOCX to PDF", "Live browser", "WordDocument.Load(stream).SaveAsPdf(options)", "Current static WASM path with diagnostics for font and rich layout gaps.", "ocx-chip--good"),
         new ConversionCapability("XLSX to PDF", "Live browser", "ExcelDocument.Load(stream).SaveAsPdf(options)", "Workbook byte streams flow through OfficeIMO.Excel.Pdf with fast-preview options.", "ocx-chip--good"),
-        new ConversionCapability("PPTX to PDF", "Live browser", "PowerPointPresentation.Open(stream).SaveAsPdf(options)", "Presentation byte streams flow through OfficeIMO.PowerPoint.Pdf.", "ocx-chip--good"),
+        new ConversionCapability("PPTX to PDF", "Live browser", "PowerPointPresentation.Load(stream).SaveAsPdf(options)", "Presentation byte streams flow through OfficeIMO.PowerPoint.Pdf.", "ocx-chip--good"),
         new ConversionCapability("Markdown to HTML", "Live browser", "MarkdownRenderer.RenderBodyHtml(markdown)", "Text conversion can run fully in static WebAssembly and render immediately.", "ocx-chip--good"),
         new ConversionCapability("HTML to Markdown", "Live browser", "html.ToMarkdown(HtmlToMarkdownOptions)", "HTML ingestion maps headings, lists, links, tables, and fallback HTML into Markdown.", "ocx-chip--good"),
         new ConversionCapability("Markdown to DOCX", "Live browser", "markdown.LoadFromMarkdown().ToDocx()", "Generates a downloadable Word package from typed Markdown conversion.", "ocx-chip--good"),
@@ -388,7 +388,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
     private string EnginePath => SelectedFile?.Extension switch {
         ".docx" => "WordDocument.Load(stream).SaveAsPdf(options)",
         ".xlsx" => "ExcelDocument.Load(stream).SaveAsPdf(options)",
-        ".pptx" => "PowerPointPresentation.Open(stream).SaveAsPdf(options)",
+        ".pptx" => "PowerPointPresentation.Load(stream).SaveAsPdf(options)",
         _ => "Select a DOCX, XLSX, or PPTX file."
     };
 
@@ -617,7 +617,8 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
 
     private static ConversionOutput ConvertWord(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
-        using WordDocument document = WordDocument.Load(stream, readOnly: true);
+        using WordDocument document = WordDocument.Load(stream,
+            new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
         var options = new PdfSaveOptions {
             Title = Path.GetFileNameWithoutExtension(file.Name),
             IncludePageNumbers = true
@@ -629,7 +630,8 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
 
     private ConversionOutput ConvertExcel(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
-        using ExcelDocument document = ExcelDocument.Load(stream, readOnly: true);
+        using ExcelDocument document = ExcelDocument.Load(stream,
+            new ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
         var options = new ExcelPdfSaveOptions {
             MaxRowsPerSheet = Profile == "fast" ? 250 : null
         };
@@ -640,8 +642,8 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
 
     private static ConversionOutput ConvertPowerPoint(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
-        using PowerPointPresentation presentation = PowerPointPresentation.Open(stream,
-            new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
         var options = new PowerPointPdfSaveOptions {
             WarnOnPictureAspectRatioDistortion = true
         };

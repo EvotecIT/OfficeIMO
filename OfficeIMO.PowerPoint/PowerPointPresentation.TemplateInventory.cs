@@ -5,6 +5,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Core;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -18,7 +19,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("PowerPoint template was not found.", templatePath);
             }
 
-            using PowerPointPresentation presentation = Open(templatePath, PowerPointOpenMode.ReadOnly);
+            using PowerPointPresentation presentation = Load(templatePath,
+                new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
             return presentation.InspectTemplate();
         }
 

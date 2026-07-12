@@ -132,7 +132,7 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncrypted_And_OpenEncrypted_RoundTrips() {
             string path = CreateTempPath(".pptx");
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false })) {
+            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Encrypted PowerPoint content", 1, 1, 4, 1);
                 presentation.SaveEncrypted(path, Password);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Shared.Tests {
             AssertEncryptedContainer(path);
             Assert.ThrowsAny<Exception>(() => PresentationDocument.Open(path, false).Dispose());
 
-            using var loaded = PowerPointPresentation.OpenEncrypted(path, Password);
+            using var loaded = PowerPointPresentation.LoadEncrypted(path, Password);
             Assert.Single(loaded.Slides);
         }
 
@@ -149,7 +149,7 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncryptedStream_And_OpenEncryptedStream_RoundTrips() {
             using var encrypted = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false })) {
+            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Encrypted PowerPoint stream content", 1, 1, 4, 1);
                 presentation.SaveEncrypted(encrypted, Password);
@@ -158,7 +158,7 @@ namespace OfficeIMO.Shared.Tests {
             AssertEncryptedContainer(encrypted);
 
             encrypted.Position = 0;
-            using var loaded = PowerPointPresentation.OpenEncrypted(encrypted, Password);
+            using var loaded = PowerPointPresentation.LoadEncrypted(encrypted, Password);
             Assert.Single(loaded.Slides);
         }
 

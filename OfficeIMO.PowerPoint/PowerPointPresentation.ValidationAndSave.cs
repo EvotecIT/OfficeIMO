@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Core;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -63,18 +64,28 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Saves all pending changes to the underlying package.
+        ///     Saves all pending changes to the associated file or stream.
         /// </summary>
         public void Save() {
-            ThrowIfDisposed();
-            ApplySignatureMutationPolicy();
-            foreach (PowerPointSlide slide in _slides) {
-                slide.Save();
+            if (!string.IsNullOrEmpty(_filePath)) {
+                Save(_filePath);
+                return;
             }
+            if (_sourceStream != null) {
+                Save(_sourceStream);
+                return;
+            }
+            throw new InvalidOperationException(
+                "The presentation has no associated destination. Use Save(string) or Save(Stream).");
+        }
 
-            PowerPointUtils.UpdateDocumentProperties(_presentationPart);
-            PresentationRoot.Save();
-            _document!.Save();
+        /// <summary>Saves the presentation to a file and associates that path with subsequent <see cref="Save()"/> calls.</summary>
+        public void Save(string filePath) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            byte[] packageBytes = CreatePackageBytesForSave();
+            OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
+            _filePath = filePath;
             _discardChangesOnDispose = false;
         }
 
@@ -82,22 +93,29 @@ namespace OfficeIMO.PowerPoint {
         ///     Saves the presentation to the provided stream.
         /// </summary>
         public void Save(Stream destination) {
-            ThrowIfDisposed();
-            ApplySignatureMutationPolicy();
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            OfficeStreamWriter.WriteAllBytes(destination, CreatePackageBytesForSave());
+            _discardChangesOnDispose = false;
+        }
 
+        private byte[] CreatePackageBytesForSave() {
+            ThrowIfDisposed();
+            if (AccessMode == DocumentAccessMode.ReadOnly) {
+                throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
+            }
+            ApplySignatureMutationPolicy();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
-            _discardChangesOnDispose = false;
 
             using var packageStream = new MemoryStream();
             using (var clone = _document.Clone(packageStream)) {
-                // Clone writes the package into destination; dispose immediately to finalize the write.
+                // Dispose finalizes the cloned package before its bytes are committed.
             }
-            OfficeStreamWriter.WriteAllBytes(destination, packageStream.ToArray());
+            return packageStream.ToArray();
         }
 
         /// <summary>
@@ -127,8 +145,7 @@ namespace OfficeIMO.PowerPoint {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             ValidateSlideIndex(slideIndex);
-            using PowerPointPresentation exported = Create(destination,
-                new PowerPointStreamCreateOptions { AutoSave = false });
+            using PowerPointPresentation exported = Create(destination);
             exported.ImportSlide(this, slideIndex);
             exported.Save(destination);
         }

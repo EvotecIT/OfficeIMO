@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointPicture picture = Assert.Single(presentation.Slides.Single().Pictures);
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointPicture picture = slide.Pictures.First();
                 Assert.Equal(expectedContentType, picture.ContentType);
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointPicture[] pictures = presentation.Slides.Single().Pictures.ToArray();
                 Assert.Equal(2, pictures.Length);
                 Assert.Contains(pictures, picture => picture.ContentType == "image/jpeg");

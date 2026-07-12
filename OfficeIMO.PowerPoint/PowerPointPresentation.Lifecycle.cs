@@ -2,18 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Presentation;
-using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Core;
 using OfficeIMO.Shared;
-using A = DocumentFormat.OpenXml.Drawing;
-using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
@@ -26,13 +21,14 @@ namespace OfficeIMO.PowerPoint {
             Exception? pendingException = null;
             PresentationDocument? document = _document;
             try {
-                if (document != null) {
-                    bool shouldSave = _copyPackageToSourceOnDispose || _saveOnDispose;
+                if (document != null && !_discardChangesOnDispose &&
+                    _persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                    bool shouldSave = document.FileOpenAccess != FileAccess.Read;
                     if (shouldSave && _signedPackageOpenFingerprint != null) {
                         shouldSave = !string.Equals(_signedPackageOpenFingerprint,
                             CreatePackageFingerprint(document), StringComparison.Ordinal);
                     }
-                    if (!_discardChangesOnDispose && shouldSave) {
+                    if (shouldSave) {
                         Save();
                     }
                 }
@@ -42,19 +38,21 @@ namespace OfficeIMO.PowerPoint {
                 try {
                     document?.Dispose();
                 } catch (Exception ex) {
-                    if (pendingException == null) pendingException = ex;
+                    pendingException ??= ex;
                 }
                 _document = null;
+
                 try {
-                    PersistPackageToSourceIfNeeded(
-                        persistChanges: pendingException == null && !_discardChangesOnDispose);
-                } catch (Exception ex) when (pendingException == null) {
-                    pendingException = ex;
+                    _packageStream?.Dispose();
+                } catch (Exception ex) {
+                    pendingException ??= ex;
                 }
-                _saveOnDispose = false;
+                _packageStream = null;
+                _sourceStream = null;
                 _signedPackageOpenFingerprint = null;
                 _discardChangesOnDispose = false;
                 _disposed = true;
+                GC.SuppressFinalize(this);
             }
 
             if (pendingException != null) {
@@ -62,61 +60,183 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>Creates a detached presentation with explicit persistence.</summary>
+        public static PowerPointPresentation Create() =>
+            CreateInternal(filePath: null, sourceStream: null, new PowerPointCreateOptions());
+
         /// <summary>
-        ///     Creates a new PowerPoint presentation at the specified file path.
+        /// Creates a new presentation associated with a file path. The path is not created until
+        /// <see cref="Save()"/> is called or SaveOnDispose is explicitly enabled.
         /// </summary>
-        /// <param name="filePath">Path where the presentation file will be created.</param>
-        public static PowerPointPresentation Create(string filePath) {
-            PresentationDocument document = PresentationDocument.Create(filePath,
-                PresentationDocumentType.Presentation, autoSave: false);
-            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
-            presentation._saveOnDispose = true;
-            presentation.PresentationRoot.Save();
-            presentation._document?.Save();
-            return presentation;
+        public static PowerPointPresentation Create(string filePath, PowerPointCreateOptions? options = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            return CreateInternal(filePath, sourceStream: null, options ?? new PowerPointCreateOptions());
         }
 
         /// <summary>
-        ///     Creates a new PowerPoint presentation in memory and optionally persists it to the provided stream on dispose.
+        /// Creates a new presentation associated with a caller-owned stream. The stream is not written until
+        /// <see cref="Save()"/> is called or SaveOnDispose is explicitly enabled.
         /// </summary>
-        /// <param name="stream">Destination stream for the presentation package.</param>
-        /// <param name="options">Stream persistence options. The source stream remains caller-owned.</param>
-        public static PowerPointPresentation Create(Stream stream, PowerPointStreamCreateOptions? options = null) {
+        public static PowerPointPresentation Create(Stream stream, PowerPointCreateOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
-            bool autoSave = options?.AutoSave ?? true;
-            if (autoSave && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when autoSave is enabled.", nameof(stream));
+            PowerPointCreateOptions resolved = options ?? new PowerPointCreateOptions();
+            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
             }
-
-            Stream packageStream = autoSave
-                ? new NonDisposingMemoryStream(StreamBufferSize)
-                : new MemoryStream(StreamBufferSize);
-
-            PresentationDocument document = PresentationDocument.Create(packageStream, PresentationDocumentType.Presentation, autoSave: true);
-            PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: true);
-            presentation.PresentationRoot.Save();
-            presentation._document?.Save();
-            presentation.ConfigureStreamCopy(packageStream, stream, autoSave, leaveSourceStreamOpen: true);
-            return presentation;
+            return CreateInternal(filePath: null, stream, resolved);
         }
 
-        /// <summary>
-        ///     Opens an existing PowerPoint presentation.
-        /// </summary>
-        /// <param name="filePath">Path of the presentation file to open.</param>
-        /// <param name="mode">Open the presentation for editing or read-only inspection.</param>
-        public static PowerPointPresentation Open(string filePath, PowerPointOpenMode mode = PowerPointOpenMode.Edit) {
-            bool editable = mode == PowerPointOpenMode.Edit;
-            PresentationDocument document = PresentationDocument.Open(filePath, editable,
-                new OpenSettings { AutoSave = false });
-            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
-            presentation._saveOnDispose = editable;
-            if (document.DigitalSignatureOriginPart != null ||
-                document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
-                presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
+        private static PowerPointPresentation CreateInternal(
+            string? filePath,
+            Stream? sourceStream,
+            PowerPointCreateOptions options) {
+            if (options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose &&
+                string.IsNullOrEmpty(filePath) && sourceStream == null) {
+                throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
             }
-            return presentation;
+
+            var packageStream = new MemoryStream(StreamBufferSize);
+            try {
+                PresentationDocument document = PresentationDocument.Create(
+                    packageStream, PresentationDocumentType.Presentation, autoSave: false);
+                var presentation = new PowerPointPresentation(document, filePath ?? string.Empty, isNewPresentation: true) {
+                    _packageStream = packageStream,
+                    _sourceStream = sourceStream,
+                    _persistenceMode = options.PersistenceMode
+                };
+                presentation.PresentationRoot.Save();
+                presentation._document?.Save();
+                return presentation;
+            } catch {
+                packageStream.Dispose();
+                throw;
+            }
+        }
+
+        /// <summary>Loads an existing presentation into detached memory.</summary>
+        public static PowerPointPresentation Load(string filePath, PowerPointLoadOptions? options = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            byte[] bytes;
+            using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                       FileShare.ReadWrite | FileShare.Delete)) {
+                using var buffer = new MemoryStream();
+                source.CopyTo(buffer);
+                bytes = buffer.ToArray();
+            }
+            return LoadPackage(bytes, filePath, sourceStream: null, options ?? new PowerPointLoadOptions());
+        }
+
+        /// <summary>Loads a presentation from a caller-owned stream into detached memory.</summary>
+        public static PowerPointPresentation Load(Stream stream, PowerPointLoadOptions? options = null) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanWrite) {
+                throw new ArgumentException("Stream must be writable when SaveOnDispose is enabled.", nameof(stream));
+            }
+            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
+            }
+
+            return LoadPackage(ReadAllBytes(stream), filePath: null, stream, resolved);
+        }
+
+        /// <summary>Loads a password-encrypted presentation into detached memory.</summary>
+        public static PowerPointPresentation LoadEncrypted(
+            string filePath,
+            string password,
+            PowerPointLoadOptions? options = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(File.ReadAllBytes(filePath), password);
+            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+        }
+
+        /// <summary>Loads a password-encrypted presentation stream into detached memory.</summary>
+        public static PowerPointPresentation LoadEncrypted(
+            Stream stream,
+            string password,
+            PowerPointLoadOptions? options = null) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(ReadAllBytes(stream), password);
+            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+        }
+
+        private static PowerPointPresentation LoadPackage(
+            byte[] bytes,
+            string? filePath,
+            Stream? sourceStream,
+            PowerPointLoadOptions options) {
+            ValidateLifecycle(options.AccessMode, options.PersistenceMode);
+            bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
+            var packageStream = new MemoryStream(bytes.Length + StreamBufferSize);
+            packageStream.Write(bytes, 0, bytes.Length);
+            packageStream.Position = 0;
+
+            try {
+                PresentationDocument document = PresentationDocument.Open(
+                    packageStream, editable, CreateOpenSettings(options.OpenSettings));
+                var presentation = new PowerPointPresentation(document, filePath ?? string.Empty, isNewPresentation: false) {
+                    _packageStream = packageStream,
+                    _sourceStream = sourceStream,
+                    _persistenceMode = options.PersistenceMode
+                };
+                if (document.DigitalSignatureOriginPart != null ||
+                    document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                    presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
+                }
+                return presentation;
+            } catch {
+                packageStream.Dispose();
+                throw;
+            }
+        }
+
+        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
+            if (openSettings == null) {
+                return new OpenSettings { AutoSave = false };
+            }
+            return new OpenSettings {
+                AutoSave = false,
+                CompatibilityLevel = openSettings.CompatibilityLevel,
+                MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
+                MaxCharactersInPart = openSettings.MaxCharactersInPart
+            };
+        }
+
+        private static void ValidateLifecycle(
+            DocumentAccessMode accessMode,
+            DocumentPersistenceMode persistenceMode) {
+            if (accessMode == DocumentAccessMode.ReadOnly &&
+                persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                throw new ArgumentException("A read-only presentation cannot use SaveOnDispose persistence.");
+            }
+        }
+
+        private static void EnsureEncryptedLoadUsesExplicitPersistence(PowerPointLoadOptions options) {
+            if (options.PersistenceMode != DocumentPersistenceMode.Explicit) {
+                throw new NotSupportedException(
+                    "SaveOnDispose is not supported for encrypted PowerPoint sources. Use SaveEncrypted to persist encrypted changes.");
+            }
         }
 
         private static string CreatePackageFingerprint(PresentationDocument document) {
@@ -124,8 +244,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (IdPartPair pair in document.Parts) CollectPackageParts(pair.OpenXmlPart, parts);
 
             var content = new StringBuilder();
-            foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(),
-                         StringComparer.Ordinal)) {
+            foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(), StringComparer.Ordinal)) {
                 content.Append(part.Uri).Append('|').Append(part.ContentType).Append('|');
                 try {
                     OpenXmlPartRootElement? root = part.RootElement;
@@ -140,10 +259,8 @@ namespace OfficeIMO.PowerPoint {
                 } catch (InvalidDataException) {
                     content.Append("unreadable");
                 }
-                foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId,
-                             StringComparer.Ordinal)) {
-                    content.Append('|').Append(relationship.RelationshipId).Append('=')
-                        .Append(relationship.OpenXmlPart.Uri);
+                foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId, StringComparer.Ordinal)) {
+                    content.Append('|').Append(relationship.RelationshipId).Append('=').Append(relationship.OpenXmlPart.Uri);
                 }
             }
 
@@ -155,153 +272,5 @@ namespace OfficeIMO.PowerPoint {
             if (!parts.Add(part)) return;
             foreach (IdPartPair child in part.Parts) CollectPackageParts(child.OpenXmlPart, parts);
         }
-
-        /// <summary>
-        ///     Opens a password-encrypted Office Open XML PowerPoint presentation.
-        /// </summary>
-        /// <param name="filePath">Path of the encrypted presentation file to open.</param>
-        /// <param name="password">Password used to decrypt the presentation package.</param>
-        /// <param name="mode">Open the decrypted package for editing or read-only inspection.</param>
-        public static PowerPointPresentation OpenEncrypted(string filePath, string password,
-            PowerPointOpenMode mode = PowerPointOpenMode.Edit) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
-            if (!File.Exists(filePath)) {
-                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-            }
-
-            byte[] encryptedBytes = File.ReadAllBytes(filePath);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            var packageStream = new NonDisposingMemoryStream(packageBytes.Length + StreamBufferSize);
-            packageStream.Write(packageBytes, 0, packageBytes.Length);
-            packageStream.Position = 0;
-
-            PresentationDocument document = PresentationDocument.Open(packageStream, mode == PowerPointOpenMode.Edit);
-            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
-            presentation.ConfigureStreamCopy(packageStream, null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
-            return presentation;
-        }
-
-        /// <summary>
-        ///     Opens a PowerPoint presentation from a stream.
-        /// </summary>
-        /// <param name="stream">Source stream containing the presentation package.</param>
-        /// <param name="options">Access and persistence options. The source stream remains caller-owned.</param>
-        public static PowerPointPresentation Open(Stream stream, PowerPointStreamOpenOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-            PowerPointStreamOpenOptions resolved = options ?? new PowerPointStreamOpenOptions();
-            bool readOnly = resolved.Mode == PowerPointOpenMode.ReadOnly;
-            bool autoSave = resolved.AutoSave;
-            bool shouldCopyBack = autoSave && !readOnly;
-            if (shouldCopyBack) {
-                if (!stream.CanWrite) {
-                    throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
-                }
-                if (!stream.CanSeek) {
-                    throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
-                }
-            }
-
-            var bytes = ReadAllBytes(stream);
-            Stream packageStream = shouldCopyBack
-                ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
-                : new MemoryStream(bytes.Length + StreamBufferSize);
-            packageStream.Write(bytes, 0, bytes.Length);
-            packageStream.Position = 0;
-
-            PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
-            PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: false);
-            presentation.ConfigureStreamCopy(packageStream, stream, shouldCopyBack, leaveSourceStreamOpen: true);
-            return presentation;
-        }
-
-        /// <summary>
-        ///     Opens a password-encrypted Office Open XML PowerPoint presentation from a stream.
-        /// </summary>
-        /// <param name="stream">Source stream containing the encrypted presentation package.</param>
-        /// <param name="password">Password used to decrypt the presentation package.</param>
-        /// <param name="mode">Open the decrypted package for editing or read-only inspection.</param>
-        public static PowerPointPresentation OpenEncrypted(Stream stream, string password,
-            PowerPointOpenMode mode = PowerPointOpenMode.Edit) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
-            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-
-            byte[] encryptedBytes = ReadAllBytes(stream);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            var packageStream = new NonDisposingMemoryStream(packageBytes.Length + StreamBufferSize);
-            packageStream.Write(packageBytes, 0, packageBytes.Length);
-            packageStream.Position = 0;
-
-            PresentationDocument document = PresentationDocument.Open(packageStream, mode == PowerPointOpenMode.Edit);
-            PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: false);
-            presentation.ConfigureStreamCopy(packageStream, null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
-            return presentation;
-        }
-
-        private void PersistPackageToSourceIfNeeded(bool persistChanges) {
-            if (_packageStream == null) {
-                return;
-            }
-
-            try {
-                if (persistChanges && _copyPackageToSourceOnDispose && _sourceStream != null) {
-                    PersistPackageToSource();
-                }
-            } finally {
-                DisposeStream(_packageStream);
-
-                if (_copyPackageToSourceOnDispose && _sourceStream != null) {
-                    if (!_leaveSourceStreamOpen) {
-                        try {
-                            _sourceStream.Dispose();
-                        } catch {
-                            // ignored
-                        }
-                    } else if (_sourceStream.CanSeek) {
-                        try {
-                            _sourceStream.Seek(0, SeekOrigin.Begin);
-                        } catch {
-                            // ignored
-                        }
-                    }
-                }
-
-                _packageStream = null;
-                _sourceStream = null;
-                _copyPackageToSourceOnDispose = false;
-                _leaveSourceStreamOpen = true;
-            }
-        }
-
-        private void PersistPackageToSource() {
-            var packageStream = _packageStream ?? throw new InvalidOperationException("Package stream is not available.");
-            var targetStream = _sourceStream ?? throw new InvalidOperationException("Source stream is not available.");
-
-            if (!targetStream.CanSeek) {
-                throw new InvalidOperationException("The provided stream must support seeking when autoSave is enabled.");
-            }
-
-            if (packageStream.CanSeek) {
-                packageStream.Seek(0, SeekOrigin.Begin);
-            }
-
-            targetStream.Seek(0, SeekOrigin.Begin);
-            targetStream.SetLength(0);
-            packageStream.CopyTo(targetStream);
-            targetStream.Flush();
-            targetStream.Seek(0, SeekOrigin.Begin);
-        }
-
-        private static void DisposeStream(Stream stream) {
-            if (stream is NonDisposingMemoryStream ndms) {
-                ndms.DisposeUnderlying();
-            } else {
-                stream.Dispose();
-            }
-        }
-
     }
 }

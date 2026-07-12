@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 Assert.Equal("FF0000", slide.BackgroundColor);
                 Assert.Equal(SlideTransition.Fade, slide.Transition);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(SlideTransition.Morph, slide.Transition);
                     Assert.Empty(presentation.ValidateDocument());
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide[] slides = presentation.Slides.ToArray();
                     Assert.Equal(transitions.Length, slides.Length);
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(SlideTransition.Fade, slide.Transition);
                     Assert.Equal(SlideTransitionSpeed.Fast, slide.TransitionSpeed);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(SlideTransition.PushLeft, slide.Transition);
                     Assert.Equal(SlideTransitionSpeed.Slow, slide.TransitionSpeed);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Equal(SlideTransition.Flash, presentation.Slides[0].Transition);
                     Assert.Equal("112233", presentation.Slides[0].BackgroundColor);
                     Assert.Equal("Updated notes", presentation.Slides[0].Notes.Text);
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(3, slide.Charts.Count());
                     Assert.Empty(presentation.ValidateDocument());
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal("112233", slide.BackgroundColor);
                     Assert.Empty(presentation.ValidateDocument());
@@ -531,7 +531,7 @@ namespace OfficeIMO.Tests {
                     document.PresentationPart!.SlideParts.First().NotesSlidePart!.NotesSlide!.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Equal($"Alpha Beta{Environment.NewLine}Gamma{Environment.NewLine}Delta",
                         presentation.Slides.Single().Notes.Text);
                 }
@@ -553,7 +553,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     presentation.Slides.Single().Notes.Text = "First line\r\nSecond line";
                     presentation.Save();
                 }

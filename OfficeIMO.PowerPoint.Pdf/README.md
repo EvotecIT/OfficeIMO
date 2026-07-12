@@ -17,7 +17,7 @@ dotnet add package OfficeIMO.PowerPoint.Pdf
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("deck.pptx");
+using var presentation = PowerPointPresentation.Load("deck.pptx");
 presentation.SaveAsPdf("deck.pdf");
 ```
 
@@ -29,7 +29,7 @@ presentation.SaveAsPdf("deck.pdf");
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("board-review.pptx");
+using var presentation = PowerPointPresentation.Load("board-review.pptx");
 
 var options = new PowerPointPdfSaveOptions {
     IncludeHiddenSlides = false,
@@ -50,7 +50,7 @@ presentation.SaveAsPdf("board-review.pdf", options);
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("training.pptx");
+using var presentation = PowerPointPresentation.Load("training.pptx");
 
 byte[] pdfBytes = presentation.ToPdf();
 
@@ -64,7 +64,7 @@ presentation.SaveAsPdf(stream);
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("training.pptx");
+using var presentation = PowerPointPresentation.Load("training.pptx");
 
 presentation.SaveAsPdf("training-notes.pdf", new PowerPointPdfSaveOptions {
     PageLayout = PowerPointPdfPageLayout.NotesPages,
@@ -87,7 +87,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-using var presentation = PowerPointPresentation.Open("complex-deck.pptx");
+using var presentation = PowerPointPresentation.Load("complex-deck.pptx");
 var options = new PowerPointPdfSaveOptions {
     IncludeCharts = true,
     IncludeAutoShapes = true

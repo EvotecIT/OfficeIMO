@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Equal("Roundtrip deck", presentation.BuiltinDocumentProperties.Title);
                     Assert.Equal("OfficeIMO Tests", presentation.BuiltinDocumentProperties.Creator);
                     Assert.Equal("officeimo,powerpoint", presentation.BuiltinDocumentProperties.Keywords);

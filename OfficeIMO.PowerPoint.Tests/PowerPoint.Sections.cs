@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 using PresentationDocument document = PresentationDocument.Open(filePath, false);
                 AssertSectionIdsMatchSlides(document);
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(filePath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
                 PowerPointSectionInfo[] sections = reopened.GetSections().ToArray();
                 Assert.Equal(new[] { "Intro", "Results" }, sections.Select(section => section.Name).ToArray());
                 Assert.Equal(new[] { 2, 3 }, sections.Single(section => section.Name == "Results").SlideIndices.ToArray());
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                 using PresentationDocument document = PresentationDocument.Open(filePath, false);
                 AssertSectionIdsMatchSlides(document);
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(filePath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
                 PowerPointSectionInfo[] sections = reopened.GetSections().ToArray();
                 Assert.Equal(new[] { "Results", "Intro" }, sections.Select(section => section.Name).ToArray());
                 Assert.Equal(new[] { 0 }, sections[0].SlideIndices.ToArray());

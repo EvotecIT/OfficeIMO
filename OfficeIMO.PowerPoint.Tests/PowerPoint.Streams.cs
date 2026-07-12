@@ -7,9 +7,10 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointStreamTests {
         [Fact]
-        public void Create_ToStream_WritesPackage() {
+        public void Create_ToStream_WithSaveOnDispose_WritesPackage() {
             using var stream = new MemoryStream();
-            using (var presentation = PowerPointPresentation.Create(stream)) {
+            using (var presentation = PowerPointPresentation.Create(stream,
+                       new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 presentation.AddSlide();
             }
 
@@ -17,10 +18,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Create_ToStream_WithAutoSaveFalse_DoesNotWriteOnDispose() {
+        public void Create_ToStream_WithExplicitPersistence_DoesNotWriteOnDispose() {
             using var stream = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false })) {
+            using (var presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions())) {
                 presentation.AddSlide();
             }
 
@@ -28,25 +29,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Create_ToStream_WithAutoSaveFalse_CanBeSavedExplicitly() {
+        public void Create_ToStream_WithExplicitPersistence_CanSaveToAssociatedStream() {
             using var stream = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false })) {
+            using (var presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions())) {
                 presentation.AddSlide();
-                presentation.Save(stream);
+                presentation.Save();
             }
 
             AssertValidPackage(stream, expectedSlides: 1);
         }
 
         [Fact]
-        public void Open_FromStream_WithAutoSaveTrue_PersistsChangesOnDispose() {
+        public void Load_FromStream_WithSaveOnDispose_PersistsChanges() {
             using var stream = new MemoryStream();
             using (var presentation = PowerPointPresentation.Create(stream)) {
                 presentation.AddSlide();
+                presentation.Save();
             }
 
-            using (var presentation = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { AutoSave = true })) {
+            using (var presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 presentation.AddSlide();
             }
 
@@ -54,11 +56,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Open_FromNonSeekableReadStream_WorksWhenAutoSaveDisabled() {
+        public void Load_FromNonSeekableReadStream_WorksWithExplicitPersistence() {
             byte[] bytes;
             using (var source = new MemoryStream()) {
                 using (var presentation = PowerPointPresentation.Create(source)) {
                     presentation.AddSlide();
+                    presentation.Save();
                 }
 
                 bytes = source.ToArray();
@@ -67,7 +70,7 @@ namespace OfficeIMO.Tests {
             using var input = new NonSeekableReadStream(bytes);
             using var output = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Open(input)) {
+            using (var presentation = PowerPointPresentation.Load(input)) {
                 presentation.AddSlide();
                 presentation.Save(output);
             }
@@ -76,19 +79,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Create_ToNonSeekableWritableStream_WithAutoSaveEnabled_Throws() {
+        public void Create_ToNonSeekableWritableStream_WithSaveOnDispose_Throws() {
             using var stream = new NonSeekableWriteStream();
 
-            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Create(stream));
+            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Create(stream,
+                new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
-        public void Open_FromNonSeekableReadWriteStream_WithAutoSaveEnabled_Throws() {
+        public void Load_FromNonSeekableReadWriteStream_WithSaveOnDispose_Throws() {
             byte[] bytes;
             using (var source = new MemoryStream()) {
                 using (var presentation = PowerPointPresentation.Create(source)) {
                     presentation.AddSlide();
+                    presentation.Save();
                 }
 
                 bytes = source.ToArray();
@@ -96,16 +101,17 @@ namespace OfficeIMO.Tests {
 
             using var stream = new NonSeekableReadWriteStream(bytes);
 
-            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { AutoSave = true }));
+            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
-        public void Create_ToStream_WithAutoSaveTrue_PropagatesCopyBackFailure() {
+        public void Create_ToStream_WithSaveOnDispose_PropagatesPersistenceFailure() {
             using var stream = new FailingCopyBackStream();
 
             IOException exception = Assert.Throws<IOException>(() => {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+                    new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose });
                 presentation.AddSlide();
             });
 

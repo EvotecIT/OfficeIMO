@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     master.ThemePart.Theme.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     presentation.SetThemeLatinFonts("Updated Major Latin", "Updated Minor Latin");
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());

@@ -72,7 +72,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
         var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
         using var packageDestination = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(packageDestination, new PowerPointStreamCreateOptions { AutoSave = false });
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(packageDestination, new PowerPointCreateOptions());
         presentation.SlideSize.SetSizeInches(metrics.Width, metrics.Height);
         var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);
         string? activeSection = null;

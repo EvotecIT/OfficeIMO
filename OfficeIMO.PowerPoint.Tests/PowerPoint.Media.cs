@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slidePart.Slide.Timing?.Descendants<Video>().SingleOrDefault());
                 }
 
-                using (PowerPointPresentation reloaded = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation reloaded = PowerPointPresentation.Load(filePath)) {
                     PowerPointMedia media = Assert.IsType<PowerPointMedia>(reloaded.Slides[0].Shapes.Single());
                     Assert.Equal(PowerPointMediaKind.Video, media.Kind);
                     Assert.Equal("video/mp4", media.MediaContentType);
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slidePart.Slide.Timing?.Descendants<Audio>().SingleOrDefault());
                 }
 
-                using (PowerPointPresentation reloaded = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation reloaded = PowerPointPresentation.Load(filePath)) {
                     PowerPointMedia media = Assert.IsType<PowerPointMedia>(reloaded.Slides[0].Shapes.Single());
                     Assert.Equal(PowerPointMediaKind.Audio, media.Kind);
                     Assert.Equal("audio/mpeg", media.MediaContentType);

@@ -116,7 +116,7 @@ namespace OfficeIMO.Examples {
 
             foreach (string filePath in generatedFiles) {
                 using global::OfficeIMO.PowerPoint.PowerPointPresentation presentation =
-                    global::OfficeIMO.PowerPoint.PowerPointPresentation.Open(filePath);
+                    global::OfficeIMO.PowerPoint.PowerPointPresentation.Load(filePath);
                 List<DocumentFormat.OpenXml.Validation.ValidationErrorInfo> errors =
                     presentation.ValidateDocument().ToList();
                 if (errors.Count == 0) {

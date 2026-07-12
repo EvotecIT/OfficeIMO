@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(filePath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
                 Assert.Equal(2, reopened.Slides.Count);
                 Assert.Single(reopened.Slides[1].Charts);
             } finally {

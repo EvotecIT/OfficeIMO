@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                         layoutPart.LayoutDefinition!.UniqueId!.Value);
                 }
 
-                using (PowerPointPresentation reloaded = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation reloaded = PowerPointPresentation.Load(filePath)) {
                     PowerPointSmartArt smartArt = Assert.IsType<PowerPointSmartArt>(reloaded.Slides[0].Shapes.Single());
                     Assert.Equal("OfficeIMO-native process", smartArt.GetNodeText(0));
                     Assert.Single(reloaded.Slides[0].SmartArts);

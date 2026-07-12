@@ -1689,10 +1689,11 @@ namespace OfficeIMO.Tests {
                 slide.AddRectanglePoints(16, 20, 32, 24, "Start Node");
                 slide.AddRectanglePoints(162, 96, 32, 24, "End Node");
                 slide.SlidePart.Slide.CommonSlideData!.ShapeTree!.Append(CreateNativeBentConnectionShape());
+                presentation.Save();
             }
 
             stream.Position = 0;
-            using PowerPointPresentation loaded = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             PowerPointSlide loadedSlide = loaded.Slides[0];
 
             PowerPointConnectionShape connection = Assert.Single(loadedSlide.Shapes.OfType<PowerPointConnectionShape>());
