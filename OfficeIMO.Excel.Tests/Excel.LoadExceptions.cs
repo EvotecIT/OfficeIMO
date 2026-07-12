@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "LoadAutoSaveCopyBackFailure.xlsx");
             File.Copy(sourcePath, filePath, overwrite: true);
 
-            using var fileLock = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var fileLock = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {
                 PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose

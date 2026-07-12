@@ -242,8 +242,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ${{ matrix.project }}
 
-      - name: Run full net472 project tests
-        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+      - name: Run net472 contract tests
+        # Exact image pixels are a dedicated modern-runtime visual-gate contract, not a cross-TFM invariant.
+        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --filter "Category!=ExcelImageVisualGate" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
