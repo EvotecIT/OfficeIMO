@@ -353,7 +353,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Diagnostics for the most recent save operation.
         /// </summary>
-        public ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        internal ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
 
         private const int StreamCopyBufferSize = 81920;
 

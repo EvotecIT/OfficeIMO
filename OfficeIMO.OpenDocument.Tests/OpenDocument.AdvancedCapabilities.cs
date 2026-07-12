@@ -96,9 +96,9 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         using var stream = new MemoryStream();
 
-        document.SaveFlatXml(stream);
+        OdfSaveResult save = document.SaveFlatXmlResult(stream);
 
-        Assert.DoesNotContain(image.Path, document.LastSaveReport!.LossyEntries);
+        Assert.DoesNotContain(image.Path, save.Report.LossyEntries);
         stream.Position = 0;
         using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
         Assert.Equal(TinyPng, reopened.PageLayout.Header.Paragraphs.Single().Images.Single().GetImageBytes());
@@ -168,11 +168,12 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         document.Package.AddOrReplaceEntry("Thumbnails/thumbnail.png", TinyPng, "image/png");
         using var output = new MemoryStream();
 
-        document.SaveFlatXml(output);
+        OdfSaveResult save = document.SaveFlatXmlResult(output);
 
-        Assert.NotNull(document.LastSaveReport);
-        Assert.Contains("Thumbnails/thumbnail.png", document.LastSaveReport!.LossyEntries);
-        Assert.Contains("content.xml", document.LastSaveReport.RewrittenEntries);
+        Assert.True(save.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => save.RequireNoLoss());
+        Assert.Contains("Thumbnails/thumbnail.png", save.Report.LossyEntries);
+        Assert.Contains("content.xml", save.Report.RewrittenEntries);
     }
 
     [Fact]

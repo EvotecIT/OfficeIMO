@@ -54,12 +54,12 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         document.Package.RemoveEntry("styles.xml");
         using var stream = new MemoryStream();
 
-        document.SaveFlatXml(stream);
+        OdfSaveResult save = document.SaveFlatXmlResult(stream);
 
         stream.Position = 0;
         using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
         Assert.Equal("Minimal flat document", reopened.Paragraphs.Single().Text);
-        Assert.DoesNotContain("styles.xml", document.LastSaveReport!.RewrittenEntries);
+        Assert.DoesNotContain("styles.xml", save.Report.RewrittenEntries);
     }
 
     [Fact]

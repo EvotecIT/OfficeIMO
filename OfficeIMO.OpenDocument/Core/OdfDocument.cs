@@ -37,60 +37,90 @@ public abstract partial class OdfDocument : IDisposable {
     public OdfStyleRepository Styles { get; }
     /// <summary>Non-fatal diagnostics produced while opening the package.</summary>
     public IReadOnlyList<OdfDiagnostic> Diagnostics => Package.Diagnostics;
-    /// <summary>Most recent save-entry report.</summary>
-    public OdfSaveReport? LastSaveReport { get; private set; }
-
     /// <summary>Saves to the original path used to open or first save the document.</summary>
     public void Save(OdfSaveOptions? options = null) {
+        _ = SaveResult(options);
+    }
+
+    /// <summary>Saves to the current path and returns the serialized bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult SaveResult(OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         if (string.IsNullOrEmpty(_sourcePath)) throw new InvalidOperationException("This document has no source path. Supply a destination path or stream.");
-        Save(_sourcePath!, options);
+        return SaveResult(_sourcePath!, options);
     }
 
     /// <summary>Saves the document to a path using a same-directory temporary file.</summary>
     public void Save(string path, OdfSaveOptions? options = null) {
+        _ = SaveResult(path, options);
+    }
+
+    /// <summary>Saves to a path and returns the serialized bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult SaveResult(string path, OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
         byte[] bytes = Render(options, out OdfSaveReport report);
         OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         _sourcePath = fullPath;
-        CompleteSave(report);
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Writes the document to a stream without closing it.</summary>
     public void Save(Stream destination, OdfSaveOptions? options = null) {
+        _ = SaveResult(destination, options);
+    }
+
+    /// <summary>Writes to a stream and returns the serialized bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult SaveResult(Stream destination, OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         byte[] bytes = Render(options, out OdfSaveReport report);
         OfficeStreamWriter.WriteAllBytes(destination, bytes);
-        CompleteSave(report);
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Asynchronously saves to a path.</summary>
     public async Task SaveAsync(string path, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        _ = await SaveResultAsync(path, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously saves to a path and returns the serialized bytes with entry-level diagnostics.</summary>
+    public async Task<OdfSaveResult> SaveResultAsync(string path, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
         byte[] bytes = Render(options, out OdfSaveReport report);
         await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
         _sourcePath = fullPath;
-        CompleteSave(report);
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Asynchronously writes to a stream without closing it.</summary>
     public async Task SaveAsync(Stream destination, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        _ = await SaveResultAsync(destination, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously writes to a stream and returns the serialized bytes with entry-level diagnostics.</summary>
+    public async Task<OdfSaveResult> SaveResultAsync(Stream destination, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
         byte[] bytes = Render(options, out OdfSaveReport report);
         await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
-        CompleteSave(report);
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Serializes the document to a byte array.</summary>
     public byte[] ToBytes(OdfSaveOptions? options = null) {
+        return ToBytesResult(options).Value;
+    }
+
+    /// <summary>Serializes the document and returns bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult ToBytesResult(OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         byte[] bytes = Render(options, out OdfSaveReport report);
-        LastSaveReport = report;
-        return bytes;
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Validates package and supported semantic invariants.</summary>
@@ -138,8 +168,7 @@ public abstract partial class OdfDocument : IDisposable {
         return bytes;
     }
 
-    private void CompleteSave(OdfSaveReport report) {
-        LastSaveReport = report;
+    private void CompleteSave() {
         Package.AcceptChanges();
     }
 

@@ -99,6 +99,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
     </ItemGroup>
 
 </Project>

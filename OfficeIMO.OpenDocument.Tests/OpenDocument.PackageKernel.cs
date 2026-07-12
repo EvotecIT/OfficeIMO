@@ -2,6 +2,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Xunit;
 
@@ -48,10 +49,11 @@ public class OpenDocumentPackageKernelTests {
 
         using OdtDocument edited = OdtDocument.Open(new MemoryStream(source));
         edited.Metadata.Title = "Updated";
-        byte[] output = edited.ToBytes();
+        OdfSaveResult save = edited.ToBytesResult();
+        byte[] output = save.Value;
 
-        Assert.Contains("content.xml", edited.LastSaveReport!.CopiedEntries);
-        Assert.Contains("meta.xml", edited.LastSaveReport.RewrittenEntries);
+        Assert.Contains("content.xml", save.Report.CopiedEntries);
+        Assert.Contains("meta.xml", save.Report.RewrittenEntries);
         using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
         Assert.Equal("Updated", reopened.Metadata.Title);
         Assert.Equal(new byte[] { 1, 3, 5, 7 }, reopened.Package.GetRequiredEntry("Vendor/custom.bin").GetOriginalBytes());
@@ -113,17 +115,17 @@ public class OpenDocumentPackageKernelTests {
         document.Save(destination);
         document.Metadata.Title = "Changed";
 
-        document.ToBytes();
-        Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+        OdfSaveResult firstSerialization = document.ToBytesResult();
+        Assert.Contains("meta.xml", firstSerialization.Report.RewrittenEntries);
 
-        document.ToBytes();
-        Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+        OdfSaveResult repeatedSerialization = document.ToBytesResult();
+        Assert.Contains("meta.xml", repeatedSerialization.Report.RewrittenEntries);
 
         document.Save(destination);
-        document.ToBytes();
-        Assert.Empty(document.LastSaveReport!.RewrittenEntries);
-        Assert.Empty(document.LastSaveReport.RemovedEntries);
-        Assert.Contains("meta.xml", document.LastSaveReport.CopiedEntries);
+        OdfSaveResult acceptedSerialization = document.ToBytesResult();
+        Assert.Empty(acceptedSerialization.Report.RewrittenEntries);
+        Assert.Empty(acceptedSerialization.Report.RemovedEntries);
+        Assert.Contains("meta.xml", acceptedSerialization.Report.CopiedEntries);
     }
 
     [Fact]
@@ -133,9 +135,9 @@ public class OpenDocumentPackageKernelTests {
         document.Metadata.Title = "Pending";
 
         Assert.Throws<IOException>(() => document.Save(new ThrowingWriteStream()));
-        document.ToBytes();
+        OdfSaveResult serialization = document.ToBytesResult();
 
-        Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+        Assert.Contains("meta.xml", serialization.Report.RewrittenEntries);
     }
 
     [Fact]
@@ -149,6 +151,19 @@ public class OpenDocumentPackageKernelTests {
         Assert.True(destination.Length < 32_768);
         using OdtDocument reopened = OdtDocument.Open(destination);
         Assert.Equal(OdfDocumentKind.Text, reopened.Kind);
+    }
+
+    [Fact]
+    public async Task SaveResultAsyncReturnsExactBytesAndOperationReport() {
+        using OdtDocument document = OdtDocument.Create();
+        document.Metadata.Title = "Async save result";
+        using var destination = new MemoryStream();
+
+        OdfSaveResult result = await document.SaveResultAsync(destination);
+
+        Assert.Equal(result.Value, destination.ToArray());
+        Assert.Same(result.Value, result.RequireNoLoss());
+        Assert.Contains("meta.xml", result.Report.RewrittenEntries);
     }
 
     private static OdfDocument Create(OdfDocumentKind kind) {

@@ -30,21 +30,32 @@ public abstract partial class OdfDocument {
 
     /// <summary>Writes flat OpenDocument XML without closing the destination stream.</summary>
     public void SaveFlatXml(Stream destination) {
+        _ = SaveFlatXmlResult(destination);
+    }
+
+    /// <summary>Writes flat OpenDocument XML and returns the serialized bytes with projection diagnostics.</summary>
+    public OdfSaveResult SaveFlatXmlResult(Stream destination) {
         ThrowIfDisposed();
         XDocument flat = ToFlatXml();
         byte[] bytes = OdfXmlCodec.Save(flat);
         OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(destination, bytes);
-        LastSaveReport = CreateFlatXmlSaveReport();
+        return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
     /// <summary>Writes flat OpenDocument XML to a path.</summary>
     public void SaveFlatXml(string path) {
+        _ = SaveFlatXmlResult(path);
+    }
+
+    /// <summary>Writes flat OpenDocument XML to a path and returns the serialized bytes with projection diagnostics.</summary>
+    public OdfSaveResult SaveFlatXmlResult(string path) {
         ThrowIfDisposed();
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
         XDocument flat = ToFlatXml();
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, OdfXmlCodec.Save(flat));
-        LastSaveReport = CreateFlatXmlSaveReport();
+        byte[] bytes = OdfXmlCodec.Save(flat);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
     /// <summary>Opens a flat ODT, ODS, or ODP XML document.</summary>

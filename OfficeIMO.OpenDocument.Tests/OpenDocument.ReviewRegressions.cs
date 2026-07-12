@@ -34,9 +34,10 @@ public sealed class OpenDocumentReviewRegressionTests {
 
         using OdtDocument edited = OdtDocument.Open(new MemoryStream(original));
         edited.PageLayout.Header.Paragraphs.Single().Text = "After";
-        byte[] output = edited.ToBytes();
+        OdfSaveResult save = edited.ToBytesResult();
+        byte[] output = save.Value;
 
-        Assert.Contains("styles.xml", edited.LastSaveReport!.RewrittenEntries);
+        Assert.Contains("styles.xml", save.Report.RewrittenEntries);
         using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
         Assert.Equal("After", reopened.PageLayout.Header.Paragraphs.Single().Text);
     }
@@ -49,9 +50,10 @@ public sealed class OpenDocumentReviewRegressionTests {
 
         using OdtDocument edited = OdtDocument.Open(new MemoryStream(source.ToBytes()));
         edited.PageLayout.Header.Paragraphs.Single().Images.Single().Width = OdfLength.Centimeters(2);
-        byte[] output = edited.ToBytes();
+        OdfSaveResult save = edited.ToBytesResult();
+        byte[] output = save.Value;
 
-        Assert.Contains("styles.xml", edited.LastSaveReport!.RewrittenEntries);
+        Assert.Contains("styles.xml", save.Report.RewrittenEntries);
         using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
         Assert.Equal(OdfLength.Centimeters(2), reopened.PageLayout.Header.Paragraphs.Single().Images.Single().Width);
     }
