@@ -14,8 +14,8 @@ public sealed partial class PdfDocumentConversionResult {
         Guard.NotNull(conversionReport, nameof(conversionReport));
 
         _sourceReport = conversionReport;
-        Document = document;
-        ConversionReport = SnapshotReport(conversionReport);
+        Value = document;
+        Report = SnapshotReport(conversionReport);
     }
 
     private PdfDocumentConversionResult(PdfDocument document, PdfConversionReport sourceReport, PdfConversionReport conversionReportSnapshot) {
@@ -24,30 +24,33 @@ public sealed partial class PdfDocumentConversionResult {
         Guard.NotNull(conversionReportSnapshot, nameof(conversionReportSnapshot));
 
         _sourceReport = sourceReport;
-        Document = document;
-        ConversionReport = SnapshotReport(conversionReportSnapshot);
+        Value = document;
+        Report = SnapshotReport(conversionReportSnapshot);
     }
 
     /// <summary>The generated PDF document, ready for fluent OfficeIMO.Pdf processing.</summary>
-    public PdfDocument Document { get; }
+    public PdfDocument Value { get; }
 
     /// <summary>Snapshot of conversion warnings captured when the result was created and refreshed after save-time diagnostics run.</summary>
-    public PdfConversionReport ConversionReport { get; }
+    public PdfConversionReport Report { get; }
 
     /// <summary>Warnings captured during conversion.</summary>
-    public IReadOnlyList<PdfConversionWarning> Warnings => ConversionReport.Warnings;
+    public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
 
     /// <summary>True when conversion produced at least one warning.</summary>
-    public bool HasWarnings => ConversionReport.HasWarnings;
+    public bool HasWarnings => Report.HasWarnings;
 
     /// <summary>Counts grouped conversion diagnostics captured with this result.</summary>
-    public PdfConversionReportSummary Summary => ConversionReport.Summarize();
+    public PdfConversionReportSummary Summary => Report.Summarize();
+
+    /// <summary>Returns the generated PDF document.</summary>
+    public PdfDocument RequireValue() => Value;
 
     /// <summary>
     /// Returns a new conversion result with the supplied PDF document while preserving the captured conversion diagnostics.
     /// </summary>
-    public PdfDocumentConversionResult WithDocument(PdfDocument document) {
-        return new PdfDocumentConversionResult(document, _sourceReport, ConversionReport);
+    public PdfDocumentConversionResult WithValue(PdfDocument value) {
+        return new PdfDocumentConversionResult(value, _sourceReport, Report);
     }
 
     /// <summary>
@@ -55,7 +58,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// </summary>
     public PdfDocumentConversionResult Process(Func<PdfDocument, PdfDocument> process) {
         Guard.NotNull(process, nameof(process));
-        return WithDocument(process(Document));
+        return WithValue(process(Value));
     }
 
     /// <summary>
@@ -198,7 +201,7 @@ public sealed partial class PdfDocumentConversionResult {
 
     /// <summary>Returns the generated PDF bytes.</summary>
     public byte[] ToBytes() {
-        byte[] bytes = Document.ToBytes();
+        byte[] bytes = Value.ToBytes();
         RefreshConversionReport();
         return bytes;
     }
@@ -207,7 +210,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Writes the generated PDF document to the supplied stream and returns this conversion result for chaining.
     /// </summary>
     public PdfDocumentConversionResult Save(Stream stream) {
-        Document.Save(stream);
+        Value.Save(stream);
         RefreshConversionReport();
         return this;
     }
@@ -216,7 +219,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Writes the generated PDF document to the supplied file path and returns this conversion result for chaining.
     /// </summary>
     public PdfDocumentConversionResult Save(string path) {
-        Document.Save(path);
+        Value.Save(path);
         RefreshConversionReport();
         return this;
     }
@@ -225,7 +228,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Attempts to write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(Stream stream) {
-        PdfSaveResult result = Document.TrySave(stream);
+        PdfSaveResult result = Value.TrySave(stream);
         RefreshConversionReport();
         return result;
     }
@@ -234,7 +237,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Attempts to write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(string path) {
-        PdfSaveResult result = Document.TrySave(path);
+        PdfSaveResult result = Value.TrySave(path);
         RefreshConversionReport();
         return result;
     }
@@ -243,7 +246,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Asynchronously writes the generated PDF document to the supplied stream and returns this conversion result for chaining.
     /// </summary>
     public async System.Threading.Tasks.Task<PdfDocumentConversionResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
-        await Document.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        await Value.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         RefreshConversionReport();
         return this;
     }
@@ -252,7 +255,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Asynchronously writes the generated PDF document to the supplied file path and returns this conversion result for chaining.
     /// </summary>
     public async System.Threading.Tasks.Task<PdfDocumentConversionResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
-        await Document.SaveAsync(path, cancellationToken).ConfigureAwait(false);
+        await Value.SaveAsync(path, cancellationToken).ConfigureAwait(false);
         RefreshConversionReport();
         return this;
     }
@@ -272,13 +275,13 @@ public sealed partial class PdfDocumentConversionResult {
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(Stream stream, System.Threading.CancellationToken cancellationToken) {
-        PdfSaveResult result = await Document.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        PdfSaveResult result = await Value.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
         RefreshConversionReport();
         return result;
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(string path, System.Threading.CancellationToken cancellationToken) {
-        PdfSaveResult result = await Document.TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+        PdfSaveResult result = await Value.TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
         RefreshConversionReport();
         return result;
     }
@@ -293,8 +296,8 @@ public sealed partial class PdfDocumentConversionResult {
         IReadOnlyList<PdfConversionWarning> sourceWarnings = _sourceReport.Warnings;
         for (int i = 0; i < sourceWarnings.Count; i++) {
             PdfConversionWarning warning = sourceWarnings[i];
-            if (!ContainsEquivalentWarning(ConversionReport.Warnings, warning)) {
-                ConversionReport.Add(warning);
+            if (!ContainsEquivalentWarning(Report.Warnings, warning)) {
+                Report.Add(warning);
             }
         }
     }

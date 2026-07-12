@@ -973,7 +973,7 @@ public class PdfFontFamilyTests {
 
         PdfConversionWarning processedWarning = Assert.Single(processed.Warnings);
         Assert.Equal("sample-warning", processedWarning.Code);
-        Assert.Equal("Processed conversion result", processed.Document.Inspect().Metadata.Title);
+        Assert.Equal("Processed conversion result", processed.Value.Inspect().Metadata.Title);
         Assert.Contains("Conversion result", PdfReadDocument.Load(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         using var output = new MemoryStream();

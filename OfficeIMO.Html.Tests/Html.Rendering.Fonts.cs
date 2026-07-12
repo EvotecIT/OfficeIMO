@@ -171,7 +171,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains("EmbeddedWebFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
-        Assert.DoesNotContain(result.ConversionReport.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderPathClipGroup);
         Assert.Contains("ClippedSvgFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
-        Assert.DoesNotContain(result.ConversionReport.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains("/BaseFont /Times-Roman", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(result.ConversionReport.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
+        Assert.Contains(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.RenderedFontFamilyLimitExceeded);
     }
 
     private static byte[] CreateHtmlRenderTestFont(int scalar = 0x1F600) {

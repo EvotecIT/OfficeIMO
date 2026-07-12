@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"0\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("<rect x=\"60\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("ColPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

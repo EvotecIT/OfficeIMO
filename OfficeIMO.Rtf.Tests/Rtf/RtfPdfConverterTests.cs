@@ -102,7 +102,7 @@ public class RtfPdfConverterTests {
         };
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
-        PdfCore.PdfDocument processed = result.Document.AppendMetadataRevision(title: "Processed RTF PDF");
+        PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed RTF PDF");
 
         options.ConversionReport.Clear();
 

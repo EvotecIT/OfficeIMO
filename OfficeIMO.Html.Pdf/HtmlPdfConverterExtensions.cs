@@ -35,27 +35,27 @@ public static partial class HtmlPdfConverterExtensions {
 
     /// <summary>Converts HTML to the first-party PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this string html, HtmlPdfSaveOptions? options = null) =>
-        html.ToPdfResult(options).Document;
+        html.ToPdfResult(options).Value;
 
     /// <summary>Converts a shared HTML conversion document to the first-party PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null) =>
-        document.ToPdfResult(options).Document;
+        document.ToPdfResult(options).Value;
 
     /// <summary>Reads UTF-8 HTML from a stream and converts it to the first-party PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this Stream htmlStream, HtmlPdfSaveOptions? options = null) =>
-        htmlStream.ToPdfResult(options).Document;
+        htmlStream.ToPdfResult(options).Value;
 
     /// <summary>Asynchronously converts HTML to the first-party PDF document model.</summary>
     public static async Task<PdfCore.PdfDocument> ToPdfDocumentAsync(this string html, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        (await html.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).Document;
+        (await html.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).Value;
 
     /// <summary>Asynchronously converts a shared HTML conversion document to the first-party PDF document model.</summary>
     public static async Task<PdfCore.PdfDocument> ToPdfDocumentAsync(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        (await document.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).Document;
+        (await document.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).Value;
 
     /// <summary>Asynchronously reads UTF-8 HTML from a stream and converts it to the first-party PDF document model.</summary>
     public static async Task<PdfCore.PdfDocument> ToPdfDocumentAsync(this Stream htmlStream, HtmlPdfSaveOptions? options = null, CancellationToken cancellationToken = default) =>
-        (await htmlStream.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).Document;
+        (await htmlStream.ToPdfResultAsync(options, cancellationToken).ConfigureAwait(false)).Value;
 
     /// <summary>Converts HTML to a PDF document plus an immutable diagnostics snapshot.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfResult(this string html, HtmlPdfSaveOptions? options = null) {

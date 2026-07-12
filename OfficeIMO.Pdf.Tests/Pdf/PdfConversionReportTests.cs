@@ -129,7 +129,7 @@ public sealed class PdfConversionReportTests {
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Refresh source proof")),
             report);
 
-        PdfDocumentConversionResult processed = result.WithDocument(result.Document.UpdateMetadata(title: "Processed refresh source proof"));
+        PdfDocumentConversionResult processed = result.WithValue(result.Value.UpdateMetadata(title: "Processed refresh source proof"));
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Tests",
             "SaveTimeWarning",

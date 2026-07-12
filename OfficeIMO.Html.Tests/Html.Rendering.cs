@@ -263,7 +263,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains("AsyncPdfMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(288D, width, 2);
         Assert.Equal(216D, height, 2);
         Assert.Contains("ExternalCssPdfMarker", read.ExtractText(), StringComparison.Ordinal);
-        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
     }
 
     [Fact]
@@ -972,7 +972,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("SecondPageMarker", text, StringComparison.Ordinal);
         Assert.Contains(linkUri, info.LinkUris);
         Assert.Equal(HtmlRenderMode.Paged, options.Mode);
-        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

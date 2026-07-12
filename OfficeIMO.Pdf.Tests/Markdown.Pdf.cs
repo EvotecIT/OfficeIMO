@@ -226,7 +226,7 @@ Console.WriteLine("OfficeIMO");
 """;
 
         PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
-        PdfCore.PdfDocument processed = result.Document.AppendMetadataRevision(title: "Processed Markdown PDF");
+        PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed Markdown PDF");
 
         options.ConversionReport.Clear();
 
@@ -235,7 +235,7 @@ Console.WriteLine("OfficeIMO");
         Assert.False(options.ConversionReport.HasWarnings);
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("Processed Markdown PDF", processed.Inspect().Metadata.Title);
-        Assert.Contains("OfficeIMO logo", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO logo", result.Value.Read.Text(), StringComparison.Ordinal);
     }
 
     [Fact]

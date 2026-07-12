@@ -7,19 +7,22 @@ namespace OfficeIMO.Html.Pdf;
 /// </summary>
 public sealed class PdfHtmlConversionResult {
     internal PdfHtmlConversionResult(string html, PdfHtmlExportSummary summary, PdfCore.PdfConversionReport conversionReport) {
-        Html = html;
+        Value = html;
         Summary = summary;
-        ConversionReport = SnapshotReport(conversionReport);
+        Report = SnapshotReport(conversionReport);
     }
 
     /// <summary>Generated HTML output.</summary>
-    public string Html { get; }
+    public string Value { get; }
 
     /// <summary>Machine-readable summary of selected pages, preserved logical objects, and output policy.</summary>
     public PdfHtmlExportSummary Summary { get; }
 
     /// <summary>Conversion report snapshot populated during export.</summary>
-    public PdfCore.PdfConversionReport ConversionReport { get; }
+    public PdfCore.PdfConversionReport Report { get; }
+
+    /// <summary>Returns the generated HTML output.</summary>
+    public string RequireValue() => Value;
 
     private static PdfCore.PdfConversionReport SnapshotReport(PdfCore.PdfConversionReport conversionReport) {
         var snapshot = new PdfCore.PdfConversionReport();

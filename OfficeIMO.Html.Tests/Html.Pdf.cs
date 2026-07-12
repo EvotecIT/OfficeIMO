@@ -41,8 +41,8 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfDocumentConversionResult first = html.ToPdfResult(options);
         PdfCore.PdfDocumentConversionResult second = "<p>Clean</p>".ToPdfResult(options);
 
-        Assert.Contains(first.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
-        Assert.DoesNotContain(second.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.Contains(first.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
         Assert.Equal(HtmlRenderMode.Paged, options.Mode);
     }
 
@@ -159,9 +159,9 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
 
-        Assert.NotSame(options.ConversionReport, result.ConversionReport);
-        Assert.False(result.ConversionReport.HasWarnings);
-        Assert.Contains("Logical Heading", result.Html, StringComparison.Ordinal);
+        Assert.NotSame(options.ConversionReport, result.Report);
+        Assert.False(result.Report.HasWarnings);
+        Assert.Contains("Logical Heading", result.Value, StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.PositionedReview, result.Summary.Profile);
         Assert.Equal("pdf-html-positioned-review", result.Summary.ProfileId);
         Assert.Equal(1, result.Summary.SourcePageCount);
@@ -193,19 +193,19 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
 
-        Assert.Contains("class=\"pdf-outline\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("aria-label=\"PDF outline\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-outline-count=\"3\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-rendered-outline-count=\"3\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-outline-level=\"1\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-outline-level=\"2\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("href=\"#pdf-page-1\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("href=\"#pdf-page-2\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("id=\"pdf-page-1\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("id=\"pdf-page-2\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("Executive summary", result.Html, StringComparison.Ordinal);
-        Assert.Contains("Risk posture", result.Html, StringComparison.Ordinal);
-        Assert.Contains("Appendix", result.Html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-outline\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"PDF outline\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-outline-count=\"3\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-rendered-outline-count=\"3\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-outline-level=\"1\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-outline-level=\"2\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("href=\"#pdf-page-1\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("href=\"#pdf-page-2\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("id=\"pdf-page-1\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("id=\"pdf-page-2\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("Executive summary", result.Value, StringComparison.Ordinal);
+        Assert.Contains("Risk posture", result.Value, StringComparison.Ordinal);
+        Assert.Contains("Appendix", result.Value, StringComparison.Ordinal);
         Assert.Equal(3, result.Summary.OutlineCount);
         Assert.Equal(3, result.Summary.RenderedOutlineCount);
     }
@@ -223,7 +223,7 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
 
-        Assert.DoesNotContain("class=\"pdf-outline\"", result.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"pdf-outline\"", result.Value, StringComparison.Ordinal);
         Assert.Equal(3, result.Summary.OutlineCount);
         Assert.Equal(0, result.Summary.RenderedOutlineCount);
     }
@@ -237,16 +237,16 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
 
-        Assert.Contains("class=\"pdf-xfa-notice\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-xfa-packet-count=\"2\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-xfa-packet-names=\"template,datasets\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("does not render or fill XFA", result.Html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-xfa-notice\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-xfa-packet-count=\"2\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-xfa-packet-names=\"template,datasets\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("does not render or fill XFA", result.Value, StringComparison.Ordinal);
         Assert.True(result.Summary.HasAcroFormXfa);
         Assert.Equal(2, result.Summary.AcroFormXfaPacketCount);
         Assert.Equal(2, result.Summary.AcroFormXfaStreamCount);
         Assert.True(result.Summary.AcroFormXfaPayloadByteCount > 0);
         Assert.Equal(1, result.Summary.WarningCount);
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.ConversionReport.Warnings, item => item.Code == "AcroFormXfaDetected");
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, item => item.Code == "AcroFormXfaDetected");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
         Assert.Contains("does not render or fill XFA", warning.Message, StringComparison.Ordinal);
         Assert.Single(options.ConversionReport.Warnings, item => item.Code == "AcroFormXfaDetected");
@@ -262,15 +262,15 @@ public sealed class HtmlPdfTests {
         };
 
         PdfHtmlConversionResult imageResult = PdfHtmlConverter.ToHtmlResult(imagePdf, options);
-        PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.ConversionReport.Warnings, item => item.Code == "ImageDataTooLarge");
+        PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
 
         PdfHtmlConversionResult textResult = PdfHtmlConverter.ToHtmlResult(textPdf, options);
 
-        Assert.NotSame(options.ConversionReport, imageResult.ConversionReport);
-        Assert.NotSame(options.ConversionReport, textResult.ConversionReport);
-        Assert.Single(imageResult.ConversionReport.Warnings, item => item.Code == "ImageDataTooLarge");
-        Assert.False(textResult.ConversionReport.HasWarnings);
+        Assert.NotSame(options.ConversionReport, imageResult.Report);
+        Assert.NotSame(options.ConversionReport, textResult.Report);
+        Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
+        Assert.False(textResult.Report.HasWarnings);
         Assert.False(options.ConversionReport.HasWarnings);
     }
 
@@ -597,9 +597,9 @@ public sealed class HtmlPdfTests {
         Assert.Equal(1, result.Summary.SelectedPageActionCount);
         Assert.Equal(3, result.Summary.AnnotationActionCount);
         Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
-        Assert.DoesNotContain("app.alert", result.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("tool.exe", result.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("https://example.com/submit", result.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", result.Value, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
