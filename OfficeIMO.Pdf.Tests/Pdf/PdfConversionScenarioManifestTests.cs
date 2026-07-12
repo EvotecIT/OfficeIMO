@@ -1871,7 +1871,10 @@ public sealed class PdfConversionScenarioManifestTests {
         var semanticWordOptions = new PdfWordReadOptions {
             LayoutOptions = layoutOptions
         };
-        pdf.SavePdfAsWord(semanticWordStream, semanticWordOptions);
+        PdfWordConversionResult semanticWordResult = pdf.ToWordDocumentResultFromPdf(semanticWordOptions);
+        using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
+            semanticWordDocument.Save(semanticWordStream);
+        }
 
         using var excelStream = new MemoryStream();
         IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
@@ -1913,15 +1916,15 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.Contains(body.Descendants<BookmarkStart>(), bookmark => bookmark.Name?.Value == anchor);
         }
 
-        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
-        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
-        Assert.DoesNotContain(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(semanticWordResult.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
+        Assert.DoesNotContain(semanticWordResult.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         var summary = new {
             scenario = "pdf-table-import-editable-office",
-            semanticWordWarningCodes = semanticWordOptions.ConversionReport.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
+            semanticWordWarningCodes = semanticWordResult.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
             tableWord = wordResult,
             excel = excelResult,
             powerPoint = powerPointResult

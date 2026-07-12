@@ -13,7 +13,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfWordReadOptions readOptions = options ?? new PdfWordReadOptions();
-            readOptions.ResetImportState();
             WordDocument document = WordDocument.Create();
             ImportInto(source, document, readOptions);
             return document;
@@ -756,7 +755,7 @@ namespace OfficeIMO.Word.Pdf {
             string message,
             PdfCore.PdfConversionWarningSeverity severity,
             IReadOnlyDictionary<string, string>? details = null) {
-            options.ConversionReport.Add(new PdfCore.PdfConversionWarning(
+            options.Report.Add(new PdfCore.PdfConversionWarning(
                 ConverterName,
                 code,
                 source,

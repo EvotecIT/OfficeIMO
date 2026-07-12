@@ -7,52 +7,82 @@ namespace OfficeIMO.Word.Pdf {
     public static class PdfWordConverterExtensions {
         /// <summary>Converts a first-party PDF read model into an editable Word document using semantic extraction.</summary>
         public static WordDocument ToWordDocument(this PdfCore.PdfReadDocument document, PdfWordReadOptions? options = null) {
+            return document.ToWordDocumentResult(options).Value;
+        }
+
+        /// <summary>Converts a PDF read model into an editable Word document with import diagnostics.</summary>
+        public static PdfWordConversionResult ToWordDocumentResult(this PdfCore.PdfReadDocument document, PdfWordReadOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            PdfWordReadOptions readOptions = options ?? new PdfWordReadOptions();
-            readOptions.ResetImportState();
-            return PdfWordConverter.Convert(LoadLogical(document, readOptions), readOptions);
+            PdfWordReadOptions operation = (options ?? new PdfWordReadOptions()).CloneForConversion();
+            WordDocument word = PdfWordConverter.Convert(LoadLogical(document, operation), operation);
+            return new PdfWordConversionResult(word, operation.Report);
         }
 
         /// <summary>Converts a first-party logical PDF read model into an editable Word document using semantic extraction.</summary>
         public static WordDocument ToWordDocument(this PdfCore.PdfLogicalDocument document, PdfWordReadOptions? options = null) {
+            return document.ToWordDocumentResult(options).Value;
+        }
+
+        /// <summary>Converts a logical PDF model into an editable Word document with import diagnostics.</summary>
+        public static PdfWordConversionResult ToWordDocumentResult(this PdfCore.PdfLogicalDocument document, PdfWordReadOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            return PdfWordConverter.Convert(document, options);
+            PdfWordReadOptions operation = (options ?? new PdfWordReadOptions()).CloneForConversion();
+            WordDocument word = PdfWordConverter.Convert(document, operation);
+            return new PdfWordConversionResult(word, operation.Report);
         }
 
         /// <summary>Reads source PDF bytes and converts parser-supported semantic content to a Word document.</summary>
         public static WordDocument ToWordDocumentFromPdf(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+            return pdfBytes.ToWordDocumentResultFromPdf(options, readOptions).Value;
+        }
+
+        /// <summary>Reads PDF bytes and returns editable Word output with import diagnostics.</summary>
+        public static PdfWordConversionResult ToWordDocumentResultFromPdf(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfBytes == null) {
                 throw new ArgumentNullException(nameof(pdfBytes));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            return LoadPdf(pdfBytes, importOptions, readOptions).ToWordDocument(importOptions);
+            PdfWordReadOptions operation = (options ?? new PdfWordReadOptions()).CloneForConversion();
+            WordDocument word = PdfWordConverter.Convert(LoadPdf(pdfBytes, operation, readOptions), operation);
+            return new PdfWordConversionResult(word, operation.Report);
         }
 
         /// <summary>Reads a PDF stream from the current position and converts parser-supported semantic content to a Word document.</summary>
         public static WordDocument ToWordDocumentFromPdf(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+            return pdfStream.ToWordDocumentResultFromPdf(options, readOptions).Value;
+        }
+
+        /// <summary>Reads a PDF stream and returns editable Word output with import diagnostics.</summary>
+        public static PdfWordConversionResult ToWordDocumentResultFromPdf(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfStream == null) {
                 throw new ArgumentNullException(nameof(pdfStream));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            return LoadPdf(pdfStream, importOptions, readOptions).ToWordDocument(importOptions);
+            PdfWordReadOptions operation = (options ?? new PdfWordReadOptions()).CloneForConversion();
+            WordDocument word = PdfWordConverter.Convert(LoadPdf(pdfStream, operation, readOptions), operation);
+            return new PdfWordConversionResult(word, operation.Report);
         }
 
         /// <summary>Reads a PDF file and converts parser-supported semantic content to a Word document.</summary>
         public static WordDocument ToWordDocumentFromPdfFile(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+            return pdfPath.ToWordDocumentResultFromPdfFile(options, readOptions).Value;
+        }
+
+        /// <summary>Reads a PDF file and returns editable Word output with import diagnostics.</summary>
+        public static PdfWordConversionResult ToWordDocumentResultFromPdfFile(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            return LoadPdf(pdfPath, importOptions, readOptions).ToWordDocument(importOptions);
+            PdfWordReadOptions operation = (options ?? new PdfWordReadOptions()).CloneForConversion();
+            WordDocument word = PdfWordConverter.Convert(LoadPdf(pdfPath, operation, readOptions), operation);
+            return new PdfWordConversionResult(word, operation.Report);
         }
 
         /// <summary>Reads source PDF bytes and returns a serialized Word document package.</summary>
@@ -61,9 +91,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(pdfBytes));
             }
 
-            using var stream = new MemoryStream();
-            pdfBytes.SavePdfAsWord(stream, options, readOptions);
-            return stream.ToArray();
+            using WordDocument document = pdfBytes.ToWordDocumentFromPdf(options, readOptions);
+            return document.ToBytes();
         }
 
         /// <summary>Reads a PDF stream and returns a serialized Word document package.</summary>
@@ -72,9 +101,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(pdfStream));
             }
 
-            using var stream = new MemoryStream();
-            pdfStream.SavePdfAsWord(stream, options, readOptions);
-            return stream.ToArray();
+            using WordDocument document = pdfStream.ToWordDocumentFromPdf(options, readOptions);
+            return document.ToBytes();
         }
 
         /// <summary>Reads a PDF file and returns a serialized Word document package.</summary>
@@ -83,9 +111,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(pdfPath));
             }
 
-            using var stream = new MemoryStream();
-            SavePdfAsWord(pdfPath, stream, options, readOptions);
-            return stream.ToArray();
+            using WordDocument document = pdfPath.ToWordDocumentFromPdfFile(options, readOptions);
+            return document.ToBytes();
         }
 
         /// <summary>Reads source PDF bytes and saves semantic Word output to a file.</summary>
@@ -98,9 +125,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Document path cannot be empty.", nameof(documentPath));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            PdfCore.PdfLogicalDocument logical = LoadPdf(pdfBytes, importOptions, readOptions);
-            SaveWordDocument(logical, documentPath, importOptions);
+            using WordDocument document = pdfBytes.ToWordDocumentFromPdf(options, readOptions);
+            document.Save(documentPath);
         }
 
         /// <summary>Reads a PDF stream and saves semantic Word output to a file.</summary>
@@ -113,9 +139,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Document path cannot be empty.", nameof(documentPath));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            PdfCore.PdfLogicalDocument logical = LoadPdf(pdfStream, importOptions, readOptions);
-            SaveWordDocument(logical, documentPath, importOptions);
+            using WordDocument document = pdfStream.ToWordDocumentFromPdf(options, readOptions);
+            document.Save(documentPath);
         }
 
         /// <summary>Reads a PDF file and saves semantic Word output to a file.</summary>
@@ -128,9 +153,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Document path cannot be empty.", nameof(documentPath));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            PdfCore.PdfLogicalDocument logical = LoadPdf(pdfPath, importOptions, readOptions);
-            SaveWordDocument(logical, documentPath, importOptions);
+            using WordDocument document = pdfPath.ToWordDocumentFromPdfFile(options, readOptions);
+            document.Save(documentPath);
         }
 
         /// <summary>Reads source PDF bytes and saves semantic Word output to a writable stream.</summary>
@@ -143,9 +167,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(documentStream));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            PdfCore.PdfLogicalDocument logical = LoadPdf(pdfBytes, importOptions, readOptions);
-            SaveWordDocument(logical, documentStream, importOptions);
+            using WordDocument document = pdfBytes.ToWordDocumentFromPdf(options, readOptions);
+            document.Save(documentStream);
         }
 
         /// <summary>Reads a PDF stream and saves semantic Word output to a writable stream.</summary>
@@ -158,9 +181,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(documentStream));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            PdfCore.PdfLogicalDocument logical = LoadPdf(pdfStream, importOptions, readOptions);
-            SaveWordDocument(logical, documentStream, importOptions);
+            using WordDocument document = pdfStream.ToWordDocumentFromPdf(options, readOptions);
+            document.Save(documentStream);
         }
 
         /// <summary>Reads a PDF file and saves semantic Word output to a writable stream.</summary>
@@ -173,9 +195,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(documentStream));
             }
 
-            PdfWordReadOptions importOptions = options ?? new PdfWordReadOptions();
-            PdfCore.PdfLogicalDocument logical = LoadPdf(pdfPath, importOptions, readOptions);
-            SaveWordDocument(logical, documentStream, importOptions);
+            using WordDocument document = pdfPath.ToWordDocumentFromPdfFile(options, readOptions);
+            document.Save(documentStream);
         }
 
         private static PdfCore.PdfLogicalDocument LoadPdf(byte[] pdfBytes, PdfWordReadOptions options, PdfCore.PdfReadOptions? readOptions) {
@@ -206,21 +227,5 @@ namespace OfficeIMO.Word.Pdf {
                 : options.PageRanges.ToArray();
         }
 
-        private static void SaveWordDocument(PdfCore.PdfLogicalDocument logical, string documentPath, PdfWordReadOptions options) {
-            using WordDocument word = WordDocument.Create(documentPath);
-            options.ResetImportState();
-            PdfWordConverter.ImportInto(logical, word, options);
-            word.Save();
-        }
-
-        private static void SaveWordDocument(PdfCore.PdfLogicalDocument logical, Stream documentStream, PdfWordReadOptions options) {
-            using WordDocument word = WordDocument.Create(documentStream);
-            options.ResetImportState();
-            PdfWordConverter.ImportInto(logical, word, options);
-            word.Save();
-            if (documentStream.CanSeek) {
-                documentStream.Position = 0;
-            }
-        }
     }
 }

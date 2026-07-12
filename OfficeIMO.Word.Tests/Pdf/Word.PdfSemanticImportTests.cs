@@ -13,6 +13,31 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void PdfSemanticImport_ResultsKeepDiagnosticsScopedToEachConversion() {
+        byte[] imagePdf = PdfCore.PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Operation-scoped image")
+            .ToBytes();
+        byte[] textPdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("A clean second conversion."))
+            .ToBytes();
+        var options = new PdfWordReadOptions {
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        PdfWordConversionResult first = imagePdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument firstDocument = first.RequireValue();
+        Assert.Contains(first.Warnings, warning => warning.Code == "PdfImageEmbedded");
+
+        PdfWordConversionResult second = textPdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument secondDocument = second.RequireValue();
+
+        Assert.DoesNotContain(second.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.Contains(first.Warnings, warning => warning.Code == "PdfImageEmbedded");
+    }
+
+    [Fact]
     public void PdfSemanticImport_SaveAsWord_ImportsEditableDocumentStructure() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 CreateOutlineFromHeadings = true,
@@ -49,14 +74,16 @@ public partial class Word {
             }
         };
 
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
         using var document = new MemoryStream();
-        pdf.SavePdfAsWord(document, options);
+        importedDocument.Save(document);
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfFormWidgetPlaceholder");
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfFormWidgetPlaceholder");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -119,7 +146,9 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -182,10 +211,12 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkSkippedUnsafe");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkSkippedUnsafe");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -213,9 +244,11 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.HyperlinkRelationships);
@@ -246,10 +279,12 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.HyperlinkRelationships);
@@ -283,9 +318,11 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.ImageParts);
@@ -302,11 +339,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -323,11 +362,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -344,15 +385,17 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.Contains(options.ConversionReport.Warnings, warning =>
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.Contains(conversion.Report.Warnings, warning =>
             warning.Code == "PdfImageTransparencyMaskNotResolved" &&
             warning.Details.TryGetValue("MaskKind", out string? maskKind) &&
             maskKind == "soft-mask");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -369,11 +412,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -390,11 +435,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -411,11 +458,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -432,11 +481,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -453,11 +504,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -474,11 +527,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -495,11 +550,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -516,11 +573,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -537,11 +596,13 @@ public partial class Word {
             }
         };
 
-        byte[] documentBytes = pdf.ToWordBytesFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        using OfficeWordDocument importedDocument = conversion.Value;
+        byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);

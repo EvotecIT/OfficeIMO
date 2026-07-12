@@ -84,8 +84,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Paragraph text written when no supported PDF content is detected, keeping the produced document meaningful.</summary>
         public string EmptyDocumentMessage { get; set; } = "No supported PDF content detected.";
 
-        /// <summary>Shared conversion report populated with accepted-degradation diagnostics for this import run.</summary>
-        public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+        internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         /// <summary>Creates a reusable copy of this option set.</summary>
         public PdfWordReadOptions Clone() => new PdfWordReadOptions {
@@ -113,9 +112,7 @@ namespace OfficeIMO.Word.Pdf {
             EmptyDocumentMessage = EmptyDocumentMessage
         }.CopyAllowedHyperlinkUriSchemesFrom(AllowedHyperlinkUriSchemes);
 
-        internal void ResetImportState() {
-            ConversionReport.Clear();
-        }
+        internal PdfWordReadOptions CloneForConversion() => Clone();
 
         private static PdfCore.PdfTextLayoutOptions? CloneLayoutOptions(PdfCore.PdfTextLayoutOptions? options) {
             if (options is null) {
