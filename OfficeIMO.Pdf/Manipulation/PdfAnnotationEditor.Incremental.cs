@@ -14,13 +14,13 @@ public static partial class PdfAnnotationEditor {
         }
 
         ThrowIfAppendOnlyWidgetMutation(objects, annotation);
-        ApplyUpdates(annotation, options);
+        IReadOnlyList<int> additionalChangedObjects = ApplyUpdates(objects, annotation, options);
         byte[] updated = PdfIncrementalObjectWriter.Append(
             pdf,
             objects,
             mutationPlan.Preflight.Probe.Security,
             trailerRaw,
-            new[] { objectNumber });
+            new[] { objectNumber }.Concat(additionalChangedObjects).Distinct().ToArray());
         PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan);
         return new PdfAnnotationEditResult(updated, 1, mutationPlan, proof);
     }

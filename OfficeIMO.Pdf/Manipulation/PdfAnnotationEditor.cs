@@ -148,7 +148,7 @@ public static partial class PdfAnnotationEditor {
             throw new ArgumentException("PDF annotation object was not found: " + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", nameof(objectNumber));
         }
 
-        ApplyUpdates(annotation, options);
+        IReadOnlyList<int> changedObjects = ApplyUpdates(objects, annotation, options);
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false);
@@ -235,7 +235,8 @@ public static partial class PdfAnnotationEditor {
         }
     }
 
-    private static void ApplyUpdates(PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<int> ApplyUpdates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PdfAnnotationUpdateOptions options) {
+        var changedObjects = new List<int>();
         bool invalidateAppearance = false;
         if (options.Contents is not null) {
             annotation.Items["Contents"] = new PdfStringObj(options.Contents, useTextStringEncoding: true);
@@ -264,9 +265,46 @@ public static partial class PdfAnnotationEditor {
             annotation.Items.Remove("AA");
         }
 
-        if (invalidateAppearance) {
+        if (options.Rectangle is not null) { annotation.Items["Rect"] = CreateNumberArray(options.Rectangle); invalidateAppearance = true; }
+        if (options.QuadPoints is not null) { annotation.Items["QuadPoints"] = CreateNumberArray(options.QuadPoints); invalidateAppearance = true; }
+        if (options.Vertices is not null) { annotation.Items["Vertices"] = CreateNumberArray(options.Vertices); invalidateAppearance = true; }
+        if (options.Line is not null) { annotation.Items["L"] = CreateNumberArray(options.Line); invalidateAppearance = true; }
+        if (options.InkPaths is not null) {
+            var paths = new PdfArray(); foreach (IReadOnlyList<double> path in options.InkPaths) paths.Items.Add(CreateNumberArray(path)); annotation.Items["InkList"] = paths; invalidateAppearance = true;
+        }
+        if (options.LineStartEnding is not null || options.LineEndEnding is not null) {
+            string start = options.LineStartEnding ?? ReadLineEnding(objects, annotation, 0) ?? "None";
+            string end = options.LineEndEnding ?? ReadLineEnding(objects, annotation, 1) ?? "None";
+            var endings = new PdfArray(); endings.Items.Add(new PdfName(start)); endings.Items.Add(new PdfName(end)); annotation.Items["LE"] = endings; invalidateAppearance = true;
+        }
+        if (options.InReplyToObjectNumber.HasValue) {
+            int replyTarget = options.InReplyToObjectNumber.Value;
+            if (!objects.TryGetValue(replyTarget, out PdfIndirectObject? target) || target.Value is not PdfDictionary targetDictionary || !IsAnnotation(targetDictionary)) throw new ArgumentException("Reply target annotation object was not found.", nameof(options));
+            annotation.Items["IRT"] = new PdfReference(replyTarget, 0);
+        }
+        if (options.ReplyType is not null) annotation.Items["RT"] = new PdfName(options.ReplyType);
+        if (options.PopupOpen.HasValue || options.PopupRectangle is not null) {
+            PdfDictionary popup = ResolvePopup(objects, annotation, out int? popupObjectNumber);
+            if (options.PopupOpen.HasValue) popup.Items["Open"] = new PdfBoolean(options.PopupOpen.Value);
+            if (options.PopupRectangle is not null) popup.Items["Rect"] = CreateNumberArray(options.PopupRectangle);
+            if (popupObjectNumber.HasValue) changedObjects.Add(popupObjectNumber.Value);
+        }
+
+        if (options.RegenerateAppearance) {
+            changedObjects.Add(PdfAnnotationFlattener.RegenerateNormalAppearance(objects, annotation));
+        } else if (invalidateAppearance) {
             annotation.Items.Remove("AP");
         }
+        return changedObjects.AsReadOnly();
+    }
+
+    private static PdfArray CreateNumberArray(IReadOnlyList<double> values) { var array = new PdfArray(); foreach (double value in values) array.Items.Add(new PdfNumber(value)); return array; }
+    private static string? ReadLineEnding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, int index) => annotation.Items.TryGetValue("LE", out PdfObject? value) && PdfObjectLookup.Resolve(objects, value) is PdfArray array && index < array.Items.Count && PdfObjectLookup.Resolve(objects, array.Items[index]) is PdfName name ? name.Name : null;
+    private static PdfDictionary ResolvePopup(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, out int? objectNumber) {
+        objectNumber = null;
+        if (annotation.Get<PdfName>("Subtype")?.Name == "Popup") return annotation;
+        if (annotation.Items.TryGetValue("Popup", out PdfObject? popupObject) && PdfObjectLookup.Resolve(objects, popupObject) is PdfDictionary popup) { objectNumber = popupObject is PdfReference reference ? reference.ObjectNumber : null; return popup; }
+        throw new InvalidOperationException("Annotation does not have a linked popup dictionary.");
     }
 
     private static PdfArray CreateColorArray(IReadOnlyList<double> values) {
@@ -310,15 +348,28 @@ public static partial class PdfAnnotationEditor {
             }
         }
 
+        ValidateCoordinateArray(options.Rectangle, 4, 4, nameof(options.Rectangle));
+        ValidateCoordinateArray(options.QuadPoints, 8, 0, nameof(options.QuadPoints));
+        ValidateCoordinateArray(options.Vertices, 4, 0, nameof(options.Vertices));
+        ValidateCoordinateArray(options.Line, 4, 4, nameof(options.Line));
+        ValidateCoordinateArray(options.PopupRectangle, 4, 4, nameof(options.PopupRectangle));
+        if (options.InkPaths is not null) { if (options.InkPaths.Count == 0) throw new ArgumentException("Ink paths cannot be empty.", nameof(options)); foreach (IReadOnlyList<double> path in options.InkPaths) ValidateCoordinateArray(path, 4, 0, nameof(options.InkPaths)); }
+        if (options.InReplyToObjectNumber.HasValue && options.InReplyToObjectNumber.Value <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Reply parent object number must be positive.");
+        if (options.ReplyType is not null && options.ReplyType != "R" && options.ReplyType != "Group") throw new ArgumentException("Reply type must be R or Group.", nameof(options));
+        ValidatePdfName(options.LineStartEnding, nameof(options.LineStartEnding)); ValidatePdfName(options.LineEndEnding, nameof(options.LineEndEnding));
+
         if (options.Contents is null &&
             options.Title is null &&
             options.Name is null &&
             !options.Flags.HasValue &&
             options.Color is null &&
-            !options.RemoveActions) {
+            !options.RemoveActions && options.Rectangle is null && options.QuadPoints is null && options.Vertices is null && options.Line is null && options.InkPaths is null && options.LineStartEnding is null && options.LineEndEnding is null && !options.InReplyToObjectNumber.HasValue && options.ReplyType is null && !options.PopupOpen.HasValue && options.PopupRectangle is null && !options.RegenerateAppearance) {
             throw new ArgumentException("At least one annotation update option must be provided.", nameof(options));
         }
     }
+
+    private static void ValidateCoordinateArray(IReadOnlyList<double>? values, int minimum, int exact, string name) { if (values is null) return; if ((exact > 0 && values.Count != exact) || (exact == 0 && (values.Count < minimum || values.Count % 2 != 0))) throw new ArgumentException("Annotation coordinate array has an invalid length.", name); foreach (double value in values) if (double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentException("Annotation coordinates must be finite.", name); }
+    private static void ValidatePdfName(string? value, string name) { if (value is null) return; Guard.NotNullOrWhiteSpace(value, name); if (value.Any(char.IsWhiteSpace)) throw new ArgumentException("PDF name values cannot contain whitespace.", name); }
 
     private static bool IsAnnotation(PdfDictionary dictionary) {
         string? type = dictionary.Get<PdfName>("Type")?.Name;
