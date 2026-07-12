@@ -16,7 +16,12 @@ public sealed class EmailPackagingContractTests {
         string[] projectReferences = project.Descendants(ns + "ProjectReference")
             .Select(element => ((string?)element.Attribute("Include") ?? string.Empty).Replace('\\', '/'))
             .ToArray();
-        Assert.Equal(new[] { "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj" }, projectReferences);
+        Assert.Equal(
+            new[] {
+                "../OfficeIMO.Drawing/OfficeIMO.Drawing.csproj",
+                "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
+            },
+            projectReferences);
         string[] sharedSources = project.Descendants(ns + "Compile")
             .Select(element => (string?)element.Attribute("Include"))
             .Where(value => !string.IsNullOrWhiteSpace(value))

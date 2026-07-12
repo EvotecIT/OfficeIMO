@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                         finding => finding.Code == "Layout.ShapeOffSlide");
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.DoesNotContain(reopened.Slides[0].Shapes, shape => shape.Name == "Outside");
             } finally {
                 if (File.Exists(path)) File.Delete(path);

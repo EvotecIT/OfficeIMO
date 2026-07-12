@@ -640,7 +640,7 @@ public class HtmlOfficeAdapters {
         using var stream = new MemoryStream();
         imported.Save(stream);
         stream.Position = 0;
-        using ExcelDocument persisted = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+        using ExcelDocument persisted = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         ExcelSheet importedSheet = Assert.Single(persisted.Sheets);
 
         Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));

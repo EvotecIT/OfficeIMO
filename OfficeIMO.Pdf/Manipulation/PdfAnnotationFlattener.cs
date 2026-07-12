@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -80,7 +81,7 @@ public static partial class PdfAnnotationFlattener {
             Directory.CreateDirectory(directory);
         }
 
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>

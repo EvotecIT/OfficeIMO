@@ -57,13 +57,13 @@ namespace OfficeIMO.Shared.Tests {
             }
 
             Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
-                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             }));
 
             using var explicitLoad = WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
                 OpenSettings = new OpenSettings { AutoSave = true }
             });
-            Assert.Equal(OfficeIMO.Core.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
+            Assert.Equal(OfficeIMO.Drawing.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
 
         [Fact]
@@ -119,13 +119,13 @@ namespace OfficeIMO.Shared.Tests {
             }
 
             Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
-                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             }));
 
             using var explicitLoad = ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
                 OpenSettings = new OpenSettings { AutoSave = true }
             });
-            Assert.Equal(OfficeIMO.Core.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
+            Assert.Equal(OfficeIMO.Drawing.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
 
         [Fact]

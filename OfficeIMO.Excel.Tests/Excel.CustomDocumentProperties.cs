@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(Convert.ToBase64String(payload), binary.VTBlob!.Text);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelCustomProperty property = document.CustomDocumentProperties["BinaryPayload"];
                 Assert.Equal(ExcelCustomPropertyType.Binary, property.PropertyType);
                 Assert.Equal(payload, property.Binary);
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
             }
         }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
             }
         }

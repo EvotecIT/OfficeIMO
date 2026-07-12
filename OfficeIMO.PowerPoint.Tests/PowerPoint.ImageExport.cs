@@ -1699,7 +1699,7 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             PowerPointSlide loadedSlide = loaded.Slides[0];
 
             PowerPointConnectionShape connection = Assert.Single(loadedSlide.Shapes.OfType<PowerPointConnectionShape>());

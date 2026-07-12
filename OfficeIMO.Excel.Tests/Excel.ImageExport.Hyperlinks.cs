@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
                 worksheetPart.Worksheet.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
                 ExcelWorksheetSnapshot worksheet = snapshot.Worksheets.Single();
                 ExcelCellSnapshot first = worksheet.Cells.Single(cell => cell.Row == 1 && cell.Column == 1);

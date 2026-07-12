@@ -20,7 +20,7 @@ public static partial class DocumentReader {
         switch (kind) {
             case ReaderInputKind.Word:
                 using (WordDocument document = WordDocument.Load(path, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
                     OpenSettings = CreateOpenSettings(options)
                 })) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
@@ -30,7 +30,7 @@ public static partial class DocumentReader {
                     return ApplyExcelRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.PowerPoint:
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     return ApplyPowerPointRichMapping(presentation, options, result, cancellationToken);
                 }
             default:
@@ -50,7 +50,7 @@ public static partial class DocumentReader {
             case ReaderInputKind.Word:
                 stream.Position = 0;
                 using (WordDocument document = WordDocument.Load(stream, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
                     OpenSettings = CreateOpenSettings(options)
                 })) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
@@ -62,7 +62,7 @@ public static partial class DocumentReader {
                 }
             case ReaderInputKind.PowerPoint:
                 stream.Position = 0;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     return ApplyPowerPointRichMapping(presentation, options, result, cancellationToken);
                 }
             default:

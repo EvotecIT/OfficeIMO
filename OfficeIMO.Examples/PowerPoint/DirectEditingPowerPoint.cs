@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -41,7 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 slide.Notes.Text = "Concrete objects can be edited immediately or after reopening the deck.";
 
                 using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath,
-                           new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                           new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointSlide imported = presentation.ImportSlide(source, 0);
                     imported.AddTextBoxCm("Imported through the same presentation model.", 1.5, 5.0, 22.0, 0.8);
                 }
@@ -58,7 +59,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 edited.Save();
             }
 
-            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
     }
 }

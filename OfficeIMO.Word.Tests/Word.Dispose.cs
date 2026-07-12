@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
 
             var document = WordDocument.Create(filePath, new WordCreateOptions {
-                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             });
             document.AddParagraph("This is my test");
 

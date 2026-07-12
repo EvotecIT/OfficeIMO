@@ -2838,7 +2838,7 @@ namespace OfficeIMO.Tests {
                 File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("No autosave"));
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Load(docPath, new WordLoadOptions {
-                    PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                    PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
                 }));
 
                 Assert.Contains("SaveOnDispose is not supported", exception.Message);
@@ -2858,7 +2858,7 @@ namespace OfficeIMO.Tests {
                     OpenSettings = new OpenSettings { AutoSave = true }
                 });
 
-                Assert.Equal(OfficeIMO.Core.DocumentPersistenceMode.Explicit, document.PersistenceMode);
+                Assert.Equal(OfficeIMO.Drawing.DocumentPersistenceMode.Explicit, document.PersistenceMode);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2871,7 +2871,7 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Read only legacy doc"));
 
-                using WordDocument document = WordDocument.Load(docPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using WordDocument document = WordDocument.Load(docPath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
                 Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(FileAccess.Read, document.FileOpenAccess);
@@ -2925,7 +2925,7 @@ namespace OfficeIMO.Tests {
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() => {
                 using WordDocument _ = WordDocument.Load(stream, new WordLoadOptions {
-                    PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                    PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
                 });
             });
 
@@ -5492,7 +5492,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Create_SaveOnDisposeWithoutAssociatedDestination_ThrowsImmediately() {
             ArgumentException exception = Assert.Throws<ArgumentException>(() => WordDocument.Create(options: new WordCreateOptions {
-                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             }));
 
             Assert.Contains("associated file path or writable stream", exception.Message, StringComparison.OrdinalIgnoreCase);

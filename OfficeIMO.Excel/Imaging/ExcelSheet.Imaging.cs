@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -604,7 +605,7 @@ namespace OfficeIMO.Excel {
                 Directory.CreateDirectory(directory!);
             }
 
-            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         }
 
         private static void WriteImageStream(Stream stream, byte[] bytes) {

@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 await document.SaveAsync();
             }
 
-            await using (var document = await ExcelDocument.LoadAsync(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            await using (var document = await ExcelDocument.LoadAsync(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.Sheets[0];
                 sheet.CellValue(1, 1, "Updated");
             }

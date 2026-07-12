@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>Controls creation and persistence of an Excel workbook.</summary>

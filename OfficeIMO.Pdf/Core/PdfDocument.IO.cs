@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
@@ -66,7 +67,7 @@ public sealed partial class PdfDocument {
     /// <returns>This <see cref="PdfDocument"/> for chaining.</returns>
     public PdfDocument Save(Stream stream) {
         var bytes = ToBytes();
-        OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, bytes);
+        OfficeStreamWriter.WriteAllBytes(stream, bytes);
         return this;
     }
 
@@ -80,7 +81,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-            OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, bytes);
+            OfficeStreamWriter.WriteAllBytes(stream, bytes);
             return PdfSaveResult.Success(outputPath: null, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(outputPath: null, ex);
@@ -97,7 +98,7 @@ public sealed partial class PdfDocument {
         EnsureOutputDirectory(fullPath);
 
         var bytes = ToBytes();
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         return this;
     }
 
@@ -115,7 +116,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
             return PdfSaveResult.Success(fullPath, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(fullPath ?? path, ex);
@@ -129,7 +130,7 @@ public sealed partial class PdfDocument {
         cancellationToken.ThrowIfCancellationRequested();
 
         var bytes = ToBytes();
-        await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -144,7 +145,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-            await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
+            await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
             return PdfSaveResult.Success(outputPath: null, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(outputPath: null, ex);
@@ -160,7 +161,7 @@ public sealed partial class PdfDocument {
         EnsureOutputDirectory(fullPath);
 
         var bytes = ToBytes();
-        await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -178,7 +179,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-            await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
             return PdfSaveResult.Success(fullPath, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(fullPath ?? path, ex);

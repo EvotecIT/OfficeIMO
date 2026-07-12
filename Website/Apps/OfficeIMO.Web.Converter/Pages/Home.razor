@@ -618,7 +618,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
     private static ConversionOutput ConvertWord(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using WordDocument document = WordDocument.Load(stream,
-            new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var options = new PdfSaveOptions {
             Title = Path.GetFileNameWithoutExtension(file.Name),
             IncludePageNumbers = true
@@ -631,7 +631,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
     private ConversionOutput ConvertExcel(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using ExcelDocument document = ExcelDocument.Load(stream,
-            new ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var options = new ExcelPdfSaveOptions {
             MaxRowsPerSheet = Profile == "fast" ? 250 : null
         };
@@ -643,7 +643,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
     private static ConversionOutput ConvertPowerPoint(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
         using PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
-            new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var options = new PowerPointPdfSaveOptions {
             WarnOnPictureAspectRatioDistortion = true
         };

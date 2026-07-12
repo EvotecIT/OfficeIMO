@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 appOverride.SetAttributeValue("ContentType", "application/xml");
             });
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Sheets[0].CellValue(1, 1, "Normalized");
             }
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+                using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                     document.Sheets[0].CellValue(1, 1, "Updated");
                 }
 
@@ -219,13 +219,13 @@ namespace OfficeIMO.Tests {
             using var fileLock = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {
-                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             })) {
                 document.Sheets[0].CellValue(1, 1, "Updated");
             }
 
             using var reloaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {
-                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
             Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out string? value));
             Assert.Equal("Updated", value);

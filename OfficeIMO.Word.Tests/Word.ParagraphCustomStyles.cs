@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
                 OverrideStyles = true
             })) {
                 var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

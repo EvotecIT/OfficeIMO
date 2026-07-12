@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Paragraphs" && feature.Count > 0);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Paragraphs" && feature.Count > 0);
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 WordFeatureFinding fields = Assert.Single(report.FindFeatures("Fields"));
 
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                 mainPart.Document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 WordFeatureFinding dataBinding = Assert.Single(report.FindFeatures("Content-control data bindings"));
 
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding charts = Assert.Single(report.FindFeatures("Charts"));
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                 settingsPart.Settings.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding variables = Assert.Single(report.FindFeatures("Document variables"));
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
                     "<wetp:taskpanes xmlns:wetp=\"http://schemas.microsoft.com/office/webextensions/taskpanes/2010/11\" />");
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding glossary = Assert.Single(report.FindFeatures("Building blocks and glossary"));
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding images = Assert.Single(report.FindFeatures("External linked images"));
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
                     new byte[] { 1, 2, 3, 4 });
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 WordFeatureFinding activeX = Assert.Single(report.FindFeatures("ActiveX controls"));
 
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
                 AssertPartBytes(mainPart, "activeX.bin", activeXBinaryBytes);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Building blocks and glossary"

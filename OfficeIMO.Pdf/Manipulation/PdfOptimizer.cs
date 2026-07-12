@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.IO.Compression;
 
 namespace OfficeIMO.Pdf;
@@ -127,7 +128,7 @@ public static partial class PdfOptimizer {
             Directory.CreateDirectory(directory);
         }
 
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, result.Bytes);
+        OfficeFileCommit.WriteAllBytes(outputPath, result.Bytes);
         return result;
     }
 

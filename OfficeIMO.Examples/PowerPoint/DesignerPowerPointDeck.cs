@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -169,7 +170,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             Console.WriteLine($"    Saved: {filePath}");
             Console.WriteLine("    Validation: no Open XML errors found.");
-            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
     }
 }

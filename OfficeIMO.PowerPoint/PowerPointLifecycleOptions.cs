@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Controls creation and persistence of a PowerPoint presentation.</summary>

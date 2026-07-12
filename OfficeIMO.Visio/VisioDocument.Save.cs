@@ -1,8 +1,9 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -15,7 +16,7 @@ namespace OfficeIMO.Visio {
             if (string.IsNullOrEmpty(target)) {
                 throw new InvalidOperationException("The document has no associated file path.");
             }
-            OfficeIMO.Core.OfficeFileLauncher.Open(target);
+            OfficeFileLauncher.Open(target);
         }
 
         /// <summary>Saves the document to the path specified when created.</summary>

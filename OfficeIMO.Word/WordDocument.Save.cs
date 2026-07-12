@@ -1,7 +1,7 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.LegacyDoc.Write;
 using OfficeIMO.Word.Fluent;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(target)) {
                 throw new InvalidOperationException("The document has no associated file path.");
             }
-            OfficeIMO.Core.OfficeFileLauncher.Open(target);
+            OfficeFileLauncher.Open(target);
         }
 
         /// <summary>

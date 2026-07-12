@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {

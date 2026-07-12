@@ -60,6 +60,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.CSV.Tests" />
   </ItemGroup>
 

@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PerformanceReview_SheetBatchReadOnlyActionDoesNotDirtyLoadedWorkbook() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Batch");
                 sheet.CellValue(1, 1, "Status");
                 document.Save(memory);
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.True(document.Sheets[0].TryGetCellText(21, 1, out string? text));
                 Assert.Equal("Row 21", text);
             }
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_StreamSaveWithPackageProperties_PreservesProperties() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 document.BuiltinDocumentProperties.Title = "Performance Review";
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal("Performance Review", loaded.BuiltinDocumentProperties.Title);
             Assert.Equal("Evotec", loaded.ApplicationProperties.Company);
         }
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_StreamFastPackage_PreservesRowMetadata() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Hidden");
                 var row = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();
@@ -516,7 +516,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_StreamFastPackage_PreservesHiddenSheetState() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 document.AddWorkSheet("Visible").CellValue(1, 1, "Visible");
                 var hidden = document.AddWorkSheet("Hidden");
                 hidden.CellValue(1, 1, "Hidden");
@@ -1309,7 +1309,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
-            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? escaped));
             Assert.Equal("A&B <tag> \"quote\" 'single'", escaped);
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? sanitized));
@@ -1339,7 +1339,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(4, 1, out string? value));
             Assert.Equal("Gamma", value);
         }
@@ -1362,7 +1362,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
-            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? original));
             Assert.Equal("Original", original);
             Assert.False(loaded.Sheets[0].TryGetCellText(3, 1, out _));
@@ -1388,7 +1388,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
-            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Single(loaded.Sheets);
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.Equal("Name", header);
@@ -1456,7 +1456,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
-            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? value));
             Assert.Equal("Workbook", value);
         }
@@ -1524,12 +1524,12 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_StreamCreateDispose_PersistsWorkbook() {
             using var memory = new MemoryStream();
 
-            var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose });
+            var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose });
             document.AddWorkSheet("Data").CellValue(1, 1, "Closed");
             document.Dispose();
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? text));
             Assert.Equal("Closed", text);
         }
@@ -1538,17 +1538,17 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_StreamLoadCopyWorksheet_PersistsInsteadOfWritingUnchangedPackage() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 document.AddWorkSheet("Source").CellValue(1, 1, "Copied");
             }
 
             memory.Position = 0;
-            using (var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 document.CopyWorkSheet("Source", "Copy");
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Contains(loaded.Sheets, sheet => sheet.Name == "Copy");
         }
 
@@ -1556,7 +1556,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_StreamFastPackage_PreservesColumnPhoneticAttribute() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 var worksheet = sheet.WorksheetPart.Worksheet;
@@ -1593,7 +1593,7 @@ namespace OfficeIMO.Tests {
             Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
             Assert.Equal("OfficeIMO", text);
         }
@@ -1613,7 +1613,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
-            using (var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
                 Assert.Equal("OfficeIMO", text);
             }
@@ -1971,7 +1971,7 @@ namespace OfficeIMO.Tests {
                     document.LastSaveDiagnostics.FastPackageSkipReason ?? "Simple package writer was not used.");
             }
 
-            using (var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? text));
                 Assert.Equal("Again", text);
             }
@@ -2146,7 +2146,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(701, 2, out string? value));
             Assert.Equal("Distinct value 701", value);
         }
@@ -2207,7 +2207,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? firstValue));
             Assert.True(loaded.Sheets[0].TryGetCellText(100, 3, out string? lastValue));
             Assert.Equal("1.25", firstValue);
@@ -2459,7 +2459,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 2, out string? value));
             Assert.Equal("Delta", value);
         }
@@ -2505,7 +2505,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 2, out string? score));
             Assert.Equal("10", score);
         }
@@ -2663,7 +2663,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? name));
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 2, out string? scoreAfterSave));
             Assert.Equal("Alpha", name);
@@ -2685,7 +2685,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? first));
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
             Assert.Equal("Alpha", first);
@@ -2708,7 +2708,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? value));
             Assert.Equal("Alpha", value);
         }
@@ -2728,7 +2728,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? first));
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
             Assert.Equal("Alpha", first);
@@ -2751,7 +2751,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? first));
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
             Assert.Equal("Alpha", first);
@@ -2799,7 +2799,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? header));
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
             Assert.Equal("Name", header);
@@ -2829,7 +2829,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? appended));
             Assert.True(loaded.Sheets[0].TryGetCellText(5, 1, out string? manual));
             Assert.Equal("Alpha", appended);
@@ -2879,7 +2879,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? original));
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
             Assert.Equal("Original", original);
@@ -2907,7 +2907,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(5, 1, out string? text));
             Assert.Equal("Manual edit", text);
         }
@@ -2929,7 +2929,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? left));
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 3, out string? right));
             Assert.Equal("Left", left);
@@ -3135,7 +3135,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? loadedHeader));
             Assert.Equal(string.Empty, loadedHeader);
         }
@@ -3500,7 +3500,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(4, 1, out string? text));
             Assert.Equal("Manual edit", text);
         }
@@ -6127,7 +6127,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(5, 1, out string? text));
             Assert.Equal("Manual edit", text);
         }
@@ -6326,7 +6326,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(5, 1, out string? text));
             Assert.Equal("Manual edit", text);
         }
@@ -6502,7 +6502,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal("Sales Export", loaded.BuiltinDocumentProperties.Title);
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
             Assert.Equal("Alpha", text);
@@ -6596,7 +6596,7 @@ namespace OfficeIMO.Tests {
             }
 
             memory.Position = 0;
-            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.True(loaded.Sheets[0].TryGetCellText(5, 1, out string? text));
             Assert.Equal("Manual edit", text);
         }

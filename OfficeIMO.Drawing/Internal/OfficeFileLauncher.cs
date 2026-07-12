@@ -2,9 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace OfficeIMO.Core {
+namespace OfficeIMO.Drawing.Internal {
     /// <summary>Launches saved Office artifacts through the operating system's registered application.</summary>
-    public static class OfficeFileLauncher {
+    internal static class OfficeFileLauncher {
         /// <summary>Opens an existing file through the operating system shell.</summary>
         public static void Open(string filePath) {
             if (string.IsNullOrWhiteSpace(filePath)) {

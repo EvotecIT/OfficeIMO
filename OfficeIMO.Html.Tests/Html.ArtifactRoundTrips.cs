@@ -24,7 +24,7 @@ public class HtmlArtifactRoundTrips {
         HtmlToWordResult wordResult = source.ToWordDocumentResult();
         using var docx = new MemoryStream();
         wordResult.Value.Save(docx);
-        using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+        using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
         string rtf = rtfResult.Value.ToRtf();
@@ -55,7 +55,7 @@ public class HtmlArtifactRoundTrips {
         HtmlToExcelResult excelResult = sourceWorkbook.ToHtml().ToExcelDocumentResult();
         using var xlsx = new MemoryStream();
         excelResult.Value.Save(xlsx);
-        using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+        using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
         using PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
@@ -67,7 +67,7 @@ public class HtmlArtifactRoundTrips {
         powerPointResult.Value.Save(pptx);
         using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Load(
             new MemoryStream(pptx.ToArray()),
-            new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
         ExcelSheet reopenedSheet = Assert.Single(reopenedWorkbook.Sheets);
         Assert.True(reopenedSheet.TryGetCellText(2, 1, out string excelText));

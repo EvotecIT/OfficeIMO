@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Core.Internal {
+namespace OfficeIMO.Drawing.Internal {
     /// <summary>
     /// Commits completed Office files without exposing a partially written destination.
     /// </summary>

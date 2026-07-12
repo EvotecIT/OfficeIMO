@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var left = ExcelDocument.Load(leftPath))
-            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelFormulaAnalysisReport formulas = left.AnalyzeFormulas();
                 Assert.Equal(1, formulas.FormulaCount);
                 Assert.Equal(1, formulas.VolatileFormulaCount);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var left = ExcelDocument.Load(leftPath))
-            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookCommentReport comments = left.InspectComments();
                 Assert.Equal(1, comments.CommentCount);
                 Assert.Empty(comments.Issues);
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document["Data"];
                 Assert.Null(document.GetNamedRange("Totals", sheet));
                 Assert.Equal("$A$1:$B$1", document.GetNamedRange("GrandTotal", sheet));
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelWorkbookIntelligence_RepairSaveSkipsMissingDefaultDestination() {
             using var stream = new MemoryStream();
-            using (var document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
             }
 
@@ -221,8 +221,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly }))
-            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookDiffReport diff = left.CompareWorkbook(right);
                 Assert.Contains(diff.Differences, difference => difference.Category == "Cell" && difference.Address == "B1" && difference.RightValue == "B");
             }
@@ -281,7 +281,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookCommentReport comments = document.InspectComments();
                 Assert.Equal(2, comments.ThreadedCommentCount);
                 Assert.Contains(comments.ThreadedComments, comment => comment.Id == parentId && comment.Author == "Finance Reviewer");
@@ -333,8 +333,8 @@ namespace OfficeIMO.Tests {
                 right.Save();
             }
 
-            using (var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly }))
-            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookDiffReport report = left.CompareWorkbook(right, new ExcelWorkbookDiffOptions {
                     CompareCells = false,
                     CompareCellStyles = true,

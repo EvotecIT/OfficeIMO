@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.IO;
 using System.Text;
 using OfficeIMO.Drawing;
@@ -74,7 +75,7 @@ namespace OfficeIMO.Excel {
                 Directory.CreateDirectory(directory!);
             }
 
-            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         }
 
         private static void WriteStream(Stream stream, byte[] bytes) {

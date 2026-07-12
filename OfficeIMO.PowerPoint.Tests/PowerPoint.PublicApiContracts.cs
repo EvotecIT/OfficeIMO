@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using PowerPointPresentation reopened = PowerPointPresentation.Load(path,
-                    new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                    new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes),
                     textBox => textBox.Text == "Edited after composition");
                 Assert.Empty(reopened.ValidateDocument());
@@ -84,14 +84,14 @@ namespace OfficeIMO.Tests {
         public void StreamOptionsMakePersistenceAndReadOnlyIntentExplicit() {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
-                       new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+                       new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 Assert.Empty(presentation.Slides);
                 presentation.AddSlide().AddTitle("Stream lifecycle");
                 Assert.Single(presentation.Slides);
             }
 
             using PowerPointPresentation reopened = PowerPointPresentation.Load(stream,
-                new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal("Stream lifecycle", reopened.Slides[0].TextBoxes.First().Text);
         }
 

@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 Assert.Contains("Chart kind: ColumnClustered", File.ReadAllText(summaryPath));
-                using (PowerPointPresentation reopened = PowerPointPresentation.Load(output, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation reopened = PowerPointPresentation.Load(output, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(kinds.Length, reopened.Slides.Count);
                     for (int index = 0; index < kinds.Length; index++) {
                         PowerPointChart chart = Assert.Single(reopened.Slides[index].Charts);
@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(output, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(output, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 PowerPointChart chart = Assert.Single(reopened.Slides[0].Charts);
                 Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
                 Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);

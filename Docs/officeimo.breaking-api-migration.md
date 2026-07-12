@@ -14,6 +14,10 @@ Word, Excel, PowerPoint, Visio, RTF, PDF, and OpenDocument models now follow the
 | Produce an in-memory stream | `ToStream()` or the format-specific canonical stream method |
 | Export to another format | `ToPdf()`, `ToHtml()`, `ToMarkdown()`, and matching `SaveAs{Format}()` methods |
 
+The shared `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions`
+contracts are owned by the existing zero-dependency `OfficeIMO.Drawing` foundation. Import `OfficeIMO.Drawing` when
+configuring Word, Excel, or PowerPoint lifecycle options. There is no separate `OfficeIMO.Core` package.
+
 `SaveAsync` exists only where the destination performs asynchronous I/O. Pure in-memory conversion and byte generation are synchronous. Use `ToBytes()` or `ToPdf()` directly; do not wrap them in a removed `*Async` compatibility method.
 
 Streams used as associated destinations must be writable and seekable so every parameterless `Save()` can replace the complete artifact. Editable `Load(Stream)` calls retain only streams with those capabilities; read-only and non-seekable inputs remain detached and require an explicit destination. `Save(Stream)` and `SaveAsync(Stream)` are one-time writes and do not silently redirect later parameterless saves. Use `Create(Stream)` or load an editable seekable stream when persistent stream association is intended.

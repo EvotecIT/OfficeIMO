@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
                 "PowerPointWithTablesAndCharts.pptx");
             Assert.True(File.Exists(fixture), "Expected sanitized PowerPoint-authored fixture was not found.");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             PowerPointVisualProofReport report = presentation.CreateVisualProofReport("powerpoint-authored-import");
 
             Assert.NotEmpty(report.Slides);

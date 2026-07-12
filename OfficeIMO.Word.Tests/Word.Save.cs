@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using var readOnlyDocument = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var readOnlyDocument = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save());
             using var outputStream = new MemoryStream();
             Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save(outputStream));

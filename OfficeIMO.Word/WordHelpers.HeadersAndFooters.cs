@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.Word {
@@ -38,7 +39,7 @@ namespace OfficeIMO.Word {
                 }
 
                 // Write the MemoryStream contents to the output file
-                OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, documentStream.ToArray());
+                OfficeFileCommit.WriteAllBytes(outputPath, documentStream.ToArray());
             }
         }
     }

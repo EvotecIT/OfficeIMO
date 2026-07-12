@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -66,7 +67,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 
             presentation.Save();
-            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
     }
 }

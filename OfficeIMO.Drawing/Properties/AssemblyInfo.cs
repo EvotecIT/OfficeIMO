@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("OfficeIMO.CSV")]
-[assembly: InternalsVisibleTo("OfficeIMO.Drawing")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email")]
 [assembly: InternalsVisibleTo("OfficeIMO.Excel")]
+[assembly: InternalsVisibleTo("OfficeIMO.Examples")]
 [assembly: InternalsVisibleTo("OfficeIMO.Html")]
 [assembly: InternalsVisibleTo("OfficeIMO.OpenDocument")]
 [assembly: InternalsVisibleTo("OfficeIMO.Pdf")]

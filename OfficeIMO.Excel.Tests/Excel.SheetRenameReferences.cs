@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                     .First(h => string.Equals(h.Reference?.Value, "A2", StringComparison.OrdinalIgnoreCase));
                 Assert.Equal("'Renamed'!A1", hyperlink.Location?.Value);
 
-                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Empty(verify.ValidateOpenXml());
             }
             finally {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 var pivotCache = workbookPart.GetPartsOfType<PivotTableCacheDefinitionPart>().Single();
                 Assert.Equal("Renamed Data", pivotCache.PivotCacheDefinition!.CacheSource!.WorksheetSource!.Sheet!.Value);
 
-                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Empty(verify.ValidateOpenXml());
             }
             finally {
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                 var rule = summaryPart.Worksheet.Descendants<ConditionalFormattingRule>().Single();
                 Assert.Equal("'Renamed Data'!$A$1", rule.Elements<Formula>().Single().Text);
 
-                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Empty(verify.ValidateOpenXml());
             }
             finally {
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'Index'!A1", backlink.Location?.Value);
                 Assert.Equal("← Index", GetCellText(workbookPart, renamedPart, "A2"));
 
-                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Empty(verify.ValidateOpenXml());
             }
             finally {
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
                 var validation = summaryPart.Worksheet.Descendants<DataValidation>().Single();
                 Assert.Equal("COUNTIF('Renamed Data'!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0", validation.GetFirstChild<Formula1>()!.Text);
 
-                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Empty(verify.ValidateOpenXml());
             }
             finally {
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("SUM('Renamed Data'!$A$2,1)", valueColumnAfter.CalculatedColumnFormula!.Text);
                 Assert.Equal("SUM('Renamed Data'!$A$2:$A$3)", valueColumnAfter.TotalsRowFormula!.Text);
 
-                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Empty(verify.ValidateOpenXml());
             }
             finally {

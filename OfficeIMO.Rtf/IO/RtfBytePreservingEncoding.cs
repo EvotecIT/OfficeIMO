@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Rtf;
 
 internal static class RtfBytePreservingEncoding {
@@ -59,7 +60,7 @@ internal static class RtfBytePreservingEncoding {
     }
 
     public static void WriteAllText(string path, string rtf) {
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(path, ToBytes(rtf));
+        OfficeFileCommit.WriteAllBytes(path, ToBytes(rtf));
     }
 
     public static async Task WriteAllTextAsync(string path, string rtf, CancellationToken cancellationToken) {

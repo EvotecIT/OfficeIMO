@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -33,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
                     .End()
                     .Save();
             }
-            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

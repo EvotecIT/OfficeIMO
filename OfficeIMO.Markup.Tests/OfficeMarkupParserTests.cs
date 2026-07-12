@@ -2013,7 +2013,7 @@ C,60,77
                 Assert.Contains("outEnd", chartXml, StringComparison.Ordinal);
             }
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2076,7 +2076,7 @@ C,60,77
             Assert.Equal("1+1", GetCell(dashboardPart, "H1")!.CellFormula!.Text);
             Assert.False(dashboardPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2136,7 +2136,7 @@ Cost,80,
             Assert.True(dashboardPart.DrawingsPart!.ChartParts.Any());
             Assert.False(dashboardPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2168,7 +2168,7 @@ Revenue,120
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             var snapshot = document.CreateInspectionSnapshot();
             var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
             var valueCell = Assert.Single(dataSheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
@@ -2218,7 +2218,7 @@ Revenue,120
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             var snapshot = document.CreateInspectionSnapshot();
             var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
             var valueCell = Assert.Single(dataSheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
@@ -2276,7 +2276,7 @@ Q4,320,150
             });
 
             Assert.True(File.Exists(path));
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2330,7 +2330,7 @@ Q2,180
             });
 
             Assert.True(File.Exists(path));
-            using (var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.NotNull(document.TableOfContent);
                 Assert.True(document.PageBreaks.Count >= 1);
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Architecture Note", StringComparison.Ordinal));
@@ -2479,7 +2479,7 @@ profile: document
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "1. First", StringComparison.Ordinal));
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "2. Second", StringComparison.Ordinal));
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "3. Third", StringComparison.Ordinal));

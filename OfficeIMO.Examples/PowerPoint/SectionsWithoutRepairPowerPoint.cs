@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Linq;
@@ -71,7 +72,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             Console.WriteLine($"[+] Created: {filePath}");
             Console.WriteLine("[+] Validation passed with no Open XML errors.");
-            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
 
         private static void AddTitleAndBody(PowerPointSlide slide, PowerPointLayoutBox content, string title, string body) {

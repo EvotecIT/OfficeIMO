@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 using OfficeIMO.Pdf.Filters;
 
@@ -313,7 +314,7 @@ public static class PdfAttachmentExtractor {
             string fileName = GetSafeFileName(attachment.UnicodeFileName ?? attachment.FileName, "attachment-" + (i + 1).ToString("0000", CultureInfo.InvariantCulture) + ".bin");
             string uniqueFileName = MakeUniqueFileName(fileName, usedNames);
             string outputPath = Path.Combine(outputDirectory, uniqueFileName);
-            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, attachment.Bytes);
+            OfficeFileCommit.WriteAllBytes(outputPath, attachment.Bytes);
             paths.Add(outputPath);
         }
 

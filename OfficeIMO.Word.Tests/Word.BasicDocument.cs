@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             foreach (var doc in docs) {
                 Console.WriteLine($"Processing document: {doc}");
 
-                using (var document = WordDocument.Load(doc, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (var document = WordDocument.Load(doc, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     var allElements = document.Elements;
                     Assert.True(allElements.Count > 0, $"Document '{doc}' has no elements.");
 

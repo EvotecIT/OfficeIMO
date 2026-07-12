@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Packaging;
@@ -116,7 +117,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(filePath)) throw new ArgumentNullException(nameof(filePath));
             var data = ExtractMacros(document);
             if (data == null) return;
-            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(filePath, data);
+            OfficeFileCommit.WriteAllBytes(filePath, data);
         }
 
         /// <summary>

@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             }
 
             destination.Position = 0;
-            using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal("$A$1", loaded.GetNamedRange("Anchor", loaded["Data"]));
         }
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelConditionalFormattingInfo rule = Assert.Single(document["Data"].GetConditionalFormattingRules("A1"));
                 Assert.Equal("TimePeriod", rule.Type);
                 Assert.Single(rule.Formulas);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Null(document.GetNamedRange("_xlnm.Print_Titles", document["Report"]));
             }
         }
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
                 worksheetPart.Worksheet.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorksheetSnapshot sheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
                 Assert.All(sheet.Cells.Where(cell => cell.Row >= 1 && cell.Row <= 3), cell => Assert.NotNull(cell.Hyperlink));
                 Assert.Equal(3, sheet.Cells.Count(cell => cell.Hyperlink != null));
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests {
                 commentsPart.Comments.Save();
             }
 
-            using var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
-            using var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            using var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
             ExcelWorkbookDiffReport diff = left.CompareWorkbook(right, new ExcelWorkbookDiffOptions {
                 CompareCells = false,
@@ -455,7 +455,7 @@ namespace OfficeIMO.Tests {
             }
 
             destination.Position = 0;
-            using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             ExcelSheet loadedSheet = loaded["Report"];
             Assert.Equal("$A$1:$B$2", loadedSheet.GetPrintArea());
             ExcelPrintTitles titles = loadedSheet.GetPrintTitles();

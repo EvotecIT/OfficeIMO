@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Pdf.Filters;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -758,7 +759,7 @@ public static partial class PdfRedactionApplier {
             Directory.CreateDirectory(directory);
         }
 
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
     }
 
     private static string ValidateOutputPath(string outputPath) {

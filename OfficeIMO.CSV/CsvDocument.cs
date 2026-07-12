@@ -1,12 +1,12 @@
 #nullable enable
 
+using OfficeIMO.Drawing.Internal;
 using System.Collections;
 using System.Data;
 using System.Globalization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 
 namespace OfficeIMO.CSV;

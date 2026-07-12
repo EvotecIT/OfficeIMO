@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
             //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.TestAssets\Documents\DocumentWithSection.docx";
             //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.TestAssets\Documents\EmptyDocumentWithSection.docx";
 
-            using (WordDocument document = WordDocument.Load(filePath, new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (WordDocument document = WordDocument.Load(filePath, new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Console.WriteLine("+ Document Path: " + document.FilePath);
                 Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
                 Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);

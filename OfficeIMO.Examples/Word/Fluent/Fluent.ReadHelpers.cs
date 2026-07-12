@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
                 int total = document.AsFluent().Select(p => p.Paragraph?.Text.Contains("ir") == true).Count();
                 Console.WriteLine($"Paragraphs containing 'ir': {total}");
             }
-            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

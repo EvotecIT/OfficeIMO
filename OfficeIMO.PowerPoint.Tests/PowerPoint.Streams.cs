@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void Create_ToStream_WithSaveOnDispose_WritesPackage() {
             using var stream = new MemoryStream();
             using (var presentation = PowerPointPresentation.Create(stream,
-                       new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+                       new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 presentation.AddSlide();
             }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (var presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 presentation.AddSlide();
             }
 
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             using var stream = new NonSeekableWriteStream();
 
             var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Create(stream,
-                new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
+                new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
             using var stream = new NonSeekableReadWriteStream(bytes);
 
-            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
+            var exception = Assert.Throws<ArgumentException>(() => PowerPointPresentation.Load(stream, new PowerPointLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
             Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
 
             IOException exception = Assert.Throws<IOException>(() => {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
-                    new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose });
+                    new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose });
                 presentation.AddSlide();
             });
 

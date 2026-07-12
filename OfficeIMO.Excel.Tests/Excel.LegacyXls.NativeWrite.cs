@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using (ExcelDocument document = ExcelDocument.Load(openXmlPath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+                using (ExcelDocument document = ExcelDocument.Load(openXmlPath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                     ExcelSheet sheet = document.Sheets.Single();
                     sheet.CellValue(1, 1, "Native XLS target");
                     document.Save(xlsOutputPath);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                 LegacyXlsCell cell = Assert.Single(Assert.Single(result.Workbook.Worksheets).Cells, item => item.Row == 1 && item.Column == 1);
                 Assert.Equal("Native XLS target", Assert.IsType<string>(cell.Value));
 
-                using ExcelDocument sourceDocument = ExcelDocument.Load(openXmlPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                using ExcelDocument sourceDocument = ExcelDocument.Load(openXmlPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 ExcelSheet sourceSheet = Assert.Single(sourceDocument.Sheets);
                 Assert.True(sourceSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? sourceValue));
                 Assert.Equal("OpenXML source", sourceValue!.Text);
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeStreamSave_DisablesAutoSaveCopyBackOnDispose() {
             using var stream = new MemoryStream();
 
-            using (ExcelDocument document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (ExcelDocument document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 ExcelSheet sheet = document.AddWorkSheet("StreamXls");
                 sheet.CellValue(1, 1, "Native stream XLS");
 

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -6,8 +7,7 @@ using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Utilities;
-using OfficeIMO.Core;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;

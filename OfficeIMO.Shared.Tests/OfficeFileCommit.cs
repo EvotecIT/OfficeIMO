@@ -1,6 +1,7 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Shared;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests {

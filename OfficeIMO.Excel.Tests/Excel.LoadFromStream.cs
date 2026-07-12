@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests
                 memory.Write(bytes, 0, bytes.Length);
                 memory.Seek(0, SeekOrigin.Begin);
 
-                using (var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }))
+                using (var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }))
                 {
                     var sheet = document.Sheets[0];
                     sheet.CellValue(1, 1, "Updated");
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests
                 memory.Write(bytes, 0, bytes.Length);
                 memory.Seek(0, SeekOrigin.Begin);
 
-                await using (var document = await ExcelDocument.LoadAsync(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }))
+                await using (var document = await ExcelDocument.LoadAsync(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }))
                 {
                     var sheet = document.Sheets[0];
                     sheet.CellValue(1, 1, "Updated Async");
@@ -347,7 +347,7 @@ namespace OfficeIMO.Tests
                 }
 
                 using var readOnlyStream = new MemoryStream(File.ReadAllBytes(filePath), writable: false);
-                var ex = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(readOnlyStream, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
+                var ex = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(readOnlyStream, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
                 Assert.Equal("stream", ex.ParamName);
             }
             finally
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests
                 }
 
                 using var readOnlyStream = new MemoryStream(File.ReadAllBytes(filePath), writable: false);
-                var ex = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(readOnlyStream, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
+                var ex = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(readOnlyStream, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
                 Assert.Equal("stream", ex.ParamName);
             }
             finally
@@ -398,7 +398,7 @@ namespace OfficeIMO.Tests
             using var source = new MemoryStream(bytes.ToArray(), writable: true);
             using var document = ExcelDocument.Load(source, new ExcelLoadOptions
             {
-                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
             });
 
             Assert.Throws<InvalidOperationException>(() => document.Save());
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests
         {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source, new ExcelCreateOptions {
-                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             }))
             {
                 document.AddWorkSheet("Initial");
@@ -496,7 +496,7 @@ namespace OfficeIMO.Tests
 
                 var ex = Assert.Throws<IOException>(() =>
                 {
-                    using var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose });
+                    using var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose });
                     document.Sheets[0].CellValue(1, 1, "Updated");
                 });
 

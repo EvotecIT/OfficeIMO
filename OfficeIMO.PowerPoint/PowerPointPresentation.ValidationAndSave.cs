@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Reflection;
@@ -9,8 +10,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Core;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrEmpty(target)) {
                 throw new InvalidOperationException("The presentation has no associated file path.");
             }
-            OfficeIMO.Core.OfficeFileLauncher.Open(target);
+            OfficeFileLauncher.Open(target);
         }
 
         /// <summary>

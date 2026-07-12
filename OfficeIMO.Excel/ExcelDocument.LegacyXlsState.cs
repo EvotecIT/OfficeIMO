@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls;
@@ -176,7 +177,7 @@ namespace OfficeIMO.Excel {
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             if (openExcel) {
-                OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                OfficeFileLauncher.Open(path);
             }
 
             return true;

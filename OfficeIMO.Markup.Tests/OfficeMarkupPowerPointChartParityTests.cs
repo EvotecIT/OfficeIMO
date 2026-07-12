@@ -51,7 +51,7 @@ public class OfficeMarkupPowerPointChartParityTests {
                 });
 
             using PowerPointPresentation presentation = PowerPointPresentation.Load(
-                outputPath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                outputPath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             PowerPointChart chart = Assert.Single(presentation.Slides.SelectMany(slide => slide.Charts));
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
             Assert.Equal(expectedKind, snapshot.ChartKind);

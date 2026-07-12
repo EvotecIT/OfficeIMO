@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
                 doc.Save();
             }
 
-            using (var verify = ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var verify = ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(verify.ValidateOpenXml());
             }
             File.Delete(path);

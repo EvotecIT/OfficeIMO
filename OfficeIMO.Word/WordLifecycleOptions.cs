@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>Controls creation and persistence of a Word document.</summary>

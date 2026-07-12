@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -5,7 +6,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Shared;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {

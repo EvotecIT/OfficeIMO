@@ -458,6 +458,10 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
+    [InlineData("OfficeIMO.CSV/OfficeIMO.CSV.csproj")]
+    [InlineData("OfficeIMO.Email/OfficeIMO.Email.csproj")]
+    [InlineData("OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj")]
+    [InlineData("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj")]
     [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
     [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
     [InlineData("OfficeIMO.Visio/OfficeIMO.Visio.csproj")]
@@ -465,7 +469,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
     [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
-    public void ImageAndColorConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
+    public void SharedFoundationConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
         var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 

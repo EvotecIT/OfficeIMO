@@ -14,14 +14,21 @@ public class DrawingArchitectureTests {
     private static readonly string RepositoryRoot = LocateRepositoryRoot();
 
     [Fact]
-    public void OfficeDrawingProjectOnlyDependsOnTheSharedCore() {
+    public void OfficeDrawingProjectHasNoRuntimeDependencies() {
         XDocument project = LoadProject("OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj");
 
         Assert.Empty(GetReferencedItems(project, "PackageReference"));
-        Assert.Equal(
-            new[] { "../OfficeIMO.Core/OfficeIMO.Core.csproj" },
-            GetReferencedItems(project, "ProjectReference").Select(reference => reference.Replace('\\', '/')));
+        Assert.Empty(GetReferencedItems(project, "ProjectReference"));
         Assert.DoesNotContain("System.Drawing", ReadProjectSource("OfficeIMO.Drawing"));
+    }
+
+    [Fact]
+    public void LifecycleContractsAreOwnedByDependencyFreeDrawing() {
+        Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentAccessMode).Assembly);
+        Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentPersistenceMode).Assembly);
+        Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentCreateOptions).Assembly);
+        Assert.Same(typeof(OfficeColor).Assembly, typeof(DocumentLoadOptions).Assembly);
+        Assert.False(File.Exists(Path.Combine(RepositoryRoot, "OfficeIMO.Core", "OfficeIMO.Core.csproj")));
     }
 
     [Fact]

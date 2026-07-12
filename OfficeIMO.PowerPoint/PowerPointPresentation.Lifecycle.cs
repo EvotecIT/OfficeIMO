@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,8 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 
 namespace OfficeIMO.PowerPoint {

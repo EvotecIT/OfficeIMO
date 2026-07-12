@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Email;
 
 public sealed partial class EmailDocument {
@@ -54,7 +55,7 @@ public sealed partial class EmailDocument {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(filePath, data);
+        OfficeFileCommit.WriteAllBytes(filePath, data);
         return result;
     }
 
@@ -64,7 +65,7 @@ public sealed partial class EmailDocument {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
-        OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, data);
+        OfficeStreamWriter.WriteAllBytes(stream, data);
         return result;
     }
 
@@ -81,7 +82,7 @@ public sealed partial class EmailDocument {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
-        await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
+        await OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         return result;
     }
@@ -94,7 +95,7 @@ public sealed partial class EmailDocument {
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         cancellationToken.ThrowIfCancellationRequested();
-        await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
         return result;
     }
 

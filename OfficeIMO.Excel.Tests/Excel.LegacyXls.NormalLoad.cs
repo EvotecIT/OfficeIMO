@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = WriteTempWorkbook(compound, ".xls");
 
             try {
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
 
                 Assert.Contains("SaveOnDispose is not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
             } finally {

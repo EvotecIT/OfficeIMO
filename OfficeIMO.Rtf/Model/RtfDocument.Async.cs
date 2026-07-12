@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Rtf;
 
 /// <content>
@@ -24,12 +25,12 @@ public sealed partial class RtfDocument {
     public async Task SaveAsync(string path, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         byte[] bytes = ToBytes(options, encoding);
-        await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
     public async Task SaveAsync(Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         byte[] bytes = ToBytes(options, encoding);
-        await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
 }

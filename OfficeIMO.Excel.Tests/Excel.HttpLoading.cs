@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 new Uri("https://example.test/workbook.xlsx"),
                 new ExcelHttpLoadOptions { HttpMessageHandler = handler });
 
-            Assert.Equal(OfficeIMO.Core.DocumentAccessMode.ReadWrite, document.AccessMode);
+            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadWrite, document.AccessMode);
             Assert.Equal("Remote", document.Sheets[0].Name);
             Assert.Equal(string.Empty, document.FilePath);
         }
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }

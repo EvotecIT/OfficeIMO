@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath,
-                    new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+                    new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Contains(reopened.Slides[1].TextBoxes, textBox => textBox.Text == "Edited title");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);

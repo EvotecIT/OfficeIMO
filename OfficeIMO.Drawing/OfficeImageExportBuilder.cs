@@ -1,6 +1,6 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
-using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 

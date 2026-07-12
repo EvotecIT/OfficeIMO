@@ -1,4 +1,5 @@
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

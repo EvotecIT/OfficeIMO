@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Rtf.Syntax;
 using OfficeIMO.Rtf.Writing;
 
@@ -378,12 +379,12 @@ public sealed partial class RtfDocument {
     /// <summary>Saves the document to an RTF file.</summary>
     public void Save(string path, RtfWriteOptions? options = null, Encoding? encoding = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(path, ToBytes(options, encoding));
+        OfficeFileCommit.WriteAllBytes(path, ToBytes(options, encoding));
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
     public void Save(Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null) {
-        OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, ToBytes(options, encoding));
+        OfficeStreamWriter.WriteAllBytes(stream, ToBytes(options, encoding));
     }
 
     private static Encoding CreateDefaultOutputEncoding() => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);

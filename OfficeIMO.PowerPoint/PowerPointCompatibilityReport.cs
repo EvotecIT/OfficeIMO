@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Status of one presentation compatibility lane.</summary>

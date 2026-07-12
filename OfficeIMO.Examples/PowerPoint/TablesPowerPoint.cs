@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -277,7 +278,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             presentation.Save();
 
-            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
 
         private static PowerPointTableStyleInfo? FindStyle(IReadOnlyList<PowerPointTableStyleInfo> styles, string name) {

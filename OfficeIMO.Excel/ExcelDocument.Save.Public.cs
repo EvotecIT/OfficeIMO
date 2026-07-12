@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -21,7 +22,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(target)) {
                 throw new InvalidOperationException("The workbook has no associated file path.");
             }
-            OfficeIMO.Core.OfficeFileLauncher.Open(target);
+            OfficeFileLauncher.Open(target);
         }
 
         /// <summary>
@@ -119,7 +120,7 @@ namespace OfficeIMO.Excel {
 
             if (TrySaveDirectDataSetPackageToFile(path, options, CancellationToken.None, out _)) {
                 if (options?.OpenAfterSave == true) {
-                    OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -134,7 +135,7 @@ namespace OfficeIMO.Excel {
             if (preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
                 if (options?.OpenAfterSave == true) {
-                    OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -147,7 +148,7 @@ namespace OfficeIMO.Excel {
 
             if (TrySaveWithSimplePackageToFile(path, options, out string? fastPackageSkipReason, alreadyPrepared: true)) {
                 if (options?.OpenAfterSave == true) {
-                    OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -156,7 +157,7 @@ namespace OfficeIMO.Excel {
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
                 if (options?.OpenAfterSave == true) {
-                    OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -172,7 +173,7 @@ namespace OfficeIMO.Excel {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
 
                 if (options?.OpenAfterSave == true) {
-                    OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                    OfficeFileLauncher.Open(path);
                 }
             } catch {
                 TryRestoreDocumentState(payload);
@@ -212,7 +213,7 @@ namespace OfficeIMO.Excel {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted saves use the standard package finalization path.");
 
                 if (saveOptions?.OpenAfterSave == true) {
-                    OfficeIMO.Core.OfficeFileLauncher.Open(path);
+                    OfficeFileLauncher.Open(path);
                 }
             } catch {
                 TryRestoreDocumentState(payload);

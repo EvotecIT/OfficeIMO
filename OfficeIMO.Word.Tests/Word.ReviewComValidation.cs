@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
 
             CreateReviewedDocumentViaWordCom(filePath);
 
-            using WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             WordReviewInfo review = document.InspectReview();
 
             Assert.True(review.HasReviewMetadata);

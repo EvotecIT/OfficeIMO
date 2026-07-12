@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
 
             if (packageResult.Succeeded) {
                 using WordDocument document = Load(filePath, new WordLoadOptions {
-                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
                 });
                 validationReport = document.ValidateSignatures();
             }

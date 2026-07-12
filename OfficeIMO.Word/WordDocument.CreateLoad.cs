@@ -1,8 +1,8 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Core;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;

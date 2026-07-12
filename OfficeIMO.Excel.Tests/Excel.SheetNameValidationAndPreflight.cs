@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(ws.Elements<LegacyDrawing>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(ws.Elements<LegacyDrawingHeaderFooter>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(wsPart.Worksheet.Elements<ConditionalFormatting>());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new int?[] { 1, 2 }, priorities);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -497,7 +497,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(package.WorkbookPart!.Workbook.DefinedNames);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -527,7 +527,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(package.WorkbookPart!.Workbook.DefinedNames);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -570,7 +570,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B3", tablePart.Table!.AutoFilter!.Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -615,7 +615,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B3", tablePart.Table!.AutoFilter!.Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -704,7 +704,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, filterColumns[0].ColumnId!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -745,7 +745,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(wsPart.TableDefinitionParts);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -784,7 +784,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<TableParts>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -835,7 +835,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(columns.Count, columns.Select(column => column.Name!.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -872,7 +872,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<ProtectedRanges>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -934,7 +934,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B2", keptRanges[0].SequenceOfReferences!.InnerText);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -976,7 +976,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(protections[0].AutoFilter?.Value ?? false);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1010,7 +1010,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(wsPart.HyperlinkRelationships);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1043,7 +1043,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(wsPart.HyperlinkRelationships, relationship => relationship.Id == "rId999");
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1083,7 +1083,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, wsPart.HyperlinkRelationships.Count());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1126,7 +1126,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(calcProps.FullCalculationOnLoad?.Value ?? false);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1157,7 +1157,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(workbookPart.GetPartsOfType<CalculationChainPart>());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1219,7 +1219,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, cell.StyleIndex!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1258,7 +1258,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2U, sharedStringTable.UniqueCount!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1296,7 +1296,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2U, sharedStringTable.UniqueCount!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1336,7 +1336,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("NotAnIndex", cell.InlineString!.InnerText);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1380,7 +1380,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, sheetView.WorkbookViewId!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1426,7 +1426,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1", selections[0].SequenceOfReferences!.InnerText);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1480,7 +1480,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1546,7 +1546,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1U, columnBreaks.ManualBreakCount!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1681,7 +1681,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(100U, pageSetup!.Scale!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1724,7 +1724,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B2:C4", dimensions[0].Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1763,11 +1763,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A3:B3", dimension!.Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
-            using (var reopenedForRead = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var reopenedForRead = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("A3:B3", reopenedForRead.Sheets.First().GetUsedRangeA1());
             }
 

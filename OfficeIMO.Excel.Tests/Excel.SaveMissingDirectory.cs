@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
 
-                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
                     Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
                     Assert.Equal(expectedCellValue, actualValue);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
 
-                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
                     Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
                     Assert.Equal(expectedCellValue, actualValue);

@@ -1,5 +1,5 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Model;

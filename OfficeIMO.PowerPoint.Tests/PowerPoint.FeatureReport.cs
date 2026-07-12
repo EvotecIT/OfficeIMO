@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Contains(report.EditableFeatures, feature => feature.Name == "Slides" && feature.Count == 1);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
 
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
 
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("Images"));
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
 
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding textBoxes = Assert.Single(report.FindFeatures("Text boxes"));
 
@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding tables = Assert.Single(report.FindFeatures("Tables"));
 
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
                     layoutPart.SlideLayout.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding tables = Assert.Single(report.FindFeatures("Tables"));
                     PowerPointFeatureFinding metadata = Assert.Single(report.FindFeatures("Table style metadata"));
@@ -366,7 +366,7 @@ namespace OfficeIMO.Tests {
                     layoutPart.SlideLayout.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding images = Assert.Single(report.FindFeatures("Images"));
 
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
                     layoutPart.SlideLayout.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding textBoxes = Assert.Single(report.FindFeatures("Text boxes"));
 
@@ -444,7 +444,7 @@ namespace OfficeIMO.Tests {
                     layoutPart.SlideLayout.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding media = Assert.Single(report.FindFeatures("Audio and video"));
 
@@ -499,7 +499,7 @@ namespace OfficeIMO.Tests {
                     notesPart.NotesSlide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding notes = Assert.Single(report.FindFeatures("Speaker notes"));
                     PowerPointFeatureFinding richNotes = Assert.Single(report.FindFeatures("Rich notes content"));
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
                     notesPart.NotesSlide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding richNotes = Assert.Single(report.FindFeatures("Rich notes content"));
 
@@ -598,7 +598,7 @@ namespace OfficeIMO.Tests {
                     notesPart.NotesSlide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding richNotes = Assert.Single(report.FindFeatures("Rich notes content"));
 
@@ -648,7 +648,7 @@ namespace OfficeIMO.Tests {
                     notesMasterPart.NotesMaster.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding richNotes = Assert.Single(report.FindFeatures("Rich notes content"));
 
@@ -685,7 +685,7 @@ namespace OfficeIMO.Tests {
                         new byte[] { 137, 80, 78, 71 });
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("Digital signatures"));
@@ -712,7 +712,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding media = Assert.Single(report.FindFeatures("Audio and video"));
 
@@ -740,7 +740,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding smartArt = Assert.Single(report.FindFeatures("SmartArt"));
 
@@ -764,7 +764,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding tables = Assert.Single(report.FindFeatures("Tables"));
 
@@ -829,7 +829,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.Single().GetCell(0, 0);
                     Assert.Equal("Fresh", cell.Text);
                 }
@@ -941,7 +941,7 @@ namespace OfficeIMO.Tests {
                     Assert.Null(paragraph.GetFirstChild<A.EndParagraphRunProperties>()?.GetFirstChild<A.HyperlinkOnClick>());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("External relationships"));
@@ -970,7 +970,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("External relationships"));
@@ -993,7 +993,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Charts" && feature.Count == 1
@@ -1019,7 +1019,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Audio and video" && feature.Count == 1);
@@ -1058,7 +1058,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding timing = Assert.Single(report.FindFeatures("Animations and timing"));
 
@@ -1093,7 +1093,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding timing = Assert.Single(report.FindFeatures("Animations and timing"));
 
@@ -1127,7 +1127,7 @@ namespace OfficeIMO.Tests {
                     layoutPart.SlideLayout.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding timing = Assert.Single(report.FindFeatures("Animations and timing"));
 
@@ -1163,7 +1163,7 @@ namespace OfficeIMO.Tests {
                         new byte[] { 137, 80, 78, 71 });
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("VBA macros"));
@@ -1202,7 +1202,7 @@ namespace OfficeIMO.Tests {
                         new byte[] { 137, 80, 78, 71 });
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("ActiveX controls"));
@@ -1252,7 +1252,7 @@ namespace OfficeIMO.Tests {
                     }
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     PowerPointFeatureFinding customXml = Assert.Single(report.FindFeatures("Custom XML parts"));
@@ -1300,7 +1300,7 @@ namespace OfficeIMO.Tests {
                     appPart.Properties.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding signatures = Assert.Single(report.FindFeatures("Digital signatures"));
 
@@ -1339,7 +1339,7 @@ namespace OfficeIMO.Tests {
                     document.PresentationPart!.SlideParts.Single().Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding tableMetadata = Assert.Single(report.FindFeatures("Table style metadata"));
 
@@ -1375,7 +1375,7 @@ namespace OfficeIMO.Tests {
                         new byte[] { 1, 2, 3, 4 });
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding activeX = Assert.Single(report.FindFeatures("ActiveX controls"));
 
@@ -1410,7 +1410,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding embedded = Assert.Single(report.FindFeatures("Embedded packages"));
 
@@ -1442,7 +1442,7 @@ namespace OfficeIMO.Tests {
                         new Uri("https://example.com/logo.png"));
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding external = Assert.Single(report.FindFeatures("External package relationships"));
 
@@ -1479,7 +1479,7 @@ namespace OfficeIMO.Tests {
                         new byte[] { 137, 80, 78, 71 });
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Empty(report.FindFeatures("Comments"));
@@ -1509,7 +1509,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
 
@@ -1546,7 +1546,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
 
@@ -1574,7 +1574,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
 
                     Assert.Contains(report.EditableFeatures, feature => feature.Name == "Slide transitions" && feature.Count == 1);
@@ -1606,7 +1606,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
 
@@ -1644,7 +1644,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
 
@@ -1682,7 +1682,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
 
@@ -1724,7 +1724,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointFeatureReport report = presentation.InspectFeatures();
                     PowerPointFeatureFinding unsupported = Assert.Single(report.FindFeatures("Unsupported transition markup"));
 

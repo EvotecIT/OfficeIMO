@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("10", rule.Elements<Formula>().First().Text);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelConditionalFormattingInfo info = Assert.Single(document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
                 Assert.Equal("CellIs", info.Type);
                 Assert.Equal(nameof(ConditionalFormattingOperatorValues.GreaterThan), info.Operator);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.ContainsText && rule.Text?.Value == "2" && rule.FormatId != null);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets[0];
                 var rules = sheet.GetConditionalFormattingRules("A1:A3");
                 ExcelConditionalFormattingInfo colorScale = Assert.Single(rules, info => info.Type == "ColorScale");
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.TimePeriod && rule.TimePeriod?.Value == TimePeriodValues.Today);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var rules = document.Sheets[0].GetConditionalFormattingRules();
                 Assert.Contains(rules, info => info.Type == "UniqueValues");
                 Assert.Contains(rules, info => info.Type == "ContainsText" && info.Formulas.Count == 1);
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FF00FF00", colors[1].Rgb!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FF0000FF", color.Rgb!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, iconSet.Elements<ConditionalFormatValueObject>().Count());
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelConditionalFormattingInfo info = Assert.Single(document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
                 Assert.Equal("IconSet", info.Type);
                 Assert.Equal("ThreeTrafficLights1", info.IconSet);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.DataBar));
             }
 
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

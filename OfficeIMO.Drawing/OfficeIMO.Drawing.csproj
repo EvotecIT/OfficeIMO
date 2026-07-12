@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Shared zero-dependency drawing primitives for OfficeIMO projects.</Description>
+    <Description>Shared zero-dependency document, drawing, color, image, and font primitives for OfficeIMO projects.</Description>
     <AssemblyName>OfficeIMO.Drawing</AssemblyName>
     <AssemblyTitle>OfficeIMO.Drawing</AssemblyTitle>
     <VersionPrefix>1.0.29</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Drawing</PackageId>
-    <PackageTags>drawing;color;image;font;metadata;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
+    <PackageTags>documents;drawing;color;image;font;metadata;lifecycle;officeimo;net472;netstandard2.0;net8.0;net10.0</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPublishable>True</IsPublishable>
@@ -26,10 +26,6 @@
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png">

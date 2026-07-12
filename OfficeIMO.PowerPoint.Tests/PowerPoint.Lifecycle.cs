@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 

@@ -17,7 +17,7 @@ dotnet add package OfficeIMO.PowerPoint
 
 ```csharp
 using OfficeIMO.PowerPoint;
-using OfficeIMO.Core;
+using OfficeIMO.Drawing;
 
 using var presentation = PowerPointPresentation.Create("deck.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);

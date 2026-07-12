@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.OpenDocument;
 
 public abstract partial class OdfDocument {
@@ -38,7 +39,7 @@ public abstract partial class OdfDocument {
         ThrowIfDisposed();
         XDocument flat = ToFlatXml();
         byte[] bytes = OdfXmlCodec.Save(flat);
-        OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(destination, bytes);
+        OfficeStreamWriter.WriteAllBytes(destination, bytes);
         return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
@@ -54,7 +55,7 @@ public abstract partial class OdfDocument {
         string fullPath = Path.GetFullPath(path);
         XDocument flat = ToFlatXml();
         byte[] bytes = OdfXmlCodec.Save(flat);
-        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 

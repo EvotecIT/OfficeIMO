@@ -1,8 +1,8 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Core.Internal;
+using OfficeIMO.Shared;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
-using OfficeIMO.Shared;
 using System.Threading;
 using System.Threading.Tasks;
 
