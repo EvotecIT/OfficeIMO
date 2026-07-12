@@ -105,13 +105,14 @@ Console.WriteLine("OfficeIMO");
         var options = new MarkdownPdfSaveOptions();
         string markdown = "> Status " + symbol + " marker";
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Contains("Status", text, StringComparison.Ordinal);
         Assert.Contains("marker", text, StringComparison.Ordinal);
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "unsupported-text-glyph");
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "missing-embedded-font-fallback-glyph");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-text-glyph");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "missing-embedded-font-fallback-glyph");
     }
 
     [Fact]
@@ -204,15 +205,13 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png)
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
-        MarkdownPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "UnsupportedImage");
-        Assert.Equal("UnsupportedImage", warning.Code);
-        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "UnsupportedImage");
-        Assert.Equal("OfficeIMO.Markdown.Pdf", sharedWarning.Converter);
-        Assert.Equal(warning.Code, sharedWarning.Code);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "UnsupportedImage");
+        Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Contains("OfficeIMO logo", text);
     }
 
@@ -228,11 +227,8 @@ Console.WriteLine("OfficeIMO");
         PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
         PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed Markdown PDF");
 
-        options.ConversionReport.Clear();
-
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "UnsupportedImage");
         Assert.True(result.HasWarnings);
-        Assert.False(options.ConversionReport.HasWarnings);
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("Processed Markdown PDF", processed.Inspect().Metadata.Title);
         Assert.Contains("OfficeIMO logo", result.Value.Read.Text(), StringComparison.Ordinal);
@@ -251,11 +247,12 @@ Console.WriteLine("OfficeIMO");
             };
             string markdown = "![Local pixel](pixel.png){width=24 height=24}";
 
-            byte[] pdf = markdown.ToPdfFromMarkdown(options);
+            PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+            byte[] pdf = result.ToBytes();
             string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
             IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
-            MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
             Assert.Equal("LocalImageDisabled", warning.Code);
             Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
             Assert.Empty(images);
@@ -281,7 +278,8 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png){width=24 height=24}
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
@@ -305,10 +303,11 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png)
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
-        MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "ImageTooLarge");
         Assert.Equal("ImageTooLarge", warning.Code);
         Assert.Contains("OfficeIMO logo", text);
         Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
@@ -334,7 +333,8 @@ _Figure 1. Embedded from a relative Markdown path._
             var options = new MarkdownPdfSaveOptions {
                 IncludeLocalImages = true
             };
-            markdownPath.SaveAsPdfFromMarkdownFile(pdfPath, options);
+            PdfCore.PdfDocumentConversionResult result = markdownPath.ToPdfResultFromMarkdownFile(options);
+            result.Save(pdfPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
             string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
@@ -375,13 +375,14 @@ _Figure 1. Embedded from a relative Markdown path._
             var options = new MarkdownPdfSaveOptions {
                 IncludeLocalImages = true
             };
-            markdownPath.SaveAsPdfFromMarkdownFile(pdfPath, options);
+            PdfCore.PdfDocumentConversionResult result = markdownPath.ToPdfResultFromMarkdownFile(options);
+            result.Save(pdfPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
             string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
             IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
-            MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
             Assert.Equal("LocalImageOutsideBaseDirectory", warning.Code);
             Assert.Null(options.BaseDirectory);
             Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
@@ -745,11 +746,12 @@ author: OfficeIMO
             .Add(new FootnoteDefinitionBlock("audit", "Footnote audit trail."));
 
         var options = new MarkdownPdfSaveOptions();
-        byte[] pdf = document.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
-        Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == "diagram");
+        Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == "diagram");
         Assert.Contains("PDF Playbook", text);
         Assert.Contains("Deployment note", text);
         Assert.Contains("Keep backup enabled", text);
@@ -819,7 +821,8 @@ Validation notes.
             VisualTheme = MarkdownPdfVisualTheme.TechnicalDocument()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] pdf = result.ToBytes();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
 
         Assert.Empty(options.Warnings);
@@ -1263,10 +1266,11 @@ Content.
 """;
 
         var options = new MarkdownPdfSaveOptions();
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
-        MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
         Assert.Equal("UnsupportedVisualTheme", warning.Code);
         Assert.Equal("spaceship", warning.Source);
         Assert.Contains("Unknown Theme", text);

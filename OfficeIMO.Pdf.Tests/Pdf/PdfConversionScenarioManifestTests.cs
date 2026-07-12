@@ -2244,8 +2244,9 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SlidePart.Slide.Save();
 
         var options = new PowerPointPdfSaveOptions();
-        byte[] pdf = presentation.ToPdf(options);
-        Assert.Empty(options.Warnings);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
+        Assert.False(result.HasWarnings);
         Assert.Equal("1D4ED8", presentation.GetThemeColor(PowerPointThemeColor.Accent1));
         return pdf;
     }

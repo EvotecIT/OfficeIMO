@@ -222,10 +222,11 @@ public class MarkdownSaveAsPdfVisualTests {
         var options = CreateVisualOptions();
         options.RemoteImageResolver = _ => CreateGifBytes();
 
-        byte[] bytes = document.ToPdfDocument(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
-        Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedImage" && warning.Source == imageUrl);
+        Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedImage" && warning.Source == imageUrl);
         Assert.Contains("[Image unavailable: Remote badge]", text, StringComparison.Ordinal);
     }
 
@@ -262,7 +263,8 @@ _Figure 2. Revenue chart_
 """;
 
         var options = CreateVisualOptions();
-        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
@@ -2404,10 +2406,11 @@ _Figure 2. Revenue chart_
 """;
 
         var options = CreateVisualOptions();
-        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
-        Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedChartFence");
+        Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedChartFence");
         Assert.Contains("{ invalid json", text, StringComparison.Ordinal);
     }
 
@@ -2422,10 +2425,11 @@ _Figure 3. Flow fallback_
 """;
 
         var options = CreateVisualOptions();
-        byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
-        Assert.Contains(options.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == MarkdownSemanticKinds.Mermaid);
+        Assert.Contains(result.Warnings, warning => warning.Code == "UnsupportedSemanticFence" && warning.Source == MarkdownSemanticKinds.Mermaid);
         Assert.Contains("mermaid", text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("graph TD", text, StringComparison.Ordinal);
         Assert.Contains("Figure 3. Flow fallback", text, StringComparison.Ordinal);
