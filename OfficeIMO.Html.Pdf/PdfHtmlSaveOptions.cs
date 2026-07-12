@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -77,12 +78,22 @@ public sealed class PdfHtmlSaveOptions {
     /// </summary>
     public string DocumentTitleFallback { get; set; } = "OfficeIMO PDF Export";
 
-    /// <summary>
-    /// Shared conversion report populated by the HTML/PDF bridge.
-    /// </summary>
-    public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+    internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
-    internal void ResetExportState() {
-        ConversionReport.Clear();
-    }
+    internal PdfHtmlSaveOptions CloneForConversion() => new() {
+        Profile = Profile,
+        LayoutOptions = LayoutOptions,
+        ReadOptions = ReadOptions,
+        PageRanges = PageRanges?.ToArray(),
+        IncludeMetadata = IncludeMetadata,
+        IncludeOutlines = IncludeOutlines,
+        IncludePageContainers = IncludePageContainers,
+        IncludeImagePlaceholders = IncludeImagePlaceholders,
+        ImageExportMode = ImageExportMode,
+        MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
+        IncludeLinkAnnotations = IncludeLinkAnnotations,
+        IncludeFormWidgets = IncludeFormWidgets,
+        EmitDocumentShell = EmitDocumentShell,
+        DocumentTitleFallback = DocumentTitleFallback
+    };
 }

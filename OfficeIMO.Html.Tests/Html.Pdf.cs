@@ -124,7 +124,6 @@ public sealed class HtmlPdfTests {
         Assert.Contains("<td class=\"pdf-numeric\" style=\"text-align:right\">2</td>", html, StringComparison.Ordinal);
         Assert.Contains("<td class=\"pdf-numeric\" style=\"text-align:right\">14</td>", html, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(html, "A-100"));
-        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]
@@ -159,7 +158,6 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
 
-        Assert.NotSame(options.ConversionReport, result.Report);
         Assert.False(result.Report.HasWarnings);
         Assert.Contains("Logical Heading", result.Value, StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.PositionedReview, result.Summary.Profile);
@@ -249,7 +247,6 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, item => item.Code == "AcroFormXfaDetected");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
         Assert.Contains("does not render or fill XFA", warning.Message, StringComparison.Ordinal);
-        Assert.Single(options.ConversionReport.Warnings, item => item.Code == "AcroFormXfaDetected");
     }
 
     [Fact]
@@ -267,11 +264,8 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult textResult = PdfHtmlConverter.ToHtmlResult(textPdf, options);
 
-        Assert.NotSame(options.ConversionReport, imageResult.Report);
-        Assert.NotSame(options.ConversionReport, textResult.Report);
         Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.False(textResult.Report.HasWarnings);
-        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]
@@ -376,7 +370,6 @@ public sealed class HtmlPdfTests {
         Assert.Contains("style=\"position:absolute;left:40pt;top:50pt;width:60pt;height:30pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("data-matrix=\"60 0 0 30 40 140\"", html, StringComparison.Ordinal);
         Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]
@@ -392,7 +385,6 @@ public sealed class HtmlPdfTests {
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]
@@ -437,7 +429,6 @@ public sealed class HtmlPdfTests {
         Assert.Contains("<figure class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
         Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]

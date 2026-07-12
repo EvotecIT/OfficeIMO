@@ -144,7 +144,6 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-outline\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"#pdf-page-1\"", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
         Assert.Equal(1, result.Summary.RenderedPageCount);
         Assert.Equal(3, result.Summary.OutlineCount);
         Assert.Equal(3, result.Summary.RenderedOutlineCount);
@@ -765,7 +764,6 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1D, scoreProfile.Confidence, 3);
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
         Assert.Contains("Revenue Readback Diagnostics", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
         Assert.NotNull(readerChunk.Tables);
         ReaderTable readerTable = Assert.Single(readerChunk.Tables!);
         Assert.NotNull(readerTable.Diagnostics);
