@@ -573,13 +573,13 @@ namespace OfficeIMO.Tests {
             ExcelCellStyleSnapshot visualStyle = visualSnapshot.Cells[0].Style;
             ExcelCellSnapshot inspectedCell = inspectionSnapshot.Worksheets[0].Cells[0];
             Assert.Equal("FF95B3D7", visualStyle.FillColorArgb);
-            Assert.Equal("FF602827", visualStyle.FontColorArgb);
+            Assert.Equal("FF632523", visualStyle.FontColorArgb);
             Assert.Equal("FF9BBB59", visualStyle.Border!.Top!.ColorArgb);
             Assert.Equal(visualStyle.FillColorArgb, directStyle.FillColorArgb);
             Assert.Equal(visualStyle.FontColorArgb, directStyle.FontColorArgb);
             Assert.Equal(visualStyle.FillColorArgb, inspectedCell.Style!.FillColorArgb);
             Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
-            Assert.Contains("#602827", svg, StringComparison.Ordinal);
+            Assert.Contains("#632523", svg, StringComparison.Ordinal);
             Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             Assert.NotNull(rendered);

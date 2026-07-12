@@ -85,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             solidFill.Append((OpenXmlElement)colorElement.CloneNode(true));
-            OfficeColor? resolved = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(solidFill, colorScheme);
+            OfficeColor? resolved = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme);
             if (!resolved.HasValue) {
                 return false;
             }

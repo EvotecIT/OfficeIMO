@@ -15,7 +15,7 @@
 
   <ItemGroup Condition="Exists('$(OfficeIMOSharedDir)') And '$(MSBuildProjectName)' != 'OfficeIMO.Core'">
     <Compile Include="$(OfficeIMOSharedDir)\**\*.cs"
-             Exclude="$(OfficeIMOTrimmingPolyfillsFile);$(OfficeIMOSharedDir)\OfficeEncryption*.cs;$(OfficeIMOSharedDir)\OfficePackageSignature*.cs;$(OfficeIMOSharedDir)\Compound\**\*.cs;$(OfficeIMOSharedDir)\Ole\**\*.cs;$(OfficeIMOSharedDir)\Packaging\**\*.cs"
+             Exclude="$(OfficeIMOTrimmingPolyfillsFile);$(OfficeIMOSharedDir)\OfficeEncryption*.cs;$(OfficeIMOSharedDir)\OfficePackageSignature*.cs;$(OfficeIMOSharedDir)\Compound\**\*.cs;$(OfficeIMOSharedDir)\Ole\**\*.cs;$(OfficeIMOSharedDir)\OpenXml\**\*.cs;$(OfficeIMOSharedDir)\Packaging\**\*.cs"
              Link="Shared\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 

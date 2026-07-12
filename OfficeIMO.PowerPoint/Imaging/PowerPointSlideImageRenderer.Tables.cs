@@ -273,7 +273,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTableCellFillColor(PowerPointTable table, PowerPointTableCell cell, int row, int column, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) =>
-            PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(cell.Cell.TableCellProperties?.GetFirstChild<A.SolidFill>(), colorScheme)
+            OfficeOpenXmlThemeColorResolver.ResolveColor(cell.Cell.TableCellProperties?.GetFirstChild<A.SolidFill>(), colorScheme)
                 ?? ResolveTableStyleFillColor(table, row, column, tableStyle, colorScheme)
                 ?? OfficeColor.White;
 
@@ -300,7 +300,7 @@ namespace OfficeIMO.PowerPoint {
             double width = line?.Width?.Value > 0
                 ? line.Width.Value / 12700D
                 : 0.75D;
-            OfficeColor color = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(line?.GetFirstChild<A.SolidFill>(), colorScheme)
+            OfficeColor color = OfficeOpenXmlThemeColorResolver.ResolveColor(line?.GetFirstChild<A.SolidFill>(), colorScheme)
                 ?? OfficeColor.FromRgb(191, 191, 191);
             A.PresetDash? dash = line?.GetFirstChild<A.PresetDash>();
             return new OfficeBorderSide(color, width, MapDash(dash?.Val?.Value));
@@ -374,7 +374,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTableCellTextRunColor(PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme) {
-            OfficeColor? runColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             if (runColor.HasValue) {
                 return runColor.Value;
             }
@@ -387,14 +387,14 @@ namespace OfficeIMO.PowerPoint {
                 .Elements<A.Paragraph>()
                 .SelectMany(paragraph => paragraph.Elements<A.Run>())
                 .FirstOrDefault();
-            OfficeColor? cellColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? cellColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             return cellColor.HasValue
                 ? cellColor.Value
                 : OfficeColor.Black;
         }
 
         private static OfficeColor? ResolveTableCellTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-            return PowerPointThemeColorResolver.ResolveHighlightOfficeColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
         }
     }
 }

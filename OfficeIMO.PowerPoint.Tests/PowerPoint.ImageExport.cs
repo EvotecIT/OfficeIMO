@@ -3069,11 +3069,11 @@ namespace OfficeIMO.Tests {
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Theme mark", run.Text);
-            Assert.Equal(OfficeColor.FromRgb(51, 102, 128), run.BackgroundColor);
+            Assert.Equal(OfficeColor.FromRgb(0, 119, 178), run.BackgroundColor);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Theme", svgText, StringComparison.Ordinal);
-            Assert.Contains("#336680", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#0077B2", svgText, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             if (!string.IsNullOrWhiteSpace(color.Rgb?.Value)) {
                 string? argb = NormalizeArgb(color.Rgb!.Value!);
                 if (argb != null && color.Tint?.Value is double tint) {
-                    argb = ApplyTint(argb, tint);
+                    argb = Utilities.ExcelThemeColorResolver.ApplySpreadsheetTint(argb, tint);
                 }
 
                 return TryMapArgbColor(argb, out colorIndex, out reason);
@@ -306,24 +306,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return hex.ToUpperInvariant();
-        }
-
-        private static string ApplyTint(string argb, double tint) {
-            byte alpha = Convert.ToByte(argb.Substring(0, 2), 16);
-            byte red = Convert.ToByte(argb.Substring(2, 2), 16);
-            byte green = Convert.ToByte(argb.Substring(4, 2), 16);
-            byte blue = Convert.ToByte(argb.Substring(6, 2), 16);
-            return alpha.ToString("X2", CultureInfo.InvariantCulture)
-                + ApplyTintChannel(red, tint).ToString("X2", CultureInfo.InvariantCulture)
-                + ApplyTintChannel(green, tint).ToString("X2", CultureInfo.InvariantCulture)
-                + ApplyTintChannel(blue, tint).ToString("X2", CultureInfo.InvariantCulture);
-        }
-
-        private static byte ApplyTintChannel(byte channel, double tint) {
-            double value = tint < 0D
-                ? channel * (1D + tint)
-                : channel * (1D - tint) + (255D * tint);
-            return (byte)Math.Max(0D, Math.Min(255D, Math.Round(value)));
         }
 
         private static int ToTwips(double points) {

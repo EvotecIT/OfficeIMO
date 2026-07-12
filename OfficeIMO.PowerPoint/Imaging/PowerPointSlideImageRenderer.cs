@@ -380,7 +380,7 @@ namespace OfficeIMO.PowerPoint {
             color = default;
             DocumentFormat.OpenXml.Presentation.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
             if (properties != null) {
-                OfficeColor? resolvedColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
+                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
                 if (resolvedColor.HasValue) {
                     color = resolvedColor.Value;
                     return true;
@@ -394,7 +394,7 @@ namespace OfficeIMO.PowerPoint {
             color = default;
             DocumentFormat.OpenXml.Presentation.ShapeProperties? properties = GetOpenXmlShapeProperties(source);
             if (properties != null) {
-                OfficeColor? resolvedColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
+                OfficeColor? resolvedColor = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
                 if (resolvedColor.HasValue) {
                     color = resolvedColor.Value;
                     return true;
@@ -794,7 +794,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            OfficeColor? runColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             if (runColor.HasValue) {
                 return runColor.Value;
             }
@@ -806,14 +806,14 @@ namespace OfficeIMO.PowerPoint {
             A.Run? run = textBox.Paragraphs
                 .SelectMany(paragraph => paragraph.Paragraph.Elements<A.Run>())
                 .FirstOrDefault();
-            OfficeColor? textBoxColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? textBoxColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             return textBoxColor.HasValue
                 ? textBoxColor.Value
                 : OfficeColor.Black;
         }
 
         private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-            return PowerPointThemeColorResolver.ResolveHighlightOfficeColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
         }
 
         private static OfficeTextAlignment MapTextAlignment(A.TextAlignmentTypeValues? alignment) {
