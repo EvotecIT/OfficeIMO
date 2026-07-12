@@ -11,6 +11,11 @@ public sealed class PdfOptimizationActionResult {
         PdfOptimizationReport reportAfter,
         IReadOnlyList<PdfOptimizationAction> actions,
         IReadOnlyList<PdfOptimizationSkippedAction> skippedActions,
+        PdfRewritePreservationReport preservationReport,
+        PdfOptimizationProfile requestedProfile,
+        PdfOptimizationXrefFormat candidateXrefFormat,
+        bool candidateUsesObjectStreams,
+        bool candidateLinearized,
         bool returnedOriginal) {
         Bytes = bytes;
         OriginalLengthBytes = originalLengthBytes;
@@ -20,6 +25,11 @@ public sealed class PdfOptimizationActionResult {
         ReportAfter = reportAfter;
         Actions = actions;
         SkippedActions = skippedActions;
+        PreservationReport = preservationReport;
+        RequestedProfile = requestedProfile;
+        CandidateXrefFormat = candidateXrefFormat;
+        CandidateUsesObjectStreams = candidateUsesObjectStreams;
+        CandidateLinearized = candidateLinearized;
         ReturnedOriginal = returnedOriginal;
     }
 
@@ -52,6 +62,21 @@ public sealed class PdfOptimizationActionResult {
 
     /// <summary>Optimization opportunities skipped while building the candidate.</summary>
     public IReadOnlyList<PdfOptimizationSkippedAction> SkippedActions { get; }
+
+    /// <summary>Post-save proof that non-size document contracts were preserved.</summary>
+    public PdfRewritePreservationReport PreservationReport { get; }
+
+    /// <summary>Named profile requested for the candidate.</summary>
+    public PdfOptimizationProfile RequestedProfile { get; }
+
+    /// <summary>Cross-reference representation emitted by the candidate.</summary>
+    public PdfOptimizationXrefFormat CandidateXrefFormat { get; }
+
+    /// <summary>True when the candidate packs eligible objects into object streams.</summary>
+    public bool CandidateUsesObjectStreams { get; }
+
+    /// <summary>True when the candidate contains patched linearization parameters.</summary>
+    public bool CandidateLinearized { get; }
 
     /// <summary>True when the original bytes were returned because the optimized candidate was not smaller.</summary>
     public bool ReturnedOriginal { get; }

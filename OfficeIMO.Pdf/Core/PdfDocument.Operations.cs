@@ -65,6 +65,12 @@ public sealed partial class PdfDocument {
         return PdfDiagnostics.AnalyzeOptimization(Snapshot(), options ?? ReadOptions);
     }
 
+    /// <summary>Applies dependency-free lossless optimization and returns the candidate with action and preservation reports.</summary>
+    public PdfOptimizationActionResult Optimize(PdfOptimizationOptions? options = null) => PdfOptimizer.Optimize(Snapshot(), options);
+
+    /// <summary>Applies a named deterministic lossless optimization profile.</summary>
+    public PdfOptimizationActionResult Optimize(PdfOptimizationProfile profile) => PdfOptimizer.Optimize(Snapshot(), profile);
+
     /// <summary>
     /// Plans rectangle-based redaction impact without modifying the PDF.
     /// </summary>

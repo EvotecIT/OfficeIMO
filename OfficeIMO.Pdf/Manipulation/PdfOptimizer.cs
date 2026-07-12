@@ -3,7 +3,7 @@ using System.IO.Compression;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Applies dependency-free, lossless PDF optimization actions.</summary>
-public static class PdfOptimizer {
+public static partial class PdfOptimizer {
     /// <summary>Optimizes a PDF byte array with lossless actions.</summary>
     public static PdfOptimizationActionResult Optimize(byte[] pdf, PdfOptimizationOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -11,14 +11,14 @@ public static class PdfOptimizer {
         if (effectiveOptions.MinimumStreamCompressionBytes < 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Minimum stream compression size cannot be negative.");
         }
+        if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum decoded image bytes must be positive.");
+        if (effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable && effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.XrefStream) throw new ArgumentOutOfRangeException(nameof(options), "Unsupported optimization xref format.");
+        if (effectiveOptions.UseObjectStreams) effectiveOptions.XrefFormat = PdfOptimizationXrefFormat.XrefStream;
+        if (effectiveOptions.Linearize && (effectiveOptions.UseObjectStreams || effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable)) throw new ArgumentException("Linearized output requires classic indirect objects and xref tables.", nameof(options));
 
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
         if (probe.Security.HasEncryption) {
             throw new NotSupportedException("Encrypted PDF files are not supported for lossless optimization by OfficeIMO.Pdf yet.");
-        }
-
-        if (probe.Security.HasXrefStreams) {
-            throw new NotSupportedException("XRef stream PDFs are not supported for lossless optimization by OfficeIMO.Pdf yet.");
         }
 
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Optimize);
@@ -42,13 +42,26 @@ public static class PdfOptimizer {
             DeduplicateIdenticalStreams(optimizedObjects, actions);
         }
 
+        if (effectiveOptions.DeduplicateImages) DeduplicateImages(optimizedObjects, effectiveOptions, actions, skippedActions);
+        if (effectiveOptions.DeduplicateFonts) DeduplicateTypedDictionaries(optimizedObjects, "Font", "DeduplicateFont", actions);
+        if (effectiveOptions.DeduplicateResources) DeduplicateResourceDictionaries(optimizedObjects, actions);
+
         if (effectiveOptions.RemoveUnreferencedObjects) {
             RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
         }
 
-        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
+        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf, effectiveOptions);
+        if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
+        if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
+        if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, 0, 0, "Emitted deterministic linearization parameters with the first page object placed first."));
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
+        var preservationOptions = new PdfRewritePreservationOptions {
+            PreserveRevisionStructure = false,
+            PreserveDocumentVersionState = !effectiveOptions.UseObjectStreams && effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.ClassicTable
+        };
+        PdfRewritePreservationReport candidatePreservation = PdfRewritePreservation.AssertPreserved(pdf, candidate, preservationOptions);
         if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
+            PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, preservationOptions);
             return new PdfOptimizationActionResult(
                 (byte[])pdf.Clone(),
                 pdf.LongLength,
@@ -58,6 +71,11 @@ public static class PdfOptimizer {
                 reportAfter,
                 actions.AsReadOnly(),
                 skippedActions.AsReadOnly(),
+                originalPreservation,
+                effectiveOptions.Profile,
+                effectiveOptions.XrefFormat,
+                effectiveOptions.UseObjectStreams,
+                effectiveOptions.Linearize,
                 returnedOriginal: true);
         }
 
@@ -70,8 +88,16 @@ public static class PdfOptimizer {
             reportAfter,
             actions.AsReadOnly(),
             skippedActions.AsReadOnly(),
+            candidatePreservation,
+            effectiveOptions.Profile,
+            effectiveOptions.XrefFormat,
+            effectiveOptions.UseObjectStreams,
+            effectiveOptions.Linearize,
             returnedOriginal: false);
     }
+
+    /// <summary>Optimizes a PDF byte array with a named deterministic profile.</summary>
+    public static PdfOptimizationActionResult Optimize(byte[] pdf, PdfOptimizationProfile profile) => Optimize(pdf, PdfOptimizationOptions.Create(profile));
 
     /// <summary>Optimizes a PDF file with lossless actions.</summary>
     public static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options = null) {
@@ -302,7 +328,7 @@ public static class PdfOptimizer {
         }
     }
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, PdfOptimizationOptions options) {
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -310,16 +336,19 @@ public static class PdfOptimizer {
         }
 
         var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
-        var rewritten = new List<byte[]>(sourceIds.Length + 1);
+        var bodies = new List<byte[]>(sourceIds.Length + 1);
+        var objectStreamEligibility = new List<bool>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
-            rewritten.Add(PdfPageExtractor.WrapObject(numberMap[sourceId], PdfPageExtractor.SerializeObject(objects[sourceId].Value, context)));
+            bodies.Add(PdfPageExtractor.SerializeObject(objects[sourceId].Value, context));
+            objectStreamEligibility.Add(sourceId != catalogObjectNumber && objects[sourceId].Value is not PdfStream);
         }
 
-        int infoId = rewritten.Count + 1;
-        rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
+        int infoId = bodies.Count + 1;
+        bodies.Add(PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata)));
+        objectStreamEligibility.Add(false);
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
+        return PdfOptimizationFileAssembler.Assemble(bodies, objectStreamEligibility, numberMap[catalogObjectNumber], infoId, fileVersion, options);
     }
 
     private static void RemoveUnreferencedObjects(

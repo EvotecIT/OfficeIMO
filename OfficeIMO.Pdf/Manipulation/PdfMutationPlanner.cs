@@ -91,13 +91,13 @@ public static class PdfMutationPlanner {
         bool securityRewrite = operation == PdfMutationOperation.ChangeEncryption && fullRewriteCapability;
         bool requiresAppendOnly = RequiresAppendOnlyForOperation(security, operation);
         bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
-        bool normalizedMergeRewrite = operation == PdfMutationOperation.MergeDocuments && CanNormalizeMergeSource(security);
+        bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments || operation == PdfMutationOperation.Optimize) && CanNormalizeObjectGraphSource(security);
         bool fullRewriteAvailable =
             fullRewriteImplemented &&
             fullRewriteCapability &&
             (securityRewrite ||
                 (!requiresAppendOnly &&
-                (!security.BlocksOfficeIMOFullRewriteMutation || unsignedSignatureFieldRewrite || normalizedMergeRewrite || CanExtractPagesViaNormalization(preflight, operation))));
+                (!security.BlocksOfficeIMOFullRewriteMutation || unsignedSignatureFieldRewrite || normalizedObjectGraphRewrite || CanExtractPagesViaNormalization(preflight, operation))));
         bool appendOnlyAvailable = appendOnlyImplemented && CanAppend(appendOnly, operation);
 
         PdfMutationExecutionMode mode;
@@ -175,6 +175,8 @@ public static class PdfMutationPlanner {
                 return preflight.CanRewrite || CanExtractPagesViaNormalization(preflight, operation);
             case PdfMutationOperation.MergeDocuments:
                 return CanMergeDocuments(preflight);
+            case PdfMutationOperation.Optimize:
+                return CanOptimize(preflight);
             default:
                 return preflight.CanRewrite;
         }
@@ -634,6 +636,13 @@ public static class PdfMutationPlanner {
         return true;
     }
 
+    private static bool CanOptimize(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        PdfDocumentSecurityInfo security = preflight.Probe.Security;
+        if (security.HasEncryption || security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
+        return !preflight.RewriteBlockers.Any(static blocker => blocker.Kind == PdfRewriteBlockerKind.InvalidObjectReferences);
+    }
+
     private static bool HasOnlyUnsignedSignatureFields(PdfDocumentSecurityInfo security) =>
         security.SignatureFieldCount > 0 &&
         security.SignatureValueCount == 0 &&
@@ -648,7 +657,7 @@ public static class PdfMutationPlanner {
         !security.HasXrefStreams &&
         !security.HasObjectStreams;
 
-    private static bool CanNormalizeMergeSource(PdfDocumentSecurityInfo security) =>
+    private static bool CanNormalizeObjectGraphSource(PdfDocumentSecurityInfo security) =>
         !security.HasEncryption &&
         !security.HasSignatures &&
         !security.HasDocMDPPermissions &&
