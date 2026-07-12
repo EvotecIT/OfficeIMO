@@ -11,7 +11,8 @@ public sealed class PdfNamedDestination {
         PdfOpenActionDestinationMode? destinationMode = null,
         double? destinationLeft = null,
         double? destinationBottom = null,
-        double? destinationRight = null) {
+        double? destinationRight = null,
+        double? destinationZoom = null) {
         Name = name;
         PageNumber = pageNumber;
         DestinationTop = destinationTop;
@@ -19,6 +20,7 @@ public sealed class PdfNamedDestination {
         DestinationLeft = destinationLeft;
         DestinationBottom = destinationBottom;
         DestinationRight = destinationRight;
+        DestinationZoom = destinationZoom;
     }
 
     /// <summary>Destination name used by links, outlines, or viewer navigation.</summary>
@@ -41,4 +43,7 @@ public sealed class PdfNamedDestination {
 
     /// <summary>Viewer destination mode when the destination uses a supported destination array.</summary>
     public PdfOpenActionDestinationMode? DestinationMode { get; }
+
+    /// <summary>Zoom factor of an XYZ destination when present.</summary>
+    public double? DestinationZoom { get; }
 }

@@ -71,6 +71,21 @@ public class PdfRedactionSearchCleanupTests {
         Assert.Contains("120 120 30 30 re f", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_AttachmentCleanupPrunesPageAssociatedFilePayloads() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
+
+        byte[] redacted = PdfRedactionApplier.Apply(
+            source,
+            new[] { new PdfRedactionArea(1, 0, 0, 1, 1) },
+            new PdfRedactionApplyOptions { CleanupScope = PdfRedactionCleanupScope.Attachments });
+
+        Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(redacted));
+        string raw = Encoding.ASCII.GetString(redacted);
+        Assert.DoesNotContain("/AF", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain(PdfAssociatedFileTestSupport.Payload, raw, StringComparison.Ordinal);
+    }
+
     private sealed class RawMarkerValidator : IPdfRedactionExternalValidator {
         private readonly string _marker;
         internal RawMarkerValidator(string marker) { _marker = marker; }

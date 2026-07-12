@@ -36,7 +36,7 @@ public static class PdfAttachmentEditor {
         if (!security.RootObjectNumber.HasValue || !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) || root.Value is not PdfDictionary catalog) throw new InvalidOperationException("PDF catalog is not readable.");
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         names?.Items.Remove("EmbeddedFiles");
-        catalog.Items.Remove("AF");
+        PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
         if (attachments.Count == 0) return;
 
         if (names == null) { names = new PdfDictionary(); catalog.Items["Names"] = names; }

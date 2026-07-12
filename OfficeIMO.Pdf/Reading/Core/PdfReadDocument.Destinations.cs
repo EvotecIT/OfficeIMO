@@ -1,21 +1,21 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private (int? PageNumber, double? DestinationTop, PdfOpenActionDestinationMode? DestinationMode, double? DestinationLeft, double? DestinationBottom, double? DestinationRight) GetOutlineDestination(PdfDictionary item) {
+    private (int? PageNumber, double? DestinationTop, PdfOpenActionDestinationMode? DestinationMode, double? DestinationLeft, double? DestinationBottom, double? DestinationRight, double? DestinationZoom) GetOutlineDestination(PdfDictionary item) {
         if (item.Items.TryGetValue("Dest", out var destObj) &&
-            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight)) {
-            return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
+            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom)) {
+            return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom);
         }
 
         if (item.Items.TryGetValue("A", out var actionObject) &&
             ResolveObject(actionObject) is PdfDictionary action &&
             action.Get<PdfName>("S")?.Name == "GoTo" &&
             action.Items.TryGetValue("D", out var actionDestination) &&
-            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight)) {
-            return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
+            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out destinationZoom)) {
+            return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom);
         }
 
-        return (null, null, null, null, null, null);
+        return (null, null, null, null, null, null, null);
     }
 
     private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations() {
@@ -117,11 +117,11 @@ public sealed partial class PdfReadDocument {
     private bool TryCreateNamedDestination(string name, PdfObject destinationObject, out PdfNamedDestination destination) {
         destination = null!;
         if (string.IsNullOrEmpty(name) ||
-            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight)) {
+            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight, out double? destinationZoom)) {
             return false;
         }
 
-        destination = new PdfNamedDestination(name, pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
+        destination = new PdfNamedDestination(name, pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom);
         return true;
     }
 
@@ -141,7 +141,19 @@ public sealed partial class PdfReadDocument {
         out double? destinationLeft,
         out double? destinationBottom,
         out double? destinationRight) {
-        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight)) {
+        return TryReadDestinationOrNamedDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out _);
+    }
+
+    private bool TryReadDestinationOrNamedDestination(
+        PdfObject destinationObject,
+        out int? pageNumber,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight,
+        out double? destinationZoom) {
+        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out destinationZoom)) {
             return true;
         }
 
@@ -154,6 +166,7 @@ public sealed partial class PdfReadDocument {
                 destinationLeft = destination.DestinationLeft;
                 destinationBottom = destination.DestinationBottom;
                 destinationRight = destination.DestinationRight;
+                destinationZoom = destination.DestinationZoom;
                 return true;
             }
         }
@@ -164,6 +177,7 @@ public sealed partial class PdfReadDocument {
         destinationLeft = null;
         destinationBottom = null;
         destinationRight = null;
+        destinationZoom = null;
         return false;
     }
 
@@ -183,12 +197,25 @@ public sealed partial class PdfReadDocument {
         out double? destinationLeft,
         out double? destinationBottom,
         out double? destinationRight) {
+        return TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight, out _);
+    }
+
+    private bool TryReadDestination(
+        PdfObject destinationObject,
+        out int? pageNumber,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight,
+        out double? destinationZoom) {
         pageNumber = null;
         destinationTop = null;
         destinationMode = null;
         destinationLeft = null;
         destinationBottom = null;
         destinationRight = null;
+        destinationZoom = null;
 
         PdfObject? resolved = ResolveObject(destinationObject);
         if (resolved is PdfDictionary dictionary &&
@@ -214,6 +241,10 @@ public sealed partial class PdfReadDocument {
 
                     if (destination.Items.Count > 3 && ResolveObject(destination.Items[3]) is PdfNumber xyzTop) {
                         destinationTop = xyzTop.Value;
+                    }
+
+                    if (destination.Items.Count > 4 && ResolveObject(destination.Items[4]) is PdfNumber xyzZoom) {
+                        destinationZoom = xyzZoom.Value;
                     }
 
                     break;

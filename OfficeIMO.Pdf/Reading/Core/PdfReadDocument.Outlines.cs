@@ -34,7 +34,7 @@ public sealed partial class PdfReadDocument {
 
             remainingItems--;
             string title = current.Get<PdfStringObj>("Title")?.Value ?? string.Empty;
-            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight) = GetOutlineDestination(current);
+            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom) = GetOutlineDestination(current);
             bool isExpanded = !current.Items.TryGetValue("Count", out var countObject) ||
                 ResolveObject(countObject) is not PdfNumber countNumber ||
                 countNumber.Value >= 0D;
@@ -42,7 +42,7 @@ public sealed partial class PdfReadDocument {
                 ? ReadOutlineSiblings(childObj, level + 1, visited, ref remainingItems)
                 : new List<PdfOutlineItem>();
 
-            items.Add(new PdfOutlineItem(title, level, pageNumber, destinationTop, isExpanded, children.AsReadOnly(), destinationMode, destinationLeft, destinationBottom, destinationRight));
+            items.Add(new PdfOutlineItem(title, level, pageNumber, destinationTop, isExpanded, children.AsReadOnly(), destinationMode, destinationLeft, destinationBottom, destinationRight, destinationZoom));
 
             currentObj = current.Items.TryGetValue("Next", out var nextObj) ? nextObj : null;
         }

@@ -78,6 +78,20 @@ public class PdfSanitizerTests {
         Assert.Contains(result.RemovedFindings, finding => finding.Detail == "SubmitForm");
     }
 
+    [Fact]
+    public void Sanitize_QuarantinesPageAssociatedFilePayloads() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
+        var policy = new PdfSanitizationOptions { EmbeddedFiles = PdfEmbeddedFileSanitizationMode.Quarantine };
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source, policy);
+
+        PdfExtractedAttachment attachment = Assert.Single(result.QuarantinedAttachments);
+        Assert.Equal("page.txt", attachment.FileName);
+        Assert.Equal(PdfAssociatedFileTestSupport.Payload, Encoding.ASCII.GetString(attachment.Bytes));
+        Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(result.ToBytes()));
+        Assert.DoesNotContain(PdfAssociatedFileTestSupport.Payload, Encoding.ASCII.GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
     private static byte[] BuildActiveContentPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",

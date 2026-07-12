@@ -91,7 +91,7 @@ public static class PdfAttachmentExtractor {
             ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees);
         }
 
-        if (ResolveObject(objects, catalog.Items.TryGetValue("AF", out var associatedFilesObject) ? associatedFilesObject : null) is PdfArray associatedFiles) {
+        foreach (PdfArray associatedFiles in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects)) {
             ReadAssociatedFiles(objects, associatedFiles, attachments);
         }
 

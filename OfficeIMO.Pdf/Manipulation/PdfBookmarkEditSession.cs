@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Editable existing-document bookmark node.</summary>
 public sealed class PdfBookmarkNode {
     private readonly List<PdfBookmarkNode> _children = new List<PdfBookmarkNode>();
-    internal PdfBookmarkNode(string id, string title, int pageNumber, double? top, bool expanded) { Id = id; Title = title; PageNumber = pageNumber; DestinationTop = top; IsExpanded = expanded; }
+    internal PdfBookmarkNode(string id, string title, int pageNumber, double? top, bool expanded, PdfOpenActionDestinationMode? mode = null, double? left = null, double? bottom = null, double? right = null, double? zoom = null) { Id = id; Title = title; PageNumber = pageNumber; DestinationTop = top; IsExpanded = expanded; DestinationMode = mode ?? PdfOpenActionDestinationMode.Xyz; DestinationLeft = left; DestinationBottom = bottom; DestinationRight = right; DestinationZoom = zoom; }
     /// <summary>Stable edit-session identifier.</summary>
     public string Id { get; }
     /// <summary>Bookmark title.</summary>
@@ -12,6 +12,16 @@ public sealed class PdfBookmarkNode {
     public int PageNumber { get; internal set; }
     /// <summary>Optional top destination coordinate.</summary>
     public double? DestinationTop { get; internal set; }
+    /// <summary>Viewer destination mode.</summary>
+    public PdfOpenActionDestinationMode DestinationMode { get; internal set; }
+    /// <summary>Optional left destination coordinate.</summary>
+    public double? DestinationLeft { get; internal set; }
+    /// <summary>Optional bottom destination coordinate.</summary>
+    public double? DestinationBottom { get; internal set; }
+    /// <summary>Optional right destination coordinate.</summary>
+    public double? DestinationRight { get; internal set; }
+    /// <summary>Optional XYZ zoom factor.</summary>
+    public double? DestinationZoom { get; internal set; }
     /// <summary>Whether children are initially expanded.</summary>
     public bool IsExpanded { get; internal set; }
     /// <summary>Child bookmarks.</summary>
@@ -46,7 +56,9 @@ public sealed class PdfBookmarkEditSession {
         target.Insert(index, node); return this;
     }
     /// <summary>Retargets a bookmark to a page and optional top coordinate.</summary>
-    public PdfBookmarkEditSession Retarget(string id, int pageNumber, double? destinationTop = null) { ValidatePage(pageNumber); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationTop = destinationTop; return this; }
+    public PdfBookmarkEditSession Retarget(string id, int pageNumber, double? destinationTop = null) { ValidatePage(pageNumber); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationTop = destinationTop; node.DestinationMode = PdfOpenActionDestinationMode.Xyz; node.DestinationLeft = null; node.DestinationBottom = null; node.DestinationRight = null; node.DestinationZoom = null; return this; }
+    /// <summary>Retargets a bookmark using an explicit viewer destination mode and coordinates.</summary>
+    public PdfBookmarkEditSession Retarget(string id, int pageNumber, PdfOpenActionDestinationMode destinationMode, double? destinationTop = null, double? destinationLeft = null, double? destinationBottom = null, double? destinationRight = null, double? destinationZoom = null) { ValidatePage(pageNumber); PdfBookmarkNode node = Require(id); node.PageNumber = pageNumber; node.DestinationMode = destinationMode; node.DestinationTop = destinationTop; node.DestinationLeft = destinationLeft; node.DestinationBottom = destinationBottom; node.DestinationRight = destinationRight; node.DestinationZoom = destinationZoom; return this; }
     /// <summary>Replaces bookmarks with the source document's inferred heading hierarchy.</summary>
     public PdfBookmarkEditSession RebuildFromHeadings() {
         _roots.Clear(); var stack = new List<PdfBookmarkNode>();
@@ -58,8 +70,8 @@ public sealed class PdfBookmarkEditSession {
         return this;
     }
     internal IReadOnlyList<PdfBookmarkNode> Snapshot() => _roots;
-    private void Import(IReadOnlyList<PdfOutlineItem> source, List<PdfBookmarkNode> target) { foreach (PdfOutlineItem item in source) { if (!item.PageNumber.HasValue) continue; PdfBookmarkNode node = NewNode(item.Title, item.PageNumber.Value, item.DestinationTop, item.IsExpanded); target.Add(node); Import(item.Children, node.MutableChildren); } }
-    private PdfBookmarkNode NewNode(string title, int page, double? top, bool expanded) => new PdfBookmarkNode("bookmark-" + (++_nextId).ToString(System.Globalization.CultureInfo.InvariantCulture), title, page, top, expanded);
+    private void Import(IReadOnlyList<PdfOutlineItem> source, List<PdfBookmarkNode> target) { foreach (PdfOutlineItem item in source) { if (!item.PageNumber.HasValue) continue; PdfBookmarkNode node = NewNode(item.Title, item.PageNumber.Value, item.DestinationTop, item.IsExpanded, item.DestinationMode, item.DestinationLeft, item.DestinationBottom, item.DestinationRight, item.DestinationZoom); target.Add(node); Import(item.Children, node.MutableChildren); } }
+    private PdfBookmarkNode NewNode(string title, int page, double? top, bool expanded, PdfOpenActionDestinationMode? mode = null, double? left = null, double? bottom = null, double? right = null, double? zoom = null) => new PdfBookmarkNode("bookmark-" + (++_nextId).ToString(System.Globalization.CultureInfo.InvariantCulture), title, page, top, expanded, mode, left, bottom, right, zoom);
     private List<PdfBookmarkNode> GetChildren(string? parentId) => parentId == null ? _roots : Require(parentId).MutableChildren;
     private PdfBookmarkNode Require(string id) { Guard.NotNullOrWhiteSpace(id, nameof(id)); return Find(_roots, id) ?? throw new KeyNotFoundException("PDF bookmark was not found: " + id); }
     private (List<PdfBookmarkNode> Siblings, int Index) RequireLocation(string id) { if (TryFindLocation(_roots, id, out List<PdfBookmarkNode>? siblings, out int index)) return (siblings!, index); throw new KeyNotFoundException("PDF bookmark was not found: " + id); }

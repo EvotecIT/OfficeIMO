@@ -49,4 +49,17 @@ public class PdfAttachmentEditorTests {
         Assert.Throws<KeyNotFoundException>(() => PdfAttachmentEditor.Remove(source, "missing.txt"));
         Assert.Throws<ArgumentException>(() => PdfAttachmentEditor.Add(source, new PdfEmbeddedFile("one.txt", new byte[] { 2 })));
     }
+
+    [Fact]
+    public void Edit_RemovePrunesPageAssociatedFilePayloads() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachments(source));
+
+        byte[] output = PdfAttachmentEditor.Remove(source, "page.txt").ToBytes();
+
+        Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(output));
+        string raw = Encoding.ASCII.GetString(output);
+        Assert.DoesNotContain("/AF", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain(PdfAssociatedFileTestSupport.Payload, raw, StringComparison.Ordinal);
+    }
 }

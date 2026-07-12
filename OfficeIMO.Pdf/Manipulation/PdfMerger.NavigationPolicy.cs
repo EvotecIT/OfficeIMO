@@ -107,7 +107,7 @@ public static partial class PdfMerger {
                     name = renamedName;
                     names.Add(name);
                 }
-                result.Add(new MergedNamedDestination(name, destination.PageNumber.Value + pageOffset, destination.DestinationMode, destination.DestinationLeft, destination.DestinationBottom, destination.DestinationRight, destination.DestinationTop));
+                result.Add(new MergedNamedDestination(name, destination.PageNumber.Value + pageOffset, destination.DestinationMode, destination.DestinationLeft, destination.DestinationBottom, destination.DestinationRight, destination.DestinationTop, destination.DestinationZoom));
             }
             pageOffset += sources[sourceIndex].PageObjectNumbers.Length;
         }
@@ -258,7 +258,7 @@ public static partial class PdfMerger {
             case PdfOpenActionDestinationMode.FitBoundingBoxHorizontal: array.Items.Add(new PdfName("FitBH")); AddNumberOrNull(array, destination.Top); break;
             case PdfOpenActionDestinationMode.FitBoundingBoxVertical: array.Items.Add(new PdfName("FitBV")); AddNumberOrNull(array, destination.Left); break;
             default:
-                array.Items.Add(new PdfName("XYZ")); AddNumberOrNull(array, destination.Left); AddNumberOrNull(array, destination.Top); array.Items.Add(PdfNull.Instance); break;
+                array.Items.Add(new PdfName("XYZ")); AddNumberOrNull(array, destination.Left); AddNumberOrNull(array, destination.Top); AddNumberOrNull(array, destination.Zoom); break;
         }
         return array;
     }
@@ -381,9 +381,9 @@ public static partial class PdfMerger {
     }
 
     private sealed class MergedNamedDestination {
-        internal MergedNamedDestination(string name, int pageNumber, PdfOpenActionDestinationMode? mode, double? left, double? bottom, double? right, double? top) { Name = name; PageNumber = pageNumber; Mode = mode; Left = left; Bottom = bottom; Right = right; Top = top; }
+        internal MergedNamedDestination(string name, int pageNumber, PdfOpenActionDestinationMode? mode, double? left, double? bottom, double? right, double? top, double? zoom = null) { Name = name; PageNumber = pageNumber; Mode = mode; Left = left; Bottom = bottom; Right = right; Top = top; Zoom = zoom; }
         internal string Name { get; } internal int PageNumber { get; } internal PdfOpenActionDestinationMode? Mode { get; }
-        internal double? Left { get; } internal double? Bottom { get; } internal double? Right { get; } internal double? Top { get; }
+        internal double? Left { get; } internal double? Bottom { get; } internal double? Right { get; } internal double? Top { get; } internal double? Zoom { get; }
     }
 
     private sealed class MergedPageLabel {

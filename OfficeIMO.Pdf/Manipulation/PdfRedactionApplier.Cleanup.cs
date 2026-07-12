@@ -13,7 +13,7 @@ public static partial class PdfRedactionApplier {
     }
 
     private static bool RemoveAttachments(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog) {
-        bool changed = catalog.Items.Remove("AF");
+        bool changed = PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         if (names is not null) { changed = names.Items.Remove("EmbeddedFiles") || changed; if (names.Items.Count == 0) changed = catalog.Items.Remove("Names") || changed; }
         foreach (PdfIndirectObject item in objects.Values) {
