@@ -8,6 +8,9 @@
 * Add `OfficeIMO.Drawing` font descriptors so Office packages can share font metadata without exposing a font-engine dependency.
 * Move Excel autofit font resolution and text measurement behind an internal measurer boundary to reduce direct dependency leakage.
 * Remove the `SixLabors.Fonts` dependency from Excel autofit by using deterministic first-party text measurement.
+* Fix the packed `OfficeIMO.Email` dependency graph for .NET Framework by directly declaring the code-page compatibility package used by its MIME, MSG, and TNEF codecs.
+* Run every test project that declares `net472` on .NET Framework in CI, and verify `OfficeIMO.Email` as a clean packed-package consumer on `net472`, `net8.0`, and `net10.0`.
+* Stop emitting repository examples, the bundled Markup CLI, and legacy benchmark executables as unsupported NuGet library packages.
 * Add AI-ingestion focused chunk extraction APIs (Word/Excel/PowerPoint) and new `OfficeIMO.Reader` facade (Stream/byte[] supported) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1430
 * Continue OfficeIMO.Markdown reader/AST/query cleanup and public API hardening across headings, lists, front matter, traversal helpers, and renderer contracts
 * Add OfficeIMO.Markdown benchmark harness for representative parse and HTML-render workloads by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1684

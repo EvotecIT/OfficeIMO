@@ -68,6 +68,7 @@ public sealed class OpenDocumentConversionContracts {
             MaximumExpandedCells = 1000
         });
         using ExcelDocument roundTrip = toExcel.Value;
+        Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
         ExcelWorksheetSnapshot snapshot = Assert.Single(roundTrip.CreateInspectionSnapshot().Worksheets);
         Assert.Contains(snapshot.Cells, cell => cell.Row == 2 && cell.Column == 1 && Convert.ToDecimal(cell.Value) == 12.5m);
@@ -102,6 +103,7 @@ public sealed class OpenDocumentConversionContracts {
         using OdpPresentation reopened = OdpPresentation.Open(package);
         OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult();
         using PowerPointPresentation roundTrip = toPowerPoint.Value;
+        Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
         PowerPointSlide roundTripSlide = Assert.Single(roundTrip.Slides);
         Assert.Contains(roundTripSlide.TextBoxes, box => box.Text.Contains("OpenDocument deck", StringComparison.Ordinal));

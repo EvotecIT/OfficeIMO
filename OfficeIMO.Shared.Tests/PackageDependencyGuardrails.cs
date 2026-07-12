@@ -301,6 +301,41 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void Email_DeclaresTheCodePageCompatibilityPackageItUsesDirectly() {
+        var projectPath = GetRepositoryPath("OfficeIMO.Email/OfficeIMO.Email.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        var references = document
+            .Descendants(ns + "PackageReference")
+            .Select(static element => new {
+                Id = (string?)element.Attribute("Include") ?? string.Empty,
+                Version = (string?)element.Attribute("Version") ?? string.Empty
+            })
+            .ToArray();
+
+        var reference = Assert.Single(references);
+        Assert.Equal("System.Text.Encoding.CodePages", reference.Id);
+        Assert.Equal("8.0.0", reference.Version);
+    }
+
+    [Theory]
+    [InlineData("OfficeIMO.Examples/OfficeIMO.Examples.csproj")]
+    [InlineData("OfficeIMO.Markup.Cli/OfficeIMO.Markup.Cli.csproj")]
+    [InlineData("OfficeIMO.Excel.Benchmarks.LegacyEpPlus/OfficeIMO.Excel.Benchmarks.LegacyEpPlus.csproj")]
+    public void RepositoryExecutablesAndBenchmarks_AreNotPublishedAsLibraryPackages(string relativeProjectPath) {
+        var projectPath = GetRepositoryPath(relativeProjectPath);
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        Assert.Equal("Exe", (string?)document.Descendants(ns + "OutputType").Single());
+        Assert.Equal("false", (string?)document.Descendants(ns + "IsPackable").Single());
+    }
+
+    [Fact]
     public void RtfHtmlBridge_IsUnifiedIntoOfficeIMOHtml() {
         var projectPath = GetRepositoryPath("OfficeIMO.Html/OfficeIMO.Html.csproj");
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);

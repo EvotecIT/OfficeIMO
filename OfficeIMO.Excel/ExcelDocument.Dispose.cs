@@ -32,7 +32,8 @@ namespace OfficeIMO.Excel {
                 if (this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read && IsPackageDirty;
+                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                                              (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
                             _copyPackageToFilePathOnDispose = false;
                             if (shouldSave) {
@@ -87,7 +88,8 @@ namespace OfficeIMO.Excel {
                 if (this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read && IsPackageDirty;
+                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                                              (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
                             _copyPackageToFilePathOnDispose = false;
                             if (shouldSave) {

@@ -210,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             ValidateSlideIndex(slideIndex);
-            using PowerPointPresentation exported = Create(destination);
+            using PowerPointPresentation exported = Create();
             exported.ImportSlide(this, slideIndex);
             exported.Save(destination);
         }

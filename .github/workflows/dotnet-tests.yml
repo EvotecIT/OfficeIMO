@@ -67,6 +67,34 @@ jobs:
       - name: Build solution
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
+  email-package-consumers:
+    name: 'OfficeIMO.Email packed consumers'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      NUGET_PACKAGES: ${{ runner.temp }}/officeimo-email-package-cache
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Pack and test clean package consumers
+        shell: pwsh
+        run: |
+          $feed = Join-Path $env:RUNNER_TEMP 'officeimo-email-feed'
+          New-Item -ItemType Directory -Force -Path $feed | Out-Null
+          dotnet restore OfficeIMO.Email/OfficeIMO.Email.csproj --no-http-cache
+          dotnet pack OfficeIMO.Drawing/OfficeIMO.Drawing.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
+          dotnet pack OfficeIMO.Email/OfficeIMO.Email.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
+          dotnet restore Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --source $feed --source https://api.nuget.org/v3/index.json --no-http-cache
+          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net472 --no-restore
+          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net8.0 --no-restore
+          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore
+
   opendocument-schema:
     name: 'OpenDocument schema and LibreOffice'
     runs-on: ubuntu-latest
@@ -110,9 +138,56 @@ jobs:
         run: dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-build --filter Category=OpenDocumentLibreOfficeArtifact
 
   test-windows:
-    name: 'Windows'
+    name: '.NET Framework 4.7.2 / ${{ matrix.name }}'
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - name: AsciiDoc
+            project: OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj
+          - name: AsciiDoc-Markdown
+            project: OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj
+          - name: CSV
+            project: OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
+          - name: Drawing
+            project: OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
+          - name: Email
+            project: OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj
+          - name: Excel
+            project: OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          - name: GoogleWorkspace
+            project: OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
+          - name: Html
+            project: OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj
+          - name: Latex
+            project: OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj
+          - name: Latex-Markdown
+            project: OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj
+          - name: Markdown
+            project: OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
+          - name: Markup
+            project: OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+          - name: OpenDocument
+            project: OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
+          - name: OpenDocument-Converters
+            project: OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
+          - name: Pdf
+            project: OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
+          - name: PowerPoint
+            project: OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
+          - name: Reader
+            project: OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
+          - name: Rtf
+            project: OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
+          - name: Shared
+            project: OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
+          - name: Visio
+            project: OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
+          - name: Word
+            project: OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -131,23 +206,10 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore OfficeIMO.sln
+        run: dotnet restore ${{ matrix.project }}
 
-      - name: Build solution
-        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
-
-      - name: Run tests
-        run: |
-          # Ubuntu and macOS matrix jobs already cover net8.0/net10.0 for the test matrix.
-          # Keep the Windows job focused on the unique .NET Framework coverage so it stays inside the timeout budget.
-          dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --filter "FullyQualifiedName~ReaderAsciiDocModularTests|FullyQualifiedName~ReaderLatexModularTests" --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+      - name: Run full net472 project tests
+        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --framework net472 --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -187,7 +249,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-windows
+          name: test-results-net472-${{ matrix.name }}
           path: '**/*.trx'
 
   test-ubuntu-matrix:

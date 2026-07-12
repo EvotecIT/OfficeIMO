@@ -462,7 +462,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         using var stream = new MemoryStream();
         document.Save(stream);
         document.Dispose();
-        stream.Position = 0;
-        return ExcelDocument.Load(stream);
+        using var detachedInput = new MemoryStream(stream.ToArray(), writable: false);
+        return ExcelDocument.Load(detachedInput);
     }
 }

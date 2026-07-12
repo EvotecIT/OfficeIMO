@@ -137,6 +137,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExportSlide_ToNonSeekableWritableStream_WritesStandalonePresentation() {
+            using var source = PowerPointPresentation.Create();
+            source.AddSlide().AddTitle("First");
+            source.AddSlide().AddTitle("Exported");
+            using var destination = new NonSeekableWriteStream();
+
+            source.ExportSlide(1, destination);
+
+            using var package = new MemoryStream(destination.ToArray(), writable: false);
+            using PresentationDocument document = PresentationDocument.Open(package, false);
+            Assert.Single(document.PresentationPart!.Presentation.SlideIdList!.ChildElements);
+        }
+
+        [Fact]
         public void Create_ToStream_WithSaveOnDispose_PropagatesPersistenceFailure() {
             using var stream = new FailingCopyBackStream();
 
@@ -177,6 +191,16 @@ namespace OfficeIMO.Tests {
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
             public override void SetLength(long value) => _inner.SetLength(value);
             public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
+
+            public byte[] ToArray() => _inner.ToArray();
+
+            protected override void Dispose(bool disposing) {
+                if (disposing) {
+                    _inner.Dispose();
+                }
+
+                base.Dispose(disposing);
+            }
         }
 
         private sealed class NonSeekableReadWriteStream : Stream {

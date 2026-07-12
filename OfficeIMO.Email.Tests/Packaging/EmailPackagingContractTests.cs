@@ -7,12 +7,14 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailPackagingContractTests {
     [Fact]
-    public void ProductProjectAndAssembly_RemainFreeOfThirdPartyRuntimeDependencies() {
+    public void ProductProjectAndAssembly_DeclareOnlyTheRequiredCompatibilityDependency() {
         string projectPath = Path.Combine(GetRepositoryRoot(), "OfficeIMO.Email", "OfficeIMO.Email.csproj");
         XDocument project = XDocument.Load(projectPath);
         XNamespace ns = project.Root?.Name.Namespace ?? XNamespace.None;
 
-        Assert.Empty(project.Descendants(ns + "PackageReference"));
+        var packageReference = Assert.Single(project.Descendants(ns + "PackageReference"));
+        Assert.Equal("System.Text.Encoding.CodePages", (string?)packageReference.Attribute("Include"));
+        Assert.Equal("8.0.0", (string?)packageReference.Attribute("Version"));
         string[] projectReferences = project.Descendants(ns + "ProjectReference")
             .Select(element => ((string?)element.Attribute("Include") ?? string.Empty).Replace('\\', '/'))
             .ToArray();
@@ -41,6 +43,7 @@ public sealed class EmailPackagingContractTests {
         Assert.DoesNotContain(references, name => string.Equals(name, "MailKit", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetRepositoryRoot() {

@@ -2,6 +2,7 @@ using System.Data;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -59,6 +60,42 @@ namespace OfficeIMO.Tests {
             var sheets = spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>().ToList();
             var sheetInfo = Assert.Single(sheets);
             Assert.Equal("StreamData", sheetInfo.Name?.Value);
+        }
+
+        [Fact]
+        public void Create_ToMemoryStream_SaveOnDisposeStillWritesAfterToBytesCopyExport() {
+            using var associated = new MemoryStream();
+            byte[] copy;
+
+            using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
+                       PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                   })) {
+                document.AddWorkSheet("Associated").CellValue(1, 1, "Persisted");
+                copy = document.ToBytes();
+                Assert.Equal(0, associated.Length);
+            }
+
+            Assert.NotEmpty(copy);
+            using var reader = ExcelDocumentReader.Open(associated.ToArray());
+            Assert.Equal("Persisted", reader.GetSheet("Associated").ReadRange("A1:A1")[0, 0]);
+        }
+
+        [Fact]
+        public async Task Create_ToMemoryStream_SaveOnDisposeStillWritesAfterAsyncCopyExport() {
+            using var associated = new MemoryStream();
+            using var copy = new MemoryStream();
+
+            await using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
+                             PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+                         })) {
+                document.AddWorkSheet("Associated").CellValue(1, 1, "Persisted async");
+                await document.SaveAsync(copy);
+                Assert.Equal(0, associated.Length);
+            }
+
+            Assert.True(copy.Length > 0);
+            using var reader = ExcelDocumentReader.Open(associated.ToArray());
+            Assert.Equal("Persisted async", reader.GetSheet("Associated").ReadRange("A1:A1")[0, 0]);
         }
 
         [Fact]
