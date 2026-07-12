@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 document.Sections[1].PageSettings.PageSize = WordPageSize.A5;
                 document.Sections[1].PageSettings.Orientation = PageOrientationValues.Portrait;
                 document.AddParagraph("Section 1");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(PageOrientationValues.Landscape, document.Sections[0].PageSettings.Orientation);

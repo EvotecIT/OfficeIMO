@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
 
                 WordParagraph reviewTarget = document.AddParagraph("Notification language needs legal review.");
                 reviewTarget.AddComment("Legal Reviewer", "LR", "Confirm this against the customer policy.");
-                document.Save(false);
+                document.Save();
             }
 
             AddFeaturePreflightPackageSignals(featurePath);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 WordParagraph tracked = document.AddParagraph("Tracked language: ");
                 tracked.AddDeletedText("best effort", "Legal Reviewer", new DateTime(2026, 6, 1, 9, 0, 0, DateTimeKind.Utc));
                 tracked.AddInsertedText("commercially reasonable efforts", "Legal Reviewer", new DateTime(2026, 6, 1, 9, 5, 0, DateTimeKind.Utc));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(reviewPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.Examples.Word {
                 source.AddParagraph("Client: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Client\"" });
                 source.CustomDocumentProperties["Client"] = new WordCustomProperty("Northwind Traders");
                 source.UpdateFields();
-                source.Save(false);
+                source.Save();
             }
 
             string targetPath = Path.Combine(scenarioPath, "comparison-target.docx");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Examples.Word {
                 target.AddParagraph("Client: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Client\"" });
                 target.CustomDocumentProperties["Client"] = new WordCustomProperty("Contoso Legal");
                 target.UpdateFields();
-                target.Save(false);
+                target.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(
@@ -189,7 +189,7 @@ namespace OfficeIMO.Examples.Word {
 
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
                 WriteFieldUpdateReport(Path.Combine(scenarioPath, "field-refresh-report.md"), report);
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -198,7 +198,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(signaturePath)) {
                 document.AddParagraph("Signed package metadata preflight").Style = WordParagraphStyles.Heading1;
                 document.AddParagraph("OfficeIMO can inspect signature package metadata and block accidental saves by default.");
-                document.Save(false);
+                document.Save();
             }
 
             PremiumWorkflowExampleUtilities.AddSyntheticSignatureMetadata(signaturePath);
@@ -212,7 +212,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(signaturePath)) {
                 document.AddParagraph("This edit is intentionally blocked by the default signed-document save policy.");
                 try {
-                    document.Save(false);
+                    document.Save();
                     savePolicyMessage = "Save unexpectedly succeeded.";
                 } catch (WordSignatureSavePolicyException ex) {
                     savePolicyMessage = ex.Message;
@@ -253,7 +253,7 @@ namespace OfficeIMO.Examples.Word {
                 File.WriteAllText(Path.Combine(scenarioPath, "template-preflight-blocked.md"), blockedReport.ToMarkdown(), Encoding.UTF8);
                 File.WriteAllText(Path.Combine(scenarioPath, "template-preflight-blocked.json"), blockedReport.ToJson(), Encoding.UTF8);
 
-                document.Save(false);
+                document.Save();
             }
         }
 

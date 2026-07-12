@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Text("First"))
                     .Paragraph(p => p.Text("Second"))
                     .Paragraph(p => p.Text("Third"));
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AsFluent().Find("Second", p => Console.WriteLine($"Found: {p.Paragraph?.Text}"));
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                 int total = document.AsFluent().Select(p => p.Paragraph?.Text.Contains("ir") == true).Count();
                 Console.WriteLine($"Paragraphs containing 'ir': {total}");
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

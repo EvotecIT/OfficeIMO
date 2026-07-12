@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ ColumnCount section 0: " + document.Sections[0].ColumnCount);
                 Console.WriteLine("+ ColumnCount section 1: " + document.Sections[1].ColumnCount);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("+ Paragraphs section 3: " + document.Sections[3].Paragraphs.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

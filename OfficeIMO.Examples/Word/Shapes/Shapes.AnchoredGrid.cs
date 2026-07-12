@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.Word {
                     legend: "Legend: → row neighbor, ↓ column neighbor; labels above; anchored shapes on grid."
                 );
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
                 OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
             }
         }

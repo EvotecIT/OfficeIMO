@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 WordTable cloned = table.Clone();
                 cloned.Rows[0].Cells[0].Paragraphs[0].Bold = true;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

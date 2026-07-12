@@ -59,7 +59,7 @@ public partial class Excel {
                 Assert.Contains("PDF-unrendered pivot tables", string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
 
-                document.Save(false);
+                document.Save();
                 pdfBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,

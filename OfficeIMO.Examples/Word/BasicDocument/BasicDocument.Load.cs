@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[0].HyperLinks.Count);
                 Console.WriteLine(document.HyperLinks.Count);
                 Console.WriteLine(document.Fields.Count);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

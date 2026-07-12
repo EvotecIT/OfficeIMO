@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Breaks count after adding one: " + document.Breaks.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

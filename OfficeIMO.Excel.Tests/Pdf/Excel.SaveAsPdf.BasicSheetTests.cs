@@ -27,7 +27,7 @@ public partial class Excel {
             sheet.Cell(2, 2, 1250.5);
             sheet.Cell(3, 1, "Support");
             sheet.Cell(3, 2, 250);
-            document.Save(false);
+            document.Save();
 
             document.SaveAsPdf(pdfPath);
         }
@@ -50,7 +50,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Title");
             sheet.Cell(2, 1, "Explicit serif default");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 FontFamily = "serif",
@@ -85,7 +85,7 @@ public partial class Excel {
             sheet.Cell(1, 2, "Amount");
             sheet.Cell(2, 1, "Licenses");
             sheet.Cell(2, 2, 1250.5);
-            document.Save(false);
+            document.Save();
 
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -127,7 +127,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Product");
             sheet.Cell(2, 1, "Licenses");
-            document.Save(false);
+            document.Save();
 
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -161,7 +161,7 @@ public partial class Excel {
             summary.SetHeaderFooter(headerCenter: "Selected Header &A");
             ExcelSheet internalSheet = document.AddWorkSheet("Internal");
             internalSheet.Cell(1, 1, "HiddenValue");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 SheetNames = new[] { "summary" }
@@ -190,7 +190,7 @@ public partial class Excel {
             hidden.Cell(1, 1, "HiddenSheetValue");
             hidden.SetHidden(true);
             Assert.True(hidden.Hidden);
-            document.Save(false);
+            document.Save();
 
             visibleBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,

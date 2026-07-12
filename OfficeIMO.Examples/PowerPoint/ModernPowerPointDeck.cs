@@ -68,7 +68,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             Console.WriteLine($"    Saved: {filePath}");
             Console.WriteLine("    Validation: no Open XML errors found.");
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
 
         private static void AddCoverSlide(PowerPointPresentation presentation, string backgroundImagePath) {

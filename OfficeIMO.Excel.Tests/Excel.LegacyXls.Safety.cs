@@ -12,11 +12,11 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(path);
             document.AddWorkSheet("Data").CellValue(1, 1, "Explicit format API");
 
-            byte[] xlsx = document.ToXlsx();
+            byte[] xlsx = document.ToBytes();
             Assert.Equal(0x50, xlsx[0]);
             Assert.Equal(0x4b, xlsx[1]);
 
-            byte[] xls = document.ToXls();
+            byte[] xls = document.ToBytes(OfficeIMO.Excel.ExcelFileFormat.Xls);
             Assert.Equal(0xd0, xls[0]);
             Assert.Equal(0xcf, xls[1]);
 
@@ -95,8 +95,16 @@ namespace OfficeIMO.Tests {
             Type documentType = typeof(ExcelDocument);
             Type importOptionsType = typeof(LegacyXlsImportOptions);
 
-            Assert.NotNull(documentType.GetMethod(nameof(ExcelDocument.ToXlsx), new[] { typeof(ExcelSaveOptions) }));
-            Assert.NotNull(documentType.GetMethod(nameof(ExcelDocument.ToXls), new[] { typeof(ExcelSaveOptions) }));
+            Assert.NotNull(documentType.GetMethod(nameof(ExcelDocument.ToBytes),
+                new[] { typeof(ExcelFileFormat), typeof(ExcelSaveOptions) }));
+            Assert.NotNull(documentType.GetMethod(nameof(ExcelDocument.ToStream),
+                new[] { typeof(ExcelFileFormat), typeof(ExcelSaveOptions) }));
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "ToXlsx" or "ToXls" or "ToXlsxStream" or "ToXlsStream");
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "Save" or "SaveAsync" &&
+                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "Open");
+            Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(ExcelDocument.OpenInApplication));
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "Close");
             Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(ExcelDocument.SaveCopy));
             Assert.Null(documentType.GetProperty("WasLoadedFromLegacyXls"));
             Assert.Null(importOptionsType.GetProperty("MaxWorkbookStreamBytes"));

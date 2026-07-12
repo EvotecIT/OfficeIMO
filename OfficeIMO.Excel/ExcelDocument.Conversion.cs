@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
             try {
                 try {
                     ExcelSaveOptions conversionSaveOptions = (options.SaveOptions ?? new ExcelSaveOptions()).WithLossPolicy(options.LossPolicy);
-                    await document.SaveAsync(stagingPath, openExcel: false, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
+                    await document.SaveAsync(stagingPath, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
                 } catch (NotSupportedException exception) {
                     diagnostics.Add(new ExcelConversionDiagnostic(
                         "Excel.DestinationFeatureUnsupported",
@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel {
                         exception);
                 }
 
-                if (options.OpenAfterSave) document.Open(paths.Destination, true);
+                if (options.OpenAfterSave) document.OpenInApplication(paths.Destination);
                 return CreateExcelConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);

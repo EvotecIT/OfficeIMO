@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Excel {
 
                 ExcelSheet sheet3 = document.AddWorkSheet("Test3");
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
         public static void BasicExcel_Example2(string folderPath, bool openExcel) {
@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath, "WorkSheet1")) {
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Excel {
 
                 Console.WriteLine("Sheets count:" + document.Sheets.Count);
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

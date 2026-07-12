@@ -50,7 +50,7 @@ public partial class Excel {
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal(ExcelChartType.Surface, snapshot.ChartType);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }

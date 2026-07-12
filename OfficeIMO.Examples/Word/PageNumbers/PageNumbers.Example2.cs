@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 para.ParagraphAlignment = JustificationValues.Right;
                 para.AddPageNumber(includeTotalPages: true, separator: " / ");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, "Beta");
                 sheet.CellValue(3, 2, 20d);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "Scores", style: TableStyle.TableStyleMedium4);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Metadata");
                 sheet.CellValue(1, 1, "Resource");
-                document.Save(false);
+                document.Save();
             }
 
             AddCustomXmlPart(filePath);
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.CellValue(2, 1, "Spec");
-                document.Save(false);
+                document.Save();
             }
 
             AddWorksheetHyperlink(filePath, "A2", "../docs/spec.pdf", UriKind.Relative);
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet hidden = document.AddWorkSheet("Hidden Details");
                 hidden.CellValue(1, 1, "Target");
                 hidden.SetHidden(true);
-                document.Save(false);
+                document.Save();
             }
 
             AddWorksheetInternalHyperlink(filePath, "A2", "'Hidden Details'!A1");
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "B");
                 sheet.CellFormula(1, 2, "UNIQUE(A1:A2)");
                 sheet.CellFormula(2, 2, "B1+1");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "A");
                 sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
                 sheet.CellFormula(1, 3, "B1+1");
-                document.Save(false);
+                document.Save();
             }
 
             AddCachedFormulaValue(filePath, "B1", "1");
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(1, 2, "A1+1");
                 Assert.Equal(1, document.Calculate());
                 document.ConfigureFullCalculationOnOpen();
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 document.ConfigureFullCalculationOnOpen();
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
                 hidden.CellValue(1, 1, 2d);
                 hidden.CellFormula(1, 2, "A1+1");
                 hidden.SetHidden(true);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Ready");
                 document.ConfigureFullCalculationOnOpen();
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Signed");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Ready");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath);
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(1, 2, "A1+1");
                 Assert.Equal(1, document.Calculate());
                 document.InvalidateFormulas();
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 sheet.CellFormula(1, 3, "B1+1");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 sheet.CellFormula(1, 3, "UNIQUE(B1:B1)");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -428,7 +428,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Calc");
                 sheet.CellValue(1, 1, 7d);
                 sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
-                document.Save(false);
+                document.Save();
             }
 
             AddCachedFormulaValue(filePath, "B1", "7");
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 3, 18d);
                 sheet.AddChartFromRange("A1:C3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
                     type: ExcelChartType.Surface, title: "Surface Chart");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests {
                     });
                 sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
                     type: ExcelChartType.ColumnClustered, title: "Combo Chart");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -522,7 +522,7 @@ namespace OfficeIMO.Tests {
                     });
                 sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
                     type: ExcelChartType.ColumnClustered, title: "Column Combo Chart");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -551,7 +551,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 12d);
                 sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
                     type: ExcelChartType.ColumnClustered, title: "Literal Chart");
-                document.Save(false);
+                document.Save();
             }
 
             RemoveChartRangeFormulas(filePath);
@@ -583,7 +583,7 @@ namespace OfficeIMO.Tests {
                 ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
                     type: ExcelChartType.ColumnClustered, title: "Dangling Chart");
                 chart.Name = "Dangling chart frame";
-                document.Save(false);
+                document.Save();
             }
 
             RemoveFirstChartPart(filePath);
@@ -609,7 +609,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Image");
                 sheet.AddImage(2, 1, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif",
                     widthPixels: 12, heightPixels: 12, name: "GifLogo");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -633,7 +633,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Image");
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif",
                     widthPoints: 24, heightPoints: 24);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -657,7 +657,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Headers");
                 sheet.CellValue(1, 1, "Report");
                 sheet.SetHeaderFooter(headerCenter: "&UConfidential");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -682,7 +682,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, "Area one");
                 sheet.CellValue(2, 4, "Area two");
                 sheet.CellValue(5, 5, "Bottom");
-                document.Save(false);
+                document.Save();
             }
 
             AddMultiAreaPrintArea(filePath);
@@ -719,7 +719,7 @@ namespace OfficeIMO.Tests {
                     dataFields: new[] { new ExcelPivotDataField("Sales", X.DataConsolidateFunctionValues.Sum, "Total Sales") },
                     pivotStyleName: "PivotStyleMedium9");
                 sheet.AddSparklines("B2:B3", "C2:C3");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -757,7 +757,7 @@ namespace OfficeIMO.Tests {
                     dataFields: new[] { new ExcelPivotDataField("Sales", X.DataConsolidateFunctionValues.Sum, "Total Sales") });
                 hidden.AddSparklines("B2:B3", "C2:C3");
                 hidden.SetHidden(true);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -778,7 +778,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Shapes");
                 sheet.CellValue(1, 1, "Callout");
-                document.Save(false);
+                document.Save();
             }
 
             AddDrawingShapeAndHyperlink(filePath);
@@ -805,7 +805,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Shapes");
                 sheet.CellValue(1, 1, "Box");
-                document.Save(false);
+                document.Save();
             }
 
             AddRenderableDrawingShape(filePath);
@@ -831,7 +831,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, 10d);
-                document.Save(false);
+                document.Save();
             }
 
             AddChartSheet(filePath);

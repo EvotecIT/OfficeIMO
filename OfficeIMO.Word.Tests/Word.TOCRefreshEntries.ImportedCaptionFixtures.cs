@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {

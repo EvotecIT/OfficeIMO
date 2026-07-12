@@ -31,9 +31,9 @@ namespace OfficeIMO.Examples.Word {
                             .Paragraph(p => p.Text("Section 2"))
                             .Table(t => t.Create(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 2")))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

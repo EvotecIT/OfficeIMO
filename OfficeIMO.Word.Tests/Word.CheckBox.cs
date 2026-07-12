@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.CheckBoxes);
                 Assert.True(checkBox.IsChecked);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(byAlias);
 
                 byTag.IsChecked = false;
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var checkBox = document.AddParagraph("Accept:").AddCheckBox(false, "Accept", "AcceptTag");
                 Assert.False(checkBox.IsChecked);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.CheckBoxes.Single().IsChecked = true;
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {

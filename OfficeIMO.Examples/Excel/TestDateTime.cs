@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Excel {
                 Console.WriteLine($"Validation errors: {errors.Count}");
                 
                 if (openExcel) {
-                    document.Open();
+                    document.OpenInApplication();
                 }
             }
         }

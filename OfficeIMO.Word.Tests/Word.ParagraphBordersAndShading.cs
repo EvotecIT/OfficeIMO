@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.LeftColor = Color.Red;
                 paragraph.Borders.LeftSize = 24;
                 paragraph.ShadingFillColor = Color.LightGray;
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

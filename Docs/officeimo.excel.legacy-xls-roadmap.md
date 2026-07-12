@@ -19,7 +19,7 @@ workbook.Save("copy.xls", new ExcelSaveOptions {
     LossPolicy = ExcelConversionLossPolicy.Allow
 });
 
-byte[] xlsx = workbook.ToXlsx();
+byte[] xlsx = workbook.ToBytes();
 byte[] xls = workbook.ToXls();
 ```
 

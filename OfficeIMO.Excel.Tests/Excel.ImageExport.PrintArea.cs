@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Used");
                 sheet.CellValue(2, 2, "First");
                 sheet.CellValue(2, 4, "Second");
-                document.Save(false);
+                document.Save();
             }
 
             AddMultiAreaPrintArea(filePath);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Used");
                 sheet.CellValue(2, 2, "First");
                 sheet.CellValue(2, 4, "Second");
-                document.Save(false);
+                document.Save();
             }
 
             AddMultiAreaPrintArea(filePath);
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Report");
                 sheet.CellValue(2, 2, "First");
                 sheet.CellValue(2, 4, "Second");
-                document.Save(false);
+                document.Save();
             }
 
             AddMultiAreaPrintArea(filePath);

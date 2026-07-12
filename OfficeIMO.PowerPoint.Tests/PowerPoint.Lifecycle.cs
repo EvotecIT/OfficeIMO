@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Core;
@@ -75,6 +78,47 @@ namespace OfficeIMO.Tests {
                     AccessMode = DocumentAccessMode.ReadOnly,
                     PersistenceMode = DocumentPersistenceMode.SaveOnDispose
                 }));
+        }
+
+        [Fact]
+        public async Task SaveAsync_PathAndStreamProduceEquivalentReloadablePackages() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                await using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                presentation.AddSlide().AddTitle("Async");
+                byte[] bytes = presentation.ToBytes();
+                Assert.NotEmpty(bytes);
+
+                using var stream = new MemoryStream();
+                await presentation.SaveAsync(stream);
+                await presentation.SaveAsync(path);
+
+                using PowerPointPresentation streamLoaded = PowerPointPresentation.Load(stream,
+                    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+                using PowerPointPresentation loaded = PowerPointPresentation.Load(path,
+                    new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+                Assert.Equal("Async", streamLoaded.Slides[0].TextBoxes.First().Text);
+                Assert.Equal("Async", loaded.Slides[0].TextBoxes.First().Text);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public async Task SaveAsync_CanceledPathDoesNotCreateDestination() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                await using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                presentation.AddSlide();
+                using var cancellation = new CancellationTokenSource();
+                cancellation.Cancel();
+
+                await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                    presentation.SaveAsync(path, cancellationToken: cancellation.Token));
+                Assert.False(File.Exists(path));
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
         }
     }
 }

@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Borders.BottomColor.ToHexColor() == OfficeIMO.Drawing.OfficeColor.Blue.ToHexColor());
 
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithBorders.docx"))) {
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[3].Borders.Type == WordBorder.Shadow);
                 document.Sections[3].SetBorders(WordBorder.None);
                 Assert.True(document.Sections[3].Borders.Type == WordBorder.None);
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }

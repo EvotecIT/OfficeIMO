@@ -238,7 +238,7 @@ namespace OfficeIMO.Examples.Excel {
                 }
 
                 // Save (no Excel launch yet)
-                doc.Save(false);
+                doc.Save();
 
                 // Re-open from disk and verify properties + header/footer
                 using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly }))
@@ -265,7 +265,7 @@ namespace OfficeIMO.Examples.Excel {
                 if (openExcel)
                 {
                     // Open in Excel now, after verification
-                    doc.Open(filePath, true);
+                    doc.OpenInApplication(filePath);
                 }
             }
         }

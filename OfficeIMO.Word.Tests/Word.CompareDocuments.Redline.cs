@@ -19,14 +19,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Status: Draft");
                 document.AddParagraph("Remove this clause.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Status: Approved");
                 document.AddParagraph("Add this clause.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_output.docx");
@@ -61,13 +61,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_output_alias_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Source text");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_output_alias_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Target text");
-                document.Save(false);
+                document.Save();
             }
 
             InvalidOperationException sourceException = Assert.Throws<InvalidOperationException>(() =>
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_paragraph_stable_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
-                document.Save(false);
+                document.Save();
             }
 
             SetReferencedFootnoteIds(sourcePath, 10);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Inserted footnote anchor").AddFootNote("Inserted footnote body");
                 document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
-                document.Save(false);
+                document.Save();
             }
 
             SetReferencedFootnoteIds(targetPath, 9, 10);
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_image_stable_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
-                document.Save(false);
+                document.Save();
             }
 
             SetReferencedFootnoteIds(sourcePath, 10);
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Inserted footnote anchor").AddFootNote("Inserted footnote body");
                 document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
-                document.Save(false);
+                document.Save();
             }
 
             SetReferencedFootnoteIds(targetPath, 9, 10);
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
                 WordTable headerTable = document.HeaderDefaultOrCreate.AddTable(1, 2);
                 headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "New table";
                 headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "Target only";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_same_ordinal_table_replace_output.docx");
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
                     CreateRunContentControl("Alpha", "A", "Alpha"),
                     CreateRunContentControl("Beta", "B", "Deleted beta"),
                     CreateRunContentControl("Gamma", "C", "Gamma"));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_inline_sdt_gap_target.docx");
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Append(
                     CreateRunContentControl("Alpha", "A", "Alpha"),
                     CreateRunContentControl("Gamma", "C", "Gamma"));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_inline_sdt_gap_output.docx");
@@ -376,13 +376,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 AddNestedRunContentControl(document, "Contoso");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 AddNestedRunContentControl(document, "Fabrikam");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_output.docx");
@@ -411,13 +411,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_feature_fallback_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/source"));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_feature_fallback_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/target"));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_feature_fallback_output.docx");
@@ -445,13 +445,13 @@ namespace OfficeIMO.Tests {
             string reviewSourcePath = Path.Combine(_directoryWithFiles, "compare_redline_review_policy_source.docx");
             using (WordDocument document = WordDocument.Create(reviewSourcePath)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Source note.");
-                document.Save(false);
+                document.Save();
             }
 
             string reviewTargetPath = Path.Combine(_directoryWithFiles, "compare_redline_review_policy_target.docx");
             using (WordDocument document = WordDocument.Create(reviewTargetPath)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Target note.");
-                document.Save(false);
+                document.Save();
             }
 
             string reviewOutputPath = Path.Combine(_directoryWithFiles, "compare_redline_review_policy_output.docx");
@@ -501,13 +501,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_review_without_feature_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Source note.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_review_without_feature_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Target note.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_review_without_feature_output.docx");
@@ -574,7 +574,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Quarterly report").SetStyle(WordParagraphStyles.Heading1);
                 document.AddParagraph("Status: Draft");
                 document.AddParagraph("Closing note.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_target.docx");
@@ -582,7 +582,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Quarterly report").SetStyle(WordParagraphStyles.Heading1);
                 document.AddParagraph("Status: Approved");
                 document.AddParagraph("Closing note.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_output.docx");
@@ -617,14 +617,14 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Keep before.");
                 document.AddParagraph("Delete this clause.");
                 document.AddParagraph("Keep after.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Keep before.");
                 document.AddParagraph("Keep after.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_output.docx");
@@ -656,7 +656,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Body stays stable.");
                 document.HeaderDefaultOrCreate.AddParagraph("Classification: Draft");
                 document.FooterDefaultOrCreate.AddParagraph("Footer note: Internal");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_header_footer_target.docx");
@@ -664,7 +664,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Body stays stable.");
                 document.HeaderDefaultOrCreate.AddParagraph("Classification: Final");
                 document.FooterDefaultOrCreate.AddParagraph("Footer note: Published");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_header_footer_output.docx");
@@ -711,7 +711,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Draft";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_header_table_cell_target.docx");
@@ -722,7 +722,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Final";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_header_table_cell_output.docx");
@@ -761,7 +761,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footer_table_row_target.docx");
@@ -774,7 +774,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Support";
                 table.Rows[2].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[2].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footer_table_row_output.docx");
@@ -813,14 +813,14 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Operations";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Archive";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Annual";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footer_table_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Body stays stable.");
                 document.FooterDefaultOrCreate.AddParagraph("Footer remains.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footer_table_deleted_output.docx");
@@ -857,14 +857,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Body footnote anchor").AddFootNote("Source footnote text");
                 document.AddParagraph("Body endnote anchor").AddEndNote("Source endnote text");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_notes_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Body footnote anchor").AddFootNote("Target footnote text");
                 document.AddParagraph("Body endnote anchor").AddEndNote("Target endnote text");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_notes_output.docx");
@@ -911,14 +911,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Body footnote table anchor").AddFootNote("Source footnote table");
                 ReplaceLastFootnoteWithTable(document, new[] { "Control", "Owner" }, new[] { "Retention", "Legal" });
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footnote_table_cell_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Body footnote table anchor").AddFootNote("Target footnote table");
                 ReplaceLastFootnoteWithTable(document, new[] { "Control", "Owner" }, new[] { "Retention", "Compliance" });
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footnote_table_cell_output.docx");
@@ -953,14 +953,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Body endnote table anchor").AddEndNote("Source endnote table");
                 ReplaceLastEndnoteWithTable(document, new[] { "Control", "Owner" }, new[] { "Retention", "Legal" });
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_endnote_table_row_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Body endnote table anchor").AddEndNote("Target endnote table");
                 ReplaceLastEndnoteWithTable(document, new[] { "Control", "Owner" }, new[] { "Escalation", "Support" }, new[] { "Retention", "Legal" });
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_endnote_table_row_output.docx");
@@ -995,13 +995,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Body deleted footnote table anchor").AddFootNote("Source footnote table");
                 ReplaceLastFootnoteWithTable(document, new[] { "Legacy", "Operations" }, new[] { "Archive", "Annual" });
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footnote_table_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Body deleted footnote table anchor").AddFootNote("Target footnote without table");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_footnote_table_deleted_output.docx");
@@ -1038,14 +1038,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 WordParagraph paragraph = document.AddParagraph("Client: ");
                 paragraph.AddStructuredDocumentTag("Contoso", "Client", "ClientName");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_content_control_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 WordParagraph paragraph = document.AddParagraph("Client: ");
                 paragraph.AddStructuredDocumentTag("Fabrikam", "Client", "ClientName");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_content_control_output.docx");
@@ -1087,13 +1087,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_textbox_content_control_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 AddTextBoxRunContentControl(document, "Pending");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_textbox_content_control_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 AddTextBoxRunContentControl(document, "Approved");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_textbox_content_control_output.docx");
@@ -1136,13 +1136,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_textbox_block_content_control_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 AddTextBoxBlockContentControl(document, "Legal review pending");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_textbox_block_content_control_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 AddTextBoxBlockContentControl(document, "Legal review approved");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_textbox_block_content_control_output.docx");
@@ -1188,7 +1188,7 @@ namespace OfficeIMO.Tests {
                 WordTable sourceTable = document.AddTable(1, 1);
                 sourceTable.Rows[0].Cells[0].Paragraphs[0].AddText("Client: ");
                 sourceTable.Rows[0].Cells[0].Paragraphs[0].AddStructuredDocumentTag("Contoso", "Client", "ClientName");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_content_control_target.docx");
@@ -1196,7 +1196,7 @@ namespace OfficeIMO.Tests {
                 WordTable targetTable = document.AddTable(1, 1);
                 targetTable.Rows[0].Cells[0].Paragraphs[0].AddText("Client: ");
                 targetTable.Rows[0].Cells[0].Paragraphs[0].AddStructuredDocumentTag("Fabrikam", "Client", "ClientName");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_content_control_output.docx");
@@ -1242,14 +1242,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 WordTable sourceTable = document.AddTable(1, 1);
                 ReplaceCellWithBlockContentControl(sourceTable.Rows[0].Cells[0], "Evidence pending");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_block_content_control_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 WordTable targetTable = document.AddTable(1, 1);
                 ReplaceCellWithBlockContentControl(targetTable.Rows[0].Cells[0], "Evidence approved");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_block_content_control_output.docx");
@@ -1296,7 +1296,7 @@ namespace OfficeIMO.Tests {
                 WordTable sourceTable = document.AddTable(1, 1);
                 sourceTable.Rows[0].Cells[0].Paragraphs[0].Text = "Cell pending";
                 WrapCellInCellContentControl(sourceTable.Rows[0].Cells[0], "CellStatus");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_cell_sdt_target.docx");
@@ -1304,7 +1304,7 @@ namespace OfficeIMO.Tests {
                 WordTable targetTable = document.AddTable(1, 1);
                 targetTable.Rows[0].Cells[0].Paragraphs[0].Text = "Cell approved";
                 WrapCellInCellContentControl(targetTable.Rows[0].Cells[0], "CellStatus");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_cell_sdt_output.docx");
@@ -1351,7 +1351,7 @@ namespace OfficeIMO.Tests {
                 WordTable sourceTable = document.AddTable(1, 1);
                 sourceTable.Rows[0].Cells[0].Paragraphs[0].Text = "Row pending";
                 WrapRowInRowContentControl(sourceTable.Rows[0], "RowStatus");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_row_sdt_target.docx");
@@ -1359,7 +1359,7 @@ namespace OfficeIMO.Tests {
                 WordTable targetTable = document.AddTable(1, 1);
                 targetTable.Rows[0].Cells[0].Paragraphs[0].Text = "Row approved";
                 WrapRowInRowContentControl(targetTable.Rows[0], "RowStatus");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_row_sdt_output.docx");
@@ -1404,13 +1404,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_content_control_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 AddNestedRunContentControl(document, "Contoso");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_content_control_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 AddNestedRunContentControl(document, "Fabrikam");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_content_control_output.docx");
@@ -1463,7 +1463,7 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Stable prefix ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateRunContentControl("Stable run", "StableRun", "Stable value")));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_block_before_run_control_target.docx");
@@ -1471,7 +1471,7 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Stable prefix ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateRunContentControl("Stable run", "StableRun", "Stable value")));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_block_before_run_control_output.docx");
@@ -1507,7 +1507,7 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Status: Draft") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(CreateNonImageDrawing())));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_mixed_paragraph_target.docx");
@@ -1515,7 +1515,7 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Status: Approved") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(CreateNonImageDrawing())));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_mixed_paragraph_output.docx");
@@ -1541,14 +1541,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_output.docx");
@@ -1589,7 +1589,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_non_image_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before drawing");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_non_image_target.docx");
@@ -1597,7 +1597,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Before drawing");
                 document._document.Body!.Append(new Paragraph(new Run(CreateNonImageDrawing())));
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_non_image_output.docx");
@@ -1661,13 +1661,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_output.docx");
@@ -1750,7 +1750,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddImage(deletedImage, 40, 40);
                 document.AddParagraph("C");
                 document.AddParagraph().AddImage(stableLastImage, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_target.docx");
@@ -1761,7 +1761,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddImage(stableFirstImage, 40, 40);
                 document.AddParagraph("C");
                 document.AddParagraph().AddImage(stableLastImage, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_output.docx");
@@ -1807,14 +1807,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_changed_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_changed_output.docx");
@@ -1860,14 +1860,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_inserted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_inserted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_inserted_output.docx");
@@ -1909,13 +1909,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_deleted_output.docx");
@@ -1958,14 +1958,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_changed_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
                 document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "Kulek.jpg"), 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_changed_output.docx");
@@ -2015,7 +2015,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_target.docx");
@@ -2025,7 +2025,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Compliance";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_output.docx");
@@ -2064,7 +2064,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Deprecated";
                 table.Rows[0].Cells[1]._tableCell.GetFirstChild<TableCellProperties>()!.GridSpan = new GridSpan { Val = 2 };
                 table.Rows[0].Cells[2].Paragraphs[0].Text = "Owner";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_deleted_target.docx");
@@ -2072,7 +2072,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_deleted_output.docx");
@@ -2136,7 +2136,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_inserted_target.docx");
@@ -2145,7 +2145,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Priority";
                 table.Rows[0].Cells[2].Paragraphs[0].Text = "Owner";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_inserted_output.docx");
@@ -2183,7 +2183,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_row_inserted_target.docx");
@@ -2195,7 +2195,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Support";
                 table.Rows[2].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[2].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_row_inserted_output.docx");
@@ -2235,7 +2235,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Operations";
                 table.Rows[2].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[2].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_row_deleted_target.docx");
@@ -2245,7 +2245,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 table.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_row_deleted_output.docx");
@@ -2308,7 +2308,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Control";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_inserted_whole_target.docx");
@@ -2322,7 +2322,7 @@ namespace OfficeIMO.Tests {
                 inserted.Rows[0].Cells[1].Paragraphs[0].Text = "Support";
                 inserted.Rows[1].Cells[0].Paragraphs[0].Text = "Review";
                 inserted.Rows[1].Cells[1].Paragraphs[0].Text = "Quarterly";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_inserted_whole_output.docx");
@@ -2365,7 +2365,7 @@ namespace OfficeIMO.Tests {
                 deleted.Rows[0].Cells[1].Paragraphs[0].Text = "Operations";
                 deleted.Rows[1].Cells[0].Paragraphs[0].Text = "Archive";
                 deleted.Rows[1].Cells[1].Paragraphs[0].Text = "Annual";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_deleted_whole_target.docx");
@@ -2374,7 +2374,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Control";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_deleted_whole_output.docx");
@@ -2411,7 +2411,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 WordTable outer = document.AddTable(1, 1);
                 outer.Rows[0].Cells[0].Paragraphs[0].Text = "Nested controls";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_inserted_target.docx");
@@ -2423,7 +2423,7 @@ namespace OfficeIMO.Tests {
                 nested.Rows[0].Cells[1].Paragraphs[0].Text = "Support";
                 nested.Rows[1].Cells[0].Paragraphs[0].Text = "Review";
                 nested.Rows[1].Cells[1].Paragraphs[0].Text = "Quarterly";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_inserted_output.docx");
@@ -2469,7 +2469,7 @@ namespace OfficeIMO.Tests {
                 nested.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 nested.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 nested.Rows[1].Cells[1].Paragraphs[0].Text = "Legal";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_cell_modified_target.docx");
@@ -2481,7 +2481,7 @@ namespace OfficeIMO.Tests {
                 nested.Rows[0].Cells[1].Paragraphs[0].Text = "Owner";
                 nested.Rows[1].Cells[0].Paragraphs[0].Text = "Retention";
                 nested.Rows[1].Cells[1].Paragraphs[0].Text = "Compliance";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_cell_modified_output.docx");
@@ -2527,14 +2527,14 @@ namespace OfficeIMO.Tests {
                 nested.Rows[0].Cells[1].Paragraphs[0].Text = "Operations";
                 nested.Rows[1].Cells[0].Paragraphs[0].Text = "Archive";
                 nested.Rows[1].Cells[1].Paragraphs[0].Text = "Annual";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 WordTable outer = document.AddTable(1, 1);
                 outer.Rows[0].Cells[0].Paragraphs[0].Text = "Nested controls";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_output.docx");
@@ -2582,7 +2582,7 @@ namespace OfficeIMO.Tests {
                 outer.Rows[1].Cells[2].Paragraphs[0].Text = "After";
                 WordTable nested = outer.Rows[1].Cells[1].AddTable(1, 1);
                 nested.Rows[0].Cells[0].Paragraphs[0].Text = "Retired matrix";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_cell_drift_target.docx");
@@ -2597,7 +2597,7 @@ namespace OfficeIMO.Tests {
                 outer.Rows[2].Cells[1].Paragraphs[0].Text = "Inserted cell";
                 outer.Rows[2].Cells[2].Paragraphs[0].Text = "Nested owner";
                 outer.Rows[2].Cells[3].Paragraphs[0].Text = "After";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_cell_drift_output.docx");
@@ -2648,7 +2648,7 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(table);
             }
 
-            document.Save(false);
+            document.Save();
         }
 
         private static Table CreateComparisonTable(params string[][] rows) {
@@ -2697,7 +2697,7 @@ namespace OfficeIMO.Tests {
                     document.AddParagraph().AddImage(imagePath, 80, 40);
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);

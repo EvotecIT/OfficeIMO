@@ -15,12 +15,12 @@ namespace OfficeIMO.Examples.Word {
                 document.FindAndReplace("KEY", "Line1\nLine2");
 
                 Console.WriteLine($"Paragraph text: {paragraph.Text.Replace(Environment.NewLine, "\\n")}");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Reloaded paragraph text: {document.Paragraphs[0].Text.Replace(Environment.NewLine, "\\n")}");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

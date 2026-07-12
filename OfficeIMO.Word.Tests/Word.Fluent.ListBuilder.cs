@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                                  .Item("Beta").Indent().Item("Beta.Child").Outdent()
                                  .Item("Gamma"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                                      .Item("alpha")
                                      .Item("beta"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

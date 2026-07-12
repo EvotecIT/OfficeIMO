@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 WordList cloned = list.Clone();
                 cloned.AddItem("Item 3 from clone");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

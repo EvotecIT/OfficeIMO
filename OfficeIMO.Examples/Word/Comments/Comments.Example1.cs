@@ -18,11 +18,11 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

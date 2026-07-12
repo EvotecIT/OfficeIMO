@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("This is my test");
 
-                document.Save(false);
+                document.Save();
             }
         }
 

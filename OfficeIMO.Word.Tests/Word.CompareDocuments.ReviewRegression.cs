@@ -52,14 +52,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Repeated").AddBookmark("SharedBookmark");
                 document.AddParagraph("Repeated");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_bookmark_moved_same_text_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Repeated");
                 document.AddParagraph("Repeated").AddBookmark("SharedBookmark");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -78,13 +78,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph("Header bookmark").AddBookmark("HeaderOnly");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_bookmark_cross_part_insert_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Body bookmark").AddBookmark("BodyOnly");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_bookmark_range_separator_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("FirstSecond").AddBookmark("RangeBookmark");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_style_numbered_list_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Plain");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_style_numbered_list_target.docx");
@@ -174,14 +174,14 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 document.Sections[0].AddHeaderParagraph("Tracked header", removeExistingParagraphs: true)
                     .AddInsertedText("Header revision", "OfficeIMO Tests", new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_revision_ignore_location_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Tracked body")
                     .AddInsertedText("Body revision", "OfficeIMO Tests", new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -226,14 +226,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_run_format_insert_before_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Stable run");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_run_format_insert_before_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Inserted before");
                 document.AddParagraph("Stable run").Bold = true;
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_run_format_insert_before_output.docx");
@@ -260,14 +260,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
                 document.AddParagraph("Stable text");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
                 document.AddParagraph("Changed text");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_output.docx");
@@ -294,13 +294,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_paragraph_format_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Formatted paragraph");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_paragraph_format_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Formatted paragraph").SetStyle(WordParagraphStyles.Heading1);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_paragraph_format_output.docx");
@@ -326,13 +326,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Removed before");
                 document.AddParagraph("Stable run");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_run_format_after_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Stable run").Bold = true;
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_run_format_after_deleted_output.docx");
@@ -360,14 +360,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Same");
                 document.AddParagraph("Same").Italic = true;
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_duplicate_run_format_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Same");
                 document.AddParagraph("Same").Bold = true;
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_duplicate_run_format_output.docx");
@@ -398,14 +398,14 @@ namespace OfficeIMO.Tests {
                     new Run(
                         new RunProperties(new Bold()),
                         new Text("B") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_resegmented_run_format_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("AB") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_resegmented_run_format_output.docx");
@@ -437,13 +437,13 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddImage(firstImage, 40, 40);
                 document.AddParagraph().AddImage(secondImage, 40, 40);
                 document.AddParagraph().AddImage(stableImage, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph().AddImage(stableImage, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_output.docx");
@@ -470,13 +470,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph().AddImage(imagePath, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Target keeps only text");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_output.docx");
@@ -503,7 +503,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph().AddImage(imagePath, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_target.docx");
@@ -511,7 +511,7 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph("Header remains");
                 document.AddParagraph().AddImage(imagePath, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_output.docx");
@@ -538,7 +538,7 @@ namespace OfficeIMO.Tests {
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 header.RemoveAllChildren();
                 header.Append(new Paragraph(new Run(new Text("Deleted header paragraph") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_target.docx");
@@ -547,7 +547,7 @@ namespace OfficeIMO.Tests {
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 header.RemoveAllChildren();
                 header.Append(CreateSingleCellTable("Header table remains"));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_output.docx");
@@ -573,13 +573,13 @@ namespace OfficeIMO.Tests {
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Deleted A";
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Deleted B";
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable C";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_order_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable C";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_order_output.docx");
@@ -605,13 +605,13 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(CreateSingleCellTable(
                     "Parent stable",
                     CreateSingleCellTable("Nested deleted")));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_nested_table_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document._document.Body!.Append(CreateSingleCellTable("Parent stable"));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_nested_table_output.docx");
@@ -638,13 +638,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Deleted table";
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable old";
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_before_cell_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable new";
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_before_cell_output.docx");
@@ -671,14 +671,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph().AddStructuredDocumentTag("Header deleted", "Header", "HeaderTag");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph("Header remains");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_output.docx");
@@ -702,7 +702,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_footnote_sdt_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
-                document.Save(false);
+                document.Save();
             }
 
             AddContentControlToFirstFootnote(sourcePath, "Deleted note control");
@@ -710,7 +710,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_footnote_sdt_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_footnote_sdt_output.docx");
@@ -739,7 +739,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph().AddImage(imagePath, 80, 40);
                 document.AddParagraph().AddImage(stableImagePath, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             AddDrawingImageHyperlinkClick(sourcePath, "https://evotec.xyz/deleted-image");
@@ -747,7 +747,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph().AddImage(stableImagePath, 40, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_output.docx");
@@ -775,7 +775,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_paragraph_hyperlink_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document._document.Body!.Append(new Paragraph(new Run(new Text("Original link text") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_paragraph_hyperlink_target.docx");
@@ -785,7 +785,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Text("Changed link text") { Space = SpaceProcessingModeValues.Preserve })) {
                         Anchor = "ChangedBookmark"
                     }));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_paragraph_hyperlink_output.docx");
@@ -814,13 +814,13 @@ namespace OfficeIMO.Tests {
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Keep") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new Text(" deleted") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_trailing_deleted_run_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document._document.Body!.Append(new Paragraph(new Run(new Text("Keep") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_trailing_deleted_run_output.docx");
@@ -885,7 +885,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_deleted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("No content controls remain.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_deleted_output.docx");
@@ -998,7 +998,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document._document.Body!.RemoveAllChildren<Paragraph>();
                 document._document.Body!.Append(CreateParagraphWithAuthorAndRawTocFields());
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1024,7 +1024,7 @@ namespace OfficeIMO.Tests {
                     new SimpleField(new Run(new Text("No entries") { Space = SpaceProcessingModeValues.Preserve })) {
                         Instruction = " TOC \\o \"1-3\" \\h \\z \\u "
                     }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1052,7 +1052,7 @@ namespace OfficeIMO.Tests {
                     new Run(new Text("No entries") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
                     new Run(new Text("After complex TOC") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1084,7 +1084,7 @@ namespace OfficeIMO.Tests {
                     new Run(
                         new FieldChar { FieldCharType = FieldCharValues.End },
                         new Text("After complex TOC") { Space = SpaceProcessingModeValues.Preserve })));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1138,13 +1138,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_signed_target_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Original text");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_signed_target_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Changed text");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(targetPath, CreateSignatureXml());
@@ -1173,7 +1173,7 @@ namespace OfficeIMO.Tests {
                     new SimpleField(new Run(new Text("stale") { Space = SpaceProcessingModeValues.Preserve })) {
                         Instruction = " PAGE \\# \"000\" \\* MERGEFORMAT "
                     }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1194,14 +1194,14 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("B");
                 document.AddParagraph("C");
                 document.AddParagraph("D");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_order_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("A");
                 document.AddParagraph("D");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_order_output.docx");
@@ -1232,7 +1232,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("A");
                 document.AddParagraph("B");
                 document.AddParagraph("C");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_gap_target.docx");
@@ -1240,7 +1240,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("X");
                 document.AddParagraph("A");
                 document.AddParagraph("C");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_gap_output.docx");
@@ -1271,7 +1271,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_control_delimiter_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("No controlled content remains.");
-                document.Save(false);
+                document.Save();
             }
 
             string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_control_delimiter_output.docx");
@@ -1339,7 +1339,7 @@ namespace OfficeIMO.Tests {
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" TITLE ") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests {
                         Author = "OfficeIMO Tests",
                         Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
                     }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1429,7 +1429,7 @@ namespace OfficeIMO.Tests {
                         Author = "OfficeIMO Tests",
                         Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
                     }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1451,7 +1451,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Comment target");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
@@ -1484,7 +1484,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Comment target");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
@@ -1509,7 +1509,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Comment target");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
@@ -1534,7 +1534,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Comment target");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
@@ -1582,7 +1582,7 @@ namespace OfficeIMO.Tests {
                     }));
             }
 
-            document.Save(false);
+            document.Save();
         }
 
         private static Comment CreateImportedComment(string id, string paragraphId) {
@@ -1662,7 +1662,7 @@ namespace OfficeIMO.Tests {
                             new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })))));
             }
 
-            document.Save(false);
+            document.Save();
         }
 
         private static void CreateNestedContentControlDocument(string path, string outerText, string childText) {
@@ -1680,7 +1680,7 @@ namespace OfficeIMO.Tests {
                                 new Tag { Val = "ChildTag" }),
                             new SdtContentRun(
                                 new Run(new Text(childText) { Space = SpaceProcessingModeValues.Preserve })))))));
-            document.Save(false);
+            document.Save();
         }
 
         private static void CreateFootnoteIdRegressionDocument(string path, params (int Id, string Anchor, string Text)[] notes) {
@@ -1702,7 +1702,7 @@ namespace OfficeIMO.Tests {
             }
 
             footnotesPart.Footnotes.Save();
-            document.Save(false);
+            document.Save();
         }
 
         private static void AppendImageToFootnote(string path, int noteId, string imagePath) {
@@ -1764,14 +1764,14 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Tracked ").AddInsertedText(insertedText, "OfficeIMO Tests", revisionDate);
             }
 
-            document.Save(false);
+            document.Save();
         }
 
         private static void CreateBookmarkRangeParagraphDocument(string path, string firstText, string secondText) {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph(firstText);
                 document.AddParagraph(secondText);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
@@ -1785,7 +1785,7 @@ namespace OfficeIMO.Tests {
         private static void CreateStyleNumberedListDocument(string path, string text) {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph(text);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
@@ -1883,7 +1883,7 @@ namespace OfficeIMO.Tests {
                         Instruction = " TITLE ",
                         FieldLock = true
                     }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

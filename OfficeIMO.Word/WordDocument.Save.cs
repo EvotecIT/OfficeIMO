@@ -16,25 +16,13 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordDocument : IDisposable {
 
-        /// <summary>
-        /// Open WordDocument in Microsoft Word (if Word is present)
-        /// </summary>
-        /// <param name="openWord"></param>
-        public void Open(bool openWord = true) {
-            this.Open("", openWord);
-        }
-
-        /// <summary>
-        /// Open WordDocument in Microsoft Word (if Word is present)
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="openWord"></param>
-        public void Open(string filePath = "", bool openWord = true) {
-            if (filePath == "") {
-                filePath = this.FilePath;
+        /// <summary>Opens the associated document in the operating system's registered application.</summary>
+        public void OpenInApplication(string? filePath = null) {
+            string target = string.IsNullOrEmpty(filePath) ? FilePath : filePath!;
+            if (string.IsNullOrEmpty(target)) {
+                throw new InvalidOperationException("The document has no associated file path.");
             }
-
-            Helpers.Open(filePath, openWord);
+            OfficeIMO.Core.OfficeFileLauncher.Open(target);
         }
 
         /// <summary>
@@ -65,23 +53,7 @@ namespace OfficeIMO.Word {
         }
 #pragma warning restore OOXML0001
 
-        /// <summary>
-        /// Save WordDocument to filePath (SaveAs), and open the file in Microsoft Word
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="openWord"></param>
-        /// <exception cref="InvalidOperationException"></exception>
-        public void Save(string filePath, bool openWord) {
-            Save(filePath, openWord, options: null);
-        }
-
-        /// <summary>
-        /// Save WordDocument to filePath (SaveAs), optionally opening the file in Microsoft Word.
-        /// </summary>
-        /// <param name="filePath">Destination path. When empty, uses the current <see cref="FilePath"/>.</param>
-        /// <param name="openWord">Whether to open Microsoft Word after saving.</param>
-        /// <param name="options">Optional save policy settings.</param>
-        public void Save(string filePath, bool openWord, WordSaveOptions? options) {
+        private void SaveFileCore(string filePath, WordSaveOptions? options) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
@@ -100,8 +72,8 @@ namespace OfficeIMO.Word {
 
                     if (IsLegacyDocPath(filePath)) {
                         SaveLegacyDocFile(filePath, options: options);
-                        if (openWord) {
-                            this.Open(filePath, true);
+                        if (options?.OpenAfterSave == true) {
+                            OpenInApplication(filePath);
                         }
 
                         return;
@@ -115,8 +87,8 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
-            if (openWord) {
-                this.Open(filePath, true);
+            if (options?.OpenAfterSave == true) {
+                OpenInApplication(filePath);
             }
         }
 
@@ -125,19 +97,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Destination path. When empty, uses the current <see cref="FilePath"/>.</param>
         /// <param name="password">Password used to encrypt the document package.</param>
-        /// <param name="openWord">Whether to open the saved file after writing.</param>
-        public void SaveEncrypted(string filePath, string password, bool openWord = false) {
-            SaveEncrypted(filePath, password, openWord, saveOptions: null);
-        }
-
-        /// <summary>
-        /// Saves the document as a password-encrypted Office Open XML package.
-        /// </summary>
-        /// <param name="filePath">Destination path. When empty, uses the current <see cref="FilePath"/>.</param>
-        /// <param name="password">Password used to encrypt the document package.</param>
-        /// <param name="openWord">Whether to open the saved file after writing.</param>
-        /// <param name="saveOptions">Optional save policy settings.</param>
-        public void SaveEncrypted(string filePath, string password, bool openWord, WordSaveOptions? saveOptions) {
+        /// <param name="saveOptions">Optional save settings, including whether to open the saved file.</param>
+        public void SaveEncrypted(string filePath, string password, WordSaveOptions? saveOptions = null) {
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (string.IsNullOrEmpty(filePath)) {
                 filePath = FilePath;
@@ -147,13 +108,13 @@ namespace OfficeIMO.Word {
             }
             EnsureDestinationFileWritable(filePath);
 
-            byte[] packageBytes = ToDocx(saveOptions);
+            byte[] packageBytes = ToBytes(WordFileFormat.Docx, saveOptions);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageBytes, password);
             OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
             FilePath = filePath;
 
-            if (openWord) {
-                Open(filePath, true);
+            if (saveOptions?.OpenAfterSave == true) {
+                OpenInApplication(filePath);
             }
         }
 
@@ -175,7 +136,7 @@ namespace OfficeIMO.Word {
         public void SaveEncrypted(Stream destination, string password, WordSaveOptions? saveOptions) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            byte[] packageBytes = ToDocx(saveOptions);
+            byte[] packageBytes = ToBytes(WordFileFormat.Docx, saveOptions);
             OfficeEncryption.EncryptPackageToStream(packageBytes, password, destination);
         }
 
@@ -183,7 +144,16 @@ namespace OfficeIMO.Word {
         /// Save WordDocument to where it was open from
         /// </summary>
         public void Save() {
-            this.Save(false);
+            Save(options: null);
+        }
+
+        /// <summary>Saves to the associated destination with optional save settings.</summary>
+        public void Save(WordSaveOptions? options) {
+            if (string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
+                Save(OriginalStream, options);
+            } else {
+                SaveFileCore(FilePath, options);
+            }
         }
 
         /// <summary>
@@ -191,7 +161,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath"></param>
         public void Save(string filePath) {
-            this.Save(filePath, false);
+            SaveFileCore(filePath, options: null);
         }
 
         /// <summary>
@@ -200,28 +170,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Destination path.</param>
         /// <param name="options">Optional save policy settings.</param>
         public void Save(string filePath, WordSaveOptions? options) {
-            this.Save(filePath, options?.OpenAfterSave == true, options);
-        }
-
-        /// <summary>
-        /// Save WordDocument and open it in Microsoft Word (if Word is present)
-        /// </summary>
-        /// <param name="openWord"></param>
-        public void Save(bool openWord) {
-            Save(openWord, options: null);
-        }
-
-        /// <summary>
-        /// Save WordDocument and optionally open it in Microsoft Word.
-        /// </summary>
-        /// <param name="openWord">Whether to open Microsoft Word after saving.</param>
-        /// <param name="options">Optional save policy settings.</param>
-        public void Save(bool openWord, WordSaveOptions? options) {
-            if (string.IsNullOrEmpty(this.FilePath) && this.OriginalStream != null) {
-                this.Save(this.OriginalStream, options);
-            } else {
-                this.Save("", openWord, options);
-            }
+            SaveFileCore(filePath, options);
         }
 
         // Note: Save() already normalizes table grids for consistent viewing across
@@ -247,7 +196,7 @@ namespace OfficeIMO.Word {
                 if (IsLegacyDocPath(filePath)) {
                     SaveLegacyDocFile(filePath, updateFilePath: false, options);
                     if (openWord) {
-                        Open(filePath, true);
+                        OpenInApplication(filePath);
                     }
 
                     WordDocument savedDocument = WordDocument.Load(filePath);
@@ -261,7 +210,7 @@ namespace OfficeIMO.Word {
             }
 
             if (openWord) {
-                Open(filePath, true);
+                OpenInApplication(filePath);
             }
 
             return WordDocument.Load(filePath);
@@ -275,40 +224,22 @@ namespace OfficeIMO.Word {
             return SaveCopyCore(filePath, options?.OpenAfterSave == true, options);
         }
 
-        /// <summary>Encodes the document as an Office Open XML DOCX package.</summary>
+        /// <summary>Encodes the document in the selected physical format.</summary>
+        /// <param name="format">DOCX or legacy DOC output.</param>
         /// <param name="options">Optional save policy settings.</param>
-        /// <returns>DOCX package bytes.</returns>
-        public byte[] ToDocx(WordSaveOptions? options = null) {
-            return ToWordBytes(WordFileFormat.Docx, options);
-        }
+        public byte[] ToBytes(WordFileFormat format = WordFileFormat.Docx, WordSaveOptions? options = null) =>
+            ToWordBytes(format, options);
 
-        /// <summary>Encodes the document as a Word 97-2003 binary DOC file.</summary>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <returns>DOC compound-file bytes.</returns>
-        public byte[] ToDoc(WordSaveOptions? options = null) {
-            return ToWordBytes(WordFileFormat.Doc, options);
-        }
-
-        /// <summary>Encodes the document as DOCX in a new memory stream.</summary>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <returns>A writable memory stream positioned at the beginning.</returns>
-        public MemoryStream ToDocxStream(WordSaveOptions? options = null) {
-            return new MemoryStream(ToDocx(options));
-        }
-
-        /// <summary>Encodes the document as DOC in a new memory stream.</summary>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <returns>A writable memory stream positioned at the beginning.</returns>
-        public MemoryStream ToDocStream(WordSaveOptions? options = null) {
-            return new MemoryStream(ToDoc(options));
-        }
+        /// <summary>Encodes the document in a new writable memory stream positioned at the beginning.</summary>
+        public MemoryStream ToStream(WordFileFormat format = WordFileFormat.Docx, WordSaveOptions? options = null) =>
+            new MemoryStream(ToBytes(format, options));
 
         private byte[] ToWordBytes(WordFileFormat format, WordSaveOptions? options) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
-            EnsureSignedDocumentSaveAllowed(options, format == WordFileFormat.Doc ? "ToDoc" : "ToDocx");
+            EnsureSignedDocumentSaveAllowed(options, "ToBytes");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -355,20 +286,9 @@ namespace OfficeIMO.Word {
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>
-        /// <param name="openWord">Whether to open Word after saving.</param>
+        /// <param name="options">Optional save settings, including whether to open the saved file.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task SaveAsync(string filePath, bool openWord, CancellationToken cancellationToken = default) {
-            await SaveAsync(filePath, openWord, options: null, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Asynchronously saves the document.
-        /// </summary>
-        /// <param name="filePath">Optional path to save to.</param>
-        /// <param name="openWord">Whether to open Word after saving.</param>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task SaveAsync(string filePath, bool openWord, WordSaveOptions? options, CancellationToken cancellationToken = default) {
+        private async Task SaveFileAsyncCore(string filePath, WordSaveOptions? options, CancellationToken cancellationToken) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
@@ -395,8 +315,8 @@ namespace OfficeIMO.Word {
                         byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath, options);
                         await OfficeFileCommit.WriteAllBytesAsync(filePath, legacyDocBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
                         FilePath = filePath;
-                        if (openWord) {
-                            this.Open(filePath, true);
+                        if (options?.OpenAfterSave == true) {
+                            OpenInApplication(filePath);
                         }
 
                         return;
@@ -415,8 +335,8 @@ namespace OfficeIMO.Word {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
-            if (openWord) {
-                this.Open(filePath, true);
+            if (options?.OpenAfterSave == true) {
+                OpenInApplication(filePath);
             }
         }
 
@@ -425,7 +345,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(CancellationToken cancellationToken = default) {
-            return SaveAsync("", false, cancellationToken);
+            return SaveAsync(options: null, cancellationToken);
+        }
+
+        /// <summary>Asynchronously saves to the associated destination with optional save settings.</summary>
+        public Task SaveAsync(WordSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
+                return SaveAsync(OriginalStream, options, cancellationToken);
+            }
+            return SaveFileAsyncCore(FilePath, options, cancellationToken);
         }
 
         /// <summary>
@@ -434,7 +362,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">The path to save the document to.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(string filePath, CancellationToken cancellationToken = default) {
-            return SaveAsync(filePath, false, cancellationToken);
+            return SaveFileAsyncCore(filePath, options: null, cancellationToken);
         }
 
         /// <summary>
@@ -444,26 +372,7 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional save policy settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(string filePath, WordSaveOptions? options, CancellationToken cancellationToken = default) {
-            return SaveAsync(filePath, false, options, cancellationToken);
-        }
-
-        /// <summary>
-        /// Asynchronously saves the document and opens it in Microsoft Word (if Word is present).
-        /// </summary>
-        /// <param name="openWord">Whether to open Word after saving.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public Task SaveAsync(bool openWord, CancellationToken cancellationToken = default) {
-            return SaveAsync("", openWord, cancellationToken);
-        }
-
-        /// <summary>
-        /// Asynchronously saves the document and opens it in Microsoft Word when requested.
-        /// </summary>
-        /// <param name="openWord">Whether to open Word after saving.</param>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public Task SaveAsync(bool openWord, WordSaveOptions? options, CancellationToken cancellationToken = default) {
-            return SaveAsync("", openWord, options, cancellationToken);
+            return SaveFileAsyncCore(filePath, options, cancellationToken);
         }
 
         /// <summary>

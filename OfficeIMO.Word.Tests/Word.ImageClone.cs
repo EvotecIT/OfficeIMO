@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(document._wordprocessingDocument!.MainDocumentPart);
             Assert.Single(document._wordprocessingDocument!.MainDocumentPart!.ImageParts);
 
-            document.Save(false);
+            document.Save();
         }
     }
 }

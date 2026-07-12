@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(documentPath)) {
                 document.AddParagraph("Signed package metadata preflight").Style = WordParagraphStyles.Heading1;
                 document.AddParagraph("OfficeIMO can inspect signature package metadata and block accidental saves by default.");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
 
             PremiumWorkflowExampleUtilities.AddSyntheticSignatureMetadata(documentPath);
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(documentPath)) {
                 document.AddParagraph("This edit is intentionally blocked by the default signed-document save policy.");
                 try {
-                    document.Save(false);
+                    document.Save();
                     savePolicyMessage = "Save unexpectedly succeeded.";
                 } catch (WordSignatureSavePolicyException ex) {
                     savePolicyMessage = ex.Message;

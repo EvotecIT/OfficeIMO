@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
                     new ExcelRichTextRun("Line one"),
                     new ExcelRichTextRun("line two") { Bold = true }
                 }, "Reviewer");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Reviewed");
                 sheet.CellValue(1, 4, "Outside");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Reviewed");
                 sheet.CellValue(1, 4, "Outside");
-                document.Save(false);
+                document.Save();
             }
 
             AddDrawingShapes(filePath);
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("ShapeVisual");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Reviewed");
-                document.Save(false);
+                document.Save();
             }
 
             AddSupportedDrawingShape(filePath);
@@ -343,7 +343,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("ShapeOnly");
                 sheet.CellValue(1, 1, "Only cell");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Outside used range", "Outside used range");
@@ -376,7 +376,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("UnsupportedOnly");
                 sheet.CellValue(1, 1, "Only cell");
-                document.Save(false);
+                document.Save();
             }
 
             AddDrawingShapes(filePath);
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(2, 8D);
                 sheet.SetColumnWidth(3, 8D);
                 sheet.CellValue(1, 1, "Only cell");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Offset shape", "Offset shape", offsetXPixels: 90, toColumn: 3, toRow: 3);
@@ -427,7 +427,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(2, 8);
                 sheet.SetRowHeight(1, 24);
                 sheet.CellValue(1, 2, "Shape area");
-                document.Save(false);
+                document.Save();
             }
 
             AppendAbsoluteDrawingShape(filePath, "Absolute shape", "Absolute shape", xPixels: 80, yPixels: 12, widthPixels: 96, heightPixels: 34);
@@ -454,7 +454,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("ThemeShape");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Themed shape");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("OutlineStyle");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Styled outline");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -537,7 +537,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("ShapeEffects");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Styled effects");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -590,7 +590,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("ShapeBreaks");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Shape breaks");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Break shape", "Line 1", textHardBreak: true);
@@ -612,7 +612,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("DefaultStyle");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Default styled shape");
-                document.Save(false);
+                document.Save();
             }
 
             AppendDefaultStyledDrawingShape(filePath, "Default styled shape", "Styled shape");
@@ -640,7 +640,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("PresetShape");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Shared heart");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -698,7 +698,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddWorkSheet("FlowchartShape");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 2, expectedName);
-                    document.Save(false);
+                    document.Save();
                 }
 
                 AppendSupportedDrawingShape(
@@ -733,7 +733,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("RotatedShape");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Rotated heart");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -781,7 +781,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("RotatedText");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Rotated label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -819,7 +819,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("AlignedText");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Aligned label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -857,7 +857,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("TextColor");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Colored label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -893,7 +893,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("TextFont");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Styled label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -940,7 +940,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("TextWrap");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -984,7 +984,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("TextInsets");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1025,7 +1025,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("TextShrink");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1065,7 +1065,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("TextAutoFit");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1104,7 +1104,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("VerticalText");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1147,7 +1147,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.AddWorkSheet("Vertical270");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1201,7 +1201,7 @@ namespace OfficeIMO.Tests {
                     sheet.AddImage(2, 2, redBadge, "image/png", widthPixels: 120, heightPixels: 48, name: "Red badge");
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Layer shape", string.Empty);
@@ -1209,7 +1209,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.Load(filePath);
                 ExcelSheet sheet = document.Sheets.Single();
                 sheet.AddImage(2, 2, redBadge, "image/png", widthPixels: 120, heightPixels: 48, name: "Red badge");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {

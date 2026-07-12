@@ -31,7 +31,7 @@ internal static partial class CleanupDocuments {
 
             Console.WriteLine("Paragraphs count: " + document.Paragraphs.Count);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

@@ -21,9 +21,9 @@ namespace OfficeIMO.Examples.Word {
                             .MaxWidth(300)
                             .Align(HorizontalAlignment.Right))
                     .End();
-                document.Save(false);
+                document.Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

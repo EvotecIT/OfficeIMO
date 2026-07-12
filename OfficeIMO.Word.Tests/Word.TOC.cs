@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 2, "Number of paragraphs on 1st section is wrong.");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTOC.docx"))) {
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Lists[0].ListItems[document.Lists[0].ListItems.Count - 1].Text == document.Paragraphs[document.Paragraphs.Count - 1].Text, "Text should be identical");
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
                 var tocList = document.AddTableOfContentList(WordListStyle.Numbered);
                 tocList.AddItem("First", -2);
                 tocList.AddItem("Last", 10);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 document.AddTableOfContent();
                 document.AutoUpdateToc = true;
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -242,7 +242,7 @@ namespace OfficeIMO.Tests {
                 heading.Style = WordParagraphStyles.Heading1;
 
                 toc.Update();
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

@@ -304,10 +304,10 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
         new ConversionCapability("PPTX to PDF", "Live browser", "PowerPointPresentation.Load(stream).SaveAsPdf(options)", "Presentation byte streams flow through OfficeIMO.PowerPoint.Pdf.", "ocx-chip--good"),
         new ConversionCapability("Markdown to HTML", "Live browser", "MarkdownRenderer.RenderBodyHtml(markdown)", "Text conversion can run fully in static WebAssembly and render immediately.", "ocx-chip--good"),
         new ConversionCapability("HTML to Markdown", "Live browser", "html.ToMarkdown(HtmlToMarkdownOptions)", "HTML ingestion maps headings, lists, links, tables, and fallback HTML into Markdown.", "ocx-chip--good"),
-        new ConversionCapability("Markdown to DOCX", "Live browser", "markdown.LoadFromMarkdown().ToDocx()", "Generates a downloadable Word package from typed Markdown conversion.", "ocx-chip--good"),
+        new ConversionCapability("Markdown to DOCX", "Live browser", "markdown.LoadFromMarkdown().ToBytes()", "Generates a downloadable Word package from typed Markdown conversion.", "ocx-chip--good"),
         new ConversionCapability("DOCX to Markdown", "Next browser route", "WordDocument.Load(stream).ToMarkdown(options)", "Supported by OfficeIMO.Word.Markdown; needs upload/output UI and asset sidecar handling.", "ocx-chip--warn"),
         new ConversionCapability("DOCX to HTML", "Next browser route", "WordDocument.Load(stream).ToHtmlViaMarkdown(options)", "Supported through the Markdown bridge; needs preview/download wiring.", "ocx-chip--warn"),
-        new ConversionCapability("HTML to DOCX", "Next browser route", "html.LoadFromHtml().ToDocx()", "Completes the web-content bridge after HTML cleanup, styles, and image handling are validated.", "ocx-chip--warn"),
+        new ConversionCapability("HTML to DOCX", "Next browser route", "html.LoadFromHtml().ToBytes()", "Completes the web-content bridge after HTML cleanup, styles, and image handling are validated.", "ocx-chip--warn"),
         new ConversionCapability("Markdown to PDF", "Next browser route", "markdown.LoadFromMarkdown().SaveAsPdf(options)", "Should reuse Markdown to Word first, then the PDF engine, with font diagnostics visible.", "ocx-chip--warn"),
         new ConversionCapability("Excel to CSV / JSON / HTML", "Engine route", "ExcelDocument.Load(stream).Worksheets", "Good browser demo for sheet preview, table extraction, CSV export, JSON records, and HTML tables.", "ocx-chip--cold"),
         new ConversionCapability("CSV / JSON to Excel", "Engine route", "CsvDocument / ExcelDocument", "Useful for drag-and-drop data cleanup, schema validation, and workbook generation.", "ocx-chip--cold"),
@@ -409,7 +409,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
     private string MarkupEnginePath => MarkupMode switch {
         "markdown-html" => "MarkdownRenderer.RenderBodyHtml(markdown, options)",
         "html-markdown" => "html.ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile())",
-        "markdown-docx" => "markdown.LoadFromMarkdown(options).ToDocx()",
+        "markdown-docx" => "markdown.LoadFromMarkdown(options).ToBytes()",
         _ => "Select a text conversion route."
     };
 
@@ -600,7 +600,7 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
             PreferNarrativeSingleLineDefinitions = true
         });
 
-        byte[] bytes = document.ToDocx();
+        byte[] bytes = document.ToBytes();
         MarkupOutput = $"DOCX generated: {FormatBytes(bytes.Length)}. Use the download button to save it locally.";
         MarkupDownloadFileName = "officeimo-markdown.docx";
         MarkupDownloadLabel = "Download DOCX";

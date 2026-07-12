@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine($"Row height read from cell: {heightFromCell}");
                 Console.WriteLine($"Cell belongs to table style: {firstCell.ParentTable.Style}");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

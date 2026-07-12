@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.Excel
                 s.CellValue(3, 2, 20);
                 s.CellValue(3, 3, "New");
 
-                doc.Save(openExcel);
+                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
 
             // 2) Modify: read used range via sheet.Rows(), update cells and save again
@@ -63,7 +63,7 @@ namespace OfficeIMO.Examples.Excel
                         s.CellValue(3, 3, "Hold");
                     }
                 }
-                doc.Save(openExcel: openExcel);
+                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
 
             // 3) Read again and emit JSON lines for PowerShell consumption

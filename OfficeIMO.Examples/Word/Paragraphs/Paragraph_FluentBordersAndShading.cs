@@ -24,8 +24,8 @@ internal static partial class Paragraphs {
                     })
                     .Shading(Color.LightGray))
                 .End()
-                .Save(false);
+                .Save();
         }
-        Helpers.Open(filePath, openWord);
+        if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
     }
 }

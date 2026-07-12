@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraphInHeader = tableInHeader.Rows[0].Cells[1].AddParagraph();
             paragraphInHeader.AddImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

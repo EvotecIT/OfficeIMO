@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(8, updated);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(8, updated);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

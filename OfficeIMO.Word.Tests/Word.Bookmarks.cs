@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(bookmark.Bookmark!.Name == "Start");
 
                 Assert.True(bookmark1.Bookmark!.Name == "Middle0");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
                 document.ParagraphsBookmarks[2].Bookmark!.Name = "Middle6";
                 document.Bookmarks[1].Name = "MiddleDocument";
 
-                document.Save(false);
+                document.Save();
             }
 
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Bookmarks.Count == 6);
                 Assert.True(document.Paragraphs.Count == 17);
-                document.Save(false);
+                document.Save();
             }
         }
     }

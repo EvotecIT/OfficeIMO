@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph1.Text = "Test 3";
 
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

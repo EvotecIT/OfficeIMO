@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var items = new List<string> { "One", "Two", "Three" };
                 document.AddParagraph("Choose: ").AddDropDownList(items, "ListAlias", "ListTag");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

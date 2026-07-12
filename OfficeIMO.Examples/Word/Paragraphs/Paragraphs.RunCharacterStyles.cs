@@ -13,7 +13,7 @@ internal static partial class Paragraphs {
                 var paragraph = document.AddParagraph("Styled paragraph");
                 paragraph.SetCharacterStyle(WordCharacterStyles.Heading1Char);
                 paragraph.AddText(" with hyperlink style").SetCharacterStyleId("Hyperlink");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -28,7 +28,7 @@ internal static partial class Paragraphs {
                 var advanced = document.AddParagraph("Link example");
                 var run = advanced.AddText(" visit website");
                 run.SetCharacterStyleId("Hyperlink");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 }

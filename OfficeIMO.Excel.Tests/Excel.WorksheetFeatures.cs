@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetComment(1, 1, "First comment", author: "Tester", initials: "TT");
                 Assert.True(sheet.HasComment(1, 1));
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(sheet.HasComment(1, 1));
                 sheet.ClearComment("A1");
                 Assert.False(sheet.HasComment(1, 1));
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Comments");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetComment(1, 1, "Line 1\nLine 2", author: "Tester", initials: "TT");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(sheet.HasComment(1, 1));
                 Assert.True(sheet.HasComment(2, 2));
                 Assert.True(sheet.HasComment(3, 3));
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                     author: "Bob",
                     initials: "BB");
                 Assert.Equal(1, updated);
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Threaded");
                 sheet.CellValue(1, 1, "Revenue");
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 var feature = Assert.Single(document.InspectFeatures().FindFeatures("Threaded comments"));
                 Assert.Equal(ExcelFeatureSupportLevel.Preserved, feature.SupportLevel);
                 Assert.Equal(1, feature.Count);
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("Logo", sheet.GetImage("Logo")?.Name);
                 Assert.Single(sheet.Images);
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
                 };
                 sheet.Protect(options);
                 Assert.True(sheet.IsProtected);
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.Sheets.First();
                 sheet.Unprotect();
                 Assert.False(sheet.IsProtected);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 sheet.AddSparklines("B2:G2", "H2:H2", displayMarkers: true, seriesColor: "#FF0000");
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
                     .Axis()
                     .Color("#4472C4")
                     .At("H2:H2");
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -412,7 +412,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 sheet.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: "#FF0000");
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 sheet.AddSparklines("C2:D4", "C5:D5", displayMarkers: true, seriesColor: "#FF0000");
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -488,7 +488,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Gridlines");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetGridlinesVisible(false);
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -503,7 +503,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
                 sheet.SetGridlinesVisible(true);
-                document.Save(false);
+                document.Save();
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "RTL");
                 sheet.SetRightToLeft(true);
                 Assert.True(sheet.RightToLeft);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -543,7 +543,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(sheet.RightToLeft);
                 sheet.SetRightToLeft(false);
                 Assert.False(sheet.RightToLeft);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -569,7 +569,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(18.5d, sheet.DefaultRowHeight);
                 Assert.False(sheet.DefaultRowsHidden);
                 Assert.Equal(12.25d, sheet.DefaultColumnWidth);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -594,7 +594,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(21d, sheet.DefaultRowHeight);
                 Assert.True(sheet.DefaultRowsHidden);
                 Assert.Equal(14d, sheet.DefaultColumnWidth);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -620,7 +620,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Grouped");
                 sheet.SetRowOutline(3, 2, collapsed: true);
                 sheet.SetColumnOutline(2, 1, collapsed: true);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -664,7 +664,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Colored");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetTabColor("#336699");
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.First();
                 sheet.ClearTabColor();
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -700,7 +700,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetVeryHidden(true);
                 Assert.True(sheet.Hidden);
                 Assert.True(sheet.VeryHidden);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -717,7 +717,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetVeryHidden(false);
                 Assert.False(sheet.Hidden);
                 Assert.False(sheet.VeryHidden);
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -737,7 +737,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Header");
                 sheet.Freeze(2, 1);
                 sheet.SetGridlinesVisible(false);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -765,7 +765,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetViewOptions(showGridlines: false, rightToLeft: true, zoomScale: 125, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -827,7 +827,7 @@ namespace OfficeIMO.Tests {
                 var archive = document.AddWorkSheet("Archive");
                 archive.CellValue(1, 1, "Archive");
                 document.SetActiveWorksheet(details);
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -872,7 +872,7 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows, A1.MaxRows, outlineLevel: 1, collapsed: true));
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupRows(A1.MaxRows + 1, A1.MaxRows + 1));
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.GroupColumns(A1.MaxColumns + 1, A1.MaxColumns + 1));
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.ParagraphsStructuredDocumentTags.Count == 1);
                 Assert.Equal("Hello world", sdt.Text);
 
-                document.Save(false);
+                document.Save();
 
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Hello world", document.StructuredDocumentTags[0].Text);
 
                 document.StructuredDocumentTags[0].Text = "Changed";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 var sdt = document.AddStructuredDocumentTag("Hello", "Alias1", "Tag1");
 
                 Assert.Equal("Tag1", sdt.Tag);
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Hello", loaded.Text);
 
                 loaded.Text = "Updated";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 var sdt = document.AddStructuredDocumentTag("Hello", "Alias100", "Tag100");
 
                 Assert.NotNull(document.GetStructuredDocumentTagByAlias("Alias100"));
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                 var alias = document.GetStructuredDocumentTagByAlias("Alias100");
                 Assert.NotNull(alias);
                 alias.Text = "Updated";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                     .SetColorHex("C00000")
                     .SetHighlight(HighlightColorValues.LightGray);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(run);
                 Assert.Equal("Paragraph setter text", run!.GetFirstChild<Text>()?.Text);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 

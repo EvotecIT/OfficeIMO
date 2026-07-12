@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             agenda.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 
             presentation.Save();
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

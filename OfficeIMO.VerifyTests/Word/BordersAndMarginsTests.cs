@@ -40,7 +40,7 @@ public class BordersAndMarginsTests : VerifyTestBase {
         document.Sections[0].Borders.BottomColor = Color.Blue;
         document.Sections[0].Borders.BottomSize = 15;
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -57,7 +57,7 @@ public class BordersAndMarginsTests : VerifyTestBase {
         document.AddSection();
         document.Sections[1].SetBorders(WordBorder.Shadow);
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
     }
@@ -84,7 +84,7 @@ public class BordersAndMarginsTests : VerifyTestBase {
         document.Sections[4].SetMargins(WordMargin.Wide);
         document.AddParagraph("Section 4");
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
     }

@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var p3 = document.AddParagraph("Line below");
                 p3.AddLine(0, 0, 120, 0, Color.Blue, 2);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Excel
                 sheet.CellValue(3, 4, 7);
                 sheet.CellValue(3, 5, "Second order");
 
-                doc.Save(openExcel: openExcel);
+                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
 
             // 2) Use a simple preset so the example stays short

@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, 20);
                 sheet.AddTable("A1:A3", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
                 sheet.CellFormula(2, 3, "SUM(Sales[Amount])");
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { SafePreflight = true });
+                document.Save(filePath, new ExcelSaveOptions { SafePreflight = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, 10);
                 sheet.CellFormula(1, 2, "A1*2");
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
+                document.Save(filePath, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(results);
                 Assert.True(results[0].Applied);
                 Assert.Equal(2, results[0].ColumnIndex);
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { DisableFastPackageWriter = true });
+                document.Save(filePath, new ExcelSaveOptions { DisableFastPackageWriter = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(results);
                 Assert.True(results[0].Applied);
                 Assert.Equal(2, results[0].ColumnIndex);
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { DisableFastPackageWriter = true });
+                document.Save(filePath, new ExcelSaveOptions { DisableFastPackageWriter = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);

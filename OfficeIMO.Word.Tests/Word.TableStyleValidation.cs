@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             Assert.True(table.ConditionalFormattingNoHorizontalBand);
             Assert.False(table.ConditionalFormattingNoVerticalBand);
 
-            using MemoryStream stream = document.ToDocxStream();
+            using MemoryStream stream = document.ToStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             Assert.False(table.ConditionalFormattingFirstRow);
             Assert.True(table.ConditionalFormattingLastRow);
 
-            using MemoryStream stream = document.ToDocxStream();
+            using MemoryStream stream = document.ToStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var tableLook = package.MainDocumentPart!.Document.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableLook>().Single();
             Assert.Equal("04C0", tableLook.Val!.Value);

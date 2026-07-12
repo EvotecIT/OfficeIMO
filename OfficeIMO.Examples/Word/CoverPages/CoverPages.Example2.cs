@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
 
                 tableOfContent.Update();
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

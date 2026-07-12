@@ -1008,7 +1008,7 @@ namespace OfficeIMO.Tests {
             cancellation.Cancel();
 
             await Assert.ThrowsAsync<OperationCanceledException>(() =>
-                document.SaveAsync(filePath, openExcel: false, options: null, cancellationToken: cancellation.Token));
+                document.SaveAsync(filePath, null, cancellation.Token));
         }
 
         [Fact]
@@ -1046,7 +1046,7 @@ namespace OfficeIMO.Tests {
             cancellation.Cancel();
 
             await Assert.ThrowsAsync<OperationCanceledException>(() =>
-                document.SaveAsync(filePath, openExcel: false, options: null, cancellationToken: cancellation.Token));
+                document.SaveAsync(filePath, null, cancellation.Token));
         }
 
         [Fact]
@@ -1521,12 +1521,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_StreamCreateClose_PersistsWorkbook() {
+        public void PerformanceReview_StreamCreateDispose_PersistsWorkbook() {
             using var memory = new MemoryStream();
 
             var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose });
             document.AddWorkSheet("Data").CellValue(1, 1, "Closed");
-            document.Close();
+            document.Dispose();
 
             memory.Position = 0;
             using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
@@ -4589,7 +4589,7 @@ namespace OfficeIMO.Tests {
                         rowFields: new[] { "Name" },
                         dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
 
-                    document.Save(path, openExcel: false, options: null);
+                    document.Save(path, null);
 
                     Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
                     Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);

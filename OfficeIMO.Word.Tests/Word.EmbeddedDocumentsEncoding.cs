@@ -13,7 +13,7 @@ public partial class Word {
 
         using (var document = WordDocument.Create(filePath)) {
             document.AddEmbeddedFragment(html, WordAlternativeFormatImportPartType.Html);
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {

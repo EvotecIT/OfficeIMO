@@ -21,9 +21,9 @@ namespace OfficeIMO.Examples.Word {
                                  .Item("Beta").Indent().Item("Beta.Child").Outdent()
                                  .Item("Gamma"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

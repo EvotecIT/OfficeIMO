@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
                 }
                 Console.WriteLine("Watermarks after: " + document.Watermarks.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

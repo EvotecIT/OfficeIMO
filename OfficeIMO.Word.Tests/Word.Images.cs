@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(4, document.Images.Count);
             Assert.Equal(4, document.Sections[0].Images.Count);
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Images);
                 Assert.True(document.Images[0].Width > 0);
                 Assert.True(document.Images[0].Height > 0);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 100, 40);
                 document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 100, 100);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
                 document.Images[0].Shape = ShapeTypeValues.Cloud;
 
                 Assert.True(document.Images[0].Shape == ShapeTypeValues.Cloud);
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(document.Paragraphs[6].Image);
             Assert.True(document.Paragraphs[6].Image!.WrapText == WrapTextImage.Through);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -399,7 +399,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(vRelativeFromGood, secondParaImage.verticalPosition.RelativeFrom?.Value ?? default);
             Assert.NotEqual(vRelativeFromFail, secondParaImage.verticalPosition.RelativeFrom?.Value ?? default);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(defaultHeader.Tables.Count == 1);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
 
@@ -470,7 +470,7 @@ namespace OfficeIMO.Tests {
             paragraph5.Bold = true;
 
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddImageFromBase64(base64, "Kulek.jpg", 50, 50);
 
             Assert.Single(document.Images);
-            document.Save(false);
+            document.Save();
         }
 
         [Fact]
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(image);
             image!.Transparency = 25;
 
-            document.Save(false);
+            document.Save();
 
             using (var reloaded = WordDocument.Load(filePath)) {
                 Assert.Equal(25, reloaded.Images[0].Transparency);
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(image);
             image!.Transparency = 50;
 
-            document.Save(false);
+            document.Save();
 
             using (var reloaded = WordDocument.Load(filePath)) {
                 Assert.Equal(50, reloaded.Images[0].Transparency);
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph();
             paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
 
-            document.Save(false);
+            document.Save();
 
             using (var reloaded = WordDocument.Load(filePath)) {
                 Assert.Null(reloaded.Images[0].Transparency);
@@ -576,7 +576,7 @@ namespace OfficeIMO.Tests {
             image.CropLeftCentimeters = 3;
             image.CropRightCentimeters = 4;
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(image);
                 image!.FillMode = ImageFillMode.Tile;
                 image.UseLocalDpi = true;
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -625,7 +625,7 @@ namespace OfficeIMO.Tests {
                 var image = paragraph.Image;
                 Assert.NotNull(image);
                 image!.FillMode = ImageFillMode.Fit;
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 var image = paragraph.Image;
                 Assert.NotNull(image);
                 image!.FillMode = ImageFillMode.Center;
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<InvalidOperationException>(() => extImage.SaveToFile("tmp.png"));
                 extImage.Remove();
                 Assert.Empty(document.Images);
-                document.Save(false);
+                document.Save();
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
@@ -704,7 +704,7 @@ namespace OfficeIMO.Tests {
                 image.PreferRelativeResize = true;
                 image.NoChangeAspect = true;
                 image.FixedOpacity = 80;
-                document.Save(false);
+                document.Save();
             }
 
             using (var pkg = WordprocessingDocument.Open(filePath, false)) {
@@ -743,7 +743,7 @@ namespace OfficeIMO.Tests {
                 img.LuminanceContrast = 30;
                 img.TintAmount = 50;
                 img.TintHue = 300;
-                document.Save(false);
+                document.Save();
             }
 
             using (var reloaded = WordDocument.Load(filePath)) {

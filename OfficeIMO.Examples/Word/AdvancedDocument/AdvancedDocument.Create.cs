@@ -113,7 +113,7 @@ namespace OfficeIMO.Examples.Word {
                 var elementsByType = document.ElementsByType;
                 Console.WriteLine("ElementsByType count in the end: " + elementsByType.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

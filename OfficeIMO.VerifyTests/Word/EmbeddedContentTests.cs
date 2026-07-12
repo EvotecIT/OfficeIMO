@@ -10,7 +10,7 @@ namespace OfficeIMO.VerifyTests.Word;
 
 public class EmbeddedContentTests : VerifyTestBase {
     private static async Task DoTest(WordDocument document) {
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         var result = await ToVerifyResult(document._wordprocessingDocument);
         await Verifier.Verify(result, GetSettings());

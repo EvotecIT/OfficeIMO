@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Reviewed: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Reviewed\"" });
                 document.AddParagraph("Due: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Due \\@ \"yyyy-MM-dd\" ", "stale-due"));
                 document.AddParagraph("File: ").AddField(WordFieldType.FileName);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 AssertDocPropertyUpdated(report, "Reviewed", "True");
                 AssertDocPropertyUpdated(report, "Due", "2024-02-03");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
                 document.SetDocumentVariable("Case.Id", "INC-42");
                 document.AddParagraph("Client: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Client.Name ", "stale-client"));
                 document.AddParagraph("Case: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE Case.Id ", "stale-case"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Case-insensitive: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE clientname ", "stale-client-lower"));
                 document.AddParagraph("Formatted: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE Status \\* Upper ", "stale-status"));
                 document.AddParagraph("Missing: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE MissingVariable ", "stale-missing"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
                     result.InstructionText.Contains("MissingVariable", StringComparison.Ordinal) &&
                     result.ResultText == null);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -195,14 +195,14 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Padded quote: ")._paragraph.Append(BuildSimpleField(" QUOTE \" padded value \" ", "stale"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
                 AssertUpdated(report, WordFieldType.Quote, " padded value ");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -219,14 +219,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
                 document.AddParagraph("Author: ")._paragraph.Append(new SimpleField { Instruction = " AUTHOR " });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
                 AssertUpdated(report, WordFieldType.Author, "Ada Lovelace");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Roman total pages: ")._paragraph.Append(BuildSimpleField(" NUMPAGES \\* Roman ", "stale-total-roman"));
                 document.AddParagraph("Unsupported: ").AddField(WordFieldType.Database);
                 document.AddParagraph()._paragraph.Append(BuildSimpleField(" SILLYFIELD value ", "Unknown"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(parseError.FieldType);
                 Assert.Contains("couldn't be processed", parseError.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Upper file: ")._paragraph.Append(BuildSimpleField(" FILENAME \\* Upper ", "stale-upper"));
                 document.AddParagraph("Lower path: ")._paragraph.Append(BuildSimpleField(" FILENAME \\p \\* Lower ", "stale-lower"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
                 WordSection thirdSection = document.AddSection(SectionMarkValues.Continuous);
                 thirdSection.AddParagraph("Third section: ").AddField(WordFieldType.Section);
                 thirdSection.AddParagraph("Third section pages: ").AddField(WordFieldType.SectionPages);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
                     .Select(result => result.ResultText)
                     .ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -407,7 +407,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Formatted kilobytes: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\k \\# \"000\" ", "stale-picture"));
                 document.AddParagraph("Roman kilobytes: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\k \\* Roman ", "stale-roman"));
                 document.AddParagraph("Unsupported switch: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\p ", "stale-switch"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported);
                 Assert.Contains("\\p", unsupported.Message, StringComparison.Ordinal);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Grouped characters: ")._paragraph.Append(BuildSimpleField(" NUMCHARS \\# \"#,##0\" ", "stale-grouped-characters"));
                 document.AddParagraph("Roman words: ")._paragraph.Append(BuildSimpleField(" NUMWORDS \\* Roman ", "stale-roman-words"));
                 document.AddParagraph("Roman characters: ")._paragraph.Append(BuildSimpleField(" NUMCHARS \\* Roman ", "stale-roman-characters"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -528,7 +528,7 @@ namespace OfficeIMO.Tests {
                     .Select(result => result.ResultText)
                     .ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -559,7 +559,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Date custom: ").AddField(WordFieldType.Date, customFormat: "yyyy-MM-dd");
                 document.AddParagraph("Time custom: ").AddField(WordFieldType.Time, customFormat: "HH:mm");
                 document.AddParagraph("Time ampm: ").AddField(WordFieldType.Time, customFormat: "h:mm am/pm");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -593,7 +593,7 @@ namespace OfficeIMO.Tests {
                     .Select(result => result.ResultText)
                     .ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.BuiltinDocumentProperties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
                 document.AddParagraph("Created upper: ")._paragraph.Append(BuildSimpleField(" CREATEDATE \\@ \"MMMM d, yyyy\" \\* Upper ", "stale-created"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Property category: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Category\"" });
                 document.AddParagraph("Property version: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Version\"" });
                 document.AddParagraph("Missing info: ")._paragraph.Append(BuildSimpleField(" INFO MissingBuiltInProperty ", "stale-missing-info"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -702,7 +702,7 @@ namespace OfficeIMO.Tests {
                     result.InstructionText.Contains("MissingBuiltInProperty", StringComparison.Ordinal) &&
                     result.ResultText == null);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -736,7 +736,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Target heading").AddBookmark("TargetBookmark");
                 document.AddParagraph("Unknown named format: ")._paragraph.Append(BuildSimpleField(" REF TargetBookmark \\* FutureCase ", "stale-ref"));
                 document.AddParagraph("Unsupported numeric picture: ")._paragraph.Append(BuildSimpleField(" AUTHOR \\# \"000\" ", "stale-author"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -756,7 +756,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported &&
                     result.Message.Contains("numeric picture", StringComparison.OrdinalIgnoreCase));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -797,7 +797,7 @@ namespace OfficeIMO.Tests {
                                     new BookmarkEnd { Id = "311" })))),
                     new Paragraph(new Run(new Text("Paragraph REF: ") { Space = SpaceProcessingModeValues.Preserve }), BuildSimpleField(" REF ParagraphSpan ", "stale-paragraph")),
                     new Paragraph(new Run(new Text("Cell REF: ") { Space = SpaceProcessingModeValues.Preserve }), BuildSimpleField(" REF CellSpan ", "stale-cell")));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -820,7 +820,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Simple quote: ")._paragraph.Append(BuildSimpleField(" QUOTE \"Automation ready\" ", "stale-simple"));
                 AddComplexField(document.AddParagraph("Complex quote: ")._paragraph, "stale-complex", " QUOTE ", "\"Complex literal\" ");
                 document.AddParagraph("Container quote: ")._paragraph.Append(BuildSimpleField(" QUOTE ", "stale-empty"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -845,7 +845,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported);
                 Assert.Contains("quoted literal", unsupported.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -886,7 +886,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Unsupported negative hex quote: ")._paragraph.Append(BuildSimpleField(" QUOTE \"-1\" \\* Hex ", "stale-negative-hex"));
                 document.AddParagraph("Unsupported negative dollar quote: ")._paragraph.Append(BuildSimpleField(" QUOTE \"-1\" \\* DollarText ", "stale-negative-dollar"));
                 document.AddParagraph("Unsupported mixed quote formats: ")._paragraph.Append(BuildSimpleField(" QUOTE \"1234\" \\* Roman \\# \"0000\" ", "stale-mixed-picture-format"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -951,7 +951,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(unsupported, result => result.Message.Contains("DollarText", StringComparison.Ordinal));
                 Assert.Contains(unsupported, result => result.Message.Contains("combine", StringComparison.OrdinalIgnoreCase));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1034,7 +1034,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Subject caps: ")._paragraph.Append(BuildSimpleField(" SUBJECT \\* Caps ", "stale-subject"));
                 document.AddParagraph("Unsupported author: ")._paragraph.Append(BuildSimpleField(" AUTHOR \\* Roman ", "stale-roman-author"));
                 document.AddParagraph("Unsupported property: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Author \\* Roman ", "stale-roman-property"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1088,7 +1088,7 @@ namespace OfficeIMO.Tests {
                     "Outer author stale ",
                     "Nested Title stale",
                     " author tail");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1113,7 +1113,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordFieldUpdateStatus.Skipped, nestedTitle.Status);
                 Assert.Contains("containing field", nestedTitle.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1151,7 +1151,7 @@ namespace OfficeIMO.Tests {
                     new Run(
                         new FieldChar { FieldCharType = FieldCharValues.End },
                         new Text(" trailing") { Space = SpaceProcessingModeValues.Preserve }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1188,7 +1188,7 @@ namespace OfficeIMO.Tests {
                         new Text("stale") { Space = SpaceProcessingModeValues.Preserve },
                         new FieldChar { FieldCharType = FieldCharValues.End },
                         new Text(" suffix") { Space = SpaceProcessingModeValues.Preserve }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1214,7 +1214,7 @@ namespace OfficeIMO.Tests {
                     new FieldChar { FieldCharType = FieldCharValues.Separate },
                     new Text("stale") { Space = SpaceProcessingModeValues.Preserve },
                     new FieldChar { FieldCharType = FieldCharValues.End }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1234,7 +1234,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph()._paragraph.Append(BuildSimpleField("QUOTE \"Use \\* Upper here\"", "stale"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1260,7 +1260,7 @@ namespace OfficeIMO.Tests {
                     "stale-rate",
                     " * 100 \\# \"0.0\" ",
                     "stale-formula");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1281,7 +1281,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.ResultText == "12.5");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1308,7 +1308,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Reference: ").AddField(WordFieldType.Ref, parameters: new List<string> { "TargetBookmark" });
                 document.AddParagraph("Page reference: ").AddField(WordFieldType.PageRef, parameters: new List<string> { "TargetBookmark" });
                 document.AddParagraph("Missing reference: ").AddField(WordFieldType.Ref, parameters: new List<string> { "MissingBookmark" });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1331,7 +1331,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Skipped);
                 Assert.Contains("MissingBookmark", missing.Message, StringComparison.Ordinal);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1372,7 +1372,7 @@ namespace OfficeIMO.Tests {
                 footnote.Append(new Paragraph(new Run(new Text("Footnote field: ") { Space = SpaceProcessingModeValues.Preserve }), BuildSimpleField(" REF HeaderBookmark ", "stale-footnote-field")));
                 endnote.Append(new Paragraph(new Run(new Text("Endnote field: ") { Space = SpaceProcessingModeValues.Preserve }), BuildSimpleField(" REF FooterBookmark ", "stale-endnote-field")));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1397,7 +1397,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordFieldUpdateStatus.Skipped, skippedPageRef.Status);
                 Assert.Contains("outside the document body", skippedPageRef.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1437,7 +1437,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Ordinal text page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.OrdText, parameters: new List<string> { "PageBookmark" });
                 document.AddParagraph("Dollar text page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.DollarText, parameters: new List<string> { "PageBookmark" });
                 document.AddParagraph("Padded page reference: ")._paragraph.Append(BuildSimpleField(" PAGEREF PageBookmark \\# \"000\" ", "stale-pageref-picture"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1460,7 +1460,7 @@ namespace OfficeIMO.Tests {
                         .Select(result => result.ResultText)
                         .ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1505,7 +1505,7 @@ namespace OfficeIMO.Tests {
                     new Run(new Text(" Current page: ") { Space = SpaceProcessingModeValues.Preserve }),
                     BuildSimpleField(" PAGE ", "stale-inline-page"));
                 document.AddParagraph("Inline page reference: ")._paragraph.Append(BuildSimpleField(" PAGEREF InlineBreakBookmark ", "stale-inline-pageref"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1540,7 +1540,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Target heading").AddBookmark("TextBookmark");
                 document.AddParagraph("Unsupported reference: ")._paragraph.Append(BuildSimpleField(" REF TextBookmark \\* Roman ", "stale-ref"));
                 document.AddParagraph("Unsupported page reference: ")._paragraph.Append(BuildSimpleField(" PAGEREF TextBookmark \\* Upper ", "stale-page"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1558,7 +1558,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported &&
                     result.Message.Contains("Upper", StringComparison.Ordinal));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1593,7 +1593,7 @@ namespace OfficeIMO.Tests {
                 WordList bulletList = document.AddList(WordListStyle.Bulleted);
                 bulletList.AddItem("Bullet target").AddBookmark("BulletTarget");
                 document.AddParagraph("Unsupported bullet reference: ")._paragraph.Append(BuildSimpleField(" REF BulletTarget \\n ", "stale-bullet"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1616,7 +1616,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported);
                 Assert.Contains("does not support numbering format", unsupported.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1655,7 +1655,7 @@ namespace OfficeIMO.Tests {
                 target.AddBookmark("OverrideTarget");
                 document.AddParagraph("Override reference: ")._paragraph.Append(BuildSimpleField(" REF OverrideTarget \\n ", "stale-n"));
                 document.AddParagraph("Override full reference: ")._paragraph.Append(BuildSimpleField(" REF OverrideTarget \\w ", "stale-w"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1681,7 +1681,7 @@ namespace OfficeIMO.Tests {
                         new NumberingId { Val = numberingId }));
                 target.AddBookmark("ParenthesizedTarget");
                 document.AddParagraph("Full reference: ")._paragraph.Append(BuildSimpleField(" REF ParenthesizedTarget \\w ", "stale-w"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1714,7 +1714,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Style no context: ")._paragraph.Append(BuildSimpleField(" REF StyledChild \\n ", "stale-n"));
                 document.AddParagraph("Style full context: ")._paragraph.Append(BuildSimpleField(" REF StyledChild \\w ", "stale-w"));
                 document.AddParagraph("Style full context without text: ")._paragraph.Append(BuildSimpleField(" REF StyledChild \\w \\t ", "stale-wt"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1728,7 +1728,7 @@ namespace OfficeIMO.Tests {
                     new[] { "1", "1", "Article 2.1", "2.1" },
                     report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1765,7 +1765,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Linked style no context: ")._paragraph.Append(BuildSimpleField(" REF LinkedChild \\n ", "stale-n"));
                 document.AddParagraph("Linked style full context: ")._paragraph.Append(BuildSimpleField(" REF LinkedChild \\w ", "stale-w"));
                 document.AddParagraph("Linked style full context without text: ")._paragraph.Append(BuildSimpleField(" REF LinkedChild \\w \\t ", "stale-wt"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1779,7 +1779,7 @@ namespace OfficeIMO.Tests {
                     new[] { "1", "1", "Clause 2.1", "2.1" },
                     report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1809,7 +1809,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Ordinal text figure ").AddField(WordFieldType.Seq, WordFieldFormat.OrdText, parameters: new List<string> { "Figure" });
                 document.AddParagraph("Dollar text figure ").AddField(WordFieldType.Seq, WordFieldFormat.DollarText, parameters: new List<string> { "Figure" });
                 document.AddParagraph("See ").AddField(WordFieldType.Ref, parameters: new List<string> { "FigureNetwork", "\\h" });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1831,7 +1831,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.ResultText == "Figure 1Network diagram");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1854,7 +1854,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Hidden figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure \\h ", "stale-hidden"));
                 document.AddParagraph("Visible figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure ", "stale-visible"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1869,7 +1869,7 @@ namespace OfficeIMO.Tests {
                     result.FieldType == WordFieldType.Seq &&
                     !result.InstructionText.Contains("\\h", StringComparison.Ordinal));
                 Assert.Equal("2", visible.ResultText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1886,7 +1886,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Roman figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure \\* Roman \\* CHARFORMAT ", "stale"));
                 document.AddParagraph("Plain figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure ", "stale"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1909,7 +1909,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Figure ").AddField(WordFieldType.Seq, parameters: new List<string> { "Figure", "\\s 1" });
                 document.AddParagraph("Chapter B").SetStyle(WordParagraphStyles.Heading1);
                 document.AddParagraph("Figure ").AddField(WordFieldType.Seq, parameters: new List<string> { "Figure", "\\s 1" });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1922,7 +1922,7 @@ namespace OfficeIMO.Tests {
                     .Select(result => result.ResultText)
                     .ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1939,7 +1939,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section figure ").AddField(WordFieldType.Seq, parameters: new List<string> { "Figure", "\\s 10" });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1976,7 +1976,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Defined expression formula: ")._paragraph.Append(BuildSimpleField(" = DEFINED(1 + 2) ", "stale"));
                 document.AddParagraph("Undefined expression formula: ")._paragraph.Append(BuildSimpleField(" = DEFINED(MEDIAN(1, 2, 3)) ", "stale"));
                 document.AddParagraph("Unsupported formula: ")._paragraph.Append(BuildSimpleField(" = MEDIAN(1, 2, 3) ", "stale"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1997,7 +1997,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported);
                 Assert.Contains("MEDIAN", unsupported.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2027,7 +2027,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Escaped literal suffix: ")._paragraph.Append(BuildSimpleField(" = 5 \\# \"0.00\\ USD\" ", "stale-escape"));
                 document.AddParagraph("Fill token: ")._paragraph.Append(BuildSimpleField(" = 5 \\# \"0.00* \" ", "stale-fill"));
                 document.AddParagraph("Unsupported dangling fill: ")._paragraph.Append(BuildSimpleField(" = 5 \\# \"0.00*\" ", "stale-dangling-fill"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2050,7 +2050,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("unsupported", unsupported.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("fill", unsupported.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2081,7 +2081,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Modulo formula: ")._paragraph.Append(BuildSimpleField(" = MOD(17, 5) ", "stale"));
                 document.AddParagraph("Sign formula: ")._paragraph.Append(BuildSimpleField(" = SIGN(-4) ", "stale"));
                 document.AddParagraph("Invalid true formula: ")._paragraph.Append(BuildSimpleField(" = TRUE(1) ", "stale"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2103,7 +2103,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("TRUE", unsupported.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("0", unsupported.Message, StringComparison.Ordinal);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2129,7 +2129,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "20";
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "30";
                 table.Rows[1].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(A1; B1; R2C1) ", "stale-table"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2141,7 +2141,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "10", "10", "2", "60" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2164,7 +2164,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Percent multiplication: ")._paragraph.Append(BuildSimpleField(" = 100 * 25% ", "stale-multiply"));
                 document.AddParagraph("Percent conditional: ")._paragraph.Append(BuildSimpleField(" = IF(50% = 0.5, 1, 0) ", "stale-if"));
                 document.AddParagraph("Percent picture: ")._paragraph.Append(BuildSimpleField(" = 25% \\# \"0%\" ", "stale-picture"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2176,7 +2176,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "0.25", "25", "1", "25%" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2204,7 +2204,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[2].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = PRODUCT(A1:B1) \\# \"0.0%\" ", "stale-product"));
                 table.Rows[2].Cells[0].Paragraphs[0].Text = "20%";
                 table.Rows[2].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(ABOVE) \\# \"0.0%\" ", "stale-above"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2216,7 +2216,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "75%", "75%", "12.5%", "62.5%" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2244,7 +2244,7 @@ namespace OfficeIMO.Tests {
                 AddComplexField(table.Rows[1].Cells[2].Paragraphs[0]._paragraph, "stale-product", " = PRODUCT(", "A1:B1", ") \\# \"0.0%\" ");
                 table.Rows[2].Cells[0].Paragraphs[0].Text = "20%";
                 AddComplexField(table.Rows[2].Cells[1].Paragraphs[0]._paragraph, "stale-above", " = SUM(", "ABOVE", ") \\# \"0.0%\" ");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2256,7 +2256,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "75%", "75%", "12.5%", "62.5%" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2298,7 +2298,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[3].Cells[3].Paragraphs[0].Text = "3";
                 table.Rows[3].Cells[4].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = COUNT(LEFT) ", "stale"));
                 document.AddParagraph("Outside table: ")._paragraph.Append(BuildSimpleField(" = SUM(ABOVE) ", "stale-outside"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2319,7 +2319,7 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Unsupported);
                 Assert.Contains("inside a table cell", unsupported.Message, StringComparison.OrdinalIgnoreCase);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2351,7 +2351,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "1";
                 table.Rows[1].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(ABOVE) ", "stale-second-column"));
                 table.Rows[1].Cells[2].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(ABOVE) ", "stale-third-column"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2363,7 +2363,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "10", "5" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2396,7 +2396,7 @@ namespace OfficeIMO.Tests {
                 SetVerticalMerge(table.Rows[1].Cells[1], MergedCellValues.Restart);
                 SetVerticalMerge(table.Rows[2].Cells[1], null);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2408,7 +2408,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "10", "10" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2435,7 +2435,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(ABOVE) ", "stale-last"));
                 table.Rows[1].Cells[2]._tableCell.Remove();
                 SetGridBefore(table.Rows[1], 1);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2447,7 +2447,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "20", "30" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2477,7 +2477,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[2].Cells[0].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = A1 + B1 ", "stale-single"));
                 table.Rows[2].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(B1:C2) ", "stale-range"));
                 table.Rows[2].Cells[2].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = C2 * 2 ", "stale-shifted"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2489,7 +2489,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "30", "140", "100" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2518,7 +2518,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[2].Cells[0].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = R1C1 + R2C2 ", "stale-rncn-single"));
                 table.Rows[2].Cells[1].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = SUM(R1C1:R2C2) ", "stale-rncn-range"));
                 table.Rows[2].Cells[2].Paragraphs[0]._paragraph.Append(BuildSimpleField(" = R2C3 * 2 ", "stale-rncn-third"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -2530,7 +2530,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.ParseErrorCount);
                 Assert.Equal(new[] { "60", "120", "120" }, report.Results.Select(result => result.ResultText).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

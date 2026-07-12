@@ -84,7 +84,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 1 - Text 0: " + section1DefaultHeaderCreated.Paragraphs[0].Text);
                 Console.WriteLine("Section 2 - Text 0: " + section2DefaultHeaderCreated.Paragraphs[0].Text);
                 Console.WriteLine("Section 3 - Text 0: " + section3DefaultHeaderCreated.Paragraphs[0].Text);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -107,7 +107,7 @@ namespace OfficeIMO.Examples.Word {
                 var section1DefaultHeaderAfterLoad = document.Sections[1].GetOrCreateHeader(HeaderFooterValues.Default);
                 section1DefaultHeaderAfterLoad.AddParagraph().SetText("Test Section 1 - Header-Par1");
                 Console.WriteLine("Section 1 - Text 1: " + section1DefaultHeaderAfterLoad.Paragraphs[1].Text);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

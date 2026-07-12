@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                     paragraph.AddStructuredDocumentTag("First");
                     paragraph.AddCheckBox();
 
-                    document.Save(false);
+                    document.Save();
 
                     initialMaxId = document._document
                         .Descendants<SdtId>()
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                     paragraph.AddDropDownList(new[] { "A", "B" });
                     paragraph.AddComboBox(new[] { "Red", "Blue" }, defaultValue: "Blue");
 
-                    document.Save(false);
+                    document.Save();
 
                     var allIds = document._document
                         .Descendants<SdtId>()

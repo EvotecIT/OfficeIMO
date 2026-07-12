@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                     && string.Equals(condition.Value, "Open", StringComparison.OrdinalIgnoreCase)));
 
             Directory.CreateDirectory(Path.GetDirectoryName(importedXlsxPath)!);
-            result.Document.Save(importedXlsxPath, openExcel: false);
+            result.Document.Save(importedXlsxPath);
             ExcelDocument.Convert(sourceXlsPath, convertedXlsxPath, new ExcelDocumentConversionOptions {
                 LossPolicy = ExcelConversionLossPolicy.Allow
             });
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                     .Replace(Path.DirectorySeparatorChar, '_')
                     .Replace(Path.AltDirectorySeparatorChar, '_');
                 string importedPath = Path.Combine(outputDirectory, Path.ChangeExtension(outputName, ".imported.xlsx"));
-                result.Document.Save(importedPath, openExcel: false);
+                result.Document.Save(importedPath);
                 importedPaths.Add(importedPath);
             }
 

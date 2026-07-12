@@ -1,0 +1,91 @@
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.CSV;
+using Xunit;
+
+namespace OfficeIMO.CSV.Tests;
+
+public class CsvSaveApiTests
+{
+    [Fact]
+    public void Save_Stream_And_ToBytes_Produce_Equivalent_Output()
+    {
+        var document = CreateDocument();
+        var options = new CsvSaveOptions { NewLine = "\n" };
+        byte[] expected = document.ToBytes(options);
+
+        using var stream = new MemoryStream();
+        document.Save(stream, options);
+        using MemoryStream encoded = document.ToStream(options);
+
+        Assert.Equal(expected, stream.ToArray());
+        Assert.Equal(expected, encoded.ToArray());
+        Assert.Equal(0, encoded.Position);
+        Assert.Equal("Name,Value\nAlpha,1\n", Encoding.UTF8.GetString(expected));
+    }
+
+    [Fact]
+    public async Task SaveAsync_Path_Infers_GZip_Compression()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            await CreateDocument().SaveAsync(path, new CsvSaveOptions { NewLine = "\n" });
+
+            using var file = File.OpenRead(path);
+            using var gzip = new GZipStream(file, CompressionMode.Decompress);
+            using var reader = new StreamReader(gzip, Encoding.UTF8);
+            Assert.Equal("Name,Value\nAlpha,1\n", await reader.ReadToEndAsync());
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_Append_Honors_Path_Policy_Without_Leaking_It_Into_Serialization()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncAppend." + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            File.WriteAllText(path, "Name,Value\nAlpha,1\n");
+            await new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Beta", 2)
+                .SaveAsync(path, new CsvSaveOptions { Append = true, IncludeHeader = false, NewLine = "\n" });
+
+            Assert.Equal("Name,Value\nAlpha,1\nBeta,2\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_Rejects_Compressed_Append_Inferred_From_Path()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncAppend." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            CreateDocument().SaveAsync(path, new CsvSaveOptions { Append = true }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public async Task SaveAsync_PreCanceled_Path_Does_Not_Create_File()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Canceled." + Guid.NewGuid().ToString("N") + ".csv");
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CreateDocument().SaveAsync(path, cancellationToken: new CancellationToken(canceled: true)));
+        Assert.False(File.Exists(path));
+    }
+
+    private static CsvDocument CreateDocument() => new CsvDocument()
+        .WithHeader("Name", "Value")
+        .AddRow("Alpha", 1);
+}

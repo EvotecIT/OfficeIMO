@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 terms.Rows[0].Cells[0].Paragraphs[0].SetText("Terms");
                 WordTable closing = doc.AddTable(1, 1);
                 closing.Rows[0].Cells[0].Paragraphs[0].SetText("Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_inserted_table_before_modified.docx");
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 terms.Rows[0].Cells[0].Paragraphs[0].SetText("Terms updated");
                 WordTable closing = doc.AddTable(1, 1);
                 closing.Rows[0].Cells[0].Paragraphs[0].SetText("Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -57,14 +57,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 WordTable table = doc.AddTable(1, 2);
                 SetTableTexts(table, "Owner", "Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_inserted_cell_before_modified.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 WordTable table = doc.AddTable(1, 3);
                 SetTableTexts(table, "Evidence", "Owner updated", "Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(logoPath, 80, 40);
                 doc.AddParagraph().AddImage(replacementPath, 50, 50);
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_inserted_image_before_modified.docx");
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph().AddImage(replacementPath, 120, 60);
                 doc.AddParagraph().AddImage(replacementPath, 80, 40);
                 doc.AddParagraph().AddImage(replacementPath, 50, 50);
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -116,13 +116,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_default_header_variant.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.HeaderDefaultOrCreate.AddParagraph("Classification: Confidential");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_first_header_variant.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.HeaderFirstOrCreate.AddParagraph("Classification: Confidential");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -143,14 +143,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Policy").AddFootNote("Policy note");
                 doc.AddParagraph("Policy");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_moved_footnote_marker.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Policy");
                 doc.AddParagraph("Policy").AddFootNote("Policy note");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
                 doc.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
-                doc.Save(false);
+                doc.Save();
             }
 
             AppendTableAndImageToFirstFootnote(sourcePath, "Footnote table pending", logoPath);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
                 doc.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
-                doc.Save(false);
+                doc.Save();
             }
 
             AppendTableAndImageToFirstFootnote(targetPath, "Footnote table approved", replacementPath);
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_note_table_stable_id.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
-                doc.Save(false);
+                doc.Save();
             }
 
             SetReferencedFootnoteIds(sourcePath, 10);
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Inserted footnote anchor").AddFootNote("Inserted footnote body");
                 doc.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
-                doc.Save(false);
+                doc.Save();
             }
 
             SetReferencedFootnoteIds(targetPath, 9, 10);
@@ -234,13 +234,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_changed_body_to_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Status: Pending");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_changed_body_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.HeaderDefaultOrCreate.AddParagraph("Status: Approved");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -266,13 +266,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_picture_local_ids.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_picture_local_ids.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             MutatePictureLocalDrawingIds(targetPath, 4242U, "Different local picture id");
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Status: Pending");
                 doc.AddParagraph("Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_multiple_inserted_paragraphs_before_modified.docx");
@@ -297,7 +297,7 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph("Evidence row two");
                 doc.AddParagraph("Status: Approved");
                 doc.AddParagraph("Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_explicit_normal_footnote.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Policy").AddFootNote("Legal note pending");
-                doc.Save(false);
+                doc.Save();
             }
 
             MarkFirstFootnoteAsExplicitNormal(sourcePath);
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_explicit_normal_footnote.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Policy").AddFootNote("Legal note approved");
-                doc.Save(false);
+                doc.Save();
             }
 
             MarkFirstFootnoteAsExplicitNormal(targetPath);
@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_unref_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Body");
-                doc.Save(false);
+                doc.Save();
             }
 
             AddUnreferencedHeaderParagraph(sourcePath, "Dormant header");
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_unref_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Body");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -377,7 +377,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_symbol_run.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("placeholder");
-                doc.Save(false);
+                doc.Save();
             }
 
             ReplaceBodyParagraph(sourcePath, CreateSymbolParagraph("Choice ", "Wingdings", "F0FC"));
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_symbol_run.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("placeholder");
-                doc.Save(false);
+                doc.Save();
             }
 
             ReplaceBodyParagraph(targetPath, CreateSymbolParagraph("Choice ", "Wingdings", "F0A3"));
@@ -404,13 +404,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_literal_page_break_marker.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Before[PageBreak]After");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_real_page_break_marker.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("placeholder");
-                doc.Save(false);
+                doc.Save();
             }
 
             ReplaceBodyParagraph(targetPath, new Paragraph(

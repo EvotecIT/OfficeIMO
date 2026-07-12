@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(section.Paragraphs[0].Text == "Section 5");
                 Assert.True(section2.Paragraphs[0].Text == "Section 6");
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageSize.docx"))) {
                 Assert.True(document.Sections[0].PageSettings.PageSize == WordPageSize.A3);

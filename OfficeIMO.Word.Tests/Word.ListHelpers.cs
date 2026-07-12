@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
                 var numbered = document.AddListNumbered();
                 numbered.AddItem("First");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

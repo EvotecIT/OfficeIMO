@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(3, document.Sections.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

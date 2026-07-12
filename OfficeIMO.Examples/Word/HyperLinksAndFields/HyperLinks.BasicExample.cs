@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.HyperLinks.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

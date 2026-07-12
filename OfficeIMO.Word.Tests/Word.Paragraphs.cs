@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[2].Bold == false, "3rd paragraph should not be bold");
                 Assert.True(document.Paragraphs[2].Italic == true, "3rd paragraph should be italic");
                 Assert.True(document.Paragraphs[2].CapsStyle == CapsStyle.Caps, "3rd paragraph should be CapsStyle.Caps");
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize);
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
                 Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithProperties.docx"))) {
 
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[4].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[4].IsPageBreak);
                 Assert.True(document.Paragraphs[4].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[4].DoubleStrike);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx"))) {
                 Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 Assert.True(listOfStyles.Length == document.Paragraphs.Count, "Paragraph count should match styles count");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllParagraphStyles.docx"))) {
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[2].Paragraphs.Count == 5);
                 Assert.True(document.Sections[3].Paragraphs.Count == 0);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithParagraphsSections.docx"))) {
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordCharacterStyles.Heading1Char, paragraph.CharacterStyle);
                 Assert.Equal("Hyperlink", run.CharacterStyleId);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var para = document.Paragraphs[0];

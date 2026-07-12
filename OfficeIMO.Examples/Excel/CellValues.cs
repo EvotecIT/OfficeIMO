@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.FormatCell(12, 2, "hh:mm:ss");
 #endif
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

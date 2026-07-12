@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
 
                 //Console.WriteLine("Image is inline: " + pargraphWithImage.Image.Rotation);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

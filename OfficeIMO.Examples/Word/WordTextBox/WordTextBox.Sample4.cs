@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples.Word {
                 var wordTextbox = document.Sections[1].AddTextBox("My textbox 9 center - Square", WrapTextImage.Square);
                 wordTextbox.VerticalPositionOffsetCentimeters = 10;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

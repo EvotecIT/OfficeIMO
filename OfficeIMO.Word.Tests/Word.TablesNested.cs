@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(table1.ParentTable!.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
                 Assert.NotNull(table3.ParentTable);
                 Assert.True(table3.ParentTable!.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2.2");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithNestedTables.docx"))) {
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(table.NestedTables[0].Style, cloned.NestedTables[0].Style);
                 Assert.Equal("Nested", cloned.NestedTables[0].Rows[0].Cells[0].Paragraphs[0].Text);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

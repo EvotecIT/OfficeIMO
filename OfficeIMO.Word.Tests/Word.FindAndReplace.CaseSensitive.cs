@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, replacedCount);
 
                 Assert.Equal("Bye", document.Paragraphs[1].Text);
-                document.Save(false);
+                document.Save();
             }
         }
     }

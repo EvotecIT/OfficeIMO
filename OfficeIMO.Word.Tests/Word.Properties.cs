@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].PageBreaks.Count == 2, "PageBreaks count doesn't match for section. Provided: " + document.Sections[0].Paragraphs.Count);
                 Assert.True(document.BuiltinDocumentProperties.Title == "This is a test for Title", "Wrong title");
                 Assert.True(document.BuiltinDocumentProperties.Category == "This is a test for Category", "Wrong category");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithProperties.docx"))) {
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match (load). Provided: " + document.Paragraphs.Count);
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.ApplicationProperties.Application == "OfficeIMO C#", "Application not matching?");
                 Assert.True(document.ApplicationProperties.ApplicationVersion == "1.1.0", "Application version not matching?");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithCustomProperties.docx"))) {
                 string date = "7/7/2011 10:48";

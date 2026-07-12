@@ -82,7 +82,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             presentation.Save();
             Validate(filePath, presentation);
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
 
         private static PowerPointDesignBrief CreateBrief(LayoutStrategyExample example) {

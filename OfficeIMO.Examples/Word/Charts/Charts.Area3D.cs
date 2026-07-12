@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             var area3d = document.AddChart("Area3D chart");
             area3d.AddCategories(categories);
             area3d.AddArea3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkBlue);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

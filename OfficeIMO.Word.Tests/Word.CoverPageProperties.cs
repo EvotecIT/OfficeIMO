@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("1 Main St", xml.Root?.Element(ns + "CompanyAddress")?.Value);
                 Assert.Equal("info@example.com", xml.Root?.Element(ns + "CompanyEmail")?.Value);
 
-                document.Save(false);
+                document.Save();
             }
         }
     }

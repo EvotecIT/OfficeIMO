@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word {
                 // primary section (for the whole document)
                 Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
                 // additional sections
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

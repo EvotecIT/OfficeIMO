@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing;
 using System;
-using System.Diagnostics;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -64,24 +63,6 @@ namespace OfficeIMO.Word {
                     }
                 }
                 throw new ArgumentException($"Invalid color value: {color}. Must be a valid hex color (3 or 6 characters) or named color.", nameof(color));
-            }
-        }
-
-        /// <summary>
-        /// Opens up any file using assigned Application
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="open"></param>
-        public static void Open(string filePath, bool open) {
-            if (open) {
-                if (string.IsNullOrEmpty(filePath)) {
-                    throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
-                }
-
-                ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
             }
         }
 

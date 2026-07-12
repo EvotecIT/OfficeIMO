@@ -14,9 +14,9 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Link("https://example.com", "Example"))
                     .Paragraph(p => p.Text("Line1").Break().Text("Line2"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

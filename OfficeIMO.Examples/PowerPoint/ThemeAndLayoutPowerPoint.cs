@@ -106,7 +106,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             footer.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
 
             presentation.Save();
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

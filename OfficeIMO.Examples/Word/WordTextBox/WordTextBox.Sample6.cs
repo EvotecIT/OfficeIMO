@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Width emus: " + textBox.Width);
                 Console.WriteLine("Height emus: " + textBox.Height);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

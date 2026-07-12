@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
                 tracked.AddDeletedText("best effort", "Legal Reviewer", new DateTime(2026, 6, 1, 9, 0, 0, DateTimeKind.Utc));
                 tracked.AddInsertedText("commercially reasonable efforts", "Legal Reviewer", new DateTime(2026, 6, 1, 9, 5, 0, DateTimeKind.Utc));
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
 
             using (WordDocument document = WordDocument.Load(documentPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {

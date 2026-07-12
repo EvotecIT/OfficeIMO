@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 WordList sourceList = document.AddList(WordListStyle.Numbered);
                 sourceList.AddItem("Collect requirements");
                 sourceList.AddItem("Draft proposal");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_links_lists_target.docx");
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 WordList targetList = document.AddList(WordListStyle.Numbered);
                 targetList.AddItem("Collect requirements");
                 targetList.AddItem("Draft final proposal");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Anchor paragraph").AddBookmark("OriginalAnchor");
                 document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/source"));
                 document.AddList(WordListStyle.Bulleted).AddItem("Original checklist item");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_links_lists_options_target.docx");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Anchor paragraph").AddBookmark("UpdatedAnchor");
                 document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/target"));
                 document.AddList(WordListStyle.Bulleted).AddItem("Updated checklist item");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                 WordList sourceList = document.AddList(WordListStyle.Numbered);
                 sourceList.AddItem("Collect requirements");
                 sourceList.AddItem("Draft proposal");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_links_lists_insert_target.docx");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 targetList.AddItem("Inserted task");
                 targetList.AddItem("Collect requirements");
                 targetList.AddItem("Draft proposal");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                         new NumberingLevelReference { Val = 0 },
                         new NumberingId { Val = numberingId })),
                 new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
-            document.Save(false);
+            document.Save();
         }
     }
 }

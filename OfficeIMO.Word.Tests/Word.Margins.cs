@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(section.Paragraphs[0].Text == "Section 5");
                 Assert.True(section2.Paragraphs[0].Text == "Section 6");
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
 
 
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }

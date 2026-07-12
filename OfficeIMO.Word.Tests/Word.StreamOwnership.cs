@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (WordDocument created = WordDocument.Create()) {
                 created.AddParagraph("Buffered source");
-                sourceBytes = created.ToDocx();
+                sourceBytes = created.ToBytes();
             }
 
             using var source = new NonSeekableReadStream(sourceBytes);

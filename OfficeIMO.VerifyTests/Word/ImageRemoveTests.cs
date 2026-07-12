@@ -49,7 +49,7 @@ public class ImageRemoveTests : VerifyTestBase {
         Assert.Empty(defaultHeader.Images);
         Assert.Empty(headerPart.ImageParts);
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
         await DoTest(document._wordprocessingDocument);
     }
 }

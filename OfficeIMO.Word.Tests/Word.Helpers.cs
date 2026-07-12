@@ -69,13 +69,6 @@ public partial class Word {
         Assert.True(imageCharacteristics.Height > 0);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public void Open_WithInvalidFilePath_ThrowsArgumentException(string? path) {
-        Assert.Throws<ArgumentException>(() => Helpers.Open(path!, true));
-    }
-
     private static byte[] CreatePlaceableWmfHeader() {
         var wmf = new byte[22];
         WriteInt32LittleEndian(wmf, 0, unchecked((int)0x9AC6CDD7));

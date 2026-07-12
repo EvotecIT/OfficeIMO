@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sheets[0].Name == "Test1");
                 Assert.True(document.Sheets[1].Name == "Test2");
                 Assert.True(document.Sheets[2].Name == "Test3");
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sheets.Count == 2);
                 Assert.True(document.Sheets[0].Name == "WorkSheet5");
                 Assert.True(document.Sheets[1].Name == "Test");
-                document.Save(false);
+                document.Save();
             }
         }
 

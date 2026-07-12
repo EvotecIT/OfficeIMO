@@ -28,7 +28,7 @@ public class CommentTests : VerifyTestBase {
 
         document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
     }

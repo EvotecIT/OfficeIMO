@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 par.AddText("Continue 2 ");
                 par.AddText("SubScript").SetVerticalTextAlignment(VerticalPositionValues.Subscript);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

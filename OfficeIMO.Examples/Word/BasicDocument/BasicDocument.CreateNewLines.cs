@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Paragraph count (expected 28): " + document.Paragraphs.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

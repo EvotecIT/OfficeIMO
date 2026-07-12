@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                 table.Rows[0].Cells[0].MergeVertically(2, true);
                 table.Rows[0].Cells[0].SplitVertically(2);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

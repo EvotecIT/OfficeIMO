@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.ConditionalFormattingLastRow = true;
                 wordTable.ConditionalFormattingFirstColumn = false;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

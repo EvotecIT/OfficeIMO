@@ -65,7 +65,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             presentation.Save();
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
 
         private static void ConfigureSlide(PowerPointSlide slide, PowerPointLayoutBox content, string title, string body) {

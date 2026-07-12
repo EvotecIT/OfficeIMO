@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var table = document.AddTable(1, 3, WordTableStyle.PlainTable1);
                 table.SetColumnWidthsPercentage(10, 30, 60);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var table = document.AddTable(1, 3, WordTableStyle.PlainTable1);
                 table.SetColumnWidthsPercentage(1, 1, 8);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[2].Remove();
 
                 table.SetColumnWidthsPercentage(20, 30, 50);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

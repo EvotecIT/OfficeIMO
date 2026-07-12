@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Images");
                 sheet.CellValue(1, 1, "Image");
                 sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidPng");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Headers");
                 sheet.CellValue(1, 1, "Report");
                 sheet.SetHeaderFooter(headerLeft: "&BTotal", headerCenter: "Page &P");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Headers");
                 sheet.CellValue(1, 1, "Report");
                 sheet.SetHeaderFooter(headerCenter: "&\"UnmappedFont\"Report");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellFormula(5, 4, "B2+1");
                 document.SetPrintArea(sheet, "A1:B2", save: false);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Ready");
                 sheet.CellFormula(5, 1, "A1+1");
                 sheet.SetRowHidden(5, true);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "North");
                 sheet.CellValue(2, 2, 10d);
                 document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1, save: false);
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {

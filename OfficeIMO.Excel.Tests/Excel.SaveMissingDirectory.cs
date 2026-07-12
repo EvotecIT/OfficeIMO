@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet(expectedSheetName);
                 sheet.CellValue(1, 1, expectedCellValue);
 
-                document.Save(destinationPath, openExcel: false);
+                document.Save(destinationPath);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet(expectedSheetName);
                 sheet.CellValue(1, 1, expectedCellValue);
 
-                await document.SaveAsync(destinationPath, openExcel: false);
+                await document.SaveAsync(destinationPath);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));

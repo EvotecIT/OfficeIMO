@@ -35,7 +35,7 @@ public partial class Excel {
             Assert.Equal("image/png", image.ContentType);
             Assert.Equal(imageBytes, image.GetBytes());
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -66,7 +66,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
             sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Rotated Logo").SetRotation(30);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -92,7 +92,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "HiddenImageMarker");
             sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Hidden Logo", altText: "Hidden logo");
             sheet.SetRowHidden(2, true);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -131,7 +131,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
             sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -154,7 +154,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
             sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -182,7 +182,7 @@ public partial class Excel {
             sheet.Cell(3, 1, "AnchoredImageRow");
             sheet.Cell(4, 1, "AfterImageRow");
             sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,

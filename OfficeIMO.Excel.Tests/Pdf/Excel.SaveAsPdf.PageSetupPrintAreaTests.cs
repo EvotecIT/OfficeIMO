@@ -25,7 +25,7 @@ public partial class Excel {
             sheet.Cell(1, 2, "Value");
             sheet.Cell(2, 1, "PageWidth");
             sheet.Cell(2, 2, "Custom");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -52,7 +52,7 @@ public partial class Excel {
             sheet.Cell(3, 2, "InsideValue");
             sheet.Cell(4, 4, "OutsideRight");
             document.SetPrintArea(sheet, "B2:C3");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
@@ -77,7 +77,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "OnlyCell");
             sheet.Cell(2, 1, "OutsideCell");
             document.SetPrintArea(sheet, "A1");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
@@ -105,7 +105,7 @@ public partial class Excel {
             sheet.Cell(2, 2, "AreaOne");
             sheet.Cell(2, 4, "AreaTwo");
             sheet.Cell(5, 5, "UsedRangeBottom");
-            document.Save(false);
+            document.Save();
         }
 
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(workbookPath, true)) {
@@ -151,7 +151,7 @@ public partial class Excel {
             sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Inside Chart");
             sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Outside Chart");
             document.SetPrintArea(sheet, "B2:C3");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -180,7 +180,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "WorksheetPageSetup");
             sheet.SetOrientation(ExcelPageOrientation.Landscape);
             sheet.SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
@@ -206,7 +206,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "WorksheetPaperSize");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
@@ -229,7 +229,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "PdfOptionsPageSize");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -255,7 +255,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "DefaultPdfPageSize");
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -288,7 +288,7 @@ public partial class Excel {
             }
 
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
-            document.Save(false);
+            document.Save();
 
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -331,7 +331,7 @@ public partial class Excel {
 
             document.SetPrintArea(sheet, "A3:B90");
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -369,7 +369,7 @@ public partial class Excel {
             sheet.AddManualRowPageBreak(3);
 
             Assert.Equal(new[] { 3 }, sheet.GetManualRowPageBreaks());
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -416,7 +416,7 @@ public partial class Excel {
             sheet.AddManualRowPageBreak(5);
             document.SetPrintArea(sheet, "A10:B11");
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 2, firstCol: null, lastCol: null);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -454,7 +454,7 @@ public partial class Excel {
             sheet.AddManualColumnPageBreak(2);
 
             Assert.Equal(new[] { 2 }, sheet.GetManualColumnPageBreaks());
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -498,7 +498,7 @@ public partial class Excel {
             sheet.Cell(3, 3, "BottomRightPage");
             sheet.AddManualRowPageBreak(2);
             sheet.AddManualColumnPageBreak(2);
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,

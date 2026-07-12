@@ -34,4 +34,11 @@ public class OfficeCoreContractTests {
         Assert.Same(diagnostic, Assert.Single(exception.Diagnostics));
         Assert.Contains("TEST002", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void FileLauncherRejectsMissingFilesBeforeStartingAnApplication() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+        FileNotFoundException exception = Assert.Throws<FileNotFoundException>(() => OfficeFileLauncher.Open(path));
+        Assert.Equal(Path.GetFullPath(path), exception.FileName);
+    }
 }

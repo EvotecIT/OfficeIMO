@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetByHeader(2, "Missing", "value");
 
                 Assert.False(sheet.TryGetCellText(2, 1, out _));
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false)) {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(sheet.TryGetCellText(2, 1, out string text));
                 Assert.Equal(string.Empty, text);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false)) {
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, "Alice");
 
                 sheet.AutoFilterByHeaderEquals("Missing", new[] { "Alice" });
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false)) {
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 1, "value");
 
                 sheet.LinkByHeaderToUrls("Missing", rowFrom: 2, rowTo: 2, urlForCellText: _ => "https://example.com");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false)) {
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, 10);
 
                 sheet.ColumnStyleByHeader("Missing").Bold().Number();
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false)) {

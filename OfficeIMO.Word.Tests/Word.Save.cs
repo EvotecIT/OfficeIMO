@@ -345,7 +345,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Byte array compatibility");
 
-            byte[] data = document.ToDocx();
+            byte[] data = document.ToBytes();
 
             using var inspectionStream = new MemoryStream(data);
             using (var package = Package.Open(inspectionStream, FileMode.Open, FileAccess.Read)) {

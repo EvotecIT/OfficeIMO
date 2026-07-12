@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 list.ConvertToNumbered();
                 Assert.Equal(NumberFormatValues.Decimal, list.Numbering!.Levels.First()._level.NumberingFormat!.Val!.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 list.ConvertToBulleted();
                 Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First()._level.NumberingFormat!.Val!.Value);
                 Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 secondFooter.AddText("Page ");
                 secondFooter.AddPageNumber(includeTotalPages: true, separator: " of ");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

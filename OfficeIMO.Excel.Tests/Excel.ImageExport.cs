@@ -656,7 +656,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, 100);
                 sheet.SetColumnWidth(1, 14);
                 sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -742,7 +742,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, 100);
                 sheet.SetColumnWidth(1, 14);
                 sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Green);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -810,7 +810,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 1, 50);
                 sheet.CellValue(3, 1, 100);
                 sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -848,7 +848,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, 3);
                 sheet.CellValue(4, 1, 100);
                 sheet.AddConditionalIconSet("A1:A4", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -883,7 +883,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(1, 12);
                 sheet.SetRowHeight(1, 24);
                 sheet.AddConditionalDataBar("A1:A1", OfficeColor.Blue);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1790,7 +1790,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetRowHeight(2, 24);
                 sheet.SetRowHeight(3, 24);
                 sheet.CellValue(1, 1, "Two-cell");
-                document.Save(false);
+                document.Save();
             }
 
             AddTwoCellAnchoredImage(filePath, banner);
@@ -1823,7 +1823,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(1, 8);
                 sheet.SetColumnWidth(2, 8);
                 sheet.SetRowHeight(1, 24);
-                document.Save(false);
+                document.Save();
             }
 
             AddAbsoluteAnchoredImage(filePath, banner, xPixels: 40, yPixels: 0, widthPixels: 80, heightPixels: 20);
@@ -1849,7 +1849,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(2, 14);
                 sheet.SetRowHeight(1, 30);
                 sheet.SetRowHeight(2, 30);
-                document.Save(false);
+                document.Save();
             }
 
             AddCroppedImage(filePath, croppedSource);
@@ -1891,7 +1891,7 @@ namespace OfficeIMO.Tests {
                     sheet.SetRowHeight(row, 30);
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             AddRotatedImage(filePath, rotatedSource);
@@ -1939,7 +1939,7 @@ namespace OfficeIMO.Tests {
                     sheet.SetRowHeight(row, 30);
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             AddTransformedImage(filePath, transformedSource);
@@ -2706,7 +2706,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 1, "Feb");
                 sheet.CellValue(3, 2, 180);
                 sheet.AddChartFromRange("A1:B3", row: 4, column: 6, widthPixels: 260, heightPixels: 160, type: ExcelChartType.ColumnClustered, title: "Absolute Chart");
-                document.Save(false);
+                document.Save();
             }
 
             MoveFirstChartToAbsoluteAnchor(filePath, xPixels: 40, yPixels: 30, widthPixels: 220, heightPixels: 120);

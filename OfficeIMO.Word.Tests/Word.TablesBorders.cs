@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
 
 
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesBorders.docx"))) {

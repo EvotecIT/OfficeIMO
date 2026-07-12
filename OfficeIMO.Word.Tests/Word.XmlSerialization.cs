@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(paragraph.ToXml(), cloned.ToXml());
                 Assert.Equal(2, document.Paragraphs.Count);
-                document.Save(false);
+                document.Save();
             }
         }
     }

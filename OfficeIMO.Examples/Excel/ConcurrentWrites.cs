@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Excel {
                 Parallel.For(1, 101, i => {
                     sheet.CellValue(i, 1, $"Value {i}");
                 });
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

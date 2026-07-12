@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
                 parent.AddReply("Author2", "A2", "First reply");
                 var reply = parent.AddReply("Author3", "A3", "Second reply");
                 reply.AddReply("Author2", "A2", "Reply to second");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                         Console.WriteLine($"  Reply: {rep.ParaId} -> {rep.Text}");
                     }
                 }
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

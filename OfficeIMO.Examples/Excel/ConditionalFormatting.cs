@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(2, 1, 20d);
                 sheet.CellValue(3, 1, 30d);
                 sheet.AddConditionalColorScale("A1:A3", Color.Red, Color.Green);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

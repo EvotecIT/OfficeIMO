@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
 
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                     document["Imported"].CellValue(3, 2, 1400d);
-                    document.Save(false);
+                    document.Save();
                 }
 
                 AssertPreservedPackageParts(filePath, customXmlBytes, connectionBytes, queryTableBytes);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
 
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                     document["Controls"].CellValue(3, 1, "After");
-                    document.Save(false);
+                    document.Save();
                 }
 
                 AssertPreservedAdvancedPackageParts(filePath, vbaBytes, embeddedBytes);

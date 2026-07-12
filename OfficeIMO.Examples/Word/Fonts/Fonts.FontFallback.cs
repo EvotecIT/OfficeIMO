@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 string resolved = FontResolver.Resolve("MissingFont")!;
                 document.AddParagraph($"Paragraph using {resolved} font").SetFontFamily(resolved);
-                document.Save(false);
+                document.Save();
             }
         }
     }

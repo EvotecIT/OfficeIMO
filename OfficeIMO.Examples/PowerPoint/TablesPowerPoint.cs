@@ -277,7 +277,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             presentation.Save();
 
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
 
         private static PowerPointTableStyleInfo? FindStyle(IReadOnlyList<PowerPointTableStyleInfo> styles, string name) {

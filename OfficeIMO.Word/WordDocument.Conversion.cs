@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
             try {
                 try {
                     WordSaveOptions conversionSaveOptions = (options.SaveOptions ?? new WordSaveOptions()).WithLossPolicy(options.LossPolicy);
-                    await document.SaveAsync(stagingPath, openWord: false, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
+                    await document.SaveAsync(stagingPath, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
                 } catch (NotSupportedException exception) {
                     diagnostics.Add(new WordConversionDiagnostic(
                         "Word.DestinationFeatureUnsupported",
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word {
                         exception);
                 }
 
-                if (options.OpenAfterSave) document.Open(paths.Destination, true);
+                if (options.OpenAfterSave) document.OpenInApplication(paths.Destination);
                 return CreateWordConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);

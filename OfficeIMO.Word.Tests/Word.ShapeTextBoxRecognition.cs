@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "EllipseShapeWithText.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
                 doc.AddShape(ShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
-                doc.Save(false);
+                doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ShapeWrappedInAlternateContent.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
                 doc.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
-                doc.Save(false);
+                doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ShapeInAlternateContentFallback.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
                 doc.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
-                doc.Save(false);
+                doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(filePath)) {
                 doc.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
                 doc.AddTextBox("Text");
-                doc.Save(false);
+                doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(filePath)) {
                 doc.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
                 doc.AddTextBox("Text");
-                doc.Save(false);
+                doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
                 var mainPart = wDoc.MainDocumentPart;

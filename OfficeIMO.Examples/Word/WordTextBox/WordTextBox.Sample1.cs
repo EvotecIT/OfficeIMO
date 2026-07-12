@@ -90,7 +90,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.TextBoxes[1].Paragraphs[1].Text);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

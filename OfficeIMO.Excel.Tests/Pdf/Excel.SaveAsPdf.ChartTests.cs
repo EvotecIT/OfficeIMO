@@ -47,7 +47,7 @@ public partial class Excel {
             var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, new ExcelPdfSaveOptions() }));
             Assert.Equal("Revenue Chart", sharedSnapshot.Title);
 
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -101,7 +101,7 @@ public partial class Excel {
             sheet.Cell(4, 3, 20);
             sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Styled Excel Chart");
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -153,7 +153,7 @@ public partial class Excel {
             }
 
             sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -215,7 +215,7 @@ public partial class Excel {
             Assert.Equal(ExcelChartType.Pie, charts[0].ChartType);
             Assert.Equal(ExcelChartType.Doughnut, charts[1].ChartType);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -269,7 +269,7 @@ public partial class Excel {
             Assert.Equal(ExcelChartType.Area, charts[0].ChartType);
             Assert.Equal(ExcelChartType.AreaStacked100, charts[1].ChartType);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -310,7 +310,7 @@ public partial class Excel {
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal(ExcelChartType.Line, snapshot.ChartType);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -422,7 +422,7 @@ public partial class Excel {
                 });
 
             sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -465,7 +465,7 @@ public partial class Excel {
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal(ExcelChartType.Area, snapshot.ChartType);
 
-            document.Save(false);
+            document.Save();
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
@@ -507,7 +507,7 @@ public partial class Excel {
             Assert.Equal(5, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -550,7 +550,7 @@ public partial class Excel {
             Assert.Equal(5, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,

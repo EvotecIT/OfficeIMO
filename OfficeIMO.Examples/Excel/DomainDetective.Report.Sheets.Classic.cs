@@ -121,8 +121,8 @@ namespace OfficeIMO.Examples.Excel {
             SheetIndex.Add(doc, sheetName: "Index", placeFirst: true, includeNamedRanges: false);
             SheetIndex.AddBackLinks(doc, tocSheetName: "Index", row: 2, col: 1, text: "← Index");
 
-            doc.Save(false);
-            if (openExcel) doc.Open(filePath, true);
+            doc.Save();
+            if (openExcel) doc.OpenInApplication(filePath);
         }
 
         private static void BuildDomainSheet(ExcelDocument doc, DomainRow d)

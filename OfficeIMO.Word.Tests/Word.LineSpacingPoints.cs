@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(10, p.LineSpacingBeforePoints);
                 Assert.Equal(12, p.LineSpacingAfterPoints);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(200, p.LineSpacingBefore);
                 Assert.Equal(240, p.LineSpacingAfter);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

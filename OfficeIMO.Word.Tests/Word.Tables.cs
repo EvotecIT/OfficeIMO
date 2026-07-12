@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
                 Assert.Same(table, cell.ParentTable);
                 Assert.Equal(row.Height, cell.Parent.Height);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 105, "Number of paragraphs on 1st section is wrong.");
                 Assert.True(document.Sections[0].Tables.Count == 105, "Number of paragraphs on 1st section is wrong.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllTableStyles.docx"))) {
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
 
 
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTables.docx"))) {
@@ -727,7 +727,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Tables.Count == 2);
                 Assert.True(document.Tables.Count == 3);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndSections.docx"))) {
@@ -790,7 +790,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == ShadingPatternValues.Percent20);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
@@ -861,7 +861,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.AllowOverlap == true);
                 Assert.True(wordTable1.Position.TableOverlap == TableOverlapValues.Overlap);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx"))) {
@@ -1041,7 +1041,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable7.Width == 3750);
                 Assert.True(wordTable7.WidthType == TableWidthUnitValues.Pct);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTablesAndSizes.docx"))) {
@@ -1099,7 +1099,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs.Count == 4);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -1122,7 +1122,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[0].Cells[1].VerticalAlignment == TableVerticalAlignmentValues.Center);
                 Assert.True(wordTable.Rows[0].Cells[2].VerticalAlignment == TableVerticalAlignmentValues.Bottom);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var wordTable1 = document.Tables[0];
@@ -1154,7 +1154,7 @@ namespace OfficeIMO.Tests {
                 wordTable2.Style = WordTableStyle.TableNormal;
 
                 Assert.True(wordTable1.Style == wordTable2.Style);
-                document.Save(false);
+                document.Save();
 
             }
 
@@ -1175,7 +1175,7 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1264,7 +1264,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Bold == true);
                 Assert.True(document.Tables[0].Rows[0].Cells[1].Paragraphs[1].Italic == true);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -1304,7 +1304,7 @@ namespace OfficeIMO.Tests {
                 wordTable.AddRow(3, 4);
                 Assert.True(document.Tables[0].Rows.Count == 8);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -1324,7 +1324,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1", cloned.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("B2", cloned.Rows[1].Cells[1].Paragraphs[0].Text);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1344,7 +1344,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Height = 500;
                 table.Rows[1].Height = 300;
                 table.AutoFitToWindow();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1368,7 +1368,7 @@ namespace OfficeIMO.Tests {
                 cell.WrapText = false;
                 Assert.False(cell.WrapText);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1391,7 +1391,7 @@ namespace OfficeIMO.Tests {
                 cell.FitText = false;
                 Assert.False(cell.FitText);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1411,7 +1411,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(table.WrapText);
                 Assert.True(table.FitText);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1435,7 +1435,7 @@ namespace OfficeIMO.Tests {
                 table.AutoFit = WordTableLayoutType.FixedWidth;
                 Assert.Equal(WordTableLayoutType.AutoFitToWindow, table.AutoFit);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 pie.ApplyPalette(WordChart.WordChartPalette.Professional, semanticOutcomes: true, applyToPies: true, applyToSeries: false)
                    .SetWidthToPageContent(1.0, 320);
 
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var doc = WordDocument.Load(filePath)) {
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                 bar.ApplyPalette(WordChart.WordChartPalette.ColorBlindSafe)
                    .SetWidthToPageContent(1.0, 320);
 
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var doc = WordDocument.Load(filePath)) {
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             using (var doc = WordDocument.Create(filePath)) {
                 var ch = doc.AddChart("Full width", false, 400, 240);
                 ch.SetWidthToPageContent(1.0, 240);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var doc = WordDocument.Load(filePath)) {
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
                 line.AddLine("Latency", new[] { 3, 2, 1 }.ToList(), Color.Black);
                 line.ApplyPalette(WordChart.WordChartPalette.MonochromeGray)
                     .SetSeriesColor(1, Color.ParseHex("#d63939"));
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var doc = WordDocument.Load(filePath)) {

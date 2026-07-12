@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                 };
 
                 WordMailMerge.Execute(document, values, removeFields: false);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

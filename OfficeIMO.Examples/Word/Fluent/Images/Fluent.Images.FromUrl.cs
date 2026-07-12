@@ -17,9 +17,9 @@ namespace OfficeIMO.Examples.Word {
                         .Size(400)
                         .Align(HorizontalAlignment.Center))
                     .End();
-                document.Save(false);
+                document.Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

@@ -112,7 +112,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("Found shape: " + shape?.Name);
             presentation.Save();
 
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

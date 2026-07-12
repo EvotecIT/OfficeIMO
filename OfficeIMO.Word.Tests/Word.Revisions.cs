@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddInsertedText("Added", "Codex");
                 paragraph.AddDeletedText("Removed", "Codex");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddInsertedText("Added", "Codex");
                 paragraph.AddDeletedText("Removed", "Codex");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddInsertedText("Added", "Codex");
                 paragraph.AddDeletedText("Removed", "Codex");
-                document.Save(false);
+                document.Save();
 
                 var errors = document.ValidateDocument();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 paragraph.AddInsertedText("Added", "Codex");
                 paragraph.AddDeletedText("Removed", "Codex");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 paragraph._paragraph.Append(new Inserted() { Id = "1", Author = "Codex" });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddInsertedText("AddedByBob", "Bob");
                 paragraph.AddDeletedText("RemovedByAlice", "Alice");
                 paragraph.AddDeletedText("RemovedByBob", "Bob");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
                     Date = revisionDate,
                     Id = "9101"
                 });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddInsertedText("AddedByBob", "Bob");
                 paragraph.AddDeletedText("RemovedByAlice", "Alice");
                 paragraph.AddDeletedText("RemovedByBob", "Bob");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddInsertedText("RecentAlice", "Alice", recentDate);
                 paragraph.AddInsertedText("RecentBob", "Bob", recentDate);
                 paragraph.AddDeletedText("RemovedAlice", "Alice", recentDate);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordRevisionOperationKind.Accept, report.Operation);
                 WordRevisionInfo matched = Assert.Single(report.MatchedRevisions);
                 Assert.Equal("RecentAlice", matched.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddDeletedText("RestoreThis", "Alice");
                 paragraph.AddDeletedText("KeepDeleted", "Alice");
-                document.Save(false);
+                document.Save();
             }
 
             string revisionId;
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
 
                 WordRevisionInfo matched = Assert.Single(report.MatchedRevisions);
                 Assert.Equal("RestoreThis", matched.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
 
                 WordTable table = document.AddTable(1, 1);
                 table.FirstRow.FirstCell.Paragraphs[0].AddInsertedText("TableInsertion", "Alice");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -347,7 +347,7 @@ namespace OfficeIMO.Tests {
                     IsInTable = true
                 });
                 Assert.Single(tableReport.MatchedRevisions);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
                     Author = "Alice",
                     Date = revisionDate
                 });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -392,7 +392,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(2, report.MatchedCount);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -417,7 +417,7 @@ namespace OfficeIMO.Tests {
                 WordRevisionInfo matched = Assert.Single(report.MatchedRevisions);
                 Assert.Equal(WordReviewRevisionType.MoveTo, matched.RevisionType);
                 Assert.Equal("Accept moved to", matched.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(acceptPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -439,7 +439,7 @@ namespace OfficeIMO.Tests {
                 WordRevisionInfo matched = Assert.Single(report.MatchedRevisions);
                 Assert.Equal(WordReviewRevisionType.MoveFrom, matched.RevisionType);
                 Assert.Equal("Reject moved from", matched.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(rejectPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -481,7 +481,7 @@ namespace OfficeIMO.Tests {
                 WordRevisionInfo rejected = Assert.Single(rejectReport.MatchedRevisions);
                 Assert.Equal(WordReviewRevisionType.Deletion, rejected.RevisionType);
                 Assert.Equal("Word-authored deletion target", rejected.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -532,7 +532,7 @@ namespace OfficeIMO.Tests {
                 WordRevisionInfo rejected = Assert.Single(rejectReport.MatchedRevisions);
                 Assert.Equal(WordReviewRevisionType.Deletion, rejected.RevisionType);
                 Assert.Equal("Word COM deletion target", rejected.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -614,7 +614,7 @@ namespace OfficeIMO.Tests {
 
                 WordRevisionInfo endnoteRevision = Assert.Single(endnoteReport.MatchedRevisions);
                 Assert.Equal("Word COM endnote deletion target", endnoteRevision.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -691,7 +691,7 @@ namespace OfficeIMO.Tests {
                 });
                 WordRevisionInfo moveFrom = Assert.Single(moveFromReport.MatchedRevisions);
                 Assert.Equal("Word-authored move source", moveFrom.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -742,7 +742,7 @@ namespace OfficeIMO.Tests {
 
                 WordRevisionInfo sectionRevision = Assert.Single(sectionReport.MatchedRevisions);
                 Assert.Equal(WordReviewRevisionType.SectionFormatting, sectionRevision.RevisionType);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -778,7 +778,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(6, report.MatchedCount);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(acceptPath, false)) {
@@ -794,7 +794,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(6, report.MatchedCount);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(rejectPath, false)) {
@@ -825,7 +825,7 @@ namespace OfficeIMO.Tests {
                 WordRevisionInfo footnoteRevision = Assert.Single(footnoteReport.MatchedRevisions);
                 Assert.Equal(WordReviewLocationKind.Footnote, footnoteRevision.LocationKind);
                 Assert.Equal("Scoped footnote insertion", footnoteRevision.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -873,7 +873,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(textBoxRevision.IsInContentControl);
                 Assert.True(textBoxRevision.IsInTextBox);
                 Assert.Equal("Scoped text-box insertion", textBoxRevision.AffectedText);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -966,7 +966,7 @@ namespace OfficeIMO.Tests {
                     Date = revisionDate
                 });
 
-            document.Save(false);
+            document.Save();
         }
 
         private static void AssertAcceptedFormatting(WordprocessingDocument wordDocument) {

@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
                 document.AddParagraph("Second page");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

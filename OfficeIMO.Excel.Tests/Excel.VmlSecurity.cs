@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Sheet1");
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, pngBytes, "image/png");
-                document.Save(false);
+                document.Save();
             }
 
             string relationshipId = GetSingleVmlImageRelationshipId(filePath);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Sheet1");
                 sheet.SetComment(1, 1, "Original");
-                document.Save(false);
+                document.Save();
             }
 
             ReplaceFirstVmlPart(filePath, """
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document.Sheets.Single().SetComment(2, 1, "Updated");
-                document.Save(false);
+                document.Save();
             }
 
             string vml = ReadFirstVmlPartText(filePath);

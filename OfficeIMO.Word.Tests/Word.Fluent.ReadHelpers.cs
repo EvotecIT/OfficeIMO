@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("First"))
                     .Paragraph(p => p.Text("Second match"))
                     .Paragraph(p => p.Text("Third"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

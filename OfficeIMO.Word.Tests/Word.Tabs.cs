@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.ParagraphsTabs.Count == 2);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabs.docx"))) {
                 Assert.True(document.ParagraphsTabStops.Count == 0);
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("\t\tJohn Doe and Jane Doe\t\t", underlined.Text);
                     Assert.Equal(UnderlineValues.Single, underlined.Underline);
 
-                    document.Save(false);
+                    document.Save();
                 }
 
                 using (var package = WordprocessingDocument.Open(filePath, false)) {
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     var paragraph = document.AddParagraph();
                     paragraph.AddFormattedText("placeholder", underline: UnderlineValues.Single);
-                    document.Save(false);
+                    document.Save();
                 }
 
                 using (var package = WordprocessingDocument.Open(filePath, true)) {
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                         .Single();
 
                     underlined.Text = underlined.Text;
-                    document.Save(false);
+                    document.Save();
                 }
 
                 using (var package = WordprocessingDocument.Open(filePath, false)) {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     var paragraph = document.AddParagraph();
                     paragraph.AddFormattedText("placeholder", underline: UnderlineValues.Single);
-                    document.Save(false);
+                    document.Save();
                 }
 
                 using (var package = WordprocessingDocument.Open(filePath, true)) {
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                         .Single();
 
                     underlined.Text = underlined.Text;
-                    document.Save(false);
+                    document.Save();
                 }
 
                 using (var package = WordprocessingDocument.Open(filePath, false)) {

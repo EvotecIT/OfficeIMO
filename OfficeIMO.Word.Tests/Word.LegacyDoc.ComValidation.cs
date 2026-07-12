@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocOfficeIMOCustomBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             WordParagraph convertedParagraph = converted.Paragraphs
                 .First(item => item.Text == "Custom style Word COM paragraph");
             Assert.Equal(WordParagraphStyles.Custom, convertedParagraph.Style);

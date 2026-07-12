@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Excel {
 
                 sheet.InsertDataTable(table, includeHeaders: true);
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

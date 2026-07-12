@@ -856,7 +856,7 @@ namespace OfficeIMO.Tests {
 
             string projectedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             try {
-                result.Document.Save(projectedPath, openExcel: false);
+                result.Document.Save(projectedPath);
                 using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(projectedPath, false);
                 SheetProtection protection = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Elements<SheetProtection>().Single();
                 Assert.True(protection.Objects!.Value);

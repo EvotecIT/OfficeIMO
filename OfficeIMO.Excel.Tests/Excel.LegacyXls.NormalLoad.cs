@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
 
-                await document.SaveAsync(outputPath, openExcel: false);
+                await document.SaveAsync(outputPath);
 
                 using ExcelDocument converted = ExcelDocument.Load(outputPath);
                 Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);

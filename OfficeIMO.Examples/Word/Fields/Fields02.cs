@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
                 // added page number using dedicated way
                 var pageNumber = document.HeaderDefaultOrCreate.AddPageNumber(WordPageNumberStyle.Roman);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

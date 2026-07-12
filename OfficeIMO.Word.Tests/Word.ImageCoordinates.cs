@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, loc.X);
             Assert.Equal(0, loc.Y);
 
-            document.Save(false);
+            document.Save();
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(offset, loc.X);
             Assert.Equal(offset, loc.Y);
 
-            document.Save(false);
+            document.Save();
         }
     }
 }

@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 stream.Position = 0;
                 stream.CopyTo(file);
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

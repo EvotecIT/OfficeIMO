@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             comboChart.AddBar("Sales", new List<int> { 10, 35, 18, 23 }, Color.Brown);
             comboChart.AddLine("Trend", new List<int> { 12, 30, 20, 25 }, Color.AliceBlue);
             comboChart.AddLegend(LegendPositionValues.Top);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(table4.StyleDetails!.MarginDefaultBottomCentimeters == null);
                 Assert.True(table4.StyleDetails!.CellSpacingCentimeters == null);
 
-                document.Save(false);
+                document.Save();
             }
 
             // Test 5: Load and verify saved values

@@ -74,7 +74,7 @@ public class ChartTests : VerifyTestBase {
         area3d.AddCategories(categories);
         area3d.AddArea3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkBlue);
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
     }

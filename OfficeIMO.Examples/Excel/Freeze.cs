@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(2, 1, "Value1");
                 sheet.CellValue(2, 2, "Value2");
                 sheet.Freeze(topRows: 1, leftCols: 1);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

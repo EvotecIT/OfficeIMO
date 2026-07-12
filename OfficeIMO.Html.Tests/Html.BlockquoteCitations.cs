@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         public void BlockquoteCitationSurvivesSavedDocumentRoundTrip() {
             string html = "<blockquote cite=\"https://example.com/persisted\"><p>Persisted quote</p></blockquote>";
             using var doc = html.ToWordDocument(new HtmlToWordOptions());
-            using MemoryStream packageStream = doc.ToDocxStream();
+            using MemoryStream packageStream = doc.ToStream();
             using var loaded = WordDocument.Load(packageStream);
 
             string roundTrip = loaded.ToHtml(new WordToHtmlOptions { ExportFootnotes = true });

@@ -176,7 +176,7 @@ namespace OfficeIMO.Excel {
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             if (openExcel) {
-                Helpers.Open(path, true);
+                OfficeIMO.Core.OfficeFileLauncher.Open(path);
             }
 
             return true;
@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             if (openExcel) {
-                Open(path, true);
+                OpenInApplication(path);
             }
 
             return true;

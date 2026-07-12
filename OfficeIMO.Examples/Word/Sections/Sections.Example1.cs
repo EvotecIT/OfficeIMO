@@ -88,7 +88,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ Paragraphs section 3 Text: " + document.Sections[3].Paragraphs[0].Text);
                 Console.WriteLine("+ Paragraphs section 3 Count: " + document.Sections[3].Paragraphs.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

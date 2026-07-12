@@ -50,7 +50,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Embedded documents in word: " + document.EmbeddedDocuments.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -82,7 +82,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable2.Style = WordTableStyle.GridTable7Colorful;
 
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

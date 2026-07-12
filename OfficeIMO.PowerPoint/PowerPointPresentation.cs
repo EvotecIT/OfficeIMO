@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a PowerPoint presentation providing create, load, and save operations.
     /// </summary>
-    public sealed partial class PowerPointPresentation : IDisposable {
+    public sealed partial class PowerPointPresentation : IDisposable, IAsyncDisposable {
         private PresentationDocument? _document;
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();

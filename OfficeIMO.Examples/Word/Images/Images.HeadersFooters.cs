@@ -98,7 +98,7 @@ namespace OfficeIMO.Examples.Word {
                 //var filePathImageEvotecSave = System.IO.Path.Combine(imagePaths, "savedFile.png");
                 //paragraphHeaderEven.Image.SaveToFile(filePathImageEvotecSave);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
 
                 static WordParagraph GetOrAddParagraph(WordTable table, int rowIndex, int columnIndex) {
                     var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");

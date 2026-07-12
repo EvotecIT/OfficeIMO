@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.ApplicationProperties.ApplicationVersion);
 
-                document.Open(openWord);
+                if (openWord) document.OpenInApplication();
             }
         }
     }

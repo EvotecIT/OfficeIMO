@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Signed metadata carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Timestamp metadata carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Shared package signature inspector carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Simple digest verification carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, CreateSignatureXml(digestValue: ComputePackagePartSha256Digest(filePath, "/word/document.xml")));
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Mismatched digest verification carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, CreateSignatureXml(digestValue: "T2ZmaWNlSU1P"));
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Transformed digest verification carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(
@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Missing reference digest value carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Missing signed package part carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Malformed signature metadata carrier");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Application signature metadata only");
                 document.ApplicationProperties.DigitalSignature = new DigitalSignature();
-                document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -370,13 +370,13 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Signed no-op save");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Signed blocked save");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -414,7 +414,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph("Mutation after signing");
 
-                WordSignatureSavePolicyException exception = Assert.Throws<WordSignatureSavePolicyException>(() => document.Save(false));
+                WordSignatureSavePolicyException exception = Assert.Throws<WordSignatureSavePolicyException>(() => document.Save());
 
                 Assert.Equal("Save", exception.Operation);
                 Assert.True(exception.SignatureInfo.HasSignatures);
@@ -430,14 +430,14 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Signed allowed save");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph("Mutation after signing");
-                document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -453,14 +453,15 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Signed stream blocked");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Throws<WordSignatureSavePolicyException>(() => document.ToDocxStream());
-                using MemoryStream stream = document.ToDocxStream(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                Assert.Throws<WordSignatureSavePolicyException>(() => document.ToStream());
+                using MemoryStream stream = document.ToStream(options:
+                    new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
 
                 Assert.True(stream.Length > 0);
             }
@@ -473,7 +474,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Signed autosave source");
-                document.Save(false);
+                document.Save();
             }
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
@@ -497,7 +498,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Invalid thumbprint");
-                document.Save(false);
+                document.Save();
             }
 
             WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, "ABCDZ123");
@@ -513,7 +514,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Package signing adapter proof");
-                document.Save(false);
+                document.Save();
             }
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
@@ -557,7 +558,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Package signing missing requested part proof");
-                document.Save(false);
+                document.Save();
             }
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
@@ -583,7 +584,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Package signing selective relationship proof");
-                document.Save(false);
+                document.Save();
             }
 
             int documentPartRelationshipCount;
@@ -635,7 +636,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Package signing certificate-store proof");
-                document.Save(false);
+                document.Save();
             }
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
@@ -670,7 +671,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Unsupported package signing adapter proof");
-                document.Save(false);
+                document.Save();
             }
 
             using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
@@ -693,7 +694,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Missing store certificate proof");
-                document.Save(false);
+                document.Save();
             }
 
             WordPackageSigningResult result = WordDocument.TrySignPackage(

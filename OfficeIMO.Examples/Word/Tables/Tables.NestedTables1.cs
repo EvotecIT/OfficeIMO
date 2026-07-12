@@ -87,7 +87,7 @@ namespace OfficeIMO.Examples.Word {
                     i++;
                 }
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
 
                 static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
                     var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");

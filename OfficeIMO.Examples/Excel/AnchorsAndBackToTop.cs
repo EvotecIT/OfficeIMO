@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Excel {
 
                 // Add TOC for convenience
                 doc.AddTableOfContents(placeFirst: true, withHyperlinks: true);
-                doc.Save(false);
-                if (openExcel) doc.Open(filePath, true);
+                doc.Save();
+                if (openExcel) doc.OpenInApplication(filePath);
             }
         }
     }

@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph8 = document.AddParagraph("Image will be Top And Bottom");
             paragraph8.InsertImage(System.IO.Path.Combine(imagePaths, "PrzemyslawKlysAndKulkozaurr.jpg"), 200, 200, WrapTextImage.TopAndBottom, "Przemek and Kulek on an image").Shape = ShapeTypeValues.Can;
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

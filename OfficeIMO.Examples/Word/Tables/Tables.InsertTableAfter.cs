@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "T1";
 
                 document.InsertTableAfter(before, table);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Advanced";
 
                 document.InsertTableAfter(start, table);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

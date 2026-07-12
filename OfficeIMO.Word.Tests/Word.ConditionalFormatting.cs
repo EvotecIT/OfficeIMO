@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                     matchTextFormat: p => p.SetBold(),
                     noMatchTextFormat: p => p.SetUnderline(UnderlineValues.Single));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
 
                 builder.Apply();
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                 var list = document.AddPictureBulletList(imagePath);
                 list.AddItem("Item1");
                 list.AddItem("Item2");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 using var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var list = document.AddPictureBulletList(stream, "Kulek.jpg");
                 list.AddItem("Item1");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 using var stream = new NonSeekableReadStream(File.ReadAllBytes(imagePath));
                 var list = document.AddPictureBulletList(stream, "Kulek.jpg");
                 list.AddItem("Item1");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

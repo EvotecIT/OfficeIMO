@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Fields[2].LockField == true);
                 Assert.True(document.Fields[1].LockField == false);
                 Assert.True(document.Fields[0].LockField == false);
-                document.Save(false);
+                document.Save();
             }
         }
         [Fact]
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Images.Count == 7);
 
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs.Count == 6);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "DocumentWithFields.docx"))) {
@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldMultipleSwitches.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph().AddField(WordFieldType.Page, WordFieldFormat.Caps);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm");
                 Assert.NotNull(paragraph.Field);
                 Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field!.Field);
-                document.Save(false);
+                document.Save();
             }
 
                 using (WordDocument document = WordDocument.Load(filePath)) {
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
                 var p1 = document.AddParagraph("Page as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText);
                 var p2 = document.AddParagraph("Page ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal);
                 var p3 = document.AddParagraph("Page hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -363,7 +363,7 @@ namespace OfficeIMO.Tests {
                 };
 
                 document.AddParagraph().AddField(WordFieldType.Ask, advanced: true, parameters: parameters);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -390,7 +390,7 @@ namespace OfficeIMO.Tests {
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 footer.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.NumPages, advanced: true);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -424,7 +424,7 @@ namespace OfficeIMO.Tests {
                 simpleField.Append(new Run(new Text("Alpha")));
                 simpleField.Append(new Run(new Text("Beta")));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests {
                 resultRun.GetFirstChild<Text>()!.Text = "Alpha";
                 resultRun.InsertAfterSelf(new Run(new Text("Beta")));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -485,7 +485,7 @@ namespace OfficeIMO.Tests {
 
                 var fieldParagraph = new WordParagraph(document, paragraph, runs);
                 fieldParagraph.Text = "Merged";
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);

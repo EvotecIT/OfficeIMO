@@ -21,7 +21,7 @@ internal static partial class Protect {
 
             Console.WriteLine("ReadOnlyRecommended: " + document.Settings.ReadOnlyRecommended);
 
-            document.Save(false);
+            document.Save();
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
                 Console.WriteLine("Document has validation errors:");
@@ -32,7 +32,7 @@ internal static partial class Protect {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

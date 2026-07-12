@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                         .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
                         .Text("!", t => t.BoldOn()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                         .Text(" Emboss", t => t.Emboss())
                         .Text(" SmallCaps", t => t.SmallCaps()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

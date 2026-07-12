@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Excel {
 
                 Console.WriteLine(document.DocumentIsValid);
                 Console.WriteLine(document.DocumentValidationErrors);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

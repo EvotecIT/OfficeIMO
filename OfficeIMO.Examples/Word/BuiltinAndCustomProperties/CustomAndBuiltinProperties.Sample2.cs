@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);
                 Console.WriteLine("+ Sections: " + document.Sections.Count);
 
-                document.Open(openWord);
+                if (openWord) document.OpenInApplication();
             }
         }
 

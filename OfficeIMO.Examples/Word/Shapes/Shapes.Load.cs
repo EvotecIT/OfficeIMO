@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Shape one").AddShape(90, 40, "#00FFFF");
                 document.AddParagraph("Shape two").AddShape(60, 60, "#FF00FF");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
                         Console.WriteLine($"Found shape {shape.Width}x{shape.Height}");
                     }
                 }
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

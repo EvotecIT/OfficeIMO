@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Initial", TocText(toc));
                 Assert.Contains("Second", TocText(toc));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Plain body text", TocText(toc));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { 1, 2, 3, 3 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
                     new Run(new Text("No table of contents entries found.") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
                 document.AddParagraph("Split Instruction Heading").SetStyle(WordParagraphStyles.Heading1);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
                     new Run(new Text("No table of contents entries found.") { Space = SpaceProcessingModeValues.Preserve }),
                     new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
                 document.AddParagraph("Same Run Prefix Heading").SetStyle(WordParagraphStyles.Heading1);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -367,7 +367,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -558,7 +558,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -605,7 +605,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -655,7 +655,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -778,7 +778,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -831,7 +831,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"ScopedToc\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -886,7 +886,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -924,7 +924,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n \"2-3\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -958,7 +958,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1004,7 +1004,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1051,7 +1051,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1085,7 +1085,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \" -> \"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1122,7 +1122,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, list.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1212,7 +1212,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \" :: \"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1250,7 +1250,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Still excluded", TocText(list));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1298,7 +1298,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1352,7 +1352,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1404,7 +1404,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1450,7 +1450,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1496,7 +1496,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1542,7 +1542,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1589,7 +1589,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1632,7 +1632,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1682,7 +1682,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1731,7 +1731,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1768,7 +1768,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, list.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1816,7 +1816,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1865,7 +1865,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1941,7 +1941,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2120,7 +2120,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2172,7 +2172,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2230,7 +2230,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2287,7 +2287,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2338,7 +2338,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2389,7 +2389,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2439,7 +2439,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2496,7 +2496,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2551,7 +2551,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2609,7 +2609,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"ScopedIndex\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2660,7 +2660,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Missing Range", indexText);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2703,7 +2703,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Table Range", TocText(index));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2760,7 +2760,7 @@ namespace OfficeIMO.Tests {
                 });
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2812,7 +2812,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\h \"--A--\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2851,7 +2851,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2880,7 +2880,7 @@ namespace OfficeIMO.Tests {
                     CreateConcordanceRow("Epsilon text box", "TextBoxes:Epsilon"),
                     CreateConcordanceRow("ignored", "Unsafe \"Quote"),
                     CreateConcordanceRow(string.Empty, "Skipped")));
-                concordance.Save(false);
+                concordance.Save();
             }
 
             using (WordDocument document = WordDocument.Create(filePath)) {
@@ -2945,7 +2945,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Epsilon", indexText);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -2988,7 +2988,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \"A-M\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -3034,7 +3034,7 @@ namespace OfficeIMO.Tests {
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \"!--B\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
         }
 

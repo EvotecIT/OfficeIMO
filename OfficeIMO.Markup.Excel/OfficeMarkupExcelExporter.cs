@@ -35,7 +35,7 @@ public sealed class OfficeMarkupExcelExporter {
 
         context.EnsureCurrentSheet();
         FinalizeWorkbook(context);
-        workbook.Save(options.OutputPath, openExcel: false, options: new ExcelSaveOptions {
+        workbook.Save(options.OutputPath, new ExcelSaveOptions {
             SafePreflight = options.SafePreflight,
             ValidateOpenXml = options.ValidateOpenXml,
             SafeRepairDefinedNames = options.SafeRepairDefinedNames

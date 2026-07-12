@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "DocumentWithImageFromUrl.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddImageFromUrl("https://via.placeholder.com/150", 150, 150);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

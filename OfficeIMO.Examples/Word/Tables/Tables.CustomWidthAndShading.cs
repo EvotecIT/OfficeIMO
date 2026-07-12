@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 cell2.AddParagraph("Blue");
                 cell2.ShadingFillColorHex = "0000ff";
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

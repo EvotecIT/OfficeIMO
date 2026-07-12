@@ -24,6 +24,10 @@ namespace OfficeIMO.Tests {
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
             Assert.Single(presentationMethods, method => method.Name == nameof(PowerPointPresentation.Compose));
             Assert.DoesNotContain(presentationMethods, method => method.Name == "Open");
+            Assert.DoesNotContain(presentationMethods, method => method.Name is "Save" or "SaveAsync" or "SaveEncrypted" &&
+                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.ToBytes));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.SaveAsync));
             Assert.DoesNotContain(presentationMethods, method => method.Name == "OpenRead");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "CreateFromTemplate");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "InspectTemplate");

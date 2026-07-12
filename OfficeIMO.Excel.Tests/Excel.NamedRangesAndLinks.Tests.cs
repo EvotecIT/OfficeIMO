@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(parts);
                 Assert.True(parts!.Elements<TablePart>().Any());
 
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var verify = ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {

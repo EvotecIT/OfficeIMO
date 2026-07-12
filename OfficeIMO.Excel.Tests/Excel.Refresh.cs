@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(result.Enabled);
                 Assert.Equal(1, result.PivotCacheCount);
                 Assert.Equal(1, result.ConnectionCount);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

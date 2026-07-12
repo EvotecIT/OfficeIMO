@@ -626,7 +626,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 3d);
                 sheet.CellFormula(3, 1, "SUM(B1:B2)");
 
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions {
+                document.Save(filePath, new ExcelSaveOptions {
                     EvaluateFormulasBeforeSave = true,
                     ForceFullCalculationOnOpen = true
                 });
@@ -1006,7 +1006,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Resource");
                 sheet.CellValue(2, 1, "Spec");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1040,7 +1040,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Dashboard");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1089,7 +1089,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1137,7 +1137,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Dashboard");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1162,7 +1162,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Dashboard"].CellValue(3, 1, "US");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -1204,7 +1204,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1230,7 +1230,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Data"].CellValue(3, 1, "US");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -1272,7 +1272,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Review");
                 sheet.CellValue(1, 1, "Revenue");
                 sheet.CellValue(2, 1, 1250d);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1304,7 +1304,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Review"].CellValue(3, 1, "Checked");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -1342,7 +1342,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Controls");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Before");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1354,7 +1354,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Controls"].CellValue(3, 1, "After");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -1385,7 +1385,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -1417,7 +1417,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Resource");
                 sheet.CellValue(2, 1, "Spec");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1428,7 +1428,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Links"].CellValue(3, 1, "Edited");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -1457,7 +1457,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Package");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Before");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1475,7 +1475,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Package"].CellValue(3, 1, "After");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -1515,7 +1515,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddWorkSheet("Signed");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Before");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -1534,7 +1534,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document["Signed"].CellValue(3, 1, "After");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

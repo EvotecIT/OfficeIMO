@@ -54,8 +54,8 @@ namespace OfficeIMO.Examples.Excel {
 
             s.Finish(autoFitColumns: false);
 
-            doc.Save(false);
-            if (openExcel) doc.Open(filePath, true);
+            doc.Save();
+            if (openExcel) doc.OpenInApplication(filePath);
         }
 
         // Minimal helper to convert column index to Excel letter (duplicated here for a self-contained example)

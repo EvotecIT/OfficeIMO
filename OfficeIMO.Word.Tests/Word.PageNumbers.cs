@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].AddParagraph("Footer");
                 var para = table.Rows[0].Cells[1].AddParagraph();
                 para.AddPageNumber(includeTotalPages: true);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.NotNull(document.ParagraphsFields);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 footer.AddParagraph().AddPageNumber();
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var section = document.Sections[0];
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var para = footer.AddParagraph();
                 para.AddPageNumber(includeTotalPages: true, separator: " / ");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var errors = document.ValidateDocument();
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                     document.AddHeadersAndFooters();
                     var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                     header.AddPageNumber(style);
-                    document.Save(false);
+                    document.Save();
                 }
 
                 using (WordDocument document = WordDocument.Load(filePath)) {
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var pageNumber = header.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" custom");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 var pageNumber = footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" of ");
                 pageNumber.Paragraph.AddField(WordFieldType.NumPages);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
                 var secondSectionFooter = RequireSectionFooter(document, 1, HeaderFooterValues.Default);
                 secondSectionFooter.AddParagraph().AddPageNumber();
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Sections.Count);
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var para = footer.AddParagraph();
                 para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var sectionA = document.Sections[0];
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
                 var pageNumber = footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.CustomFormat = format;
                 Assert.Equal(format, pageNumber.CustomFormat);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var mainPart2 = document._wordprocessingDocument.MainDocumentPart;

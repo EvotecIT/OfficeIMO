@@ -224,7 +224,7 @@ foreach (var formula in formulas.Formulas.Where(f => !f.IsSupportedByOfficeIMO))
 }
 
 int calculated = document.Calculate();
-document.Save("report.xlsx", openExcel: false, options: new ExcelSaveOptions {
+document.Save("report.xlsx", new ExcelSaveOptions {
     EvaluateFormulasBeforeSave = true,
     ForceFullCalculationOnOpen = true
 });

@@ -29,7 +29,7 @@ public partial class Excel {
                 headerRight: "Page &P of &N",
                 footerLeft: "Sheet &A",
                 footerRight: "Right Footer");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -68,7 +68,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(
                 headerLeft: "Printed &D &T Dir &Z File &F",
                 footerRight: "Page &P of &N");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -102,7 +102,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(
                 headerCenter: "&\"Arial,Bold\"&18&KFF0000Styled Header",
                 footerCenter: "&\"Times New Roman,Italic\"&10&K0000FFStyled Footer");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -141,7 +141,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(
                 headerCenter: "&\"Aptos,Bold\"Alias Header",
                 footerCenter: "&\"Consolas,Italic\"Alias Footer");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -175,7 +175,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "EscapedHeaderFooterBody");
             sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -209,7 +209,7 @@ public partial class Excel {
                 headerLeft: "&KFF0000Red Left",
                 headerCenter: "Plain Center",
                 footerCenter: "Plain Footer");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(options);
         }
@@ -250,7 +250,7 @@ public partial class Excel {
             Assert.Equal("First Header &A", snapshot.FirstHeaderCenter);
             Assert.Equal("Even Header &A", snapshot.EvenHeaderCenter);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -288,7 +288,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
             sheet.SetFirstPageHeaderFooter();
             sheet.SetEvenPageHeaderFooter();
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -334,7 +334,7 @@ public partial class Excel {
             Assert.Equal(16, snapshot.HeaderCenterImage.HeightPoints);
             Assert.Equal(imageBytes, snapshot.HeaderCenterImage.Bytes);
 
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -395,7 +395,7 @@ public partial class Excel {
             Assert.Equal("&GFirst Header &A", snapshot.FirstHeaderCenter);
             Assert.Equal("&GEven Header &A", snapshot.EvenHeaderCenter);
 
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -433,7 +433,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "Metric");
             sheet.Cell(2, 1, "BodyOnly");
             sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader", footerCenter: "DoNotExportFooter");
-            document.Save(false);
+            document.Save();
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,

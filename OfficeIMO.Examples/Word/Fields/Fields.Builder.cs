@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
                 var builder = new WordFieldBuilder(WordFieldType.Author)
                     .SetFormat(WordFieldFormat.Caps);
                 document.AddParagraph("Author: ").AddField(builder);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 var refField = new WordFieldBuilder(WordFieldType.Ref)
                     .AddInstruction("currentDate");
                 document.AddParagraph("Saved on: ").AddField(refField);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -53,6 +53,24 @@ public static class CsvFile
         return new StreamWriter(stream, encoding, bufferSize: bufferSize);
     }
 
+    internal static TextWriter CreateTextWriter(
+        Stream destination,
+        CsvSaveOptions options,
+        bool leaveOpen,
+        int bufferSize = 256 * 1024)
+    {
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+        var compressionType = options.CompressionType == CsvCompressionType.Auto
+            ? CsvCompressionType.None
+            : options.CompressionType;
+        EnsureCompressionSupported(compressionType);
+        EnsureCompressionLevelSupported(compressionType, options.CompressionLevel);
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        Stream output = WrapWriteStream(destination, compressionType, options.CompressionLevel, leaveOpen);
+        return new StreamWriter(output, encoding, bufferSize, leaveOpen: compressionType == CsvCompressionType.None && leaveOpen);
+    }
+
     /// <summary>
     /// Resolves an explicit or extension-inferred compression type for a CSV path.
     /// </summary>
@@ -142,14 +160,17 @@ public static class CsvFile
         };
 
     private static Stream WrapWriteStream(Stream stream, CsvCompressionType compressionType, CompressionLevel compressionLevel) =>
+        WrapWriteStream(stream, compressionType, compressionLevel, leaveOpen: false);
+
+    private static Stream WrapWriteStream(Stream stream, CsvCompressionType compressionType, CompressionLevel compressionLevel, bool leaveOpen) =>
         compressionType switch
         {
             CsvCompressionType.None => stream,
-            CsvCompressionType.GZip => new GZipStream(stream, compressionLevel, leaveOpen: false),
-            CsvCompressionType.Deflate => new DeflateStream(stream, compressionLevel, leaveOpen: false),
+            CsvCompressionType.GZip => new GZipStream(stream, compressionLevel, leaveOpen),
+            CsvCompressionType.Deflate => new DeflateStream(stream, compressionLevel, leaveOpen),
 #if NET8_0_OR_GREATER
-            CsvCompressionType.Brotli => new BrotliStream(stream, compressionLevel, leaveOpen: false),
-            CsvCompressionType.ZLib => new ZLibStream(stream, compressionLevel, leaveOpen: false),
+            CsvCompressionType.Brotli => new BrotliStream(stream, compressionLevel, leaveOpen),
+            CsvCompressionType.ZLib => new ZLibStream(stream, compressionLevel, leaveOpen),
 #else
             CsvCompressionType.Brotli => throw new PlatformNotSupportedException("Brotli CSV compression requires a .NET runtime that supports BrotliStream."),
             CsvCompressionType.ZLib => throw new PlatformNotSupportedException("ZLib CSV compression requires a .NET runtime that supports ZLibStream."),

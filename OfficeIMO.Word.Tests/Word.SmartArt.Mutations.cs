@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, sa.NodeCount);
 
                 sa.ReplaceTexts("A", "AB", "C");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 sa.RemoveNodeAt(3);
                 Assert.Equal(4, sa.NodeCount);
                 sa.ReplaceTexts(new [] {"Start", "AB", "C", "D"});
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                 // Ensure two nodes
                 sa.AddNode("Second");
                 sa.ReplaceTexts(bold: true, italic: true, underline: true, colorHex: "#FF0000", sizePt: 12, texts: new [] {"First", "Second"});
-                document.Save(false);
+                document.Save();
             }
 
             // Inspect the XML to assert run properties persisted

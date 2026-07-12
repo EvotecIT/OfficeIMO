@@ -168,7 +168,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                               accessibility.WarningCount + " warnings");
             Console.WriteLine("    Rhythm: " + rhythm.Score + "/100, " + rhythm.Findings.Count + " finding(s)");
             Console.WriteLine("    Proof: PPTX, PNG, SVG, PDF, handout PDF, HTML, JSON, and Open XML validation");
-            Helpers.Open(presentationPath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(presentationPath);
         }
     }
 }

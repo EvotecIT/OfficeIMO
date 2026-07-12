@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph4 = document.AddParagraph("Linked image from web");
             paragraph4.InsertImage(new Uri("http://example.com/logo.png"), 100, 100);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

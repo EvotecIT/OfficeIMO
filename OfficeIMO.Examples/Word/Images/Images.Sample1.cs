@@ -71,7 +71,7 @@ namespace OfficeIMO.Examples.Word {
             var fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
             firstImage.SaveToFile(fileToSave);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

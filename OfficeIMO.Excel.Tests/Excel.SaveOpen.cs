@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
                 // Attempt to save the document, do not open, as it may fail on systems without associated application, and not really great for testing
                 try {
-                    document.Save(false);
+                    document.Save();
                 } catch {
                     // Opening the file may fail on systems without associated application
                 }

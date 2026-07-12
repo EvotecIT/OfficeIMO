@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(20d, shape.Top!.Value, 1);
                 Assert.Equal(45d, shape.Rotation!.Value, 1);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithShapes.docx"))) {
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 Assert.Equal(Color.Lime.ToHexColor(), shape.FillColorHex);
                 Assert.Equal(Color.Black.ToHexColor(), shape.StrokeColorHex);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraph.IsShape);
                 Assert.Equal(Color.Aqua.ToHexColor(), shape.FillColorHex);
                 Assert.Equal(Color.Red.ToHexColor(), shape.StrokeColorHex);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Shapes.Count == 1);
                 Assert.Equal(Color.Yellow.ToHexColor(), document.Shapes[0].FillColorHex);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                 defaultHeader.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
                 defaultHeader.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 Assert.NotNull(shape.ArcSize);
                 Assert.InRange(shape.ArcSize!.Value, 0.29, 0.31);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

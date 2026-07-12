@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
+                doc.Save(savePath, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new LegacyDrawing { Id = wsPart.GetIdOfPart(vmlPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
+                doc.Save(savePath, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new LegacyDrawingHeaderFooter { Id = wsPart.GetIdOfPart(vmlPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
                 ws.AppendChild(conditional);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -357,7 +357,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(second);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = wsPart.GetIdOfPart(drawingPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = wsPart.GetIdOfPart(drawingPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -490,7 +490,7 @@ namespace OfficeIMO.Tests {
                 );
                 workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -520,7 +520,7 @@ namespace OfficeIMO.Tests {
                 );
                 workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -605,7 +605,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -643,7 +643,7 @@ namespace OfficeIMO.Tests {
                 ws.AppendChild(autoFilter);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -691,7 +691,7 @@ namespace OfficeIMO.Tests {
                 autoFilter.Append(keep, duplicate, outOfRange, empty);
                 tablePart.Table.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                 wsPart.Worksheet.RemoveChild(tableParts!);
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -775,7 +775,7 @@ namespace OfficeIMO.Tests {
                 tablePart.Table!.Reference = "BadRange";
                 tablePart.Table.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -822,7 +822,7 @@ namespace OfficeIMO.Tests {
                 };
                 tablePart.Table.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -863,7 +863,7 @@ namespace OfficeIMO.Tests {
                     }));
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -922,7 +922,7 @@ namespace OfficeIMO.Tests {
                 }
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -965,7 +965,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1001,7 +1001,7 @@ namespace OfficeIMO.Tests {
                 wsPart.DeleteReferenceRelationship(relationship);
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1033,7 +1033,7 @@ namespace OfficeIMO.Tests {
                 wsPart.AddHyperlinkRelationship(new Uri("https://example.com/orphan"), true, "rId999");
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
                 hyperlinks.InsertAfter((Hyperlink)b1.CloneNode(true), a1);
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1113,7 +1113,7 @@ namespace OfficeIMO.Tests {
                 });
                 workbookPart.Workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1149,7 +1149,7 @@ namespace OfficeIMO.Tests {
                 chainPart.CalculationChain.InnerXml = "<x:c xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"A1\" i=\"1\" />";
                 workbookPart.Workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1197,7 +1197,7 @@ namespace OfficeIMO.Tests {
                 cell.StyleIndex = 42U;
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1244,7 +1244,7 @@ namespace OfficeIMO.Tests {
                 sharedStringTable.UniqueCount = 1U;
                 sharedStringTable.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1283,7 +1283,7 @@ namespace OfficeIMO.Tests {
                 sharedStringTable.UniqueCount = 2U;
                 sharedStringTable.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1312,7 +1312,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddWorkSheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
-                doc.Save(path, openExcel: false);
+                doc.Save(path);
             }
 
             using (var package = SpreadsheetDocument.Open(path, true)) {
@@ -1326,7 +1326,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = ExcelDocument.Load(path)) {
-                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
+                doc.Save(savePath, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1367,7 +1367,7 @@ namespace OfficeIMO.Tests {
                 wsPart.Worksheet.Save();
                 workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1412,7 +1412,7 @@ namespace OfficeIMO.Tests {
                 });
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1458,7 +1458,7 @@ namespace OfficeIMO.Tests {
                 });
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1519,7 +1519,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1660,7 +1660,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1714,7 +1714,7 @@ namespace OfficeIMO.Tests {
                 ws.InsertAfter(new SheetDimension { Reference = "BadRef" }, firstDimension);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1753,7 +1753,7 @@ namespace OfficeIMO.Tests {
                 sheetData.Append(row);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {

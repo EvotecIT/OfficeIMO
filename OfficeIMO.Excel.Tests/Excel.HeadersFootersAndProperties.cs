@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 if (logo != null) sheet.SetHeaderImage(HeaderFooterPosition.Center, logo, "image/png", widthPoints: 96, heightPoints: 32);
 
                 // Save and close
-                doc.Save(false);
+                doc.Save();
             }
 
             // Reopen read-only and verify
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 var pngBytes = File.ReadAllBytes(pngPath);
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, pngBytes, "image/png");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false))
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
                 var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var jpegBytes = File.ReadAllBytes(jpegPath);
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, jpegBytes, " image/jpg; charset=binary ");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false))
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var jpegBytes = File.ReadAllBytes(jpegPath);
                 sheet.SetFooterImage(HeaderFooterPosition.Center, jpegBytes, "image/jpeg");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false))
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
                 var pngBytes = File.ReadAllBytes(pngPath);
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, pngBytes, "image/png");
                 sheet.SetHeaderFooter(headerCenter: "Plain header");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false))
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
                 {
                     var sheet = doc.AddWorkSheet("Sheet1");
                     sheet.SetHeaderImageUrl(HeaderFooterPosition.Center, url);
-                    doc.Save(false);
+                    doc.Save();
                 }
             } finally {
                 listener.Stop();
@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
                 {
                     var sheet = doc.AddWorkSheet("Sheet1");
                     sheet.SetFooterImageUrl(HeaderFooterPosition.Center, url);
-                    doc.Save(false);
+                    doc.Save();
                 }
             } finally {
                 listener.Stop();

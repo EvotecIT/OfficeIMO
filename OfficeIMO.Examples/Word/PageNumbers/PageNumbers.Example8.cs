@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     var pageNumber = document.FooterDefaultOrCreate.AddPageNumber(WordPageNumberStyle.PlainNumber);
                     pageNumber.CustomFormat = format;
-                    document.Save(openWord);
+                    document.Save(new WordSaveOptions { OpenAfterSave = openWord });
                 }
             }
         }

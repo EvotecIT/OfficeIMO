@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.AddText("Arial text, ").SetFontFamily("Arial");
                 paragraph.AddText("DejaVu text").SetFontFamily("DejaVu Sans");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

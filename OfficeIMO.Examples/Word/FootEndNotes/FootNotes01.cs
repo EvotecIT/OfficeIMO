@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("FootNotes count " + document.FootNotes.Count);
                 Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
 
-                document.Save(fileTarget, openWord);
+                document.Save(fileTarget, new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Word {
                     document.FootNotes[1].Remove();
                 }
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 foreach (var footNote in document.FootNotes) {

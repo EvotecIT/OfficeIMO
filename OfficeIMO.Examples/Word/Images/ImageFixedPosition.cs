@@ -68,7 +68,7 @@ namespace OfficeIMO.Examples.Word {
 
             // This will put the image in the upper top left corner of the document.
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
 
             static void checkImageProps(WordImage imageToInspect) {
                 var horizontalPosition = imageToInspect.horizontalPosition;

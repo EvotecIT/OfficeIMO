@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(3, 2, 20d);
                 sheet.CellFormula(4, 2, "SUM(B2:B3)");
                 document.Calculate();
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {

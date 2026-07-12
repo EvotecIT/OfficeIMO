@@ -21,9 +21,9 @@ namespace OfficeIMO.Examples.Word {
                             .CapsStyle(CapsStyle.SmallCaps)
                             .Strike()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

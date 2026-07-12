@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsHyperLinks.Count == 4);
                 Assert.True(document.Sections[0].Bookmarks.Count == 1);
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -347,7 +347,7 @@ namespace OfficeIMO.Tests {
                 var firstHyperlink = document.HyperLinks[0];
                 Assert.True(firstHyperlink.Text == " to website?");
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(reference._runProperties.RunStyle!.Val, created._runProperties.RunStyle!.Val);
                 Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
@@ -429,7 +429,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(reference.Uri, duplicate.Uri);
                 Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, paragraph._paragraph.Elements<Hyperlink>().Count());
                 Assert.Equal("Bing", paragraph._paragraph.Elements<Hyperlink>().First().InnerText);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var firstLink = document.Paragraphs[0]._paragraph.Elements<Hyperlink>().First();
@@ -482,7 +482,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, paraHeader._paragraph.Elements<Hyperlink>().Count());
                 Assert.Equal(2, paraFooter._paragraph.Elements<Hyperlink>().Count());
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
@@ -519,7 +519,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(reference._runProperties.Color!.Val, target._runProperties.Color!.Val);
                 Assert.Equal(reference._runProperties.Underline!.Val, target._runProperties.Underline!.Val);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Paragraphs[0]._paragraph.Elements<Hyperlink>().Count());
@@ -557,7 +557,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(duck.Bold);
                 Assert.True(start.Italic);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(2, document.Lists.Count);

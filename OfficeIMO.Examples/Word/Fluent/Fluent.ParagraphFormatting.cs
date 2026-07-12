@@ -25,9 +25,9 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Text("Table below"))
                     .Table(t => t.Create(2, 2))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

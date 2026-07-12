@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                     document.SetPrintTitles(data, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
 
                     data.Name = "Renamed";
-                    document.Save(filePath, openExcel: false);
+                    document.Save(filePath);
                 }
 
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                     data.AddSparklines("'Data'!B2:B3", "C2:C3");
 
                     data.Name = "Renamed Data";
-                    document.Save(filePath, openExcel: false);
+                    document.Save(filePath);
                 }
 
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                     summary.AddConditionalRule("B1:B2", ConditionalFormattingOperatorValues.GreaterThan, "Data!$A$1");
 
                     data.Name = "Renamed Data";
-                    document.Save(filePath, openExcel: false);
+                    document.Save(filePath);
                 }
 
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                     var toc = document.Sheets.First(s => s.Name == "TOC");
                     toc.Name = "Index";
 
-                    document.Save(filePath, openExcel: false);
+                    document.Save(filePath);
                 }
 
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
                     summary.ValidationCustomFormula("A2:A3", "COUNTIF(Data!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0");
 
                     data.Name = "Renamed Data";
-                    document.Save(filePath, openExcel: false);
+                    document.Save(filePath);
                 }
 
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
                     tablePart.Table.Save();
 
                     data.Name = "Renamed Data";
-                    document.Save(filePath, openExcel: false);
+                    document.Save(filePath);
                 }
 
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, false);

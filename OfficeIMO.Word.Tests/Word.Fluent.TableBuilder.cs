@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Table(t => t.Create(2, 2).Table!.Rows[1].Cells[1].AddParagraph("B"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
                         .DeleteRow(3)
                         .DeleteColumn(4))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Table(t => t.PreferredWidth(points: 100).Columns(2).Row("A", "B"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                             cell.Borders.LeftStyle = BorderValues.Single;
                         }))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                         .Create(1, 2)
                         .ColumnWidthsPercentage(25, 75))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

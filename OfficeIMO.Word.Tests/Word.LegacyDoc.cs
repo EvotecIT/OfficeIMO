@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
             Assert.Equal(string.Empty, result.Document.FilePath);
 
-            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
+            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             Assert.Equal("First paragraph", reloaded.Paragraphs[0].Text);
             Assert.Equal("Second paragraph", reloaded.Paragraphs[1].Text);
         }
@@ -513,7 +513,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2003, result.Document.CustomDocumentProperties["Ticket"].NumberInteger);
             Assert.Equal(5000000000L, result.Document.CustomDocumentProperties["ArchiveId"].Value);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             Assert.False(converted.SourceFormat == WordFileFormat.Doc);
             Assert.Equal("Legacy DOC Metadata Title", converted.BuiltinDocumentProperties.Title);
             Assert.Equal("EvotecIT", converted.ApplicationProperties.Company);
@@ -1602,7 +1602,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.Document.LegacyDocPreservedFeatures);
             Assert.False(result.ImportReport.PreservedFeaturesByKind.ContainsKey(LegacyDocPreservedFeatureKind.RevisionTracking));
 
-            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
+            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             Assert.True(reloaded.Settings.TrackRevisions);
 
             string markdown = result.ImportReport.ToMarkdown();
@@ -1629,7 +1629,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.Document.LegacyDocPreservedFeatures);
             Assert.Equal(DocumentProtectionValues.TrackedChanges, result.Document.Settings.ProtectionType);
 
-            byte[] savedBytes = result.Document.ToDocx();
+            byte[] savedBytes = result.Document.ToBytes();
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(savedBytes), false);
             DocumentProtection protection = Assert.Single(package.MainDocumentPart!.DocumentSettingsPart!.Settings!.Elements<DocumentProtection>());
             Assert.Equal(DocumentProtectionValues.TrackedChanges, protection.Edit!.Value);
@@ -2918,7 +2918,7 @@ namespace OfficeIMO.Tests {
             byte[] docxBytes;
             using (WordDocument document = WordDocument.Create()) {
                 document.AddParagraph("Non-seekable Open XML package");
-                docxBytes = document.ToDocx();
+                docxBytes = document.ToBytes();
             }
 
             using var stream = new NonSeekableReadStream(docxBytes);

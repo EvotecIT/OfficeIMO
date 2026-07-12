@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(paragraphCount + 1, document.Paragraphs.Count);
                 Assert.Equal(paragraphCount + 1, document.Sections[0].Paragraphs.Count);
                 Assert.Single(document.Breaks);
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                 var sectionParagraphs = section.Paragraphs;
                 Assert.Equal(initialParagraphCount + 1, sectionParagraphs.Count);
                 Assert.True(sectionParagraphs.Last().IsPageBreak);
-                document.Save(false);
+                document.Save();
             }
         }
     }

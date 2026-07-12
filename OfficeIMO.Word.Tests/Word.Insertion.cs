@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 var newParagraph = new WordParagraph(document, true, false) { Text = "Inserted" };
                 document.InsertParagraphAt(1, newParagraph);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Test";
 
                 document.InsertTableAfter(p1, table);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

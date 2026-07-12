@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
 
             using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
-            using MemoryStream stream = doc.ToDocxStream();
+            using MemoryStream stream = doc.ToStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
 
             using var doc = html.ToWordDocument(new HtmlToWordOptions());
 
-            using MemoryStream stream = doc.ToDocxStream();
+            using MemoryStream stream = doc.ToStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));

@@ -9,10 +9,10 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void Test_ToDocx() {
+        public void Test_ToBytes() {
             using var document = WordDocument.Create();
             document.AddParagraph("Hello bytes");
-            byte[] data = document.ToDocx();
+            byte[] data = document.ToBytes();
 
             using var ms = new MemoryStream(data);
             using var openXml = WordprocessingDocument.Open(ms, false);
@@ -23,11 +23,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ToDocxStream() {
+        public void Test_ToStream() {
             using var document = WordDocument.Create();
             document.AddParagraph("Hello memory");
 
-            using MemoryStream ms = document.ToDocxStream();
+            using MemoryStream ms = document.ToStream();
             using var openXml = WordprocessingDocument.Open(ms, false);
             Assert.NotNull(openXml.MainDocumentPart);
             ms.Position = 0;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Memory compatibility");
 
-            using MemoryStream ms = document.ToDocxStream();
+            using MemoryStream ms = document.ToStream();
             Assert.True(ms.CanRead);
             Assert.Equal(0, ms.Position);
 

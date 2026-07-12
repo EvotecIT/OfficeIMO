@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Commented target text").AddComment("Alice Reviewer", "AR", "Please review this.");
                 WordComment parent = Assert.Single(document.Comments);
                 parent.AddReply("Bob Reviewer", "BR", "Resolved in draft two.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
                     Date = revisionDate
                 };
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Extensible comment target").AddComment("Alice Reviewer", "AR", "Classic comment remains readable.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -571,7 +571,7 @@ namespace OfficeIMO.Tests {
                 parent.AddReply("Bob Reviewer", "BR", "Reply comment.");
                 document.AddParagraph("Other target").AddComment("Carol Reviewer", "CR", "Other comment.");
                 parent.MarkResolved();
-                document.Save(false);
+                document.Save();
             }
 
             ReverseCommentsExOnly(filePath);
@@ -600,7 +600,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wrapperParent.IsResolved);
                 Assert.Equal("Reply comment.", Assert.Single(wrapperParent.Replies).Text);
                 wrapperParent.MarkUnresolved();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Resolution target").AddComment("Alice Reviewer", "AR", "Resolve this thread.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -636,7 +636,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Same(comment, comment.MarkResolved());
                 Assert.True(comment.IsResolved);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -648,7 +648,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(review.UnsupportedMetadata, detail => detail.Contains("people", StringComparison.OrdinalIgnoreCase));
 
                 document.Comments.Single().MarkUnresolved();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -664,7 +664,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Legacy target").AddComment("Alice Reviewer", "AR", "Legacy comment.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordComment comment = Assert.Single(document.Comments);
                 comment.MarkResolved();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -710,7 +710,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("First");
                 document.AddParagraph("Second");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -746,7 +746,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph("Header target").AddComment("Alice Reviewer", "AR", "Header note.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -765,7 +765,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordComment comment = Assert.Single(document.Comments);
                 comment.Delete();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -787,7 +787,7 @@ namespace OfficeIMO.Tests {
                 WordComment parent = Assert.Single(document.Comments);
                 parent.AddReply("Bob Reviewer", "BR", "Reply comment.");
                 document.AddParagraph("Unrelated target").AddComment("Carol Reviewer", "CR", "Keep this.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -795,7 +795,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(parent.Replies);
 
                 parent.DeleteThread();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
@@ -829,7 +829,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Baseline ");
                 paragraph.AddInsertedText("Accepted text", "Alice Reviewer", revisionDate);
                 paragraph.AddDeletedText("Remaining deletion", "Bob Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -896,7 +896,7 @@ namespace OfficeIMO.Tests {
                 textBoxParagraph.AddComment(author, "RV", label + " text-box comment.");
                 textBoxParagraph.AddInsertedText(label + " text-box insertion", author, revisionDate);
 
-                document.Save(false);
+                document.Save();
             }
 
             WrapFirstParagraphContentInRunContentControl(path);
@@ -950,7 +950,7 @@ namespace OfficeIMO.Tests {
                 Date = revisionDate
             });
 
-            document.Save(false);
+            document.Save();
         }
 
         private static void CreateImportedReviewRelatedPartDocument(string path, string label, string author) {
@@ -980,7 +980,7 @@ namespace OfficeIMO.Tests {
             endnoteParagraph.AddComment(author, "RV", label + " endnote comment.");
             endnoteParagraph.AddInsertedText(label + " endnote insertion", author, revisionDate);
 
-            document.Save(false);
+            document.Save();
         }
 
         private static void AssertReviewCommentLocation(WordReviewInfo review, WordReviewLocationKind locationKind, string targetText, string commentText) {

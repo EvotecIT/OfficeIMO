@@ -21,9 +21,9 @@ namespace OfficeIMO.Excel {
 
             EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);
-            byte[] bytes = format == ExcelFileFormat.Xls ? ToXls(options) : ToXlsx(options);
+            byte[] bytes = ToBytes(format, options);
             OfficeFileCommit.WriteAllBytes(filePath, bytes);
-            if (options?.OpenAfterSave == true) Open(filePath, true);
+            if (options?.OpenAfterSave == true) OpenInApplication(filePath);
             return Load(filePath);
         }
 

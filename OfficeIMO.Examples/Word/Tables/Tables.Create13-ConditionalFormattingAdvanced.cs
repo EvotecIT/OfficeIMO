@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.Word {
 
                 builder.Apply();
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

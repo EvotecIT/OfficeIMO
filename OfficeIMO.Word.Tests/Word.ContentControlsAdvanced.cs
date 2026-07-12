@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 var para3 = document.AddParagraph("Control 3:");
                 para3.AddStructuredDocumentTag("Third", "Alias3", "Tag3");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 var tagControl = document.GetStructuredDocumentTagByTag("Tag3");
                 Assert.NotNull(tagControl);
                 tagControl.Text = "Modified";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

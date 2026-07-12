@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var existing = ExcelDocument.Create(destinationPath)) {
                     existing.AddWorkSheet("Original");
-                    existing.Save(destinationPath, openExcel: false);
+                    existing.Save(destinationPath);
                 }
 
                 var destinationFile = new FileInfo(destinationPath);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
                 using var document = ExcelDocument.Create(sourcePath);
                 document.AddWorkSheet("Updated");
 
-                var exception = Assert.Throws<IOException>(() => document.Save(destinationPath, openExcel: false));
+                var exception = Assert.Throws<IOException>(() => document.Save(destinationPath));
                 Assert.Contains("read-only", exception.Message, StringComparison.OrdinalIgnoreCase);
 
                 using (var spreadsheet = SpreadsheetDocument.Open(destinationPath, false)) {
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var existing = ExcelDocument.Create(destinationPath)) {
                     existing.AddWorkSheet("Original");
-                    existing.Save(destinationPath, openExcel: false);
+                    existing.Save(destinationPath);
                 }
 
                 using var document = ExcelDocument.Create(sourcePath);
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
                 brokenSheet.Name = null;
 
                 Assert.Throws<InvalidOperationException>(() =>
-                    document.Save(destinationPath, openExcel: false, options: new ExcelSaveOptions { ValidateOpenXml = true }));
+                    document.Save(destinationPath, new ExcelSaveOptions { ValidateOpenXml = true }));
 
                 using var spreadsheet = SpreadsheetDocument.Open(destinationPath, false);
                 var sheets = spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>().ToList();

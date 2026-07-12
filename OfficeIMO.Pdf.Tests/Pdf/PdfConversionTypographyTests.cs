@@ -234,7 +234,7 @@ public sealed class PdfConversionTypographyTests {
             sheet.Cell(2, 1, "Zażółć gęślą jaźń");
             sheet.Cell(3, 1, "Ελλάδα");
             sheet.Cell(4, 1, "Київ");
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
@@ -349,7 +349,7 @@ Zażółć gęślą jaźń
             string workbookPath = Path.Combine(directory, "opentype.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, "Report");
             document.Sheets[0].Cell(1, 1, "office cafe\u0301");
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
@@ -415,7 +415,7 @@ Zażółć gęślą jaźń
             string workbookPath = Path.Combine(directory, "complex-script.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, "Report");
             document.Sheets[0].Cell(1, 1, text);
-            document.Save(false);
+            document.Save();
 
             var options = new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false

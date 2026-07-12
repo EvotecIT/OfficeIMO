@@ -19,7 +19,7 @@ internal static partial class Protect {
             document.Settings.ProtectionPassword = "Test123";
             document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
 
-            document.Save(false);
+            document.Save();
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
                 Console.WriteLine("Document has validation errors:");
@@ -30,7 +30,7 @@ internal static partial class Protect {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
                 // Link by header (styled)
                 s.LinkByHeaderToInternalSheets("Domain", rowFrom: 2, rowTo: 3, targetA1: "A1", styled: true);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                     titleForCellText: null,
                     styled: true);
 
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                 // Link inside table by header
                 s.LinkByHeaderToInternalSheetsInTable("TblSummary", "Domain", targetA1: "A1", styled: true);
                 s.LinkByHeaderToUrlsInTable("TblSummary", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                 // Link within the rectangular range
                 s.LinkByHeaderToInternalSheetsInRange("A1:B3", "Domain", targetA1: "A1", styled: true);
                 s.LinkByHeaderToUrlsInRange("A1:B3", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 s.Cell(2, 1, "domain-001??");
 
                 s.LinkByHeaderToInternalSheetsInRange("A1:A2", "Domain", targetA1: "A1", styled: false);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))

@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Excel {
             var fastCells = Enumerable.Range(21, 20).Select(i => (i, 1, (object)$"Fast {i}"));
             sheet.CellValues(fastCells, ExecutionMode.Parallel);
 
-            document.Save(openExcel);
+            document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
         }
     }
 }

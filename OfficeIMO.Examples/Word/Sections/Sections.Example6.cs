@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Word {
                 //Console.WriteLine("Section 1 - Text 0: " + RequireSectionHeader(document.Sections[1], HeaderFooterValues.Default, "Section 1 default header").Paragraphs[0].Text);
                 //Console.WriteLine("Section 2 - Text 0: " + RequireSectionHeader(document.Sections[2], HeaderFooterValues.Default, "Section 2 default header").Paragraphs[0].Text);
                 //Console.WriteLine("Section 3 - Text 0: " + RequireSectionHeader(document.Sections[3], HeaderFooterValues.Default, "Section 3 default header").Paragraphs[0].Text);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -85,7 +85,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.ProtectionPassword = "ThisIsTest";
                 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
                 document.Settings.RemoveProtection();
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

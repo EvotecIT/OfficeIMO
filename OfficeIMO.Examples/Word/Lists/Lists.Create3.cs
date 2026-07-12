@@ -55,7 +55,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Lists count - section 0: " + document.Sections[0].Lists.Count);
                 Console.WriteLine("Lists count - section 1: " + document.Sections[1].Lists.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

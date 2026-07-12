@@ -15,13 +15,13 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine($"Text: {control.Text}");
 
                 control.Text = "Updated text";
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var loaded = Guard.NotNull(document.GetStructuredDocumentTagByTag("ExampleTag"), "Structured document tag 'ExampleTag' was not found.");
                 Console.WriteLine($"Loaded text: {loaded.Text}");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

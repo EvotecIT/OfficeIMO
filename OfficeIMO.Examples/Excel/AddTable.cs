@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(2, 1, "A");
                 sheet.CellValue(2, 2, 10d);
                 sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

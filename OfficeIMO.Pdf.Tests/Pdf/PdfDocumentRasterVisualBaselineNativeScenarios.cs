@@ -323,7 +323,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.SetPrintArea(summary, "A1:C7");
                 document.SetPrintTitles(summary, firstRow: 2, lastRow: 2, firstCol: null, lastCol: null);
                 document.SetPrintArea(details, "A1:B3");
-                document.Save(false);
+                document.Save();
 
                 document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
                     IncludeSheetHeadings = true,

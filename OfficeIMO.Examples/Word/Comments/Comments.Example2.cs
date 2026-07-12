@@ -10,14 +10,14 @@ namespace OfficeIMO.Examples.Word {
                 document.TrackComments = true;
                 var paragraph = document.AddParagraph("Paragraph with comment");
                 paragraph.AddComment("John Doe", "JD", "My comment");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 if (document.Comments.Count > 0) {
                     document.Comments[0].Remove();
                 }
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -101,7 +101,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Footer text: " + defaultFooter.Paragraphs[0].Text);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

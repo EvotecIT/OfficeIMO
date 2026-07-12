@@ -2200,7 +2200,7 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
             document.SetPrintArea(sheet, "A1:H14", save: false);
-            document.Save(false);
+            document.Save();
 
             return document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,

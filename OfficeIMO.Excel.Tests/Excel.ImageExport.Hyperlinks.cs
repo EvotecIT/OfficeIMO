@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "First");
                 sheet.CellValue(1, 2, "Second");
                 sheet.SetHyperlink(1, 1, "https://example.org/range", display: "First", style: false);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, true)) {

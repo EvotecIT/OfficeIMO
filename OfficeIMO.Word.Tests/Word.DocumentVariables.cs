@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
                 document.SetDocumentVariable("TestVar", "Value1");
                 document.SetDocumentVariable("AnotherVar", "123");
                 Assert.True(document.GetDocumentVariable("TestVar") == "Value1");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.GetDocumentVariable("AnotherVar") == "123");

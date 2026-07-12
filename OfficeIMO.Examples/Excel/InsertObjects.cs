@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Excel {
                     }
                 };
                 sheet.InsertObjects(people);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
 

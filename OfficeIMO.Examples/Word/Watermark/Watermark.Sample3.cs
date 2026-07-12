@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Watermarks section 2: " + document.Sections[2].Watermarks.Count);
                 Console.WriteLine("Paragraphs: " + document.Paragraphs.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

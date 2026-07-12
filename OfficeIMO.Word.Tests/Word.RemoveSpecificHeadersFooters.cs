@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 RequireHeader(document, HeaderFooterValues.First).AddParagraph().SetText("First Header");
                 RequireFooter(document, HeaderFooterValues.First).AddParagraph().SetText("First Footer");
 
-                document.Save(false);
+                document.Save();
             }
 
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Default);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 RequireHeader(document, HeaderFooterValues.First).AddParagraph().SetText("First Header");
                 RequireFooter(document, HeaderFooterValues.First).AddParagraph().SetText("First Footer");
 
-                document.Save(false);
+                document.Save();
             }
 
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.Even);
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                 RequireHeader(document, HeaderFooterValues.First).AddParagraph().SetText("First Header");
                 RequireFooter(document, HeaderFooterValues.First).AddParagraph().SetText("First Footer");
 
-                document.Save(false);
+                document.Save();
             }
 
             WordHelpers.RemoveHeadersAndFooters(filePath, HeaderFooterValues.First);

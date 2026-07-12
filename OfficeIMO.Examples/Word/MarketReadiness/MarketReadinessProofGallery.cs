@@ -131,7 +131,7 @@ namespace OfficeIMO.Examples.Word {
                 ["Customer"] = "Northwind Traders",
                 ["InvoiceNumber"] = "INV-2026-0042"
             });
-            invoice.Save(false);
+            invoice.Save();
         }
 
         private static void CreateContentControlFormProof(string scenarioPath) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.Examples.Word {
 
             int updated = document.FillContentControlValues(values);
             WriteExtractedValues(Path.Combine(scenarioPath, "client-intake-filled-values.md"), updated, document.ExtractContentControlValues());
-            document.Save(false);
+            document.Save();
         }
 
         private static void CreateReviewDiffProof(string galleryPath) {

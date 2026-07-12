@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             presentation.Save();
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
 
         private sealed class ValidationRow {

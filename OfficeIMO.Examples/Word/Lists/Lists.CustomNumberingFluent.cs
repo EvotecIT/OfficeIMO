@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                                      .Item("Step 1")
                                      .Item("Step 2"))
                     .End()
-                    .Save(openWord);
+                    .Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

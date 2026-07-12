@@ -106,7 +106,7 @@ public partial class Word {
             var section = Assert.Single(document.Sections);
             Assert.Equal(28, section.Paragraphs.Count);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -338,7 +338,7 @@ public partial class Word {
             Assert.Equal(5, document.Sections[0].Lists.Count);
             Assert.Single(document.Sections[1].Lists);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -537,7 +537,7 @@ public partial class Word {
             // including in tables
             Assert.True(document.Lists.Count == 11);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -586,7 +586,7 @@ public partial class Word {
             Assert.True(document.Lists.Count == 12);
             Assert.True(document.Lists[0].ListItems[0].Text == "Nested 1");
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -608,7 +608,7 @@ public partial class Word {
 
             Assert.True(document.Lists.Count == Enum.GetValues(typeof(WordListStyle)).Length);
 
-            document.Save(false);
+            document.Save();
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
@@ -631,7 +631,7 @@ public partial class Word {
             Assert.Equal("Last", document.Paragraphs[2].Text);
             Assert.Equal("List", document.Paragraphs[3].Text);
 
-            document.Save(false);
+            document.Save();
         }
 
         // Verify order persists after reload
@@ -692,7 +692,7 @@ public partial class Word {
             Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
             Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
 
-            document.Save(false);
+            document.Save();
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
         }
 
@@ -730,7 +730,7 @@ public partial class Word {
             Assert.Empty(document.Lists);
             Assert.Empty(document.Paragraphs);
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {
@@ -764,7 +764,7 @@ public partial class Word {
             Assert.Empty(defaultHeader.Paragraphs);
             Assert.Empty(defaultFooter.Paragraphs);
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {
@@ -791,7 +791,7 @@ public partial class Word {
             Assert.Equal("Item 1", cloned.ListItems[0].Text);
             Assert.True(cloned.Bold);
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {
@@ -825,7 +825,7 @@ public partial class Word {
             Assert.False(list2.Italic);
             Assert.Null(list2.FontSize);
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(filePath)) {
@@ -855,7 +855,7 @@ public partial class Word {
             Assert.Equal("Two", document.Lists[0].ListItems[0].Text);
             Assert.NotNull(document._wordprocessingDocument!.MainDocumentPart?.NumberingDefinitionsPart);
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {

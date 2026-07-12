@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var img = document.AddImageFromUrl($"http://localhost:{port}/", 40, 40);
                 Assert.NotNull(img);
-                document.Save(false);
+                document.Save();
             }
 
             await serverTask;

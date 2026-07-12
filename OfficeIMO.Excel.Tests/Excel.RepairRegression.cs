@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                     SeedWideContent(sheet, name, ref tableIndex);
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 data.AddChartFromRange("A1:B4", row: 7, column: 1, widthPixels: 360, heightPixels: 220);
                 data.AddPivotTable("A1:B4", "G2", name: "DataPivot");
 
-                document.Save(filePath, false, new ExcelSaveOptions {
+                document.Save(filePath, new ExcelSaveOptions {
                     SafePreflight = true,
                     SafeRepairDefinedNames = true,
                     ValidateOpenXml = true
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
                 );
                 workbook.Save();
 
-                document.Save(filePath, false, new ExcelSaveOptions {
+                document.Save(filePath, new ExcelSaveOptions {
                     SafePreflight = true,
                     SafeRepairDefinedNames = true,
                     ValidateOpenXml = true
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
 
                 sheet.WrapCells(2, 6, 2, 24);
                 sheet.AutoFitColumnsFor(new[] { 1 });
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
                     opts.WrapWidth = 22;
                     opts.AutoFitHeaders.Add("Auto");
                 });
-                document.Save(false);
+                document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Excel
                 s.CellValue(2, 2, 10);
                 s.CellValue(3, 1, "Beta");
                 s.CellValue(3, 2, 20);
-                doc.Save(openExcel);
+                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
 
             // Read dictionaries with Simple converters (optional)

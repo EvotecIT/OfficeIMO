@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core;
@@ -30,6 +31,54 @@ namespace OfficeIMO.PowerPoint {
                     }
                     if (shouldSave) {
                         Save();
+                    }
+                }
+            } catch (Exception ex) {
+                pendingException = ex;
+            } finally {
+                try {
+                    document?.Dispose();
+                } catch (Exception ex) {
+                    pendingException ??= ex;
+                }
+                _document = null;
+
+                try {
+                    _packageStream?.Dispose();
+                } catch (Exception ex) {
+                    pendingException ??= ex;
+                }
+                _packageStream = null;
+                _sourceStream = null;
+                _signedPackageOpenFingerprint = null;
+                _discardChangesOnDispose = false;
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
+
+            if (pendingException != null) {
+                ExceptionDispatchInfo.Capture(pendingException).Throw();
+            }
+        }
+
+        /// <summary>Asynchronously persists opt-in changes and releases package resources.</summary>
+        public async ValueTask DisposeAsync() {
+            if (_disposed) {
+                return;
+            }
+
+            Exception? pendingException = null;
+            PresentationDocument? document = _document;
+            try {
+                if (document != null && !_discardChangesOnDispose &&
+                    _persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                    bool shouldSave = document.FileOpenAccess != FileAccess.Read;
+                    if (shouldSave && _signedPackageOpenFingerprint != null) {
+                        shouldSave = !string.Equals(_signedPackageOpenFingerprint,
+                            CreatePackageFingerprint(document), StringComparison.Ordinal);
+                    }
+                    if (shouldSave) {
+                        await SaveAsync().ConfigureAwait(false);
                     }
                 }
             } catch (Exception ex) {

@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(1, 2, "Value");
                 // intentionally leave row 2 cells empty
                 sheet.AddTable("A1:B2", true, "MyTable", TableStyle.TableStyleMedium9);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -15,6 +17,15 @@ using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
+        /// <summary>Opens the associated presentation in the operating system's registered application.</summary>
+        public void OpenInApplication(string? filePath = null) {
+            string target = string.IsNullOrEmpty(filePath) ? _filePath : filePath!;
+            if (string.IsNullOrEmpty(target)) {
+                throw new InvalidOperationException("The presentation has no associated file path.");
+            }
+            OfficeIMO.Core.OfficeFileLauncher.Open(target);
+        }
+
         /// <summary>
         ///     Indicates whether the presentation passes Open XML validation.
         /// </summary>
@@ -67,8 +78,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Saves all pending changes to the associated file or stream.
         /// </summary>
         public void Save() {
+            Save(options: null);
+        }
+
+        /// <summary>Saves all pending changes to the associated destination with optional save settings.</summary>
+        public void Save(PowerPointSaveOptions? options) {
             if (!string.IsNullOrEmpty(_filePath)) {
-                Save(_filePath);
+                Save(_filePath, options);
                 return;
             }
             if (_sourceStream != null) {
@@ -80,13 +96,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Saves the presentation to a file and associates that path with subsequent <see cref="Save()"/> calls.</summary>
-        public void Save(string filePath) {
+        public void Save(string filePath, PowerPointSaveOptions? options = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             byte[] packageBytes = CreatePackageBytesForSave();
             OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
             _filePath = filePath;
             _discardChangesOnDispose = false;
+            if (options?.OpenAfterSave == true) OpenInApplication(filePath);
         }
 
         /// <summary>
@@ -95,6 +112,54 @@ namespace OfficeIMO.PowerPoint {
         public void Save(Stream destination) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             OfficeStreamWriter.WriteAllBytes(destination, CreatePackageBytesForSave());
+            _discardChangesOnDispose = false;
+        }
+
+        /// <summary>Encodes the presentation as a PPTX package.</summary>
+        public byte[] ToBytes() => CreatePackageBytesForSave();
+
+        /// <summary>Encodes the presentation in a new writable memory stream positioned at the beginning.</summary>
+        public MemoryStream ToStream() => new MemoryStream(ToBytes());
+
+        /// <summary>Asynchronously saves to the associated file or stream.</summary>
+        public Task SaveAsync(CancellationToken cancellationToken = default) =>
+            SaveAsync(options: null, cancellationToken);
+
+        /// <summary>Asynchronously saves to the associated destination with optional save settings.</summary>
+        public Task SaveAsync(PowerPointSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (!string.IsNullOrEmpty(_filePath)) {
+                return SaveAsync(_filePath, options, cancellationToken);
+            }
+            if (_sourceStream != null) {
+                return SaveAsync(_sourceStream, cancellationToken);
+            }
+            throw new InvalidOperationException(
+                "The presentation has no associated destination. Use SaveAsync(string) or SaveAsync(Stream).");
+        }
+
+        /// <summary>Asynchronously saves to a file and associates it with subsequent saves.</summary>
+        public async Task SaveAsync(
+            string filePath,
+            PowerPointSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] packageBytes = CreatePackageBytesForSave();
+            await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            _filePath = filePath;
+            _discardChangesOnDispose = false;
+            if (options?.OpenAfterSave == true) OpenInApplication(filePath);
+        }
+
+        /// <summary>Asynchronously saves to a caller-owned writable stream.</summary>
+        public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] packageBytes = CreatePackageBytesForSave();
+            await OfficeStreamWriter.WriteAllBytesAsync(destination, packageBytes, cancellationToken)
+                .ConfigureAwait(false);
             _discardChangesOnDispose = false;
         }
 
@@ -155,8 +220,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Destination path for the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
-        /// <param name="openPowerPoint">Whether to open the saved file after writing.</param>
-        public void SaveEncrypted(string filePath, string password, bool openPowerPoint = false) {
+        /// <param name="options">Optional save settings, including whether to open the saved file.</param>
+        public void SaveEncrypted(string filePath, string password, PowerPointSaveOptions? options = null) {
             ThrowIfDisposed();
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
@@ -170,8 +235,8 @@ namespace OfficeIMO.PowerPoint {
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
             OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
 
-            if (openPowerPoint) {
-                Helpers.Open(filePath, true);
+            if (options?.OpenAfterSave == true) {
+                OpenInApplication(filePath);
             }
         }
 

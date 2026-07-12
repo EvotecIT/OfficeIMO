@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 var section0Header = GetRequiredHeader(section0);
                 var watermark = section0Header.AddWatermark(WordWatermarkStyle.Text, "HexColor");
                 watermark.ColorHex = "00ff00";
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

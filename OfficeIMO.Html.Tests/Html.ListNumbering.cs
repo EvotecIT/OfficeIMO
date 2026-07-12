@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
             string html = "<ul><li>Intro<p>Details</p><table><tr><td>Metric</td></tr></table></li></ul><p>After</p>";
 
             using var doc = html.ToWordDocument(new HtmlToWordOptions());
-            using MemoryStream stream = doc.ToDocxStream();
+            using MemoryStream stream = doc.ToStream();
             stream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
 

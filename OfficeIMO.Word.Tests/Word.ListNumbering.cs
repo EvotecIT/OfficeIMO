@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 var numbering = document.CreateNumberingDefinition();
                 numbering.AddLevel(new WordListLevel(WordListLevelKind.Decimal));
                 abstractId = numbering.AbstractNumberId;
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

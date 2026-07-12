@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                     .AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
                 list.AddItem("Level1");
                 list.AddItem("Level5", 4);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var list = document.AddCustomBulletList(WordListLevelKind.BulletDiamondSymbol, "Wingdings", OfficeIMO.Drawing.OfficeColor.Blue, fontSize: 12);
                 list.AddItem("Item");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 var list = document.AddCustomList()
                     .AddListLevel(3, WordListLevelKind.BulletBlackCircle, "Arial");
                 list.AddItem("Level3", 2);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 var list = document.AddCustomList();
                 list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New");
                 list.AddItem("Item1");
-                document.Save(false);
+                document.Save();
             }
 
             using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {

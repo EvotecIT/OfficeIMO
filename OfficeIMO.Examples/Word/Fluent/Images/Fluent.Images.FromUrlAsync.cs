@@ -17,9 +17,9 @@ namespace OfficeIMO.Examples.Word {
                         await img.AddFromUrlAsync("https://raw.githubusercontent.com/EvotecIT/OfficeIMO/master/OfficeIMO.Examples/Images/Kulek.jpg");
                         img.Wrap(WrapTextImage.Tight).Align(HorizontalAlignment.Right);
                     });
-                document.Save(false);
+                document.Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
         }
     }
 }

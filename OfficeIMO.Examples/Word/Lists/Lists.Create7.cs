@@ -120,7 +120,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Lists count in a document (11): " + document.Lists.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
 
@@ -149,7 +149,7 @@ namespace OfficeIMO.Examples.Word {
 
                 listInFooter.AddItem("Test Footer 2");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_source_insert.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Hello");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_insert.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Hello World");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -33,13 +33,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_source_delete.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Hello World");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_delete.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Hello");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -55,14 +55,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_source_format.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Hello");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_format.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 var p = doc.AddParagraph("Hello");
                 p.Bold = true;
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 WordTable table = doc.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Row1");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_row_insert.docx");
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = doc.AddTable(2, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Row1");
                 table.Rows[1].Cells[0].Paragraphs[0].SetText("Row2");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -104,14 +104,14 @@ namespace OfficeIMO.Tests {
                 WordTable table = doc.AddTable(2, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Row1");
                 table.Rows[1].Cells[0].Paragraphs[0].SetText("Row2");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_row_delete.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 WordTable table = doc.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Row1");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -126,13 +126,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_source_image.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 WordTable table = doc.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Left");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_cell_insert.docx");
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = doc.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Left");
                 table.Rows[0].Cells[1].Paragraphs[0].SetText("Right");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -176,14 +176,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 var list = doc.AddList(WordListStyle.Numbered);
                 list.AddItem("Item 1");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_target_list_format.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 var list = doc.AddList(WordListStyle.Numbered);
                 list.AddItem("Item 1 updated");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
@@ -199,14 +199,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_paragraph.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Status: Draft");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_paragraph.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Status: Approved");
                 doc.AddParagraph("Scope: Added");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = doc.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
                 table.Rows[0].Cells[1].Paragraphs[0].SetText("Open");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table.docx");
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].SetText("Closed");
                 table.Rows[1].Cells[0].Paragraphs[0].SetText("Evidence");
                 table.Rows[1].Cells[1].Paragraphs[0].SetText("Added");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -267,13 +267,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph("Payment is due within 30 days.");
                 doc.AddParagraph("Audit logs must be retained for 90 days.");
                 doc.AddParagraph("Both parties accept the terms.");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_paragraph_alignment.docx");
@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph("Late payment requires written escalation.");
                 doc.AddParagraph("Audit logs must be retained for 90 days.");
                 doc.AddParagraph("Both parties accept the terms.");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[1].Cells[1].Paragraphs[0].SetText("Security");
                 table.Rows[2].Cells[0].Paragraphs[0].SetText("Logging");
                 table.Rows[2].Cells[1].Paragraphs[0].SetText("Platform");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_alignment.docx");
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[2].Cells[1].Paragraphs[0].SetText("Compliance");
                 table.Rows[3].Cells[0].Paragraphs[0].SetText("Logging");
                 table.Rows[3].Cells[1].Paragraphs[0].SetText("Platform");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -376,7 +376,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_alignment.docx");
@@ -384,7 +384,7 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"));
                 doc.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "snail.bmp"));
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_formatted_runs.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Project Alpha approved.");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_formatted_runs.docx");
@@ -409,7 +409,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = doc.AddParagraph("Project ");
                 paragraph.AddText("Alpha").Bold = true;
                 paragraph.AddText(" approved.");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Control");
                 table.Rows[0].Cells[1].Paragraphs[0].SetText("Owner");
                 table.Rows[0].Cells[2].Paragraphs[0].SetText("Status");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_alignment.docx");
@@ -440,7 +440,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].SetText("Evidence");
                 table.Rows[0].Cells[2].Paragraphs[0].SetText("Owner");
                 table.Rows[0].Cells[3].Paragraphs[0].SetText("Status");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = doc.AddTable(1, 1);
                 WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
                 nested.Rows[0].Cells[0].Paragraphs[0].SetText("Evidence pending");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_nested_table.docx");
@@ -467,7 +467,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = doc.AddTable(1, 1);
                 WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
                 nested.Rows[0].Cells[0].Paragraphs[0].SetText("Evidence approved");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 WordTable table = doc.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Existing terms");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_table_insert_alignment.docx");
@@ -495,7 +495,7 @@ namespace OfficeIMO.Tests {
                 inserted.Rows[0].Cells[0].Paragraphs[0].SetText("New summary");
                 WordTable table = doc.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Existing terms");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -515,7 +515,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddTab();
                 paragraph.AddText("Column B");
                 doc.AddParagraph("Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_visible_whitespace.docx");
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("Column B");
                 doc.AddParagraph();
                 doc.AddParagraph("Closing");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -549,7 +549,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 WordTable table = doc.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Project Alpha approved");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_cell_formatted_runs.docx");
@@ -559,7 +559,7 @@ namespace OfficeIMO.Tests {
                 paragraph.SetText("Project ");
                 paragraph.AddText("Alpha").Bold = true;
                 paragraph.AddText(" approved");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -576,7 +576,7 @@ namespace OfficeIMO.Tests {
                 WordTable footerTable = doc.Footer.Default!.AddTable(1, 2);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
                 footerTable.Rows[0].Cells[1].Paragraphs[0].SetText("Platform");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_header_footer.docx");
@@ -586,7 +586,7 @@ namespace OfficeIMO.Tests {
                 WordTable footerTable = doc.Footer.Default!.AddTable(1, 2);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
                 footerTable.Rows[0].Cells[1].Paragraphs[0].SetText("Security");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -609,13 +609,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_external_image.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(new Uri("https://example.com/logo-a.png"), 50, 50);
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_external_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph().AddImage(new Uri("https://example.com/logo-b.png"), 50, 50);
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -633,14 +633,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddHeadersAndFooters();
                 doc.Header.Default!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_header_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddHeadersAndFooters();
                 doc.Header.Default!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"));
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);

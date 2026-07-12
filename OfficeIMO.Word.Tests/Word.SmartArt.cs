@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(mainPart.DiagramColorsParts);
                 Assert.Single(document.SmartArts);
                 Assert.Single(document.Sections[0].SmartArts);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SmartArtRetrieve.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddSmartArt(SmartArtType.Hierarchy);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
                     }
                 }
                 sa.SetNodeText(0, "Hello");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                     Assert.True(dataStream.Length > 0);
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

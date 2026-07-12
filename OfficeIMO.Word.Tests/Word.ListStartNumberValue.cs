@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 list.Numbering.Levels[0].SetStartNumberingValue(5);
                 list.AddItem("First");
                 list.AddItem("Second");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
