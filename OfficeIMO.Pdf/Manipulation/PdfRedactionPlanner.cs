@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Builds redaction impact previews without modifying the PDF.</summary>
-public static class PdfRedactionPlanner {
+public static partial class PdfRedactionPlanner {
     private const double DefaultTextHeight = 12D;
 
     /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>

@@ -78,12 +78,18 @@ public sealed partial class PdfDocument {
         return PdfRedactionPlanner.Plan(Snapshot(), areas, layoutOptions, options ?? ReadOptions);
     }
 
+    /// <summary>Derives a reviewable redaction plan from literal text, regex, logical kinds, and form-field names.</summary>
+    public PdfRedactionPlan SearchRedactions(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => PdfRedactionPlanner.Search(Snapshot(), search, layoutOptions, options ?? ReadOptions);
+
     /// <summary>
     /// Creates a new PDF with matching text objects and annotations removed from the supplied redaction areas.
     /// </summary>
     public PdfDocument ApplyRedactions(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
         return FromBytes(PdfRedactionApplier.Apply(Snapshot(), areas, applyOptions, layoutOptions, options ?? ReadOptions));
     }
+
+    /// <summary>Applies a reviewed redaction plan, including exact field removal for field-derived areas.</summary>
+    public PdfDocument ApplyRedactions(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) => FromBytes(PdfRedactionApplier.Apply(Snapshot(), plan, applyOptions, layoutOptions, options ?? ReadOptions));
 
     /// <summary>
     /// Attempts to apply rectangle-based redactions, returning diagnostics when blocked or failed.

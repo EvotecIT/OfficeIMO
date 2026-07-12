@@ -190,6 +190,18 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Apply_CanSecurelyRemoveWholeJpegPlacementForPartialIntersection() {
+        byte[] source = BuildJpegImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfRedactionArea area = CreateImageIntersectionArea(image);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area }, new PdfRedactionApplyOptions { UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement });
+
+        Assert.Empty(PdfImageExtractor.ExtractImages(redacted));
+        Assert.DoesNotContain("/DCTDecode", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_RemovesFullyCoveredImagePlacementByDefault() {
         byte[] source = BuildImageRedactionPlanningSource();
         PdfLogicalImage image = GetSingleImage(source);

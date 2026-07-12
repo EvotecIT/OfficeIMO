@@ -9,11 +9,15 @@ public sealed class PdfRedactionVerificationReport {
         bool rawPdfBytesChecked,
         bool encodedPdfStringsChecked,
         bool decodedPdfStreamsChecked,
+        bool managedRenderingChecked,
+        IReadOnlyList<PdfRedactionExternalValidationResult> externalValidationResults,
         IReadOnlyList<PdfRedactionVerificationIssue> issues) {
         ExtractedText = extractedText;
         RawPdfBytesChecked = rawPdfBytesChecked;
         EncodedPdfStringsChecked = encodedPdfStringsChecked;
         DecodedPdfStreamsChecked = decodedPdfStreamsChecked;
+        ManagedRenderingChecked = managedRenderingChecked;
+        ExternalValidationResults = externalValidationResults;
         Issues = issues;
     }
 
@@ -28,6 +32,12 @@ public sealed class PdfRedactionVerificationReport {
 
     /// <summary>True when decoded PDF stream content was searched for removed markers.</summary>
     public bool DecodedPdfStreamsChecked { get; }
+
+    /// <summary>True when all pages were exercised through the managed renderer.</summary>
+    public bool ManagedRenderingChecked { get; }
+
+    /// <summary>Results returned by optional development-time external validators.</summary>
+    public IReadOnlyList<PdfRedactionExternalValidationResult> ExternalValidationResults { get; }
 
     /// <summary>Verification issues found in the redacted PDF.</summary>
     public IReadOnlyList<PdfRedactionVerificationIssue> Issues { get; }

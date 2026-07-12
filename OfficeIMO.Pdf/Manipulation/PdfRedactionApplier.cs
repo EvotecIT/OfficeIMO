@@ -11,6 +11,20 @@ public static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
     private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
+    /// <summary>Applies a previously reviewed plan, including exact form-field removal for field-derived search areas.</summary>
+    public static byte[] Apply(byte[] pdf, PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? readOptions = null) {
+        Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(plan, nameof(plan));
+        if (plan.Areas.Count == 0) return (byte[])pdf.Clone();
+        string[] fieldNames = plan.Areas.Select(static area => area.Label).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
+        byte[] working = pdf;
+        if (fieldNames.Length > 0) {
+            var existing = new HashSet<string>(PdfReadDocument.Load(pdf, readOptions).FormFields.Where(static field => field.Name is not null).Select(static field => field.Name!), StringComparer.Ordinal);
+            string[] removable = fieldNames.Where(existing.Contains).ToArray();
+            if (removable.Length > 0) working = PdfAcroFormEditor.Edit(pdf, edit => { for (int i = 0; i < removable.Length; i++) edit.Remove(removable[i]); }, readOptions).ToBytes();
+        }
+        return Apply(working, plan.Areas, applyOptions, layoutOptions, readOptions: null);
+    }
+
     /// <summary>
     /// Applies rectangle-based redactions to a PDF byte array and returns rewritten PDF bytes.
     /// </summary>
@@ -30,6 +44,7 @@ public static partial class PdfRedactionApplier {
         }
 
         PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
+        if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(applyOptions), "Maximum decoded image bytes must be positive.");
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions);
         if (!plan.Preflight.CanReadLogicalObjects) {
             throw new InvalidOperationException("PDF redaction cannot be applied because logical content cannot be read. " + string.Join(" ", plan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects)));
@@ -44,12 +59,14 @@ public static partial class PdfRedactionApplier {
         PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions);
-        if (!mutation.HasChanges) {
+        bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
+        if (!mutation.HasChanges && !cleanupChanged) {
             return pdf.ToArray();
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        return RewriteAllObjects(objects, catalogObjectNumber, document.Metadata, pdf);
+        PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.Metadata;
+        return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf);
     }
 
     /// <summary>
@@ -119,6 +136,7 @@ public static partial class PdfRedactionApplier {
             .GroupBy(area => area.PageNumber)
             .ToDictionary(group => group.Key, group => group.ToArray());
         bool changed = false;
+        var removedImageObjectNumbers = new HashSet<int>();
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             int pageNumber = pageIndex + 1;
@@ -136,10 +154,12 @@ public static partial class PdfRedactionApplier {
             }
 
             PdfRedactionMatch[] currentMatches = pageMatches ?? Array.Empty<PdfRedactionMatch>();
-            ImageRedactionMutation imageMutation = RemoveMatchedImageObjects(objects, pageDictionary, currentMatches, options.FillColor, ref nextObjectNumber);
+            ImageRedactionMutation imageMutation = RemoveMatchedImageObjects(objects, pageDictionary, currentMatches, options, ref nextObjectNumber);
+            foreach (PdfRedactionMatch removedImage in imageMutation.RemovedMatches) if (removedImage.ObjectNumber.HasValue) removedImageObjectNumbers.Add(removedImage.ObjectNumber.Value);
             ValidateImagePlacementMatches(currentMatches, imageMutation.RemovedMatches, options);
             bool pageChanged = imageMutation.HasChanges;
             pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches, ref nextObjectNumber) || pageChanged;
+            if (options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), ref nextObjectNumber) || pageChanged;
             pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);
@@ -154,6 +174,8 @@ public static partial class PdfRedactionApplier {
             changed = pageChanged || changed;
         }
 
+        if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers) || changed;
+
         return new RedactionMutation(changed);
     }
 
@@ -166,7 +188,7 @@ public static partial class PdfRedactionApplier {
     }
 
     private static void ValidateImagePlacementMatches(IReadOnlyList<PdfRedactionMatch> matches, IReadOnlyList<PdfRedactionMatch> removedMatches, PdfRedactionApplyOptions options) {
-        if (options.AllowImagePlacementOverlays) {
+        if (options.AllowImagePlacementOverlays || options.UnsupportedImagePolicy == PdfRedactionUnsupportedImagePolicy.VisualOverlay) {
             return;
         }
 

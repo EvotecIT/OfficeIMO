@@ -177,6 +177,8 @@ public static class PdfMutationPlanner {
                 return CanMergeDocuments(preflight);
             case PdfMutationOperation.Optimize:
                 return CanOptimize(preflight);
+            case PdfMutationOperation.Redact:
+                return CanRedact(preflight);
             default:
                 return preflight.CanRewrite;
         }
@@ -641,6 +643,18 @@ public static class PdfMutationPlanner {
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
         if (security.HasEncryption || security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
         return !preflight.RewriteBlockers.Any(static blocker => blocker.Kind == PdfRewriteBlockerKind.InvalidObjectReferences);
+    }
+
+    private static bool CanRedact(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        PdfDocumentSecurityInfo security = preflight.Probe.Security;
+        if (security.HasEncryption || security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            PdfRewriteBlockerKind kind = preflight.RewriteBlockers[i].Kind;
+            if (kind == PdfRewriteBlockerKind.Forms || kind == PdfRewriteBlockerKind.TaggedContent || kind == PdfRewriteBlockerKind.XmpMetadata || kind == PdfRewriteBlockerKind.OptionalContent || kind == PdfRewriteBlockerKind.EmbeddedFiles) continue;
+            return false;
+        }
+        return true;
     }
 
     private static bool HasOnlyUnsignedSignatureFields(PdfDocumentSecurityInfo security) =>

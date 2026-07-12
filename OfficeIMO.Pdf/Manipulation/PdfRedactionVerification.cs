@@ -14,6 +14,7 @@ public static partial class PdfRedactionVerification {
         string extractedText = PdfReadDocument.Load(redactedPdf).ExtractText();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
+        var externalResults = new List<PdfRedactionExternalValidationResult>();
 
         if (options.CheckDecodedPdfStreams &&
             options.FailOnUndecodablePdfStreams &&
@@ -62,7 +63,17 @@ public static partial class PdfRedactionVerification {
             }
         }
 
-        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, options.CheckDecodedPdfStreams, issues.AsReadOnly());
+        if (options.CheckManagedRendering) {
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true });
+            for (int i = 0; i < renders.Count; i++) if (!renders[i].Succeeded) issues.Add(new PdfRedactionVerificationIssue("ManagedRendering", renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), "Managed rendering failed for redacted page " + renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + string.Join("; ", renders[i].Diagnostics)));
+        }
+
+        for (int i = 0; i < options.ExternalValidators.Count; i++) {
+            PdfRedactionExternalValidationResult result = options.ExternalValidators[i].Validate((byte[])redactedPdf.Clone()); externalResults.Add(result);
+            if (!result.IsValid) issues.Add(new PdfRedactionVerificationIssue("ExternalValidation", result.ValidatorName, "External redaction validation failed for " + result.ValidatorName + (string.IsNullOrWhiteSpace(result.Diagnostic) ? "." : ": " + result.Diagnostic)));
+        }
+
+        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, options.CheckDecodedPdfStreams, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
     }
 
     /// <summary>

@@ -10,9 +10,10 @@ public static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
         IReadOnlyList<PdfRedactionMatch> matches,
-        PdfColor fillColor,
+        PdfRedactionApplyOptions options,
         ref int nextObjectNumber) {
-        ImageRedactionTarget[] wholeImageTargets = BuildWholeImageTargets(matches);
+        bool removeWholeIntersectingImages = options.UnsupportedImagePolicy == PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement;
+        ImageRedactionTarget[] wholeImageTargets = BuildWholeImageTargets(matches, removeWholeIntersectingImages);
         ImageRedactionTarget[] pixelTargets = BuildPixelImageTargets(matches);
         if ((wholeImageTargets.Length == 0 && pixelTargets.Length == 0) ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) {
@@ -63,15 +64,15 @@ public static partial class PdfRedactionApplier {
         }
 
         changed = ScrubMatchedImageFormXObjects(objects, pageDictionary, currentContentsObject, wholeImageTargets, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
-        changed = RewriteMatchedImagePixels(objects, pageDictionary, currentContentsObject, pixelTargets, fillColor, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
+        changed = RewriteMatchedImagePixels(objects, pageDictionary, currentContentsObject, pixelTargets, options, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
         return new ImageRedactionMutation(changed, removedMatches.AsReadOnly());
     }
 
-    private static ImageRedactionTarget[] BuildWholeImageTargets(IReadOnlyList<PdfRedactionMatch> matches) {
+    private static ImageRedactionTarget[] BuildWholeImageTargets(IReadOnlyList<PdfRedactionMatch> matches, bool removeWholeIntersectingImages) {
         return matches
             .Where(match => match.Kind == PdfRedactionMatchKind.ImagePlacement &&
                 !string.IsNullOrEmpty(match.ResourceName) &&
-                RedactionAreaCoversMatch(match.Area, match))
+                (removeWholeIntersectingImages ? RedactionAreaIntersectsMatch(match.Area, match) : RedactionAreaCoversMatch(match.Area, match)))
             .Select(match => new ImageRedactionTarget(match, match.ResourceName!, match.X, match.Y, match.Width, match.Height))
             .ToArray();
     }
@@ -492,6 +493,28 @@ public static partial class PdfRedactionApplier {
         }
 
         return count;
+    }
+
+    private static bool RemoveUnusedImageObjectReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> targetObjectNumbers) {
+        var invokedNames = new HashSet<string>(StringComparer.Ordinal);
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfStream stream || string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal) || stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+            foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) invokedNames.Add(invocation.Name);
+        }
+        bool changed = false;
+        foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;
+        return changed;
+    }
+
+    private static bool RemoveUnusedImageEntries(PdfObject value, Dictionary<int, PdfIndirectObject> objects, HashSet<int> targets, HashSet<string> invokedNames) {
+        PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null; if (dictionary is null) return false;
+        bool changed = false;
+        if (dictionary.Items.TryGetValue("XObject", out PdfObject? xObjectObject) && ResolveDictionary(objects, xObjectObject) is PdfDictionary xObjects) {
+            foreach (string name in xObjects.Items.Keys.ToArray()) if (!invokedNames.Contains(name) && xObjects.Items[name] is PdfReference reference && targets.Contains(reference.ObjectNumber)) { xObjects.Items.Remove(name); changed = true; }
+        }
+        foreach (PdfObject child in dictionary.Items.Values.ToArray()) if (child is not PdfReference) changed = RemoveUnusedImageEntries(child, objects, targets, invokedNames) || changed;
+        return changed;
     }
 
     private static string RemoveRanges(string content, List<RemovalRange> ranges) {

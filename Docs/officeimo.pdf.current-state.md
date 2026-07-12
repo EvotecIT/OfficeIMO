@@ -52,7 +52,7 @@ PDF primitive exists somewhere in the codebase.
 | Digital signatures | Partial | Approval, certification/DocMDP, and document-timestamp profiles can prepare external signatures; approval/certification fields can have visible widget appearances. A signer callback accepts CMS/CAdES/RFC 3161 bytes from cloud, HSM, smart-card, or local implementations without moving key storage into the PDF core. The dependency-free parser exposes an optional cryptography seam, and `OfficeIMO.Pdf.Cryptography.Pkcs` validates detached CMS/CAdES math and digests, X.509 chains, caller trust callbacks, revocation policy, and RFC 3161 timestamps on modern .NET. After signature math and digest verification, `PdfLongTermValidationEnricher` can append DER certificate, OCSP, and CRL streams in an ETSI DSS/VRI revision while retaining all earlier bytes and evidence. Reports keep structure, math, digest, trust, revocation, time, permissions, and later revisions separate. | Add deeper timestamp/revocation fixtures, managed rendering proof for signature widgets, and external interoperability proof for B-LT/B-LTA workflows without claiming conformance prematurely. |
 | Attachments and portfolios | Partial | Generated associated/embedded files are supported; existing attachments can be listed and extracted and are preserved by supported rewrites. | Add, replace, rename, remove, and extract selectively; edit `/AF`; validate checksums and MIME metadata; add portfolio/collection navigation only after the base attachment editor is proven. |
 | Optimization | Broad | Deterministic Balanced, MaximumCompression, Web, Archival, and Custom profiles support lossless stream compression, unreachable-object removal, exact-stream and decoded-image deduplication, font/resource dictionary deduplication, classic or xref-stream output, object-stream packing, first-page linearization parameters, keep-original-if-larger behavior, per-action reporting, and post-save preservation proof. | Expand semantic deduplication only with bounded decoders and interoperable fixtures; optimization remains an explicit full rewrite and never claims signature preservation. |
-| Redaction | Partial and fail-closed | Text/content scrubbing, full image-placement removal, selected safe pixel rewrites, and residue verification exist. Complex image cases are blocked unless visual-only overlay is explicitly allowed. | Finish transformed/JPEG/masked/reused-resource cases, annotation-aware redaction, metadata/attachment cleanup, and external validation of unrecoverability. |
+| Redaction | Secure workflow available | Reviewable geometry/search plans remove intersecting text, vector paths, annotations, form fields, and image pixels. Built-in image normalization covers transformed placements, indexed/color-key/explicit/soft masks, and clone-on-write reuse; JPEG and other codecs use an optional bounded decoder contract or an explicit fail-closed/whole-placement policy. Cleanup policies cover metadata, attachments, structure/alternate text, and optional content. Proof combines extraction, raw/decoded residue checks, managed rendering, and pluggable independent validators. | Expand the hostile/corpus fixture set as new producer-specific encodings are found. |
 | Render PDF pages | Partial | The managed renderer projects a supported static PDF subset to `OfficeIMO.Drawing` and can emit dependency-free PNG or SVG. | Broader font, image, color-space, pattern, transparency, shading, function, clipping, annotation, form, and layer coverage; page batches, DPI options, thumbnails, and a declared support manifest. |
 | Text and layout extraction | Partial | Text spans, column-aware ordering, headings, paragraphs, lists, bands, and heuristic tables are available, along with logical PDF models. | Pluggable word grouping, page segmentation, and reading-order strategies; rotated/curved text handling; confidence signals; and ALTO, hOCR, PAGE XML, and stable JSON export. |
 | PDF to Office/HTML/data | Partial by design | PDF-to-HTML review output, table export, Reader chunks, and limited PowerPoint table import use the shared logical model. | Improve the logical model and confidence/proof first. Do not promise general editable reconstruction from a presentation format. |
@@ -191,15 +191,15 @@ report instead of silently discarding document structures.
 
 ### P1 - Complete Redaction As A Security Feature
 
-- [ ] Finish partial-image rewriting for JPEG, transformed placements, color-key
+- [x] Finish partial-image rewriting for JPEG, transformed placements, color-key
   masks, explicit masks, soft masks, indexed colors, and shared/reused resources.
-- [ ] Remove or rewrite intersecting text, paths, annotations, structure-tree
+- [x] Remove or rewrite intersecting text, paths, annotations, structure-tree
   references, alternate text, optional-content references, metadata, and
   attachments according to an explicit redaction policy.
-- [ ] Add search-driven redaction for literal text, regular expressions, logical
+- [x] Add search-driven redaction for literal text, regular expressions, logical
   fields, and caller-provided geometry, with reviewable plans before apply.
 - [x] Keep visual-only overlays as a separately named non-redaction operation.
-- [ ] Validate output through extraction, raw/decoded-stream residue checks,
+- [x] Validate output through extraction, raw/decoded-stream residue checks,
   page rendering, and at least one independent development-time parser.
 
 Exit criterion: the redaction API can state and prove what was removed; no

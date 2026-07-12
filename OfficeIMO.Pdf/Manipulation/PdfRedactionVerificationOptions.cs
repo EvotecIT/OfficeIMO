@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfRedactionVerificationOptions {
     private readonly List<string> _removedTextMarkers = new List<string>();
     private readonly List<string> _retainedTextMarkers = new List<string>();
+    private readonly List<IPdfRedactionExternalValidator> _externalValidators = new List<IPdfRedactionExternalValidator>();
 
     /// <summary>Text markers that must not remain extractable after redaction.</summary>
     public IList<string> RemovedTextMarkers => _removedTextMarkers;
@@ -24,6 +25,12 @@ public sealed class PdfRedactionVerificationOptions {
 
     /// <summary>True when redaction verification should fail if a PDF stream cannot be decoded while decoded stream checks are enabled.</summary>
     public bool FailOnUndecodablePdfStreams { get; set; } = true;
+
+    /// <summary>Render every page through the managed renderer and fail when a page cannot produce output.</summary>
+    public bool CheckManagedRendering { get; set; }
+
+    /// <summary>Optional development-time external validators.</summary>
+    public IList<IPdfRedactionExternalValidator> ExternalValidators => _externalValidators;
 
     /// <summary>Adds text markers that must be removed and returns this options object for fluent setup.</summary>
     public PdfRedactionVerificationOptions RequireRemovedText(params string[] markers) {
