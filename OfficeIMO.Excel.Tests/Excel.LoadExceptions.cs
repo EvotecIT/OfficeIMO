@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 appOverride.SetAttributeValue("ContentType", "application/xml");
             });
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: false, autoSave: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Sheets[0].CellValue(1, 1, "Normalized");
             }
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                using (var document = ExcelDocument.Load(filePath, readOnly: false, autoSave: true)) {
+                using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                     document.Sheets[0].CellValue(1, 1, "Updated");
                 }
 
@@ -211,19 +211,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_LoadWithAutoSave_ThrowsWhenCopyBackToFileFails() {
+        public void Test_LoadWithSaveOnDispose_AtomicallyReplacesSourceWhileReadHandleIsOpen() {
             string sourcePath = Path.Combine(_directoryDocuments, "BasicExcel.xlsx");
             string filePath = Path.Combine(_directoryWithFiles, "LoadAutoSaveCopyBackFailure.xlsx");
             File.Copy(sourcePath, filePath, overwrite: true);
 
             using var fileLock = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            var exception = Assert.Throws<IOException>(() => {
-                using var document = ExcelDocument.Load(filePath, readOnly: false, autoSave: true);
-                document.Sheets[0].CellValue(1, 1, "ShouldFail");
-            });
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {
+                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+            })) {
+                document.Sheets[0].CellValue(1, 1, "Updated");
+            }
 
-            Assert.False(string.IsNullOrWhiteSpace(exception.Message));
+            using var reloaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {
+                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+            });
+            Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out string? value));
+            Assert.Equal("Updated", value);
         }
 
         private static void RewriteContentTypes(string filePath, Action<XElement> mutateRoot) {

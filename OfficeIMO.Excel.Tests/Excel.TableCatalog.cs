@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var tables = document.GetTables().ToList();
                 Assert.Equal(2, tables.Count);
 

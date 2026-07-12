@@ -41,7 +41,7 @@ internal static class ExcelReadProfileRunner {
         string dataRange = ExcelBenchmarkScenarioFactory.BuildDataRange(rowCount);
         using var loadedDataReaderDocument = ExcelDocumentReader.Open(workbookBytes);
         var loadedDataReaderSheet = loadedDataReaderDocument.GetSheet("Data");
-        using var loadedHeaderDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false), readOnly: true);
+        using var loadedHeaderDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
         var loadedHeaderSheet = loadedHeaderDocument.GetSheet("Data");
         using var loadedHeaderOpsStream = new MemoryStream();
         loadedHeaderOpsStream.Write(workbookBytes, 0, workbookBytes.Length);
@@ -51,7 +51,7 @@ internal static class ExcelReadProfileRunner {
         byte[] mixedTypeWorkbookBytes = CreateMixedTypeWorkbookBytes(rowCount);
         byte[] sparseWorkbookBytes = CreateSparseWorkbookBytes(SparseLastRow);
         byte[] sharedStringHeavyWorkbookBytes = CreateSharedStringHeavyWorkbookBytes(rowCount);
-        using var loadedSharedStringHeaderDocument = ExcelDocument.Load(new MemoryStream(sharedStringHeavyWorkbookBytes, writable: false), readOnly: true);
+        using var loadedSharedStringHeaderDocument = ExcelDocument.Load(new MemoryStream(sharedStringHeavyWorkbookBytes, writable: false), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
         var loadedSharedStringHeaderSheet = loadedSharedStringHeaderDocument.GetSheet("Data");
         string sparseRange = $"A1:A{SparseLastRow}";
 
@@ -442,7 +442,7 @@ internal static class ExcelReadProfileRunner {
 
     private static int OfficeImoGetHeaderMap(byte[] workbookBytes) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
-        using var document = ExcelDocument.Load(stream, readOnly: true);
+        using var document = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
         var map = document.GetSheet("Data").GetHeaderMap();
         return map.Count + map["Id"];
     }

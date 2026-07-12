@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string xlsPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             string roundTripPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
 
-            using (ExcelDocument document = ExcelDocument.Create(xlsxPath, autoSave: false)) {
+            using (ExcelDocument document = ExcelDocument.Create(xlsxPath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Alice");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             byte[] existing = { 1, 2, 3, 4 };
-            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 document.AddWorkSheet("Data").CellValue(1, 1, "Conflict policy");
                 document.Save();
             }
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             byte[] originalBytes = { 1, 2, 3, 4 };
-            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 document.AddWorkSheet("Data").CellValue(1, 1, "Read-only conversion target");
                 document.Save();
             }
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_Convert_RejectsSamePhysicalFormat() {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 document.AddWorkSheet("Data").CellValue(1, 1, "Already XLSX");
                 document.Save();
             }
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_Convert_DisablesOpenSettingsAutoSaveForSourceIsolation() {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false)) {
+            using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 document.AddWorkSheet("Data").CellValue(1, 1, "Source must remain untouched");
                 document.Save();
             }

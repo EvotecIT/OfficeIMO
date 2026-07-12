@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             }
 
             // Reopen read-only and verify
-            using (var verify = ExcelDocument.Load(filePath, readOnly: true))
+            using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly }))
             {
                 Assert.Equal("Roundtrip Title", verify.BuiltinDocumentProperties.Title);
                 Assert.Equal("Roundtrip Author", verify.BuiltinDocumentProperties.Creator);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("image/png", imagePart.ContentType);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg), imagePart.ContentType);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("image/jpeg", imagePart.ContentType);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(sheetPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.LegacyDrawingHeaderFooter>().FirstOrDefault());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets.First();
                 var hf = sheet.GetHeaderFooter();
                 Assert.False(hf.HeaderHasPicturePlaceholder);

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("Protected");
                     sheet.CellValue(1, 1, "Protected range");
                     sheet.CellValue(2, 3, "Second range");
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("SingleProtected");
                     sheet.CellValue(1, 1, "Editable");
                     sheet.Protect();

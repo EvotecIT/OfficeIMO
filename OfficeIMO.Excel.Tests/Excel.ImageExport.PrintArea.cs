@@ -535,12 +535,13 @@ namespace OfficeIMO.Tests {
                 sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
                 sheet.SetPageSetup(scale: 100);
                 sheet.AddManualRowPageBreak(2, save: false);
+                document.Save();
             }
 
             SetFirstWorksheetPaperSizeCode(filePath, 999U);
 
             OfficeImageExportResult result;
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Report");
                 result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions {
                     Range = "A1:D4",

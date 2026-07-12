@@ -55,7 +55,7 @@ public class HtmlArtifactRoundTrips {
         HtmlToExcelResult excelResult = sourceWorkbook.ToHtml().ToExcelDocumentResult();
         using var xlsx = new MemoryStream();
         excelResult.Workbook.Save(xlsx);
-        using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), readOnly: true);
+        using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
         using PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide sourceSlide = sourcePresentation.AddSlide();

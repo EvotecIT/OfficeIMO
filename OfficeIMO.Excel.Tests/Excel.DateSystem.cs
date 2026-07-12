@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(date, readDate);
                 }
 
-                using (ExcelDocument loaded = ExcelDocument.Load(filePath, readOnly: true)) {
+                using (ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(ExcelDateSystem.NineteenFour, loaded.DateSystem);
                     Assert.Equal(ExcelDateSystem.NineteenFour, loaded.CreateInspectionSnapshot().DateSystem);
                 }

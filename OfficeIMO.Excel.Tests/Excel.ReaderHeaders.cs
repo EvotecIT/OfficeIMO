@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2024, 1, 2);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadColumn_MapsMemoryPackageWithWideRows() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
@@ -2369,7 +2369,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2024, 3, 2);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Score");
                 sheet.CellValue(1, 2, "Active");
@@ -2395,7 +2395,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2024, 3, 2);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Score");
                 sheet.CellValue(1, 2, "Active");

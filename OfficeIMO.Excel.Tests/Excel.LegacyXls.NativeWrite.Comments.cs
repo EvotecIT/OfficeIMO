@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("CommentAnchor");
                     sheet.CellValue(3, 2, "Anchored note");
                     sheet.SetLegacyComment(
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("EdgeComment");
                     sheet.CellValue(65536, 256, "Edge note");
                     sheet.SetLegacyComment(
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("CommentFonts");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("CommentEscapement");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("CommentFontFlags");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("CommentUnderline");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(

@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("1-10", dv.Error!.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Invalid status", dv.ErrorTitle!.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(dv.GetFirstChild<Formula2>());
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expected, dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expected, dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("10", dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("SUM(A1:B1)>10", dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("=StatusOptions", dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("='Options'!A1:A3", dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("=D1:D3", dv.GetFirstChild<Formula1>()!.Text);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

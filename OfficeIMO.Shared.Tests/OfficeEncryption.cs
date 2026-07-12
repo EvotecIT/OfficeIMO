@@ -70,7 +70,7 @@ namespace OfficeIMO.Shared.Tests {
         public void Excel_SaveEncrypted_And_LoadEncrypted_RoundTrips() {
             string path = CreateTempPath(".xlsx");
 
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorkSheet("Encrypted");
                 sheet.CellValue(1, 1, "Encrypted Excel content");
                 document.SaveEncrypted(path, Password);
@@ -89,7 +89,7 @@ namespace OfficeIMO.Shared.Tests {
         public void Excel_SaveEncryptedStream_And_LoadEncryptedStream_RoundTrips() {
             using var encrypted = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorkSheet("EncryptedStream");
                 sheet.CellValue(1, 1, "Encrypted Excel stream content");
                 document.SaveEncrypted(encrypted, Password);
@@ -108,7 +108,7 @@ namespace OfficeIMO.Shared.Tests {
         public void Excel_LoadEncrypted_DoesNotAttachEncryptedPathOrAllowAutoSave() {
             string path = CreateTempPath(".xlsx");
 
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorkSheet("Encrypted");
                 sheet.CellValue(1, 1, "Encrypted Excel content");
                 document.SaveEncrypted(path, Password);
@@ -118,8 +118,14 @@ namespace OfficeIMO.Shared.Tests {
                 Assert.True(string.IsNullOrEmpty(loaded.FilePath));
             }
 
-            Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, autoSave: true));
-            Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, openSettings: new OpenSettings { AutoSave = true }));
+            Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
+                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+            }));
+
+            using var explicitLoad = ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
+                OpenSettings = new OpenSettings { AutoSave = true }
+            });
+            Assert.Equal(OfficeIMO.Core.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
 
         [Fact]
@@ -160,7 +166,7 @@ namespace OfficeIMO.Shared.Tests {
         public void Excel_LoadEncrypted_WithWrongPassword_ThrowsCryptographicException() {
             string path = CreateTempPath(".xlsx");
 
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
                 document.AddWorkSheet("Encrypted");
                 document.SaveEncrypted(path, Password);
             }
@@ -172,7 +178,7 @@ namespace OfficeIMO.Shared.Tests {
         public void Excel_LoadEncrypted_WithTamperedPayload_ThrowsCryptographicException() {
             string path = CreateTempPath(".xlsx");
 
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorkSheet("Encrypted");
                 sheet.CellValue(1, 1, "Tamper target");
                 document.SaveEncrypted(path, Password);

@@ -70,7 +70,7 @@ internal static class ExcelChartProfileRunner {
         Dictionary<string, double>? totals,
         List<ChartProfileDiagnostics>? diagnostics) {
         using var stream = new MemoryStream();
-        using var document = ExcelDocument.Create(stream, autoSave: false);
+        using var document = ExcelDocument.Create(stream);
         var totalWatch = Stopwatch.StartNew();
         var stageWatch = Stopwatch.StartNew();
 

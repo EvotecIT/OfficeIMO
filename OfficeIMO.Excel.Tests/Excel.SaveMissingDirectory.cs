@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
 
-                using (var reloaded = ExcelDocument.Load(destinationPath, readOnly: true)) {
+                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
                     Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
                     Assert.Equal(expectedCellValue, actualValue);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
 
-                using (var reloaded = ExcelDocument.Load(destinationPath, readOnly: true)) {
+                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
                     Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
                     Assert.Equal(expectedCellValue, actualValue);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(destinationDirectory, "Copy.xlsx");
 
             try {
-                using ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false);
+                using ExcelDocument document = ExcelDocument.Create(sourcePath);
                 document.AddWorkSheet("CopyData").CellValue(1, 1, "Directory copy");
 
                 using ExcelDocument copy = document.SaveCopy(destinationPath);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             var destination = new FileInfo(destinationPath) { IsReadOnly = true };
 
             try {
-                using ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false);
+                using ExcelDocument document = ExcelDocument.Create(sourcePath);
                 document.AddWorkSheet("Data").CellValue(1, 1, "Must not overwrite");
 
                 Assert.Throws<IOException>(() => document.SaveCopy(destinationPath));

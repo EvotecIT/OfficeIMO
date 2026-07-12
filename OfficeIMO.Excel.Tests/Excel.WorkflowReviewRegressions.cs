@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var destination = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(source, autoSave: false)) {
+            using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Ready");
 
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             }
 
             destination.Position = 0;
-            using var loaded = ExcelDocument.Load(destination, readOnly: true);
+            using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Assert.Equal("$A$1", loaded.GetNamedRange("Anchor", loaded["Data"]));
         }
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelConditionalFormattingInfo rule = Assert.Single(document["Data"].GetConditionalFormattingRules("A1"));
                 Assert.Equal("TimePeriod", rule.Type);
                 Assert.Single(rule.Formulas);
@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_WorksheetMetadata_RejectsForeignWorksheet() {
-            using var left = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-            using var right = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            using var left = ExcelDocument.Create(new MemoryStream());
+            using var right = ExcelDocument.Create(new MemoryStream());
             ExcelSheet foreignSheet = left.AddWorkSheet("Foreign");
 
             Assert.Throws<ArgumentException>(() => right.AddWorksheetMetadataPart(
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Null(document.GetNamedRange("_xlnm.Print_Titles", document["Report"]));
             }
         }
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_EnsureWorkbookTheme_SavesEnsuredPartsForStreamWorkbook() {
             using var source = new MemoryStream();
-            using (var document = ExcelDocument.Create(source, autoSave: false)) {
+            using (var document = ExcelDocument.Create(source)) {
                 document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
                 document.Save(source);
             }
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
                 worksheetPart.Worksheet.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelWorksheetSnapshot sheet = Assert.Single(document.CreateInspectionSnapshot().Worksheets);
                 Assert.All(sheet.Cells.Where(cell => cell.Row >= 1 && cell.Row <= 3), cell => Assert.NotNull(cell.Hyperlink));
                 Assert.Equal(3, sheet.Cells.Count(cell => cell.Hyperlink != null));
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests {
                 commentsPart.Comments.Save();
             }
 
-            using var left = ExcelDocument.Load(leftPath, readOnly: true);
-            using var right = ExcelDocument.Load(rightPath, readOnly: true);
+            using var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            using var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
             ExcelWorkbookDiffReport diff = left.CompareWorkbook(right, new ExcelWorkbookDiffOptions {
                 CompareCells = false,
@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_DashboardChart_RejectsOutOfBoundsAnchorsAndDimensions() {
-            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorkSheet("Dashboard");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
@@ -439,7 +439,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_PrintAreaAndTitles_MarkStreamWorkbookDirty() {
             using var source = new MemoryStream();
-            using (var document = ExcelDocument.Create(source, autoSave: false)) {
+            using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddWorkSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 document.Save(source);
@@ -455,7 +455,7 @@ namespace OfficeIMO.Tests {
             }
 
             destination.Position = 0;
-            using var loaded = ExcelDocument.Load(destination, readOnly: true);
+            using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             ExcelSheet loadedSheet = loaded["Report"];
             Assert.Equal("$A$1:$B$2", loadedSheet.GetPrintArea());
             ExcelPrintTitles titles = loadedSheet.GetPrintTitles();
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_PrintLayout_RejectsScaleOutsideExcelBounds() {
-            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorkSheet("Report");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {

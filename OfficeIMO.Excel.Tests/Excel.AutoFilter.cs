@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A", filter.Val!.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B3", autoFilter.Reference!.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "20", "30" }, scoreFilters.Elements<Filter>().Select(filter => filter.Val!.Value).ToArray());
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("10", notEqualCondition.Val!.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("20", notBetweenConditions[1].Val!.Value);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

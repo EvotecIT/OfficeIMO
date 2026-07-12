@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -352,7 +352,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -505,7 +505,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -592,7 +592,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -631,7 +631,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -674,7 +674,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -729,7 +729,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -751,7 +751,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -773,7 +773,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -795,7 +795,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -978,7 +978,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1051,7 +1051,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1088,7 +1088,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1133,7 +1133,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1184,7 +1184,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1231,7 +1231,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1284,7 +1284,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1331,7 +1331,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1370,7 +1370,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1417,7 +1417,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1472,7 +1472,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

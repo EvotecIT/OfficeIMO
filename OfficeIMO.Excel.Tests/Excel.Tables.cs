@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, b1.DataType!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(tablePart.Table.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.AutoFilter>());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

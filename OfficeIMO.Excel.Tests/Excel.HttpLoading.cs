@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task ExcelHttpDocumentLoadOpensDownloadedWorkbookReadOnlyByDefault() {
+        public async Task ExcelHttpDocumentLoadUsesTheSameReadWriteDefaultAsOtherSources() {
             byte[] workbookBytes = CreateRemoteWorkbookBytes();
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(CreateWorkbookResponse(workbookBytes)));
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 new Uri("https://example.test/workbook.xlsx"),
                 new ExcelHttpLoadOptions { HttpMessageHandler = handler });
 
-            Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+            Assert.Equal(OfficeIMO.Core.DocumentAccessMode.ReadWrite, document.AccessMode);
             Assert.Equal("Remote", document.Sheets[0].Name);
             Assert.Equal(string.Empty, document.FilePath);
         }
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }

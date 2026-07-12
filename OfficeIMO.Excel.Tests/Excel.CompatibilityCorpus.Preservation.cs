@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
                 AssertPreservedPackageParts(filePath, customXmlBytes, connectionBytes, queryTableBytes);
 
-                using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                     ExcelFeatureReport report = document.InspectFeatures();
 
                     Assert.True(report.Can(ExcelPreflightCapability.ReadWorkbookData));
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
                 AssertPreservedAdvancedPackageParts(filePath, vbaBytes, embeddedBytes);
 
-                using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                     ExcelFeatureReport report = document.InspectFeatures();
 
                     Assert.True(report.Can(ExcelPreflightCapability.ReadWorkbookData));

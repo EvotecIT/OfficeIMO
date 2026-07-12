@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Total Sales", dataField.DisplayName);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(dataField.NumberFormatId >= 164);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B", product.SelectedItem);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("#,##0.00", dataField.NumberFormatCode);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -587,7 +587,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("$#,##0.00", dataField.NumberFormatCode);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -637,7 +637,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(dataField.NumberFormatId >= 164);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -707,7 +707,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PivotFilterValues.ValueGreaterThan, pivot.Filters[1].Type);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -801,7 +801,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("35", pivot.Filters[3].Value2);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -873,7 +873,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PivotFilterValues.February, pivot.Filters[3].Type);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -954,7 +954,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PivotFilterValues.DateNotBetween, pivot.Filters[3].Type);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1059,7 +1059,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("30.5", pivot.Filters[3].Value1);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1127,7 +1127,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("$#,##0", calculated.NumberFormatCode);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1189,7 +1189,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var pivot = document.GetPivotTables().Single();
                 Assert.Equal(2, pivot.Groupings.Count);
                 Assert.Equal("OrderDate", pivot.Groupings[0].FieldName);
@@ -1270,7 +1270,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var pivot = document.GetPivotTables().Single();
 
                 Assert.Equal(new[] { "OrderDate Years", "OrderDate Quarters", "OrderDate Months" }, pivot.RowFields);
@@ -1404,7 +1404,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, pivotSource.GetFirstChild<C.FormatId>()!.Val!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

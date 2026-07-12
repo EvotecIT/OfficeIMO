@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.False(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.False(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));

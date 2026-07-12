@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("StyleParent");
                     sheet.CellValue(1, 1, 45291d);
 
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("StyledBlank");
                     sheet.CellValue(2, 2, "temporary");
 
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("EmptyString");
                     sheet.CellValue(2, 2, "temporary");
 

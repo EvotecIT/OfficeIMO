@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                         error.Node?.OuterXml)));
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.Sheets.Single(item => item.Name == "Shared");
                 ExcelChart chart = Assert.Single(sheet.Charts);
                 Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
                         error.Node?.OuterXml)));
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal("DC2626", snapshot.Data.Series.Single(series => series.Name == "Columns A").SeriesColorArgb);

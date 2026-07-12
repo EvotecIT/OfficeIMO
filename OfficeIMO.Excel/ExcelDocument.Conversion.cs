@@ -136,18 +136,17 @@ namespace OfficeIMO.Excel {
                     return LoadLegacyXlsFromNormalFlow(
                         sourceBytes,
                         readOnly: false,
-                        autoSave: false,
+                        saveOnDispose: false,
                         filePath: sourcePath,
-                        openSettings: null,
                         importOptions: importOptions);
                 }
             }
 
             return await LoadAsync(
                 sourcePath,
-                readOnly: false,
-                autoSave: false,
-                openSettings: CreateConversionOpenSettings(options.OpenSettings),
+                new ExcelLoadOptions {
+                    OpenSettings = CreateConversionOpenSettings(options.OpenSettings)
+                },
                 cancellationToken).ConfigureAwait(false);
         }
 

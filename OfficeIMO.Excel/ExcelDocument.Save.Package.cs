@@ -295,7 +295,7 @@ namespace OfficeIMO.Excel {
                 : new MemoryStream(packageBytes.Length + 8192);
             mem.Write(packageBytes, 0, packageBytes.Length);
             mem.Position = 0;
-            var reopenSettings = new OpenSettings { AutoSave = true };
+            var reopenSettings = new OpenSettings { AutoSave = false };
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;

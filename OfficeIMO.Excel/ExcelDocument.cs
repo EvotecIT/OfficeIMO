@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Core;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
@@ -38,6 +39,7 @@ namespace OfficeIMO.Excel {
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
         private bool _customDocumentPropertiesDirty;
+        private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
 
         /// <summary>
         /// Enables caching of <see cref="ExcelSheet"/> wrappers for faster repeat access at the cost of higher memory usage.
@@ -409,15 +411,8 @@ namespace OfficeIMO.Excel {
 
         internal bool IsMaterializingDeferredDataSetImport => _materializingDeferredDataSetImport;
 
-        internal bool CanWriteDirectDataSetPackageOnDispose
-            => _copyPackageToSourceOnDispose
-               && _sourceStream != null
-               && _spreadSheetDocument != null
-               && !_spreadSheetDocument.AutoSave;
-
         internal bool CanDeferDirectCellValuesAppendCandidate
-            => _spreadSheetDocument != null
-               && !_spreadSheetDocument.AutoSave;
+            => _spreadSheetDocument != null && _sourceStream != null;
 
         internal bool IsPreservingDirectDataSetExternalCellMutation
             => _directDataSetExternalCellMutationPreservationDepth > 0;

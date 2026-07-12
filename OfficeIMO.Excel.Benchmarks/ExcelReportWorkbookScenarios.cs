@@ -83,7 +83,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+        using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorkSheet("Data");
             sheet.InsertObjects(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
@@ -100,7 +100,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookCoreBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+        using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorkSheet("Data");
             sheet.InsertObjects(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
@@ -116,7 +116,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookDataTableBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+        using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorkSheet("Data");
             sheet.InsertDataTable(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
@@ -133,7 +133,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookDataTableCoreBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+        using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorkSheet("Data");
             sheet.InsertDataTable(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);

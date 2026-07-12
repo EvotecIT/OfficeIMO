@@ -104,7 +104,7 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_LegacyXlsWarningsIncludePreservedRecords() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
-            using ExcelDocument document = ExcelDocument.Create(path, autoSave: false);
+            using ExcelDocument document = ExcelDocument.Create(path);
             document.AddWorkSheet("Data").CellValue(1, 1, "Preserved record warning");
 
             typeof(ExcelDocument)

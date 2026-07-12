@@ -22,8 +22,8 @@ namespace OfficeIMO.Examples.Excel {
                 await document.SaveAsync();
             }
 
-            var loadTask1 = ExcelDocument.LoadAsync(filePath, false);
-            var loadTask2 = ExcelDocument.LoadAsync(filePath, false);
+            var loadTask1 = ExcelDocument.LoadAsync(filePath);
+            var loadTask2 = ExcelDocument.LoadAsync(filePath);
 
             var documents = await Task.WhenAll(loadTask1, loadTask2);
 
@@ -36,4 +36,3 @@ namespace OfficeIMO.Examples.Excel {
         }
     }
 }
-

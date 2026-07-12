@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("https://final.example/", relationships[0].Uri.ToString());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(worksheetPart.HyperlinkRelationships);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Jump to target cell", internalLink.Tooltip!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var links = document.Sheets.First(sheet => sheet.Name == "Links").GetHyperlinks();
                 Assert.Equal("Open external docs", links["A1"].Tooltip);
                 Assert.Equal("Jump to target cell", links["A2"].Tooltip);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("https://shared.example/", remainingRel!.Uri.ToString());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Excel {
                 document.Save(openExcel);
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {

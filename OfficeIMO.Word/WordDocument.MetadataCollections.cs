@@ -199,5 +199,10 @@ namespace OfficeIMO.Word {
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _wordprocessingDocument.FileOpenAccess;
+
+        /// <summary>Gets whether the document was loaded for reading or editing.</summary>
+        public DocumentAccessMode AccessMode => FileOpenAccess == FileAccess.Read
+            ? DocumentAccessMode.ReadOnly
+            : DocumentAccessMode.ReadWrite;
     }
 }

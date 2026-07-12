@@ -326,7 +326,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFitColumns_DeferredWorksheetSavePersistsOnDispose() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.DeferredWorksheetSave.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
+            using (var document = ExcelDocument.Create(filePath, new ExcelCreateOptions {
+                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+            })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Very long text that should still persist after deferred AutoFit save");

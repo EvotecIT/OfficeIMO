@@ -11,8 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         internal static ExcelDocument ToExcelDocument(LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
-            var packageStream = new MemoryStream();
-            ExcelDocument document = ExcelDocument.Create(packageStream, autoSave: false);
+            ExcelDocument document = ExcelDocument.Create();
             if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
                 document.AddWorkSheet("Sheet1");
             }

@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.Tests {
                 new DirectPackageWriterRow(2, null, "München", new DateTime(2026, 7, 11), 20.75, 3, false, "Plain")
             };
 
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.InsertObjects(rows,
                     ("Id", row => row.Id),

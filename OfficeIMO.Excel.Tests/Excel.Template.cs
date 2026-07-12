@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Invoice INV-001", document["Invoice"].CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Customer: Adatum", document["Invoice"].CellAt(2, 1).GetValue<string>());
                 Assert.Equal("Total: 123.45", document["Summary"].CellAt(1, 1).GetValue<string>());
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(outputPath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(outputPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Template"];
                 Assert.Equal("Adatum", sheet.CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Template"];
                 Assert.Equal("Hello Adatum ", sheet.CellAt(1, 1).GetValue<string>());
                 Assert.Equal(string.Empty, sheet.CellAt(2, 1).GetValue<string>());
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
                 Assert.Equal("Consulting", sheet.CellAt(2, 1).GetValue<string>());
                 Assert.Equal(1200d, sheet.CellAt(2, 2).GetValue<double>());
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
                 Assert.Equal("Header", sheet.CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Discount", sheet.CellAt(2, 1).GetValue<string>());
@@ -472,7 +472,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
                 Assert.Equal("Header", sheet.CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
@@ -692,7 +692,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
                 Assert.Equal("'Invoice'!$A$5:$B$6", document.GetNamedRange("GlobalSales"));
                 Assert.Equal("$A$5:$B$6", sheet.GetNamedRange("LocalSales"));
@@ -734,7 +734,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
                 Assert.Equal("'Invoice'!$A$3:$B$4", document.GetNamedRange("GlobalSales"));
                 Assert.Equal("$A$3:$B$4", sheet.GetNamedRange("LocalSales"));
@@ -809,7 +809,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Contains(document.Sheets, sheet => sheet.Name == "North");
                 Assert.Contains(document.Sheets, sheet => sheet.Name == "South");
 
@@ -1233,7 +1233,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
                 Assert.Equal("Customer: Adatum", sheet.CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Total: $123.45", sheet.CellAt(2, 1).GetValue<string>());
@@ -1274,7 +1274,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Template"];
                 Assert.Equal("Customer ADATUM", sheet.CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Risk High", sheet.CellAt(2, 1).GetValue<string>());

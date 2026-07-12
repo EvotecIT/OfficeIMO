@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document["Report"];
                 ExcelSheetPageSetup setup = sheet.GetPageSetup();
                 Assert.Equal(ExcelPageOrientation.Landscape, setup.Orientation);

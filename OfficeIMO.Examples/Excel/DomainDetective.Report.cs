@@ -241,7 +241,7 @@ namespace OfficeIMO.Examples.Excel {
                 doc.Save(false);
 
                 // Re-open from disk and verify properties + header/footer
-                using (var verify = ExcelDocument.Load(filePath, readOnly: true))
+                using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly }))
                 {
                     Console.WriteLine("[=] Verifying saved workbook properties and header/footer...");
                     Console.WriteLine("    Title   : " + (verify.BuiltinDocumentProperties.Title ?? "<null>"));

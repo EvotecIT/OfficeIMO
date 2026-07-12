@@ -15,19 +15,19 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="templatePath">Path to the source workbook or template package.</param>
         /// <param name="filePath">Destination workbook path.</param>
-        /// <param name="overwrite">When true, replaces an existing destination file.</param>
-        /// <param name="autoSave">When true, saves changes on dispose.</param>
-        /// <param name="openSettings">Optional Open XML load settings.</param>
+        /// <param name="options">Template creation, persistence, and package options.</param>
         /// <returns>The loaded destination workbook.</returns>
         public static ExcelDocument CreateFromTemplate(
             string templatePath,
             string filePath,
-            bool overwrite = true,
-            bool autoSave = false,
-            OpenSettings? openSettings = null) {
-            CopyPackage(templatePath, filePath, overwrite);
+            ExcelTemplateCreateOptions? options = null) {
+            ExcelTemplateCreateOptions resolved = options ?? new ExcelTemplateCreateOptions();
+            CopyPackage(templatePath, filePath, resolved.Overwrite);
             string targetPath = Path.GetFullPath(filePath);
-            return Load(targetPath, readOnly: false, autoSave: autoSave, openSettings: openSettings);
+            return Load(targetPath, new ExcelLoadOptions {
+                PersistenceMode = resolved.PersistenceMode,
+                OpenSettings = resolved.OpenSettings
+            });
         }
 
         /// <summary>
@@ -35,19 +35,19 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="templateStream">Readable template package stream.</param>
         /// <param name="filePath">Destination workbook path.</param>
-        /// <param name="overwrite">When true, replaces an existing destination file.</param>
-        /// <param name="autoSave">When true, saves changes on dispose.</param>
-        /// <param name="openSettings">Optional Open XML load settings.</param>
+        /// <param name="options">Template creation, persistence, and package options.</param>
         /// <returns>The loaded destination workbook.</returns>
         public static ExcelDocument CreateFromTemplate(
             Stream templateStream,
             string filePath,
-            bool overwrite = true,
-            bool autoSave = false,
-            OpenSettings? openSettings = null) {
-            CopyPackage(templateStream, filePath, overwrite);
+            ExcelTemplateCreateOptions? options = null) {
+            ExcelTemplateCreateOptions resolved = options ?? new ExcelTemplateCreateOptions();
+            CopyPackage(templateStream, filePath, resolved.Overwrite);
             string targetPath = Path.GetFullPath(filePath);
-            return Load(targetPath, readOnly: false, autoSave: autoSave, openSettings: openSettings);
+            return Load(targetPath, new ExcelLoadOptions {
+                PersistenceMode = resolved.PersistenceMode,
+                OpenSettings = resolved.OpenSettings
+            });
         }
 
         /// <summary>

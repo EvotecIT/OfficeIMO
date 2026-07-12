@@ -313,7 +313,10 @@ public static partial class DocumentReader {
             });
         }
 
-        return ExcelDocument.Load(path, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+        return ExcelDocument.Load(path, new ExcelLoadOptions {
+            AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+            OpenSettings = openSettings
+        });
     }
 
     private static ExcelDocument LoadLegacyExcelForReader(Stream stream, ReaderOptions opt) {
@@ -327,16 +330,25 @@ public static partial class DocumentReader {
         }
 
         stream.Position = 0;
-        return ExcelDocument.Load(stream, readOnly: true, autoSave: false, openSettings: openSettings);
+        return ExcelDocument.Load(stream, new ExcelLoadOptions {
+            AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+            OpenSettings = openSettings
+        });
     }
 
     private static ExcelDocument LoadOpenXmlExcelForReader(string path, ReaderOptions opt) {
         OpenSettings? openSettings = CreateOpenSettings(opt);
         try {
-            return ExcelDocument.Load(path, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+            return ExcelDocument.Load(path, new ExcelLoadOptions {
+                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                OpenSettings = openSettings
+            });
         } catch (Exception ex) when (ShouldRetryEncryptedExcelOpen(ex, opt)) {
             try {
-                return ExcelDocument.LoadEncrypted(path, opt.OpenPassword!, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+                return ExcelDocument.LoadEncrypted(path, opt.OpenPassword!, new ExcelLoadOptions {
+                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                    OpenSettings = openSettings
+                });
             } catch {
                 ExceptionDispatchInfo.Capture(ex).Throw();
                 throw;
@@ -348,11 +360,17 @@ public static partial class DocumentReader {
         OpenSettings? openSettings = CreateOpenSettings(opt);
         stream.Position = 0;
         try {
-            return ExcelDocument.Load(stream, readOnly: true, autoSave: false, openSettings: openSettings);
+            return ExcelDocument.Load(stream, new ExcelLoadOptions {
+                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                OpenSettings = openSettings
+            });
         } catch (Exception ex) when (ShouldRetryEncryptedExcelOpen(ex, opt)) {
             stream.Position = 0;
             try {
-                return ExcelDocument.LoadEncrypted(stream, opt.OpenPassword!, readOnly: true, autoSave: false, openSettings: openSettings);
+                return ExcelDocument.LoadEncrypted(stream, opt.OpenPassword!, new ExcelLoadOptions {
+                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                    OpenSettings = openSettings
+                });
             } catch {
                 ExceptionDispatchInfo.Capture(ex).Throw();
                 throw;

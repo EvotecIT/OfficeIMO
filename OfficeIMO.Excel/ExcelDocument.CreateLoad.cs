@@ -6,6 +6,7 @@ using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Core;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
@@ -18,48 +19,77 @@ using System.IO;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
+        /// <summary>Creates a detached workbook that must be saved explicitly to a path or stream.</summary>
+        /// <param name="options">Creation options. SaveOnDispose is invalid without an associated destination.</param>
+        public static ExcelDocument Create(ExcelCreateOptions? options = null) {
+            ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
+            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
+            }
+
+            var packageStream = new MemoryStream(StreamBufferSize);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, autoSave: false);
+            return CreateNewDocument(
+                spreadSheetDocument,
+                filePath: null,
+                packageStream,
+                sourceStream: null,
+                resolved.PersistenceMode,
+                copyPackageToSourceOnDispose: false,
+                leaveSourceStreamOpen: true);
+        }
+
         /// <summary>
         /// Creates a new Excel document at the specified path.
         /// </summary>
         /// <param name="filePath">Path to the new file.</param>
+        /// <param name="options">Creation and persistence options.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(string filePath) {
-            return Create(filePath, autoSave: true);
-        }
+        public static ExcelDocument Create(string filePath, ExcelCreateOptions? options = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
+            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            if (saveOnDispose && string.IsNullOrEmpty(filePath)) {
+                throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(filePath));
+            }
 
-        /// <summary>
-        /// Creates a new Excel document at the specified path with explicit AutoSave behavior.
-        /// </summary>
-        /// <param name="filePath">Path to the new file.</param>
-        /// <param name="autoSave">When true, saves changes on dispose.</param>
-        /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(string filePath, bool autoSave) {
-            // Create a spreadsheet document by supplying the filepath.
-            // AutoSave controls whether workbook changes are persisted on dispose.
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(filePath, SpreadsheetDocumentType.Workbook, autoSave);
-            return CreateNewDocument(spreadSheetDocument, filePath, packageStream: null, sourceStream: null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
+            Stream packageStream = saveOnDispose
+                ? new NonDisposingMemoryStream(StreamBufferSize)
+                : new MemoryStream(StreamBufferSize);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, autoSave: false);
+            return CreateNewDocument(
+                spreadSheetDocument,
+                filePath,
+                packageStream,
+                sourceStream: null,
+                resolved.PersistenceMode,
+                copyPackageToSourceOnDispose: false,
+                leaveSourceStreamOpen: true,
+                copyPackageToFilePathOnDispose: saveOnDispose);
         }
 
         /// <summary>
         /// Creates a new Excel document in memory and optionally persists it to the provided stream on dispose.
         /// </summary>
         /// <param name="stream">Destination stream to receive the workbook package.</param>
-        /// <param name="autoSave">When true, the package is written back to the stream on dispose.</param>
+        /// <param name="options">Creation and persistence options.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(Stream stream, bool autoSave = true) {
+        public static ExcelDocument Create(Stream stream, ExcelCreateOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
 
-            if (autoSave && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when autoSave is enabled.", nameof(stream));
+            ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
+            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            if (saveOnDispose && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
             }
 
-            Stream packageStream = autoSave
+            Stream packageStream = saveOnDispose
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
 
             var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, false);
-            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, autoSave, leaveSourceStreamOpen: true);
+            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true);
         }
 
         private static ExcelDocument CreateNewDocument(
@@ -67,6 +97,7 @@ namespace OfficeIMO.Excel {
             string? filePath,
             Stream? packageStream,
             Stream? sourceStream,
+            DocumentPersistenceMode persistenceMode,
             bool copyPackageToSourceOnDispose,
             bool leaveSourceStreamOpen,
             bool copyPackageToFilePathOnDispose = false,
@@ -74,7 +105,8 @@ namespace OfficeIMO.Excel {
             bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
             var document = new ExcelDocument {
                 FilePath = filePath ?? string.Empty,
-                _spreadSheetDocument = spreadSheetDocument
+                _spreadSheetDocument = spreadSheetDocument,
+                _persistenceMode = persistenceMode
             };
 
             // Add a WorkbookPart to the document.
@@ -83,7 +115,7 @@ namespace OfficeIMO.Excel {
             document._workBookPart = workbookpart;
 
             document._packageStream = keepPackageStream ? packageStream : null;
-            document._sourceStream = copyPackageToSourceOnDispose ? sourceStream : null;
+            document._sourceStream = sourceStream;
             document._ownedOpenStream = ownedOpenStream;
             document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
             document._copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath);
@@ -113,14 +145,15 @@ namespace OfficeIMO.Excel {
             bool copyPackageToFilePathOnDispose = false,
             Stream? ownedOpenStream = null,
             bool packageContentTypesKnownNormalized = false,
-            byte[]? unchangedPackageBytes = null) {
+            byte[]? unchangedPackageBytes = null,
+            DocumentPersistenceMode persistenceMode = DocumentPersistenceMode.Explicit) {
             bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
             var document = new ExcelDocument {
                 FilePath = filePath ?? string.Empty,
                 _spreadSheetDocument = spreadSheetDocument,
                 _workBookPart = GetWorkbookPartOrThrow(spreadSheetDocument),
                 _packageStream = keepPackageStream ? packageStream : null,
-                _sourceStream = copyPackageToSourceOnDispose ? sourceStream : null,
+                _sourceStream = sourceStream,
                 _ownedOpenStream = ownedOpenStream,
                 _copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null,
                 _copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath),
@@ -131,6 +164,7 @@ namespace OfficeIMO.Excel {
                 _packageDirty = false,
                 _packagePropertiesDirty = false,
                 _unchangedPackageBytes = packageContentTypesKnownNormalized ? unchangedPackageBytes : null,
+                _persistenceMode = persistenceMode,
             };
 
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
@@ -159,24 +193,24 @@ namespace OfficeIMO.Excel {
 
         private static ExcelDocument LoadFromByteArray(
             byte[] bytes,
-            bool readOnly,
-            bool autoSave,
+            ExcelLoadOptions options,
             string? filePath,
-            Action<string, Exception>? log,
-            OpenSettings? openSettings,
-            bool preferFilePathOnFallback,
             Stream? originalStream = null,
-            bool copyBackToSource = false,
             bool leaveOriginalStreamOpen = true) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            ValidateLifecycle(options.AccessMode, options.PersistenceMode);
+
+            bool readOnly = options.AccessMode == DocumentAccessMode.ReadOnly;
+            bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
 
             if (ExcelDocumentLoadRouting.IsLegacyXls(bytes, filePath)) {
-                return LoadLegacyXlsFromNormalFlow(bytes, readOnly, autoSave, filePath, openSettings);
+                return LoadLegacyXlsFromNormalFlow(bytes, readOnly, saveOnDispose, filePath);
             }
 
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
-            bool shouldCopyBack = copyBackToSource && originalStream != null;
-            bool shouldCopyBackToFilePath = !shouldCopyBack && !string.IsNullOrEmpty(filePath) && ShouldCopyBackToSource(readOnly, autoSave, openSettings);
+            var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
+            bool shouldCopyBack = saveOnDispose && originalStream != null;
+            bool shouldCopyBackToFilePath = !shouldCopyBack && !string.IsNullOrEmpty(filePath) && saveOnDispose;
             bool shouldRetainPackageStream = shouldCopyBack || shouldCopyBackToFilePath;
 
             MemoryStream? normalizedStream = null;
@@ -197,43 +231,22 @@ namespace OfficeIMO.Excel {
                     memDoc,
                     filePath,
                     shouldRetainPackageStream ? normalizedStream : null,
-                    shouldCopyBack ? originalStream : null,
+                    originalStream,
                     shouldCopyBack,
                     leaveOriginalStreamOpen,
                     copyPackageToFilePathOnDispose: shouldCopyBackToFilePath,
                     packageContentTypesKnownNormalized: true,
-                    unchangedPackageBytes: unchangedPackageBytes);
+                    unchangedPackageBytes: unchangedPackageBytes,
+                    persistenceMode: options.PersistenceMode);
             } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
                 normalizedStream?.Dispose();
                 var contextMessage = filePath != null
                     ? $"Failed to open '{filePath}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'."
                     : "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.";
-                log?.Invoke($"{contextMessage} Inner exception: {ex.Message}", ex);
                 throw new IOException($"{contextMessage} See inner exception for details.", ex);
             } catch {
                 DisposeStream(normalizedStream);
-            }
-
-            if (preferFilePathOnFallback && !string.IsNullOrEmpty(filePath)) {
-                var safePath = filePath!; // guarded by IsNullOrEmpty above
-                var spreadSheetDocument = SpreadsheetDocument.Open(safePath, !readOnly, effectiveOpenSettings);
-                return CreateDocument(spreadSheetDocument, filePath);
-            } else {
-                var fallbackStream = shouldRetainPackageStream
-                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
-                    : new MemoryStream(bytes.Length + StreamBufferSize);
-                fallbackStream.Write(bytes, 0, bytes.Length);
-                fallbackStream.Position = 0;
-                var spreadSheetDocument = SpreadsheetDocument.Open(fallbackStream, !readOnly, effectiveOpenSettings);
-                return CreateDocument(
-                    spreadSheetDocument,
-                    filePath,
-                    shouldRetainPackageStream ? fallbackStream : null,
-                    shouldCopyBack ? originalStream : null,
-                    shouldCopyBack,
-                    leaveOriginalStreamOpen,
-                    copyPackageToFilePathOnDispose: shouldCopyBackToFilePath,
-                    packageContentTypesKnownNormalized: false);
+                throw;
             }
         }
 
@@ -241,26 +254,40 @@ namespace OfficeIMO.Excel {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
+            long originalPosition = stream.CanSeek ? stream.Position : 0;
+            try {
+                if (stream.CanSeek) {
+                    stream.Seek(0, SeekOrigin.Begin);
+                }
 
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer, StreamCopyBufferSize);
-            return buffer.ToArray();
+                using var buffer = new MemoryStream();
+                stream.CopyTo(buffer, StreamCopyBufferSize);
+                return buffer.ToArray();
+            } finally {
+                if (stream.CanSeek) {
+                    stream.Seek(originalPosition, SeekOrigin.Begin);
+                }
+            }
         }
 
         private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
+            long originalPosition = stream.CanSeek ? stream.Position : 0;
+            try {
+                if (stream.CanSeek) {
+                    stream.Seek(0, SeekOrigin.Begin);
+                }
 
-            using var buffer = new MemoryStream();
-            await stream.CopyToAsync(buffer, StreamCopyBufferSize, cancellationToken).ConfigureAwait(false);
-            return buffer.ToArray();
+                using var buffer = new MemoryStream();
+                await stream.CopyToAsync(buffer, StreamCopyBufferSize, cancellationToken).ConfigureAwait(false);
+                return buffer.ToArray();
+            } finally {
+                if (stream.CanSeek) {
+                    stream.Seek(originalPosition, SeekOrigin.Begin);
+                }
+            }
         }
 
         private static void DisposeStream(Stream? stream) {
@@ -275,27 +302,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool ShouldCopyBackToSource(bool readOnly, bool autoSave, OpenSettings? openSettings) {
-            if (readOnly) {
-                return false;
+        private static void ValidateLifecycle(DocumentAccessMode accessMode, DocumentPersistenceMode persistenceMode) {
+            if (accessMode == DocumentAccessMode.ReadOnly && persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                throw new ArgumentException("A read-only workbook cannot use SaveOnDispose persistence.");
             }
-
-            if (autoSave) {
-                return true;
-            }
-
-            return openSettings?.AutoSave == true;
         }
 
         private static ExcelDocument LoadLegacyXlsFromNormalFlow(
             byte[] bytes,
             bool readOnly,
-            bool autoSave,
+            bool saveOnDispose,
             string? filePath,
-            OpenSettings? openSettings,
             LegacyXlsImportOptions? importOptions = null) {
-            if (ShouldCopyBackToSource(readOnly, autoSave, openSettings)) {
-                throw new NotSupportedException("Auto-save is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
+            if (!readOnly && saveOnDispose) {
+                throw new NotSupportedException("SaveOnDispose is not supported when loading legacy binary .xls files. Save to a new .xlsx path instead.");
             }
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, importOptions ?? new LegacyXlsImportOptions());
@@ -324,12 +344,9 @@ namespace OfficeIMO.Excel {
         /// Loads an existing Excel document.
         /// </summary>
         /// <param name="filePath">Path to the file.</param>
-        /// <param name="readOnly">Open the file in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
-        /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(string filePath, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null, OpenSettings? openSettings = null) {
+        public static ExcelDocument Load(string filePath, ExcelLoadOptions? options = null) {
             if (filePath == null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -338,8 +355,9 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             var bytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
-            return LoadFromByteArray(bytes, readOnly, autoSave, filePath, log, openSettings, preferFilePathOnFallback: true);
+            return LoadFromByteArray(bytes, resolved, filePath);
         }
 
         /// <summary>
@@ -347,15 +365,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
-        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
-        /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument LoadEncrypted(string filePath, string password, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null, OpenSettings? openSettings = null) {
+        public static ExcelDocument LoadEncrypted(string filePath, string password, ExcelLoadOptions? options = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -366,42 +382,37 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, resolved, filePath: null);
         }
 
         /// <summary>
         /// Loads an existing Excel document from the provided stream.
         /// </summary>
         /// <param name="stream">Input stream containing the workbook package.</param>
-        /// <param name="readOnly">Open the document in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
+        public static ExcelDocument Load(Stream stream, ExcelLoadOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            bool shouldCopyBack = ShouldCopyBackToSource(readOnly, autoSave, openSettings);
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            bool shouldCopyBack = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             if (shouldCopyBack) {
                 if (!stream.CanWrite) {
-                    throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
+                    throw new ArgumentException("Stream must be writable when SaveOnDispose is enabled.", nameof(stream));
                 }
                 if (!stream.CanSeek) {
-                    throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
+                    throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
                 }
             }
 
             var bytes = ReadAllBytes(stream);
             return LoadFromByteArray(
                 bytes,
-                readOnly,
-                autoSave,
+                resolved,
                 filePath: null,
-                log: null,
-                openSettings,
-                preferFilePathOnFallback: false,
-                originalStream: shouldCopyBack ? stream : null,
-                copyBackToSource: shouldCopyBack,
+                originalStream: stream.CanWrite ? stream : null,
                 leaveOriginalStreamOpen: true);
         }
 
@@ -410,15 +421,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="stream">Input stream containing the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
-        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(Stream,string,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument LoadEncrypted(Stream stream, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
+        public static ExcelDocument LoadEncrypted(Stream stream, string password, ExcelLoadOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
             var encryptedBytes = ReadAllBytes(stream);
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
@@ -426,7 +436,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, resolved, filePath: null);
         }
 
         /// <summary>
@@ -466,13 +476,11 @@ namespace OfficeIMO.Excel {
         /// Asynchronously loads an Excel document from the specified path.
         /// </summary>
         /// <param name="filePath">Path to the Excel file.</param>
-        /// <param name="readOnly">Open the file in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<ExcelDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<ExcelDocument> LoadAsync(string filePath, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             if (filePath == null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -480,8 +488,9 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
-            return LoadFromByteArray(bytes, readOnly, autoSave, filePath, log: null, openSettings, preferFilePathOnFallback: true);
+            return LoadFromByteArray(bytes, resolved, filePath);
         }
 
         /// <summary>
@@ -489,15 +498,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
-        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -508,43 +516,38 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, resolved, filePath: null);
         }
 
         /// <summary>
         /// Asynchronously loads an Excel document from the provided stream.
         /// </summary>
         /// <param name="stream">Input stream containing the workbook package.</param>
-        /// <param name="readOnly">Open the document in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadAsync(Stream stream, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<ExcelDocument> LoadAsync(Stream stream, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            bool shouldCopyBack = ShouldCopyBackToSource(readOnly, autoSave, openSettings);
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            bool shouldCopyBack = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             if (shouldCopyBack) {
                 if (!stream.CanWrite) {
-                    throw new ArgumentException("Stream must be writable when autoSave is enabled for editable documents.", nameof(stream));
+                    throw new ArgumentException("Stream must be writable when SaveOnDispose is enabled.", nameof(stream));
                 }
                 if (!stream.CanSeek) {
-                    throw new ArgumentException("Stream must support seeking when autoSave is enabled for editable documents.", nameof(stream));
+                    throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
                 }
             }
 
             var bytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
             return LoadFromByteArray(
                 bytes,
-                readOnly,
-                autoSave,
+                resolved,
                 filePath: null,
-                log: null,
-                openSettings,
-                preferFilePathOnFallback: false,
-                originalStream: shouldCopyBack ? stream : null,
-                copyBackToSource: shouldCopyBack,
+                originalStream: stream.CanWrite ? stream : null,
                 leaveOriginalStreamOpen: true);
         }
 
@@ -553,16 +556,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="stream">Input stream containing the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
-        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(Stream,string,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadEncryptedAsync(Stream stream, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<ExcelDocument> LoadEncryptedAsync(Stream stream, string password, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
@@ -570,7 +572,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, resolved, filePath: null);
         }
 
         private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password) {
@@ -581,9 +583,9 @@ namespace OfficeIMO.Excel {
             return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }
 
-        private static void EnsureEncryptedLoadDoesNotAutoSave(bool autoSave, OpenSettings? openSettings) {
-            if (autoSave || openSettings?.AutoSave == true) {
-                throw new NotSupportedException("Auto-save is not supported for encrypted Excel loads. Use SaveEncrypted to persist encrypted changes.");
+        private static void EnsureEncryptedLoadUsesExplicitPersistence(ExcelLoadOptions options) {
+            if (options.PersistenceMode != DocumentPersistenceMode.Explicit) {
+                throw new NotSupportedException("SaveOnDispose is not supported for encrypted Excel sources. Use SaveEncrypted to persist encrypted changes.");
             }
         }
     }

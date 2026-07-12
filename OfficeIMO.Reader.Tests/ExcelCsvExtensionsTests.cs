@@ -12,7 +12,7 @@ public class ExcelCsvExtensionsTests {
     public void WorksheetCsvRoundTripPreservesQuotedAndMultilineFields() {
         const string csv = "Name,Note,Amount\r\nAlpha,\"Hello, \"\"world\"\"\",10.5\r\nBeta,\"Line\r\nbreak\",20\r\n";
         using var stream = new MemoryStream();
-        using var document = ExcelDocument.Create(stream, autoSave: false);
+        using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddWorkSheet("Data");
 
         string range = sheet.FromCsv(csv);
@@ -30,7 +30,7 @@ public class ExcelCsvExtensionsTests {
     public void WorksheetCsvImportPreservesWideAndSparseRows() {
         const string csv = "Name,Value\r\nAlpha,1,Extra\r\nBeta,,\r\n";
         using var stream = new MemoryStream();
-        using var document = ExcelDocument.Create(stream, autoSave: false);
+        using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddWorkSheet("Data");
 
         string range = sheet.FromCsv(csv);
@@ -46,7 +46,7 @@ public class ExcelCsvExtensionsTests {
     [Fact]
     public void DelimitedImportDetectsDelimiterAndCreatesRequestedTable() {
         using var stream = new MemoryStream();
-        using var document = ExcelDocument.Create(stream, autoSave: false);
+        using var document = ExcelDocument.Create(stream);
 
         ExcelDelimitedImportResult result = document.ImportDelimitedText(
             "Name;Amount\r\nAlpha;10.5\r\nBeta;11.75",
@@ -67,7 +67,7 @@ public class ExcelCsvExtensionsTests {
     [Fact]
     public void DelimitedImportSkipsLogicalRecordsBeforeDetection() {
         using var stream = new MemoryStream();
-        using var document = ExcelDocument.Create(stream, autoSave: false);
+        using var document = ExcelDocument.Create(stream);
 
         ExcelDelimitedImportResult result = document.ImportDelimitedText(
             "\"generated\r\nstill,has,commas\"\r\nName;Amount\r\nAlpha;10.5",
@@ -89,7 +89,7 @@ public class ExcelCsvExtensionsTests {
         try {
             File.WriteAllText(path, "Name\r\nAlpha,10.5\r\nBeta,11.75");
             using var stream = new MemoryStream();
-            using var document = ExcelDocument.Create(stream, autoSave: false);
+            using var document = ExcelDocument.Create(stream);
 
             ExcelDelimitedImportResult result = document.ImportDelimitedFile(path, new ExcelDelimitedImportOptions {
                 SheetName = "Import"
@@ -115,7 +115,7 @@ public class ExcelCsvExtensionsTests {
             }
 
             using var stream = new MemoryStream();
-            using var document = ExcelDocument.Create(stream, autoSave: false);
+            using var document = ExcelDocument.Create(stream);
 
             ExcelDelimitedImportResult result = document.ImportDelimitedFile(path, new ExcelDelimitedImportOptions {
                 Culture = CultureInfo.InvariantCulture,

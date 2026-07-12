@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2026, 7, 8);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Amount");
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_LoadsDataTableWithDisambiguatedHeaders() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(1, 2, "Status");
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_WithoutHeadersPreservesBlankRowsInsideRange() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(1, 3, 10);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_ReturnsSampledAndRemainingRows() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_StreamsRows() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2026, 7, 9);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Created");
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2026, 7, 10, 12, 30, 0);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 string[] headers = { "Id", "Direct", "Shared", "Created", "Formula", "Active", "Error", "Lines" };
                 for (int column = 0; column < headers.Length; column++) {
@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
             var expectedDate = new DateTime(2026, 7, 10);
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Shared");
                 sheet.CellValue(1, 2, "Amount");
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_FallsBackForInlineStrings() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_ResolvesPaddedSharedStringIndexes() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Padded");
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_AllowsSelectiveColumnAccess() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesOutOfOrderCellsAcrossAccessOrders() {
             using var memory = new MemoryStream();
 
-            using (var document = ExcelDocument.Create(memory)) {
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");

@@ -16,7 +16,7 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddWorkSheet("Data");
         sheet.CellAt(1, 1).SetValue("B2");
         sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
@@ -36,7 +36,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void ExcelFormulaConversionMapsSheetQualifiedReferences() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet data = source.AddWorkSheet("Data");
         source.AddWorkSheet("Other").CellAt(1, 1).SetValue(1);
         source.AddWorkSheet("Other Sheet").CellAt(2, 2).SetValue(2);
@@ -70,7 +70,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void DuplicateSheetLocalExcelNamesAreDisambiguatedWithoutAborting() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet first = source.AddWorkSheet("First Sheet");
         ExcelSheet second = source.AddWorkSheet("Second Sheet");
         first.CellAt(1, 1).SetValue(1);
@@ -232,7 +232,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void ExcelToOdsReportsConfiguredCellAndStyleOmissions() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddWorkSheet("Data");
         sheet.CellAt(1, 1).SetValue("One").SetBold();
         sheet.CellAt(1, 2).SetValue("Two").SetBold();

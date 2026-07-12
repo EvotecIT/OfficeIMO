@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_LoadingReadOnlyExcel() {
             var filePath = Path.Combine(_directoryDocuments, "BasicExcel.xlsx");
-            using var document = ExcelDocument.Load(filePath, readOnly: true);
+            using var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Assert.Equal(FileAccess.Read, document.FileOpenAccess);
         }
     }

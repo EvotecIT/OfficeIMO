@@ -171,7 +171,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
-        ExcelDocument target = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        ExcelDocument target = ExcelDocument.Create(new MemoryStream());
         var report = new OdfConversionReport("ODS", "XLSX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
@@ -455,6 +455,6 @@ public static class ExcelOpenDocumentConversionExtensions {
         document.Save(stream);
         document.Dispose();
         stream.Position = 0;
-        return ExcelDocument.Load(stream, autoSave: false);
+        return ExcelDocument.Load(stream);
     }
 }

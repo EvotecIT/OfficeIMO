@@ -330,14 +330,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NormalLoad_RejectsAutoSave() {
+        public void LegacyXls_NormalLoad_RejectsSaveOnDispose() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             string sourcePath = WriteTempWorkbook(compound, ".xls");
 
             try {
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, autoSave: true));
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose }));
 
-                Assert.Contains("Auto-save is not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("SaveOnDispose is not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
             } finally {
                 TryDelete(sourcePath);
             }
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorkSheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "Alice");

@@ -10,12 +10,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="uri">HTTP or HTTPS URI of the workbook.</param>
         /// <param name="httpOptions">Optional HTTP loading options.</param>
-        /// <param name="readOnly">Open the document in read-only mode. Remote loads are read-only by default.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(Uri uri, ExcelHttpLoadOptions? httpOptions = null, bool readOnly = true, OpenSettings? openSettings = null) {
+        public static ExcelDocument Load(Uri uri, ExcelHttpLoadOptions? httpOptions = null, ExcelLoadOptions? options = null) {
             byte[] bytes = ExcelHttpWorkbookLoader.Download(uri, httpOptions, CancellationToken.None);
-            return LoadFromByteArray(bytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(bytes, options ?? new ExcelLoadOptions(), filePath: null);
         }
 
         /// <summary>
@@ -23,13 +22,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="uri">HTTP or HTTPS URI of the workbook.</param>
         /// <param name="httpOptions">Optional HTTP loading options.</param>
-        /// <param name="readOnly">Open the document in read-only mode. Remote loads are read-only by default.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, bool readOnly = true, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
             byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(uri, httpOptions, cancellationToken).ConfigureAwait(false);
-            return LoadFromByteArray(bytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(bytes, options ?? new ExcelLoadOptions(), filePath: null);
         }
     }
 }

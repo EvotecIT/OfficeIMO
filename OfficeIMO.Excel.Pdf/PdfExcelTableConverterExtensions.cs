@@ -21,7 +21,9 @@ namespace OfficeIMO.Excel.Pdf {
             if (string.IsNullOrWhiteSpace(workbookPath)) throw new ArgumentException("Workbook path cannot be empty.", nameof(workbookPath));
 
             using ExcelDocument workbook = ExcelDocument.Create(workbookPath);
-            return ImportTables(document, workbook, options ?? new PdfExcelTableImportOptions());
+            IReadOnlyList<PdfExcelTableImportResult> results = ImportTables(document, workbook, options ?? new PdfExcelTableImportOptions());
+            workbook.Save();
+            return results;
         }
 
         /// <summary>
@@ -39,7 +41,9 @@ namespace OfficeIMO.Excel.Pdf {
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
 
             using ExcelDocument workbook = ExcelDocument.Create(workbookStream);
-            return ImportTables(document, workbook, options ?? new PdfExcelTableImportOptions());
+            IReadOnlyList<PdfExcelTableImportResult> results = ImportTables(document, workbook, options ?? new PdfExcelTableImportOptions());
+            workbook.Save();
+            return results;
         }
 
         /// <summary>

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 </xml>
                 """);
 
-            using ExcelDocument loaded = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             ExcelSheet.HeaderFooterSnapshot snapshot = loaded.Sheets.Single().GetHeaderFooter();
 
             Assert.True(snapshot.HeaderHasPicturePlaceholder);

@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
                 await document.SaveAsync();
             }
 
-            var loadTask1 = ExcelDocument.LoadAsync(filePath, false);
-            var loadTask2 = ExcelDocument.LoadAsync(filePath, false);
+            var loadTask1 = ExcelDocument.LoadAsync(filePath);
+            var loadTask2 = ExcelDocument.LoadAsync(filePath);
 
             var documents = await Task.WhenAll(loadTask1, loadTask2);
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 await document.SaveAsync();
             }
 
-            await using (var document = await ExcelDocument.LoadAsync(filePath, readOnly: false, autoSave: true)) {
+            await using (var document = await ExcelDocument.LoadAsync(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.Sheets[0];
                 sheet.CellValue(1, 1, "Updated");
             }
