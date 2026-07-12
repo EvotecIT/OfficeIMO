@@ -9,7 +9,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
     [Fact]
     public void PowerPointHtml_RoundTripsShapesAtTheSlideOrigin() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Origin text", 0, 0, 180, 35);
         PowerPointTable table = slide.AddTablePoints(1, 1, 0, 0, 220, 60);
         table.GetCell(0, 0).Text = "Origin table";
@@ -34,7 +34,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
     [Fact]
     public void PowerPointHtml_RoundTripsUnifiedShapeReadingOrderAndGeometry() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox firstText = slide.AddTextBoxPoints("First text", 30, 40, 180, 35);
         using (var image = new MemoryStream(Convert.FromBase64String(
                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg=="))) {

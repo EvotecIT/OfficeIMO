@@ -9,7 +9,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
     [Fact]
     public void PowerPointHtml_RoundTripsMergedTableCells() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         PowerPointTable table = slide.AddTablePoints(3, 3, 70, 90, 360, 150);
         table.GetCell(0, 0).Text = "Merged heading";
         table.GetCell(2, 0).Text = "Tail";

@@ -35,7 +35,7 @@ public class HtmlOfficeAdaptersStreamIO {
     [Fact]
     public async Task PowerPointHtml_StreamAndAsyncApisUseUtf8WithoutBomAndLeaveStreamsOpen() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.Slides[0].AddTextBox("Zażółć");
+        presentation.AddSlide().AddTextBox("Zażółć");
         using var htmlStream = new MemoryStream();
 
         await presentation.SaveAsHtmlAsync(htmlStream);
