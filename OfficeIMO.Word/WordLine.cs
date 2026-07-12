@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                 return Color.Parse(color);
             }
             set {
-                var hex = value.ToHexColor();
+                var hex = value.ToRgbHex();
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 _line.StrokeColor = hex;
             }

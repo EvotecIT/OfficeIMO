@@ -13,8 +13,8 @@ namespace OfficeIMO.Word {
         /// <param name="templatePath">The path to the DOTX template file.</param>
         /// <param name="outputPath">The path where the converted DOCX file will be saved.</param>
         public static void ConvertDotXtoDocX(string templatePath, string outputPath) {
-            // Read the DOTX template file into a MemoryStream
-            using (MemoryStream documentStream = Helpers.ReadFileToMemoryStream(templatePath)) {
+            // Read the DOTX template file into a writable memory stream.
+            using (var documentStream = new MemoryStream(File.ReadAllBytes(templatePath))) {
                 // Open the WordprocessingDocument from the MemoryStream
                 using (WordprocessingDocument template = WordprocessingDocument.Open(documentStream, true)) {
                     // Change the document type from template to document

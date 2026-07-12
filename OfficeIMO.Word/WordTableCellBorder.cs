@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
                 var hex = LeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
             }
-            set { this.LeftColorHex = value.ToHexColor(); }
+            set { this.LeftColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word {
                 var hex = RightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
             }
-            set { this.RightColorHex = value.ToHexColor(); }
+            set { this.RightColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -214,7 +214,7 @@ namespace OfficeIMO.Word {
                 var hex = TopColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
             }
-            set { this.TopColorHex = value.ToHexColor(); }
+            set { this.TopColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -283,7 +283,7 @@ namespace OfficeIMO.Word {
                 var hex = BottomColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
             }
-            set { this.BottomColorHex = value.ToHexColor(); }
+            set { this.BottomColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -354,7 +354,7 @@ namespace OfficeIMO.Word {
                 var hex = InsideHorizontalColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideHorizontalColorHex is null"));
             }
-            set { this.InsideHorizontalColorHex = value.ToHexColor(); }
+            set { this.InsideHorizontalColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -425,7 +425,7 @@ namespace OfficeIMO.Word {
                 var hex = InsideVerticalColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideVerticalColorHex is null"));
             }
-            set { this.InsideVerticalColorHex = value.ToHexColor(); }
+            set { this.InsideVerticalColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -493,7 +493,7 @@ namespace OfficeIMO.Word {
                 var hex = StartColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("StartColorHex is null"));
             }
-            set { this.StartColorHex = value.ToHexColor(); }
+            set { this.StartColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -561,7 +561,7 @@ namespace OfficeIMO.Word {
                 var hex = EndColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("EndColorHex is null"));
             }
-            set { this.EndColorHex = value.ToHexColor(); }
+            set { this.EndColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -636,7 +636,7 @@ namespace OfficeIMO.Word {
                 var hex = TopLeftToBottomRightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopLeftToBottomRightColorHex is null"));
             }
-            set { this.TopLeftToBottomRightColorHex = value.ToHexColor(); }
+            set { this.TopLeftToBottomRightColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>
@@ -702,7 +702,7 @@ namespace OfficeIMO.Word {
                 var hex = TopRightToBottomLeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopRightToBottomLeftColorHex is null"));
             }
-            set { this.TopRightToBottomLeftColorHex = value.ToHexColor(); }
+            set { this.TopRightToBottomLeftColorHex = value.ToRgbHex(); }
         }
 
         /// <summary>

@@ -11,25 +11,25 @@ namespace OfficeIMO.Word.Html {
             if (v.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParseHsl(v, out byte hr, out byte hg, out byte hb)) {
                     var color = Color.FromRgb(hr, hg, hb);
-                    return color.ToHexColor();
+                    return color.ToRgbHex();
                 }
                 return null;
             }
             if (v.StartsWith("rgb", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParseRgb(v, out byte rr, out byte rg, out byte rb)) {
                     var color = Color.FromRgb(rr, rg, rb);
-                    return color.ToHexColor();
+                    return color.ToRgbHex();
                 }
                 return null;
             }
             try {
                 var parsed = Color.Parse(v);
-                return parsed.ToHexColor();
+                return parsed.ToRgbHex();
             } catch {
                 if (!v.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsed = Color.Parse("#" + v);
-                        return parsed.ToHexColor();
+                        return parsed.ToRgbHex();
                     } catch {
                         return null;
                     }

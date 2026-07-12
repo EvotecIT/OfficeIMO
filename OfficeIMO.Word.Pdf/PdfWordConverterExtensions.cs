@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads source PDF bytes and saves semantic Word output to a file.</summary>
-        public static void SavePdfAsWord(this byte[] pdfBytes, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SaveAsWordFromPdf(this byte[] pdfBytes, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfBytes == null) {
                 throw new ArgumentNullException(nameof(pdfBytes));
             }
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF stream and saves semantic Word output to a file.</summary>
-        public static void SavePdfAsWord(this Stream pdfStream, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SaveAsWordFromPdf(this Stream pdfStream, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfStream == null) {
                 throw new ArgumentNullException(nameof(pdfStream));
             }
@@ -144,7 +144,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF file and saves semantic Word output to a file.</summary>
-        public static void SavePdfAsWord(string pdfPath, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SaveAsWordFromPdfFile(this string pdfPath, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }
@@ -158,7 +158,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads source PDF bytes and saves semantic Word output to a writable stream.</summary>
-        public static void SavePdfAsWord(this byte[] pdfBytes, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SaveAsWordFromPdf(this byte[] pdfBytes, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfBytes == null) {
                 throw new ArgumentNullException(nameof(pdfBytes));
             }
@@ -172,7 +172,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF stream and saves semantic Word output to a writable stream.</summary>
-        public static void SavePdfAsWord(this Stream pdfStream, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SaveAsWordFromPdf(this Stream pdfStream, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfStream == null) {
                 throw new ArgumentNullException(nameof(pdfStream));
             }
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF file and saves semantic Word output to a writable stream.</summary>
-        public static void SavePdfAsWord(string pdfPath, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SaveAsWordFromPdfFile(this string pdfPath, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }

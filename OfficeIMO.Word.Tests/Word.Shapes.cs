@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("My rectangle", shape.Description);
                 Assert.False(shape.Hidden!.Value);
                 Assert.True(shape.Stroked!.Value);
-                Assert.Equal(Color.Blue.ToHexColor(), shape.StrokeColorHex);
+                Assert.Equal(Color.Blue.ToRgbHex(), shape.StrokeColorHex);
                 Assert.Equal(2d, shape.StrokeWeight!.Value, 1);
                 Assert.Equal(120d, shape.Width, 1);
                 Assert.Equal(60d, shape.Height, 1);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("My rectangle", loadedShape.Description);
                 Assert.False(loadedShape.Hidden!.Value);
                 Assert.True(loadedShape.Stroked!.Value);
-                Assert.Equal(Color.Blue.ToHexColor(), loadedShape.StrokeColorHex);
+                Assert.Equal(Color.Blue.ToRgbHex(), loadedShape.StrokeColorHex);
                 Assert.Equal(2d, loadedShape.StrokeWeight!.Value, 1);
                 Assert.Equal(120d, loadedShape.Width, 1);
                 Assert.Equal(60d, loadedShape.Height, 1);
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var shape = document.AddShape(ShapeType.Rectangle, 80, 40, Color.Lime, Color.Black, 2);
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.Equal(Color.Lime.ToHexColor(), shape.FillColorHex);
-                Assert.Equal(Color.Black.ToHexColor(), shape.StrokeColorHex);
+                Assert.Equal(Color.Lime.ToRgbHex(), shape.FillColorHex);
+                Assert.Equal(Color.Black.ToRgbHex(), shape.StrokeColorHex);
                 document.Save();
             }
 
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal(Color.Lime.ToHexColor(), loadedShape!.FillColorHex);
-                Assert.Equal(Color.Black.ToHexColor(), loadedShape.StrokeColorHex);
+                Assert.Equal(Color.Lime.ToRgbHex(), loadedShape!.FillColorHex);
+                Assert.Equal(Color.Black.ToRgbHex(), loadedShape.StrokeColorHex);
             }
         }
 
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 var shape = paragraph.AddShape(ShapeType.Ellipse, 60, 30, Color.Aqua, Color.Red, 1.5);
                 Assert.True(paragraph.IsShape);
-                Assert.Equal(Color.Aqua.ToHexColor(), shape.FillColorHex);
-                Assert.Equal(Color.Red.ToHexColor(), shape.StrokeColorHex);
+                Assert.Equal(Color.Aqua.ToRgbHex(), shape.FillColorHex);
+                Assert.Equal(Color.Red.ToRgbHex(), shape.StrokeColorHex);
                 document.Save();
             }
 
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal(Color.Aqua.ToHexColor(), loadedShape!.FillColorHex);
-                Assert.Equal(Color.Red.ToHexColor(), loadedShape.StrokeColorHex);
+                Assert.Equal(Color.Aqua.ToRgbHex(), loadedShape!.FillColorHex);
+                Assert.Equal(Color.Red.ToRgbHex(), loadedShape.StrokeColorHex);
             }
         }
 
@@ -120,14 +120,14 @@ namespace OfficeIMO.Tests {
                 rect.Remove();
 
                 Assert.True(document.Shapes.Count == 1);
-                Assert.Equal(Color.Yellow.ToHexColor(), document.Shapes[0].FillColorHex);
+                Assert.Equal(Color.Yellow.ToRgbHex(), document.Shapes[0].FillColorHex);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Shapes.Count == 1);
-                Assert.Equal(Color.Yellow.ToHexColor(), document.Shapes[0].FillColorHex);
+                Assert.Equal(Color.Yellow.ToRgbHex(), document.Shapes[0].FillColorHex);
             }
         }
 

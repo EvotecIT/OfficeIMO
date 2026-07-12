@@ -8,7 +8,7 @@ namespace OfficeIMO.Core.Internal {
     /// Commits completed Office files without exposing a partially written destination.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static class OfficeFileCommit {
+    internal static class OfficeFileCommit {
         /// <summary>Controls whether an existing destination may be replaced.</summary>
         public enum ConflictPolicy {
             /// <summary>Fails when the destination already exists.</summary>

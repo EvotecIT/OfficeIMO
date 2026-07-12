@@ -158,7 +158,7 @@ namespace OfficeIMO.Word {
         /// Retrieves the image data as a stream without loading the entire image into memory.
         /// </summary>
         /// <returns>A <see cref="Stream"/> for reading the image bytes.</returns>
-        public Stream GetStream() {
+        public Stream OpenRead() {
             if (_imagePart == null) {
                 throw new InvalidOperationException("Image is linked externally and cannot be extracted.");
             }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>Bytes representing the image.</returns>
         public byte[] ToBytes() {
-            using var stream = GetStream();
+            using var stream = OpenRead();
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
             return ms.ToArray();

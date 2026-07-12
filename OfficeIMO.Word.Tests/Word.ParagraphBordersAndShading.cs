@@ -21,9 +21,9 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Load(filePath)) {
                 var paragraph = document.Paragraphs[0];
                 Assert.Equal(BorderValues.Thick, paragraph.Borders.LeftStyle);
-                Assert.Equal(Color.Red.ToHexColor(), paragraph.Borders.LeftColor!.Value.ToHexColor());
+                Assert.Equal(Color.Red.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
                 Assert.Equal(24U, paragraph.Borders.LeftSize!.Value);
-                Assert.Equal(Color.LightGray.ToHexColor(), paragraph.ShadingFillColorHex);
+                Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);
             }
         }
     }

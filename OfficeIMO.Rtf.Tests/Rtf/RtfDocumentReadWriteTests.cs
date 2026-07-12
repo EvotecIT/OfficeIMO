@@ -71,7 +71,7 @@ public partial class RtfDocumentReadWriteTests {
         document.Save(stream, options);
         Assert.Equal(bytes, stream.ToArray());
 
-        using MemoryStream memoryStream = document.ToMemoryStream(options);
+        using MemoryStream memoryStream = document.ToStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         RtfReadResult read = RtfDocument.Load(bytes);

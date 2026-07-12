@@ -392,14 +392,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Arial", catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()!.Typeface);
                 var catColor = catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                     .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val!;
-                Assert.Equal(Color.Red.ToHexColor(), catColor);
+                Assert.Equal(Color.Red.ToRgbHex(), catColor);
 
                 Assert.NotNull(valProps.FontSize);
                 Assert.Equal(1400, (int)valProps.FontSize!.Value!);
                 Assert.Equal("Arial", valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()!.Typeface);
                 var valColor = valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                     .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val!;
-                Assert.Equal(Color.Red.ToHexColor(), valColor);
+                Assert.Equal(Color.Red.ToRgbHex(), valColor);
 
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();

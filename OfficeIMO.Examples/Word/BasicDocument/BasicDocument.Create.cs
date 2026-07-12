@@ -25,9 +25,9 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToHexColor());
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToHexColor());
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToHexColor());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToRgbHex());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToRgbHex());
 
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 

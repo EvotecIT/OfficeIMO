@@ -371,7 +371,7 @@ public sealed partial class RtfDocument {
     }
 
     /// <summary>Serializes the document to an encoded RTF memory stream.</summary>
-    public MemoryStream ToMemoryStream(RtfWriteOptions? options = null, Encoding? encoding = null) {
+    public MemoryStream ToStream(RtfWriteOptions? options = null, Encoding? encoding = null) {
         return new MemoryStream(ToBytes(options, encoding), writable: false);
     }
 

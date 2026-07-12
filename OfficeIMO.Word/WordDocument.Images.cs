@@ -4,7 +4,7 @@ namespace OfficeIMO.Word {
         /// Returns the bytes of all embedded images in the document.
         /// Images linked externally are skipped.
         /// </summary>
-        public IReadOnlyList<byte[]> GetImages() {
+        public IReadOnlyList<byte[]> GetImageBytes() {
             List<byte[]> images = new List<byte[]>();
             foreach (var img in Images) {
                 try {
@@ -20,11 +20,11 @@ namespace OfficeIMO.Word {
         /// Returns streams with data of all embedded images in the document.
         /// Images linked externally are skipped.
         /// </summary>
-        public IReadOnlyList<Stream> GetImageStreams() {
+        public IReadOnlyList<Stream> OpenImageStreams() {
             List<Stream> streams = new List<Stream>();
             foreach (var img in Images) {
                 try {
-                    streams.Add(img.GetStream());
+                    streams.Add(img.OpenRead());
                 } catch (InvalidOperationException) {
                     // external image - skip
                 }

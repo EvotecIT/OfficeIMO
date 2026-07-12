@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
                 if (AlphaInversionColorHex == null) return (OfficeIMO.Drawing.OfficeColor?)null;
                 return Helpers.ParseColor(AlphaInversionColorHex);
             }
-            set { AlphaInversionColorHex = value?.ToHexColor(); }
+            set { AlphaInversionColorHex = value?.ToRgbHex(); }
         }
 
         /// <summary>
@@ -220,7 +220,7 @@ namespace OfficeIMO.Word {
             get {
                 return ColorChangeFromHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeFromHex);
             }
-            set { ColorChangeFromHex = value?.ToHexColor(); }
+            set { ColorChangeFromHex = value?.ToRgbHex(); }
         }
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace OfficeIMO.Word {
             get {
                 return ColorChangeToHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeToHex);
             }
-            set { ColorChangeToHex = value?.ToHexColor(); }
+            set { ColorChangeToHex = value?.ToRgbHex(); }
         }
 
         private void UpdateColorChange() {
@@ -301,7 +301,7 @@ namespace OfficeIMO.Word {
             get {
                 return ColorReplacementHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorReplacementHex);
             }
-            set { ColorReplacementHex = value?.ToHexColor(); }
+            set { ColorReplacementHex = value?.ToRgbHex(); }
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace OfficeIMO.Word {
             get {
                 return DuotoneColor1Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor1Hex);
             }
-            set { DuotoneColor1Hex = value?.ToHexColor(); }
+            set { DuotoneColor1Hex = value?.ToRgbHex(); }
         }
 
         /// <summary>
@@ -353,7 +353,7 @@ namespace OfficeIMO.Word {
             get {
                 return DuotoneColor2Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor2Hex);
             }
-            set { DuotoneColor2Hex = value?.ToHexColor(); }
+            set { DuotoneColor2Hex = value?.ToRgbHex(); }
         }
 
         private void UpdateDuotone() {

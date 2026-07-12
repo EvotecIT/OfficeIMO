@@ -770,7 +770,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryDocuments, "DocumentWithImages.docx");
             using var document = WordDocument.Load(filePath);
 
-            var bytes = document.GetImages();
+            var bytes = document.GetImageBytes();
             Assert.Equal(document.Images.Count, bytes.Count);
 
             for (int i = 0; i < bytes.Count; i++) {
@@ -779,7 +779,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(new FileInfo(savePath).Length > 0);
             }
 
-            var streams = document.GetImageStreams();
+            var streams = document.OpenImageStreams();
             Assert.Equal(document.Images.Count, streams.Count);
             for (int i = 0; i < streams.Count; i++) {
                 var path2 = Path.Combine(_directoryWithFiles, $"stream_{i}.bin");
@@ -802,7 +802,7 @@ namespace OfficeIMO.Tests {
             using var loaded = WordDocument.Load(filePath);
             var image = loaded.Images[0];
 
-            using var stream = image.GetStream();
+            using var stream = image.OpenRead();
             Assert.False(stream is MemoryStream);
             Assert.Equal(new FileInfo(imagePath).Length, stream.Length);
             var buffer = new byte[1];

@@ -22,7 +22,7 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
 
-        using MemoryStream memoryStream = word.ToRtfMemoryStream(options);
+        using MemoryStream memoryStream = word.ToRtfStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         using var output = new MemoryStream();

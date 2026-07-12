@@ -16,15 +16,6 @@ namespace OfficeIMO.Word {
             return points * PixelsPerInch / 72;
         }
         /// <summary>
-        /// Converts Color to Hex Color
-        /// </summary>
-        /// <param name="c"></param>
-        /// <returns></returns>
-        public static string ToHexColor(this OfficeIMO.Drawing.OfficeColor c) {
-            return c.ToHex().Remove(6).ToLowerInvariant();
-        }
-
-        /// <summary>
         /// Parses a color string that may or may not start with '#'.
         /// </summary>
         /// <param name="hex">Color value in hex without alpha or with '#'.</param>
@@ -52,55 +43,18 @@ namespace OfficeIMO.Word {
 
             try {
                 var parsed = OfficeIMO.Drawing.OfficeColor.Parse(color!);
-                return parsed.ToHexColor();
+                return parsed.ToRgbHex().ToLowerInvariant();
             } catch {
                 if (!color!.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsedHex = OfficeIMO.Drawing.OfficeColor.Parse("#" + color);
-                        return parsedHex.ToHexColor();
+                        return parsedHex.ToRgbHex().ToLowerInvariant();
                     } catch {
                         // ignored so that ArgumentException below is thrown
                     }
                 }
                 throw new ArgumentException($"Invalid color value: {color}. Must be a valid hex color (3 or 6 characters) or named color.", nameof(color));
             }
-        }
-
-        /// <summary>
-        /// Checks if file is locked/used by another process
-        /// </summary>
-        /// <param name="file"></param>
-        /// <returns></returns>
-        public static bool IsFileLocked(this FileInfo file) {
-            try {
-                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
-                    stream.Close();
-                }
-            } catch (IOException) {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread
-                //or does not exist (has already been processed)
-                return true;
-            }
-
-            //file is not locked
-            return false;
-        }
-
-        /// <summary>
-        /// Checks if file is locked/used by another process
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
-        public static bool IsFileLocked(this string fileName) {
-            if (string.IsNullOrEmpty(fileName)) {
-                return false;
-            }
-            if (!File.Exists(fileName)) {
-                return false;
-            }
-            return IsFileLocked(new FileInfo(fileName));
         }
 
         internal static TResult UseSeekableImageStream<TResult>(Stream imageStream, Func<Stream, TResult> action) {

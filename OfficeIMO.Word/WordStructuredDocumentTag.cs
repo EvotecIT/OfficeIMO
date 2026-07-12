@@ -262,7 +262,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(ColorHex);
             }
             set {
-                ColorHex = value?.ToHexColor() ?? string.Empty;
+                ColorHex = value?.ToRgbHex() ?? string.Empty;
             }
         }
 

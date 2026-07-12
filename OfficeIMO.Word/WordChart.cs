@@ -354,7 +354,7 @@ namespace OfficeIMO.Word {
                 FontSize = _axisTitleFontSize * 100
             };
             DocumentFormat.OpenXml.Drawing.SolidFill solidFill = new DocumentFormat.OpenXml.Drawing.SolidFill(
-                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = _axisTitleColor.ToHexColor() });
+                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = _axisTitleColor.ToRgbHex() });
             runProperties.Append(solidFill);
             runProperties.Append(new DocumentFormat.OpenXml.Drawing.LatinFont() { Typeface = _axisTitleFontName });
             paragraphProperties.Append(runProperties);

@@ -279,7 +279,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    this.ShadingFillColorHex = value.Value.ToHexColor();
+                    this.ShadingFillColorHex = value.Value.ToRgbHex();
                 }
             }
         }

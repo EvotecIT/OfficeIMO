@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
             }
             set {
-                LeftColorHex = value.ToHexColor();
+                LeftColorHex = value.ToRgbHex();
             }
         }
 
@@ -217,7 +217,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
             }
             set {
-                RightColorHex = value.ToHexColor();
+                RightColorHex = value.ToRgbHex();
             }
         }
 
@@ -351,7 +351,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
             }
             set {
-                TopColorHex = value.ToHexColor();
+                TopColorHex = value.ToRgbHex();
             }
         }
 
@@ -488,7 +488,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
             }
             set {
-                BottomColorHex = value.ToHexColor();
+                BottomColorHex = value.ToRgbHex();
             }
         }
 

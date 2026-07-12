@@ -51,7 +51,7 @@ namespace OfficeIMO.Word {
         public WordBackground(WordDocument document, OfficeIMO.Drawing.OfficeColor color) {
             _document = document;
 
-            DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToHexColor() };
+            DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToRgbHex() };
 
             document._document.Body!.Append(documentBackground);
 
@@ -72,7 +72,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">Color value.</param>
         /// <returns>The current instance.</returns>
         public WordBackground SetColor(OfficeIMO.Drawing.OfficeColor color) {
-            this.Color = color.ToHexColor();
+            this.Color = color.ToRgbHex();
             return this;
         }
 

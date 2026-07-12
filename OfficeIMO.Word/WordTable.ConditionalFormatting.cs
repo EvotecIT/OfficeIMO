@@ -115,10 +115,10 @@ namespace OfficeIMO.Word {
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
             Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) =>
             ConditionalFormatting(columnName, matchText, matchType,
-                matchFillColorHex: matchFillColor.ToHexColor(),
-                matchFontColorHex: matchFontColor?.ToHexColor(),
-                noMatchFillColorHex: noMatchFillColor?.ToHexColor(),
-                noMatchFontColorHex: noMatchFontColor?.ToHexColor(),
+                matchFillColorHex: matchFillColor.ToRgbHex(),
+                matchFontColorHex: matchFontColor?.ToRgbHex(),
+                noMatchFillColorHex: noMatchFillColor?.ToRgbHex(),
+                noMatchFontColorHex: noMatchFontColor?.ToRgbHex(),
                 ignoreCase: ignoreCase, highlightColumns: highlightColumns,
                 matchTextFormat: matchTextFormat, noMatchTextFormat: noMatchTextFormat);
 
@@ -254,10 +254,10 @@ namespace OfficeIMO.Word {
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
             Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) =>
             ConditionalFormatting(conditions, matchAll,
-                matchFillColorHex: matchFillColor.ToHexColor(),
-                matchFontColorHex: matchFontColor?.ToHexColor(),
-                noMatchFillColorHex: noMatchFillColor?.ToHexColor(),
-                noMatchFontColorHex: noMatchFontColor?.ToHexColor(),
+                matchFillColorHex: matchFillColor.ToRgbHex(),
+                matchFontColorHex: matchFontColor?.ToRgbHex(),
+                noMatchFillColorHex: noMatchFillColor?.ToRgbHex(),
+                noMatchFontColorHex: noMatchFontColor?.ToRgbHex(),
                 ignoreCase: ignoreCase, highlightColumns: highlightColumns,
                 matchTextFormat: matchTextFormat, noMatchTextFormat: noMatchTextFormat);
 

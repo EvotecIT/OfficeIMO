@@ -16,7 +16,7 @@ internal static partial class Paragraphs {
         custom.Append(new StyleName { Val = "MyStyle" });
         var runProps = new StyleRunProperties();
         runProps.Append(new RunFonts { Ascii = "Courier New" });
-        runProps.Append(new WColor { Val = Color.Red.ToHexColor() });
+        runProps.Append(new WColor { Val = Color.Red.ToRgbHex() });
         runProps.Append(new FontSize { Val = "28" });
         custom.Append(runProps);
 

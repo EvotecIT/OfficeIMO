@@ -8,7 +8,7 @@ namespace OfficeIMO.Core.Internal {
     /// Writes complete Office artifacts to caller-owned streams using one consistent overwrite contract.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static class OfficeStreamWriter {
+    internal static class OfficeStreamWriter {
         /// <summary>
         /// Writes a complete artifact without closing the destination. Seekable streams are truncated before
         /// writing and rewound after a successful write; non-seekable streams are written at their current position.

@@ -312,7 +312,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    this.ColorHex = value.Value.ToHexColor();
+                    this.ColorHex = value.Value.ToRgbHex();
                 }
             }
         }

@@ -352,7 +352,7 @@ namespace OfficeIMO.Word.Html {
             if (value.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParseHsl(value, out byte hr, out byte hg, out byte hb)) {
                     var color = Color.FromRgb(hr, hg, hb);
-                    return color.ToHexColor();
+                    return color.ToRgbHex();
                 }
                 return null;
             }
@@ -366,19 +366,19 @@ namespace OfficeIMO.Word.Html {
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
                         byte.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)) {
                         var color = Color.FromRgb(r, g, b);
-                        return color.ToHexColor();
+                        return color.ToRgbHex();
                     }
                 }
                 return null;
             }
             try {
                 var parsed = Color.Parse(value);
-                return parsed.ToHexColor();
+                return parsed.ToRgbHex();
             } catch {
                 if (!value.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsed = Color.Parse("#" + value);
-                        return parsed.ToHexColor();
+                        return parsed.ToRgbHex();
                     } catch {
                         return null;
                     }

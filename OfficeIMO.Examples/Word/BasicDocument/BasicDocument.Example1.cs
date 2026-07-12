@@ -73,7 +73,6 @@ namespace OfficeIMO.Examples.Word {
 
             if (openWord) OfficeIMO.Core.OfficeFileLauncher.Open(filePath);
 
-            Console.WriteLine("+ IsLocked " + filePath.IsFileLocked());
         }
     }
 }

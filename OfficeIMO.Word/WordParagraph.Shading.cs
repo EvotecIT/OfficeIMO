@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    ShadingFillColorHex = value.Value.ToHexColor();
+                    ShadingFillColorHex = value.Value.ToRgbHex();
                 }
             }
         }

@@ -163,7 +163,7 @@ public partial class WordList : WordElement {
         }
         set {
             if (value != null) {
-                this.ColorHex = value.Value.ToHexColor();
+                this.ColorHex = value.Value.ToRgbHex();
             } else {
                 this.ColorHex = "";
             }

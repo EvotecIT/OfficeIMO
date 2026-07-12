@@ -120,12 +120,12 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Converts semantic HTML to an encoded RTF memory stream.</summary>
-    public static MemoryStream ToRtfMemoryStream(this string html, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
+    public static MemoryStream ToRtfStream(this string html, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
         if (html == null) {
             throw new ArgumentNullException(nameof(html));
         }
 
-        return html.ToRtfDocument(readOptions).ToMemoryStream(writeOptions, encoding);
+        return html.ToRtfDocument(readOptions).ToStream(writeOptions, encoding);
     }
 
     /// <summary>Saves semantic HTML as an RTF file at the specified path.</summary>

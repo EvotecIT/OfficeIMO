@@ -55,7 +55,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Reads semantic HTML from a stream and converts it to an encoded RTF memory stream.</summary>
-    public static async Task<MemoryStream> ToRtfMemoryStreamAsync(this Stream htmlStream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? htmlEncoding = null, Encoding? rtfEncoding = null, CancellationToken cancellationToken = default) {
+    public static async Task<MemoryStream> ToRtfStreamAsync(this Stream htmlStream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? htmlEncoding = null, Encoding? rtfEncoding = null, CancellationToken cancellationToken = default) {
         byte[] bytes = await htmlStream.ToRtfBytesAsync(readOptions, writeOptions, htmlEncoding, rtfEncoding, cancellationToken).ConfigureAwait(false);
         return new MemoryStream(bytes, writable: false);
     }

@@ -38,7 +38,7 @@ public class RtfHtmlIoTests {
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
         Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
 
-        using MemoryStream memoryStream = html.ToRtfMemoryStream(writeOptions: writeOptions);
+        using MemoryStream memoryStream = html.ToRtfStream(writeOptions: writeOptions);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         using var output = new MemoryStream();
@@ -83,7 +83,7 @@ public class RtfHtmlIoTests {
         Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
         Assert.Equal("Fluent ż", Assert.Single(RtfDocument.Load(rtfBytes).Document.Paragraphs).ToPlainText());
 
-        using MemoryStream rtfMemoryStream = htmlBytes.ToRtfMemoryStream(writeOptions: writeOptions);
+        using MemoryStream rtfMemoryStream = htmlBytes.ToRtfStream(writeOptions: writeOptions);
         Assert.Equal(rtfBytes, rtfMemoryStream.ToArray());
 
         using var secondSource = new MemoryStream(prefixedHtml);
@@ -163,7 +163,7 @@ public class RtfHtmlIoTests {
         Assert.Equal(rtf, Encoding.UTF8.GetString(rtfBytes));
         Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
 
-        using MemoryStream rtfMemoryStream = htmlBytes.ToRtfMemoryStream(writeOptions: writeOptions);
+        using MemoryStream rtfMemoryStream = htmlBytes.ToRtfStream(writeOptions: writeOptions);
         Assert.Equal(rtfBytes, rtfMemoryStream.ToArray());
 
         using var secondSource = new MemoryStream(prefixedHtml);

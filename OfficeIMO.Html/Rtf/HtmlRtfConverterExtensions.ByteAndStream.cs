@@ -41,21 +41,21 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Converts encoded semantic HTML bytes to an encoded RTF memory stream.</summary>
-    public static MemoryStream ToRtfMemoryStream(this byte[] htmlBytes, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? htmlEncoding = null, Encoding? rtfEncoding = null) {
+    public static MemoryStream ToRtfStream(this byte[] htmlBytes, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? htmlEncoding = null, Encoding? rtfEncoding = null) {
         if (htmlBytes == null) {
             throw new ArgumentNullException(nameof(htmlBytes));
         }
 
-        return htmlBytes.ToRtfDocument(readOptions, htmlEncoding).ToMemoryStream(writeOptions, rtfEncoding);
+        return htmlBytes.ToRtfDocument(readOptions, htmlEncoding).ToStream(writeOptions, rtfEncoding);
     }
 
     /// <summary>Reads semantic HTML from a stream and converts it to an encoded RTF memory stream.</summary>
-    public static MemoryStream ToRtfMemoryStream(this Stream htmlStream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? htmlEncoding = null, Encoding? rtfEncoding = null) {
+    public static MemoryStream ToRtfStream(this Stream htmlStream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? htmlEncoding = null, Encoding? rtfEncoding = null) {
         if (htmlStream == null) {
             throw new ArgumentNullException(nameof(htmlStream));
         }
 
-        return htmlStream.ToRtfDocument(readOptions, htmlEncoding).ToMemoryStream(writeOptions, rtfEncoding);
+        return htmlStream.ToRtfDocument(readOptions, htmlEncoding).ToStream(writeOptions, rtfEncoding);
     }
 
     /// <summary>Saves encoded semantic HTML bytes as an RTF file at the specified path.</summary>

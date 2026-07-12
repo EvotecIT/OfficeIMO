@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? LeftColor {
             get => LeftColorHex == null || LeftColorHex == "auto" ? null : Helpers.ParseColor(LeftColorHex);
-            set => LeftColorHex = value?.ToHexColor();
+            set => LeftColorHex = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -185,7 +185,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? RightColor {
             get => RightColorHex == null || RightColorHex == "auto" ? null : Helpers.ParseColor(RightColorHex);
-            set => RightColorHex = value?.ToHexColor();
+            set => RightColorHex = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? TopColor {
             get => TopColorHex == null || TopColorHex == "auto" ? null : Helpers.ParseColor(TopColorHex);
-            set => TopColorHex = value?.ToHexColor();
+            set => TopColorHex = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -384,7 +384,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? BottomColor {
             get => BottomColorHex == null || BottomColorHex == "auto" ? null : Helpers.ParseColor(BottomColorHex);
-            set => BottomColorHex = value?.ToHexColor();
+            set => BottomColorHex = value?.ToRgbHex();
         }
 
         /// <summary>

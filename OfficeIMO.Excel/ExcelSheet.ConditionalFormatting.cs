@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ConvertColor(OfficeColor color) {
-            return "FF" + color.ToHexColor();
+            return "FF" + color.ToRgbHex();
         }
 
         /// <summary>
