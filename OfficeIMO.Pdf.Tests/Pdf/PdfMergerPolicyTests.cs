@@ -48,11 +48,39 @@ public class PdfMergerPolicyTests {
     public void MergeWithReport_RejectsPolicyModesThatAreNotYetEnforced() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().Paragraph(p => p.Text("Second")).ToBytes();
-        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { NamedDestinations = PdfMergeStructureMode.Combine } };
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { Forms = PdfMergeStructureMode.Combine } };
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfMerger.MergeWithReport(options, first, second));
 
-        Assert.Contains("NamedDestinations=Combine", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Forms=Combine", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MergeWithReport_CombinesDestinationsLinksAndPageLabelsAtMergedOffsets() {
+        byte[] first = BuildNavigationPdf("First", PdfPageNumberStyle.LowerRoman, "front-");
+        byte[] second = BuildNavigationPdf("Second", PdfPageNumberStyle.UpperLetter, "appendix-");
+        var options = new PdfMergeOptions {
+            Policy = new PdfMergePolicy {
+                NamedDestinations = PdfMergeStructureMode.Combine,
+                NamedDestinationCollisions = PdfMergeCollisionMode.RenameIncoming,
+                PageLabels = PdfMergeStructureMode.Combine
+            }
+        };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
+        PdfDocumentInfo info = PdfInspector.Inspect(result.ToBytes());
+
+        Assert.Collection(info.NamedDestinations.OrderBy(static destination => destination.Name, StringComparer.Ordinal),
+            destination => { Assert.Equal("Shared", destination.Name); Assert.Equal(1, destination.PageNumber); },
+            destination => { Assert.Equal("Shared.source2", destination.Name); Assert.Equal(2, destination.PageNumber); });
+        Assert.Collection(info.LinkAnnotations.OrderBy(static link => link.PageNumber),
+            link => Assert.Equal("Shared", link.DestinationName),
+            link => Assert.Equal("Shared.source2", link.DestinationName));
+        Assert.Collection(info.PageLabels,
+            label => { Assert.Equal(0, label.StartPageIndex); Assert.Equal("r", label.Style); Assert.Equal("front-", label.Prefix); },
+            label => { Assert.Equal(1, label.StartPageIndex); Assert.Equal("A", label.Style); Assert.Equal("appendix-", label.Prefix); });
+        PdfMergeDecision destinations = Assert.Single(result.Report.Decisions, static decision => decision.Structure == "NamedDestinations");
+        Assert.Contains("Shared -> Shared.source2", Assert.Single(destinations.RenamedItems), StringComparison.Ordinal);
     }
 
     private static byte[] BuildStructuredPdf(string title, string? author, string? subject, string heading, string attachmentPayload) {
@@ -62,6 +90,16 @@ public class PdfMergerPolicyTests {
             .Meta(title: title, author: author, subject: subject)
             .H1(heading)
             .Paragraph(p => p.Text(heading + " body"))
+            .ToBytes();
+    }
+
+    private static byte[] BuildNavigationPdf(string text, PdfPageNumberStyle labelStyle, string labelPrefix) {
+        var options = new PdfOptions();
+        options.AddPageLabelRange(1, labelStyle, 1, labelPrefix);
+        return PdfDocument.Create(options)
+            .Paragraph(p => p.LinkToBookmark("Jump", "Shared"))
+            .Bookmark("Shared")
+            .Paragraph(p => p.Text(text))
             .ToBytes();
     }
 }
