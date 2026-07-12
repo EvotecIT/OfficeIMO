@@ -90,10 +90,10 @@ jobs:
           dotnet restore OfficeIMO.Email/OfficeIMO.Email.csproj --no-http-cache
           dotnet pack OfficeIMO.Drawing/OfficeIMO.Drawing.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Email/OfficeIMO.Email.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
-          dotnet restore Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --source $feed --source https://api.nuget.org/v3/index.json --no-http-cache
-          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net472 --no-restore
-          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net8.0 --no-restore
-          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore
+          dotnet restore Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --property:EnableOfficeIMOEmailPackageSmoke=true --source $feed --source https://api.nuget.org/v3/index.json --no-http-cache
+          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net472 --no-restore --property:EnableOfficeIMOEmailPackageSmoke=true
+          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net8.0 --no-restore --property:EnableOfficeIMOEmailPackageSmoke=true
+          dotnet run --project Build/PackageSmoke/OfficeIMO.Email/OfficeIMO.Email.PackageSmoke.csproj --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --property:EnableOfficeIMOEmailPackageSmoke=true
 
   opendocument-schema:
     name: 'OpenDocument schema and LibreOffice'
