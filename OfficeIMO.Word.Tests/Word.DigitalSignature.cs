@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_DigitalSignature_SaveAsMemoryStreamBlocksSignedDocumentByDefault() {
+        public void Test_DigitalSignature_ToDocxStreamBlocksSignedDocumentByDefault() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureStreamBlocked.docx");
             byte[] signatureBytes = CreateSignatureXml();
 
@@ -459,8 +459,8 @@ namespace OfficeIMO.Tests {
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Throws<WordSignatureSavePolicyException>(() => document.SaveAsMemoryStream());
-                using MemoryStream stream = document.SaveAsMemoryStream(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                Assert.Throws<WordSignatureSavePolicyException>(() => document.ToDocxStream());
+                using MemoryStream stream = document.ToDocxStream(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
 
                 Assert.True(stream.Length > 0);
             }

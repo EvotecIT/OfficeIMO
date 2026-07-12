@@ -1,7 +1,8 @@
+using OfficeIMO.Shared;
+
 namespace OfficeIMO.Word {
     internal static class WordDocumentLoadRouting {
         private static readonly byte[] ZipSignature = { 0x50, 0x4B };
-        private static readonly byte[] OleCompoundSignature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
         internal const int SignatureLength = 8;
 
         internal static bool IsLegacyDoc(byte[] bytes, string? filePath) {
@@ -9,8 +10,8 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            if (HasOleCompoundSignature(bytes)) {
-                return true;
+            if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
+                return RouteCompoundDocument(bytes);
             }
 
             return HasLegacyDocExtension(filePath);
@@ -27,26 +28,26 @@ namespace OfficeIMO.Word {
                 && bytes[1] == ZipSignature[1];
         }
 
-        private static bool HasOleCompoundSignature(byte[] bytes) {
-            if (bytes.Length < OleCompoundSignature.Length) {
-                return false;
-            }
-
-            for (int i = 0; i < OleCompoundSignature.Length; i++) {
-                if (bytes[i] != OleCompoundSignature[i]) {
-                    return false;
-                }
-            }
-
-            return true;
+        internal static bool HasOleCompoundSignature(byte[] bytes) {
+            return !HasZipSignature(bytes) && OfficeCompoundDocumentDetector.HasCompoundSignature(bytes);
         }
 
-        internal static bool HasLegacyDocSignature(byte[] bytes) {
-            if (HasZipSignature(bytes)) {
-                return false;
+        private static bool RouteCompoundDocument(byte[] bytes) {
+            OfficeCompoundDocumentDetector.DocumentKind kind = OfficeCompoundDocumentDetector.Detect(bytes, out string? error);
+            switch (kind) {
+                case OfficeCompoundDocumentDetector.DocumentKind.WordDocument:
+                    return true;
+                case OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook:
+                    throw new InvalidDataException("The input contains a legacy Excel workbook, not a Word document. Load it with OfficeIMO.Excel.ExcelDocument.");
+                case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
+                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use WordDocument.LoadEncrypted and provide its password.");
+                case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:
+                    throw new InvalidDataException("The OLE compound file contains more than one root Office document stream and cannot be routed safely.");
+                default:
+                    throw new InvalidDataException(string.IsNullOrWhiteSpace(error)
+                        ? "The OLE compound file does not contain a recognizable Word document stream."
+                        : "The OLE compound file could not be identified safely. " + error);
             }
-
-            return HasOleCompoundSignature(bytes);
         }
     }
 }

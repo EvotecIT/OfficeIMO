@@ -279,6 +279,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_SaveAsync_PreservesReadOnlyDestination() {
+            string destinationPath = Path.Combine(_directoryWithFiles, $"ReadOnlyAsync_{Guid.NewGuid():N}.docx");
+            byte[] originalBytes = { 1, 2, 3, 4 };
+            File.WriteAllBytes(destinationPath, originalBytes);
+            var destination = new FileInfo(destinationPath) { IsReadOnly = true };
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Must not replace the read-only target");
+
+                await Assert.ThrowsAsync<IOException>(() => document.SaveAsync(destinationPath));
+
+                Assert.Equal(originalBytes, File.ReadAllBytes(destinationPath));
+            } finally {
+                destination.IsReadOnly = false;
+                File.Delete(destinationPath);
+            }
+        }
+
+        [Fact]
+        public async Task Test_SaveAsync_DocStreamDoesNotBecomeDefaultDocxSaveTarget() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Legacy stream target");
+            using var legacyStream = new MemoryStream();
+
+            await document.SaveAsync(legacyStream, WordFileFormat.Doc);
+            byte[] legacyBytes = legacyStream.ToArray();
+
+            document.AddParagraph("Must not overwrite the DOC stream as DOCX");
+            Assert.Throws<InvalidOperationException>(() => document.Save());
+            Assert.Equal(legacyBytes, legacyStream.ToArray());
+            Assert.Equal(new byte[] { 0xd0, 0xcf, 0x11, 0xe0 }, legacyBytes.Take(4));
+        }
+
+        [Fact]
         public void Test_Save_RunsCompatibilityFixerAndReloads() {
             var filePath = Path.Combine(_directoryWithFiles, "CompatibilityFixerFile.docx");
             File.Delete(filePath);
@@ -306,11 +341,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_SaveAsByteArray_RunsCompatibilityFixerAndStreamReadable() {
+        public void Test_ToDocx_RunsCompatibilityFixerAndStreamReadable() {
             using var document = WordDocument.Create();
             document.AddParagraph("Byte array compatibility");
 
-            byte[] data = document.SaveAsByteArray();
+            byte[] data = document.ToDocx();
 
             using var inspectionStream = new MemoryStream(data);
             using (var package = Package.Open(inspectionStream, FileMode.Open, FileAccess.Read)) {

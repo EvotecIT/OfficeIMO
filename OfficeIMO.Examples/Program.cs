@@ -735,8 +735,8 @@ namespace OfficeIMO.Examples {
             // // Word/SaveToStream
             // Word.SaveToStream.Example_CreateInProvidedStream(folderPath, false);
             // Word.SaveToStream.Example_CreateInProvidedStreamAdvanced(folderPath, false);
-            // Word.SaveToStream.Example_SaveAsByteArray(folderPath, false);
-            // Word.SaveToStream.Example_SaveAsMemoryStream(folderPath, false);
+            // Word.SaveToStream.Example_ToDocx(folderPath, false);
+            // Word.SaveToStream.Example_ToDocxStream(folderPath, false);
             // Word.SaveToStream.Example_SaveAsStream(folderPath, false);
             // Word.SaveToStream.Example_SaveToOriginalStream(folderPath, false);
             // Word.SaveToStream.Example_StreamDocumentProperties(folderPath, false);

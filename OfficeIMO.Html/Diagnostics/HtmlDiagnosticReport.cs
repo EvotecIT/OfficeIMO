@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Mutable report of diagnostics emitted by OfficeIMO HTML workflows.
 /// </summary>
-public sealed class HtmlDiagnosticReport {
+public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     private readonly List<HtmlDiagnostic> _diagnostics = new List<HtmlDiagnostic>();
 
     /// <summary>
@@ -15,6 +15,9 @@ public sealed class HtmlDiagnosticReport {
     /// Number of diagnostics currently captured.
     /// </summary>
     public int Count => _diagnostics.Count;
+
+    /// <summary>Gets a diagnostic by emission index.</summary>
+    public HtmlDiagnostic this[int index] => _diagnostics[index];
 
     /// <summary>
     /// Indicates whether any captured diagnostic has error severity.
@@ -42,8 +45,16 @@ public sealed class HtmlDiagnosticReport {
     /// <param name="severity">Diagnostic severity.</param>
     /// <param name="source">Optional HTML, resource, or artifact source associated with the diagnostic.</param>
     /// <param name="detail">Optional low-level detail.</param>
-    public void Add(string component, string code, string message, HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning, string? source = null, string? detail = null) {
-        Add(new HtmlDiagnostic(component, code, message, severity, source, detail));
+    /// <param name="lossKind">Conversion fidelity impact represented by the diagnostic.</param>
+    public void Add(
+        string component,
+        string code,
+        string message,
+        HtmlDiagnosticSeverity severity = HtmlDiagnosticSeverity.Warning,
+        string? source = null,
+        string? detail = null,
+        HtmlConversionLossKind lossKind = HtmlConversionLossKind.None) {
+        Add(new HtmlDiagnostic(component, code, message, severity, source, detail, lossKind));
     }
 
     /// <summary>
@@ -76,4 +87,10 @@ public sealed class HtmlDiagnosticReport {
         clone.AddRange(_diagnostics);
         return clone;
     }
+
+    /// <inheritdoc />
+    public IEnumerator<HtmlDiagnostic> GetEnumerator() => _diagnostics.GetEnumerator();
+
+    /// <inheritdoc />
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -662,12 +662,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 return workbook;
             }
 
-            if (workbookStream.Length > options.MaxWorkbookStreamBytes) {
+            if (workbookStream.Length > options.MaxInputBytes) {
                 var workbook = new LegacyXlsWorkbook();
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
                     "XLS-WORKBOOK-STREAM-TOO-LARGE",
-                    $"The BIFF workbook stream is {workbookStream.Length} bytes, which exceeds the configured limit of {options.MaxWorkbookStreamBytes} bytes."));
+                    $"The BIFF workbook stream is {workbookStream.Length} bytes, which exceeds the configured limit of {options.MaxInputBytes} bytes."));
                 return workbook;
             }
 

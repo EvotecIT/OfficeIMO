@@ -10,7 +10,7 @@ namespace OfficeIMO.VerifyTests.Word;
 
 public class ImageAndTextBoxTests : VerifyTestBase {
     private static async Task DoTest(WordDocument document) {
-        document.Save();
+        _ = document.ToDocx();
 
         var result = await ToVerifyResult(document._wordprocessingDocument);
         await Verifier.Verify(result, GetSettings());

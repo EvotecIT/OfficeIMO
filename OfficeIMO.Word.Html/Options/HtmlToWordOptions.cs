@@ -305,6 +305,12 @@ namespace OfficeIMO.Word.Html {
         public Action<HtmlConversionDiagnostic>? DiagnosticHandler { get; set; }
 
         /// <summary>
+        /// Optional conversion-scoped resolver for CSS classes without a built-in Word style mapping.
+        /// This avoids global event state when conversions run concurrently.
+        /// </summary>
+        public Action<StyleMissingEventArgs>? StyleMissingHandler { get; set; }
+
+        /// <summary>
         /// When true, emits advisory accessibility diagnostics for imported HTML patterns that can reduce
         /// document usability, such as missing image alternate text, weak link text, skipped heading levels,
         /// and data tables without header cells.
@@ -405,6 +411,7 @@ namespace OfficeIMO.Word.Html {
                 MaxTotalCssBytes = MaxTotalCssBytes,
                 MaxTableCells = MaxTableCells,
                 DiagnosticHandler = DiagnosticHandler,
+                StyleMissingHandler = StyleMissingHandler,
                 EnableAccessibilityDiagnostics = EnableAccessibilityDiagnostics,
                 ImportHtmlComments = ImportHtmlComments,
                 HtmlCommentAuthor = HtmlCommentAuthor,

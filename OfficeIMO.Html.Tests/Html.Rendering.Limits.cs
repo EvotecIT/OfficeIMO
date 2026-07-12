@@ -6,6 +6,14 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_DefaultInputBudgetCanRepresentDefaultInlineResourceBudget() {
+        var options = new HtmlRenderOptions();
+        long base64Characters = 4L * ((options.MaxTotalResourceBytes + 2L) / 3L);
+
+        Assert.True(options.MaxInputCharacters >= base64Characters);
+    }
+
+    [Fact]
     public void HtmlRenderer_RejectsSourceBeforeParsingWhenCharacterBudgetIsExceeded() {
         var options = new HtmlRenderOptions { MaxInputCharacters = 10 };
 

@@ -5,6 +5,11 @@ namespace OfficeIMO.Excel.Html;
 /// </summary>
 public sealed class HtmlToExcelOptions {
     /// <summary>
+    /// Maximum number of HTML table grid slots imported across each worksheet table, including merged spans.
+    /// </summary>
+    public int MaxTableCells { get; set; } = 50_000;
+
+    /// <summary>
     /// Imports embedded data URI images from the semantic image inventory.
     /// </summary>
     public bool ImportImages { get; set; } = true;

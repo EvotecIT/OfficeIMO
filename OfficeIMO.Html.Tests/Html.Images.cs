@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Company logo", image.Description);
             Assert.Equal("Quarterly report logo", image.Title);
 
-            using MemoryStream stream = doc.SaveAsMemoryStream();
+            using MemoryStream stream = doc.ToDocxStream();
             using var loaded = WordDocument.Load(stream);
             string roundTrip = loaded.ToHtml();
 
@@ -919,7 +919,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Second logo", doc.Images[1].Description);
             Assert.Equal("Second title", doc.Images[1].Title);
 
-            using MemoryStream stream = doc.SaveAsMemoryStream();
+            using MemoryStream stream = doc.ToDocxStream();
             using var loaded = WordDocument.Load(stream);
             string roundTrip = loaded.ToHtml();
 
@@ -1013,7 +1013,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(64D, Math.Round(img.Width!.Value));
             Assert.Equal(32D, Math.Round(img.Height!.Value));
 
-            using MemoryStream stream = doc.SaveAsMemoryStream();
+            using MemoryStream stream = doc.ToDocxStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));

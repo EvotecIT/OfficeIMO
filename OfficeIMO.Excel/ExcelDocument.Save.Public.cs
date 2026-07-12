@@ -76,12 +76,25 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void EnsureDestinationFileWritable(string path) {
+            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
+                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
+            }
+        }
+
         /// <summary>
         /// Saves the document without opening it.
         /// </summary>
         /// <param name="filePath">Path to save to.</param>
         public void Save(string filePath) {
             Save(filePath, openExcel: false);
+        }
+
+        /// <summary>Saves the document with typed options and no positional Boolean.</summary>
+        /// <param name="filePath">Path to save to.</param>
+        /// <param name="options">Optional save settings, including <see cref="ExcelSaveOptions.OpenAfterSave"/>.</param>
+        public void Save(string filePath, ExcelSaveOptions? options) {
+            Save(filePath, options?.OpenAfterSave == true, options);
         }
 
         /// <summary>
@@ -111,12 +124,11 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
 
             // Ensure target directory is writable
-            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
-                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
             if (TrySaveNativeLegacyXlsToFile(path, openExcel, options)) {
@@ -202,10 +214,9 @@ namespace OfficeIMO.Excel {
 
             var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
-            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
-                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
             var payload = PreparePackageForSave(saveOptions);
@@ -306,10 +317,9 @@ namespace OfficeIMO.Excel {
 
             var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             var originalFilePath = FilePath;
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
-            if (File.Exists(target) && new FileInfo(target).IsReadOnly) {
-                throw new IOException($"Failed to save to '{target}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
             if (await TrySaveNativeLegacyXlsToFileAsync(target, openExcel, options, cancellationToken).ConfigureAwait(false)) {
@@ -381,12 +391,42 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Encodes the workbook as an XLSX package.</summary>
+        /// <param name="options">Optional save settings.</param>
+        /// <returns>XLSX package bytes.</returns>
+        public byte[] ToXlsx(ExcelSaveOptions? options = null) {
+            using var stream = new MemoryStream();
+            Save(stream, ExcelFileFormat.Xlsx, options);
+            return stream.ToArray();
+        }
+
+        /// <summary>Encodes the workbook as an XLS compound file.</summary>
+        /// <param name="options">Optional save settings.</param>
+        /// <returns>XLS compound-file bytes.</returns>
+        public byte[] ToXls(ExcelSaveOptions? options = null) {
+            using var stream = new MemoryStream();
+            Save(stream, ExcelFileFormat.Xls, options);
+            return stream.ToArray();
+        }
+
+        /// <summary>Encodes the workbook as XLSX in a new memory stream.</summary>
+        /// <param name="options">Optional save settings.</param>
+        public MemoryStream ToXlsxStream(ExcelSaveOptions? options = null) {
+            return new MemoryStream(ToXlsx(options));
+        }
+
+        /// <summary>Encodes the workbook as XLS in a new memory stream.</summary>
+        /// <param name="options">Optional save settings.</param>
+        public MemoryStream ToXlsStream(ExcelSaveOptions? options = null) {
+            return new MemoryStream(ToXls(options));
+        }
+
         /// <summary>
-        /// Saves the document into a writable stream.
+        /// Saves the document into a writable stream as XLSX.
         /// </summary>
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         public void Save(Stream destination) {
-            Save(destination, options: null);
+            Save(destination, ExcelFileFormat.Xlsx, options: null);
         }
 
         /// <summary>
@@ -395,10 +435,19 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         public void Save(Stream destination, ExcelSaveOptions? options) {
+            Save(destination, ExcelFileFormat.Xlsx, options);
+        }
+
+        /// <summary>Saves the workbook to a stream in the explicitly selected physical format.</summary>
+        /// <param name="destination">Writable destination stream.</param>
+        /// <param name="format">Physical XLSX or XLS format.</param>
+        /// <param name="options">Optional save settings.</param>
+        public void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 
-            if (TrySaveNativeLegacyXlsToStream(destination, options)) {
+            if (TrySaveNativeLegacyXlsToStream(destination, format, options)) {
                 return;
             }
 
@@ -465,6 +514,7 @@ namespace OfficeIMO.Excel {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
 
             if (CanUseUnchangedPackageFastPath(saveOptions) && _unchangedPackageBytes != null) {
                 OfficeEncryption.EncryptPackageToStream(_unchangedPackageBytes, password, destination);
@@ -490,7 +540,7 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
         public Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
-            return SaveAsync(destination, options: null, cancellationToken);
+            return SaveAsync(destination, ExcelFileFormat.Xlsx, options: null, cancellationToken);
         }
 
         /// <summary>
@@ -499,11 +549,21 @@ namespace OfficeIMO.Excel {
         /// <param name="destination">Writable stream that receives the Excel package content.</param>
         /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
-        public async Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+        public Task SaveAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            return SaveAsync(destination, ExcelFileFormat.Xlsx, options, cancellationToken);
+        }
+
+        /// <summary>Asynchronously saves the workbook to a stream in the selected physical format.</summary>
+        /// <param name="destination">Writable destination stream.</param>
+        /// <param name="format">Physical XLSX or XLS format.</param>
+        /// <param name="options">Optional save settings.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public async Task SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 
-            if (await TrySaveNativeLegacyXlsToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
+            if (await TrySaveNativeLegacyXlsToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 

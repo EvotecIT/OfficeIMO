@@ -9,10 +9,10 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
-        public void Test_SaveAsByteArray() {
+        public void Test_ToDocx() {
             using var document = WordDocument.Create();
             document.AddParagraph("Hello bytes");
-            byte[] data = document.SaveAsByteArray();
+            byte[] data = document.ToDocx();
 
             using var ms = new MemoryStream(data);
             using var openXml = WordprocessingDocument.Open(ms, false);
@@ -23,11 +23,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_SaveAsMemoryStream() {
+        public void Test_ToDocxStream() {
             using var document = WordDocument.Create();
             document.AddParagraph("Hello memory");
 
-            using MemoryStream ms = document.SaveAsMemoryStream();
+            using MemoryStream ms = document.ToDocxStream();
             using var openXml = WordprocessingDocument.Open(ms, false);
             Assert.NotNull(openXml.MainDocumentPart);
             ms.Position = 0;
@@ -36,11 +36,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_SaveAsMemoryStream_RunsCompatibilityFixer() {
+        public void Test_ToDocxStream_RunsCompatibilityFixer() {
             using var document = WordDocument.Create();
             document.AddParagraph("Memory compatibility");
 
-            using MemoryStream ms = document.SaveAsMemoryStream();
+            using MemoryStream ms = document.ToDocxStream();
             Assert.True(ms.CanRead);
             Assert.Equal(0, ms.Position);
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Hello stream");
 
             using var ms = new MemoryStream();
-            using var clone = document.SaveAs(ms);
+            using var clone = document.SaveCopy(ms);
 
             Assert.Equal(string.Empty, document.FilePath);
             Assert.Null(clone.FilePath);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent6);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                document.SaveAs(filePath2, openWord);
+                document.SaveCopy(filePath2, new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

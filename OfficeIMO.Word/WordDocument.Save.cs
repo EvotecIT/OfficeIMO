@@ -89,20 +89,16 @@ namespace OfficeIMO.Word {
 
             if (this._wordprocessingDocument != null) {
                 try {
-                    // Save current state to the memory stream
-                    this._wordprocessingDocument.Save();
-
                     if (string.IsNullOrEmpty(filePath)) {
                         filePath = this.FilePath;
                     }
 
                     if (string.IsNullOrEmpty(filePath)) {
-                        // No destination specified, nothing to save
-                        return;
+                        throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or save to a writable stream.");
                     }
 
                     if (IsLegacyDocPath(filePath)) {
-                        SaveLegacyDocFile(filePath);
+                        SaveLegacyDocFile(filePath, options: options);
                         if (openWord) {
                             this.Open(filePath, true);
                         }
@@ -110,20 +106,7 @@ namespace OfficeIMO.Word {
                         return;
                     }
 
-                    if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                        throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-                    }
-
-                    // Allow concurrent readers (other tests may have opened the sample file with Read/ReadWrite sharing)
-                    using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
-                    using (var clone = this._wordprocessingDocument.Clone(fs)) {
-                        AlignDocumentTypeWithFilePath(clone, filePath);
-                        CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                    }
-                    fs.Seek(0, SeekOrigin.Begin);
-                    Helpers.MakeOpenOfficeCompatible(fs);
-                    fs.Flush();
-                    FilePath = filePath;
+                    SaveOpenXmlFile(filePath, updateFilePath: true, options);
                 } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                     throw;
                 }
@@ -161,16 +144,11 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(filePath)) {
                 throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
             }
-            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(filePath);
 
-            byte[] packageBytes = SaveAsByteArray(saveOptions);
+            byte[] packageBytes = ToDocx(saveOptions);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageBytes, password);
-            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                fs.Write(encryptedBytes, 0, encryptedBytes.Length);
-                fs.Flush();
-            }
+            OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
             FilePath = filePath;
 
             if (openWord) {
@@ -196,7 +174,7 @@ namespace OfficeIMO.Word {
         public void SaveEncrypted(Stream destination, string password, WordSaveOptions? saveOptions) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            byte[] packageBytes = SaveAsByteArray(saveOptions);
+            byte[] packageBytes = ToDocx(saveOptions);
             OfficeEncryption.EncryptPackageToStream(packageBytes, password, destination);
         }
 
@@ -221,7 +199,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Destination path.</param>
         /// <param name="options">Optional save policy settings.</param>
         public void Save(string filePath, WordSaveOptions? options) {
-            this.Save(filePath, false, options);
+            this.Save(filePath, options?.OpenAfterSave == true, options);
         }
 
         /// <summary>
@@ -249,24 +227,7 @@ namespace OfficeIMO.Word {
         // Word Online/Google Docs without changing authoring semantics. No extra
         // save variants are needed.
 
-        /// <summary>
-        /// Save the document to a new file without modifying <see cref="FilePath"/> on this instance.
-        /// </summary>
-        /// <param name="filePath">Destination path for the cloned document.</param>
-        /// <param name="openWord">Whether to open Microsoft Word after saving.</param>
-        /// <returns>A new <see cref="WordDocument"/> loaded from <paramref name="filePath"/>.</returns>
-        public WordDocument SaveAs(string filePath, bool openWord = false) {
-            return SaveAs(filePath, openWord, options: null);
-        }
-
-        /// <summary>
-        /// Save the document to a new file without modifying <see cref="FilePath"/> on this instance.
-        /// </summary>
-        /// <param name="filePath">Destination path for the cloned document.</param>
-        /// <param name="openWord">Whether to open Microsoft Word after saving.</param>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <returns>A new <see cref="WordDocument"/> loaded from <paramref name="filePath"/>.</returns>
-        public WordDocument SaveAs(string filePath, bool openWord, WordSaveOptions? options) {
+        private WordDocument SaveCopyCore(string filePath, bool openWord, WordSaveOptions? options) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
@@ -274,7 +235,7 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("File path cannot be empty", nameof(filePath));
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAs");
+            EnsureSignedDocumentSaveAllowed(options, "SaveCopy");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
@@ -283,7 +244,7 @@ namespace OfficeIMO.Word {
 
             try {
                 if (IsLegacyDocPath(filePath)) {
-                    SaveLegacyDocFile(filePath, updateFilePath: false);
+                    SaveLegacyDocFile(filePath, updateFilePath: false, options);
                     if (openWord) {
                         Open(filePath, true);
                     }
@@ -293,20 +254,7 @@ namespace OfficeIMO.Word {
                     return savedDocument;
                 }
 
-                _wordprocessingDocument.Save();
-
-                if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                    throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-                }
-
-                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
-                using (var clone = _wordprocessingDocument.Clone(fs)) {
-                    AlignDocumentTypeWithFilePath(clone, filePath);
-                    CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                }
-                fs.Seek(0, SeekOrigin.Begin);
-                Helpers.MakeOpenOfficeCompatible(fs);
-                fs.Flush();
+                SaveOpenXmlFile(filePath, updateFilePath: false, options);
             } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                 throw;
             }
@@ -318,93 +266,86 @@ namespace OfficeIMO.Word {
             return WordDocument.Load(filePath);
         }
 
-        /// <summary>
-        /// Save the document to a memory stream and return the stream's byte array.
-        /// </summary>
-        /// <returns>A byte array representing the saved Word document.</returns>
-        public byte[] SaveAsByteArray() {
-            return SaveAsByteArray(options: null);
+        /// <summary>Saves an independent copy and returns the document loaded from that copy.</summary>
+        /// <param name="filePath">Destination path.</param>
+        /// <param name="options">Optional save settings, including <see cref="WordSaveOptions.OpenAfterSave"/>.</param>
+        /// <returns>A new document associated with <paramref name="filePath"/>. This instance keeps its current path.</returns>
+        public WordDocument SaveCopy(string filePath, WordSaveOptions? options = null) {
+            return SaveCopyCore(filePath, options?.OpenAfterSave == true, options);
         }
 
-        /// <summary>
-        /// Save the document to a memory stream and return the stream's byte array.
-        /// </summary>
+        /// <summary>Encodes the document as an Office Open XML DOCX package.</summary>
         /// <param name="options">Optional save policy settings.</param>
-        /// <returns>A byte array representing the saved Word document.</returns>
-        public byte[] SaveAsByteArray(WordSaveOptions? options) {
+        /// <returns>DOCX package bytes.</returns>
+        public byte[] ToDocx(WordSaveOptions? options = null) {
+            return ToWordBytes(WordFileFormat.Docx, options);
+        }
+
+        /// <summary>Encodes the document as a Word 97-2003 binary DOC file.</summary>
+        /// <param name="options">Optional save policy settings.</param>
+        /// <returns>DOC compound-file bytes.</returns>
+        public byte[] ToDoc(WordSaveOptions? options = null) {
+            return ToWordBytes(WordFileFormat.Doc, options);
+        }
+
+        /// <summary>Encodes the document as DOCX in a new memory stream.</summary>
+        /// <param name="options">Optional save policy settings.</param>
+        /// <returns>A writable memory stream positioned at the beginning.</returns>
+        public MemoryStream ToDocxStream(WordSaveOptions? options = null) {
+            return new MemoryStream(ToDocx(options));
+        }
+
+        /// <summary>Encodes the document as DOC in a new memory stream.</summary>
+        /// <param name="options">Optional save policy settings.</param>
+        /// <returns>A writable memory stream positioned at the beginning.</returns>
+        public MemoryStream ToDocStream(WordSaveOptions? options = null) {
+            return new MemoryStream(ToDoc(options));
+        }
+
+        private byte[] ToWordBytes(WordFileFormat format, WordSaveOptions? options) {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
 
-            EnsureSignedDocumentSaveAllowed(options, "SaveAsByteArray");
+            EnsureSignedDocumentSaveAllowed(options, format == WordFileFormat.Doc ? "ToDoc" : "ToDocx");
             PreSaving();
 
             if (_wordprocessingDocument == null) {
                 throw new InvalidOperationException("Document couldn't be saved as WordDocument wasn't provided.");
             }
 
+            if (format == WordFileFormat.Doc) {
+                return LegacyDocWriter.WriteDocument(this, options);
+            }
+
+            EnsureLegacyDocSaveDoesNotDropImportedContent(options);
+
             try {
                 _wordprocessingDocument.Save();
-
-                using var memoryStream = new MemoryStream();
-                using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
-                    CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                }
-
-                memoryStream.Seek(0, SeekOrigin.Begin);
-                Helpers.MakeOpenOfficeCompatible(memoryStream);
-                memoryStream.Flush();
-
-                return memoryStream.ToArray();
+                return CreateOpenXmlBytesAfterSave();
             } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                 throw;
             }
         }
 
-        /// <summary>
-        /// Save the document to a new <see cref="MemoryStream"/>.
-        /// </summary>
-        /// <returns>A memory stream containing the saved document.</returns>
-        public MemoryStream SaveAsMemoryStream() {
-            return SaveAsMemoryStream(options: null);
-        }
-
-        /// <summary>
-        /// Save the document to a new <see cref="MemoryStream"/>.
-        /// </summary>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <returns>A memory stream containing the saved document.</returns>
-        public MemoryStream SaveAsMemoryStream(WordSaveOptions? options) {
-            var stream = new MemoryStream();
-            Save(stream, options);
-            stream.Seek(0, SeekOrigin.Begin);
-            return stream;
-        }
-
-        /// <summary>
-        /// Clone the document to the specified stream and return a new instance loaded from it.
-        /// </summary>
-        /// <param name="outputStream">Target stream that must support reading and seeking.</param>
-        /// <returns>A new <see cref="WordDocument"/> loaded from <paramref name="outputStream"/>.</returns>
-        public WordDocument SaveAs(Stream outputStream) {
-            return SaveAs(outputStream, options: null);
-        }
-
-        /// <summary>
-        /// Clone the document to the specified stream and return a new instance loaded from it.
-        /// </summary>
-        /// <param name="outputStream">Target stream that must support reading and seeking.</param>
-        /// <param name="options">Optional save policy settings.</param>
-        /// <returns>A new <see cref="WordDocument"/> loaded from <paramref name="outputStream"/>.</returns>
-        public WordDocument SaveAs(Stream outputStream, WordSaveOptions? options) {
-            if (outputStream == null) {
-                throw new ArgumentNullException(nameof(outputStream));
-            }
-            if (!outputStream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking", nameof(outputStream));
+        /// <summary>Saves an independent stream copy and returns a document loaded from it.</summary>
+        /// <param name="outputStream">Readable, writable, seekable destination stream.</param>
+        /// <param name="format">Physical DOCX or DOC format.</param>
+        /// <param name="options">Optional save settings.</param>
+        /// <returns>A new document backed by <paramref name="outputStream"/>.</returns>
+        public WordDocument SaveCopy(Stream outputStream, WordFileFormat format = WordFileFormat.Docx, WordSaveOptions? options = null) {
+            if (outputStream == null) throw new ArgumentNullException(nameof(outputStream));
+            if (!outputStream.CanRead || !outputStream.CanWrite || !outputStream.CanSeek) {
+                throw new ArgumentException("Stream must support reading, writing, and seeking.", nameof(outputStream));
             }
 
-            Save(outputStream, options);
+            Stream originalStream = OriginalStream;
+            try {
+                Save(outputStream, format, options);
+            } finally {
+                OriginalStream = originalStream;
+            }
+
             outputStream.Seek(0, SeekOrigin.Begin);
             return WordDocument.Load(outputStream);
         }
@@ -430,27 +371,28 @@ namespace OfficeIMO.Word {
             if (FileOpenAccess == FileAccess.Read) {
                 throw new InvalidOperationException("Document is read only, and cannot be saved.");
             }
+
+            if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
+                await SaveAsync(OriginalStream, WordFileFormat.Docx, options, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
             EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
             PreSaving();
 
             if (this._wordprocessingDocument != null) {
                 try {
-                    this._wordprocessingDocument.Save();
-
                     if (string.IsNullOrEmpty(filePath)) {
                         filePath = this.FilePath;
                     }
 
                     if (string.IsNullOrEmpty(filePath)) {
-                        return;
+                        throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or save to a writable stream.");
                     }
 
                     if (IsLegacyDocPath(filePath)) {
-                        byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath);
-                        using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
-                            await fs.WriteAsync(legacyDocBytes, 0, legacyDocBytes.Length, cancellationToken);
-                            await fs.FlushAsync(cancellationToken);
-                        }
+                        byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath, options);
+                        await OfficeFileCommit.WriteAllBytesAsync(filePath, legacyDocBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
                         FilePath = filePath;
                         if (openWord) {
                             this.Open(filePath, true);
@@ -459,27 +401,11 @@ namespace OfficeIMO.Word {
                         return;
                     }
 
-                    if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                        throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-                    }
-
-                    var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory)) {
-                        var dirInfo = new DirectoryInfo(directory);
-                        if (dirInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
-                            throw new IOException($"Failed to save to '{filePath}'. The directory is read-only.");
-                        }
-                    }
-
-                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous)) {
-                        using (var clone = this._wordprocessingDocument.Clone(fs)) {
-                            AlignDocumentTypeWithFilePath(clone, filePath);
-                            CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-                        }
-                        fs.Seek(0, SeekOrigin.Begin);
-                        Helpers.MakeOpenOfficeCompatible(fs);
-                        await fs.FlushAsync(cancellationToken);
-                    }
+                    EnsureDestinationFileWritable(filePath);
+                    this._wordprocessingDocument.Save();
+                    EnsureLegacyDocSaveDoesNotDropImportedContent(options);
+                    byte[] openXmlBytes = CreateOpenXmlBytesAfterSave(filePath);
+                    await OfficeFileCommit.WriteAllBytesAsync(filePath, openXmlBytes, cancellationToken: cancellationToken).ConfigureAwait(false);
                     FilePath = filePath;
                 } catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException) {
                     throw;
@@ -545,7 +471,7 @@ namespace OfficeIMO.Word {
         /// <param name="outputStream"></param>
         /// <exception cref="InvalidOperationException"></exception>
         public void Save(Stream outputStream) {
-            Save(outputStream, options: null);
+            Save(outputStream, WordFileFormat.Docx, options: null);
         }
 
         /// <summary>
@@ -555,6 +481,14 @@ namespace OfficeIMO.Word {
         /// <param name="options">Optional save behaviors, including stream physical format selection and signed-document policy.</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void Save(Stream outputStream, WordSaveOptions? options) {
+            Save(outputStream, WordFileFormat.Docx, options);
+        }
+
+        /// <summary>Saves the document to a stream in the explicitly selected physical format.</summary>
+        /// <param name="outputStream">Writable stream that receives the document content.</param>
+        /// <param name="format">Physical DOCX or DOC format.</param>
+        /// <param name="options">Optional save policy settings.</param>
+        public void Save(Stream outputStream, WordFileFormat format, WordSaveOptions? options = null) {
             if (outputStream == null) {
                 throw new ArgumentNullException(nameof(outputStream));
             }
@@ -569,11 +503,14 @@ namespace OfficeIMO.Word {
             EnsureSignedDocumentSaveAllowed(options, "Save");
             PreSaving();
 
-            if (TrySaveNativeLegacyDocToStream(outputStream, options)) {
+            if (TrySaveNativeLegacyDocToStream(outputStream, format, options)) {
                 return;
             }
 
+            EnsureLegacyDocSaveDoesNotDropImportedContent(options);
+
             // Clone document once and copy package properties in the same operation
+            PrepareDestinationStreamForWrite(outputStream);
             using (var clone = this._wordprocessingDocument.Clone(outputStream)) {
                 CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
             }
@@ -592,28 +529,115 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Asynchronously saves the document to a stream as DOCX.</summary>
+        /// <param name="outputStream">Writable destination stream.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public Task SaveAsync(Stream outputStream, CancellationToken cancellationToken = default) {
+            return SaveAsync(outputStream, WordFileFormat.Docx, options: null, cancellationToken);
+        }
+
+        /// <summary>Asynchronously saves the document to a stream as DOCX.</summary>
+        /// <param name="outputStream">Writable destination stream.</param>
+        /// <param name="options">Optional save policy settings.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public Task SaveAsync(Stream outputStream, WordSaveOptions? options, CancellationToken cancellationToken = default) {
+            return SaveAsync(outputStream, WordFileFormat.Docx, options, cancellationToken);
+        }
+
+        /// <summary>Asynchronously saves the document to a stream in the selected physical format.</summary>
+        /// <param name="outputStream">Writable destination stream.</param>
+        /// <param name="format">Physical DOCX or DOC format.</param>
+        /// <param name="options">Optional save policy settings.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public async Task SaveAsync(
+            Stream outputStream,
+            WordFileFormat format,
+            WordSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (outputStream == null) throw new ArgumentNullException(nameof(outputStream));
+            if (!outputStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
+            if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
+
+            EnsureSignedDocumentSaveAllowed(options, "SaveAsync");
+            PreSaving();
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] bytes;
+            if (format == WordFileFormat.Doc) {
+                bytes = LegacyDocWriter.WriteDocument(this, options);
+            } else {
+                EnsureLegacyDocSaveDoesNotDropImportedContent(options);
+                _wordprocessingDocument.Save();
+                bytes = CreateOpenXmlBytesAfterSave();
+            }
+
+            PrepareDestinationStreamForWrite(outputStream);
+#if NET6_0_OR_GREATER
+            await outputStream.WriteAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
+#else
+            await outputStream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+#endif
+            try { await outputStream.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+            // A pathless Save() targets OriginalStream as DOCX. Do not bind a legacy
+            // DOC stream here or a later Save()/auto-save could replace it with OOXML.
+            if (format == WordFileFormat.Docx) {
+                OriginalStream = outputStream;
+            }
+            if (outputStream.CanSeek) outputStream.Seek(0, SeekOrigin.Begin);
+        }
+
         private static bool IsLegacyDocPath(string? filePath) {
             return string.Equals(Path.GetExtension(filePath), ".doc", StringComparison.OrdinalIgnoreCase);
         }
 
-        private void SaveLegacyDocFile(string filePath, bool updateFilePath = true) {
-            byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath);
-            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) {
-                fs.Write(legacyDocBytes, 0, legacyDocBytes.Length);
-                fs.Flush();
-            }
+        private void SaveLegacyDocFile(string filePath, bool updateFilePath = true, WordSaveOptions? options = null) {
+            byte[] legacyDocBytes = CreateLegacyDocBytesAfterPreflight(filePath, options);
+            OfficeFileCommit.WriteAllBytes(filePath, legacyDocBytes);
 
             if (updateFilePath) {
                 FilePath = filePath;
             }
         }
 
-        private bool TrySaveNativeLegacyDocToStream(Stream destination, WordSaveOptions? options) {
-            if (options?.StreamFormat != WordStreamSaveFormat.LegacyDoc) {
+        private void SaveOpenXmlFile(string filePath, bool updateFilePath, WordSaveOptions? options) {
+            EnsureDestinationFileWritable(filePath);
+
+            EnsureLegacyDocSaveDoesNotDropImportedContent(options);
+            _wordprocessingDocument.Save();
+            OfficeFileCommit.Write(filePath, stream => {
+                using (var clone = _wordprocessingDocument.Clone(stream)) {
+                    AlignDocumentTypeWithFilePath(clone, filePath);
+                    CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+                }
+
+                stream.Seek(0, SeekOrigin.Begin);
+                Helpers.MakeOpenOfficeCompatible(stream);
+            });
+
+            if (updateFilePath) {
+                FilePath = filePath;
+            }
+        }
+
+        private byte[] CreateOpenXmlBytesAfterSave(string? filePath = null) {
+            using var memoryStream = new MemoryStream();
+            using (var clone = _wordprocessingDocument.Clone(memoryStream, true)) {
+                if (!string.IsNullOrEmpty(filePath)) {
+                    AlignDocumentTypeWithFilePath(clone, filePath!);
+                }
+                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            Helpers.MakeOpenOfficeCompatible(memoryStream);
+            return memoryStream.ToArray();
+        }
+
+        private bool TrySaveNativeLegacyDocToStream(Stream destination, WordFileFormat format, WordSaveOptions? options) {
+            if (format != WordFileFormat.Doc) {
                 return false;
             }
 
-            byte[] legacyDocBytes = LegacyDocWriter.WriteDocument(this);
+            byte[] legacyDocBytes = LegacyDocWriter.WriteDocument(this, options);
             PrepareDestinationStreamForWrite(destination);
             destination.Write(legacyDocBytes, 0, legacyDocBytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
@@ -634,12 +658,16 @@ namespace OfficeIMO.Word {
             destination.SetLength(0);
         }
 
-        private byte[] CreateLegacyDocBytesAfterPreflight(string filePath) {
+        private static void EnsureDestinationFileWritable(string filePath) {
             if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
                 throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
             }
+        }
 
-            return LegacyDocWriter.WriteDocument(this);
+        private byte[] CreateLegacyDocBytesAfterPreflight(string filePath, WordSaveOptions? options) {
+            EnsureDestinationFileWritable(filePath);
+
+            return LegacyDocWriter.WriteDocument(this, options);
         }
 
         private void EnsureSignedDocumentSaveAllowed(WordSaveOptions? options, string operation) {

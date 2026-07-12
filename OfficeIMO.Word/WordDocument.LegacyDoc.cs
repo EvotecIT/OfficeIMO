@@ -42,12 +42,17 @@ namespace OfficeIMO.Word {
             return CreateLegacyDocLoadResult(document, sourcePath: null);
         }
 
-        private static WordDocument LoadLegacyDocFromNormalFlow(byte[] bytes, string? sourcePath, bool autoSave, bool readOnly) {
+        private static WordDocument LoadLegacyDocFromNormalFlow(
+            byte[] bytes,
+            string? sourcePath,
+            bool autoSave,
+            bool readOnly,
+            LegacyDocImportOptions? importOptions = null) {
             if (autoSave) {
                 throw new NotSupportedException("Auto-save is not supported when loading legacy binary .doc files. Load the document, then save explicitly to a .docx path.");
             }
 
-            LegacyDocDocument document = LegacyDocDocument.Load(bytes, new LegacyDocImportOptions());
+            LegacyDocDocument document = LegacyDocDocument.Load(bytes, importOptions ?? new LegacyDocImportOptions());
             LegacyDocImportDiagnostic[] errors = document.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error)
                 .ToArray();
@@ -64,7 +69,12 @@ namespace OfficeIMO.Word {
         private static WordDocument ReopenProjectedLegacyDocReadOnly(WordDocument projectedDocument, string? sourcePath, LegacyDocDocument legacyDocument) {
             var packageStream = new MemoryStream();
             try {
-                projectedDocument.Save(packageStream);
+                // This is an internal package transition used only to enforce read-only access.
+                // The caller has not requested a lossy export, so the public loss gate must not
+                // prevent inspection of the projection and its diagnostics.
+                projectedDocument.Save(packageStream, WordFileFormat.Docx, new WordSaveOptions {
+                    LossPolicy = WordConversionLossPolicy.Allow
+                });
                 packageStream.Seek(0, SeekOrigin.Begin);
                 projectedDocument.Dispose();
 
@@ -89,7 +99,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath) =>
-            ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: false);
+            ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: sourcePath != null);
 
         private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath, bool attachSourcePathForSave) {
             LegacyDocImportDiagnostic[] errors = legacyDocument.Diagnostics

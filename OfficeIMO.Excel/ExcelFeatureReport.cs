@@ -646,7 +646,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void AddLegacyXlsImportFeatures(List<ExcelFeatureFinding> features) {
-            if (!WasLoadedFromLegacyXls) {
+            if (SourceFormat != ExcelFileFormat.Xls) {
                 return;
             }
 
@@ -663,6 +663,10 @@ namespace OfficeIMO.Excel {
             Add(features, "Compatibility", "Legacy XLS unsupported features", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedFeatures.Length, null,
                 "Some legacy XLS features were detected as unsupported import metadata and are not written to the converted .xlsx package.",
                 _legacyXlsUnsupportedFeatures.Select(FormatLegacyXlsUnsupportedFeature).ToArray());
+
+            Add(features, "Compatibility", "Legacy XLS preserved records", ExcelFeatureSupportLevel.Preserved, _legacyXlsPreservedFeatures.Length, null,
+                "Preserve-only BIFF records were detected as import metadata but are not projected into the workbook model or written to converted output.",
+                _legacyXlsPreservedFeatures.Select(FormatLegacyXlsPreservedFeature).ToArray());
 
             Add(features, "Compatibility", "Legacy XLS unsupported sheets", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedSheets.Length, null,
                 "Some legacy XLS sheet entries were discovered but not projected as normal worksheets and are not written to the converted .xlsx package.",
@@ -687,6 +691,12 @@ namespace OfficeIMO.Excel {
             string scope = feature.SheetName == null ? "(workbook)" : feature.SheetName;
             string detail = string.IsNullOrWhiteSpace(feature.DetailCode) ? feature.Code : feature.DetailCode!;
             return $"{scope}: {feature.Kind} ({detail}) - {feature.Description}";
+        }
+
+        private static string FormatLegacyXlsPreservedFeature(LegacyXlsPreservedFeatureRecord feature) {
+            string scope = feature.SheetName == null ? "(workbook)" : feature.SheetName;
+            string detail = string.IsNullOrWhiteSpace(feature.DetailCode) ? feature.Code : feature.DetailCode!;
+            return $"{scope}: {feature.Code} / {feature.Kind} ({detail}) - {feature.Description}";
         }
 
         private static string FormatLegacyXlsUnsupportedSheet(LegacyXlsUnsupportedSheet sheet) {

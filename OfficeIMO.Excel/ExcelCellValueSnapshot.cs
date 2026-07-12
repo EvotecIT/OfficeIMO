@@ -16,18 +16,21 @@ namespace OfficeIMO.Excel {
         /// <summary>The cell stores a formula.</summary>
         Formula,
         /// <summary>The cell stores a value kind not explicitly mapped by OfficeIMO.</summary>
-        Other
+        Other,
+        /// <summary>The cell stores a numeric Excel serial with a date-like number format.</summary>
+        DateTime
     }
 
     /// <summary>
     /// Describes a native worksheet cell value without requiring callers to inspect OpenXML directly.
     /// </summary>
     public sealed class ExcelCellValueSnapshot {
-        internal ExcelCellValueSnapshot(ExcelCellValueKind kind, string text, string rawValue, CellValues? openXmlType) {
+        internal ExcelCellValueSnapshot(ExcelCellValueKind kind, string text, string rawValue, CellValues? openXmlType, DateTime? dateTimeValue = null) {
             Kind = kind;
             Text = text;
             RawValue = rawValue;
             OpenXmlType = openXmlType;
+            DateTimeValue = dateTimeValue;
         }
 
         /// <summary>Native value kind for the cell.</summary>
@@ -41,5 +44,10 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Underlying OpenXML cell type hint, when present.</summary>
         public CellValues? OpenXmlType { get; }
+
+        /// <summary>
+        /// Resolved date/time value when <see cref="Kind"/> is <see cref="ExcelCellValueKind.DateTime"/>.
+        /// </summary>
+        public DateTime? DateTimeValue { get; }
     }
 }

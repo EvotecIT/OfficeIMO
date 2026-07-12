@@ -22,12 +22,8 @@ namespace OfficeIMO.Tests {
         private const int XlColumnClusteredChart = 51;
         private const int MsoShapeRectangle = 1;
 
-        [Fact]
+        [LegacyXlsComFact]
         public void LegacyXls_ComGeneratedWorkbook_ImportsAndOpensInDesktopExcelWhenRequested() {
-            if (!IsLegacyXlsComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy XLS COM validation requires Windows.");
             Assert.True(IsExcelComAvailable(), "Legacy XLS COM validation requires Microsoft Excel COM automation.");
 
@@ -42,7 +38,7 @@ namespace OfficeIMO.Tests {
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { sourceXlsPath }, "The generated legacy XLS workbook did not open through desktop Excel.");
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(sourceXlsPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
+                ReportUnsupportedContent = true
             });
             string importEvidence = GetLegacyXlsImportEvidence(result);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
@@ -79,32 +75,24 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(Path.GetDirectoryName(importedXlsxPath)!);
             result.Document.Save(importedXlsxPath, openExcel: false);
             ExcelDocument.Convert(sourceXlsPath, convertedXlsxPath, new ExcelDocumentConversionOptions {
-                AllowLossyLegacyConversion = true
+                LossPolicy = ExcelConversionLossPolicy.Allow
             });
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath, convertedXlsxPath }, "One or more imported or converted XLSX workbooks did not open through desktop Excel.");
         }
 
-        [Fact]
+        [LegacyXlsComFact]
         public void LegacyXls_CorpusFixtures_OpenBeforeAndAfterImportInDesktopExcelWhenRequested() {
-            if (!IsLegacyXlsComValidationRequested()) {
-                return;
-            }
-
             Assert.True(IsWindowsPlatform(), "Legacy XLS COM validation requires Windows.");
             Assert.True(IsExcelComAvailable(), "Legacy XLS COM validation requires Microsoft Excel COM automation.");
 
             string corpusDirectory = Path.Combine(GetTestsProjectRoot(), "Documents", "LegacyXlsCorpus");
-            if (!Directory.Exists(corpusDirectory)) {
-                return;
-            }
+            Assert.True(Directory.Exists(corpusDirectory), $"Legacy XLS corpus directory '{corpusDirectory}' was not found.");
 
             string[] workbookPaths = Directory.GetFiles(corpusDirectory, "*.xls", SearchOption.AllDirectories)
                 .Where(path => !Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
                 .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            if (workbookPaths.Length == 0) {
-                return;
-            }
+            Assert.NotEmpty(workbookPaths);
 
             AssertWorkbooksOpenViaExcelComWhenAvailable(workbookPaths, "One or more legacy XLS corpus source workbooks failed to open in desktop Excel.");
 
@@ -113,7 +101,7 @@ namespace OfficeIMO.Tests {
             var importedPaths = new List<string>(workbookPaths.Length);
             foreach (string workbookPath in workbookPaths) {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
-                    ReportUnsupportedRecords = true
+                    ReportUnsupportedContent = true
                 });
                 Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
 

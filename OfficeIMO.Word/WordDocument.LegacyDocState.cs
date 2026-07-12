@@ -10,14 +10,14 @@ namespace OfficeIMO.Word {
         private string? _legacyDocSourcePath;
 
         /// <summary>
-        /// Gets whether this document was projected from a legacy binary `.doc` source.
+        /// Gets the detected physical format of the document source.
         /// </summary>
-        public bool WasLoadedFromLegacyDoc { get; private set; }
+        public WordFileFormat SourceFormat { get; private set; } = WordFileFormat.Docx;
 
-        /// <summary>
-        /// Gets the legacy `.doc` source path when the document was loaded from a path.
-        /// </summary>
-        public string? LegacyDocSourcePath => _legacyDocSourcePath;
+        /// <summary>Gets the original legacy source path, or the current Open XML file association.</summary>
+        public string? SourcePath => SourceFormat == WordFileFormat.Doc
+            ? _legacyDocSourcePath
+            : string.IsNullOrWhiteSpace(FilePath) ? null : FilePath;
 
         /// <summary>
         /// Gets diagnostics produced while importing the legacy `.doc` document.
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<LegacyDocCompoundFeature> LegacyDocCompoundFeatures => _legacyDocCompoundFeatures;
 
         internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document, bool attachSourcePathForSave = false) {
-            WasLoadedFromLegacyDoc = true;
+            SourceFormat = WordFileFormat.Doc;
             _legacyDocSourcePath = sourcePath;
             _legacyDocImportDiagnostics = document.Diagnostics.ToArray();
             _legacyDocPreservedFeatures = document.PreservedFeatures.ToArray();
@@ -49,6 +49,25 @@ namespace OfficeIMO.Word {
             FilePath = attachSourcePathForSave && sourcePath != null
                 ? sourcePath
                 : string.Empty;
+        }
+
+        private bool HasLossyLegacyDocImportState() {
+            return _legacyDocUnsupportedFeatures.Length > 0
+                || _legacyDocPreservedFeatures.Length > 0
+                || _legacyDocCompoundFeatures.Length > 0;
+        }
+
+        private void EnsureLegacyDocSaveDoesNotDropImportedContent(WordSaveOptions? options) {
+            if (SourceFormat != WordFileFormat.Doc
+                || !HasLossyLegacyDocImportState()
+                || options?.LossPolicy == WordConversionLossPolicy.Allow) {
+                return;
+            }
+
+            string source = string.IsNullOrWhiteSpace(_legacyDocSourcePath)
+                ? "a legacy binary DOC source"
+                : $"legacy binary DOC source '{_legacyDocSourcePath}'";
+            throw new NotSupportedException($"Saving is blocked because this document was loaded from {source} with unsupported or preserve-only content. Review LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or set WordSaveOptions.LossPolicy to WordConversionLossPolicy.Allow when that loss is intentional.");
         }
     }
 }

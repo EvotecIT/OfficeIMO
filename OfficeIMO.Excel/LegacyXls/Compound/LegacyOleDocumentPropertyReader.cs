@@ -144,7 +144,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 description,
                 detailCode: detailCode);
             workbook.MutableUnsupportedFeatures.Add(feature);
-            if (options.ReportUnsupportedRecords) {
+            if (options.ReportUnsupportedContent) {
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Info,
                     feature.Code,

@@ -9,6 +9,7 @@ public sealed partial class HtmlToRtfOptions {
         var diagnostic = new HtmlRtfConversionDiagnostic(code, message, severity, source, detail);
         Diagnostics.Add(diagnostic);
         HtmlRtfConversionReportMapper.Add(ConversionReport, diagnostic);
+        HtmlRtfConversionReportMapper.Add(HtmlDiagnostics, diagnostic);
         DiagnosticHandler?.Invoke(diagnostic);
     }
 
@@ -16,6 +17,7 @@ public sealed partial class HtmlToRtfOptions {
         if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
         Diagnostics.Add(diagnostic);
         HtmlRtfConversionReportMapper.Add(ConversionReport, diagnostic);
+        HtmlRtfConversionReportMapper.Add(HtmlDiagnostics, diagnostic);
         DiagnosticHandler?.Invoke(diagnostic);
     }
 }

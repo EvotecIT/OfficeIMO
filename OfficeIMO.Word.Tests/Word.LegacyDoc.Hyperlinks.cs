@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 AssertBookmarkRoundTrip(reloaded, "BodyHyperlinkBookmark");
                 AssertBookmarkRoundTrip(reloaded, "CellHyperlinkBookmark");

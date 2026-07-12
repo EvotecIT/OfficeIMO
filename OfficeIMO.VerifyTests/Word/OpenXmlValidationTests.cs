@@ -22,7 +22,7 @@ public class OpenXmlValidationTests {
         document.AddHeadersAndFooters();
         document.Footer?.Default?.AddPageNumber(WordPageNumberStyle.Roman);
 
-        document.Save();
+        _ = document.ToDocx();
 
         using var cloneStream = new MemoryStream();
         using var clone = document._wordprocessingDocument.Clone(cloneStream, true);

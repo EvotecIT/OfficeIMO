@@ -33,7 +33,7 @@ namespace OfficeIMO.Word.Html {
             HtmlToWordOptions importOptions = CreateImportOptions(options.ImportOptions);
             WordToHtmlOptions exportOptions = CreateExportOptions(options.ExportOptions);
             using WordDocument document = html.ToWordDocument(importOptions);
-            using MemoryStream packageStream = document.SaveAsMemoryStream();
+            using MemoryStream packageStream = document.ToDocxStream();
             string roundTripHtml = document.ToHtml(exportOptions);
 
             HtmlCapabilityGalleryArtifact sourceArtifact = HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", html);

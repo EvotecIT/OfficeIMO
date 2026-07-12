@@ -1,25 +1,13 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Selects the physical workbook format for stream saves, where no file extension is available.
-    /// </summary>
-    public enum ExcelStreamSaveFormat {
-        /// <summary>
-        /// Save streams as the standard Office Open XML package format.
-        /// </summary>
-        OpenXml = 0,
-
-        /// <summary>
-        /// Save streams as a native BIFF8 legacy .xls compound file.
-        /// </summary>
-        LegacyXls = 1
-    }
-
-    /// <summary>
     /// Optional behaviors applied during <see cref="ExcelDocument.Save(string, bool, ExcelSaveOptions?)"/> and
     /// <see cref="ExcelDocument.SaveAsync(string, bool, ExcelSaveOptions?, System.Threading.CancellationToken)"/> to strengthen
     /// robustness and CI validation.
     /// </summary>
     public sealed class ExcelSaveOptions {
+        /// <summary>Gets or sets whether to open the saved file after a successful file commit.</summary>
+        public bool OpenAfterSave { get; set; }
+
         /// <summary>
         /// When true, attempts to repair common defined-name issues (duplicates, out-of-range LocalSheetId, #REF!) before save.
         /// </summary>
@@ -65,23 +53,29 @@ namespace OfficeIMO.Excel {
         public bool ForceFullCalculationOnOpen { get; set; }
 
         /// <summary>
-        /// Selects the physical workbook format for <see cref="ExcelDocument.Save(System.IO.Stream, ExcelSaveOptions?)"/>
-        /// and <see cref="ExcelDocument.SaveAsync(System.IO.Stream, ExcelSaveOptions?, System.Threading.CancellationToken)"/>.
-        /// File-path saves continue to use the destination extension.
+        /// Controls saves of workbooks projected from legacy XLS files when known legacy-only
+        /// content cannot be represented by the selected output format. The default blocks the save.
         /// </summary>
-        public ExcelStreamSaveFormat StreamFormat { get; set; }
-
-        /// <summary>
-        /// When true, allows native XLS saves for workbooks loaded from legacy XLS files that reported
-        /// unsupported or preserve-only legacy content. The native writer will write only the projected
-        /// workbook model and may drop legacy-only content such as unsupported sheets, charts, VBA,
-        /// OLE objects, or pivot table records.
-        /// </summary>
-        public bool AllowLossyLegacyXlsSave { get; set; }
+        public ExcelConversionLossPolicy LossPolicy { get; set; } = ExcelConversionLossPolicy.Block;
 
         /// <summary>
         /// Returns an options instance with all features disabled.
         /// </summary>
         public static ExcelSaveOptions None => new ExcelSaveOptions();
+
+        internal ExcelSaveOptions WithLossPolicy(ExcelConversionLossPolicy lossPolicy) {
+            return new ExcelSaveOptions {
+                OpenAfterSave = OpenAfterSave,
+                SafeRepairDefinedNames = SafeRepairDefinedNames,
+                ValidateOpenXml = ValidateOpenXml,
+                SafePreflight = SafePreflight,
+                DisableFastPackageWriter = DisableFastPackageWriter,
+                EvaluateFormulasBeforeSave = EvaluateFormulasBeforeSave,
+                ClearCachedFormulaResultsBeforeSave = ClearCachedFormulaResultsBeforeSave,
+                MarkFormulasDirtyBeforeSave = MarkFormulasDirtyBeforeSave,
+                ForceFullCalculationOnOpen = ForceFullCalculationOnOpen,
+                LossPolicy = lossPolicy
+            };
+        }
     }
 }

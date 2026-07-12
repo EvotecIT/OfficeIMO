@@ -7,11 +7,15 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// </summary>
     public sealed class LegacyXlsLoadResult : IDisposable {
         private readonly ExcelDocument? _document;
+        private readonly Lazy<LegacyXlsImportReport> _importReport;
+        private readonly Lazy<LegacyXlsImportSummary> _summary;
 
         internal LegacyXlsLoadResult(ExcelDocument? document, LegacyXlsWorkbook workbook, Exception? projectionException = null) {
             _document = document;
             Workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
             ProjectionException = projectionException;
+            _importReport = new Lazy<LegacyXlsImportReport>(() => Workbook.CreateImportReport());
+            _summary = new Lazy<LegacyXlsImportSummary>(() => new LegacyXlsImportSummary(this));
         }
 
         /// <summary>
@@ -32,7 +36,11 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets the neutral legacy XLS workbook model produced by the parser.
         /// </summary>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public LegacyXlsWorkbook Workbook { get; }
+
+        /// <summary>Gets the advanced neutral parser model for forensic or corpus analysis.</summary>
+        public LegacyXlsWorkbook AdvancedWorkbook => Workbook;
 
         /// <summary>
         /// Gets diagnostics produced while reading the legacy workbook.
@@ -44,10 +52,29 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// </summary>
         public IReadOnlyList<LegacyXlsUnsupportedFeature> UnsupportedFeatures => Workbook.UnsupportedFeatures;
 
+        /// <summary>Gets preserve-only BIFF feature records that were not projected into the normal workbook model.</summary>
+        public IReadOnlyList<LegacyXlsPreservedFeatureRecord> PreservedFeatures => Workbook.PreservedFeatureRecords;
+
+        /// <summary>Gets sheet entries that were not projected as normal worksheets.</summary>
+        public IReadOnlyList<LegacyXlsUnsupportedSheet> UnsupportedSheets => Workbook.UnsupportedSheets;
+
+        /// <summary>Gets chart sheets that were projected into chart-sheet package parts.</summary>
+        public IReadOnlyList<LegacyXlsChartSheet> ChartSheets => Workbook.ChartSheets;
+
+        /// <summary>Gets preserve-only features found in the OLE compound container.</summary>
+        public IReadOnlyList<LegacyXlsCompoundFeatureRecord> CompoundFeatures => Workbook.CompoundFeatureRecords;
+
         /// <summary>
         /// Gets a compact import report for corpus baselines and preflight checks.
         /// </summary>
-        public LegacyXlsImportReport ImportReport => Workbook.CreateImportReport();
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public LegacyXlsImportReport ImportReport => _importReport.Value;
+
+        /// <summary>Gets a compact cached summary intended for normal application code.</summary>
+        public LegacyXlsImportSummary Summary => _summary.Value;
+
+        /// <summary>Creates or returns the cached advanced corpus-grade import report.</summary>
+        public LegacyXlsImportReport CreateAdvancedImportReport() => _importReport.Value;
 
         /// <summary>
         /// Gets whether the legacy XLS import produced error diagnostics.
@@ -57,7 +84,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets whether the legacy XLS import discovered unsupported or preserve-only features.
         /// </summary>
-        public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0;
+        public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0 || PreservedFeatures.Count > 0;
+
+        /// <summary>Gets whether conversion to XLSX would omit known legacy content.</summary>
+        public bool HasConversionLoss => UnsupportedFeatures.Count > 0
+            || PreservedFeatures.Count > 0
+            || UnsupportedSheets.Count > 0
+            || CompoundFeatures.Any(feature =>
+                feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
+                || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject);
 
         /// <summary>
         /// Throws when the legacy XLS import produced error diagnostics.
@@ -75,7 +110,18 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// </summary>
         public LegacyXlsLoadResult EnsureNoUnsupportedFeatures() {
             if (HasUnsupportedFeatures) {
-                throw new InvalidOperationException("Legacy XLS import discovered unsupported or preserve-only features: " + FormatUnsupportedFeatures(UnsupportedFeatures));
+                throw new InvalidOperationException(
+                    "Legacy XLS import discovered unsupported or preserve-only features: "
+                    + FormatUnsupportedFeatures(UnsupportedFeatures, PreservedFeatures));
+            }
+
+            return this;
+        }
+
+        /// <summary>Throws when conversion to XLSX would omit known legacy content.</summary>
+        public LegacyXlsLoadResult EnsureNoConversionLoss() {
+            if (HasConversionLoss) {
+                throw new InvalidOperationException("Legacy XLS import contains unsupported sheets, unsupported or preserve-only features, VBA, or OLE content that cannot be projected to XLSX without loss.");
             }
 
             return this;
@@ -92,13 +138,20 @@ namespace OfficeIMO.Excel.LegacyXls {
             return string.Join("; ", diagnostics.Take(8).Select(diagnostic => diagnostic.ToString()));
         }
 
-        private static string FormatUnsupportedFeatures(IEnumerable<LegacyXlsUnsupportedFeature> features) {
-            return string.Join("; ", features.Take(8).Select(feature => {
+        private static string FormatUnsupportedFeatures(
+            IEnumerable<LegacyXlsUnsupportedFeature> features,
+            IEnumerable<LegacyXlsPreservedFeatureRecord> preservedFeatures) {
+            IEnumerable<string> unsupported = features.Select(feature => {
                 string sheet = feature.SheetName == null ? string.Empty : $" [{feature.SheetName}]";
                 string record = feature.RecordType == null ? string.Empty : $" record=0x{feature.RecordType.Value:X4}";
                 string offset = feature.RecordOffset == null ? string.Empty : $" offset={feature.RecordOffset.Value}";
                 return $"{feature.Code}{sheet}{record}{offset}: {feature.Description}";
-            }));
+            });
+            IEnumerable<string> preserved = preservedFeatures.Select(feature => {
+                string sheet = feature.SheetName == null ? string.Empty : $" [{feature.SheetName}]";
+                return $"{feature.Code}{sheet} record=0x{feature.RecordType:X4} offset={feature.RecordOffset}: {feature.Description}";
+            });
+            return string.Join("; ", unsupported.Concat(preserved).Distinct(StringComparer.Ordinal).Take(8));
         }
     }
 }

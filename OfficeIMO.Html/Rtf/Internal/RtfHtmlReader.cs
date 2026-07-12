@@ -1,9 +1,17 @@
+using AngleSharp.Html.Dom;
+
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
     internal static RtfDocument Read(string html, HtmlToRtfOptions options) {
         RtfDocument document = RtfDocument.Create();
         ReadDom(html, options, document);
+        return document;
+    }
+
+    internal static RtfDocument Read(IHtmlDocument htmlDocument, HtmlToRtfOptions options) {
+        RtfDocument document = RtfDocument.Create();
+        ReadDom(htmlDocument, options, document);
         return document;
     }
 

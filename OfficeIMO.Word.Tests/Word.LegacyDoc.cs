@@ -29,10 +29,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, result.Document.Paragraphs.Count);
             Assert.Equal("First paragraph", result.Document.Paragraphs[0].Text);
             Assert.Equal("Second paragraph", result.Document.Paragraphs[1].Text);
-            Assert.True(result.Document.WasLoadedFromLegacyDoc);
+            Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
             Assert.Equal(string.Empty, result.Document.FilePath);
 
-            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Assert.Equal("First paragraph", reloaded.Paragraphs[0].Text);
             Assert.Equal("Second paragraph", reloaded.Paragraphs[1].Text);
         }
@@ -513,8 +513,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2003, result.Document.CustomDocumentProperties["Ticket"].NumberInteger);
             Assert.Equal(5000000000L, result.Document.CustomDocumentProperties["ArchiveId"].Value);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
-            Assert.False(converted.WasLoadedFromLegacyDoc);
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
+            Assert.False(converted.SourceFormat == WordFileFormat.Doc);
             Assert.Equal("Legacy DOC Metadata Title", converted.BuiltinDocumentProperties.Title);
             Assert.Equal("EvotecIT", converted.ApplicationProperties.Company);
             Assert.Equal("Ready", converted.CustomDocumentProperties["ReleaseStatus"].Text);
@@ -1310,7 +1310,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument document = WordDocument.Load(docPath);
 
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(docPath, document.FilePath);
                 WordParagraph paragraph = Assert.Single(document.Paragraphs);
                 Assert.Equal("Normal load", paragraph.Text);
@@ -1332,7 +1332,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Normal save");
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Saved back");
             } finally {
@@ -1348,7 +1348,7 @@ namespace OfficeIMO.Tests {
 
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
-            Assert.True(result.Document.WasLoadedFromLegacyDoc);
+            Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
             Assert.Equal(string.Empty, result.Document.FilePath);
 
             string[] paragraphs = result.Document.Paragraphs
@@ -1602,7 +1602,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.Document.LegacyDocPreservedFeatures);
             Assert.False(result.ImportReport.PreservedFeaturesByKind.ContainsKey(LegacyDocPreservedFeatureKind.RevisionTracking));
 
-            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
             Assert.True(reloaded.Settings.TrackRevisions);
 
             string markdown = result.ImportReport.ToMarkdown();
@@ -1629,7 +1629,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.Document.LegacyDocPreservedFeatures);
             Assert.Equal(DocumentProtectionValues.TrackedChanges, result.Document.Settings.ProtectionType);
 
-            byte[] savedBytes = result.Document.SaveAsByteArray();
+            byte[] savedBytes = result.Document.ToDocx();
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(savedBytes), false);
             DocumentProtection protection = Assert.Single(package.MainDocumentPart!.DocumentSettingsPart!.Settings!.Elements<DocumentProtection>());
             Assert.Equal(DocumentProtectionValues.TrackedChanges, protection.Edit!.Value);
@@ -2485,7 +2485,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, document.Sections.Count);
                 Assert.Equal("Portrait section", Assert.Single(document.Sections[0].Paragraphs).Text);
                 Assert.Equal("Landscape section", Assert.Single(document.Sections[1].Paragraphs).Text);
@@ -2500,7 +2500,7 @@ namespace OfficeIMO.Tests {
                 document.Save(docPath);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Portrait section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Landscape section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
@@ -2543,7 +2543,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Column section", Assert.Single(document.Paragraphs).Text);
                 Assert.Equal(2, document.Sections[0].ColumnCount);
                 Assert.Equal(720, document.Sections[0].ColumnsSpace);
@@ -2552,7 +2552,7 @@ namespace OfficeIMO.Tests {
                 document.Save(docPath);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections[0].ColumnCount);
                 Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
                 Assert.True(reloaded.Sections[0].HasColumnSeparator);
@@ -2573,7 +2573,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Page-numbered section", Assert.Single(document.Paragraphs).Text);
                 PageNumberType pageNumberType = document.Sections[0].PageNumberType;
                 Assert.Equal(3, pageNumberType.Start?.Value);
@@ -2583,7 +2583,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
                 PageNumberType reloadedPageNumberType = reloaded.Sections[0].PageNumberType;
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(3, reloadedPageNumberType.Start?.Value);
                 Assert.Equal(NumberFormatValues.UpperRoman, reloadedPageNumberType.Format?.Value);
             } finally {
@@ -2603,14 +2603,14 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("RTL gutter section", Assert.Single(document.Paragraphs).Text);
                 Assert.True(document.Sections[0].RtlGutter);
 
                 document.Save(docPath);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.True(reloaded.Sections[0].RtlGutter);
             } finally {
                 DeleteIfExists(docPath);
@@ -2629,7 +2629,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Vertically centered section", Assert.Single(document.Paragraphs).Text);
                 VerticalTextAlignmentOnPage verticalAlignment = document.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
                 Assert.NotNull(verticalAlignment);
@@ -2639,7 +2639,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
                 VerticalTextAlignmentOnPage reloadedVerticalAlignment = reloaded.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.NotNull(reloadedVerticalAlignment);
                 Assert.Equal(VerticalJustificationValues.Center, reloadedVerticalAlignment.Val?.Value);
             } finally {
@@ -2659,7 +2659,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Line-numbered section", Assert.Single(document.Paragraphs).Text);
                 LineNumberType lineNumbering = document.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
                 Assert.NotNull(lineNumbering);
@@ -2672,7 +2672,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
                 LineNumberType reloadedLineNumbering = reloaded.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.NotNull(reloadedLineNumbering);
                 Assert.Equal(2, (int?)reloadedLineNumbering.CountBy?.Value);
                 Assert.Equal("360", reloadedLineNumbering.Distance?.Value);
@@ -2695,7 +2695,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(result.UnsupportedFeatures);
 
                 WordDocument document = result.Document;
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Note settings section", Assert.Single(document.Paragraphs).Text);
                 Assert.Equal(FootnotePositionValues.BeneathText, document.Sections[0].FootnoteProperties.FootnotePosition?.Val?.Value);
                 Assert.Equal(RestartNumberValues.EachPage, document.Sections[0].FootnoteProperties.NumberingRestart?.Val?.Value);
@@ -2708,7 +2708,7 @@ namespace OfficeIMO.Tests {
                 document.Save(docPath);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(FootnotePositionValues.BeneathText, reloaded.Sections[0].FootnoteProperties.FootnotePosition?.Val?.Value);
                 Assert.Equal(RestartNumberValues.EachPage, reloaded.Sections[0].FootnoteProperties.NumberingRestart?.Val?.Value);
                 Assert.Equal(3, (int?)reloaded.Sections[0].FootnoteProperties.NumberingStart?.Val?.Value);
@@ -2776,7 +2776,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.UnsupportedFeatures);
 
             WordDocument document = result.Document;
-            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.True(document.SourceFormat == WordFileFormat.Doc);
             Assert.Equal(2, document.Sections.Count);
             Assert.Equal("Before continuous section", Assert.Single(document.Sections[0].Paragraphs).Text);
             Assert.Equal(sectionText, Assert.Single(document.Sections[1].Paragraphs).Text);
@@ -2789,7 +2789,7 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Load(new MemoryStream(docBytes));
 
-            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.True(document.SourceFormat == WordFileFormat.Doc);
             Assert.Empty(document.LegacyDocUnsupportedFeatures);
             Assert.Equal(2, document.LegacyDocCompoundFeatures.Count);
             Assert.Contains(document.LegacyDocCompoundFeatures, feature => feature.Kind == LegacyDocCompoundFeatureKind.VbaProject);
@@ -2810,9 +2810,9 @@ namespace OfficeIMO.Tests {
             try {
                 using WordDocument document = WordDocument.LoadLegacyDoc(
                     new MemoryStream(docBytes),
-                    new LegacyDocImportOptions { ReportUnsupportedFeatures = false });
+                    new LegacyDocImportOptions { ReportUnsupportedContent = false });
 
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(document.LegacyDocUnsupportedFeatures);
                 Assert.Equal(2, document.LegacyDocCompoundFeatures.Count);
                 Assert.Contains(document.LegacyDocCompoundFeatures, feature => feature.Kind == LegacyDocCompoundFeatureKind.VbaProject);
@@ -2866,12 +2866,16 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("Read only legacy doc"));
+                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Read only legacy doc"));
 
                 using WordDocument document = WordDocument.Load(docPath, readOnly: true);
 
-                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+                Assert.True(
+                    document.LegacyDocUnsupportedFeatures.Count
+                    + document.LegacyDocPreservedFeatures.Count
+                    + document.LegacyDocCompoundFeatures.Count > 0);
                 Assert.Throws<InvalidOperationException>(() => document.Save());
                 using var output = new MemoryStream();
                 Assert.Throws<InvalidOperationException>(() => document.Save(output));
@@ -2887,7 +2891,7 @@ namespace OfficeIMO.Tests {
             using var stream = new NonSeekableReadStream(docBytes);
             using WordDocument document = WordDocument.Load(stream);
 
-            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.True(document.SourceFormat == WordFileFormat.Doc);
             WordParagraph paragraph = Assert.Single(document.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
             Assert.Equal("Non-seekable legacy doc", paragraph.Text);
         }
@@ -2900,7 +2904,7 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Load(stream);
 
-            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.True(document.SourceFormat == WordFileFormat.Doc);
             Assert.Equal(docBytes.Length, stream.Position);
             WordParagraph paragraph = Assert.Single(document.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
             Assert.Equal("Seekable legacy doc", paragraph.Text);
@@ -2911,7 +2915,7 @@ namespace OfficeIMO.Tests {
             byte[] docxBytes;
             using (WordDocument document = WordDocument.Create()) {
                 document.AddParagraph("Non-seekable Open XML package");
-                docxBytes = document.SaveAsByteArray();
+                docxBytes = document.ToDocx();
             }
 
             using var stream = new NonSeekableReadStream(docxBytes);
@@ -2937,7 +2941,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(docPath, reloaded.FilePath);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 string[] paragraphs = reloaded.Paragraphs
@@ -2968,7 +2972,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 string visibleText = string.Concat(reloaded.Paragraphs.Select(paragraph => paragraph.Text));
                 Assert.Contains("Visit ", visibleText);
@@ -3021,7 +3025,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordHyperLink mixedLink = Assert.Single(reloaded.HyperLinks, link => link.Uri?.ToString() == "https://officeimo.net/mixed");
                 Assert.Equal("ABCRDE", GetHyperlinkText(mixedLink._hyperlink));
@@ -3051,7 +3055,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TargetBookmark");
                 WordHyperLink hyperlink = Assert.Single(reloaded.HyperLinks, link => link.Anchor == "TargetBookmark");
@@ -3080,7 +3084,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "RangeBookmark");
 
@@ -3122,7 +3126,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "CrossParagraphBookmark");
 
@@ -3167,7 +3171,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BodyLevelBookmark");
 
@@ -3221,7 +3225,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableCellBookmark");
 
@@ -3275,7 +3279,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableCellLevelBookmark");
 
@@ -3312,7 +3316,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableLevelBookmark");
 
@@ -3352,7 +3356,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableChildBoundaryBookmark");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "AfterTableChildZeroLengthBookmark");
@@ -3391,7 +3395,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BeforeTableBookmark");
 
@@ -3430,7 +3434,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "AfterTableBookmark");
 
@@ -3466,7 +3470,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "ParagraphToTableBookmark");
 
@@ -3504,7 +3508,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableToParagraphBookmark");
 
@@ -3602,7 +3606,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
 
                 WordHyperLink bodyLink = Assert.Single(DistinctHyperlinks(reloaded.HyperLinks), link => GetHyperlinkText(link._hyperlink) == "BodyLinkOneBodyLinkNestedBodyLinkTwo");
@@ -3668,7 +3672,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Body with header footer", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 Assert.NotNull(reloadedSection.Header.Default);
@@ -3702,7 +3706,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordParagraph footerParagraph = Assert.Single(
                     reloaded.Sections[0].Footer.Default!.Paragraphs,
@@ -3738,7 +3742,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 List<WordParagraph> footerParagraphs = reloaded.Sections[0].Footer.Default!.Paragraphs;
                 Assert.Contains(footerParagraphs, paragraph => paragraph.Text == "Page ");
@@ -3784,7 +3788,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 List<WordParagraph> footerParagraphs = reloaded.Sections[0].Footer.Default!.Paragraphs;
                 Assert.Contains(footerParagraphs, paragraph => paragraph.Text == "Page ");
@@ -3832,7 +3836,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 List<WordParagraph> paragraphs = reloaded.Paragraphs;
                 Assert.Contains(paragraphs, paragraph => paragraph.Text == "Body page ");
@@ -3882,7 +3886,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 List<WordParagraph> paragraphs = reloadedTable.Rows[0].Cells[0].Paragraphs;
@@ -3931,7 +3935,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
 
@@ -3971,7 +3975,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderBookmark");
 
@@ -4022,7 +4026,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderCrossBookmark");
 
@@ -4064,7 +4068,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderLevelBookmark");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FooterLevelBookmark");
@@ -4113,7 +4117,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EmptyHeaderBookmark");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EmptyFooterBookmark");
@@ -4165,7 +4169,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 IReadOnlyList<WordParagraph> headerParagraphs = reloadedSection.Header.Default!.Paragraphs;
@@ -4245,7 +4249,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderContentControlBookmark");
@@ -4297,7 +4301,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Equal("Body with linked notes", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
 
@@ -4384,7 +4388,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Equal("Body with controlled notes", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
 
@@ -4439,7 +4443,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteBookmarkOnlyContentControl");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteBookmarkOnlyContentControl");
@@ -4526,7 +4530,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BodyInlineContentControlBookmark");
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "BodyInlineOneBodyInlineNestedBodyInlineTwo");
@@ -4584,7 +4588,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteBookmark");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteBookmark");
@@ -4642,7 +4646,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteCrossBookmark");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteCrossBookmark");
@@ -4704,7 +4708,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteLevelBookmark");
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteLevelBookmark");
@@ -4767,7 +4771,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 AssertFormattedHeaderFooterRuns(reloadedSection.Header.Default!.Paragraphs);
                 AssertFormattedHeaderFooterRuns(reloadedSection.Footer.Default!.Paragraphs);
@@ -4816,7 +4820,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 AssertHeaderFooterTabsAndBreaks(reloadedSection.Header.Default!.Paragraphs);
                 AssertHeaderFooterTabsAndBreaks(reloadedSection.Footer.Default!.Paragraphs);
@@ -4856,7 +4860,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 WordParagraph headerParagraph = Assert.Single(reloadedSection.Header.Default!.Paragraphs);
                 WordParagraph footerParagraph = Assert.Single(reloadedSection.Footer.Default!.Paragraphs);
@@ -4903,7 +4907,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Body with native note", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 Assert.Equal("Native footnote", footnote.Paragraphs![1].Text);
@@ -4943,7 +4947,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 AssertFormattedNoteRuns(footnote.Paragraphs!);
@@ -4987,7 +4991,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Body with native endnote", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 Assert.Equal("Native endnote", endnote.Paragraphs![1].Text);
@@ -5023,7 +5027,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, "Footnote page ");
                 AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, "Endnote page ");
@@ -5063,7 +5067,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, "Footnote page ");
                 AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, "Endnote page ");
@@ -5106,7 +5110,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 AssertFormattedNoteRuns(endnote.Paragraphs!);
@@ -5136,7 +5140,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 AssertNoteParagraphFormatting(footnote.Paragraphs!, "Centered footnote", JustificationValues.Center);
@@ -5170,7 +5174,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
@@ -5218,7 +5222,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 AssertNoteTextWrappingCarriageReturnAndColumnBreaks(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote second", "Footnote return", "Footnote column");
                 AssertNoteTextWrappingCarriageReturnAndColumnBreaks(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote second", "Endnote return", "Endnote column");
@@ -5250,7 +5254,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 AssertNotePageBreak(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote page");
                 AssertNotePageBreak(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote page");
@@ -5290,7 +5294,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.True(reloaded.DifferentFirstPage);
                 Assert.True(reloaded.DifferentOddAndEvenPages);
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
@@ -5342,7 +5346,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("First body", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Second body", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
@@ -5381,7 +5385,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Inherited header", Assert.Single(reloaded.Sections[0].Header.Default!.Paragraphs).Text);
                 Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[0].Footer.Default!.Paragraphs).Text);
@@ -5415,7 +5419,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Inherited header", Assert.Single(reloaded.Sections[0].Header.Default!.Paragraphs).Text);
                 Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[0].Footer.Default!.Paragraphs).Text);
@@ -5437,8 +5441,8 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Initial SaveAs DOC paragraph");
 
-                    using WordDocument savedDocument = document.SaveAs(docPath);
-                    Assert.True(savedDocument.WasLoadedFromLegacyDoc);
+                    using WordDocument savedDocument = document.SaveCopy(docPath);
+                    Assert.True(savedDocument.SourceFormat == WordFileFormat.Doc);
                     Assert.Equal(docPath, savedDocument.FilePath);
 
                     savedDocument.AddParagraph("Saved again through returned document");
@@ -5462,9 +5466,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create()) {
                 document.AddParagraph("Native DOC stream");
-                document.Save(stream, new WordSaveOptions {
-                    StreamFormat = WordStreamSaveFormat.LegacyDoc
-                });
+                document.Save(stream, WordFileFormat.Doc);
             }
 
             byte[] bytes = stream.ToArray();
@@ -5477,7 +5479,7 @@ namespace OfficeIMO.Tests {
             stream.Seek(0, SeekOrigin.Begin);
             using WordDocument reloaded = WordDocument.Load(stream);
 
-            Assert.True(reloaded.WasLoadedFromLegacyDoc);
+            Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
             WordParagraph paragraph = Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
             Assert.Equal("Native DOC stream", paragraph.Text);
         }
@@ -5487,9 +5489,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create(autoSave: true)) {
                 document.AddParagraph("Native DOC stream remains native");
-                document.Save(stream, new WordSaveOptions {
-                    StreamFormat = WordStreamSaveFormat.LegacyDoc
-                });
+                document.Save(stream, WordFileFormat.Doc);
             }
 
             byte[] bytes = stream.ToArray();
@@ -5516,7 +5516,7 @@ namespace OfficeIMO.Tests {
             stream.Seek(0, SeekOrigin.Begin);
             using WordDocument reloaded = WordDocument.Load(stream);
 
-            Assert.False(reloaded.WasLoadedFromLegacyDoc);
+            Assert.False(reloaded.SourceFormat == WordFileFormat.Doc);
             WordParagraph paragraph = Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
             Assert.Equal("Default stream format", paragraph.Text);
         }
@@ -5552,7 +5552,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Native DOC Metadata Title", reloaded.BuiltinDocumentProperties.Title);
                 Assert.Equal("Native DOC metadata subject", reloaded.BuiltinDocumentProperties.Subject);
                 Assert.Equal("OfficeIMO Native DOC", reloaded.BuiltinDocumentProperties.Creator);
@@ -5589,7 +5589,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(3, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
@@ -5650,7 +5650,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(18, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
@@ -5720,7 +5720,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
@@ -5758,7 +5758,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, runs.Length);
                 Assert.Equal("caps ", runs[0].Text);
@@ -5813,7 +5813,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph run = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("off", run.Text);
                 RunProperties runProperties = Assert.IsType<RunProperties>(run._runProperties);
@@ -5854,7 +5854,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
@@ -5885,7 +5885,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Font", reloadedRun.Text);
                 Assert.Equal("Courier New", reloadedRun.FontFamily);
@@ -5914,7 +5914,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Font", reloadedRun.Text);
                 Assert.Equal("Courier New", reloadedRun.FontFamily);
@@ -5939,7 +5939,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Sized", reloadedRun.Text);
                 Assert.Equal(14, reloadedRun.FontSize);
@@ -5964,7 +5964,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Paragraph reloadedParagraph = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
                 Assert.Equal(1, reloadedParagraph.Descendants<TabChar>().Count());
                 Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\t'));
@@ -5996,7 +5996,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Paragraph reloadedParagraph = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
                 Break[] breaks = reloadedParagraph.Descendants<Break>().ToArray();
                 Assert.Equal(4, breaks.Length);
@@ -6051,7 +6051,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == $"Body{noBreak}NoBreak{soft}Soft");
 
@@ -6100,7 +6100,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == "BodyAfter");
                 Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<LastRenderedPageBreak>().Any());
@@ -6164,7 +6164,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == "BodyAfter");
                 WordHyperLink bodyHyperlink = Assert.Single(DistinctHyperlinks(reloaded.HyperLinks), link => link.Uri?.ToString() == "https://officeimo.net/proofing");
@@ -6259,7 +6259,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Body field " && paragraph._paragraph.Descendants<PageNumber>().Any());
@@ -6301,7 +6301,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(3, paragraphs.Length);
                 Assert.Equal("left", paragraphs[0].Text);
@@ -6338,7 +6338,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(3, paragraphs.Length);
                 Assert.Equal("plain", paragraphs[0].Text);
@@ -6380,7 +6380,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(3, paragraphs.Length);
                 Assert.Equal("plain", paragraphs[0].Text);
@@ -6430,7 +6430,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, paragraphs.Length);
                 Assert.Equal("numbered one", paragraphs[0].Text);
@@ -6463,7 +6463,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("vertical alignment", reloadedParagraph.Text);
                 Assert.Equal(VerticalTextAlignmentValues.Center, reloadedParagraph.VerticalCharacterAlignmentOnLine);
@@ -6493,7 +6493,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("outline level", reloadedParagraph.Text);
                 Assert.Equal(2, reloadedParagraph._paragraphProperties?.OutlineLevel?.Val?.Value);
@@ -6521,7 +6521,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("suppress line numbers", reloadedParagraph.Text);
                 Assert.NotNull(reloadedParagraph._paragraphProperties?.GetFirstChild<SuppressLineNumbers>());
@@ -6549,7 +6549,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("suppress auto hyphens", reloadedParagraph.Text);
                 Assert.NotNull(reloadedParagraph._paragraphProperties?.GetFirstChild<SuppressAutoHyphens>());
@@ -6577,7 +6577,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("contextual spacing", reloadedParagraph.Text);
                 Assert.NotNull(reloadedParagraph._paragraphProperties?.GetFirstChild<ContextualSpacing>());
@@ -6605,7 +6605,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("mirror indents", reloadedParagraph.Text);
                 Assert.NotNull(reloadedParagraph._paragraphProperties?.GetFirstChild<MirrorIndents>());
@@ -6634,7 +6634,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal(text, reloadedParagraph.Text);
                 AssertParagraphProperty(reloadedParagraph._paragraphProperties, propertyType);
@@ -6662,7 +6662,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("bidirectional paragraph", reloadedParagraph.Text);
                 Assert.True(reloadedParagraph.BiDi);
@@ -6689,7 +6689,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, paragraphs.Length);
                 Assert.Equal("plain", paragraphs[0].Text);
@@ -6727,7 +6727,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, paragraphs.Length);
                 Assert.Equal("plain", paragraphs[0].Text);
@@ -6792,7 +6792,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(2, paragraphs.Length);
                 Assert.Equal("plain", paragraphs[0].Text);
@@ -6869,7 +6869,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled custom paragraph", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -6938,7 +6938,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled underline highlight", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -6985,7 +6985,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled language paragraph", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7036,7 +7036,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(
                     new[] {
                         "Styled caps paragraph",
@@ -7104,7 +7104,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled suppress line numbers", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7138,7 +7138,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled suppress auto hyphens", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7172,7 +7172,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled contextual spacing", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7206,7 +7206,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled mirror indents", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7258,7 +7258,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled pagination flags", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7296,7 +7296,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled " + text, paragraph.Text);
 
@@ -7331,7 +7331,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled text alignment", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7371,7 +7371,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled outline level", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7406,7 +7406,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled bidirectional paragraph", paragraph.Text);
                 Assert.Equal(projectedStyleId, paragraph.StyleId);
@@ -7453,7 +7453,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled built-in paragraph", paragraph.Text);
                 Assert.Equal(headingStyleId, paragraph.StyleId);
@@ -7550,7 +7550,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Styled built-in pagination paragraph", paragraph.Text);
                 Assert.Equal(headingStyleId, paragraph.StyleId);
@@ -7603,7 +7603,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Custom inherits heading", paragraph.Text);
                 Assert.Equal(projectedCustomStyleId, paragraph.StyleId);
@@ -7680,7 +7680,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(2, reloadedTable.Rows.Count);
                 Assert.Equal(2, reloadedTable.Rows[0].Cells.Count);
@@ -7710,7 +7710,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 WordTableCell cell = Assert.Single(row.Cells);
@@ -7731,7 +7731,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableCell cell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", cell.Paragraphs[0].Text);
@@ -7761,7 +7761,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
@@ -7801,7 +7801,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstCell.Paragraphs[0].Text);
@@ -7863,7 +7863,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstCell.Paragraphs[0].Text);
@@ -7919,7 +7919,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstCell.Paragraphs[0].Text);
@@ -7968,7 +7968,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("direct", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -7995,7 +7995,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph firstCellRun = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
                 WordParagraph secondCellRun = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
@@ -8026,7 +8026,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph formattedCellParagraph = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
                 WordParagraph plainCellParagraph = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
@@ -8066,7 +8066,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal(2, row.Cells.Count);
@@ -8101,7 +8101,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Narrow", row.Cells[0].Paragraphs[0].Text);
@@ -8141,7 +8141,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Grid narrow", row.Cells[0].Paragraphs[0].Text);
@@ -8176,7 +8176,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal(720, row.Height);
@@ -8211,7 +8211,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Null(row.Height);
@@ -8266,7 +8266,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Header", row.Cells[0].Paragraphs[0].Text);
@@ -8297,7 +8297,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(TableRowAlignmentValues.Right, reloadedTable.Alignment);
                 Assert.Equal("Right table", Assert.Single(reloadedTable.Rows).Cells[0].Paragraphs[0].Text);
@@ -8331,7 +8331,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
@@ -8369,7 +8369,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(TableWidthUnitValues.Pct, reloadedTable.WidthType);
                 Assert.Equal(3750, reloadedTable.Width);
@@ -8430,7 +8430,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Tables.Count);
 
                 WordTable styledReloaded = reloaded.Tables[0];
@@ -8479,7 +8479,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Merged", row.Cells[0].Paragraphs[0].Text);
@@ -8511,7 +8511,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(2, reloadedTable.Rows.Count);
                 Assert.Equal("Merged", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
@@ -8539,7 +8539,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(MergedCellValues.Restart, reloadedTable.Rows[0].Cells[0].VerticalMerge);
                 Assert.Equal(MergedCellValues.Continue, reloadedTable.Rows[1].Cells[0].VerticalMerge);
@@ -8574,7 +8574,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Top", row.Cells[0].Paragraphs[0].Text);
@@ -8614,7 +8614,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Fit", row.Cells[0].Paragraphs[0].Text);
@@ -8665,7 +8665,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Clockwise", row.Cells[0].Paragraphs[0].Text);
@@ -8705,7 +8705,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Default sides", row.Cells[0].Paragraphs[0].Text);
@@ -8751,7 +8751,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Defaults", row.Cells[0].Paragraphs[0].Text);
@@ -8790,7 +8790,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal((short)240, reloadedTable.StyleDetails!.CellSpacing);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
@@ -8847,7 +8847,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Tables.Count);
 
                 WordTable styledReloaded = reloaded.Tables[0];
@@ -8900,7 +8900,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Null(reloadedTable.StyleDetails!.CellSpacing);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
@@ -8931,7 +8931,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Red", row.Cells[0].Paragraphs[0].Text);
@@ -8973,7 +8973,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Border", row.Cells[0].Paragraphs[0].Text);
@@ -9026,7 +9026,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
@@ -9066,7 +9066,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("NoTop", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Null(reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
@@ -9136,7 +9136,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -9189,7 +9189,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("ffff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -9250,7 +9250,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableCell firstStyledCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstStyledCell.Paragraphs[0].Text);
@@ -9316,7 +9316,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph firstStyled = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
                 Assert.Equal("A1", firstStyled.Text);
@@ -9377,7 +9377,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph firstStyled = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
                 Assert.Equal("A1", firstStyled.Text);
@@ -9436,7 +9436,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordParagraph firstStyled = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
                 Assert.Equal("A1", firstStyled.Text);
@@ -9516,7 +9516,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("R1C1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -9563,7 +9563,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -9623,7 +9623,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("0000ff", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -9675,7 +9675,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.True(string.IsNullOrEmpty(reloadedTable.Rows[0].Cells[0].ShadingFillColorHex));
@@ -9792,7 +9792,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(2, reloadedTable.Rows.Count);
                 Assert.Equal("Styled header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
@@ -9857,7 +9857,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(2, reloadedTable.Rows.Count);
                 Assert.Equal("Inherited header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
@@ -9966,7 +9966,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 WordParagraph inheritedParagraph = row.Cells[0].Paragraphs[0];
@@ -10015,7 +10015,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 WordParagraph inheritedRun = row.Cells[0].Paragraphs[0];
@@ -10120,7 +10120,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
@@ -10218,7 +10218,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(TableWidthUnitValues.Auto, reloadedTable.WidthType);
                 Assert.Equal(0, reloadedTable.Width);
@@ -10245,7 +10245,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal(2, row.Cells.Count);
@@ -10278,7 +10278,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Equal(2, reloaded.TablesIncludingNestedTables.Count);
                 WordTable outerTable = Assert.Single(reloaded.Tables);
@@ -10333,7 +10333,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "RowLevelBookmark");
 
@@ -10413,7 +10413,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph run = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Jezyk", run.Text);
                 Assert.Equal("pl-PL", run.Language);
@@ -10447,7 +10447,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedBody = Assert.Single(reloaded.Paragraphs, paragraph => paragraph.Text == "Body paragraph mark");
                 ParagraphMarkRunProperties bodyMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
                     reloadedBody._paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
@@ -10484,7 +10484,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph header = Assert.Single(Assert.Single(reloaded.Sections).Header.Default!.Paragraphs);
                 Assert.Equal("Rich header", header.Text);
                 ParagraphMarkRunProperties paragraphMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
@@ -10514,7 +10514,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 WordParagraph reloadedFootnoteBody = footnote.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
                 ParagraphMarkRunProperties paragraphMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
@@ -10859,7 +10859,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Landscape section", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(PageOrientationValues.Landscape, reloaded.PageOrientation);
                 Assert.Equal((uint)15840, reloaded.PageSettings.Width?.Value);
@@ -10894,7 +10894,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Portrait section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Landscape section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
@@ -10938,7 +10938,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Text paragraph section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Default section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
@@ -10975,7 +10975,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Controlled section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
@@ -11024,7 +11024,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Equal(2, reloaded.Sections.Count);
                 WordTable reloadedTable = Assert.Single(reloaded.Sections[0].Tables);
@@ -11067,7 +11067,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 WordTable reloadedTable = Assert.Single(reloaded.Sections[0].Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
@@ -11107,7 +11107,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableCell reloadedCell = reloadedTable.Rows[0].Cells[0];
@@ -11174,7 +11174,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 WordTable reloadedTable = Assert.Single(reloaded.Sections[0].Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
@@ -11216,7 +11216,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections.Count);
                 Assert.Equal("Before continuous section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal(sectionText, Assert.Single(reloaded.Sections[1].Paragraphs).Text);
@@ -11249,7 +11249,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Columns", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(2, reloaded.Sections[0].ColumnCount);
                 Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
@@ -11280,7 +11280,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Page numbers", Assert.Single(reloaded.Paragraphs).Text);
                 PageNumberType pageNumberType = reloaded.Sections[0].PageNumberType;
                 Assert.Equal(3, pageNumberType.Start?.Value);
@@ -11309,7 +11309,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("RTL gutter", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.True(reloaded.Sections[0].RtlGutter);
             } finally {
@@ -11336,7 +11336,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Bottom aligned section", Assert.Single(reloaded.Paragraphs).Text);
                 VerticalTextAlignmentOnPage verticalAlignment = reloaded.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
                 Assert.NotNull(verticalAlignment);
@@ -11373,7 +11373,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Line numbering", Assert.Single(reloaded.Paragraphs).Text);
                 LineNumberType lineNumbering = reloaded.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
                 Assert.NotNull(lineNumbering);
@@ -11420,7 +11420,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Note settings", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(FootnotePositionValues.BeneathText, reloaded.Sections[0].FootnoteProperties.FootnotePosition?.Val?.Value);
                 Assert.Equal(RestartNumberValues.EachPage, reloaded.Sections[0].FootnoteProperties.NumberingRestart?.Val?.Value);
@@ -11493,7 +11493,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Section-end endnote placement", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(EndnotePositionValues.SectionEnd, reloaded.Sections[0].EndnoteProperties.EndnotePosition?.Val?.Value);
             } finally {
@@ -11527,7 +11527,7 @@ namespace OfficeIMO.Tests {
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
-                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Extended line numbering", Assert.Single(reloaded.Paragraphs).Text);
                 LineNumberType lineNumbering = reloaded.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
                 Assert.NotNull(lineNumbering);
@@ -11619,9 +11619,7 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                document.Save(output, new WordSaveOptions {
-                    StreamFormat = WordStreamSaveFormat.LegacyDoc
-                }));
+                document.Save(output, WordFileFormat.Doc));
 
             Assert.Contains("imported from a legacy DOC", exception.Message);
             Assert.Contains("DOC-BINARY-DATA-STREAM-PRESENT", exception.Message);

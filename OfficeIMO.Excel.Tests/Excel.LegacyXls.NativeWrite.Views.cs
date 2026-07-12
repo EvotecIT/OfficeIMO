@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument loaded = ExcelDocument.Load(xlsOutputPath);
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
 
-                Assert.True(loaded.WasLoadedFromLegacyXls);
+                Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
                 ExcelWorksheetViewInfo view = loadedSheet.GetViewInfo();
                 Assert.False(view.ShowGridlines);
                 Assert.False(loadedSheet.RowColumnHeadingsVisible);

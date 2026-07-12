@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("HR", comment.Initials);
             Assert.Equal("reviewer note", comment.Text);
 
-            using var stream = doc.SaveAsMemoryStream();
+            using var stream = doc.ToDocxStream();
             using var loaded = WordDocument.Load(stream);
             var loadedComment = Assert.Single(loaded.Comments);
             Assert.Equal("HTML Reviewer", loadedComment.Author);

@@ -76,7 +76,7 @@ public class RtfAdapterBenchmarks {
     [BenchmarkCategory("Word")]
     public byte[] Word() {
         using WordDocument word = _document.ToWordDocument();
-        using MemoryStream stream = word.SaveAsMemoryStream();
+        using MemoryStream stream = word.ToDocxStream();
         return stream.ToArray();
     }
 

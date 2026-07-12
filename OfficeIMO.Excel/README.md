@@ -69,21 +69,22 @@ ExcelDocument.Convert("openxml.xlsx", "native-copy.xls");
 
 BIFF8 `.xls` files load through the normal `ExcelDocument.Load` entry point.
 Supported cells, formulas, styles, names, comments, filters, validations,
-conditional formatting, layout, protection metadata, document properties, and
-other workbook metadata project into the normal OfficeIMO model. Preserve-only
-legacy content such as drawings, charts, PivotTables, external query caches,
-macros, embedded OLE objects, signatures, and older BIFF formats is reported
-through `InspectFeatures()` and the legacy import diagnostics attached to the
-document instead of being silently dropped.
+conditional formatting, layout, protection metadata, document properties,
+images, drawings, tables, and chart sheets project into the normal OfficeIMO
+model. Unsupported sheet kinds, VBA, embedded OLE content, signatures, and
+unprojected BIFF records are reported through the legacy import diagnostics
+instead of being silently dropped.
 
 Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
 When a workbook contains a feature outside the supported BIFF8 writer subset,
 OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
 `ExcelDocument.Convert(...)` uses those same load and save paths and blocks
-legacy sources with unsupported or preserve-only content by default; set
-`ExcelDocumentConversionOptions.AllowLossyLegacyConversion` only after reviewing
-that loss.
+legacy sources with unsupported or preserve-only content by default. Set
+`LossPolicy` to `ExcelConversionLossPolicy.Allow` on conversion or save options
+only after reviewing that loss. See
+[XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-roadmap.md) for
+the current capability matrix, safety contract, and breaking API migration.
 
 ### Map rows to objects
 
