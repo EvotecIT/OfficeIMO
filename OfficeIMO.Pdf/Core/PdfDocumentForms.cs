@@ -276,6 +276,18 @@ public sealed class PdfDocumentForms {
         return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlatten(fieldValues, formOptions), readOptions);
     }
 
+    /// <summary>Exports readable field values as a typed data set.</summary>
+    public PdfFormDataSet ExportData() => PdfFormData.Export(_document.Snapshot(), _document.ReadOptions);
+
+    /// <summary>Exports readable field values as XFDF.</summary>
+    public string ExportXfdf() => ExportData().ToXfdf();
+
+    /// <summary>Imports a typed data set through the validated form filler.</summary>
+    public PdfDocument ImportData(PdfFormDataSet data, PdfFormFillerOptions? options = null) => PdfDocument.FromBytes(PdfFormData.Import(_document.Snapshot(), data, options));
+
+    /// <summary>Imports XFDF through the validated form filler.</summary>
+    public PdfDocument ImportXfdf(string xfdf, PdfFormFillerOptions? options = null) => PdfDocument.FromBytes(PdfFormData.ImportXfdf(_document.Snapshot(), xfdf, options));
+
     private static PdfIncrementalFormFieldUpdateOptions CreateIncrementalOptions(PdfFormFillerOptions? formOptions) {
         if (formOptions?.HasAppearanceFontFamily == true || formOptions?.HasAppearanceFontFallbacks == true) {
             throw new NotSupportedException("Append-only form updates cannot yet embed custom appearance fonts. Use the default appearance policy or a PDF that permits full rewrite.");
