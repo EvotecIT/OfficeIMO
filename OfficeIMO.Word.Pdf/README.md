@@ -110,7 +110,7 @@ var options = new PdfWordReadOptions {
     }
 };
 
-byte[] docx = File.ReadAllBytes("packet.pdf").ToWordDocumentBytesFromPdf(options);
+byte[] docx = File.ReadAllBytes("packet.pdf").ToWordBytesFromPdf(options);
 
 foreach (var warning in options.ConversionReport.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");

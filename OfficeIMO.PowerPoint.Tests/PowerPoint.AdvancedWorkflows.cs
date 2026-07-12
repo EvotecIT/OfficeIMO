@@ -193,9 +193,9 @@ namespace OfficeIMO.Tests {
             pictureOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
 
             byte[] controlThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
-                control.SaveAsPdf(controlOptions));
+                control.ToPdf(controlOptions));
             byte[] pictureThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
-                withPicture.SaveAsPdf(pictureOptions));
+                withPicture.ToPdf(pictureOptions));
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 controlThumbnail, pictureThumbnail, channelTolerance: 0, allowedDifferentPixels: 0);
 

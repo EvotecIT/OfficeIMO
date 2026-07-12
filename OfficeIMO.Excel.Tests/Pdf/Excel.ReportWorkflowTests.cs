@@ -60,7 +60,7 @@ public partial class Excel {
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport)));
 
                 document.Save();
-                pdfBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                pdfBytes = document.ToPdf(new ExcelPdfSaveOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,
                     PageSize = new PdfCore.PageSize(560, 520),

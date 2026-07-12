@@ -52,6 +52,30 @@ public static partial class MarkdownPdfConverterExtensions {
         return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
     }
 
+    /// <summary>Converts a Markdown file to PDF bytes.</summary>
+    public static byte[] ToPdfFromMarkdownFile(this string path, MarkdownPdfSaveOptions? options = null) =>
+        path.ToPdfDocumentFromMarkdownFile(options).ToBytes();
+
+    /// <summary>Saves a Markdown file as PDF.</summary>
+    public static void SaveAsPdfFromMarkdownFile(this string markdownPath, string pdfPath, MarkdownPdfSaveOptions? options = null) =>
+        markdownPath.ToPdfDocumentFromMarkdownFile(options).Save(pdfPath);
+
+    /// <summary>Writes a Markdown file as PDF to a caller-owned stream.</summary>
+    public static void SaveAsPdfFromMarkdownFile(this string markdownPath, Stream stream, MarkdownPdfSaveOptions? options = null) =>
+        markdownPath.ToPdfDocumentFromMarkdownFile(options).Save(stream);
+
+    /// <summary>Attempts to save a Markdown file as PDF and returns diagnostics instead of throwing.</summary>
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdownFile(this string markdownPath, string pdfPath, MarkdownPdfSaveOptions? options = null) {
+        try { return markdownPath.ToPdfDocumentFromMarkdownFile(options).TrySave(pdfPath); }
+        catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(pdfPath, ex); }
+    }
+
+    /// <summary>Attempts to write a Markdown file as PDF and returns diagnostics instead of throwing.</summary>
+    public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdownFile(this string markdownPath, Stream stream, MarkdownPdfSaveOptions? options = null) {
+        try { return markdownPath.ToPdfDocumentFromMarkdownFile(options).TrySave(stream); }
+        catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
+    }
+
     /// <summary>
     /// Converts a Markdown document model to a first-party OfficeIMO PDF document model.
     /// </summary>
@@ -164,13 +188,6 @@ public static partial class MarkdownPdfConverterExtensions {
         return document.ToPdfDocument(options).ToBytes();
     }
 
-    /// <summary>Returns a Markdown-file PDF result. Prefer <see cref="ToPdfResultFromMarkdownFile(string, MarkdownPdfSaveOptions?)"/>.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResultFromMarkdownFile(this string path, MarkdownPdfSaveOptions? options = null) =>
-        path.ToPdfResultFromMarkdownFile(options);
-
-    /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(MarkdownDoc, MarkdownPdfSaveOptions?)"/>.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MarkdownDoc document, MarkdownPdfSaveOptions? options = null) => document.ToPdfResult(options);
-
     /// <summary>Parses Markdown text and converts it to PDF bytes.</summary>
     /// <example><code>byte[] pdf = markdown.ToPdfFromMarkdown();</code></example>
     public static byte[] ToPdfFromMarkdown(this string markdown, MarkdownPdfSaveOptions? options = null) =>
@@ -195,9 +212,6 @@ public static partial class MarkdownPdfConverterExtensions {
         try { return markdown.ToPdfDocumentFromMarkdown(options).TrySave(stream); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }
-
-    /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(MarkdownDoc, MarkdownPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
-    public static byte[] SaveAsPdf(this MarkdownDoc document, MarkdownPdfSaveOptions? options = null) => document.ToPdf(options);
 
     /// <summary>
     /// Saves a Markdown document model as a PDF file.

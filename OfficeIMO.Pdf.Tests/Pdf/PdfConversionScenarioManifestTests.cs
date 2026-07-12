@@ -2202,7 +2202,7 @@ public sealed class PdfConversionScenarioManifestTests {
             document.SetPrintArea(sheet, "A1:H14", save: false);
             document.Save();
 
-            return document.SaveAsPdf(new ExcelPdfSaveOptions {
+            return document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 3,
                 PageSize = new PdfCore.PageSize(560, 360),

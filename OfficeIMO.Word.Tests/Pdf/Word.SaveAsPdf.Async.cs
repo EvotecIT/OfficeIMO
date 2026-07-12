@@ -116,7 +116,7 @@ public partial class Word {
 
             using (var cts = new CancellationTokenSource()) {
                 cts.Cancel();
-                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(cancellationToken: cts.Token));
+                await Assert.ThrowsAsync<OperationCanceledException>(() => document.ToPdfAsync(cancellationToken: cts.Token));
             }
         }
     }

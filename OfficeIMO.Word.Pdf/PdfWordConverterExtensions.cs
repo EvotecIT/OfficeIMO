@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads source PDF bytes and returns a serialized Word document package.</summary>
-        public static byte[] ToWordDocumentBytesFromPdf(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static byte[] ToWordBytesFromPdf(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfBytes == null) {
                 throw new ArgumentNullException(nameof(pdfBytes));
             }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF stream and returns a serialized Word document package.</summary>
-        public static byte[] ToWordDocumentBytesFromPdf(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static byte[] ToWordBytesFromPdf(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfStream == null) {
                 throw new ArgumentNullException(nameof(pdfStream));
             }
@@ -78,13 +78,13 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF file and returns a serialized Word document package.</summary>
-        public static byte[] ToWordDocumentBytesFromPdfFile(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static byte[] ToWordBytesFromPdfFile(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }
 
             using var stream = new MemoryStream();
-            SavePdfFileAsWord(pdfPath, stream, options, readOptions);
+            SavePdfAsWord(pdfPath, stream, options, readOptions);
             return stream.ToArray();
         }
 
@@ -119,7 +119,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF file and saves semantic Word output to a file.</summary>
-        public static void SavePdfFileAsWord(string pdfPath, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SavePdfAsWord(string pdfPath, string documentPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Reads a PDF file and saves semantic Word output to a writable stream.</summary>
-        public static void SavePdfFileAsWord(string pdfPath, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static void SavePdfAsWord(string pdfPath, Stream documentStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }

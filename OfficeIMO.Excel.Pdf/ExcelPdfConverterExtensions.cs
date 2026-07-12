@@ -107,12 +107,6 @@ namespace OfficeIMO.Excel.Pdf {
             return document.ToPdfDocument(options).ToBytes();
         }
 
-        /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(ExcelDocument, ExcelPdfSaveOptions?)"/>.</summary>
-        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) => document.ToPdfResult(options);
-
-        /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(ExcelDocument, ExcelPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
-        public static byte[] SaveAsPdf(this ExcelDocument document, ExcelPdfSaveOptions? options = null) => document.ToPdf(options);
-
         /// <summary>
         /// Saves an Excel workbook as a PDF file.
         /// </summary>

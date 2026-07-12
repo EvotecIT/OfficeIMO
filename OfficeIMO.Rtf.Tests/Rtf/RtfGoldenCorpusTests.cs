@@ -91,7 +91,7 @@ public class RtfGoldenCorpusTests {
             }
 
             if (fixture.Adapters.Contains("Pdf")) {
-                Assert.NotEmpty(document.SaveAsPdf());
+                Assert.NotEmpty(document.ToPdf());
             }
 
             if (fixture.Adapters.Contains("Word")) {

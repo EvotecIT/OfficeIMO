@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult result = slide.ToImage()
                 .As(OfficeImageExportFormat.Svg)
                 .WithoutContent()
-                .SaveTo(output);
+                .Save(output);
 
             Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
             Assert.Equal(result.Bytes.Length, output.Length);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ToImageFriendlyAliasesExportPngAndSvg() {
+        public void PowerPointSlide_ToImageUsesConfiguredFormatForBytes() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
@@ -76,10 +76,12 @@ namespace OfficeIMO.Tests {
 
             byte[] png = slide.ToImage()
                 .WithoutContent()
-                .ToPng();
-            string svg = slide.ToImage()
+                .AsPng()
+                .ToBytes();
+            string svg = Encoding.UTF8.GetString(slide.ToImage()
                 .WithoutContent()
-                .ToSvg();
+                .AsSvg()
+                .ToBytes());
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
@@ -102,7 +104,8 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-images-" + Guid.NewGuid().ToString("N"));
             try {
                 IReadOnlyList<OfficeImageExportResult> visibleResults = presentation.ToImages()
-                    .SaveAsSvg(folder);
+                    .AsSvg()
+                    .Save(folder);
 
                 Assert.Single(visibleResults);
                 Assert.Equal("Slide 1", visibleResults[0].Name);
@@ -116,7 +119,8 @@ namespace OfficeIMO.Tests {
                 string allFolder = Path.Combine(folder, "all");
                 IReadOnlyList<OfficeImageExportResult> allResults = presentation.ToImages()
                     .IncludeHiddenSlides()
-                    .SaveAsSvg(allFolder);
+                    .AsSvg()
+                    .Save(allFolder);
 
                 Assert.Equal(2, allResults.Count);
                 Assert.Equal("Slide 2", allResults[1].Name);
@@ -153,7 +157,8 @@ namespace OfficeIMO.Tests {
             try {
                 IReadOnlyList<OfficeImageExportResult> selectedResults = presentation.ToImages()
                     .ForSlides(3, 1, 3)
-                    .SaveAsSvg(folder);
+                    .AsSvg()
+                    .Save(folder);
 
                 Assert.Equal(2, selectedResults.Count);
                 Assert.Equal("Slide 1", selectedResults[0].Name);
@@ -168,7 +173,8 @@ namespace OfficeIMO.Tests {
                 IReadOnlyList<OfficeImageExportResult> rangeResults = presentation.ToImages()
                     .ForSlideRange(2, 3)
                     .IncludeHiddenSlides()
-                    .SaveAsSvg(rangeFolder);
+                    .AsSvg()
+                    .Save(rangeFolder);
 
                 Assert.Equal(2, rangeResults.Count);
                 Assert.Equal("Slide 2", rangeResults[0].Name);

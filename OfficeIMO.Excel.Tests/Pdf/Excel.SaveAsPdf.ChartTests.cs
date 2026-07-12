@@ -55,8 +55,8 @@ public partial class Excel {
                 PageSize = new PdfCore.PageSize(480, 360),
                 Margins = PdfCore.PageMargins.Uniform(24)
             };
-            bytes = document.SaveAsPdf(options);
-            disabledBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(options);
+            disabledBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 UseWorksheetCharts = false,
@@ -103,7 +103,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -155,7 +155,7 @@ public partial class Excel {
             sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "chart-quality");
@@ -217,7 +217,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 520),
@@ -271,7 +271,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(520, 620),
@@ -312,7 +312,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -424,7 +424,7 @@ public partial class Excel {
             sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "WorksheetChart");
@@ -466,7 +466,7 @@ public partial class Excel {
             Assert.Equal(ExcelChartType.Area, snapshot.ChartType);
 
             document.Save();
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -509,7 +509,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),
@@ -552,7 +552,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(480, 360),

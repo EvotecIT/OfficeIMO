@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// <summary>
 /// Explicit Markdown-to-PDF conversion entry points for scenarios where the source is a file path.
 /// </summary>
-public static class MarkdownPdfConverter {
+internal static class MarkdownPdfConverter {
     /// <summary>
     /// Converts a Markdown file to a first-party OfficeIMO PDF document model.
     /// </summary>

@@ -31,7 +31,7 @@ public partial class Excel {
                 footerRight: "Right Footer");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 PageSize = new PdfCore.PageSize(420, 320),
                 Margins = PdfCore.PageMargins.Uniform(54)
@@ -70,7 +70,7 @@ public partial class Excel {
                 footerRight: "Page &P of &N");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -104,7 +104,7 @@ public partial class Excel {
                 footerCenter: "&\"Times New Roman,Italic\"&10&K0000FFStyled Footer");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -143,7 +143,7 @@ public partial class Excel {
                 footerCenter: "&\"Consolas,Italic\"Alias Footer");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -177,7 +177,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -211,7 +211,7 @@ public partial class Excel {
                 footerCenter: "Plain Footer");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -252,7 +252,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -290,7 +290,7 @@ public partial class Excel {
             sheet.SetEvenPageHeaderFooter();
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -341,9 +341,9 @@ public partial class Excel {
                 PageSize = new PdfCore.PageSize(420, 320),
                 Margins = PdfCore.PageMargins.Uniform(54)
             };
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
 
-            disabledBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            disabledBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetHeaderFooterImages = false,
                 PageSize = new PdfCore.PageSize(420, 320),
@@ -397,7 +397,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -435,7 +435,7 @@ public partial class Excel {
             sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader", footerCenter: "DoNotExportFooter");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetHeadersAndFooters = false
             });

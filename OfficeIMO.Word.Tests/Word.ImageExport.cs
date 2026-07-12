@@ -66,8 +66,9 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult png = document.ToImage()
                 .FirstPage()
-                .HighResolution()
-                .ExportPng();
+                .ForHighResolution()
+                .AsPng()
+                .Export();
 
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
@@ -77,7 +78,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordDocument_ToImageFriendlyAliasesExportPngAndSvg() {
+        public void WordDocument_ToImageUsesConfiguredFormatForBytes() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.PageSize = WordPageSize.A4;
@@ -86,10 +87,12 @@ namespace OfficeIMO.Tests {
 
             byte[] png = document.ToImage()
                 .FirstPage()
-                .ToPng();
-            string svg = document.ToImage()
+                .AsPng()
+                .ToBytes();
+            string svg = Encoding.UTF8.GetString(document.ToImage()
                 .FirstPage()
-                .ToSvg();
+                .AsSvg()
+                .ToBytes());
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);

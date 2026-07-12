@@ -37,7 +37,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
@@ -68,7 +68,7 @@ public partial class Excel {
             sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Rotated Logo").SetRotation(30);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
@@ -94,7 +94,7 @@ public partial class Excel {
             sheet.SetRowHidden(2, true);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 RespectWorksheetHiddenRowsAndColumns = true
             });
@@ -133,7 +133,7 @@ public partial class Excel {
             sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -156,7 +156,7 @@ public partial class Excel {
             sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -184,7 +184,7 @@ public partial class Excel {
             sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(420, 360),

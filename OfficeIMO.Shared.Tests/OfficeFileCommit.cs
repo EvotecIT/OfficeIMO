@@ -41,5 +41,19 @@ namespace OfficeIMO.Shared.Tests {
                 if (File.Exists(path)) File.Delete(path);
             }
         }
+
+        [Fact]
+        public void WriteAllBytes_CreatesMissingDestinationDirectory() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string path = Path.Combine(root, "nested", "artifact.bin");
+
+            try {
+                OfficeFileCommit.WriteAllBytes(path, new byte[] { 1, 2, 3, 4 });
+
+                Assert.Equal(new byte[] { 1, 2, 3, 4 }, File.ReadAllBytes(path));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
     }
 }

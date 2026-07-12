@@ -25,6 +25,7 @@ namespace OfficeIMO.Core.Internal {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 #endif
 
+            EnsureTargetDirectory(targetPath);
             string temporaryPath = CreateTemporaryPath(targetPath);
             try {
                 using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
@@ -61,6 +62,7 @@ namespace OfficeIMO.Core.Internal {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 #endif
 
+            EnsureTargetDirectory(targetPath);
             string temporaryPath = CreateTemporaryPath(targetPath);
             try {
                 using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 8192, FileOptions.Asynchronous)) {
@@ -157,6 +159,12 @@ namespace OfficeIMO.Core.Internal {
             }
 
             return fullTargetPath;
+        }
+
+        private static void EnsureTargetDirectory(string targetPath) {
+            string fullTargetPath = GetFullTargetPath(targetPath);
+            string? directory = Path.GetDirectoryName(fullTargetPath);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         }
 
         private static string CreateBackupPath(string targetPath) {

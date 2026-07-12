@@ -74,8 +74,8 @@ public class RtfPdfConverterTests {
         paragraph.AddText("Visible ");
         paragraph.AddText("Hidden").SetHidden();
 
-        string defaultText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf()).ExtractText();
-        string includedText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf(new RtfPdfSaveOptions {
+        string defaultText = PdfCore.PdfReadDocument.Load(document.ToPdf()).ExtractText();
+        string includedText = PdfCore.PdfReadDocument.Load(document.ToPdf(new RtfPdfSaveOptions {
             IncludeHiddenText = true
         })).ExtractText();
 
@@ -101,7 +101,7 @@ public class RtfPdfConverterTests {
             IncludeTables = false
         };
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
         PdfCore.PdfDocument processed = result.Document.AppendMetadataRevision(title: "Processed RTF PDF");
 
         options.ConversionReport.Clear();
@@ -534,8 +534,8 @@ public class RtfPdfConverterTests {
         RtfRun annotationRun = paragraph.AddAnnotation("3", "Annotation body");
         annotationRun.Note!.Author = "Alice";
 
-        string defaultText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf()).ExtractText();
-        string skippedText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf(new RtfPdfSaveOptions {
+        string defaultText = PdfCore.PdfReadDocument.Load(document.ToPdf()).ExtractText();
+        string skippedText = PdfCore.PdfReadDocument.Load(document.ToPdf(new RtfPdfSaveOptions {
             IncludeNotes = false
         })).ExtractText();
 

@@ -52,9 +52,10 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult png = sheet.Range("A1:B1")
                 .ToImage()
                 .WithoutGridlines()
-                .Preview()
-                .AtScale(2D)
-                .ExportPng();
+                .ForPreview()
+                .WithScale(2D)
+                .AsPng()
+                .Export();
 
             Assert.Equal(OfficeImageExportFormat.Png, png.Format);
             OfficeImageInfo info = OfficeImageReader.Identify(png.Bytes);
@@ -64,7 +65,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ToImageFriendlyAliasesExportPngAndSvg() {
+        public void ExcelRange_ToImageUsesConfiguredFormatForBytes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("Data");
@@ -73,11 +74,13 @@ namespace OfficeIMO.Tests {
             byte[] png = sheet.Range("A1:A1")
                 .ToImage()
                 .WithoutGridlines()
-                .ToPng();
-            string svg = sheet.Range("A1:A1")
+                .AsPng()
+                .ToBytes();
+            string svg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1")
                 .ToImage()
                 .WithoutGridlines()
-                .ToSvg();
+                .AsSvg()
+                .ToBytes());
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
@@ -3612,7 +3615,7 @@ namespace OfficeIMO.Tests {
                 .ForSheets("Second")
                 .WithoutGridlines()
                 .As(OfficeImageExportFormat.Svg)
-                .SaveTo(folder);
+                .Save(folder);
 
             OfficeImageExportResult result = Assert.Single(results);
             Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
@@ -3637,7 +3640,7 @@ namespace OfficeIMO.Tests {
 
             var options = new ExcelWorkbookImageExportOptions { SheetNames = new[] { "Second", "Missing" } };
             ArgumentException exportException = Assert.Throws<ArgumentException>(() => document.ExportImages(OfficeImageExportFormat.Png, options));
-            ArgumentException saveException = Assert.Throws<ArgumentException>(() => document.ToImages().ForSheets("Missing").SaveTo(folder));
+            ArgumentException saveException = Assert.Throws<ArgumentException>(() => document.ToImages().ForSheets("Missing").Save(folder));
 
             Assert.Contains("Missing", exportException.Message, StringComparison.Ordinal);
             Assert.Contains("Missing", saveException.Message, StringComparison.Ordinal);

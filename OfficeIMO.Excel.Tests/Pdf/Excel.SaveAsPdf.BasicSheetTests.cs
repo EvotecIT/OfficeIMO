@@ -52,7 +52,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "Explicit serif default");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 FontFamily = "serif",
                 IncludeSheetHeadings = false
             });
@@ -163,7 +163,7 @@ public partial class Excel {
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 SheetNames = new[] { "summary" }
             });
         }
@@ -192,12 +192,12 @@ public partial class Excel {
             Assert.True(hidden.Hidden);
             document.Save();
 
-            visibleBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            visibleBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
 
-            explicitHiddenBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            explicitHiddenBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 SheetNames = new[] { "Hidden" },
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0

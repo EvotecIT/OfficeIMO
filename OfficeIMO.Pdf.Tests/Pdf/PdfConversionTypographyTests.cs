@@ -212,7 +212,7 @@ public sealed class PdfConversionTypographyTests {
             table.Rows[2].Cells[1].Paragraphs[0].Text = "Київ";
             document.Save();
 
-            return document.SaveAsPdf(new WordPdf.PdfSaveOptions {
+            return document.ToPdf(new WordPdf.PdfSaveOptions {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             });
@@ -333,7 +333,7 @@ Zażółć gęślą jaźń
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             };
-            _ = document.SaveAsPdf(options);
+            _ = document.ToPdf(options);
             return options.ConversionReport;
         } finally {
             if (Directory.Exists(directory)) {
@@ -355,7 +355,7 @@ Zażółć gęślą jaźń
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludeSheetHeadings = false
             };
-            _ = document.SaveAsPdf(options);
+            _ = document.ToPdf(options);
             return options.ConversionReport;
         } finally {
             if (Directory.Exists(directory)) {
@@ -383,7 +383,7 @@ Zażółć gęślą jaźń
         var options = new PowerPointPdfSaveOptions {
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        _ = presentation.SaveAsPdf(options);
+        _ = presentation.ToPdf(options);
         return options.ConversionReport;
     }
 
@@ -399,7 +399,7 @@ Zażółć gęślą jaźń
             var options = new WordPdf.PdfSaveOptions {
                 IncludePageNumbers = false
             };
-            AssertRenderAttempt(() => document.SaveAsPdf(options), allowMissingGlyphFailure);
+            AssertRenderAttempt(() => document.ToPdf(options), allowMissingGlyphFailure);
             return options.ConversionReport;
         } finally {
             if (Directory.Exists(directory)) {
@@ -420,7 +420,7 @@ Zażółć gęślą jaźń
             var options = new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
             };
-            AssertRenderAttempt(() => document.SaveAsPdf(options), allowMissingGlyphFailure);
+            AssertRenderAttempt(() => document.ToPdf(options), allowMissingGlyphFailure);
             return options.ConversionReport;
         } finally {
             if (Directory.Exists(directory)) {
@@ -445,7 +445,7 @@ Zażółć gęślą jaźń
         textBox.FontSize = 14;
 
         var options = new PowerPointPdfSaveOptions();
-        AssertRenderAttempt(() => presentation.SaveAsPdf(options), allowMissingGlyphFailure);
+        AssertRenderAttempt(() => presentation.ToPdf(options), allowMissingGlyphFailure);
         return options.ConversionReport;
     }
 

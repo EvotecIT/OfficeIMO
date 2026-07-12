@@ -52,7 +52,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using (PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes))) {

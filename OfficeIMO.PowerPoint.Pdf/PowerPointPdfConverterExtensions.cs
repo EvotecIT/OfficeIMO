@@ -80,12 +80,6 @@ public static partial class PowerPointPdfConverterExtensions {
         return presentation.ToPdfDocument(options).ToBytes();
     }
 
-    /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(PptCore.PowerPointPresentation, PowerPointPdfSaveOptions?)"/>.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) => presentation.ToPdfResult(options);
-
-    /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(PptCore.PowerPointPresentation, PowerPointPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
-    public static byte[] SaveAsPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) => presentation.ToPdf(options);
-
     /// <summary>
     /// Saves a PowerPoint presentation as a PDF file.
     /// </summary>

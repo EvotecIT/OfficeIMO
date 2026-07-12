@@ -37,7 +37,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -80,7 +80,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(260, 260),
@@ -128,7 +128,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(320, 220),
@@ -167,7 +167,7 @@ public partial class Excel {
 
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),

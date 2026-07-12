@@ -36,8 +36,8 @@ public partial class DrawingTests {
         OfficeImageExportResult customized = builder
             .ForHighResolution()
             .AsSvg()
-            .AtScale(1.5D)
-            .OnTransparentBackground()
+            .WithScale(1.5D)
+            .WithBackground(OfficeColor.Transparent)
             .Export();
 
         Assert.Equal(OfficeImageExportFormat.Svg, customized.Format);
@@ -46,12 +46,12 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeImageExportBuilder_AcceptsNamedAndHexBackgroundAliases() {
+    public void OfficeImageExportBuilder_AcceptsNamedAndHexBackgrounds() {
         var options = new TestImageExportOptions();
         var builder = new TestImageExportBuilder(options);
 
         OfficeImageExportResult named = builder
-            .OnBackground("RebeccaPurple")
+            .WithBackground("RebeccaPurple")
             .Export();
 
         Assert.Equal(OfficeColor.RebeccaPurple, options.BackgroundColor);
@@ -64,10 +64,10 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.FromRgba(0x33, 0x66, 0x99, 0xCC), options.BackgroundColor);
         Assert.Equal("#336699CC", hex.Source);
 
-        builder.WhiteBackground();
+        builder.WithBackground(OfficeColor.White);
         Assert.Equal(OfficeColor.White, options.BackgroundColor);
 
-        builder.TransparentBackground();
+        builder.WithBackground(OfficeColor.Transparent);
         Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
     }
 
@@ -79,7 +79,7 @@ public partial class DrawingTests {
         IReadOnlyList<OfficeImageExportResult> results = builder
             .ForHighResolution()
             .AsSvg()
-            .OnWhiteBackground()
+            .WithBackground(OfficeColor.White)
             .Export();
 
         OfficeImageExportResult result = Assert.Single(results);
@@ -90,12 +90,12 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeImageExportBatchBuilder_AcceptsNamedAndHexBackgroundAliases() {
+    public void OfficeImageExportBatchBuilder_AcceptsNamedAndHexBackgrounds() {
         var options = new TestImageExportOptions();
         var builder = new TestImageExportBatchBuilder(options);
 
         IReadOnlyList<OfficeImageExportResult> named = builder
-            .OnBackground("SteelBlue")
+            .WithBackground("SteelBlue")
             .Export();
 
         Assert.Equal(OfficeColor.SteelBlue, options.BackgroundColor);
@@ -108,10 +108,10 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.FromRgb(0x11, 0x22, 0x33), options.BackgroundColor);
         Assert.Equal("#112233", Assert.Single(hex).Source);
 
-        builder.WhiteBackground();
+        builder.WithBackground(OfficeColor.White);
         Assert.Equal(OfficeColor.White, options.BackgroundColor);
 
-        builder.TransparentBackground();
+        builder.WithBackground(OfficeColor.Transparent);
         Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
     }
 

@@ -28,6 +28,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

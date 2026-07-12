@@ -27,7 +27,7 @@ public partial class Excel {
             sheet.Cell(2, 2, "Custom");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 PageSize = new PdfCore.PageSize(360, 240),
                 Margins = PdfCore.PageMargins.Uniform(24),
                 HeaderRowCount = 1
@@ -54,7 +54,7 @@ public partial class Excel {
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
             });
         }
@@ -79,7 +79,7 @@ public partial class Excel {
             document.SetPrintArea(sheet, "A1");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
             });
         }
@@ -121,7 +121,7 @@ public partial class Excel {
         }
 
         using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -153,7 +153,7 @@ public partial class Excel {
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetPrintAreas = true,
                 PageSize = new PdfCore.PageSize(420, 320),
@@ -182,7 +182,7 @@ public partial class Excel {
             sheet.SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
             });
         }
@@ -208,7 +208,7 @@ public partial class Excel {
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false
             });
         }
@@ -231,7 +231,7 @@ public partial class Excel {
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 PdfOptions = new PdfCore.PdfOptions {
                     PageSize = new PdfCore.PageSize(300, 220)
@@ -257,7 +257,7 @@ public partial class Excel {
             sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetPageSetup = false
             });
@@ -333,7 +333,7 @@ public partial class Excel {
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(300, 220),
@@ -377,10 +377,10 @@ public partial class Excel {
                 PageSize = new PdfCore.PageSize(420, 420),
                 Margins = PdfCore.PageMargins.Uniform(24)
             };
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
 
             options.UseWorksheetPageBreaks = false;
-            disabledBytes = document.SaveAsPdf(options);
+            disabledBytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -418,7 +418,7 @@ public partial class Excel {
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 2, firstCol: null, lastCol: null);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(420, 360),
@@ -462,10 +462,10 @@ public partial class Excel {
                 PageSize = new PdfCore.PageSize(560, 320),
                 Margins = PdfCore.PageMargins.Uniform(24)
             };
-            bytes = document.SaveAsPdf(options);
+            bytes = document.ToPdf(options);
 
             options.UseWorksheetPageBreaks = false;
-            disabledBytes = document.SaveAsPdf(options);
+            disabledBytes = document.ToPdf(options);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -500,7 +500,7 @@ public partial class Excel {
             sheet.AddManualColumnPageBreak(2);
             document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 260),

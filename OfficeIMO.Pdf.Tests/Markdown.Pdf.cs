@@ -334,7 +334,7 @@ _Figure 1. Embedded from a relative Markdown path._
             var options = new MarkdownPdfSaveOptions {
                 IncludeLocalImages = true
             };
-            MarkdownPdfConverter.SaveFileAsPdf(markdownPath, pdfPath, options);
+            markdownPath.SaveAsPdfFromMarkdownFile(pdfPath, options);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
             string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
@@ -375,7 +375,7 @@ _Figure 1. Embedded from a relative Markdown path._
             var options = new MarkdownPdfSaveOptions {
                 IncludeLocalImages = true
             };
-            MarkdownPdfConverter.SaveFileAsPdf(markdownPath, pdfPath, options);
+            markdownPath.SaveAsPdfFromMarkdownFile(pdfPath, options);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
             string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();

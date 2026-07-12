@@ -93,7 +93,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads a PDF file and saves semantic RTF output to a file.</summary>
-    public static void SavePdfFileAsRtf(string pdfPath, string rtfPath, PdfRtfReadOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, PdfCore.PdfReadOptions? pdfReadOptions = null) {
+    public static void SavePdfAsRtf(string pdfPath, string rtfPath, PdfRtfReadOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, PdfCore.PdfReadOptions? pdfReadOptions = null) {
         pdfPath.ToRtfDocumentFromPdfFile(readOptions, pdfReadOptions).Save(rtfPath, writeOptions, encoding);
     }
 
@@ -116,7 +116,7 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads a PDF file and saves semantic RTF output to a writable stream.</summary>
-    public static void SavePdfFileAsRtf(string pdfPath, Stream rtfStream, PdfRtfReadOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, PdfCore.PdfReadOptions? pdfReadOptions = null) {
+    public static void SavePdfAsRtf(string pdfPath, Stream rtfStream, PdfRtfReadOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, PdfCore.PdfReadOptions? pdfReadOptions = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
