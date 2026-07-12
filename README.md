@@ -233,7 +233,7 @@ byte[] pdf = html.ToPdf(options);
 byte[] png = html.ToPng(options);
 string svg = html.ToSvg(options);
 
-var pdfResult = html.ToPdfResult(options);
+var pdfResult = html.ToPdfDocumentResult(options);
 var pngResult = html.ToPngResult(options);
 var svgResult = html.ToSvgResult(options);
 
@@ -290,6 +290,8 @@ VisioDocument.Create("network.vsdx")
 Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Some packages also include `net472` or Windows-specific targets where the surface requires it. Check the package README or project file for exact targets.
 
 ## Deeper docs
+
+- [Breaking API migration](Docs/officeimo.breaking-api-migration.md)
 
 - [Examples](OfficeIMO.Examples/README.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)

@@ -79,7 +79,7 @@ if (!result.Succeeded) {
     }
 }
 
-foreach (var warning in options.ConversionReport.Warnings) {
+foreach (var warning in result.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
 ```
@@ -110,9 +110,11 @@ var options = new PdfWordReadOptions {
     }
 };
 
-byte[] docx = File.ReadAllBytes("packet.pdf").ToWordBytesFromPdf(options);
+var import = File.ReadAllBytes("packet.pdf").ToWordDocumentFromPdfResult(options);
+using WordDocument word = import.Value;
+byte[] docx = word.ToBytes();
 
-foreach (var warning in options.ConversionReport.Warnings) {
+foreach (var warning in import.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```
@@ -125,7 +127,7 @@ The semantic import path preserves document metadata, page breaks, headings, par
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
-- Conversion warnings through `PdfSaveOptions.Warnings` and `PdfSaveOptions.ConversionReport`.
+- Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## What it imports
 
@@ -135,11 +137,11 @@ The semantic import path preserves document metadata, page breaks, headings, par
 - Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfWordReadOptions.ImportUriLinks` and `PdfWordReadOptions.AllowedHyperlinkUriSchemes`.
 - Internal PDF destination reconstruction through `PdfWordReadOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
 - Native image embedding through `PdfWordReadOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Pass-through JPEG image payloads with unresolved PDF transparency masks are embedded with `PdfImageTransparencyMaskNotResolved`; unsupported complex PDF image streams can still produce editable placeholders through `PdfWordReadOptions.IncludeImagePlaceholders`.
-- Conversion warnings through `PdfWordReadOptions.ConversionReport`.
+- Per-operation import warnings through `PdfWordConversionResult.Report`.
 
 ## Options and diagnostics
 
-Use `PdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum; set `AllowSystemFontEmbedding = true` when Word export may embed installed host fonts for Unicode, symbols, and emoji. Keep `PdfSaveOptions.Warnings` and `PdfSaveOptions.ConversionReport` visible in wrappers and user interfaces; unsupported Word features should become actionable diagnostics instead of silent README promises.
+Use `PdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum; set `AllowSystemFontEmbedding = true` when Word export may embed installed host fonts for Unicode, symbols, and emoji. Request `ToPdfDocumentResult()` or `TrySaveAsPdf()` when diagnostics matter; unsupported Word features should become actionable operation results instead of mutable option state.
 
 ## Boundaries
 

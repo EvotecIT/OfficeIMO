@@ -16,6 +16,7 @@ dotnet add package OfficeIMO.Reader.Rtf
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Rtf;
+using OfficeIMO.Rtf;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddRtfHandler()
@@ -56,12 +57,13 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 using var stream = File.OpenRead("large-note.rtf");
-var chunks = reader.Read(stream, "large-note.rtf", new ReaderOptions {
+RtfConversionResult<IReadOnlyList<ReaderChunk>> result =
+    DocumentReaderRtfExtensions.ReadRtfResult(stream, "large-note.rtf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
-}).ToList();
+}, rtfOptions);
 
-rtfOptions.ConversionReport.RequireNoLoss();
+IReadOnlyList<ReaderChunk> chunks = result.RequireNoLoss();
 ```
 
 ### Read the semantic RTF envelope

@@ -270,7 +270,7 @@ var options = new PdfSaveOptions {
 }.UseProfile(PdfExportProfile.PrintReady);
 
 var result = document.ToPdfDocumentResult(options);
-result.ConversionReport.RequireNoErrorWarnings();
+result.Report.RequireNoErrorWarnings();
 result.Save("proposal.pdf");
 ```
 

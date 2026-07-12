@@ -58,8 +58,9 @@ using OfficeIMO.Html;
 RtfDocument document = "<p>Hello <strong>RTF</strong></p>".ToRtfDocument();
 string rtf = document.ToRtf();
 var webOptions = RtfToHtmlOptions.CreateWebSafeProfile();
-string html = document.ToHtml(webOptions);
-webOptions.ConversionReport.RequireNoLoss();
+RtfToHtmlResult result = document.ToHtmlResult(webOptions);
+string html = result.RequireValue();
+result.Report.RequireNoLoss();
 ```
 
 RTF-to-RTF editing in `OfficeIMO.Rtf` remains the lossless preservation path. The HTML bridge is semantic: it preserves supported text, inline formatting, links, lists, tables, bookmarks, fields, form fields, notes, tracked revisions, object metadata, shape metadata, and embedded PNG/JPEG images without Office/COM automation.

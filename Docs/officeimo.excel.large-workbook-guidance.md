@@ -6,7 +6,7 @@ This guide describes the current safe path for large workbook generation, readin
 
 | Workload | Preferred API | Notes |
 | --- | --- | --- |
-| DataSet or DataTable export | `InsertDataSet(...)`, `InsertDataTable(...)`, then `Save(...)` | Fast package writers can be selected automatically when the workbook shape is eligible. Check `LastSaveDiagnostics` after save to confirm the writer used or the fallback reason. |
+| DataSet or DataTable export | `InsertDataSet(...)`, `InsertDataTable(...)`, then `Save(...)` | Fast package writers are selected automatically when the workbook shape is eligible. Use `ExcelSaveOptions.DisableFastPackageWriter` only for troubleshooting or comparative validation. |
 | Object reports | `InsertObjects(...)`, table helpers, and one document-boundary save | Keep layout, AutoFit, tables, and formulas in one document session so shared strings, styles, and package finalization are batched. |
 | Wide reports with AutoFit | `Execution.SaveWorksheetAfterAutoFit = false`, then `Save(...)` | Defers worksheet-part writes until the document boundary. This is the recommended report-export mode for large generated sheets. |
 | Formula-backed reports | `doc.Calculate()` or `ExcelSaveOptions.EvaluateFormulasBeforeSave` | Only supported formula shapes are evaluated. Pair unsupported formulas with `ForceFullCalculationOnOpen` when the spreadsheet app should finish calculation. |

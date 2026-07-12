@@ -24,7 +24,6 @@ paths:
   - OfficeIMO.Reader.Html
   - OfficeIMO.Reader.Json
   - OfficeIMO.Reader.OpenDocument
-  - OfficeIMO.Reader.Text
   - OfficeIMO.Reader.Xml
   - OfficeIMO.Reader.Zip
   - OfficeIMO.Shared

@@ -72,12 +72,12 @@ Typed objects remain backed by the source XML. A targeted edit rewrites its owni
 ```csharp
 using OdtDocument document = OdtDocument.Open("input.odt");
 document.Paragraphs[0].Text = "Updated text";
-document.Save("output.odt", new OdfSaveOptions {
+OdfSaveResult result = document.SaveResult("output.odt", new OdfSaveOptions {
     CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
 });
 
-IReadOnlyList<string> rewritten = document.LastSaveReport!.RewrittenEntries;
-IReadOnlyList<string> lossy = document.LastSaveReport.LossyEntries;
+IReadOnlyList<string> rewritten = result.Report.RewrittenEntries;
+IReadOnlyList<string> lossy = result.Report.LossyEntries;
 ```
 
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
