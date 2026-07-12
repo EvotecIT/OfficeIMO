@@ -151,7 +151,7 @@ permissions, and later revisions.
 
 ### P1 - Finish The Standard Editing Workflows
 
-- [ ] Add one merge/import policy model for document metadata, outlines, named
+- [x] Add one merge/import policy model for document metadata, outlines, named
   destinations, page labels, AcroForm field-name collisions, annotation
   destinations, attachments, output intents, layers, viewer settings, and page
   size normalization. Every non-trivial choice must be reported.
@@ -161,7 +161,7 @@ permissions, and later revisions.
   followed by crop-and-translate and explicitly destructive content cropping.
 - [x] Add a bookmark editor for add/remove/rename/move/nest/retarget/rebuild,
   plus broken-target validation.
-- [ ] Add destination-conflict handling for bookmarks during page edits and
+- [x] Add destination-conflict handling for bookmarks during page edits and
   merges.
 - [ ] Expand annotation editing to create annotations on existing pages,
   update rectangles/quads/vertices/ink paths/line endings/popups/replies,

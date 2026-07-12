@@ -45,14 +45,14 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
-    public void MergeWithReport_RejectsPolicyModesThatAreNotYetEnforced() {
+    public void MergeWithReport_RejectIncomingPolicyFailsBeforeReturningArtifact() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(p => p.Text("Second")).ToBytes();
-        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine } };
+        byte[] second = PdfDocument.Create().ViewerPreferences(preferences => preferences.HideToolbar = true).Paragraph(p => p.Text("Second")).ToBytes();
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.RejectIncoming } };
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfMerger.MergeWithReport(options, first, second));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => PdfMerger.MergeWithReport(options, first, second));
 
-        Assert.Contains("ViewerPreferences=Combine", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("rejected incoming viewer state", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -137,6 +137,81 @@ public class PdfMergerPolicyTests {
         Assert.Equal("Primary", field.Name);
         Assert.Equal(new[] { 1 }, field.PageNumbers);
         Assert.Empty(PdfInspector.Inspect(merged).GetFormWidgets(2));
+    }
+
+    [Fact]
+    public void MergeWithReport_CombinesViewerPreferencesAndRetargetsIncomingOpenAction() {
+        byte[] first = PdfDocument.Create()
+            .CatalogView(PdfCatalogPageMode.UseThumbs, PdfCatalogPageLayout.OneColumn)
+            .ViewerPreferences(preferences => preferences.HideToolbar = true)
+            .Paragraph(p => p.Text("First"))
+            .ToBytes();
+        byte[] second = PdfDocument.Create()
+            .ViewerPreferences(preferences => preferences.HideMenubar = true)
+            .OpenAction(1, destinationTop: 500)
+            .Paragraph(p => p.Text("Second"))
+            .ToBytes();
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine } };
+
+        PdfReadDocument readback = PdfReadDocument.Load(PdfMerger.MergeWithReport(options, first, second).ToBytes());
+
+        Assert.Equal("UseThumbs", readback.CatalogPageMode);
+        Assert.Equal("OneColumn", readback.CatalogPageLayout);
+        Assert.True(readback.ViewerPreferences!.GetBoolean("HideToolbar"));
+        Assert.True(readback.ViewerPreferences.GetBoolean("HideMenubar"));
+        Assert.Equal(2, readback.OpenAction!.PageNumber);
+        Assert.Equal(500, readback.OpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void MergeWithReport_CombinesCompatibleCatalogStateAndOutputIntents() {
+        byte[] first = PdfDocument.Create()
+            .Language("en-US")
+            .CatalogUriBase("https://primary.example/")
+            .SrgbOutputIntent()
+            .Paragraph(p => p.Text("First"))
+            .ToBytes();
+        byte[] second = PdfDocument.Create()
+            .Language("de-DE")
+            .CatalogUriBase("https://incoming.example/")
+            .SrgbOutputIntent()
+            .Paragraph(p => p.Text("Second"))
+            .ToBytes();
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
+        PdfDocumentInfo info = PdfInspector.Inspect(result.ToBytes());
+
+        Assert.Equal("en-US", info.CatalogLanguage);
+        Assert.Equal(2, info.OutputIntentCount);
+        PdfMergeDecision catalog = Assert.Single(result.Report.Decisions, static decision => decision.Structure == "CatalogState");
+        Assert.Contains("output-intent", catalog.Action, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MergeWithReport_RebuildsIncomingOptionalContentAsVisibleLayers() {
+        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
+        byte[] second = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
+
+        PdfDocumentInfo info = PdfInspector.Inspect(PdfMerger.MergeWithReport(options, first, second).ToBytes());
+
+        Assert.Equal(new[] { "Print layer", "Hidden layer" }, info.OptionalContentGroupNames);
+        Assert.All(info.OptionalContentGroups, static group => Assert.True(group.IsInitiallyVisible));
+        Assert.Equal("Merged layers", info.OptionalContent!.DefaultConfigurationName);
+    }
+
+    [Fact]
+    public void MergeWithReport_ReportsPageNormalizationChoice() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Source")).ToBytes();
+        var options = new PdfMergeOptions {
+            ResizePages = new PdfPageResizeOptions(PageSizes.A4) { Mode = PdfPageResizeMode.Fit }
+        };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(options, source);
+
+        Assert.Single(result.Report.Decisions, static decision => decision.Structure == "PageSizeNormalization");
+        Assert.Equal(595, Math.Round(PdfInspector.Inspect(result.ToBytes()).Pages[0].Width));
     }
 
     private static byte[] BuildStructuredPdf(string title, string? author, string? subject, string heading, string attachmentPayload) {

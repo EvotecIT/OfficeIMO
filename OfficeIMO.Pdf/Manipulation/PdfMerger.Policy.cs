@@ -5,9 +5,9 @@ public static partial class PdfMerger {
         byte[] merged,
         IReadOnlyList<ImportedSource> sources,
         int primarySourceIndex,
-        PdfMergePolicy policy) {
+        PdfMergeOptions? options) {
+        PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
-        ValidatePendingStructureModes(policy);
 
         var inventories = sources.Select((source, index) => new PdfMergeSourceInventory(
             index,
@@ -18,16 +18,17 @@ public static partial class PdfMerger {
             source.Document.FormFields.Count,
             PdfAttachmentExtractor.ExtractAttachments(source.Document).Count)).ToArray();
         var decisions = new List<PdfMergeDecision>();
+        if (options?.FlattenVisualAnnotations == true) decisions.Add(new PdfMergeDecision("SourceAnnotations", PdfMergeStructureMode.Combine, "Flattened supported visual annotations before import; links, forms, and unsupported shapes remained live."));
+        if (options?.ResizePages != null) decisions.Add(new PdfMergeDecision("PageSizeNormalization", PdfMergeStructureMode.Combine, "Normalized every source page through the requested resize mode before import."));
 
+        merged = ApplyCatalogStatePolicy(merged, sources, primarySourceIndex, policy.CatalogState, decisions);
         merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions);
         merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions);
         merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions);
         merged = ApplyOutlinePolicy(merged, sources, primarySourceIndex, policy.Outlines, decisions);
         merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions);
         merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions);
-
-        AddKeepPrimaryDecision(decisions, "ViewerPreferences", policy.ViewerPreferences);
-        AddKeepPrimaryDecision(decisions, "CatalogState", policy.CatalogState);
+        merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions);
 
         PdfReadDocument readback = PdfReadDocument.Load(merged);
         int expectedPageCount = sources.Sum(static source => source.PageObjectNumbers.Length);
@@ -228,21 +229,6 @@ public static partial class PdfMerger {
         int count = 0;
         foreach (PdfOutlineItem outline in outlines) count += 1 + CountOutlines(outline.Children);
         return count;
-    }
-
-    private static void AddKeepPrimaryDecision(List<PdfMergeDecision> decisions, string structure, PdfMergeStructureMode mode) {
-        decisions.Add(new PdfMergeDecision(structure, mode, "Kept the primary structure."));
-    }
-
-    private static void ValidatePendingStructureModes(PdfMergePolicy policy) {
-        EnsureKeepPrimary(policy.ViewerPreferences, nameof(policy.ViewerPreferences));
-        EnsureKeepPrimary(policy.CatalogState, nameof(policy.CatalogState));
-    }
-
-    private static void EnsureKeepPrimary(PdfMergeStructureMode mode, string propertyName) {
-        if (mode != PdfMergeStructureMode.KeepPrimary) {
-            throw new NotSupportedException("PDF merge policy " + propertyName + "=" + mode + " is not implemented yet. The merge was not performed.");
-        }
     }
 
     private sealed class MergedOutlineNode {

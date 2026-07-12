@@ -130,7 +130,7 @@ public static partial class PdfMerger {
         }
 
         byte[] merged = WriteMerged(importedSources, primarySourceIndex);
-        return ApplyMergePolicy(merged, importedSources, primarySourceIndex, options?.Policy ?? new PdfMergePolicy());
+        return ApplyMergePolicy(merged, importedSources, primarySourceIndex, options);
     }
 
     /// <summary>
