@@ -7,8 +7,12 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO PowerPoint and native OpenDocument presentation models.</summary>
 public static class PowerPointOpenDocumentConversionExtensions {
+    /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
+    public static OdpPresentation ToOpenDocument(this PowerPointPresentation source,
+        PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
+
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdpPresentation> ToOpenDocument(this PowerPointPresentation source,
+    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = options ?? new PowerPointOpenDocumentConversionOptions();
@@ -141,8 +145,12 @@ public static class PowerPointOpenDocumentConversionExtensions {
         return new OdfConversionResult<OdpPresentation>(target, report);
     }
 
+    /// <summary>Converts an ODP document to an in-memory PowerPoint presentation.</summary>
+    public static PowerPointPresentation ToPowerPointPresentation(this OdpPresentation source,
+        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointPresentationResult(options).Value;
+
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation and reports every lossy mapping.</summary>
-    public static OdfConversionResult<PowerPointPresentation> ToPowerPointPresentation(this OdpPresentation source,
+    public static OdfConversionResult<PowerPointPresentation> ToPowerPointPresentationResult(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = options ?? new PowerPointOpenDocumentConversionOptions();

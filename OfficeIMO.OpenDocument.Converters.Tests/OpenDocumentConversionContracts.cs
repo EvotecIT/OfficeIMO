@@ -23,8 +23,8 @@ public sealed class OpenDocumentConversionContracts {
         sourceTable.Rows[0].Cells[0].Paragraphs[0].Text = "A";
         sourceTable.Rows[1].Cells[1].Paragraphs[0].Text = "B";
 
-        OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocument();
-        using OdtDocument odt = toOdt.Document;
+        OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
+        using OdtDocument odt = toOdt.Value;
         Assert.True(odt.Validate().IsValid);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "headings");
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "tables");
@@ -34,8 +34,8 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Contains(reopened.ContentBlocks, block => block.Paragraph?.Text == "Native OpenDocument conversion");
         Assert.Contains(reopened.ContentBlocks, block => block.Table != null);
 
-        OdfConversionResult<WordDocument> toWord = reopened.ToWordDocument();
-        using WordDocument roundTrip = toWord.Document;
+        OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
+        using WordDocument roundTrip = toWord.Value;
         Assert.Empty(roundTrip.ValidateDocument());
         WordDocumentSnapshot snapshot = roundTrip.CreateInspectionSnapshot();
         Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>(),
@@ -55,8 +55,8 @@ public sealed class OpenDocumentConversionContracts {
         sheet.CellAt(4, 1).SetValue("Merged");
         source.SetNamedRange("Amounts", "'Data'!$A$2:$A$2", save: false);
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocument();
-        using OdsDocument ods = toOds.Document;
+        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        using OdsDocument ods = toOds.Value;
         Assert.True(ods.Validate().IsValid);
         Assert.Equal(12.5m, ods.GetSheet("Data")!.Cell(1, 0).Value.AsDecimal());
         Assert.StartsWith("of:=", ods.GetSheet("Data")!.Cell(1, 1).Formula);
@@ -64,10 +64,10 @@ public sealed class OpenDocumentConversionContracts {
 
         using var package = new MemoryStream(ods.ToBytes());
         using OdsDocument reopened = OdsDocument.Open(package);
-        OdfConversionResult<ExcelDocument> toExcel = reopened.ToExcelDocument(new ExcelOpenDocumentConversionOptions {
+        OdfConversionResult<ExcelDocument> toExcel = reopened.ToExcelDocumentResult(new ExcelOpenDocumentConversionOptions {
             MaximumExpandedCells = 1000
         });
-        using ExcelDocument roundTrip = toExcel.Document;
+        using ExcelDocument roundTrip = toExcel.Value;
         Assert.Empty(roundTrip.ValidateDocument());
         ExcelWorksheetSnapshot snapshot = Assert.Single(roundTrip.CreateInspectionSnapshot().Worksheets);
         Assert.Contains(snapshot.Cells, cell => cell.Row == 2 && cell.Column == 1 && Convert.ToDecimal(cell.Value) == 12.5m);
@@ -89,8 +89,8 @@ public sealed class OpenDocumentConversionContracts {
         slide.Notes.Text = "Speaker note";
         slide.Transition = SlideTransition.Fade;
 
-        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocument();
-        using OdpPresentation odp = toOdp.Document;
+        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
+        using OdpPresentation odp = toOdp.Value;
         Assert.True(odp.Validate().IsValid);
         OdpSlide odpSlide = Assert.Single(odp.Slides);
         Assert.Contains(odpSlide.Shapes, shape => shape is OdpTextBox);
@@ -100,8 +100,8 @@ public sealed class OpenDocumentConversionContracts {
 
         using var package = new MemoryStream(odp.ToBytes());
         using OdpPresentation reopened = OdpPresentation.Open(package);
-        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentation();
-        using PowerPointPresentation roundTrip = toPowerPoint.Document;
+        OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult();
+        using PowerPointPresentation roundTrip = toPowerPoint.Value;
         Assert.Empty(roundTrip.ValidateDocument());
         PowerPointSlide roundTripSlide = Assert.Single(roundTrip.Slides);
         Assert.Contains(roundTripSlide.TextBoxes, box => box.Text.Contains("OpenDocument deck", StringComparison.Ordinal));
