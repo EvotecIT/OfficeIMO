@@ -386,6 +386,41 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
+        public async Task Load_ReadOnlyWritableStreamCannotSaveOrMutateItsSource()
+        {
+            byte[] bytes;
+            using (var created = ExcelDocument.Create())
+            {
+                created.AddWorkSheet("ReadOnly").CellValue(1, 1, "Original");
+                bytes = created.ToBytes();
+            }
+
+            using var source = new MemoryStream(bytes.ToArray(), writable: true);
+            using var document = ExcelDocument.Load(source, new ExcelLoadOptions
+            {
+                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+            });
+
+            Assert.Throws<InvalidOperationException>(() => document.Save());
+            using var explicitDestination = new MemoryStream();
+            Assert.Throws<InvalidOperationException>(() => document.Save(explicitDestination));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => document.SaveAsync());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => document.SaveAsync(explicitDestination));
+            Assert.Equal(bytes, source.ToArray());
+        }
+
+        [Fact]
+        public void Create_NonSeekableAssociatedStreamIsRejected()
+        {
+            using var stream = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => ExcelDocument.Create(stream));
+
+            Assert.Equal("stream", exception.ParamName);
+            Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Create_ToMemoryStream_AfterExplicitSave_PersistsLaterEditsOnDispose()
         {
             using var source = new MemoryStream();

@@ -5,6 +5,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
@@ -351,6 +352,9 @@ namespace OfficeIMO.Visio {
         public static VisioDocument Create(Stream stream) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
+                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
+            }
             return new VisioDocument { _sourceStream = stream };
         }
 

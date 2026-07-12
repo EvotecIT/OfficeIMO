@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using Xunit;
@@ -106,6 +107,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Load_FromNonSeekableReadWriteStream_DoesNotBecomePathlessSaveTarget() {
+            byte[] bytes;
+            using (var source = new MemoryStream()) {
+                using var presentation = PowerPointPresentation.Create(source);
+                presentation.AddSlide();
+                presentation.Save();
+                bytes = source.ToArray();
+            }
+
+            using var stream = new NonSeekableReadWriteStream(bytes);
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(stream);
+            loaded.AddSlide();
+
+            Assert.Throws<InvalidOperationException>(() => loaded.Save());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => loaded.SaveAsync());
+            Assert.Equal(bytes, stream.ToArray());
+        }
+
+        [Fact]
+        public void Create_ToNonSeekableAssociatedStream_WithExplicitPersistence_Throws() {
+            using var stream = new NonSeekableWriteStream();
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                PowerPointPresentation.Create(stream));
+
+            Assert.Equal("stream", exception.ParamName);
+            Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Create_ToStream_WithSaveOnDispose_PropagatesPersistenceFailure() {
             using var stream = new FailingCopyBackStream();
 
@@ -171,6 +202,8 @@ namespace OfficeIMO.Tests {
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
             public override void SetLength(long value) => _inner.SetLength(value);
             public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
+
+            public byte[] ToArray() => _inner.ToArray();
 
             protected override void Dispose(bool disposing) {
                 if (disposing) {

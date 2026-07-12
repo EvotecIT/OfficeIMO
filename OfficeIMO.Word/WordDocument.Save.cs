@@ -387,7 +387,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Save the WordDocument to Stream with optional save behavior.
         /// </summary>
-        /// <param name="outputStream">Writable stream that receives the document content.</param>
+        /// <param name="outputStream">Writable stream that receives the document content. This one-time save does not change the associated destination.</param>
         /// <param name="options">Optional save behaviors, including stream physical format selection and signed-document policy.</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void Save(Stream outputStream, WordSaveOptions? options) {
@@ -431,8 +431,6 @@ namespace OfficeIMO.Word {
                 outputStream.Seek(0, SeekOrigin.Begin);
                 Helpers.MakeOpenOfficeCompatible(outputStream);
             }
-
-            OriginalStream = outputStream;
 
             if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);
@@ -487,11 +485,6 @@ namespace OfficeIMO.Word {
             await outputStream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
 #endif
             try { await outputStream.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-            // A pathless Save() targets OriginalStream as DOCX. Do not bind a legacy
-            // DOC stream here or a later Save()/auto-save could replace it with OOXML.
-            if (format == WordFileFormat.Docx) {
-                OriginalStream = outputStream;
-            }
             if (outputStream.CanSeek) outputStream.Seek(0, SeekOrigin.Begin);
         }
 

@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
@@ -220,8 +221,8 @@ namespace OfficeIMO.Word {
             }
 
             WordCreateOptions resolved = options ?? new WordCreateOptions();
-            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
+            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
+                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
             }
 
             var word = CreateInternal(null, stream, resolved.DocumentType, resolved.PersistenceMode);
@@ -520,7 +521,9 @@ namespace OfficeIMO.Word {
                     bufferedStream.Dispose();
                 } else {
                     document._ownedPackageStream = bufferedStream;
-                    document.OriginalStream = stream.CanSeek ? stream : null!;
+                    document.OriginalStream = !readOnly && OfficeStreamWriter.CanReplaceContents(stream)
+                        ? stream
+                        : null!;
                 }
 
                 return document;
@@ -533,7 +536,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Load WordDocument from stream
         /// </summary>
-        /// <param name="stream"></param>
+        /// <param name="stream">Readable source. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, WordLoadOptions? options = null) {
@@ -579,7 +582,9 @@ namespace OfficeIMO.Word {
             packageStream.Position = 0;
             try {
                 var document = new WordDocument() {
-                    OriginalStream = stream.CanWrite ? stream : null!,
+                    OriginalStream = !readOnly && OfficeStreamWriter.CanReplaceContents(stream)
+                        ? stream
+                        : null!,
                     _ownedPackageStream = packageStream,
                     _persistenceMode = resolved.PersistenceMode
                 };

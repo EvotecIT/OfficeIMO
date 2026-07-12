@@ -3157,7 +3157,7 @@
             <summary>
             Loads an existing Excel document from the provided stream.
             </summary>
-            <param name="stream">Input stream containing the workbook package.</param>
+            <param name="stream">Input stream containing the workbook package. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
             <param name="options">Access, persistence, and low-level package options.</param>
             <returns>Loaded <see cref="T:OfficeIMO.Excel.ExcelDocument"/> instance.</returns>
         </member>
@@ -3200,7 +3200,7 @@
             <summary>
             Asynchronously loads an Excel document from the provided stream.
             </summary>
-            <param name="stream">Input stream containing the workbook package.</param>
+            <param name="stream">Input stream containing the workbook package. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
             <param name="options">Access, persistence, and low-level package options.</param>
             <param name="cancellationToken">Cancellation token.</param>
             <returns>Loaded <see cref="T:OfficeIMO.Excel.ExcelDocument"/> instance.</returns>
@@ -3706,7 +3706,7 @@
         </member>
         <member name="M:OfficeIMO.Excel.ExcelDocument.Save(System.IO.Stream,OfficeIMO.Excel.ExcelFileFormat,OfficeIMO.Excel.ExcelSaveOptions)">
             <summary>Saves the workbook to a stream in the explicitly selected physical format.</summary>
-            <param name="destination">Writable destination stream.</param>
+            <param name="destination">Writable destination stream. This one-time save does not change the associated destination.</param>
             <param name="format">Physical XLSX or XLS format.</param>
             <param name="options">Optional save settings.</param>
         </member>

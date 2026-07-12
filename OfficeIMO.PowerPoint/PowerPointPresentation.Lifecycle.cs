@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 
 namespace OfficeIMO.PowerPoint {
@@ -131,8 +132,8 @@ namespace OfficeIMO.PowerPoint {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
             PowerPointCreateOptions resolved = options ?? new PowerPointCreateOptions();
-            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
+            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
+                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
             }
             return CreateInternal(filePath: null, stream, resolved);
         }
@@ -181,7 +182,7 @@ namespace OfficeIMO.PowerPoint {
             return LoadPackage(bytes, filePath, sourceStream: null, options ?? new PowerPointLoadOptions());
         }
 
-        /// <summary>Loads a presentation from a caller-owned stream into detached memory.</summary>
+        /// <summary>Loads a presentation from a caller-owned stream into memory. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
         public static PowerPointPresentation Load(Stream stream, PowerPointLoadOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -237,6 +238,10 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions options) {
             ValidateLifecycle(options.AccessMode, options.PersistenceMode);
             bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
+            Stream? associatedStream = editable && sourceStream != null &&
+                                       OfficeStreamWriter.CanReplaceContents(sourceStream)
+                ? sourceStream
+                : null;
             var packageStream = new MemoryStream(bytes.Length + StreamBufferSize);
             packageStream.Write(bytes, 0, bytes.Length);
             packageStream.Position = 0;
@@ -246,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
                     packageStream, editable, CreateOpenSettings(options.OpenSettings));
                 var presentation = new PowerPointPresentation(document, filePath ?? string.Empty, isNewPresentation: false) {
                     _packageStream = packageStream,
-                    _sourceStream = sourceStream,
+                    _sourceStream = associatedStream,
                     _persistenceMode = options.PersistenceMode
                 };
                 if (document.DigitalSignatureOriginPart != null ||

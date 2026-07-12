@@ -7,6 +7,7 @@ using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Core;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
@@ -80,8 +81,8 @@ namespace OfficeIMO.Excel {
 
             ExcelCreateOptions resolved = options ?? new ExcelCreateOptions();
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
-            if (saveOnDispose && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
+            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
+                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
             }
 
             Stream packageStream = saveOnDispose
@@ -203,13 +204,17 @@ namespace OfficeIMO.Excel {
 
             bool readOnly = options.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            Stream? associatedStream = !readOnly && originalStream != null &&
+                                       OfficeStreamWriter.CanReplaceContents(originalStream)
+                ? originalStream
+                : null;
 
             if (ExcelDocumentLoadRouting.IsLegacyXls(bytes, filePath)) {
                 return LoadLegacyXlsFromNormalFlow(bytes, readOnly, saveOnDispose, filePath);
             }
 
             var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
-            bool shouldCopyBack = saveOnDispose && originalStream != null;
+            bool shouldCopyBack = saveOnDispose && associatedStream != null;
             bool shouldCopyBackToFilePath = !shouldCopyBack && !string.IsNullOrEmpty(filePath) && saveOnDispose;
             bool shouldRetainPackageStream = shouldCopyBack || shouldCopyBackToFilePath;
 
@@ -231,7 +236,7 @@ namespace OfficeIMO.Excel {
                     memDoc,
                     filePath,
                     shouldRetainPackageStream ? normalizedStream : null,
-                    originalStream,
+                    associatedStream,
                     shouldCopyBack,
                     leaveOriginalStreamOpen,
                     copyPackageToFilePathOnDispose: shouldCopyBackToFilePath,
@@ -388,7 +393,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Loads an existing Excel document from the provided stream.
         /// </summary>
-        /// <param name="stream">Input stream containing the workbook package.</param>
+        /// <param name="stream">Input stream containing the workbook package. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
         /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Load(Stream stream, ExcelLoadOptions? options = null) {
@@ -412,7 +417,7 @@ namespace OfficeIMO.Excel {
                 bytes,
                 resolved,
                 filePath: null,
-                originalStream: stream.CanWrite ? stream : null,
+                originalStream: stream,
                 leaveOriginalStreamOpen: true);
         }
 
@@ -522,7 +527,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Asynchronously loads an Excel document from the provided stream.
         /// </summary>
-        /// <param name="stream">Input stream containing the workbook package.</param>
+        /// <param name="stream">Input stream containing the workbook package. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
         /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
@@ -547,7 +552,7 @@ namespace OfficeIMO.Excel {
                 bytes,
                 resolved,
                 filePath: null,
-                originalStream: stream.CanWrite ? stream : null,
+                originalStream: stream,
                 leaveOriginalStreamOpen: true);
         }
 

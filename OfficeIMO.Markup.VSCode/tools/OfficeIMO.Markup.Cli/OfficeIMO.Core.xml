@@ -74,6 +74,13 @@
             Writes complete Office artifacts to caller-owned streams using one consistent overwrite contract.
             </summary>
         </member>
+        <member name="M:OfficeIMO.Core.Internal.OfficeStreamWriter.CanReplaceContents(System.IO.Stream)">
+            <summary>
+            Returns whether a stream can safely act as a document's associated destination. Associated destinations
+            must support replacing the complete artifact on every parameterless save, not merely appending bytes at
+            the stream's current position.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(System.IO.Stream,System.Byte[])">
             <summary>
             Writes a complete artifact without closing the destination. Seekable streams are truncated before

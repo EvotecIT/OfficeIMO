@@ -10,6 +10,14 @@ namespace OfficeIMO.Core.Internal {
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal static class OfficeStreamWriter {
         /// <summary>
+        /// Returns whether a stream can safely act as a document's associated destination. Associated destinations
+        /// must support replacing the complete artifact on every parameterless save, not merely appending bytes at
+        /// the stream's current position.
+        /// </summary>
+        public static bool CanReplaceContents(Stream destination) =>
+            destination != null && destination.CanWrite && destination.CanSeek;
+
+        /// <summary>
         /// Writes a complete artifact without closing the destination. Seekable streams are truncated before
         /// writing and rewound after a successful write; non-seekable streams are written at their current position.
         /// </summary>

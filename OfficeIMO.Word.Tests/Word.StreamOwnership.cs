@@ -100,6 +100,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Load_NonSeekableWritableStreamDoesNotBecomePathlessSaveTarget() {
+            byte[] sourceBytes;
+            using (WordDocument created = WordDocument.Create()) {
+                created.AddParagraph("Buffered source");
+                sourceBytes = created.ToBytes();
+            }
+
+            using var source = new NonSeekableReadWriteBuffer(sourceBytes);
+            using WordDocument loaded = WordDocument.Load(source);
+            loaded.AddParagraph("Unsaved edit");
+
+            Assert.Throws<InvalidOperationException>(() => loaded.Save());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => loaded.SaveAsync());
+            Assert.Equal(sourceBytes, source.ToArray());
+        }
+
+        [Fact]
+        public void Create_NonSeekableAssociatedStreamIsRejected() {
+            using var stream = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => WordDocument.Create(stream));
+
+            Assert.Equal("stream", exception.ParamName);
+            Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Save_StreamIsOneTimeAndDoesNotRedirectLaterParameterlessSave() {
+            using var source = new MemoryStream();
+            using var document = WordDocument.Create(source);
+            document.AddParagraph("Original destination");
+            document.Save();
+
+            using var oneTimeDestination = new MemoryStream();
+            document.Save(oneTimeDestination);
+            document.AddParagraph("Source only");
+            document.Save();
+
+            using WordDocument oneTimeCopy = WordDocument.Load(oneTimeDestination,
+                new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            Assert.Single(oneTimeCopy.Paragraphs);
+
+            using WordDocument sourceCopy = WordDocument.Load(source,
+                new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
+            Assert.Equal(new[] { "Original destination", "Source only" },
+                sourceCopy.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
+        }
+
+        [Fact]
         public void SaveCopy_StreamDoesNotRedirectLaterSourceSavesToTheCopy() {
             using var source = new MemoryStream();
             using var document = WordDocument.Create(source);

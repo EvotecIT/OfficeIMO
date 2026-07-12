@@ -16,6 +16,8 @@ Word, Excel, PowerPoint, Visio, RTF, PDF, and OpenDocument models now follow the
 
 `SaveAsync` exists only where the destination performs asynchronous I/O. Pure in-memory conversion and byte generation are synchronous. Use `ToBytes()` or `ToPdf()` directly; do not wrap them in a removed `*Async` compatibility method.
 
+Streams used as associated destinations must be writable and seekable so every parameterless `Save()` can replace the complete artifact. Editable `Load(Stream)` calls retain only streams with those capabilities; read-only and non-seekable inputs remain detached and require an explicit destination. `Save(Stream)` and `SaveAsync(Stream)` are one-time writes and do not silently redirect later parameterless saves. Use `Create(Stream)` or load an editable seekable stream when persistent stream association is intended.
+
 OpenDocument callers that need save diagnostics should use `SaveResult()`, `SaveResultAsync()`, `ToBytesResult()`, or `SaveFlatXmlResult()`. The returned `OdfSaveResult` exposes `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`.
 
 ```csharp

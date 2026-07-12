@@ -2541,7 +2541,7 @@
             <summary>Loads an existing presentation into detached memory.</summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointPresentation.Load(System.IO.Stream,OfficeIMO.PowerPoint.PowerPointLoadOptions)">
-            <summary>Loads a presentation from a caller-owned stream into detached memory.</summary>
+            <summary>Loads a presentation from a caller-owned stream into memory. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointPresentation.LoadEncrypted(System.String,System.String,OfficeIMO.PowerPoint.PowerPointLoadOptions)">
             <summary>Loads a password-encrypted presentation into detached memory.</summary>
@@ -2746,7 +2746,7 @@
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointPresentation.Save(System.IO.Stream)">
             <summary>
-                Saves the presentation to the provided stream.
+                Saves the presentation to the provided stream without changing its associated destination.
             </summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointPresentation.ToBytes">
@@ -2765,7 +2765,7 @@
             <summary>Asynchronously saves to a file and associates it with subsequent saves.</summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointPresentation.SaveAsync(System.IO.Stream,System.Threading.CancellationToken)">
-            <summary>Asynchronously saves to a caller-owned writable stream.</summary>
+            <summary>Asynchronously saves once to a caller-owned writable stream without changing the associated destination.</summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointPresentation.ExportSlide(System.Int32,System.String)">
             <summary>

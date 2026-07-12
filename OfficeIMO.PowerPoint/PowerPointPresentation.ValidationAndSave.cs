@@ -107,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Saves the presentation to the provided stream.
+        ///     Saves the presentation to the provided stream without changing its associated destination.
         /// </summary>
         public void Save(Stream destination) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
             if (options?.OpenAfterSave == true) OpenInApplication(filePath);
         }
 
-        /// <summary>Asynchronously saves to a caller-owned writable stream.</summary>
+        /// <summary>Asynchronously saves once to a caller-owned writable stream without changing the associated destination.</summary>
         public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             cancellationToken.ThrowIfCancellationRequested();

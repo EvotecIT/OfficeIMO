@@ -3049,7 +3049,7 @@
             <summary>
             Load WordDocument from stream
             </summary>
-            <param name="stream"></param>
+            <param name="stream">Readable source. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
             <param name="options">Access, persistence, style, and low-level package options.</param>
             <returns></returns>
         </member>
@@ -4593,7 +4593,7 @@
             <summary>
             Save the WordDocument to Stream with optional save behavior.
             </summary>
-            <param name="outputStream">Writable stream that receives the document content.</param>
+            <param name="outputStream">Writable stream that receives the document content. This one-time save does not change the associated destination.</param>
             <param name="options">Optional save behaviors, including stream physical format selection and signed-document policy.</param>
             <exception cref="T:System.InvalidOperationException"></exception>
         </member>
