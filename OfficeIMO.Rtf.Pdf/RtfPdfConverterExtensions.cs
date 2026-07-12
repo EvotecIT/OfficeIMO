@@ -9,18 +9,15 @@ namespace OfficeIMO.Rtf.Pdf;
 public static partial class RtfPdfConverterExtensions {
     /// <summary>Converts an RTF document to a first-party OfficeIMO PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this RtfDocument document, RtfPdfSaveOptions? options = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
-
-        return RtfPdfConverter.Convert(document, options);
+        return document.ToPdfResult(options).Value;
     }
 
     /// <summary>Converts an RTF document to PDF and returns the generated document with a snapshot of conversion diagnostics.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfResult(this RtfDocument document, RtfPdfSaveOptions? options = null) {
-        RtfPdfSaveOptions exportOptions = options ?? new RtfPdfSaveOptions();
-        PdfCore.PdfDocument pdf = document.ToPdfDocument(exportOptions);
-        return new PdfCore.PdfDocumentConversionResult(pdf, exportOptions.ConversionReport);
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        RtfPdfSaveOptions operation = (options ?? new RtfPdfSaveOptions()).CloneForConversion();
+        PdfCore.PdfDocument pdf = RtfPdfConverter.Convert(document, operation);
+        return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
     }
 
     /// <summary>Reads an RTF string and converts it to a first-party OfficeIMO PDF document model.</summary>

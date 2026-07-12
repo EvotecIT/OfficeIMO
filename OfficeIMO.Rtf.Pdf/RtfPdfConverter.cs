@@ -8,9 +8,7 @@ internal static partial class RtfPdfConverter {
             throw new ArgumentNullException(nameof(document));
         }
 
-        RtfPdfSaveOptions exportOptions = options ?? new RtfPdfSaveOptions();
-        exportOptions.ResetExportState();
-        RtfPdfSaveOptions normalized = exportOptions.Normalize();
+        RtfPdfSaveOptions normalized = options ?? new RtfPdfSaveOptions();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
         if (document.Sections.Count > 0) {
@@ -108,20 +106,16 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
-        options.ConversionReport.Add(new PdfCore.PdfConversionWarning(
+        var warningDetails = details == null
+            ? new Dictionary<string, string>()
+            : new Dictionary<string, string>(details);
+        warningDetails["RtfAction"] = action.ToString();
+        options.Report.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Rtf.Pdf",
             code,
             source,
             message,
-            details: details));
-        options.RtfConversionReport.Add(
-            RtfConversionSeverity.Warning,
-            code,
-            message,
-            action,
-            sourcePath: source,
-            feature: source,
-            detail: details == null ? null : string.Join(";", details.Select(pair => pair.Key + "=" + pair.Value)));
+            details: warningDetails));
     }
 
     private static void RenderPlainTextBlock(string text, PdfCore.PdfDocument pdf) {

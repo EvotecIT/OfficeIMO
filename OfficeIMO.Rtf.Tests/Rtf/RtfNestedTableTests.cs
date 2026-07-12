@@ -184,15 +184,15 @@ public class RtfNestedTableTests {
     public void Pdf_Flattens_Nested_Table_With_Explicit_Loss_Report() {
         var options = new RtfPdfSaveOptions();
 
-        byte[] pdf = CreateNestedDocument().ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = CreateNestedDocument().ToPdfResult(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Contains("Outer before", text, StringComparison.Ordinal);
         Assert.Contains("Inner A", text, StringComparison.Ordinal);
         Assert.Contains("Inner B", text, StringComparison.Ordinal);
-        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic =>
-            diagnostic.Code == "NestedTableFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Throws<RtfConversionLossException>(() => options.RtfConversionReport.RequireNoLoss());
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "NestedTableFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
     }
 
     private static RtfDocument CreateNestedDocument() {

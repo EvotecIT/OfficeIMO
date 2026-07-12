@@ -204,14 +204,14 @@ internal static partial class RtfPdfConverter {
             ["SourceFormat"] = sourceFormat.ToString(),
             ["TargetFormat"] = targetFormat
         };
-        options.RtfConversionReport.Add(
-            RtfConversionSeverity.Information,
+        details["RtfAction"] = RtfConversionAction.Substituted.ToString();
+        options.Report.Add(new PdfCore.PdfConversionWarning(
+            "OfficeIMO.Rtf.Pdf",
             "ImageConverted",
+            source,
             message,
-            RtfConversionAction.Substituted,
-            sourcePath: source,
-            feature: "Image",
-            detail: string.Join(";", details.Select(pair => pair.Key + "=" + pair.Value)));
+            PdfCore.PdfConversionWarningSeverity.Information,
+            details: details));
     }
 
     private static double GetImageWidth(RtfImage image, RtfPdfSaveOptions options) {
