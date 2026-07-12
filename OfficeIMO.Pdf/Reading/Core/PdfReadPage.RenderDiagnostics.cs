@@ -112,7 +112,10 @@ public sealed partial class PdfReadPage {
             }
 
             string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
-            if (string.Equals(subtype, "Image", StringComparison.Ordinal)) continue;
+            if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
+                if (RequiresOptionalImageCodec(stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, entry.Key);
+                continue;
+            }
             if (!string.Equals(subtype, "Form", StringComparison.Ordinal)) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.XObjectId, entry.Key + ":" + (subtype ?? "unknown"));
                 continue;
@@ -126,6 +129,14 @@ public sealed partial class PdfReadPage {
                 activeForms.Remove(stream);
             }
         }
+    }
+
+    private bool RequiresOptionalImageCodec(PdfObject? value) {
+        PdfObject? resolved = ResolveObject(value);
+        if (resolved is PdfName name) return name.Name is "DCTDecode" or "DCT" or "JPXDecode";
+        if (resolved is not PdfArray array) return false;
+        for (int i = 0; i < array.Items.Count; i++) if (RequiresOptionalImageCodec(array.Items[i])) return true;
+        return false;
     }
 
     private void CollectAnnotationCapabilityDiagnostics(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {

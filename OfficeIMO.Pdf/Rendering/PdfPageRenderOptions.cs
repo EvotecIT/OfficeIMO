@@ -28,6 +28,8 @@ public sealed class PdfPageRenderOptions {
     public long MaxPixelsPerPage { get; set; } = 100_000_000L;
     /// <summary>Continues a batch and returns a failed per-page report when rendering fails.</summary>
     public bool ContinueOnError { get; set; } = true;
+    /// <summary>Optional shared raster codec for JPEG and other image formats outside the dependency-free core.</summary>
+    public IOfficeRasterImageCodec? ImageCodec { get; set; }
 
     internal double GetScale(OfficeDrawing drawing) {
         double scale = Dpi.HasValue ? Dpi.Value / 72D : Scale;

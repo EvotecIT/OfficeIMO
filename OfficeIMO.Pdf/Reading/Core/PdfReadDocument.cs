@@ -19,8 +19,8 @@ public sealed partial class PdfReadDocument {
         PdfReadOptions? options) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
         Security = security;
-        RepairReport = repairReport;
         Pages = CollectPages();
+        RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
         Metadata = ExtractMetadata();
         PageLabels = ExtractPageLabels();
         NamedDestinations = ExtractNamedDestinations();

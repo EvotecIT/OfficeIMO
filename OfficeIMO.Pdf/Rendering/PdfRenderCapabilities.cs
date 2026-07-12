@@ -123,6 +123,7 @@ public static class PdfRenderCapabilities {
     internal const string SoftMaskId = "render.resource.soft-mask-unsupported";
     internal const string XObjectId = "render.resource.xobject-unsupported";
     internal const string AnnotationAppearanceId = "render.resource.annotation-appearance-missing";
+    internal const string OptionalImageCodecId = "render.resource.image-codec-optional";
 
     private static readonly IReadOnlyList<PdfRenderCapability> Registry = BuildRegistry();
     private static readonly Dictionary<string, PdfRenderCapability> ById = Registry.ToDictionary(static entry => entry.Id, StringComparer.Ordinal);
@@ -152,6 +153,7 @@ public static class PdfRenderCapabilities {
             Entry(SoftMaskId, "resource", "ExtGState soft masks", PdfRenderSupportLevel.Unsupported, "Soft masks are not projected by the managed renderer."),
             Entry("render.resource.form-xobject", "resource", "Form XObjects", PdfRenderSupportLevel.Supported, "Form XObjects are recursively projected with bounded nesting."),
             Entry("render.resource.image-xobject", "resource", "Image XObjects and inline images", PdfRenderSupportLevel.Supported, "Decoded image resources are projected through shared Drawing image elements."),
+            Entry(OptionalImageCodecId, "resource", "JPEG, JPEG 2000, and optional raster codecs", PdfRenderSupportLevel.Simplified, "The image is projected, but dependency-free PNG output requires a caller-supplied IOfficeRasterImageCodec."),
             Entry("render.resource.shading-pattern", "resource", "Axial and radial shading patterns", PdfRenderSupportLevel.Supported, "Supported axial and radial shadings are projected to shared Drawing gradients."),
             Entry(TilingPatternId, "resource", "Tiling patterns", PdfRenderSupportLevel.Unsupported, "Tiling pattern resources are not projected by the managed renderer."),
             Entry(XObjectId, "resource", "Unsupported XObject subtype", PdfRenderSupportLevel.Unsupported, "The XObject subtype is not projected by the managed renderer.")

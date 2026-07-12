@@ -12,6 +12,15 @@ public sealed class PdfRepairReport {
     /// <summary>True when lenient parsing recovered at least one defect.</summary>
     public bool HasRepairs => Diagnostics.Count > 0;
 
-    /// <summary>Number of structural recoveries.</summary>
-    public int RepairCount => Diagnostics.Count;
+    /// <summary>Number of deterministic structural recoveries.</summary>
+    public int RepairCount => Diagnostics.Count(static diagnostic => diagnostic.WasRecovered);
+
+    /// <summary>Number of detected issues intentionally left unchanged.</summary>
+    public int DetectionOnlyCount => Diagnostics.Count(static diagnostic => !diagnostic.WasRecovered);
+
+    internal PdfRepairReport Append(IEnumerable<PdfRepairDiagnostic> diagnostics) {
+        PdfRepairDiagnostic[] appended = diagnostics.ToArray();
+        if (appended.Length == 0) return this;
+        return new PdfRepairReport(Diagnostics.Concat(appended).ToArray());
+    }
 }

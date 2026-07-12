@@ -14,6 +14,8 @@ public enum PdfUnderstandingSemanticKind {
     Footer,
     /// <summary>Caption-like region.</summary>
     Caption,
+    /// <summary>Footnote-like region near the bottom of a page.</summary>
+    Footnote,
     /// <summary>Table-like region.</summary>
     Table,
     /// <summary>Region not classified by the active strategy.</summary>

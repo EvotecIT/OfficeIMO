@@ -1,8 +1,8 @@
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingRasterRenderer {
-    private static void RenderImagePattern(OfficeRasterCanvas canvas, OfficeDrawingImagePattern pattern, double scale) {
-        if (!OfficeRasterImageDecoder.TryDecode(pattern.EncodedBytes, out OfficeRasterImage? image) || image == null) {
+    private static void RenderImagePattern(OfficeRasterCanvas canvas, OfficeDrawingImagePattern pattern, double scale, IOfficeRasterImageCodec? imageCodec) {
+        if (!TryDecodeImage(pattern.EncodedBytes, pattern.ContentType, imageCodec, out OfficeRasterImage? image) || image == null) {
             return;
         }
 

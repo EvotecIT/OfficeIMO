@@ -11,9 +11,17 @@ public static partial class OfficeDrawingRasterRenderer {
     /// Renders a drawing to an RGBA raster image.
     /// </summary>
     public static OfficeRasterImage Render(OfficeDrawing drawing, double scale = 1D, OfficeColor? background = null) {
+        return Render(drawing, new OfficeDrawingRasterRenderOptions { Scale = scale, Background = background });
+    }
+
+    /// <summary>Renders a drawing with an optional external image codec.</summary>
+    public static OfficeRasterImage Render(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) {
         if (drawing == null) {
             throw new ArgumentNullException(nameof(drawing));
         }
+
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        double scale = options.Scale;
 
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a finite positive number.");
@@ -21,14 +29,14 @@ public static partial class OfficeDrawingRasterRenderer {
 
         int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
-        OfficeRasterImage image = new OfficeRasterImage(width, height, background);
+        OfficeRasterImage image = new OfficeRasterImage(width, height, options.Background);
         OfficeRasterCanvas canvas = new OfficeRasterCanvas(image, fonts: drawing.Fonts);
-        RenderElements(canvas, drawing.Elements, scale);
+        RenderElements(canvas, drawing.Elements, scale, options.ImageCodec);
 
         return image;
     }
 
-    private static void RenderElements(OfficeRasterCanvas canvas, IEnumerable<OfficeDrawingElement> elements, double scale) {
+    private static void RenderElements(OfficeRasterCanvas canvas, IEnumerable<OfficeDrawingElement> elements, double scale, IOfficeRasterImageCodec? imageCodec) {
         foreach (OfficeDrawingElement element in elements) {
             if (element is OfficeDrawingShape shape) {
                 RenderShape(canvas, shape, scale);
@@ -37,13 +45,13 @@ public static partial class OfficeDrawingRasterRenderer {
             } else if (element is OfficeDrawingRichText richText) {
                 RenderRichText(canvas, richText, scale);
             } else if (element is OfficeDrawingImage drawingImage) {
-                RenderImage(canvas, drawingImage, scale);
+                RenderImage(canvas, drawingImage, scale, imageCodec);
             } else if (element is OfficeDrawingImagePattern imagePattern) {
-                RenderImagePattern(canvas, imagePattern, scale);
+                RenderImagePattern(canvas, imagePattern, scale, imageCodec);
             } else if (element is OfficeDrawingGroup drawingGroup) {
-                RenderGroup(canvas, drawingGroup, scale);
+                RenderGroup(canvas, drawingGroup, scale, imageCodec);
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                RenderEffectGroup(canvas, effectGroup, scale);
+                RenderEffectGroup(canvas, effectGroup, scale, imageCodec);
             }
         }
     }
@@ -54,7 +62,10 @@ public static partial class OfficeDrawingRasterRenderer {
     public static byte[] ToPng(OfficeDrawing drawing, double scale = 1D, OfficeColor? background = null) =>
         OfficePngWriter.Encode(Render(drawing, scale, background));
 
-    private static void RenderGroup(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
+    /// <summary>Renders a drawing to PNG bytes with an optional external image codec.</summary>
+    public static byte[] ToPng(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) => OfficePngWriter.Encode(Render(drawing, options));
+
+    private static void RenderGroup(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale, IOfficeRasterImageCodec? imageCodec) {
         using (PushGroupClip(canvas, drawingGroup, scale)) {
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
@@ -67,7 +78,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, null);
             }
 
-            RenderElements(canvas, translated.Elements, scale);
+            RenderElements(canvas, translated.Elements, scale, imageCodec);
         }
     }
 
@@ -378,8 +389,8 @@ public static partial class OfficeDrawingRasterRenderer {
         return scaled;
     }
 
-    private static void RenderImage(OfficeRasterCanvas canvas, OfficeDrawingImage drawingImage, double scale) {
-        if (OfficeRasterImageDecoder.TryDecode(drawingImage.EncodedBytes, out OfficeRasterImage? image) && image != null) {
+    private static void RenderImage(OfficeRasterCanvas canvas, OfficeDrawingImage drawingImage, double scale, IOfficeRasterImageCodec? imageCodec) {
+        if (TryDecodeImage(drawingImage.EncodedBytes, drawingImage.ContentType, imageCodec, out OfficeRasterImage? image) && image != null) {
             if (drawingImage.Opacity < 1D) {
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
@@ -388,9 +399,9 @@ public static partial class OfficeDrawingRasterRenderer {
         }
     }
 
-    private static void RenderEffectGroup(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effectGroup, double scale) {
+    private static void RenderEffectGroup(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effectGroup, double scale, IOfficeRasterImageCodec? imageCodec) {
         if (effectGroup.Opacity <= 0D) return;
-        OfficeRasterImage layer = Render(effectGroup.InnerDrawing, scale);
+        OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions { Scale = scale, ImageCodec = imageCodec });
         OfficeTransform transform = effectGroup.Transform;
         OfficeTransform pixelTransform = new OfficeTransform(
             transform.M11,
@@ -400,6 +411,11 @@ public static partial class OfficeDrawingRasterRenderer {
             transform.OffsetX * scale,
             transform.OffsetY * scale);
         canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity);
+    }
+
+    private static bool TryDecodeImage(byte[] bytes, string? contentType, IOfficeRasterImageCodec? imageCodec, out OfficeRasterImage? image) {
+        if (OfficeRasterImageDecoder.TryDecode(bytes, out image) && image != null) return true;
+        return imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) && image != null;
     }
 
     private static OfficeRasterImage ApplyImageOpacity(OfficeRasterImage image, double opacity) {

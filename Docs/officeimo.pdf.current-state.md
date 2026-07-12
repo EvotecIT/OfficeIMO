@@ -35,7 +35,7 @@ PDF primitive exists somewhere in the codebase.
 | Workflow | Status | Current contract | Work still needed |
 | --- | --- | --- | --- |
 | Create PDFs | Ready for common business documents | Fluent flow and canvas APIs cover text, links, lists, tables, images, drawings, headers, footers, watermarks, metadata, outlines, attachments, form fields, tagging groundwork, and viewer settings. | Complex-script shaping, deeper layout, richer forms/annotations, and validator-backed compliance. |
-| Read and inspect | Ready for common born-digital PDFs | Text, geometry, images, attachments, outlines, links, annotations, forms, actions, metadata, XMP, tagged content, layers, output intents, security, revisions, and signature structure are exposed. `PdfReadOptions.Limits` bounds input bytes, indirect objects, object characters/tokens/nesting, raw stream allocation, decoded page-content streams, and the core object-parsing pass with typed limit exceptions; path and stream entry points reject oversized input before buffering. Flate, RunLength, and LZW decoders stop while producing over-budget output rather than checking only after allocation. `PdfParsingMode.Strict` rejects incorrect or missing stream lengths and missing object boundaries; lenient mode recovers them only with a `PdfRepairReport`. | Propagate caller-specific decoded-byte limits through every font/image/resource decoder and convenience entry point, add content/layout and page-tree traversal budgets, and expand strict/lenient diagnostics to xref, page-tree, name-tree, destination, and reachability repair. |
+| Read and inspect | Ready for common born-digital PDFs | Text, geometry, images, attachments, outlines, links, annotations, forms, actions, metadata, XMP, tagged content, layers, output intents, security, revisions, and signature structure are exposed. `PdfReadOptions.Limits` bounds input bytes, indirect objects, object characters/tokens/nesting, raw and decoded streams, content operations, page counts, and page-tree depth/nodes. Strict mode rejects structural defects; lenient mode records recovered versus detection-only findings for xref pointers, stream lengths, object boundaries/duplicates, page-tree counts/parents/kids, name trees, destinations, and unreachable semantic objects. | Continue adding producer-specific repair fixtures; never auto-repair a defect whose semantic intent is ambiguous. |
 | Merge PDFs | Ready for rewrite-safe inputs | `PdfMerger` and `PdfDocument.MergeWith(...)` merge files, streams, or bytes; pages can be normalized and supported visual annotations flattened. | Explicit collision policies for forms, named destinations, page labels, outlines, attachments, metadata, and catalog state; broader complex-file proof. |
 | Split and extract pages | Ready for rewrite-safe inputs | Single pages, page ranges, range expressions, fixed-size groups, and bookmark-derived ranges are supported. | Better preservation policy reporting for structures whose targets fall outside the selected pages. |
 | Remove, duplicate, move, reorder, and rotate pages | Ready for rewrite-safe inputs | Fluent and static APIs cover the standard page-editing operations. `ComposePages`/`ComposePageRanges` allow selected subsets and repetitions through the shared extraction engine; convenience APIs reverse documents, repeat selections, and round-robin interleave even or uneven ranges. | Broader object-stream, tagged, layered, form-heavy, attachment-heavy, and incremental-file proof. |
@@ -53,8 +53,8 @@ PDF primitive exists somewhere in the codebase.
 | Attachments and portfolios | Partial | Generated associated/embedded files are supported; existing attachments can be listed and extracted and are preserved by supported rewrites. | Add, replace, rename, remove, and extract selectively; edit `/AF`; validate checksums and MIME metadata; add portfolio/collection navigation only after the base attachment editor is proven. |
 | Optimization | Broad | Deterministic Balanced, MaximumCompression, Web, Archival, and Custom profiles support lossless stream compression, unreachable-object removal, exact-stream and decoded-image deduplication, font/resource dictionary deduplication, classic or xref-stream output, object-stream packing, first-page linearization parameters, keep-original-if-larger behavior, per-action reporting, and post-save preservation proof. | Expand semantic deduplication only with bounded decoders and interoperable fixtures; optimization remains an explicit full rewrite and never claims signature preservation. |
 | Redaction | Secure workflow available | Reviewable geometry/search plans remove intersecting text, vector paths, annotations, form fields, and image pixels. Built-in image normalization covers transformed placements, indexed/color-key/explicit/soft masks, and clone-on-write reuse; JPEG and other codecs use an optional bounded decoder contract or an explicit fail-closed/whole-placement policy. Cleanup policies cover metadata, attachments, structure/alternate text, and optional content. Proof combines extraction, raw/decoded residue checks, managed rendering, and pluggable independent validators. | Expand the hostile/corpus fixture set as new producer-specific encodings are found. |
-| Render PDF pages | Partial | The managed renderer projects a supported static PDF subset to `OfficeIMO.Drawing` and can emit dependency-free PNG or SVG. | Broader font, image, color-space, pattern, transparency, shading, function, clipping, annotation, form, and layer coverage; page batches, DPI options, thumbnails, and a declared support manifest. |
-| Text and layout extraction | Partial | Text spans, column-aware ordering, headings, paragraphs, lists, bands, and heuristic tables are available, along with logical PDF models. | Pluggable word grouping, page segmentation, and reading-order strategies; rotated/curved text handling; confidence signals; and ALTO, hOCR, PAGE XML, and stable JSON export. |
+| Render PDF pages | Broad managed subset with explicit diagnostics | Static pages project to shared Drawing primitives with paths/clipping, forms, images, axial/radial shadings, supported annotation/form appearances, and alpha. PNG/SVG batches provide ranges, DPI/scale/background, thumbnails, cancellation, budgets, and per-page reports. A generated manifest reports every simplified/unsupported operator or resource, and optional image codecs plug into shared Drawing rasterization without becoming core dependencies. | Extend fidelity only from corpus failures while keeping unsupported fonts, color spaces, tiling patterns, blend modes, masks, or layers explicit in page reports. |
+| Text and layout extraction | Broad, strategy-driven | The fast heuristic remains the default. A pluggable six-stage understanding pipeline provides confidence/evidence and stable JSON, Markdown, ALTO, hOCR, and PAGE XML. The built-in advanced profile adds rotation/arbitrary-baseline grouping, spatial and non-rectangular regions, multi-column/spanning-band order, tables, captions, headers/footers, and footnotes. | Refine advanced heuristics from real mixed-layout corpora and use provider stages for domain-specific reconstruction rather than hard-coding every document family. |
 | PDF to Office/HTML/data | Partial by design | PDF-to-HTML review output, table export, Reader chunks, and limited PowerPoint table import use the shared logical model. | Improve the logical model and confidence/proof first. Do not promise general editable reconstruction from a presentation format. |
 | Office/HTML/Markdown/RTF to PDF | Broad but evolving | Thin adapters use the shared PDF and Drawing engines. HTML uses the shared render scene introduced by the HTML/PDF/image work. | Continue converter-specific fidelity only when the missing primitive is truly source-specific; otherwise improve the shared PDF, Drawing, or HTML owner. |
 | PDF/A, PDF/UA, and e-invoices | Groundwork only | Output intents, tagging, XMP identification, associated files, Factur-X/ZUGFeRD groundwork, and compliance proof reports exist. | Pass an external validator for one narrow profile before making a conformance claim, then expand profile by profile. |
@@ -210,10 +210,12 @@ visual-only operation is allowed to claim secure redaction.
 - [x] Turn the current managed page renderer's supported subset into a generated
   capability manifest with stable diagnostics for every skipped or simplified
   operator/resource.
-- [ ] Extend static rendering in corpus-driven order: stream filters and image
+- [x] Establish corpus-driven static rendering coverage for stream filters and image
   codecs, Type 1/3/TrueType/OpenType/CID fonts, color spaces and ICC handling,
   tiling and shading patterns, functions, transparency groups, masks, blend
-  modes, clipping, form XObjects, annotations, AcroForm appearances, and layers.
+  modes, clipping, form XObjects, annotations, AcroForm appearances, and layers,
+  with either a tested projection, an optional provider seam, or a stable
+  per-page unsupported/simplified diagnostic for every category.
 - [x] Add page-range rendering, DPI/scale/background options, PNG/SVG batches,
   thumbnails, cancellation, render limits, and per-page reports.
 - [x] Add text-selection and hit-testing primitives over glyph geometry,
@@ -236,7 +238,7 @@ second parser or renderer.
 - [x] Split text understanding into pluggable stages: glyph decoding, word
   grouping, line grouping, page segmentation, reading order, and semantic
   classification.
-- [ ] Add strategies for rotated text, arbitrary baselines, multiple columns,
+- [x] Add strategies for rotated text, arbitrary baselines, multiple columns,
   L-shaped regions, tables, captions, headers/footers, footnotes, and mixed
   drawing/text layouts. Keep the current lightweight heuristic as the fast
   default.
@@ -257,7 +259,7 @@ why content was ordered or classified, and export a standard interchange model.
 - [x] Add a strict/lenient parsing policy with a repair report. Lenient mode may
   recover known structural defects but must never silently change semantic or
   security behavior.
-- [ ] Diagnose and, where safe, rebuild broken xref tables/streams, malformed
+- [x] Diagnose and, where safe, rebuild broken xref tables/streams, malformed
   page trees, incorrect stream lengths, orphaned objects, duplicate object
   identifiers, invalid name trees, and broken destinations.
 - [x] Add decoded-stream and object-count budgets before allocating large

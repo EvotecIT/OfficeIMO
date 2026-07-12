@@ -145,6 +145,26 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPages_UsesOptionalSharedCodecForJpegImageXObject() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CreateMinimalJpeg(1, 1),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            imageFilterEntry: "/Filter /DCTDecode");
+        var codec = new TestRasterImageCodec();
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf, options: new PdfPageRenderOptions {
+            ImageCodec = codec,
+            ContinueOnError = false
+        }));
+
+        Assert.True(result.Succeeded);
+        Assert.True(codec.WasCalled);
+        Assert.NotEmpty(result.Bytes!);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
+    }
+
+    [Fact]
     public void RenderPage_AppliesImageXObjectExtGStateOpacity() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 0, 255, 255, 0 }),
@@ -2302,6 +2322,16 @@ public class PdfPageImageRendererTests {
         }
 
         public override void Write(byte[] buffer, int offset, int count) {
+        }
+    }
+
+    private sealed class TestRasterImageCodec : IOfficeRasterImageCodec {
+        public bool WasCalled { get; private set; }
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            WasCalled = true;
+            Assert.Equal("image/jpeg", contentType);
+            image = new OfficeRasterImage(1, 1, OfficeColor.FromRgb(255, 0, 0));
+            return true;
         }
     }
 }

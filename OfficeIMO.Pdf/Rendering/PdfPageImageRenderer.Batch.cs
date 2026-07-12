@@ -57,7 +57,7 @@ public static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = options.Format == PdfPageRenderFormat.Png
-                ? RenderDrawingAsPng(drawing, scale, options.Background)
+                ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec)
                 : OfficeDrawingSvgExporter.ToSvgBytes(drawing, scale);
             timer.Stop();
             return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed, capabilityDiagnostics);

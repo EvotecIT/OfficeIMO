@@ -41,7 +41,9 @@ internal static partial class PdfSyntax {
         string text = PdfEncoding.Latin1GetString(pdf);
         var map = new Dictionary<int, PdfIndirectObject>();
         var parsedOffsets = new Dictionary<int, int>();
+        var definitionCounts = new Dictionary<(int Id, int Generation), int>();
         var streamLocations = new List<(int Id, int Generation, int DataStart)>();
+        var streamDataRanges = new List<(int Start, int End)>();
         var matches = ObjRegex.Matches(text);
         if (matches.Count > limits.MaxIndirectObjects) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, matches.Count);
@@ -54,6 +56,10 @@ internal static partial class PdfSyntax {
 
             int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
             int gen = int.Parse(matches[i].Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+            if (IsInsideKnownStream(matches[i].Index, streamDataRanges)) continue;
+            var definitionKey = (Id: id, Generation: gen);
+            definitionCounts.TryGetValue(definitionKey, out int definitionCount);
+            definitionCounts[definitionKey] = definitionCount + 1;
             int start = matches[i].Index;
             int bodyStart = matches[i].Index + matches[i].Length;
             int end = FindObjectEnd(text, start);
@@ -120,6 +126,7 @@ internal static partial class PdfSyntax {
                         int byteLen = -1;
                         bool hasResolvedLength = TryGetResolvedLength(dict, map, out byteLen);
                         int endStream = IndexOfKeyword(text, "endstream", dataStart, end);
+                        if (endStream > dataStart) streamDataRanges.Add((dataStart, endStream));
                         if (hasResolvedLength &&
                             endStream > dataStart &&
                             !DeclaredStreamLengthEndsAt(text, dataStart, byteLen, endStream)) {
@@ -186,6 +193,13 @@ internal static partial class PdfSyntax {
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, out bool appliedClassicEntries);
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets) || appliedXrefStreamEntries;
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets);
+        if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
+            foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {
+                if (definition.Value <= 1) continue;
+                string identifier = definition.Key.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + definition.Key.Generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                HandleStructuralDefect(parsingMode, repairDiagnostics, "DuplicateObjectIdentifier", "Indirect object " + identifier + " is defined " + definition.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " times without an incremental /Prev chain; lenient parsing retained the last readable definition.", definition.Key.Id);
+            }
+        }
         PdfStandardSecurityHandler? decryptor = null;
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt");
         if (encryptObjectNumber.HasValue) {
@@ -293,6 +307,14 @@ internal static partial class PdfSyntax {
         if (dataEnd > dataStart && text[dataEnd - 1] == '\n') dataEnd--;
         if (dataEnd > dataStart && text[dataEnd - 1] == '\r') dataEnd--;
         return dataEnd - dataStart;
+    }
+
+    private static bool IsInsideKnownStream(int offset, List<(int Start, int End)> ranges) {
+        for (int i = ranges.Count - 1; i >= 0; i--) {
+            if (offset >= ranges[i].Start && offset < ranges[i].End) return true;
+            if (offset >= ranges[i].End) return false;
+        }
+        return false;
     }
 
 }

@@ -4,6 +4,16 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Configures independently replaceable PDF understanding stages.</summary>
 public sealed class PdfUnderstandingPipelineOptions {
+    /// <summary>Creates the built-in advanced layout profile while preserving caller-provided layout options.</summary>
+    public static PdfUnderstandingPipelineOptions Advanced(PdfTextLayoutOptions? layout = null) => new PdfUnderstandingPipelineOptions {
+        WordGrouping = PdfAdvancedUnderstandingStages.WordGrouping,
+        LineGrouping = PdfAdvancedUnderstandingStages.LineGrouping,
+        PageSegmentation = PdfAdvancedUnderstandingStages.PageSegmentation,
+        ReadingOrder = PdfAdvancedUnderstandingStages.ReadingOrder,
+        SemanticClassification = PdfAdvancedUnderstandingStages.SemanticClassification,
+        Layout = layout ?? new PdfTextLayoutOptions()
+    };
+
     /// <summary>Glyph/text decoding stage.</summary>
     public IPdfGlyphDecodingStage? GlyphDecoding { get; set; }
     /// <summary>Word grouping stage.</summary>

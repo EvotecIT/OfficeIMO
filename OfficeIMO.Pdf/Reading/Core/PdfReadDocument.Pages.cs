@@ -12,21 +12,14 @@ public sealed partial class PdfReadDocument {
                 int kidCount = kids?.Items.Count ?? 0;
                 var visitedNodes = new HashSet<PdfDictionary>();
                 var visitedPages = new HashSet<int>();
-                int? target = null;
-                var cnt = pagesNode.Get<PdfNumber>("Count");
-                if (cnt is not null) {
-                    int cc = (int)cnt.Value; if (cc > 0) target = cc;
-                }
-                TraversePagesNodeDeepLimited(pagesNode, visitedNodes, visitedPages, result, target, depth: 1);
+                TraversePagesNodeDeepLimited(pagesNode, visitedNodes, visitedPages, result, limit: null, depth: 1);
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
                     var reachable = CollectReachableLeafCandidates(pagesNode);
                     foreach (var id in reachable) {
                         if (_objects.TryGetValue(id, out var ind) && ind.Value is PdfDictionary dict) {
                             AddPageWithinBudget(result, new PdfReadPage(id, dict, _objects, _options.Limits));
-                            if (target.HasValue && result.Count >= target.Value) break;
                         }
-                        if (target.HasValue && result.Count >= target.Value) break;
                     }
                 }
             }
