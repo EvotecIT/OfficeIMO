@@ -498,6 +498,10 @@ public sealed partial class PdfDocumentPages {
         PdfDocument.FromBytes(PdfPageEditor.CropAndTranslatePages(
             _document.Snapshot(), left, bottom, right, top, pageNumbers));
 
+    /// <summary>Destructively crops selected pages by replacing the retained visual rectangle with a validated opaque raster page.</summary>
+    public PdfDestructiveCropResult DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, params int[] pageNumbers) =>
+        PdfPageEditor.DestructiveCropPages(_document.Snapshot(), left, bottom, right, top, options, pageNumbers);
+
     /// <summary>Sets the bleed box for selected pages.</summary>
     public PdfDocument SetBleedBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
         SetPageBox(PdfPageBoundaryBox.BleedBox, left, bottom, right, top, pageNumbers);
