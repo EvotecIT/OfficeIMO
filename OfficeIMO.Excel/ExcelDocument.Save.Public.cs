@@ -240,30 +240,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Saves the document and writes an optional OpenXML validation report (sidecar file)
-        /// next to the saved .xlsx when issues are detected. Useful to diagnose any remaining
-        /// problems that could cause Excel's repair dialog.
-        /// </summary>
-        /// <param name="filePath">Destination path. Empty uses <see cref="FilePath"/>.</param>
-        /// <param name="openExcel">When true, launches the saved file.</param>
-        /// <param name="writeReportOnIssues">When true (default), writes <c>.xlsx.validation.txt</c> on issues.</param>
-        public void SafeSave(string filePath = "", bool openExcel = false, bool writeReportOnIssues = true) {
-            Save(filePath, openExcel);
-            try {
-                var errs = ValidateDocument();
-                if (errs.Count > 0 && writeReportOnIssues) {
-                    var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
-                    var reportPath = System.IO.Path.ChangeExtension(target, ".xlsx.validation.txt");
-                    var lines = new System.Collections.Generic.List<string>(errs.Count);
-                    foreach (var e in errs) {
-                        lines.Add($"{e.ErrorType}: {e.Description} at {e.Path?.XPath}");
-                    }
-                    System.IO.File.WriteAllLines(reportPath, lines);
-                }
-            } catch { }
-        }
-
-        /// <summary>
         /// Saves the document without opening it.
         /// </summary>
         public void Save() {

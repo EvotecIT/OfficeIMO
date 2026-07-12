@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
             if (_requiresSavePreflight || options?.SafePreflight == true) {
                 if (!skipDirectFastSaveSheetPreparation || options?.SafePreflight == true) {
                     MaterializePendingDirectCellValueSheetIfNeeded();
-                    try { PreflightWorkbook(sheets); } catch { }
+                    PreflightWorkbook(sheets);
                     _requiresSavePreflight = false;
                 } else {
                     ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipAutomaticPreflight");
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options?.SafeRepairDefinedNames == true) {
-                try { RepairDefinedNames(save: true); } catch { }
+                RepairDefinedNames(save: true);
             }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.RepairDefinedNames");
 
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
 
             WorkbookRoot.Save();
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveWorkbookRoot");
-            try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
+            _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdatePackageProperties");
         }
 

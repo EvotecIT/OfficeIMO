@@ -5485,11 +5485,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveStreamWithLegacyDocFormat_DoesNotOverwriteStreamOnDispose() {
+        public void LegacyDoc_SaveOnDisposeWithoutAssociatedDestination_Throws() {
             using var stream = new MemoryStream();
-            using (WordDocument document = WordDocument.Create(autoSave: true)) {
+            WordDocument document = WordDocument.Create(autoSave: true);
+            try {
                 document.AddParagraph("Native DOC stream remains native");
                 document.Save(stream, WordFileFormat.Doc);
+
+                InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Dispose());
+                Assert.Contains("not associated with a file path", exception.Message, StringComparison.OrdinalIgnoreCase);
+            } finally {
+                // Dispose already releases the package even when persistence fails.
+                document.Dispose();
             }
 
             byte[] bytes = stream.ToArray();
