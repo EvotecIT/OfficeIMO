@@ -271,6 +271,26 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void MergeWithReport_PreservesIncomingOpenActionZoom() {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
+        byte[] second = BuildRawPdf(
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ 12 100 1.5] >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream");
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine } };
+
+        PdfDocumentOpenAction openAction = Assert.IsType<PdfDocumentOpenAction>(
+            PdfInspector.Inspect(PdfMerger.MergeWithReport(options, first, second).ToBytes()).OpenAction);
+
+        Assert.Equal(2, openAction.PageNumber);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, openAction.DestinationMode);
+        Assert.Equal(12d, openAction.DestinationLeft);
+        Assert.Equal(100d, openAction.DestinationTop);
+        Assert.Equal(1.5d, openAction.DestinationZoom);
+    }
+
+    [Fact]
     public void MergeWithReport_CombinesCompatibleCatalogStateAndOutputIntents() {
         byte[] first = PdfDocument.Create()
             .Language("en-US")

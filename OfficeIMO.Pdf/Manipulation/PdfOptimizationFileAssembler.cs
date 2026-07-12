@@ -9,12 +9,11 @@ internal static class PdfOptimizationFileAssembler {
 
     internal static byte[] Assemble(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> objectStreamEligibility, int catalogId, int infoId, PdfFileVersion fileVersion, PdfOptimizationOptions options) {
         if (bodies.Count != objectStreamEligibility.Count) throw new ArgumentException("Object body and eligibility counts must match.", nameof(objectStreamEligibility));
-        if (!options.UseObjectStreams && options.XrefFormat == PdfOptimizationXrefFormat.ClassicTable && !options.Linearize) {
+        if (!options.UseObjectStreams && options.XrefFormat == PdfOptimizationXrefFormat.ClassicTable) {
             var objects = new List<byte[]>(bodies.Count);
             for (int i = 0; i < bodies.Count; i++) objects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, bodies[i]));
             return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion);
         }
-        if (options.Linearize) return PdfLinearizedFileAssembler.Assemble(bodies, catalogId, infoId, fileVersion);
         return AssembleXrefStream(bodies, objectStreamEligibility, catalogId, infoId, fileVersion, options.UseObjectStreams);
     }
 

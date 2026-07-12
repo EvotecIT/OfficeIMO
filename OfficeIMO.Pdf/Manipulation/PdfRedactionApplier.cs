@@ -58,7 +58,8 @@ public static partial class PdfRedactionApplier {
 
         PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
-        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions);
+        int maximumDecodedStreamBytes = readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes;
+        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, maximumDecodedStreamBytes);
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         if (!mutation.HasChanges && !cleanupChanged) {
             return pdf.ToArray();
@@ -128,7 +129,8 @@ public static partial class PdfRedactionApplier {
         PdfReadDocument document,
         PdfRedactionPlan plan,
         PdfRedactionArea[] areas,
-        PdfRedactionApplyOptions options) {
+        PdfRedactionApplyOptions options,
+        int maximumDecodedStreamBytes) {
         var matchesByPage = plan.Matches
             .GroupBy(match => match.PageNumber)
             .ToDictionary(group => group.Key, group => group.ToArray());
@@ -159,7 +161,7 @@ public static partial class PdfRedactionApplier {
             ValidateImagePlacementMatches(currentMatches, imageMutation.RemovedMatches, options);
             bool pageChanged = imageMutation.HasChanges;
             pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches, ref nextObjectNumber) || pageChanged;
-            if (options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), ref nextObjectNumber) || pageChanged;
+            if (options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), maximumDecodedStreamBytes, ref nextObjectNumber) || pageChanged;
             pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);

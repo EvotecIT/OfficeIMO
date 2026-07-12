@@ -30,7 +30,14 @@ public sealed partial class PdfDocumentReader {
     /// <summary>Exports the first-party logical model to JSON, Markdown, ALTO XML, hOCR, or PAGE XML.</summary>
     public string ExportStructured(
         PdfStructuredExportFormat format,
-        PdfTextLayoutOptions? layoutOptions = null) {
-        return PdfStructuredExporter.Export(_document.Snapshot(), format, layoutOptions);
+        PdfTextLayoutOptions? layoutOptions = null) =>
+        ExportStructured(format, layoutOptions, readOptions: null);
+
+    /// <summary>Exports the first-party logical model with explicit read limits or credentials.</summary>
+    public string ExportStructured(
+        PdfStructuredExportFormat format,
+        PdfTextLayoutOptions? layoutOptions,
+        PdfReadOptions? readOptions) {
+        return PdfStructuredExporter.Export(_document.Snapshot(), format, layoutOptions, ResolveReadOptions(readOptions));
     }
 }

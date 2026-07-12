@@ -76,6 +76,30 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void FluentAnnotationEdits_UseStoredOwnerCredentialsForEncryptedPdf() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted annotations"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfAnnotationEditResult added = PdfDocument.Open(source, readOptions).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Text",
+            Contents = "Encrypted note"
+        });
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(added.Bytes, readOptions).GetAnnotationsBySubtype("Text"));
+        PdfAnnotationEditResult updated = PdfDocument.Open(added.Bytes, readOptions).Annotations.Update(
+            annotation.ObjectNumber!.Value,
+            new PdfAnnotationUpdateOptions { Contents = "Updated encrypted note" });
+        PdfAnnotationEditResult removed = PdfDocument.Open(updated.Bytes, readOptions).Annotations.Remove(
+            new PdfAnnotationRemovalOptions { ObjectNumber = annotation.ObjectNumber });
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, added.MutationPlan.ExecutionMode);
+        Assert.Equal("Updated encrypted note", Assert.Single(PdfInspector.Inspect(updated.Bytes, readOptions).GetAnnotationsBySubtype("Text")).Contents);
+        Assert.Empty(PdfInspector.Inspect(removed.Bytes, readOptions).GetAnnotationsBySubtype("Text"));
+        Assert.True(removed.Bytes.AsSpan(0, updated.Bytes.Length).SequenceEqual(updated.Bytes));
+    }
+
+    [Fact]
     public void FlattenAnnotations_FlattensOnlySelectedObjectThroughFluentSurface() {
         byte[] source = PdfDocument.Create()
             .FreeTextAnnotation("Flatten me", 120, 30)

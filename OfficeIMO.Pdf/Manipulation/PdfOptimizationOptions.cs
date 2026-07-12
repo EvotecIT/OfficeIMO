@@ -8,7 +8,7 @@ public enum PdfOptimizationProfile {
     Balanced,
     /// <summary>Maximum dependency-free lossless compression, including object and xref streams.</summary>
     MaximumCompression,
-    /// <summary>Web-oriented deterministic output prepared for linearized delivery.</summary>
+    /// <summary>Web-oriented deterministic output using broadly compatible classic cross references.</summary>
     Web,
     /// <summary>Conservative archival rewrite without object streams or linearization.</summary>
     Archival
@@ -50,7 +50,7 @@ public sealed class PdfOptimizationOptions {
     /// <summary>Cross-reference representation for the optimized candidate.</summary>
     public PdfOptimizationXrefFormat XrefFormat { get; set; } = PdfOptimizationXrefFormat.ClassicTable;
 
-    /// <summary>Emit web-linearized output. Linearization uses classic objects and xref tables.</summary>
+    /// <summary>Request standards-compliant Fast Web View linearization. Unsupported requests fail rather than emitting a misleading marker.</summary>
     public bool Linearize { get; set; }
 
     /// <summary>Maximum decoded image bytes considered for semantic image deduplication.</summary>
@@ -70,7 +70,7 @@ public sealed class PdfOptimizationOptions {
             case PdfOptimizationProfile.MaximumCompression:
                 return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = true, XrefFormat = PdfOptimizationXrefFormat.XrefStream, KeepOriginalWhenNotSmaller = false };
             case PdfOptimizationProfile.Web:
-                return new PdfOptimizationOptions { Profile = profile, Linearize = true, KeepOriginalWhenNotSmaller = false };
+                return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = false, XrefFormat = PdfOptimizationXrefFormat.ClassicTable, Linearize = false, KeepOriginalWhenNotSmaller = false };
             case PdfOptimizationProfile.Archival:
                 return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = false, XrefFormat = PdfOptimizationXrefFormat.ClassicTable, Linearize = false };
             case PdfOptimizationProfile.Custom:

@@ -5,8 +5,9 @@ public static partial class PdfAnnotationEditor {
         byte[] pdf,
         int objectNumber,
         PdfAnnotationUpdateOptions options,
-        PdfMutationPlan mutationPlan) {
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        PdfMutationPlan mutationPlan,
+        PdfReadOptions? readOptions) {
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
             indirect.Value is not PdfDictionary annotation ||
             !IsAnnotationUpdateTarget(objects, objectNumber, annotation)) {
@@ -20,16 +21,18 @@ public static partial class PdfAnnotationEditor {
             objects,
             mutationPlan.Preflight.Probe.Security,
             trailerRaw,
-            new[] { objectNumber }.Concat(additionalChangedObjects).Distinct().ToArray());
-        PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan);
+            new[] { objectNumber }.Concat(additionalChangedObjects).Distinct().ToArray(),
+            encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
+        PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan, readOptions);
         return new PdfAnnotationEditResult(updated, 1, mutationPlan, proof);
     }
 
     private static PdfAnnotationEditResult RemoveAnnotationsIncrementally(
         byte[] pdf,
         PdfAnnotationRemovalOptions options,
-        PdfMutationPlan mutationPlan) {
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        PdfMutationPlan mutationPlan,
+        PdfReadOptions? readOptions) {
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         List<int> pageObjectNumbers = GetPageObjectNumbersInDocumentOrder(objects);
         var removedObjectNumbers = new HashSet<int>();
         var changedObjectNumbers = new HashSet<int>();
@@ -99,8 +102,9 @@ public static partial class PdfAnnotationEditor {
             objects,
             mutationPlan.Preflight.Probe.Security,
             trailerRaw,
-            changedObjectNumbers);
-        PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan);
+            changedObjectNumbers,
+            encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
+        PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, updated, mutationPlan, readOptions);
         return new PdfAnnotationEditResult(updated, Math.Max(affectedCount, 1), mutationPlan, proof);
     }
 
@@ -146,14 +150,29 @@ public static partial class PdfAnnotationEditor {
         }
     }
 
+    private static PdfStandardSecurityHandler? GetAppendEncryptionHandler(
+        Dictionary<int, PdfIndirectObject> objects,
+        string trailerRaw,
+        PdfReadOptions? readOptions,
+        PdfDocumentSecurityInfo security) {
+        if (!security.HasEncryption) return null;
+        if (!PdfSyntax.TryCreateDecryptor(objects, trailerRaw, readOptions, out PdfStandardSecurityHandler? handler)) {
+            throw new InvalidOperationException("Encrypted append-only annotation updates require authenticated PDF read options.");
+        }
+
+        return handler;
+    }
+
     private static PdfSignatureMutationReport BuildAppendOnlyProof(
         byte[] before,
         byte[] after,
-        PdfMutationPlan mutationPlan) {
+        PdfMutationPlan mutationPlan,
+        PdfReadOptions? readOptions = null) {
         PdfSignatureMutationReport proof = PdfSignatureMutationAnalyzer.Analyze(
             before,
             after,
             PdfMutationOperation.ModifyAnnotations,
+            readOptions: readOptions,
             executionPreference: mutationPlan.ExecutionPreference);
         if (!proof.IsPreservedAppendOnlyMutation) {
             throw new InvalidOperationException("Append-only annotation mutation did not preserve the input prefix, revision chain, and existing signature byte ranges.");

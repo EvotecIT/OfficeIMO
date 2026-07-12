@@ -73,5 +73,5 @@ public sealed partial class PdfReadDocument {
     public IReadOnlyList<PdfExtractedImage> ExtractImages() => PdfImageExtractor.ExtractImages(this);
 
     /// <summary>Extracts embedded file attachments from the document catalog.</summary>
-    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() => PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw);
+    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() => PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits);
 }

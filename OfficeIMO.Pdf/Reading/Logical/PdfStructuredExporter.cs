@@ -30,9 +30,13 @@ public static class PdfStructuredExporter {
     }
 
     /// <summary>Loads PDF bytes once into the logical model and exports the requested format.</summary>
-    public static string Export(byte[] pdf, PdfStructuredExportFormat format, PdfTextLayoutOptions? layoutOptions = null) {
+    public static string Export(byte[] pdf, PdfStructuredExportFormat format, PdfTextLayoutOptions? layoutOptions = null) =>
+        Export(pdf, format, layoutOptions, readOptions: null);
+
+    /// <summary>Loads PDF bytes with explicit read limits or credentials and exports the requested format.</summary>
+    public static string Export(byte[] pdf, PdfStructuredExportFormat format, PdfTextLayoutOptions? layoutOptions, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return Export(PdfLogicalDocument.Load(pdf, layoutOptions), format);
+        return Export(PdfLogicalDocument.Load(pdf, layoutOptions, readOptions), format);
     }
 
     /// <summary>

@@ -76,8 +76,10 @@ public static class PdfAttachmentExtractor {
         return WriteAttachmentFiles(ExtractAttachments(stream), fullOutputDirectory);
     }
 
-    internal static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(Dictionary<int, PdfIndirectObject> objects, string trailerRaw) {
+    internal static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(Dictionary<int, PdfIndirectObject> objects, string trailerRaw, PdfReadLimits? limits = null) {
         Guard.NotNull(objects, nameof(objects));
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        effectiveLimits.Validate();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         if (catalog is null) {
             return Array.Empty<PdfExtractedAttachment>();
@@ -88,11 +90,11 @@ public static class PdfAttachmentExtractor {
             ResolveDictionary(objects, namesObject) is PdfDictionary namesDictionary &&
             namesDictionary.Items.TryGetValue("EmbeddedFiles", out var embeddedFilesTreeObject)) {
             var visitedTrees = new HashSet<int>();
-            ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees);
+            ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees, effectiveLimits.MaxDecodedStreamBytes);
         }
 
         foreach (PdfArray associatedFiles in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects)) {
-            ReadAssociatedFiles(objects, associatedFiles, attachments);
+            ReadAssociatedFiles(objects, associatedFiles, attachments, effectiveLimits.MaxDecodedStreamBytes);
         }
 
         return attachments.Count == 0 ? Array.Empty<PdfExtractedAttachment>() : attachments.AsReadOnly();
@@ -102,7 +104,8 @@ public static class PdfAttachmentExtractor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject treeObject,
         List<PdfExtractedAttachment> attachments,
-        HashSet<int> visitedTrees) {
+        HashSet<int> visitedTrees,
+        int maximumDecodedStreamBytes) {
         int treeObjectNumber = treeObject is PdfReference treeReference ? treeReference.ObjectNumber : 0;
         if (treeObjectNumber > 0 && !visitedTrees.Add(treeObjectNumber)) {
             return;
@@ -119,7 +122,7 @@ public static class PdfAttachmentExtractor {
                 }
 
                 PdfObject fileSpecObject = names.Items[i + 1];
-                PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject, "Names/EmbeddedFiles");
+                PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject, "Names/EmbeddedFiles", maximumDecodedStreamBytes);
                 if (attachment != null) {
                     attachments.Add(attachment);
                 }
@@ -128,12 +131,12 @@ public static class PdfAttachmentExtractor {
 
         if (ResolveObject(objects, tree.Items.TryGetValue("Kids", out var kidsObject) ? kidsObject : null) is PdfArray kids) {
             foreach (PdfObject kid in kids.Items) {
-                ReadEmbeddedFilesNameTree(objects, kid, attachments, visitedTrees);
+                ReadEmbeddedFilesNameTree(objects, kid, attachments, visitedTrees, maximumDecodedStreamBytes);
             }
         }
     }
 
-    private static void ReadAssociatedFiles(Dictionary<int, PdfIndirectObject> objects, PdfArray associatedFiles, List<PdfExtractedAttachment> attachments) {
+    private static void ReadAssociatedFiles(Dictionary<int, PdfIndirectObject> objects, PdfArray associatedFiles, List<PdfExtractedAttachment> attachments, int maximumDecodedStreamBytes) {
         var existingFileSpecs = new HashSet<int>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (attachment.FileSpecObjectNumber > 0) {
@@ -149,7 +152,7 @@ public static class PdfAttachmentExtractor {
             }
 
             string name = TryReadFileSpecName(objects, fileSpecObject) ?? "AF." + i.ToString(CultureInfo.InvariantCulture);
-            PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name, fileSpecObject, "AF");
+            PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name, fileSpecObject, "AF", maximumDecodedStreamBytes);
             if (attachment != null) {
                 attachments.Add(attachment);
                 if (attachment.FileSpecObjectNumber > 0) {
@@ -159,7 +162,7 @@ public static class PdfAttachmentExtractor {
         }
     }
 
-    private static PdfExtractedAttachment? TryBuildAttachment(Dictionary<int, PdfIndirectObject> objects, string name, PdfObject fileSpecObject, string source) {
+    private static PdfExtractedAttachment? TryBuildAttachment(Dictionary<int, PdfIndirectObject> objects, string name, PdfObject fileSpecObject, string source, int maximumDecodedStreamBytes) {
         int fileSpecObjectNumber = fileSpecObject is PdfReference fileSpecReference ? fileSpecReference.ObjectNumber : 0;
         if (ResolveDictionary(objects, fileSpecObject) is not PdfDictionary fileSpec ||
             ResolveDictionary(objects, fileSpec.Items.TryGetValue("EF", out var embeddedFilesObject) ? embeddedFilesObject : null) is not PdfDictionary embeddedFiles) {
@@ -183,7 +186,7 @@ public static class PdfAttachmentExtractor {
         string? mimeType = TryReadStreamSubtype(objects, stream.Dictionary);
         PdfAssociatedFileRelationship relationship = TryReadRelationship(objects, fileSpec);
         string filter = GetFilterName(objects, stream.Dictionary.Items.TryGetValue("Filter", out var filterObject) ? filterObject : null);
-        byte[] bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        byte[] bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
         PdfDictionary? parameters = ResolveDictionary(objects, stream.Dictionary.Items.TryGetValue("Params", out PdfObject? parametersObject) ? parametersObject : null);
         DateTimeOffset? creationDate = TryReadPdfDate(objects, parameters, "CreationDate");
         DateTimeOffset? modificationDate = TryReadPdfDate(objects, parameters, "ModDate");

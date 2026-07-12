@@ -35,17 +35,22 @@ public class PdfOptimizerAdvancedTests {
     }
 
     [Fact]
-    public void WebProfile_EmitsPatchedLinearizationParametersAndReadableDocument() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Linearized proof")).ToBytes();
+    public void WebProfile_UsesCompatibleOutputWithoutClaimingInvalidLinearization() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Web optimization proof")).ToBytes();
 
         PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, PdfOptimizationProfile.Web);
         string raw = PdfEncoding.Latin1GetString(result.Bytes);
 
-        Assert.Contains("/Linearized 1", raw, StringComparison.Ordinal);
-        Assert.DoesNotContain("/L 00000000000000000000", raw, StringComparison.Ordinal);
-        Assert.Contains("Linearized proof", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
-        Assert.Contains(result.Actions, static action => action.Kind == "Linearize");
+        Assert.DoesNotContain("/Linearized", raw, StringComparison.Ordinal);
+        Assert.False(result.CandidateLinearized);
+        Assert.Contains("Web optimization proof", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Actions, static action => action.Kind == "Linearize");
         Assert.True(result.PreservationReport.IsPreserved);
+
+        var unsupported = PdfOptimizationOptions.Create(PdfOptimizationProfile.Custom);
+        unsupported.Linearize = true;
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfOptimizer.Optimize(source, unsupported));
+        Assert.Contains("standards-compliant", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

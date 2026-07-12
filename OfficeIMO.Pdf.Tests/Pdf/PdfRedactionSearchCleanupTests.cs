@@ -86,6 +86,29 @@ public class PdfRedactionSearchCleanupTests {
         Assert.DoesNotContain(PdfAssociatedFileTestSupport.Payload, raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_PathScrubbingHonorsCallerDecodedStreamLimit() {
+        const string content = "10 10 40 40 re f 120 120 30 30 re f";
+        string encoded = string.Concat(Encoding.ASCII.GetBytes(content).Select(static value => value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))) + ">";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Filter /ASCIIHexDecode /Length " + encoded.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>", "stream", encoded, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { new PdfRedactionArea(1, 15, 15, 10, 10) });
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 24 } };
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfRedactionApplier.Apply(source, plan, readOptions: readOptions));
+
+        Assert.Contains("Read.ParserUnsupported", exception.Plan.BlockerCodes);
+        Assert.Contains("DecodedStreamBytes", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("maximum 24", exception.Message, StringComparison.Ordinal);
+    }
+
     private sealed class RawMarkerValidator : IPdfRedactionExternalValidator {
         private readonly string _marker;
         internal RawMarkerValidator(string marker) { _marker = marker; }

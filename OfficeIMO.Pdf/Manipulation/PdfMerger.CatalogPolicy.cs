@@ -90,7 +90,7 @@ public static partial class PdfMerger {
         int[] offsets = new int[sources.Count]; int offset = 0; for (int i = 0; i < sources.Count; i++) { offsets[i] = offset; offset += sources[i].PageObjectNumbers.Length; }
         foreach (int index in order) {
             PdfDocumentOpenAction? action = sources[index].Document.OpenAction;
-            if (action?.PageNumber != null) return new MergedNamedDestination("OpenAction", action.PageNumber.Value + offsets[index], action.DestinationMode, action.DestinationLeft, action.DestinationBottom, action.DestinationRight, action.DestinationTop);
+            if (action?.PageNumber != null) return new MergedNamedDestination("OpenAction", action.PageNumber.Value + offsets[index], action.DestinationMode, action.DestinationLeft, action.DestinationBottom, action.DestinationRight, action.DestinationTop, action.DestinationZoom);
         }
         return null;
     }

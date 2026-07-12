@@ -14,7 +14,7 @@ public static partial class PdfOptimizer {
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum decoded image bytes must be positive.");
         if (effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable && effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.XrefStream) throw new ArgumentOutOfRangeException(nameof(options), "Unsupported optimization xref format.");
         if (effectiveOptions.UseObjectStreams) effectiveOptions.XrefFormat = PdfOptimizationXrefFormat.XrefStream;
-        if (effectiveOptions.Linearize && (effectiveOptions.UseObjectStreams || effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable)) throw new ArgumentException("Linearized output requires classic indirect objects and xref tables.", nameof(options));
+        if (effectiveOptions.Linearize) throw new NotSupportedException("Standards-compliant PDF Fast Web View linearization is not implemented; OfficeIMO.Pdf refuses to emit a misleading /Linearized marker.");
 
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
         if (probe.Security.HasEncryption) {
@@ -53,7 +53,6 @@ public static partial class PdfOptimizer {
         byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf, effectiveOptions);
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
-        if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, 0, 0, "Emitted deterministic linearization parameters with the first page object placed first."));
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
         var preservationOptions = new PdfRewritePreservationOptions {
             PreserveRevisionStructure = false,

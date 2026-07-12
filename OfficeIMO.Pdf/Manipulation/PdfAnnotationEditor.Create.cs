@@ -2,10 +2,13 @@ namespace OfficeIMO.Pdf;
 
 public static partial class PdfAnnotationEditor {
     /// <summary>Adds a standard annotation to an existing page and validates readback.</summary>
-    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options) {
+    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options) => AddAnnotation(pdf, options, readOptions: null);
+
+    /// <summary>Adds a standard annotation using explicit read limits or credentials and validates readback.</summary>
+    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(options, nameof(options)); ValidateCreateOptions(options);
-        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, executionPreference: options.ExecutionPreference);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf); int catalog = FindCatalogObjectNumber(objects, trailerRaw);
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: options.ExecutionPreference);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions); int catalog = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalog == 0) throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
         if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Annotation page number exceeds the PDF page count.");
@@ -36,11 +39,11 @@ public static partial class PdfAnnotationEditor {
         byte[] output;
         if (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             int[] changed = new[] { owner, annotationObjectNumber }.Concat(popupObjectNumber.HasValue ? new[] { popupObjectNumber.Value } : Array.Empty<int>()).Concat(generatedObjects).Distinct().ToArray();
-            output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed);
-            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan); ValidateCreatedAnnotation(output, options, annotationObjectNumber); return new PdfAnnotationEditResult(output, 1, plan, proof);
+            output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed, encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, plan.Preflight.Probe.Security));
+            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions); ValidateCreatedAnnotation(output, options, annotationObjectNumber, readOptions); return new PdfAnnotationEditResult(output, 1, plan, proof);
         }
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Load(pdf).Metadata, pdf);
-        ValidateCreatedAnnotation(output, options, null); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Load(pdf, readOptions).Metadata, pdf);
+        ValidateCreatedAnnotation(output, options, null, readOptions); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true);
     }
 
     private static void ValidateCreateOptions(PdfAnnotationCreateOptions options) {
@@ -60,8 +63,8 @@ public static partial class PdfAnnotationEditor {
     private static bool IsAppearanceSubtype(string subtype) => subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
     private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || IsAppearanceSubtype(subtype);
     private static double[] DefaultPopupRectangle(IReadOnlyList<double> parent) => new[] { parent[2] + 8D, parent[1], parent[2] + 208D, parent[1] + 120D };
-    private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int? expectedObjectNumber) {
-        PdfDocumentInfo info = PdfInspector.Inspect(output); IReadOnlyList<PdfAnnotation> matches = info.GetAnnotationsBySubtype(options.Subtype); PdfAnnotation? found = matches.Count == 0 ? null : matches[matches.Count - 1];
+    private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int? expectedObjectNumber, PdfReadOptions? readOptions) {
+        PdfDocumentInfo info = PdfInspector.Inspect(output, readOptions); IReadOnlyList<PdfAnnotation> matches = info.GetAnnotationsBySubtype(options.Subtype); PdfAnnotation? found = matches.Count == 0 ? null : matches[matches.Count - 1];
         if (found == null || found.PageNumber != options.PageNumber || (expectedObjectNumber.HasValue && found.ObjectNumber != expectedObjectNumber)) throw new InvalidOperationException("PDF annotation creation readback failed; the artifact was not returned.");
         if (options.GenerateAppearance && IsAppearanceSubtype(options.Subtype) && !found.HasNormalAppearance) throw new InvalidOperationException("PDF annotation appearance readback failed; the artifact was not returned.");
     }

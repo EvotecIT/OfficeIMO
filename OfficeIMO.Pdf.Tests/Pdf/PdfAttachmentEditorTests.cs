@@ -62,4 +62,15 @@ public class PdfAttachmentEditorTests {
         Assert.DoesNotContain("/AF", raw, StringComparison.Ordinal);
         Assert.DoesNotContain(PdfAssociatedFileTestSupport.Payload, raw, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ReadDocument_AppliesDecodedStreamLimitToPageAssociatedFiles() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfReadDocument.Load(source, options));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(8, exception.Limit);
+    }
 }

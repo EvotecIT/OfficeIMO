@@ -56,8 +56,27 @@ public static class PdfMutationPlanner {
             throw new ArgumentException("Stream must be readable.", nameof(input));
         }
 
+        PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
+        limits.Validate();
+        if (input.CanSeek) {
+            long remaining = input.Length - input.Position;
+            if (remaining > limits.MaxInputBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, remaining);
+            }
+        }
+
         using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
+        var chunk = new byte[81920];
+        int read;
+        while ((read = input.Read(chunk, 0, chunk.Length)) > 0) {
+            long nextLength = buffer.Length + read;
+            if (nextLength > limits.MaxInputBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.InputBytes, limits.MaxInputBytes, nextLength);
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
         return Plan(buffer.ToArray(), operation, options, fieldNames, executionPreference);
     }
 
