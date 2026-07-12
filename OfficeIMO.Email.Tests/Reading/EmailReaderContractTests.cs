@@ -65,8 +65,11 @@ public sealed class EmailReaderContractTests {
         const string multipart = "Subject: x\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
             "--x\r\nContent-Type: text/plain\r\n\r\na\r\n" +
             "--x\r\nContent-Type: text/plain\r\n\r\nb\r\n--x--\r\n";
-        Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
-            new EmailReaderOptions(maxPartCount: 2)).Read(Encoding.ASCII.GetBytes(multipart)));
+        EmailLimitExceededException partLimit = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 2))
+                .Read(Encoding.ASCII.GetBytes(multipart)));
+        Assert.Equal(nameof(EmailReaderOptions.MaxPartCount), partLimit.LimitName);
+        Assert.Equal(3, partLimit.ActualValue);
 
         const string attachment = "Subject: x\r\nContent-Type: application/octet-stream\r\n\r\n12345";
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(

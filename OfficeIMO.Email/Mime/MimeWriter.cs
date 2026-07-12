@@ -158,8 +158,7 @@ internal static class MimeWriter {
         if (string.IsNullOrWhiteSpace(document.Body.Html) || string.IsNullOrWhiteSpace(attachment.ContentId)) {
             return false;
         }
-        string marker = string.Concat("cid:", attachment.ContentId!.Trim().Trim('<', '>'));
-        return document.Body.Html!.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0;
+        return MimeContentIdReference.Contains(document.Body.Html!, attachment.ContentId!);
     }
 
     private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth, bool hasAlternative) {

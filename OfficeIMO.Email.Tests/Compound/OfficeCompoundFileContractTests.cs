@@ -102,6 +102,26 @@ public sealed class OfficeCompoundFileContractTests {
     }
 
     [Fact]
+    public void EmailPolicyBoundsDeclaredRootMiniStreamBeforeMaterializingIt() {
+        byte[] compound = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("Property", new byte[] { 1 })
+        });
+        int directoryOffset = checked(((int)ReadUInt32(compound, 48) + 1) * 512);
+        WriteUInt64(compound, directoryOffset + 120, 512);
+        var readerOptions = new EmailReaderOptions(
+            maxInputBytes: 8192,
+            maxCompoundDirectoryEntries: 4,
+            maxDecodedPropertyBytes: 1,
+            maxTotalAttachmentBytes: 1);
+
+        bool success = OfficeCompoundFileReader.TryRead(compound,
+            EmailCompoundReadPolicy.Create(readerOptions), out _, out string? error);
+
+        Assert.False(success);
+        Assert.Contains("mini stream exceeds configured bounds", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void AttachmentPolicyRejectsDeclaredStreamTotalsBeforeMaterializingPayloads() {
         byte[] compound = OfficeCompoundFileWriter.Write(new[] {
             new OfficeCompoundStream("One", new byte[400]),
@@ -134,5 +154,11 @@ public sealed class OfficeCompoundFileContractTests {
 
     private static uint ReadUInt32(byte[] bytes, int offset) {
         return (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
+    }
+
+    private static void WriteUInt64(byte[] bytes, int offset, ulong value) {
+        for (int index = 0; index < 8; index++) {
+            bytes[offset + index] = (byte)(value >> (index * 8));
+        }
     }
 }

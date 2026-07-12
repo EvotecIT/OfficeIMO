@@ -158,6 +158,18 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void PrefersExtendedFilenameWhenThePlainFallbackAppearsLater() {
+        const string eml = "Subject: extended filename\r\n" +
+            "Content-Type: application/octet-stream\r\n" +
+            "Content-Disposition: attachment; filename*=utf-8''caf%C3%A9.txt; filename=cafe.txt\r\n\r\n" +
+            "content";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("café.txt", Assert.Single(document.Attachments).FileName);
+    }
+
+    [Fact]
     public void AcceptsUtf8BomWithoutPollutingTheFirstHeaderName() {
         byte[] message = Encoding.UTF8.GetPreamble()
             .Concat(Encoding.UTF8.GetBytes("Subject: BOM message\r\nFrom: sender@example.com\r\n\r\nbody"))

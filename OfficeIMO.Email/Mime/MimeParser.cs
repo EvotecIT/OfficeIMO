@@ -226,6 +226,7 @@ internal static class MimeParser {
             if (IsBoundaryLine(data, lineStart, lineEnd, marker, out bool closing)) {
                 if (partStart >= 0) {
                     int partEnd = TrimLineEndingBefore(data, partStart, lineStart);
+                    state.EnsurePendingPartCount(parts.Count + 1);
                     parts.Add(new ArraySegment<byte>(data, partStart, Math.Max(0, partEnd - partStart)));
                 }
                 if (closing) {
@@ -240,6 +241,7 @@ internal static class MimeParser {
         if (!closed) {
             if (partStart >= 0 && partStart < end) {
                 int partEnd = TrimLineEndingBefore(data, partStart, end);
+                state.EnsurePendingPartCount(parts.Count + 1);
                 parts.Add(new ArraySegment<byte>(data, partStart, Math.Max(0, partEnd - partStart)));
             }
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_CLOSED",

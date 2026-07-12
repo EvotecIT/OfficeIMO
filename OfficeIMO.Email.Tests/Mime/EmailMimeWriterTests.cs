@@ -316,6 +316,41 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void GroupsOnlyTheExactPercentDecodedCidResource() {
+        var document = new EmailDocument { Subject = "exact related resource" };
+        document.Body.Html = "<html><img src=\"cid:logo%40example.com\"></html>";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "exact.png",
+            ContentType = "image/png",
+            ContentId = "logo@example.com",
+            IsInline = true,
+            Content = new byte[] { 1 },
+            Length = 1
+        });
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "prefix.png",
+            ContentType = "image/png",
+            ContentId = "logo",
+            IsInline = true,
+            Content = new byte[] { 2 },
+            Length = 1
+        });
+
+        string eml = Encoding.ASCII.GetString(new EmailDocumentWriter().WriteToBytes(document));
+        int relatedHeader = eml.IndexOf("multipart/related; boundary=\"", StringComparison.OrdinalIgnoreCase);
+        Assert.True(relatedHeader >= 0);
+        int boundaryStart = relatedHeader + "multipart/related; boundary=\"".Length;
+        int boundaryEnd = eml.IndexOf('"', boundaryStart);
+        string closingBoundary = string.Concat("--", eml.Substring(boundaryStart, boundaryEnd - boundaryStart), "--");
+        int relatedEnd = eml.IndexOf(closingBoundary, boundaryEnd, StringComparison.Ordinal);
+        int exactId = eml.IndexOf("Content-ID: <logo@example.com>", StringComparison.OrdinalIgnoreCase);
+        int prefixId = eml.IndexOf("Content-ID: <logo>", StringComparison.OrdinalIgnoreCase);
+
+        Assert.InRange(exactId, relatedHeader, relatedEnd);
+        Assert.True(prefixId > relatedEnd);
+    }
+
+    [Fact]
     public void WritesRtfOnlyBodyAsAPreservedMimeAlternative() {
         string rtf = string.Concat("{\\rtf1\\ansi RTF-only body ", (char)0xE9, "\\par}");
         var document = new EmailDocument { Subject = "RTF body" };

@@ -12,7 +12,8 @@ internal static class EmailCompoundReadPolicy {
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
             Math.Min(options.MaxInputBytes, int.MaxValue),
-            long.MaxValue,
+            GetCompoundByteLimit(options, options.MaxDecodedPropertyBytes,
+                options.MaxTotalAttachmentBytes),
             (path, size) => {
                 string? attachmentPath = GetAttachmentPayloadPath(path);
                 if (attachmentPath == null) {
@@ -48,7 +49,9 @@ internal static class EmailCompoundReadPolicy {
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
             Math.Min(options.MaxInputBytes, int.MaxValue),
-            long.MaxValue,
+            GetCompoundByteLimit(options, 0,
+                Math.Min(options.MaxAttachmentBytes,
+                    Math.Max(0, options.MaxTotalAttachmentBytes - existingTotalAttachmentBytes))),
             (_, size) => {
                 attachmentBytes = checked(attachmentBytes + size);
                 if (attachmentBytes > options.MaxAttachmentBytes) {
@@ -63,6 +66,21 @@ internal static class EmailCompoundReadPolicy {
                         options.MaxTotalAttachmentBytes);
                 }
             });
+    }
+
+    private static long GetCompoundByteLimit(EmailReaderOptions options, long propertyBytes,
+        long attachmentBytes) {
+        long paddingBytes = SaturatingMultiply(options.MaxCompoundDirectoryEntries, 63);
+        long decodedBytes = SaturatingAdd(propertyBytes, attachmentBytes);
+        return Math.Min(options.MaxInputBytes, SaturatingAdd(decodedBytes, paddingBytes));
+    }
+
+    private static long SaturatingAdd(long left, long right) {
+        return left > long.MaxValue - right ? long.MaxValue : left + right;
+    }
+
+    private static long SaturatingMultiply(long left, long right) {
+        return left > long.MaxValue / right ? long.MaxValue : left * right;
     }
 
     private static string? GetAttachmentPayloadPath(string path) {

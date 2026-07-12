@@ -55,17 +55,12 @@ public sealed class EmailMailboxReader {
     private EmailMailboxReadResult Parse(byte[] data, CancellationToken cancellationToken) {
         var diagnostics = new List<EmailDiagnostic>();
         var mailbox = new EmailMailbox();
-        List<Envelope> envelopes = FindEnvelopes(data, cancellationToken);
+        List<Envelope> envelopes = FindEnvelopes(data, _options.MaxMessageCount, cancellationToken);
         if (envelopes.Count == 0 || envelopes[0].LineStart != 0) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_ENVELOPE_MISSING",
                 "The mailbox does not begin with an mbox From separator.", EmailDiagnosticSeverity.Error));
             return new EmailMailboxReadResult(mailbox, diagnostics.AsReadOnly(), data.LongLength);
         }
-        if (envelopes.Count > _options.MaxMessageCount) {
-            throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMessageCount),
-                envelopes.Count, _options.MaxMessageCount);
-        }
-
         var reader = new EmailDocumentReader(_options.MessageOptions);
         for (int index = 0; index < envelopes.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -90,7 +85,8 @@ public sealed class EmailMailboxReader {
         return new EmailMailboxReadResult(mailbox, diagnostics.AsReadOnly(), data.LongLength);
     }
 
-    private static List<Envelope> FindEnvelopes(byte[] data, CancellationToken cancellationToken) {
+    private static List<Envelope> FindEnvelopes(byte[] data, int maximumMessages,
+        CancellationToken cancellationToken) {
         var result = new List<Envelope>();
         int lineStart = 0;
         while (lineStart < data.Length) {
@@ -101,6 +97,10 @@ public sealed class EmailMailboxReader {
                 string raw = Encoding.ASCII.GetString(data, lineStart, lineEnd - lineStart);
                 ParseEnvelope(raw, out string? sender, out DateTimeOffset? date);
                 result.Add(new Envelope(lineStart, SkipLineEnding(data, lineEnd), raw, sender, date));
+                if (result.Count > maximumMessages) {
+                    throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMessageCount),
+                        result.Count, maximumMessages);
+                }
             }
             lineStart = SkipLineEnding(data, lineEnd);
         }

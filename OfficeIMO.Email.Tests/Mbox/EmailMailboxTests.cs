@@ -48,6 +48,40 @@ public sealed class EmailMailboxTests {
     }
 
     [Fact]
+    public void StopsEnvelopeDiscoveryAtTheFirstMessagePastTheConfiguredLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\nA\n" +
+            "From b@example.com Fri Jul 10 13:00:00 2026\nSubject: B\n\nB\n" +
+            "From c@example.com Fri Jul 10 14:00:00 2026\nSubject: C\n\nC\n");
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailMailboxReader(new EmailMailboxReaderOptions(maxMessageCount: 1)).Read(source));
+
+        Assert.Equal(nameof(EmailMailboxReaderOptions.MaxMessageCount), exception.LimitName);
+        Assert.Equal(2, exception.ActualValue);
+    }
+
+    [Fact]
+    public void BoundsAggregateMailboxOutputAcrossIndividuallyValidMessages() {
+        var messageOptions = new EmailWriterOptions(maxOutputBytes: 220);
+        var first = new EmailDocument { Subject = "first" };
+        first.Body.Text = new string('a', 40);
+        var second = new EmailDocument { Subject = "second" };
+        second.Body.Text = new string('b', 40);
+        Assert.True(new EmailDocumentWriter(messageOptions).WriteToBytes(first).Length < 220);
+        Assert.True(new EmailDocumentWriter(messageOptions).WriteToBytes(second).Length < 220);
+        var mailbox = new EmailMailbox();
+        mailbox.Messages.Add(new EmailMailboxEntry(first));
+        mailbox.Messages.Add(new EmailMailboxEntry(second));
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailMailboxWriter(new EmailMailboxWriterOptions(messageOptions)).WriteToBytes(mailbox));
+
+        Assert.Equal(nameof(EmailWriterOptions.MaxOutputBytes), exception.LimitName);
+        Assert.Equal(220, exception.MaximumValue);
+    }
+
+    [Fact]
     public void SingleDocumentReaderDirectsMboxToAggregateApi() {
         byte[] source = Encoding.ASCII.GetBytes("From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\nA\n");
 

@@ -5,6 +5,7 @@ internal static class MimeValueParser {
         if (string.IsNullOrWhiteSpace(input)) return new MimeValue(defaultValue);
         List<string> segments = Split(input!);
         MimeValue result = new MimeValue(segments[0].Trim().ToLowerInvariant());
+        HashSet<string> extendedParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, SortedDictionary<int, ContinuationPart>> continuations =
             new Dictionary<string, SortedDictionary<int, ContinuationPart>>(StringComparer.OrdinalIgnoreCase);
 
@@ -26,7 +27,12 @@ internal static class MimeValueParser {
                 }
                 values[part] = new ContinuationPart(value, encoded);
             } else {
-                result.Parameters[baseName] = encoded ? DecodeExtended(value, diagnostics, location) : value;
+                if (encoded) {
+                    result.Parameters[baseName] = DecodeExtended(value, diagnostics, location);
+                    extendedParameters.Add(baseName);
+                } else if (!extendedParameters.Contains(baseName)) {
+                    result.Parameters[baseName] = value;
+                }
             }
         }
 
@@ -46,9 +52,12 @@ internal static class MimeValueParser {
                 expected++;
             }
             string combined = builder.ToString();
-            result.Parameters[continuation.Key] = encoded
-                ? DecodeExtended(combined, diagnostics, location)
-                : combined;
+            if (encoded) {
+                result.Parameters[continuation.Key] = DecodeExtended(combined, diagnostics, location);
+                extendedParameters.Add(continuation.Key);
+            } else if (!extendedParameters.Contains(continuation.Key)) {
+                result.Parameters[continuation.Key] = combined;
+            }
         }
         return result;
     }

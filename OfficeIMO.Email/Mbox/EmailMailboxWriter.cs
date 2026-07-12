@@ -65,7 +65,8 @@ public sealed class EmailMailboxWriter {
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<EmailDiagnostic>();
         var messageWriter = new EmailDocumentWriter(_options.MessageOptions);
-        using (MemoryStream output = new MemoryStream()) {
+        using (EmailBoundedMemoryStream output = new EmailBoundedMemoryStream(
+                   _options.MessageOptions.MaxOutputBytes)) {
             for (int index = 0; index < mailbox.Messages.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 EmailMailboxEntry entry = mailbox.Messages[index];
@@ -86,10 +87,6 @@ public sealed class EmailMailboxWriter {
                 byte[] escaped = Escape(normalized, _options.Variant);
                 output.Write(escaped, 0, escaped.Length);
                 if (escaped.Length == 0 || escaped[escaped.Length - 1] != '\n') output.WriteByte((byte)'\n');
-                if (output.Length > _options.MessageOptions.MaxOutputBytes) {
-                    throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), output.Length,
-                        _options.MessageOptions.MaxOutputBytes);
-                }
             }
             byte[] bytes = output.ToArray();
             cancellationToken.ThrowIfCancellationRequested();

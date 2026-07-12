@@ -25,6 +25,15 @@ internal sealed class MimeParserState {
         }
     }
 
+    internal void EnsurePendingPartCount(int pendingPartCount) {
+        ThrowIfCancellationRequested();
+        long total = checked((long)PartCount + pendingPartCount);
+        if (total > Options.MaxPartCount) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxPartCount),
+                total, Options.MaxPartCount);
+        }
+    }
+
     internal void CountAttachment(long length) {
         EnsureAttachmentWithinLimits(length);
         TotalAttachmentBytes = checked(TotalAttachmentBytes + length);
