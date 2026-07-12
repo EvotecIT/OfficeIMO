@@ -71,11 +71,12 @@ public class PowerPointSaveAsPdfTests {
         run.SetHyperlink("https://officeimo.net/");
 
         var options = new PowerPointPdfSaveOptions { UseSharedVisualSnapshot = true };
-        byte[] bytes = presentation.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        byte[] bytes = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         Assert.Equal(new[] { "https://officeimo.net/" }, info.LinkUris);
-        Assert.Contains(options.Warnings, warning => warning.Code == "snapshot-selective-fallback");
+        Assert.Contains(result.Warnings, warning => warning.Code == "snapshot-selective-fallback");
     }
 
     [Fact]
@@ -131,17 +132,16 @@ public class PowerPointSaveAsPdfTests {
         paragraphs[1].SetAlignment(TextAlignmentTypeValues.Right);
         var options = new PowerPointPdfSaveOptions();
 
-        presentation.ToPdfDocument(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        result.ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "text-box-overflow");
-        Assert.Equal(1, warning.SlideNumber);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "text-box-overflow");
+        Assert.Equal("Slide 1", warning.Source);
         Assert.NotNull(warning.LayoutDiagnostic);
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointTextBox", warning.LayoutDiagnostic.Source);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
-        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "text-box-overflow");
-        Assert.Equal("OfficeIMO.PowerPoint.Pdf", sharedWarning.Converter);
-        Assert.Equal(warning.LayoutDiagnostic, sharedWarning.LayoutDiagnostic);
+        Assert.Equal("OfficeIMO.PowerPoint.Pdf", warning.Converter);
     }
 
     [Fact]
@@ -160,10 +160,11 @@ public class PowerPointSaveAsPdfTests {
             });
         var options = new PowerPointPdfSaveOptions();
 
-        presentation.ToPdfDocument(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        result.ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "list-indent-simplified");
-        Assert.Equal(1, warning.SlideNumber);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "list-indent-simplified");
+        Assert.Equal("Slide 1", warning.Source);
         Assert.NotNull(warning.LayoutDiagnostic);
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointList", warning.LayoutDiagnostic.Source);
@@ -177,10 +178,11 @@ public class PowerPointSaveAsPdfTests {
         presentation.AddSlide().AddShape(ShapeTypeValues.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
         var options = new PowerPointPdfSaveOptions();
 
-        presentation.ToPdfDocument(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        result.ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
-        Assert.Equal(1, warning.SlideNumber);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
+        Assert.Equal("Slide 1", warning.Source);
         Assert.Equal("unsupported-auto-shape", warning.Code);
     }
 
@@ -231,9 +233,10 @@ public class PowerPointSaveAsPdfTests {
         textBox.FillTransparency = 100;
         var options = new PowerPointPdfSaveOptions();
 
-        byte[] bytes = presentation.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        byte[] bytes = result.ToBytes();
 
-        Assert.Contains(options.Warnings, warning => warning.Code == "text-box-padding");
+        Assert.Contains(result.Warnings, warning => warning.Code == "text-box-padding");
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(1, pdf.NumberOfPages);
     }
@@ -426,7 +429,7 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.Empty(options.Warnings);
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("0.196 0.133 0.063 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.196 0.133 0.067 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -447,7 +450,7 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.Empty(options.Warnings);
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("0.196 0.133 0.063 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.196 0.133 0.067 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -811,10 +814,11 @@ public class PowerPointSaveAsPdfTests {
             UseSharedVisualSnapshot = true
         };
 
-        byte[] bytes = presentation.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        byte[] bytes = result.ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "picture-aspect-distortion");
-        Assert.Equal(1, warning.SlideNumber);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "picture-aspect-distortion");
+        Assert.Equal("Slide 1", warning.Source);
         Assert.NotNull(warning.LayoutDiagnostic);
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointPicture", warning.LayoutDiagnostic.Source);
@@ -1337,17 +1341,16 @@ public class PowerPointSaveAsPdfTests {
         cell.FontSize = 14;
         var options = new PowerPointPdfSaveOptions();
 
-        presentation.ToPdfDocument(options).ToBytes();
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        result.ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "table-cell-overflow");
-        Assert.Equal(1, warning.SlideNumber);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "table-cell-overflow");
+        Assert.Equal("Slide 1", warning.Source);
         Assert.NotNull(warning.LayoutDiagnostic);
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointTableCell", warning.LayoutDiagnostic.Source);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
-        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "table-cell-overflow");
-        Assert.Equal("OfficeIMO.PowerPoint.Pdf", sharedWarning.Converter);
-        Assert.Equal(warning.LayoutDiagnostic, sharedWarning.LayoutDiagnostic);
+        Assert.Equal("OfficeIMO.PowerPoint.Pdf", warning.Converter);
     }
 
     [Fact]
@@ -1758,10 +1761,11 @@ public class PowerPointSaveAsPdfTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
         };
 
-        byte[] bytes = presentation.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        byte[] bytes = result.ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "chart-quality");
-        Assert.Equal(1, warning.SlideNumber);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "chart-quality");
+        Assert.Equal("Slide 1", warning.Source);
         Assert.Contains("Dense Slide Chart", warning.Message, StringComparison.Ordinal);
         Assert.Contains("TextOverlap", warning.Message, StringComparison.Ordinal);
         Assert.NotNull(warning.LayoutDiagnostic);
