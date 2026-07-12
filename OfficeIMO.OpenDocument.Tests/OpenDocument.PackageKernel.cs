@@ -96,24 +96,9 @@ public class OpenDocumentPackageKernelTests {
     public void RejectsUnsafeArchiveEntryNames() {
         using OdtDocument document = OdtDocument.Create();
         byte[] valid = document.ToBytes();
-        byte[] unsafePackage;
-        using (var output = new MemoryStream()) {
-            using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-                using var sourceStream = new MemoryStream(valid);
-                using var source = new ZipArchive(sourceStream, ZipArchiveMode.Read);
-                foreach (ZipArchiveEntry sourceEntry in source.Entries) {
-                    ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
-                        sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                    using Stream input = sourceEntry.Open();
-                    using Stream destination = targetEntry.Open();
-                    input.CopyTo(destination);
-                }
-                ZipArchiveEntry unsafeEntry = target.CreateEntry("../escape.xml");
-                using var writer = new StreamWriter(unsafeEntry.Open(), new UTF8Encoding(false));
-                writer.Write("<escape/>");
-            }
-            unsafePackage = output.ToArray();
-        }
+        byte[] unsafePackage = OdfTestPackageRewriter.Rewrite(valid, additions: new[] {
+            new OdfTestPackageEntry("../escape.xml", Encoding.UTF8.GetBytes("<escape/>"))
+        });
 
         Assert.Throws<InvalidDataException>(() => OdtDocument.Open(new MemoryStream(unsafePackage)));
     }
