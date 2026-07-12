@@ -206,6 +206,16 @@ public sealed class PdfDocumentForms {
         return PdfDocument.FromBytes(PdfFormFiller.FlattenFields(_document.Snapshot(), formOptions));
     }
 
+    /// <summary>Creates a new PDF with only the named simple form fields flattened.</summary>
+    public PdfDocument Flatten(params string[] fieldNames) {
+        return PdfDocument.FromBytes(PdfFormFiller.FlattenFields(_document.Snapshot(), fieldNames));
+    }
+
+    /// <summary>Creates a new PDF with only the named simple form fields flattened.</summary>
+    public PdfDocument Flatten(IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions formOptions) {
+        return PdfDocument.FromBytes(PdfFormFiller.FlattenFields(_document.Snapshot(), fieldNames, formOptions));
+    }
+
     /// <summary>
     /// Attempts to create a new PDF with simple form fields flattened, returning diagnostics when blocked or failed.
     /// </summary>
@@ -287,6 +297,9 @@ public sealed class PdfDocumentForms {
 
     /// <summary>Imports XFDF through the validated form filler.</summary>
     public PdfDocument ImportXfdf(string xfdf, PdfFormFillerOptions? options = null) => PdfDocument.FromBytes(PdfFormData.ImportXfdf(_document.Snapshot(), xfdf, options));
+
+    /// <summary>Transactionally creates or edits fields, widgets, ordering, and selective flattening.</summary>
+    public PdfAcroFormEditResult Edit(Action<PdfAcroFormEditSession> edit) => PdfAcroFormEditor.Edit(_document.Snapshot(), edit, _document.ReadOptions);
 
     private static PdfIncrementalFormFieldUpdateOptions CreateIncrementalOptions(PdfFormFillerOptions? formOptions) {
         if (formOptions?.HasAppearanceFontFamily == true || formOptions?.HasAppearanceFontFallbacks == true) {

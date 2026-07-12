@@ -90,12 +90,14 @@ public static class PdfMutationPlanner {
         bool fullRewriteCapability = CanFullRewrite(preflight, operation);
         bool securityRewrite = operation == PdfMutationOperation.ChangeEncryption && fullRewriteCapability;
         bool requiresAppendOnly = RequiresAppendOnlyForOperation(security, operation);
+        bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
+        bool normalizedMergeRewrite = operation == PdfMutationOperation.MergeDocuments && CanNormalizeMergeSource(security);
         bool fullRewriteAvailable =
             fullRewriteImplemented &&
             fullRewriteCapability &&
             (securityRewrite ||
                 (!requiresAppendOnly &&
-                (!security.BlocksOfficeIMOFullRewriteMutation || CanExtractPagesViaNormalization(preflight, operation))));
+                (!security.BlocksOfficeIMOFullRewriteMutation || unsignedSignatureFieldRewrite || normalizedMergeRewrite || CanExtractPagesViaNormalization(preflight, operation))));
         bool appendOnlyAvailable = appendOnlyImplemented && CanAppend(appendOnly, operation);
 
         PdfMutationExecutionMode mode;
@@ -161,6 +163,8 @@ public static class PdfMutationPlanner {
                 return preflight.CanFlattenSimpleFormFields;
             case PdfMutationOperation.FillAndFlattenFormFields:
                 return preflight.CanFillAndFlattenSimpleFormFields;
+            case PdfMutationOperation.ModifyAcroForm:
+                return CanModifyAcroForm(preflight);
             case PdfMutationOperation.PrepareExternalSignature:
             case PdfMutationOperation.FinalizeExternalSignature:
             case PdfMutationOperation.EnrichLongTermValidation:
@@ -216,7 +220,7 @@ public static class PdfMutationPlanner {
         operation == PdfMutationOperation.EnrichLongTermValidation;
 
     private static bool RequiresAppendOnlyForOperation(PdfDocumentSecurityInfo security, PdfMutationOperation operation) {
-        if (security.HasSignatures ||
+        if ((security.HasSignatures && !(operation == PdfMutationOperation.ModifyAcroForm && HasOnlyUnsignedSignatureFields(security))) ||
             security.AcroFormAppendOnly ||
             security.HasDocMDPPermissions ||
             security.HasUsageRights) {
@@ -239,6 +243,8 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.FlattenFormFields:
             case PdfMutationOperation.FillAndFlattenFormFields:
                 return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations, PdfMutationStructure.PageContent, PdfMutationStructure.PageResources);
+            case PdfMutationOperation.ModifyAcroForm:
+                return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations, PdfMutationStructure.PageContent, PdfMutationStructure.PageResources, PdfMutationStructure.Catalog);
             case PdfMutationOperation.PrepareExternalSignature:
                 return ReadOnly(PdfMutationStructure.Signatures, PdfMutationStructure.AcroForm, PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph);
             case PdfMutationOperation.FinalizeExternalSignature:
@@ -275,6 +281,7 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.FillFormFields:
             case PdfMutationOperation.FlattenFormFields:
             case PdfMutationOperation.FillAndFlattenFormFields:
+            case PdfMutationOperation.ModifyAcroForm:
                 Add(permissions, PdfMutationPermissionCheck.FillForms);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
                 Add(permissions, PdfMutationPermissionCheck.FieldMdp);
@@ -351,6 +358,11 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.FlattenFormFields:
             case PdfMutationOperation.FillAndFlattenFormFields:
                 Add(proofs, PdfMutationProof.FormFieldReadback);
+                Add(proofs, PdfMutationProof.VisualRendering);
+                break;
+            case PdfMutationOperation.ModifyAcroForm:
+                Add(proofs, PdfMutationProof.FormFieldReadback);
+                Add(proofs, PdfMutationProof.PageStructureReadback);
                 Add(proofs, PdfMutationProof.VisualRendering);
                 break;
             case PdfMutationOperation.PrepareExternalSignature:
@@ -613,6 +625,35 @@ public static class PdfMutationPlanner {
         return true;
     }
 
+    private static bool CanModifyAcroForm(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Signatures && HasOnlyUnsignedSignatureFields(preflight.Probe.Security)) continue;
+            if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAcroForm)) return false;
+        }
+        return true;
+    }
+
+    private static bool HasOnlyUnsignedSignatureFields(PdfDocumentSecurityInfo security) =>
+        security.SignatureFieldCount > 0 &&
+        security.SignatureValueCount == 0 &&
+        !security.HasByteRange &&
+        !security.AcroFormSignaturesExist &&
+        !security.HasDocMDPPermissions;
+
+    private static bool CanFullRewriteUnsignedSignatureFields(PdfDocumentSecurityInfo security) =>
+        HasOnlyUnsignedSignatureFields(security) &&
+        !security.HasEncryption &&
+        !security.HasUsageRights &&
+        !security.HasXrefStreams &&
+        !security.HasObjectStreams;
+
+    private static bool CanNormalizeMergeSource(PdfDocumentSecurityInfo security) =>
+        !security.HasEncryption &&
+        !security.HasSignatures &&
+        !security.HasDocMDPPermissions &&
+        !security.HasUsageRights;
+
     private static bool CanSynchronizeMetadata(PdfDocumentPreflight preflight) {
         if (!preflight.CanRead) {
             return false;
@@ -645,6 +686,10 @@ public static class PdfMutationPlanner {
         }
 
         if (operation == PdfMutationOperation.MergeDocuments) {
+            return blocker != PdfRewriteBlockerKind.Forms;
+        }
+
+        if (operation == PdfMutationOperation.ModifyAcroForm) {
             return blocker != PdfRewriteBlockerKind.Forms;
         }
 
