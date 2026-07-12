@@ -2419,7 +2419,7 @@
             <summary>
             Normalizes color input which may be a hex value or a named color.
             Hex values may be specified as three or six digits, with or without '#'.
-            Returns a lowercase six-digit hex string without '#'.
+            Returns an uppercase six-digit hex string without '#'.
             Throws <see cref="T:System.ArgumentException"/> if the value cannot be parsed
             as a valid color.
             </summary>
