@@ -71,8 +71,6 @@ jobs:
     name: 'OfficeIMO.Email packed consumers'
     runs-on: windows-latest
     timeout-minutes: 15
-    env:
-      NUGET_PACKAGES: ${{ runner.temp }}/officeimo-email-package-cache
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -84,6 +82,8 @@ jobs:
 
       - name: Pack and test clean package consumers
         shell: pwsh
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/officeimo-email-package-cache
         run: |
           $feed = Join-Path $env:RUNNER_TEMP 'officeimo-email-feed'
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
