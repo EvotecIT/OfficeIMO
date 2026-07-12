@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Word {
             AddFeaturePreflightPackageSignals(featurePath);
             PremiumWorkflowExampleUtilities.AddSyntheticSignatureMetadata(featurePath);
 
-            using (WordDocument document = WordDocument.Load(featurePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(featurePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 File.WriteAllText(Path.Combine(scenarioPath, "feature-report.md"), report.ToMarkdown(), Encoding.UTF8);
                 File.WriteAllText(Path.Combine(scenarioPath, "feature-report.json"), SerializeFeatureReport(report), Encoding.UTF8);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(reviewPath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(reviewPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewReport report = document.InspectReviewReport();
                 File.WriteAllText(Path.Combine(scenarioPath, "review-report.md"), report.ToMarkdown(), Encoding.UTF8);
                 File.WriteAllText(Path.Combine(scenarioPath, "review-report.json"), report.ToJson(), Encoding.UTF8);
@@ -204,7 +204,7 @@ namespace OfficeIMO.Examples.Word {
             PremiumWorkflowExampleUtilities.AddSyntheticSignatureMetadata(signaturePath);
 
             WordSignatureValidationReport validationReport;
-            using (WordDocument document = WordDocument.Load(signaturePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(signaturePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 validationReport = document.ValidateSignatures();
             }
 

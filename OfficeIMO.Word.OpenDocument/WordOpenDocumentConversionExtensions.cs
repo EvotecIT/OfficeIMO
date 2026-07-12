@@ -424,6 +424,6 @@ public static class WordOpenDocumentConversionExtensions {
         document.Save(stream);
         document.Dispose();
         stream.Position = 0;
-        return WordDocument.Load(stream, autoSave: false);
+        return WordDocument.Load(stream);
     }
 }

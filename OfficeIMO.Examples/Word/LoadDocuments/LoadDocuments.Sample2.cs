@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
 
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample2.docx"), false)) {
+            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "sample2.docx"))) {
 
 
                 Console.WriteLine("Sections count: " + document.Sections.Count);

@@ -15,3 +15,15 @@ public enum DocumentPersistenceMode {
     /// <summary>Changes are written during disposal and persistence failures are propagated.</summary>
     SaveOnDispose
 }
+
+/// <summary>Common lifecycle policy for a newly created document.</summary>
+public class DocumentCreateOptions {
+    /// <summary>Controls when the document is written to its associated destination.</summary>
+    public DocumentPersistenceMode PersistenceMode { get; set; } = DocumentPersistenceMode.Explicit;
+}
+
+/// <summary>Common lifecycle policy for a loaded document.</summary>
+public class DocumentLoadOptions : DocumentCreateOptions {
+    /// <summary>Controls whether the loaded document may be modified.</summary>
+    public DocumentAccessMode AccessMode { get; set; } = DocumentAccessMode.ReadWrite;
+}

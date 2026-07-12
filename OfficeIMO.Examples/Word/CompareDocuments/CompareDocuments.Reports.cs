@@ -94,14 +94,14 @@ namespace OfficeIMO.Examples.Word {
                     TrackFormattingFindings = false
                 });
 
-            using (WordDocument redline = WordDocument.Load(redlinePath, readOnly: true)) {
+            using (WordDocument redline = WordDocument.Load(redlinePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var errors = redline.ValidateDocument();
                 if (errors.Count > 0) {
                     throw new InvalidOperationException("Generated comparison redline document failed Open XML validation: " + errors[0].Description);
                 }
             }
 
-            using (WordDocument inPlaceRedline = WordDocument.Load(inPlaceRedlinePath, readOnly: true)) {
+            using (WordDocument inPlaceRedline = WordDocument.Load(inPlaceRedlinePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 var errors = inPlaceRedline.ValidateDocument();
                 if (errors.Count > 0) {
                     throw new InvalidOperationException("Generated in-place comparison redline document failed Open XML validation: " + errors[0].Description);

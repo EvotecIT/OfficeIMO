@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureInfo signatures = document.InspectSignatures();
 
                 Assert.True(signatures.HasSignatures);
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                     includeXadesSigningTime: true,
                     xadesSigningTimeValue: xadesTimestampValue));
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
                 WordSignaturePartInfo signaturePart = Assert.Single(validation.SignatureInfo.SignatureParts);
 
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "DigitalSignatures", "signed-valid.docx"));
             Assert.True(File.Exists(sourcePath), $"Missing signed DOCX fixture: {sourcePath}");
 
-            using (WordDocument document = WordDocument.Load(sourcePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(sourcePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureInfo signatures = document.InspectSignatures();
 
                 Assert.True(signatures.HasSignatures);
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, CreateSignatureXml(digestValue: ComputePackagePartSha256Digest(filePath, "/word/document.xml")));
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 WordSignatureReferenceInfo signedReference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, CreateSignatureXml(digestValue: "T2ZmaWNlSU1P"));
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 WordSignatureReferenceInfo signedReference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                     digestValue: ComputePackagePartSha256Digest(filePath, "/word/document.xml"),
                     transformAlgorithm: "http://www.w3.org/2000/09/xmldsig#enveloped-signature"));
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 WordSignatureReferenceInfo signedReference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 WordSignatureReferenceInfo signedReference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 WordSignatureReferenceInfo signedReference = Assert.Single(Assert.Single(validation.SignatureInfo.SignatureParts).SignedReferences);
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 Assert.False(validation.IsStructurallyValid);
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 Assert.True(validation.HasSignatures);
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(package.ExtendedFilePropertiesPart?.Properties?.DigitalSignature);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordFeatureFinding signatures = Assert.Single(document.InspectFeatures().FindFeatures("Digital signatures"));
 
                 Assert.Equal(WordFeatureSupportLevel.Unsupported, signatures.SupportLevel);
@@ -440,7 +440,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Mutation after signing");
                 Assert.True(document.InspectSignatures().HasSignatures);
             }
@@ -478,12 +478,14 @@ namespace OfficeIMO.Tests {
 
             AddDigitalSignatureMetadata(filePath, signatureBytes);
 
-            WordDocument loaded = WordDocument.Load(filePath, autoSave: true);
+            WordDocument loaded = WordDocument.Load(filePath, new WordLoadOptions {
+                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+            });
             loaded.AddParagraph("Mutation that should not autosave");
             Assert.Throws<WordSignatureSavePolicyException>(() => loaded.Dispose());
 
             Assert.False(filePath.IsFileLocked());
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text == "Mutation that should not autosave");
                 Assert.True(document.InspectSignatures().HasSignatures);
             }
@@ -535,7 +537,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotEmpty(package.DigitalSignatureOriginPart!.XmlSignatureParts);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordSignatureValidationReport validation = document.ValidateSignatures();
 
                 Assert.True(validation.HasSignatures);

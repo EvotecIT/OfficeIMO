@@ -91,7 +91,9 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("Concordance path cannot be empty.", nameof(concordancePath));
             }
 
-            using (WordDocument concordanceDocument = Load(concordancePath, readOnly: true)) {
+            using (WordDocument concordanceDocument = Load(concordancePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+            })) {
                 return MarkIndexEntriesFromConcordance(concordanceDocument, matchCase, matchWholeWord);
             }
         }

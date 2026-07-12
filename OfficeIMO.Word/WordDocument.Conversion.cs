@@ -136,7 +136,7 @@ namespace OfficeIMO.Word {
                     return LoadLegacyDocFromNormalFlow(
                         sourceBytes,
                         sourcePath,
-                        autoSave: false,
+                        saveOnDispose: false,
                         readOnly: false,
                         importOptions: importOptions);
                 }
@@ -144,10 +144,10 @@ namespace OfficeIMO.Word {
 
             return await LoadAsync(
                 sourcePath,
-                readOnly: false,
-                autoSave: false,
-                overrideStyles: options.OverrideStyles,
-                openSettings: CreateConversionOpenSettings(options.OpenSettings),
+                new WordLoadOptions {
+                    OverrideStyles = options.OverrideStyles,
+                    OpenSettings = CreateConversionOpenSettings(options.OpenSettings)
+                },
                 cancellationToken).ConfigureAwait(false);
         }
 

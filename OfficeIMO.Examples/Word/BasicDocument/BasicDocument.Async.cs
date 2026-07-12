@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "AsyncWord.docx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            await using (var document = await WordDocument.CreateAsync(filePath, cancellationToken: CancellationToken.None)) {
+            await using (var document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Async paragraph");
                 await document.SaveAsync();
             }

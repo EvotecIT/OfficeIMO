@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
@@ -18,5 +19,6 @@ namespace OfficeIMO.Word {
         private MemoryStream? _ownedPackageStream;
         private bool _tableOfContentUpdateQueued;
         private bool _disposed;
+        private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
     }
 }

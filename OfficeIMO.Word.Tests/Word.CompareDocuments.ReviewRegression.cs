@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Field);
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             string redlineText = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.InnerText;
             Assert.Contains("Tracked Changes", redlineText, StringComparison.Ordinal);
             Assert.Contains("Field", redlineText, StringComparison.Ordinal);
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(result.Findings, finding => finding.Message == "Run formatting changed.");
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph changedParagraph = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().Last();
             Run changedRun = Assert.Single(changedParagraph.Elements<Run>());
             Assert.NotNull(changedRun.RunProperties?.RunPropertiesChange);
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph[] paragraphs = redline._document.Body!.Elements<Paragraph>().ToArray();
             Assert.True(paragraphs[0].Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
             Assert.Empty(paragraphs[0].Descendants<InsertedRun>());
@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(result.Findings, finding => finding.Message == "Paragraph style id changed.");
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), item => item.InnerText == "Formatted paragraph");
             Assert.NotNull(paragraph.ParagraphProperties?.ParagraphPropertiesChange);
         }
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Findings, finding => finding.Message == "Paragraph deleted.");
             Assert.Contains(result.Findings, finding => finding.Message == "Run formatting changed.");
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph stableParagraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Stable run");
             Run stableRun = Assert.Single(stableParagraph.Elements<Run>());
             Assert.NotNull(stableRun.RunProperties?.RunPropertiesChange);
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph[] paragraphs = redline._document.Body!.Elements<Paragraph>().ToArray();
             Run firstRun = Assert.Single(paragraphs[0].Elements<Run>());
             Run secondRun = Assert.Single(paragraphs[1].Elements<Run>());
@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(result.Findings, finding => finding.Message == "Run formatting changed.");
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph changedParagraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), paragraph => paragraph.InnerText == "AB");
             Run changedRun = Assert.Single(changedParagraph.Elements<Run>());
             PreviousRunProperties previousProperties = Assert.IsType<PreviousRunProperties>(changedRun.RunProperties?.RunPropertiesChange?.FirstChild);
@@ -456,7 +456,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             MainDocumentPart mainPart = redline._wordprocessingDocument.MainDocumentPart!;
             List<byte[]> deletedImages = GetDeletedDrawingImageBytes(mainPart, mainPart.Document.Body!);
             Assert.Equal(2, deletedImages.Count);
@@ -592,7 +592,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             string[] tableTexts = redline._document.Body!.Elements<Table>().Select(table => table.InnerText).ToArray();
             Assert.Equal(new[] { "Deleted A", "Deleted B", "Stable C" }, tableTexts);
         }
@@ -624,7 +624,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Table[] topLevelTables = redline._document.Body!.Elements<Table>().ToArray();
             Assert.Equal(2, topLevelTables.Length);
             Assert.Contains(topLevelTables[0].Descendants<DeletedRun>(), run => run.InnerText == "Deleted top table");
@@ -657,7 +657,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Table[] tables = redline._document.Body!.Elements<Table>().ToArray();
             Assert.Equal(2, tables.Length);
             Assert.Equal("Deleted table", tables[0].InnerText);
@@ -801,7 +801,7 @@ namespace OfficeIMO.Tests {
                     }
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>());
             Assert.Empty(paragraph.Descendants<Hyperlink>());
             Assert.Equal(1, paragraph.Descendants<InsertedRun>().Count(run => run.InnerText == "Changed link text"));
@@ -836,7 +836,7 @@ namespace OfficeIMO.Tests {
                     }
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), item => item.InnerText.Contains("Keep", StringComparison.Ordinal));
             OpenXmlElement[] textChildren = paragraph.ChildElements
                 .Where(child => child is Run || child is DeletedRun)
@@ -869,7 +869,7 @@ namespace OfficeIMO.Tests {
                     }
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             SdtBlock control = Assert.Single(redline._document.Body!.Descendants<SdtBlock>());
             Assert.Contains(control.Descendants<DeletedRun>(), run => run.InnerText.Contains("Outer old", StringComparison.Ordinal));
             Assert.Contains(control.Descendants<DeletedRun>(), run => run.InnerText.Contains("Child old", StringComparison.Ordinal));
@@ -901,7 +901,7 @@ namespace OfficeIMO.Tests {
                     }
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Assert.Equal(1, redline._document.Body!.Descendants<DeletedRun>().Count(run => run.InnerText.Contains("Deleted child", StringComparison.Ordinal)));
         }
 
@@ -1126,7 +1126,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Revision);
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Assert.Contains("Tracked Review Changes", redline._document.Body!.InnerText, StringComparison.Ordinal);
             Assert.Contains(redline._document.Body!.Descendants<InsertedRun>(), run =>
                 run.Author?.Value == "Redline Bot" &&
@@ -1159,7 +1159,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Assert.True(redline.InspectSignatures().HasSignatures);
             Assert.Contains(redline._document.Body!.Descendants<InsertedRun>(), run => run.InnerText.Contains("Changed text", StringComparison.Ordinal));
         }
@@ -1214,7 +1214,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             string[] paragraphTexts = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>()
                 .Select(paragraph => paragraph.InnerText)
                 .Where(text => text is "A" or "B" or "C" or "D")
@@ -1253,7 +1253,7 @@ namespace OfficeIMO.Tests {
                     Author = "OfficeIMO Tests"
                 });
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             string[] paragraphTexts = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>()
                 .Select(paragraph => paragraph.InnerText)
                 .Where(text => text is "X" or "A" or "B" or "C")
@@ -1291,7 +1291,7 @@ namespace OfficeIMO.Tests {
                 finding.Scope == WordComparisonScope.ContentControl &&
                 finding.ChangeKind == WordComparisonChangeKind.Deleted);
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             DeletedRun deleted = Assert.Single(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText.Contains("before; text=after", StringComparison.Ordinal));
             Assert.Equal("OfficeIMO Tests", deleted.Author?.Value);
         }
@@ -1321,7 +1321,7 @@ namespace OfficeIMO.Tests {
                 finding.Scope == WordComparisonScope.ContentControl &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified);
 
-            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            using WordDocument redline = WordDocument.Load(outputPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             DeletedRun deleted = Assert.Single(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "Old value");
             InsertedRun inserted = Assert.Single(redline._document.Body!.Descendants<InsertedRun>(), run => run.InnerText == "New value");
             Assert.Equal("OfficeIMO Tests", deleted.Author?.Value);

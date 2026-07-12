@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "ImageTransparencyAdvanced.docx");
             File.Copy(Path.Combine(templatesPath, "BasicDocumentWithImages.docx"), filePath, true);
 
-            using (WordDocument document = WordDocument.Load(filePath, false)) {
+            using (WordDocument document = WordDocument.Load(filePath)) {
                 var loadedImages = document.Images;
                 var firstImage = Guard.GetRequiredItem(loadedImages, 0, "Template document should contain at least one image before adjusting transparency.");
                 firstImage.Transparency = 75;

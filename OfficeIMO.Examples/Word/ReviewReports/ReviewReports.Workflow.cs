@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Save(openWord);
             }
 
-            using (WordDocument document = WordDocument.Load(documentPath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(documentPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewReport report = document.InspectReviewReport();
                 File.WriteAllText(Path.Combine(folderPath, "ReviewReportWorkflow.md"), report.ToMarkdown(), Encoding.UTF8);
                 File.WriteAllText(Path.Combine(folderPath, "ReviewReportWorkflow.json"), report.ToJson(), Encoding.UTF8);

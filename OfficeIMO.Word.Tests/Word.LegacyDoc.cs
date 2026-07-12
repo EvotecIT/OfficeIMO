@@ -2831,31 +2831,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_NormalLoad_BlocksAutoSaveForLegacyDocProjection() {
+        public void LegacyDoc_NormalLoad_BlocksSaveOnDisposeForLegacyDocProjection() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("No autosave"));
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Load(docPath, autoSave: true));
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Load(docPath, new WordLoadOptions {
+                    PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                }));
 
-                Assert.Contains("Auto-save is not supported", exception.Message);
+                Assert.Contains("SaveOnDispose is not supported", exception.Message);
             } finally {
                 DeleteIfExists(docPath);
             }
         }
 
         [Fact]
-        public void LegacyDoc_NormalLoad_BlocksOpenSettingsAutoSaveForLegacyDocProjection() {
+        public void LegacyDoc_NormalLoad_IgnoresLowLevelOpenXmlAutoSave() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("No open settings autosave"));
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                    WordDocument.Load(docPath, openSettings: new OpenSettings { AutoSave = true }));
+                using WordDocument document = WordDocument.Load(docPath, new WordLoadOptions {
+                    OpenSettings = new OpenSettings { AutoSave = true }
+                });
 
-                Assert.Contains("Auto-save is not supported", exception.Message);
+                Assert.Equal(OfficeIMO.Core.DocumentPersistenceMode.Explicit, document.PersistenceMode);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2868,7 +2871,7 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Read only legacy doc"));
 
-                using WordDocument document = WordDocument.Load(docPath, readOnly: true);
+                using WordDocument document = WordDocument.Load(docPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
                 Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(FileAccess.Read, document.FileOpenAccess);
@@ -2911,7 +2914,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_NormalLoad_BlocksAutoSaveForBufferedNonSeekableOpenXmlStream() {
+        public void LegacyDoc_NormalLoad_BlocksSaveOnDisposeForBufferedNonSeekableOpenXmlStream() {
             byte[] docxBytes;
             using (WordDocument document = WordDocument.Create()) {
                 document.AddParagraph("Non-seekable Open XML package");
@@ -2920,11 +2923,13 @@ namespace OfficeIMO.Tests {
 
             using var stream = new NonSeekableReadStream(docxBytes);
 
-            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => {
-                using WordDocument _ = WordDocument.Load(stream, autoSave: true);
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => {
+                using WordDocument _ = WordDocument.Load(stream, new WordLoadOptions {
+                    PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+                });
             });
 
-            Assert.Contains("Auto-save is not supported", exception.Message);
+            Assert.Contains("SaveOnDispose", exception.Message);
         }
 
         [Fact]
@@ -5485,26 +5490,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveOnDisposeWithoutAssociatedDestination_Throws() {
-            using var stream = new MemoryStream();
-            WordDocument document = WordDocument.Create(autoSave: true);
-            try {
-                document.AddParagraph("Native DOC stream remains native");
-                document.Save(stream, WordFileFormat.Doc);
+        public void Create_SaveOnDisposeWithoutAssociatedDestination_ThrowsImmediately() {
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => WordDocument.Create(options: new WordCreateOptions {
+                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+            }));
 
-                InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Dispose());
-                Assert.Contains("not associated with a file path", exception.Message, StringComparison.OrdinalIgnoreCase);
-            } finally {
-                // Dispose already releases the package even when persistence fails.
-                document.Dispose();
-            }
-
-            byte[] bytes = stream.ToArray();
-            Assert.True(bytes.Length > 512);
-            Assert.Equal(0xD0, bytes[0]);
-            Assert.Equal(0xCF, bytes[1]);
-            Assert.Equal(0x11, bytes[2]);
-            Assert.Equal(0xE0, bytes[3]);
+            Assert.Contains("associated file path or writable stream", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

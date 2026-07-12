@@ -19,7 +19,10 @@ public static partial class DocumentReader {
         cancellationToken.ThrowIfCancellationRequested();
         switch (kind) {
             case ReaderInputKind.Word:
-                using (WordDocument document = WordDocument.Load(path, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(options))) {
+                using (WordDocument document = WordDocument.Load(path, new WordLoadOptions {
+                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                    OpenSettings = CreateOpenSettings(options)
+                })) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.Excel:
@@ -46,7 +49,10 @@ public static partial class DocumentReader {
         switch (kind) {
             case ReaderInputKind.Word:
                 stream.Position = 0;
-                using (WordDocument document = WordDocument.Load(stream, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(options))) {
+                using (WordDocument document = WordDocument.Load(stream, new WordLoadOptions {
+                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+                    OpenSettings = CreateOpenSettings(options)
+                })) {
                     return ApplyWordRichMapping(document.CreateInspectionSnapshot(), options, result);
                 }
             case ReaderInputKind.Excel:

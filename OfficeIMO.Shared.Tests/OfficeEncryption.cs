@@ -56,8 +56,14 @@ namespace OfficeIMO.Shared.Tests {
                 Assert.True(string.IsNullOrEmpty(loaded.FilePath));
             }
 
-            Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, autoSave: true));
-            Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, openSettings: new OpenSettings { AutoSave = true }));
+            Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
+                PersistenceMode = OfficeIMO.Core.DocumentPersistenceMode.SaveOnDispose
+            }));
+
+            using var explicitLoad = WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
+                OpenSettings = new OpenSettings { AutoSave = true }
+            });
+            Assert.Equal(OfficeIMO.Core.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
         }
 
         [Fact]

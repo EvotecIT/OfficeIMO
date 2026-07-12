@@ -5,6 +5,7 @@ using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests.Markup;
@@ -2329,7 +2330,7 @@ Q2,180
             });
 
             Assert.True(File.Exists(path));
-            using (var document = OfficeIMO.Word.WordDocument.Load(path, readOnly: true)) {
+            using (var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Assert.NotNull(document.TableOfContent);
                 Assert.True(document.PageBreaks.Count >= 1);
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Architecture Note", StringComparison.Ordinal));
@@ -2478,7 +2479,7 @@ profile: document
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Word.WordDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "1. First", StringComparison.Ordinal));
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "2. Second", StringComparison.Ordinal));
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "3. Third", StringComparison.Ordinal));

@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
 
                 Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "RecentAlice");
@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
             }
 
             string revisionId;
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 revisionId = Assert.Single(document.InspectReview().Revisions, revision => revision.AffectedText == "RestoreThis").Id!;
             }
 
@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
 
                 Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "RestoreThis");
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
 
                 Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "ParagraphOne");
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
 
                 Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "Outer ");
@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(acceptPath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(acceptPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
 
                 Assert.DoesNotContain(body.Descendants<MoveToRun>(), run => run.InnerText == "Accept moved to");
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(rejectPath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(rejectPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
 
                 Assert.DoesNotContain(body.Descendants<MoveFromRun>(), run => run.InnerText == "Reject moved from");
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
 
             string insertionId;
             string deletionId;
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 insertionId = Assert.Single(review.Revisions, revision =>
                     revision.RevisionType == WordReviewRevisionType.Insertion &&
@@ -484,7 +484,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 Assert.DoesNotContain(review.Revisions, revision =>
                     revision.RevisionType == WordReviewRevisionType.Insertion &&
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
 
             string insertionId;
             string deletionId;
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 insertionId = Assert.Single(review.Revisions, revision =>
                     revision.RevisionType == WordReviewRevisionType.Insertion &&
@@ -535,7 +535,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 Assert.DoesNotContain(review.Revisions, revision =>
                     revision.RevisionType == WordReviewRevisionType.Insertion &&
@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
             string footerDeletionId;
             string footnoteInsertionId;
             string endnoteDeletionId;
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 headerInsertionId = Assert.Single(review.Revisions, revision =>
                     revision.RevisionType == WordReviewRevisionType.Insertion &&
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 Assert.DoesNotContain(review.Revisions, revision =>
                     revision.LocationKind == WordReviewLocationKind.Header &&
@@ -694,7 +694,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 Body body = document._document.Body!;
                 Assert.DoesNotContain(body.Descendants<MoveToRun>(), run => run.InnerText == "Word-authored move source");
                 Assert.DoesNotContain(body.Descendants<MoveFromRun>(), run => run.InnerText == "Word-authored move source");
@@ -716,7 +716,7 @@ namespace OfficeIMO.Tests {
 
             string paragraphRevisionId;
             string sectionRevisionId;
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 paragraphRevisionId = Assert.Single(review.Revisions, revision =>
                     revision.RevisionType == WordReviewRevisionType.ParagraphFormatting &&
@@ -745,7 +745,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 Assert.DoesNotContain(review.Revisions, revision => revision.RevisionType == WordReviewRevisionType.ParagraphFormatting);
                 Assert.DoesNotContain(review.Revisions, revision => revision.RevisionType == WordReviewRevisionType.SectionFormatting);
@@ -828,7 +828,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.DoesNotContain(review.Revisions, revision => revision.LocationKind == WordReviewLocationKind.Footer);
@@ -876,7 +876,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.DoesNotContain(review.Revisions, revision => revision.IsInContentControl);

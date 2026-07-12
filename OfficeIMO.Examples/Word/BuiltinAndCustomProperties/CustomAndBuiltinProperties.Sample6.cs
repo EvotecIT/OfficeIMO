@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
 
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocument.docx"), true);
+            WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocument.docx"), new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
             Console.WriteLine("This document has " + document.Paragraphs.Count + " paragraphs. Cool right?");
             Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);

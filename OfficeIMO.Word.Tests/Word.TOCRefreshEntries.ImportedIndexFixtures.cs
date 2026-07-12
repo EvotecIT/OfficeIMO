@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
                 string indexText = TocText(index);
 

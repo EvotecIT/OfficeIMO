@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
@@ -171,9 +172,9 @@ namespace OfficeIMO.Word {
         public WordDocumentStatistics Statistics { get; internal set; } = null!;
 
         /// <summary>
-        /// Indicates whether the document is saved automatically.
+        /// Gets the persistence policy selected when the document was created or loaded.
         /// </summary>
-        public bool AutoSave => _wordprocessingDocument.AutoSave;
+        public DocumentPersistenceMode PersistenceMode => _persistenceMode;
 
         /// <summary>
         /// When <c>true</c> the table of contents is flagged to update before saving.

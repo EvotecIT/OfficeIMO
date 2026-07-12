@@ -70,7 +70,9 @@ namespace OfficeIMO.Word {
             WordSignatureValidationReport? validationReport = null;
 
             if (packageResult.Succeeded) {
-                using WordDocument document = Load(filePath, readOnly: true);
+                using WordDocument document = Load(filePath, new WordLoadOptions {
+                    AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly
+                });
                 validationReport = document.ValidateSignatures();
             }
 

@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 peoplePart.People.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.Equal(3, review.RevisionCount);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReviewInspection.ImportedContainers.docx");
             CreateImportedReviewContainerDocument(filePath, "Imported", "Alice Reviewer");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.Equal(2, review.CommentCount);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReviewInspection.ImportedMoveFormatting.docx");
             CreateImportedMoveAndFormattingRevisionDocument(filePath, "Imported", "Alice Reviewer");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.Equal(5, review.RevisionCount);
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
             string filePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "imported-related-part-comments-revisions.docx"));
             Assert.True(File.Exists(filePath), $"Missing imported related-part review fixture: {filePath}");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.Equal(4, review.CommentCount);
@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
                     "<w16cex:commentsExtensible xmlns:w16cex=\"http://schemas.microsoft.com/office/word/2018/wordml/cex\" />");
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 WordCommentInfo comment = Assert.Single(review.Comments);
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             string filePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-comments-revisions.docx"));
             Assert.True(File.Exists(filePath), $"Missing Word-authored review fixture: {filePath}");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             string filePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-body-table-comments-revisions.docx"));
             Assert.True(File.Exists(filePath), $"Missing Word COM-authored review fixture: {filePath}");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -388,7 +388,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(package));
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
             string filePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-related-part-revisions.docx"));
             Assert.True(File.Exists(filePath), $"Missing Word COM-authored related-part review fixture: {filePath}");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -474,7 +474,7 @@ namespace OfficeIMO.Tests {
             string filePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-move-formatting-revisions.docx"));
             Assert.True(File.Exists(filePath), $"Missing Word-authored move/formatting fixture: {filePath}");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -533,7 +533,7 @@ namespace OfficeIMO.Tests {
             string filePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-paragraph-section-formatting-revisions.docx"));
             Assert.True(File.Exists(filePath), $"Missing Word-authored paragraph/section formatting fixture: {filePath}");
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
 
                 Assert.True(review.HasReviewMetadata);
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordCommentInfo parent = Assert.Single(document.InspectReview().Comments, comment => comment.Author == "Alice Reviewer");
                 Assert.False(parent.IsResolved);
             }
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordCommentInfo comment = Assert.Single(document.InspectReview().Comments);
                 Assert.False(comment.IsResolved);
             }
@@ -695,7 +695,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(commentEx.Done?.Value);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordCommentInfo comment = Assert.Single(document.InspectReview().Comments);
                 Assert.True(comment.IsResolved);
                 Assert.False(string.IsNullOrWhiteSpace(comment.ParaId));
@@ -731,7 +731,7 @@ namespace OfficeIMO.Tests {
                 mainPart.Document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordCommentInfo comment = Assert.Single(document.InspectReview().Comments);
 
                 Assert.Equal("First Second", comment.TargetText);
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly })) {
                 WordReviewInfo review = document.InspectReview();
                 WordCommentInfo remaining = Assert.Single(review.Comments);
 

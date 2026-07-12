@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 document.SetDocumentVariable("Date", DateTime.Today.ToShortDateString());
                 document.Save();
             }
-            using (WordDocument document = WordDocument.Load(filePath, false)) {
+            using (WordDocument document = WordDocument.Load(filePath)) {
                 document.SetDocumentVariable("Version", "2.0");
                 if (document.HasDocumentVariables) {
                     document.RemoveDocumentVariableAt(0);

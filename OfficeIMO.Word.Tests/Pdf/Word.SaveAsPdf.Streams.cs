@@ -117,7 +117,7 @@ public partial class Word {
     public void Test_WordDocument_SaveAsPdf_LoadedFixtureWithoutSettingsPart_ToBytes_UsesNativeEngine() {
         string docPath = GetFixtureDoc("BasicDocument.docx");
 
-        using WordDocument document = WordDocument.Load(docPath, readOnly: true);
+        using WordDocument document = WordDocument.Load(docPath, new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
         byte[] bytes = document.ToPdf();
 

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
@@ -38,7 +39,7 @@ namespace OfficeIMO.Word {
             Exception? persistenceFailure = null;
             var wordProcessingDocument = this._wordprocessingDocument;
             if (wordProcessingDocument != null) {
-                if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                     try {
                         Save();
                     } catch (Exception ex) {
@@ -90,7 +91,7 @@ namespace OfficeIMO.Word {
             Exception? persistenceFailure = null;
             var wordProcessingDocument = this._wordprocessingDocument;
             if (wordProcessingDocument != null) {
-                if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                     try {
                         if (string.IsNullOrEmpty(FilePath) && OriginalStream != null) {
                             await SaveAsync(OriginalStream).ConfigureAwait(false);

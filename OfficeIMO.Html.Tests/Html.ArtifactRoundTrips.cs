@@ -24,7 +24,7 @@ public class HtmlArtifactRoundTrips {
         HtmlToWordResult wordResult = source.ToWordDocumentResult();
         using var docx = new MemoryStream();
         wordResult.Document.Save(docx);
-        using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), readOnly: true);
+        using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
         string rtf = rtfResult.Document.ToRtf();

@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, false)) {
+            using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine("* Loading document...");
                 Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
                 Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);

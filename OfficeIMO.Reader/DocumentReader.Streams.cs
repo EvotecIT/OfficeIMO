@@ -120,7 +120,10 @@ public static partial class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadWord(string path, ReaderOptions opt, CancellationToken ct) {
-        using var doc = WordDocument.Load(path, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
+        using var doc = WordDocument.Load(path, new WordLoadOptions {
+            AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+            OpenSettings = CreateOpenSettings(opt)
+        });
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
@@ -151,7 +154,10 @@ public static partial class DocumentReader {
     private static IEnumerable<ReaderChunk> ReadWord(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Copy input so we can open read-only without affecting caller's stream.
         using var ms = CopyToMemory(stream, ct);
-        using var doc = WordDocument.Load(ms, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
+        using var doc = WordDocument.Load(ms, new WordLoadOptions {
+            AccessMode = OfficeIMO.Core.DocumentAccessMode.ReadOnly,
+            OpenSettings = CreateOpenSettings(opt)
+        });
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
 
         var chunks = doc.ExtractMarkdownChunks(
