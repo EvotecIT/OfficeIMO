@@ -32,7 +32,7 @@ public class PdfIncrementalObjectWriterTests {
         Assert.True(after.HasXrefStreams);
         Assert.True(after.HasIncrementalUpdates);
         Assert.True(after.RevisionCount > before.RevisionCount);
-        Assert.Equal(before.LastStartXrefOffset, after.Revisions[^1].PreviousXrefOffset);
+        Assert.Equal(before.LastStartXrefOffset, after.Revisions[after.Revisions.Count - 1].PreviousXrefOffset);
     }
 
     [Fact]

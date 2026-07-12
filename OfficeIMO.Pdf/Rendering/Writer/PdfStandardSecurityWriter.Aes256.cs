@@ -109,12 +109,8 @@ internal static partial class PdfStandardSecurityWriter {
         plain[10] = (byte)'d';
         plain[11] = (byte)'b';
 
-        using Aes aes = Aes.Create();
-        aes.Mode = CipherMode.ECB;
-        aes.Padding = PaddingMode.None;
-        aes.Key = fileKey;
-        using ICryptoTransform encryptor = aes.CreateEncryptor();
-        return encryptor.TransformFinalBlock(plain, 0, plain.Length);
+        // The PDF permissions entry is exactly one AES block, so CBC with a zero IV is equivalent to ECB here.
+        return EncryptAesNoPadding(fileKey, new byte[16], plain);
     }
 
     private static byte[] RandomBytes(int length) {

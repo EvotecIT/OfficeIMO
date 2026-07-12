@@ -116,12 +116,8 @@ internal sealed partial class PdfStandardSecurityHandler {
     }
 
     private static void ValidateModernPermissions(byte[] fileKey, byte[] encrypted, int permissions, bool encryptMetadata) {
-        using Aes aes = Aes.Create();
-        aes.Mode = CipherMode.ECB;
-        aes.Padding = PaddingMode.None;
-        aes.Key = fileKey;
-        using ICryptoTransform decryptor = aes.CreateDecryptor();
-        byte[] plain = decryptor.TransformFinalBlock(encrypted, 0, encrypted.Length);
+        // The PDF permissions entry is exactly one AES block, so CBC with a zero IV is equivalent to ECB here.
+        byte[] plain = TransformAesCbcNoPadding(fileKey, new byte[16], encrypted, encrypt: false);
         int storedPermissions = plain[0] | (plain[1] << 8) | (plain[2] << 16) | (plain[3] << 24);
         bool markerValid = plain[9] == (byte)'a' && plain[10] == (byte)'d' && plain[11] == (byte)'b';
         bool metadataValid = plain[8] == (encryptMetadata ? (byte)'T' : (byte)'F');
