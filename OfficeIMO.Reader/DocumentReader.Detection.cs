@@ -242,6 +242,11 @@ public static partial class DocumentReader {
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) {
                     candidate = containerCandidate;
                 }
+            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+                candidate = restorePosition
+                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
+                    : InspectEmailCompound(prefix);
+                containerInspected = true;
             }
 
             return BuildCombinedDetection(
@@ -279,6 +284,11 @@ public static partial class DocumentReader {
                     cancellationToken).ConfigureAwait(false);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
+            } else if (IsOleCompound(prefix) && options.InspectContainers) {
+                candidate = restorePosition
+                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
+                    : InspectEmailCompound(prefix);
+                containerInspected = true;
             }
 
             return BuildCombinedDetection(extensionResult, candidate, prefix.Length, containerInspected, options.Mode);
@@ -418,6 +428,9 @@ public static partial class DocumentReader {
             StartsWith(prefix, new byte[] { 0x50, 0x4B, 0x07, 0x08 })) {
             return DetectionCandidate.High(ReaderInputKind.Zip, "application/zip", "signature:zip");
         }
+        if (StartsWith(prefix, new byte[] { 0x78, 0x9F, 0x3E, 0x22 })) {
+            return DetectionCandidate.High(ReaderInputKind.Email, "application/ms-tnef", "signature:tnef");
+        }
         if (StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 })) {
             return DetectionCandidate.Unknown("signature:ole-compound");
         }
@@ -429,6 +442,9 @@ public static partial class DocumentReader {
 
         string trimmed = text.TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
         string lower = trimmed.Length > 4096 ? trimmed.Substring(0, 4096).ToLowerInvariant() : trimmed.ToLowerInvariant();
+        if (LooksLikeEmailMessage(trimmed)) {
+            return DetectionCandidate.High(ReaderInputKind.Email, "message/rfc822", "text:rfc-message-headers");
+        }
         if (lower.StartsWith("{\\rtf", StringComparison.Ordinal)) {
             return DetectionCandidate.High(ReaderInputKind.Rtf, "application/rtf", "signature:rtf");
         }
@@ -450,6 +466,47 @@ public static partial class DocumentReader {
         }
 
         return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", "content:mostly-text");
+    }
+
+    private static bool LooksLikeEmailMessage(string text) {
+        string normalized = text.Replace("\r\n", "\n");
+        string[] lines = normalized.Split('\n');
+        int recognizedHeaders = 0;
+        bool hasAddressHeader = false;
+        bool hasMessageHeader = false;
+
+        for (int index = 0; index < lines.Length && index < 256; index++) {
+            string line = lines[index];
+            if (index == 0 && line.StartsWith("From ", StringComparison.Ordinal)) {
+                hasMessageHeader = true;
+                continue;
+            }
+            if (line.Length == 0) break;
+            if ((line[0] == ' ' || line[0] == '\t') && recognizedHeaders > 0) continue;
+
+            int colon = line.IndexOf(':');
+            if (colon <= 0 || colon > 64) return false;
+            string name = line.Substring(0, colon).Trim();
+            if (string.Equals(name, "From", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Sender", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "To", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Cc", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Bcc", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Reply-To", StringComparison.OrdinalIgnoreCase)) {
+                recognizedHeaders++;
+                hasAddressHeader = true;
+            } else if (string.Equals(name, "Date", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Subject", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Message-ID", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "MIME-Version", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Content-Type", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase)) {
+                recognizedHeaders++;
+                hasMessageHeader = true;
+            }
+        }
+
+        return recognizedHeaders >= 2 && hasAddressHeader && hasMessageHeader;
     }
 
     private static DetectionCandidate? MatchContainerEntry(string name) {
@@ -556,6 +613,7 @@ public static partial class DocumentReader {
             ReaderInputKind.PowerPoint => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             ReaderInputKind.Markdown => "text/markdown",
             ReaderInputKind.Pdf => "application/pdf",
+            ReaderInputKind.Email => "message/rfc822",
             ReaderInputKind.Text => "text/plain",
             ReaderInputKind.Csv => "text/csv",
             ReaderInputKind.Json => "application/json",
@@ -577,6 +635,10 @@ public static partial class DocumentReader {
             ".xlsm" => "application/vnd.ms-excel.sheet.macroEnabled.12",
             ".xls" => "application/vnd.ms-excel",
             ".pptm" => "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+            ".eml" => "message/rfc822",
+            ".msg" => "application/vnd.ms-outlook",
+            ".mbox" or ".mbx" => "application/mbox",
+            ".tnef" => "application/ms-tnef",
             ".csv" => "text/csv",
             ".tsv" => "text/tab-separated-values",
             ".json" => "application/json",
@@ -599,6 +661,7 @@ public static partial class DocumentReader {
             ReaderInputKind.PowerPoint or
             ReaderInputKind.Markdown or
             ReaderInputKind.Pdf or
+            ReaderInputKind.Email or
             ReaderInputKind.Text => kind,
             _ => ReaderInputKind.Unknown
         };

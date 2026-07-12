@@ -79,12 +79,16 @@ public static partial class DocumentReader {
         CancellationToken cancellationToken,
         ReaderInputKind detectedKind) {
         ReaderInputKind kind = NormalizeBuiltInDispatchKind(detectedKind);
+        if (kind == ReaderInputKind.Unknown && IsEmailArtifact(path, opt, cancellationToken)) {
+            kind = ReaderInputKind.Email;
+        }
         return kind switch {
             ReaderInputKind.Word => ReadWord(path, opt, cancellationToken),
             ReaderInputKind.Excel => ReadExcel(path, opt, cancellationToken),
             ReaderInputKind.PowerPoint => ReadPowerPoint(path, opt, cancellationToken),
             ReaderInputKind.Markdown => ReadMarkdown(path, opt, cancellationToken),
             ReaderInputKind.Pdf => ReadPdf(path, opt, cancellationToken),
+            ReaderInputKind.Email => ReadEmail(path, opt, cancellationToken),
             ReaderInputKind.Text => ReadText(path, opt, cancellationToken),
             _ => ReadUnknown(path, opt, cancellationToken)
         };
@@ -132,7 +136,7 @@ public static partial class DocumentReader {
 
             var ext = TryGetExtension(file);
             if (string.IsNullOrEmpty(ext)) continue;
-            if (!allowedExt.Contains(ext!)) continue;
+            if (!allowedExt.Contains(ext!) && !IsDefaultWinmailDat(file, fo.Extensions)) continue;
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;
@@ -262,7 +266,7 @@ public static partial class DocumentReader {
 
             var ext = TryGetExtension(file);
             if (string.IsNullOrEmpty(ext)) continue;
-            if (!allowedExt.Contains(ext!)) continue;
+            if (!allowedExt.Contains(ext!) && !IsDefaultWinmailDat(file, fo.Extensions)) continue;
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;

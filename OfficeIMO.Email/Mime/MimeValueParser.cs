@@ -1,0 +1,132 @@
+namespace OfficeIMO.Email;
+
+internal static class MimeValueParser {
+    internal static MimeValue Parse(string? input, string defaultValue, IList<EmailDiagnostic> diagnostics, string location) {
+        if (string.IsNullOrWhiteSpace(input)) return new MimeValue(defaultValue);
+        List<string> segments = Split(input!);
+        MimeValue result = new MimeValue(segments[0].Trim().ToLowerInvariant());
+        HashSet<string> extendedParameters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, SortedDictionary<int, ContinuationPart>> continuations =
+            new Dictionary<string, SortedDictionary<int, ContinuationPart>>(StringComparer.OrdinalIgnoreCase);
+
+        for (int i = 1; i < segments.Count; i++) {
+            int equals = segments[i].IndexOf('=');
+            if (equals <= 0) continue;
+            string name = segments[i].Substring(0, equals).Trim();
+            string value = Unquote(segments[i].Substring(equals + 1).Trim());
+            bool encoded = name.EndsWith("*", StringComparison.Ordinal);
+            string baseName = name.TrimEnd('*');
+
+            int star = baseName.LastIndexOf('*');
+            if (star > 0 && int.TryParse(baseName.Substring(star + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int part)) {
+                string continuationName = baseName.Substring(0, star);
+                SortedDictionary<int, ContinuationPart> values;
+                if (!continuations.TryGetValue(continuationName, out values!)) {
+                    values = new SortedDictionary<int, ContinuationPart>();
+                    continuations[continuationName] = values;
+                }
+                values[part] = new ContinuationPart(value, encoded);
+            } else {
+                if (encoded) {
+                    result.Parameters[baseName] = DecodeExtended(value, diagnostics, location);
+                    extendedParameters.Add(baseName);
+                } else if (!extendedParameters.Contains(baseName)) {
+                    result.Parameters[baseName] = value;
+                }
+            }
+        }
+
+        foreach (KeyValuePair<string, SortedDictionary<int, ContinuationPart>> continuation in continuations) {
+            StringBuilder builder = new StringBuilder();
+            int expected = 0;
+            bool encoded = false;
+            foreach (KeyValuePair<int, ContinuationPart> part in continuation.Value) {
+                if (part.Key != expected) {
+                    diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_PARAMETER_CONTINUATION_GAP",
+                        string.Concat("Parameter '", continuation.Key, "' has a missing continuation segment."),
+                        EmailDiagnosticSeverity.Warning, location));
+                    expected = part.Key;
+                }
+                builder.Append(part.Value.Value);
+                encoded |= part.Value.Encoded;
+                expected++;
+            }
+            string combined = builder.ToString();
+            if (encoded) {
+                result.Parameters[continuation.Key] = DecodeExtended(combined, diagnostics, location);
+                extendedParameters.Add(continuation.Key);
+            } else if (!extendedParameters.Contains(continuation.Key)) {
+                result.Parameters[continuation.Key] = combined;
+            }
+        }
+        return result;
+    }
+
+    private static string DecodeExtended(string value, IList<EmailDiagnostic> diagnostics, string location) {
+        string charset = "utf-8";
+        string payload = value;
+        int first = value.IndexOf('\'');
+        int second = first >= 0 ? value.IndexOf('\'', first + 1) : -1;
+        if (first > 0 && second >= 0) {
+            charset = value.Substring(0, first);
+            payload = value.Substring(second + 1);
+        }
+
+        using (MemoryStream output = new MemoryStream(payload.Length)) {
+            for (int i = 0; i < payload.Length; i++) {
+                if (payload[i] == '%' && i + 2 < payload.Length && byte.TryParse(payload.Substring(i + 1, 2),
+                    NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte decoded)) {
+                    output.WriteByte(decoded);
+                    i += 2;
+                } else {
+                    output.WriteByte((byte)payload[i]);
+                }
+            }
+            return MimeTextCodec.DecodeText(output.ToArray(), charset, diagnostics, location);
+        }
+    }
+
+    private static List<string> Split(string input) {
+        List<string> segments = new List<string>();
+        StringBuilder current = new StringBuilder();
+        bool quoted = false;
+        bool escaped = false;
+        foreach (char character in input) {
+            if (escaped) {
+                current.Append(character);
+                escaped = false;
+            } else if (character == '\\' && quoted) {
+                current.Append(character);
+                escaped = true;
+            } else if (character == '"') {
+                current.Append(character);
+                quoted = !quoted;
+            } else if (character == ';' && !quoted) {
+                segments.Add(current.ToString());
+                current.Clear();
+            } else {
+                current.Append(character);
+            }
+        }
+        segments.Add(current.ToString());
+        return segments;
+    }
+
+    private static string Unquote(string value) {
+        if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') {
+            return value.Substring(1, value.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
+        }
+        return value;
+    }
+
+    private sealed class ContinuationPart {
+        internal ContinuationPart(string value, bool encoded) {
+            Value = value;
+            Encoded = encoded;
+        }
+
+        internal string Value { get; }
+
+        internal bool Encoded { get; }
+    }
+}

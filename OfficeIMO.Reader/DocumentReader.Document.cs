@@ -37,6 +37,13 @@ public static partial class DocumentReader {
                 detection);
         }
 
+        if (!hasCustomPathHandler && (kind == ReaderInputKind.Email ||
+            (kind == ReaderInputKind.Unknown && IsEmailArtifact(path, opt, cancellationToken)))) {
+            return ApplyDetectionDiagnostics(
+                ReadEmailDocument(path, opt, cancellationToken),
+                detection);
+        }
+
         bool customPathReaderOwnsExtension = hasCustomPathHandler && customPathHandler.ReadPath != null;
         ReaderChunk[] chunks = Read(path, opt, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = customPathReaderOwnsExtension
@@ -81,6 +88,13 @@ public static partial class DocumentReader {
                     ValidateDocumentResult(
                         customStreamHandler.ReadDocumentStream(readStream, logicalSourceName, opt, cancellationToken),
                         customStreamHandler.Id),
+                    detection);
+            }
+
+            if (!hasCustomStreamHandler && (kind == ReaderInputKind.Email ||
+                (kind == ReaderInputKind.Unknown && IsEmailArtifact(readStream, opt, cancellationToken)))) {
+                return ApplyDetectionDiagnostics(
+                    ReadEmailDocument(readStream, logicalSourceName, opt, cancellationToken),
                     detection);
             }
 

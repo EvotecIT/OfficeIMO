@@ -10,6 +10,7 @@ using Omd = OfficeIMO.Markdown;
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private sealed class BlockRenderer : Omd.MarkdownVisitor {
+            private readonly MarkdownToWordConverter _converter;
             private readonly IWordBlockRenderHost _host;
             private readonly MarkdownToWordOptions _options;
             private readonly WordDocument _document;
@@ -19,6 +20,7 @@ namespace OfficeIMO.Word.Markdown {
             private readonly Omd.ColumnAlignment _alignment;
 
             public BlockRenderer(
+                MarkdownToWordConverter converter,
                 IWordBlockRenderHost host,
                 MarkdownToWordOptions options,
                 WordDocument document,
@@ -26,6 +28,7 @@ namespace OfficeIMO.Word.Markdown {
                 int quoteDepth,
                 double pageContentWidthPixels,
                 Omd.ColumnAlignment alignment) {
+                _converter = converter ?? throw new ArgumentNullException(nameof(converter));
                 _host = host ?? throw new ArgumentNullException(nameof(host));
                 _options = options ?? throw new ArgumentNullException(nameof(options));
                 _document = document ?? throw new ArgumentNullException(nameof(document));
@@ -54,6 +57,7 @@ namespace OfficeIMO.Word.Markdown {
                 double? pageContentWidthPixels = null,
                 Omd.ColumnAlignment? alignment = null) {
                 new BlockRenderer(
+                    _converter,
                     _host,
                     _options,
                     _document,
@@ -80,7 +84,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitHeadingBlock(Omd.HeadingBlock block) {
                 var headingParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
-                ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
+                ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
                 ApplyHeadingTheme(headingParagraph, _options);
             }
@@ -88,7 +92,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
                 var paragraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
-                ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
+                ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
             }
 
             protected override void VisitImageBlock(Omd.ImageBlock block) {
@@ -133,7 +137,7 @@ namespace OfficeIMO.Word.Markdown {
                     return;
                 }
 
-                if (TryRenderWordHeaderFooterSemanticBlock(block, _host, _options, _document, _pageContentWidthPixels)) {
+                if (_converter.TryRenderWordHeaderFooterSemanticBlock(block, _host, _options, _document, _pageContentWidthPixels)) {
                     return;
                 }
 
@@ -151,7 +155,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitTableBlock(Omd.TableBlock block) =>
-                RenderSharedTableBlockOmd(block, _host, _options, _document, _pageContentWidthPixels);
+                _converter.RenderSharedTableBlockOmd(block, _host, _options, _document, _pageContentWidthPixels);
 
             protected override void VisitUnorderedListBlock(Omd.UnorderedListBlock block) =>
                 RenderListBlock(block.Items, WordListStyle.Bulleted, startNumber: null);
@@ -251,7 +255,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitHtmlRawBlock(Omd.HtmlRawBlock block) {
                 if (_host.SupportsHtmlInsertion) {
                     _host.InsertHtml(block.Html);
-                } else if (TryRenderHtmlFallbackViaMarkdownAst(block.Html, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment)) {
+                } else if (_converter.TryRenderHtmlFallbackViaMarkdownAst(block.Html, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment)) {
                     return;
                 } else {
                     var htmlParagraph = _host.CreateParagraph();
@@ -282,7 +286,7 @@ namespace OfficeIMO.Word.Markdown {
                         continue;
                     }
 
-                    RenderSharedDefinitionListEntryOmd(entry, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment);
+                    _converter.RenderSharedDefinitionListEntryOmd(entry, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment);
                 }
             }
 
@@ -293,7 +297,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitCalloutBlock(Omd.CalloutBlock block) =>
-                RenderSharedCalloutBlockOmd(block, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment);
+                _converter.RenderSharedCalloutBlockOmd(block, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment);
 
             protected override void VisitFootnoteDefinitionBlock(Omd.FootnoteDefinitionBlock block) { }
 
@@ -301,7 +305,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (block.Summary != null) {
                     var summaryParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
-                    ProcessInlinesOmd(block.Summary.Inlines, summaryParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
+                    ProcessInlinesOmd(block.Summary.Inlines, summaryParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                     foreach (var run in summaryParagraph.GetRuns()) {
                         run.SetBold();
                     }
@@ -315,7 +319,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitSummaryBlock(Omd.SummaryBlock block) {
                 var summaryParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
-                ProcessInlinesOmd(block.Inlines, summaryParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
+                ProcessInlinesOmd(block.Inlines, summaryParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 foreach (var run in summaryParagraph.GetRuns()) {
                     run.SetBold();
                 }
@@ -373,7 +377,7 @@ namespace OfficeIMO.Word.Markdown {
                             }
 
                             ApplyBlockParagraphFormatting(listItemParagraph, _quoteDepth, _alignment);
-                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, effectiveLevel + 1, _quoteDepth);
+                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, effectiveLevel + 1, _quoteDepth);
                             firstParagraph = false;
                             continue;
                         }

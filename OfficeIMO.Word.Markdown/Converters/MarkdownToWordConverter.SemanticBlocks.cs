@@ -9,7 +9,7 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        private static bool TryRenderHtmlFallbackViaMarkdownAst(
+        private bool TryRenderHtmlFallbackViaMarkdownAst(
             string html,
             IWordBlockRenderHost host,
             MarkdownToWordOptions options,
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.Markdown {
             return renderedAny;
         }
 
-        private static bool TryRenderWordHeaderFooterSemanticBlock(
+        private bool TryRenderWordHeaderFooterSemanticBlock(
             Omd.SemanticFencedBlock block,
             IWordBlockRenderHost currentHost,
             MarkdownToWordOptions options,
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word.Markdown {
             return HeaderFooterValues.Default;
         }
 
-        private static void ProcessTableCellBlocksOmd(
+        private void ProcessTableCellBlocksOmd(
             Omd.TableCell? tableCell,
             WordTableCell wordCell,
             MarkdownToWordOptions options,
@@ -220,7 +220,7 @@ namespace OfficeIMO.Word.Markdown {
             RenderSharedBlocksOmd(tableCell.Blocks, host, options, document, quoteDepth: quoteDepth, pageContentWidthPixels: pageContentWidthPixels, alignment: alignment);
         }
 
-        private static void RenderSharedBlocksOmd(
+        private void RenderSharedBlocksOmd(
             IEnumerable<Omd.IMarkdownBlock> blocks,
             IWordBlockRenderHost host,
             MarkdownToWordOptions options,
@@ -242,7 +242,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void RenderSharedDefinitionListEntryOmd(
+        private void RenderSharedDefinitionListEntryOmd(
             Omd.DefinitionListEntry entry,
             IWordBlockRenderHost host,
             MarkdownToWordOptions options,
@@ -305,7 +305,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void RenderSharedTableBlockOmd(
+        private void RenderSharedTableBlockOmd(
             Omd.TableBlock table,
             IWordBlockRenderHost host,
             MarkdownToWordOptions options,
@@ -356,7 +356,7 @@ namespace OfficeIMO.Word.Markdown {
             ApplyTableTheme(wordTable, options, headerCells.Count > 0);
         }
 
-        private static void RenderSharedCalloutBlockOmd(
+        private void RenderSharedCalloutBlockOmd(
             Omd.CalloutBlock callout,
             IWordBlockRenderHost host,
             MarkdownToWordOptions options,

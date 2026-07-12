@@ -1,0 +1,52 @@
+using OfficeIMO.Email;
+using System.Reflection;
+using System.Xml.Linq;
+using Xunit;
+
+namespace OfficeIMO.Email.Tests;
+
+public sealed class EmailPackagingContractTests {
+    [Fact]
+    public void ProductProjectAndAssembly_RemainFreeOfThirdPartyRuntimeDependencies() {
+        string projectPath = Path.Combine(GetRepositoryRoot(), "OfficeIMO.Email", "OfficeIMO.Email.csproj");
+        XDocument project = XDocument.Load(projectPath);
+        XNamespace ns = project.Root?.Name.Namespace ?? XNamespace.None;
+
+        Assert.Empty(project.Descendants(ns + "PackageReference"));
+        string[] projectReferences = project.Descendants(ns + "ProjectReference")
+            .Select(element => ((string?)element.Attribute("Include") ?? string.Empty).Replace('\\', '/'))
+            .ToArray();
+        Assert.Equal(new[] { "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj" }, projectReferences);
+        string[] sharedSources = project.Descendants(ns + "Compile")
+            .Select(element => (string?)element.Attribute("Include"))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Replace('\\', '/'))
+            .ToArray();
+        Assert.NotEmpty(sharedSources);
+        Assert.All(sharedSources, value => Assert.StartsWith("../OfficeIMO.Shared/Compound/", value, StringComparison.Ordinal));
+
+        string[] references = typeof(EmailDocumentReader).Assembly.GetReferencedAssemblies()
+            .Select(reference => reference.Name ?? string.Empty)
+            .ToArray();
+        Assert.DoesNotContain(references, name => string.Equals(name, "MsgKit", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "MsgReader", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "OpenMcdf", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "RtfPipe", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "MimeKit", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "MailKit", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string GetRepositoryRoot() {
+        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null) {
+            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
+                File.Exists(Path.Combine(directory.FullName, "OfficeImo.sln"))) {
+                return directory.FullName;
+            }
+            directory = directory.Parent;
+        }
+        throw new DirectoryNotFoundException("Unable to locate the OfficeIMO repository root.");
+    }
+}

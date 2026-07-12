@@ -452,6 +452,11 @@ public static partial class DocumentReader {
         return DefaultFolderExtensions.Concat(customExtensions).ToArray();
     }
 
+    private static bool IsDefaultWinmailDat(string path, IReadOnlyList<string>? configuredExtensions) {
+        return (configuredExtensions == null || configuredExtensions.Count == 0) &&
+            string.Equals(Path.GetFileName(path), "winmail.dat", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
         var dirs = new Queue<string>();
         dirs.Enqueue(folderPath);

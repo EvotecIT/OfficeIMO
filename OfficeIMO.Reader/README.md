@@ -53,6 +53,7 @@ Built-in and modular adapters can extract:
 - Excel (`.xlsx`, `.xlsm`, `.xls`) as table chunks and optional Markdown previews.
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
+- EML/MIME, Outlook MSG/MAPI, TNEF/`winmail.dat`, and mbox as message, body, attachment, and embedded-item chunks. Rich results include attachment assets and typed Outlook metadata.
 - OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
 
 ## Modular adapters
@@ -369,6 +370,7 @@ Adapter authors can call `DocumentReader.CreateDocumentResult(...)` to create th
 
 - `OfficeIMO.Reader` owns the shared extraction contract and built-in facade.
 - Source-specific parsing belongs in the source package or modular adapter.
+- Email RTF transport decoding belongs to `OfficeIMO.Email`; semantic extraction of an RTF-only email body is delegated to the registered `OfficeIMO.Reader.Rtf` adapter.
 - Adapters should use `ReaderInputLimits` so input size and stream behavior stays consistent.
 - AI or database storage belongs in the consuming application.
 
@@ -384,6 +386,7 @@ The benchmark corpus is generated deterministically before measurement. Benchmar
 
 ## Related packages
 
+- [OfficeIMO.Email](../OfficeIMO.Email/README.md)
 - [OfficeIMO.Reader.Pdf](../OfficeIMO.Reader.Pdf/README.md)
 - [OfficeIMO.Reader.Rtf](../OfficeIMO.Reader.Rtf/README.md)
 - [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)

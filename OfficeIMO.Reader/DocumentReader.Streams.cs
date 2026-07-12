@@ -87,12 +87,16 @@ public static partial class DocumentReader {
         CancellationToken cancellationToken,
         ReaderInputKind detectedKind) {
         ReaderInputKind kind = NormalizeBuiltInDispatchKind(detectedKind);
+        if (kind == ReaderInputKind.Unknown && IsEmailArtifact(stream, opt, cancellationToken)) {
+            kind = ReaderInputKind.Email;
+        }
         return kind switch {
             ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
+            ReaderInputKind.Email => ReadEmail(stream, sourceName, opt, cancellationToken),
             ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
             _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
         };

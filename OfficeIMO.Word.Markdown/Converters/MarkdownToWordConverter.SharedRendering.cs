@@ -9,7 +9,7 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        private static void RenderSharedBlockOmd(
+        private void RenderSharedBlockOmd(
             Omd.IMarkdownBlock block,
             IWordBlockRenderHost host,
             MarkdownToWordOptions options,
@@ -19,10 +19,11 @@ namespace OfficeIMO.Word.Markdown {
             int quoteDepth = 0,
             double pageContentWidthPixels = 0,
             Omd.ColumnAlignment alignment = Omd.ColumnAlignment.None) {
-            new BlockRenderer(host, options, document, listLevel, quoteDepth, pageContentWidthPixels, alignment).Render(block);
+            new BlockRenderer(this, host, options, document, listLevel, quoteDepth, pageContentWidthPixels, alignment)
+                .Render(block);
         }
 
-        private static void ProcessBlockOmd(
+        private void ProcessBlockOmd(
             Omd.IMarkdownBlock block,
             WordDocument document,
             MarkdownToWordOptions options,

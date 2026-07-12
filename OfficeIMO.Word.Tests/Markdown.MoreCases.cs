@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
@@ -33,6 +34,25 @@ namespace OfficeIMO.Tests {
             Assert.Contains("[^1]", outMd);
             Assert.Contains("[^1]:", outMd);
             Assert.Contains("First line", outMd);
+        }
+
+        [Fact]
+        public void ParallelFootnoteConversionsKeepDocumentBodiesIsolated() {
+            const int documentCount = 16;
+            string filler = string.Join("\n\n", Enumerable.Repeat("Filler paragraph.", 80));
+            var output = new string[documentCount];
+
+            Parallel.For(0, documentCount, new ParallelOptions { MaxDegreeOfParallelism = 8 }, index => {
+                string label = "note" + index;
+                string body = "Footnote body for document " + index;
+                string markdown = filler + "\n\nRef[^" + label + "].\n\n[^" + label + "]: " + body + "\n";
+                using var document = markdown.LoadFromMarkdown();
+                output[index] = document.ToMarkdown();
+            });
+
+            for (int index = 0; index < documentCount; index++) {
+                Assert.Contains("Footnote body for document " + index, output[index]);
+            }
         }
 
         [Fact]
