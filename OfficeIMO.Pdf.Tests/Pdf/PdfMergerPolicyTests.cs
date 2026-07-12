@@ -48,11 +48,11 @@ public class PdfMergerPolicyTests {
     public void MergeWithReport_RejectsPolicyModesThatAreNotYetEnforced() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().Paragraph(p => p.Text("Second")).ToBytes();
-        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { Forms = PdfMergeStructureMode.Combine } };
+        var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine } };
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfMerger.MergeWithReport(options, first, second));
 
-        Assert.Contains("Forms=Combine", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ViewerPreferences=Combine", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,6 +83,62 @@ public class PdfMergerPolicyTests {
         Assert.Contains("Shared -> Shared.source2", Assert.Single(destinations.RenamedItems), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MergeWithReport_CombinesSimpleAcroFormsAndRenamesIncomingFields() {
+        byte[] first = PdfDocument.Create().TextField("Shared", value: "first").ToBytes();
+        byte[] second = PdfDocument.Create().TextField("Shared", value: "second").ToBytes();
+        var options = new PdfMergeOptions {
+            Policy = new PdfMergePolicy {
+                Forms = PdfMergeStructureMode.Combine,
+                FormFieldCollisions = PdfMergeCollisionMode.RenameIncoming
+            }
+        };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
+        PdfReadDocument readback = PdfReadDocument.Load(result.ToBytes());
+
+        Assert.Collection(readback.FormFields.OrderBy(static field => field.Name, StringComparer.Ordinal),
+            field => { Assert.Equal("Shared", field.Name); Assert.Equal("first", field.Value); Assert.Equal(new[] { 1 }, field.PageNumbers); },
+            field => { Assert.Equal("Shared.source2", field.Name); Assert.Equal("second", field.Value); Assert.Equal(new[] { 2 }, field.PageNumbers); });
+        PdfMergeDecision forms = Assert.Single(result.Report.Decisions, static decision => decision.Structure == "Forms");
+        Assert.Equal(1, forms.ImportedCount);
+        Assert.Contains("Shared -> Shared.source2", Assert.Single(forms.RenamedItems), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MergeWithReport_CombinesButtonChoiceAndRadioFields() {
+        byte[] first = BuildCommonFormPdf("first");
+        byte[] second = BuildCommonFormPdf("second");
+        var options = new PdfMergeOptions {
+            Policy = new PdfMergePolicy { Forms = PdfMergeStructureMode.Combine }
+        };
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(options, first, second);
+        IReadOnlyList<PdfFormField> fields = PdfReadDocument.Load(result.ToBytes()).FormFields;
+
+        Assert.Equal(6, fields.Count);
+        Assert.Contains(fields, static field => field.Name == "Approved" && field.Kind == PdfFormFieldKind.Button);
+        Assert.Contains(fields, static field => field.Name == "Approved.source2" && field.Kind == PdfFormFieldKind.Button);
+        Assert.Contains(fields, static field => field.Name == "Region" && field.Kind == PdfFormFieldKind.Choice);
+        Assert.Contains(fields, static field => field.Name == "Region.source2" && field.Kind == PdfFormFieldKind.Choice);
+        Assert.Contains(fields, static field => field.Name == "Plan" && field.IsRadioButton);
+        Assert.Contains(fields, static field => field.Name == "Plan.source2" && field.IsRadioButton);
+    }
+
+    [Fact]
+    public void Merge_DefaultPolicyKeepsOnlyPrimaryAcroFormWidgets() {
+        byte[] first = PdfDocument.Create().TextField("Primary", value: "first").ToBytes();
+        byte[] second = PdfDocument.Create().TextField("Incoming", value: "second").ToBytes();
+
+        byte[] merged = PdfMerger.Merge(first, second);
+        PdfReadDocument readback = PdfReadDocument.Load(merged);
+
+        PdfFormField field = Assert.Single(readback.FormFields);
+        Assert.Equal("Primary", field.Name);
+        Assert.Equal(new[] { 1 }, field.PageNumbers);
+        Assert.Empty(PdfInspector.Inspect(merged).GetFormWidgets(2));
+    }
+
     private static byte[] BuildStructuredPdf(string title, string? author, string? subject, string heading, string attachmentPayload) {
         var options = new PdfOptions { CreateOutlineFromHeadings = true };
         options.AddEmbeddedFile("evidence.txt", Encoding.UTF8.GetBytes(attachmentPayload), "text/plain", PdfAssociatedFileRelationship.Data, heading);
@@ -100,6 +156,14 @@ public class PdfMergerPolicyTests {
             .Paragraph(p => p.LinkToBookmark("Jump", "Shared"))
             .Bookmark("Shared")
             .Paragraph(p => p.Text(text))
+            .ToBytes();
+    }
+
+    private static byte[] BuildCommonFormPdf(string marker) {
+        return PdfDocument.Create()
+            .CheckBox("Approved", isChecked: marker == "first")
+            .ChoiceField("Region", new[] { "EU", "US" }, value: marker == "first" ? "EU" : "US")
+            .RadioButtonGroup("Plan", new[] { "Basic", "Pro" }, value: marker == "first" ? "Basic" : "Pro")
             .ToBytes();
     }
 }

@@ -23,9 +23,9 @@ public static partial class PdfMerger {
         merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions);
         merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions);
         merged = ApplyOutlinePolicy(merged, sources, primarySourceIndex, policy.Outlines, decisions);
+        merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions);
         merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions);
 
-        AddKeepPrimaryDecision(decisions, "Forms", policy.Forms);
         AddKeepPrimaryDecision(decisions, "ViewerPreferences", policy.ViewerPreferences);
         AddKeepPrimaryDecision(decisions, "CatalogState", policy.CatalogState);
 
@@ -235,7 +235,6 @@ public static partial class PdfMerger {
     }
 
     private static void ValidatePendingStructureModes(PdfMergePolicy policy) {
-        EnsureKeepPrimary(policy.Forms, nameof(policy.Forms));
         EnsureKeepPrimary(policy.ViewerPreferences, nameof(policy.ViewerPreferences));
         EnsureKeepPrimary(policy.CatalogState, nameof(policy.CatalogState));
     }

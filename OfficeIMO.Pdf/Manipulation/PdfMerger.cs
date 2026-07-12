@@ -125,7 +125,7 @@ public static partial class PdfMerger {
             }
 
             source = PrepareMergeSource(source, options);
-            importedSources.Add(ImportSource(source, i, null, mergedPageOffset, null));
+            importedSources.Add(ImportSource(source, i, null, mergedPageOffset, null, PdfMutationOperation.MergeDocuments));
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
@@ -399,8 +399,9 @@ public static partial class PdfMerger {
         int sourceIndex,
         int[]? knownPageObjectNumbers,
         int mergedPageOffset,
-        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber) {
-        _ = PdfMutationPlanner.RequireFullRewrite(source, PdfMutationOperation.ExtractPages);
+        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber,
+        PdfMutationOperation mutationOperation = PdfMutationOperation.ExtractPages) {
+        _ = PdfMutationPlanner.RequireFullRewrite(source, mutationOperation);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
         var document = PdfReadDocument.Load(source);

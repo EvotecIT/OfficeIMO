@@ -47,4 +47,6 @@ public sealed class PdfMergePolicy {
     public PdfMergeCollisionMode NamedDestinationCollisions { get; set; } = PdfMergeCollisionMode.RenameIncoming;
     /// <summary>Collision behavior for attachment file names.</summary>
     public PdfMergeCollisionMode AttachmentCollisions { get; set; } = PdfMergeCollisionMode.RenameIncoming;
+    /// <summary>Collision behavior for fully qualified AcroForm field names.</summary>
+    public PdfMergeCollisionMode FormFieldCollisions { get; set; } = PdfMergeCollisionMode.RenameIncoming;
 }

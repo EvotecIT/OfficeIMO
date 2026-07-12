@@ -169,6 +169,8 @@ public static class PdfMutationPlanner {
                 return CanChangeEncryption(preflight);
             case PdfMutationOperation.ExtractPages:
                 return preflight.CanRewrite || CanExtractPagesViaNormalization(preflight, operation);
+            case PdfMutationOperation.MergeDocuments:
+                return CanMergeDocuments(preflight);
             default:
                 return preflight.CanRewrite;
         }
@@ -246,6 +248,8 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog);
+            case PdfMutationOperation.MergeDocuments:
+                return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog, PdfMutationStructure.AcroForm, PdfMutationStructure.Annotations, PdfMutationStructure.Attachments);
             case PdfMutationOperation.ModifyPageContent:
                 return ReadOnly(PdfMutationStructure.PageContent, PdfMutationStructure.PageResources);
             case PdfMutationOperation.ModifyCatalog:
@@ -277,6 +281,7 @@ public static class PdfMutationPlanner {
                 break;
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
+            case PdfMutationOperation.MergeDocuments:
                 Add(permissions, PdfMutationPermissionCheck.ModifyDocument);
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
@@ -360,6 +365,11 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
+                break;
+            case PdfMutationOperation.MergeDocuments:
+                Add(proofs, PdfMutationProof.PageStructureReadback);
+                Add(proofs, PdfMutationProof.FormFieldReadback);
+                Add(proofs, PdfMutationProof.AttachmentReadback);
                 break;
             case PdfMutationOperation.ModifyPageContent:
                 Add(proofs, PdfMutationProof.VisualRendering);
@@ -595,6 +605,14 @@ public static class PdfMutationPlanner {
         return !security.HasEncryption || security.HasOwnerAuthorization;
     }
 
+    private static bool CanMergeDocuments(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.MergeDocuments)) return false;
+        }
+        return true;
+    }
+
     private static bool CanSynchronizeMetadata(PdfDocumentPreflight preflight) {
         if (!preflight.CanRead) {
             return false;
@@ -624,6 +642,10 @@ public static class PdfMutationPlanner {
         if (operation == PdfMutationOperation.ModifyAttachments) {
             return blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+        }
+
+        if (operation == PdfMutationOperation.MergeDocuments) {
+            return blocker != PdfRewriteBlockerKind.Forms;
         }
 
         return true;

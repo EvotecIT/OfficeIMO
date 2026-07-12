@@ -26,6 +26,9 @@ public enum PdfMutationOperation {
     /// <summary>Change page membership or order, including delete, move, duplicate, merge, or import.</summary>
     ModifyPageTree,
 
+    /// <summary>Merge complete documents with explicit catalog, navigation, form, and attachment policies.</summary>
+    MergeDocuments,
+
     /// <summary>Change page content streams or resources, including stamps and watermarks.</summary>
     ModifyPageContent,
 
