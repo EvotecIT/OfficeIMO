@@ -1,3 +1,6 @@
+using System.IO;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Markdown;
@@ -7,12 +10,14 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 internal static class FileCompat {
 #if NETSTANDARD2_0 || NET472 || NET48
-    public static Task WriteAllTextAsync(string path, string contents, Encoding encoding) {
-        System.IO.File.WriteAllText(path, contents, encoding);
-        return Task.CompletedTask;
+    public static async Task WriteAllTextAsync(string path, string contents, Encoding encoding, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+        using var writer = new StreamWriter(stream, encoding);
+        await writer.WriteAsync(contents).ConfigureAwait(false);
     }
 #else
-    public static Task WriteAllTextAsync(string path, string contents, Encoding encoding) => System.IO.File.WriteAllTextAsync(path, contents, encoding);
+    public static Task WriteAllTextAsync(string path, string contents, Encoding encoding, CancellationToken cancellationToken) =>
+        System.IO.File.WriteAllTextAsync(path, contents, encoding, cancellationToken);
 #endif
 }
-

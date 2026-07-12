@@ -595,9 +595,8 @@ public partial class MarkdownDoc : MarkdownObject {
 
     /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>
     public string ToHtmlFragment(HtmlOptions? options = null) {
-        options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
-        options.Kind = HtmlKind.Fragment;
-        return HtmlRenderer.Render(this, options);
+        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Fragment);
+        return HtmlRenderer.Render(this, operation);
     }
 
     /// <summary>
@@ -605,9 +604,8 @@ public partial class MarkdownDoc : MarkdownObject {
     /// of the fragment. Useful when you want a single self-contained chunk without a full HTML document.
     /// </summary>
     public string ToHtmlFragmentWithCss(HtmlOptions? options = null) {
-        options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
-        options.Kind = HtmlKind.Fragment;
-        var parts = HtmlRenderer.RenderParts(this, options);
+        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Fragment);
+        var parts = HtmlRenderer.RenderParts(this, operation);
         var sb = new StringBuilder();
         if (!string.IsNullOrEmpty(parts.Css)) sb.Append("<style>\n").Append(parts.Css).Append("\n</style>");
         sb.Append(parts.Body);
@@ -617,15 +615,14 @@ public partial class MarkdownDoc : MarkdownObject {
 
     /// <summary>Renders a standalone HTML5 document with optional CSS/JS assets.</summary>
     public string ToHtmlDocument(HtmlOptions? options = null) {
-        options ??= new HtmlOptions { Kind = HtmlKind.Document };
-        options.Kind = HtmlKind.Document;
-        return HtmlRenderer.Render(this, options);
+        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Document);
+        return HtmlRenderer.Render(this, operation);
     }
 
     /// <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
     public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
-        options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
-        return HtmlRenderer.RenderParts(this, options);
+        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender();
+        return HtmlRenderer.RenderParts(this, operation);
     }
 
     internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
@@ -640,19 +637,19 @@ public partial class MarkdownDoc : MarkdownObject {
     /// writes a sidecar CSS file next to the HTML and links it.
     /// </summary>
     public void SaveAsHtml(string path, HtmlOptions? options = null) {
-        options ??= new HtmlOptions();
+        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender();
         // If external CSS requested, compute sidecar path and let renderer know
-        if (options.CssDelivery == CssDelivery.ExternalFile) {
+        if (operation.CssDelivery == CssDelivery.ExternalFile) {
             var basePath = System.IO.Path.ChangeExtension(path, null);
             var cssPath = basePath + ".css";
-            options.ExternalCssOutputPath = cssPath;
+            operation.ExternalCssOutputPath = cssPath;
         }
-        var html = options.Kind == HtmlKind.Document ? ToHtmlDocument(options) : ToHtmlFragment(options);
+        var html = HtmlRenderer.Render(this, operation);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
         System.IO.File.WriteAllText(path, html, System.Text.Encoding.UTF8);
         // If renderer produced a sidecar css, ensure it's written
-        if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
-            System.IO.File.WriteAllText(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8);
+        if (!string.IsNullOrEmpty(operation.ExternalCssOutputPath) && operation._externalCssContentToWrite is not null) {
+            System.IO.File.WriteAllText(operation.ExternalCssOutputPath!, operation._externalCssContentToWrite, System.Text.Encoding.UTF8);
         }
     }
 
@@ -660,18 +657,19 @@ public partial class MarkdownDoc : MarkdownObject {
     /// Asynchronously saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
     /// writes a sidecar CSS file next to the HTML and links it.
     /// </summary>
-    public async System.Threading.Tasks.Task SaveAsHtmlAsync(string path, HtmlOptions? options = null) {
-        options ??= new HtmlOptions();
-        if (options.CssDelivery == CssDelivery.ExternalFile) {
+    public async System.Threading.Tasks.Task SaveAsHtmlAsync(string path, HtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender();
+        if (operation.CssDelivery == CssDelivery.ExternalFile) {
             var basePath = System.IO.Path.ChangeExtension(path, null);
             var cssPath = basePath + ".css";
-            options.ExternalCssOutputPath = cssPath;
+            operation.ExternalCssOutputPath = cssPath;
         }
-        var html = options.Kind == HtmlKind.Document ? ToHtmlDocument(options) : ToHtmlFragment(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        var html = HtmlRenderer.Render(this, operation);
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
-        await FileCompat.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8).ConfigureAwait(false);
-        if (!string.IsNullOrEmpty(options.ExternalCssOutputPath) && options._externalCssContentToWrite is not null) {
-            await FileCompat.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
+        await FileCompat.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(operation.ExternalCssOutputPath) && operation._externalCssContentToWrite is not null) {
+            await FileCompat.WriteAllTextAsync(operation.ExternalCssOutputPath!, operation._externalCssContentToWrite, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
         }
     }
 

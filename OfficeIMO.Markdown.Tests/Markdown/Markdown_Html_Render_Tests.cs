@@ -63,6 +63,53 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Html_Rendering_Does_Not_Mutate_Reusable_Options() {
+            var options = new HtmlOptions {
+                Kind = HtmlKind.Document,
+                Theme = MarkdownVisualTheme.Report(),
+                Prism = new PrismOptions { Enabled = true }
+            };
+            options.AdditionalCssHrefs.Add("https://example.com/site.css");
+
+            string fragment = MarkdownDoc.Create().H1("Title").ToHtmlFragment(options);
+
+            Assert.DoesNotContain("<html", fragment, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(HtmlKind.Document, options.Kind);
+            Assert.Single(options.AdditionalCssHrefs);
+            Assert.NotNull(options.Theme);
+            Assert.True(options.Prism.Enabled);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task External_Css_Async_Saves_Are_Operation_Scoped_And_Cancellable() {
+            string temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temp);
+            var options = new HtmlOptions {
+                Kind = HtmlKind.Document,
+                Style = HtmlStyle.Clean,
+                CssDelivery = CssDelivery.ExternalFile
+            };
+            MarkdownDoc doc = MarkdownDoc.Create().H1("Title");
+            string first = Path.Combine(temp, "first.html");
+            string second = Path.Combine(temp, "second.html");
+
+            await System.Threading.Tasks.Task.WhenAll(
+                doc.SaveAsHtmlAsync(first, options),
+                doc.SaveAsHtmlAsync(second, options));
+
+            Assert.True(File.Exists(first));
+            Assert.True(File.Exists(Path.ChangeExtension(first, ".css")));
+            Assert.True(File.Exists(second));
+            Assert.True(File.Exists(Path.ChangeExtension(second, ".css")));
+            Assert.Equal(HtmlKind.Document, options.Kind);
+
+            string cancelled = Path.Combine(temp, "cancelled.html");
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                doc.SaveAsHtmlAsync(cancelled, options, new System.Threading.CancellationToken(canceled: true)));
+            Assert.False(File.Exists(cancelled));
+        }
+
+        [Fact]
         public void Shared_VisualTheme_Emits_Consistent_Html_Css() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)

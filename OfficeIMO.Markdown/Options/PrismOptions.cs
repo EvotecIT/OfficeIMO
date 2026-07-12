@@ -14,4 +14,16 @@ public sealed class PrismOptions {
     public List<string> Plugins { get; } = new();
     /// <summary>CDN base URL. Default: jsDelivr.</summary>
     public string CdnBase { get; set; } = "https://cdn.jsdelivr.net/npm/prismjs@1.29.0";
+
+    internal PrismOptions CloneForRender() {
+        var clone = new PrismOptions {
+            Enabled = Enabled,
+            Theme = Theme,
+            CdnBase = CdnBase
+        };
+        clone.Languages.Clear();
+        clone.Languages.AddRange(Languages);
+        clone.Plugins.AddRange(Plugins);
+        return clone;
+    }
 }

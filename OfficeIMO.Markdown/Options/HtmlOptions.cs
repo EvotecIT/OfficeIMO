@@ -289,4 +289,68 @@ public sealed class HtmlOptions {
     public bool InjectTocOrdered { get; set; } = false;
     /// <summary>Heading level used for the TOC title. Default: 2.</summary>
     public int InjectTocTitleLevel { get; set; } = 2;
+
+    internal HtmlOptions CloneForRender(HtmlKind? kind = null) {
+        var clone = new HtmlOptions {
+            Kind = kind ?? Kind,
+            Style = Style,
+            CssDelivery = CssDelivery,
+            AssetMode = AssetMode,
+            CssHref = CssHref,
+            Title = Title,
+            BodyClass = BodyClass,
+            AutoHeadingIdentifiers = AutoHeadingIdentifiers,
+            HeadingIdentifierStyle = HeadingIdentifierStyle,
+            IncludeAnchorLinks = IncludeAnchorLinks,
+            ShowAnchorIcons = ShowAnchorIcons,
+            AnchorIcon = AnchorIcon,
+            CopyHeadingLinkOnClick = CopyHeadingLinkOnClick,
+            BackToTopLinks = BackToTopLinks,
+            BackToTopMinLevel = BackToTopMinLevel,
+            BackToTopText = BackToTopText,
+            ThemeToggle = ThemeToggle,
+            EmitMode = EmitMode,
+            Prism = Prism?.CloneForRender(),
+            CodeBlockHtmlRenderer = CodeBlockHtmlRenderer,
+            SemanticFencedBlockHtmlRenderer = SemanticFencedBlockHtmlRenderer,
+            TocHtmlRenderer = TocHtmlRenderer,
+            FootnoteSectionHtmlRenderer = FootnoteSectionHtmlRenderer,
+            GitHubTaskListHtml = GitHubTaskListHtml,
+            GitHubFootnoteHtml = GitHubFootnoteHtml,
+            GitHubHtmlTagFilter = GitHubHtmlTagFilter,
+            NormalizeUrlHostsToIdn = NormalizeUrlHostsToIdn,
+            PercentEncodeTildeInUrlAttributes = PercentEncodeTildeInUrlAttributes,
+            EscapeNonAsciiText = EscapeNonAsciiText,
+            CssScopeSelector = CssScopeSelector,
+            RawHtmlHandling = RawHtmlHandling,
+            ExternalLinksTargetBlank = ExternalLinksTargetBlank,
+            ExternalLinksRel = ExternalLinksRel,
+            ExternalLinksReferrerPolicy = ExternalLinksReferrerPolicy,
+            BaseUri = BaseUri,
+            RestrictHttpLinksToBaseOrigin = RestrictHttpLinksToBaseOrigin,
+            RestrictHttpImagesToBaseOrigin = RestrictHttpImagesToBaseOrigin,
+            BlockExternalHttpImages = BlockExternalHttpImages,
+            ImagesLoadingLazy = ImagesLoadingLazy,
+            ImagesDecodingAsync = ImagesDecodingAsync,
+            ImagesReferrerPolicy = ImagesReferrerPolicy,
+            Theme = Theme?.Clone(),
+            ApplyDefaultTheme = ApplyDefaultTheme,
+            ColorOverrides = ColorOverrides?.CloneForRender() ?? new ThemeColors(),
+            InjectTocAtTop = InjectTocAtTop,
+            InjectTocTitle = InjectTocTitle,
+            InjectTocMinLevel = InjectTocMinLevel,
+            InjectTocMaxLevel = InjectTocMaxLevel,
+            InjectTocOrdered = InjectTocOrdered,
+            InjectTocTitleLevel = InjectTocTitleLevel
+        };
+        clone.AdditionalCssHrefs.AddRange(AdditionalCssHrefs);
+        clone.AdditionalJsHrefs.AddRange(AdditionalJsHrefs);
+        clone.BlockRenderExtensions.AddRange(BlockRenderExtensions);
+        clone.InlineRenderExtensions.AddRange(InlineRenderExtensions);
+        clone.SyntaxBlockRenderExtensions.AddRange(SyntaxBlockRenderExtensions);
+        clone.SyntaxInlineRenderExtensions.AddRange(SyntaxInlineRenderExtensions);
+        clone.AllowedHttpLinkHosts.AddRange(AllowedHttpLinkHosts);
+        clone.AllowedHttpImageHosts.AddRange(AllowedHttpImageHosts);
+        return clone;
+    }
 }
