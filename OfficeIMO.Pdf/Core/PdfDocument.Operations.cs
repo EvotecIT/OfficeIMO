@@ -177,7 +177,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(PdfDocument document, PdfReadOptions? options = null) {
         Guard.NotNull(document, nameof(document));
-        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(document), options: options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(document), options: options);
     }
 
     /// <summary>
@@ -193,7 +193,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(pdf), options: options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(pdf), options: options);
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(string path, PdfReadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(path), options: options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(path), options: options);
     }
 
     /// <summary>
@@ -231,7 +231,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryMergeWith(Stream stream, PdfReadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
-        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, _ => MergeWith(stream), options: options);
+        return TryMutationOperation("Merge documents", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.MergeDocuments, _ => MergeWith(stream), options: options);
     }
 
     /// <summary>

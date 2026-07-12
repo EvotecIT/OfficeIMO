@@ -145,6 +145,23 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void ReviewedRedactionPlanUsesCallerReadBudgetDuringApply() {
+        byte[] pdf = BuildPdf();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, new[] {
+            new PdfRedactionArea(1, 0, 0, 20, 20, "reviewed")
+        });
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = pdf.Length - 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfRedactionApplier.Apply(pdf, plan, readOptions: options));
+
+        Assert.Equal(PdfReadLimitKind.InputBytes, exception.Kind);
+        Assert.Equal(pdf.Length - 1, exception.Limit);
+    }
+
+    [Fact]
     public void PageContentUsesCallerDecodedStreamBudget() {
         byte[] pdf = BuildPdf();
         var options = new PdfReadOptions {

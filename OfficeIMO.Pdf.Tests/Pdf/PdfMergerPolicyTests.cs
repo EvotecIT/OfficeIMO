@@ -45,6 +45,18 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void Merge_DefaultAttachmentPolicyPrunesIncomingPayloadObjects() {
+        byte[] first = BuildStructuredPdf("Primary", null, null, "Primary heading", "primary-only-payload");
+        byte[] second = BuildStructuredPdf("Incoming", null, null, "Incoming heading", "incoming-secret-payload");
+
+        byte[] merged = PdfMerger.Merge(first, second);
+
+        PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(merged));
+        Assert.Equal("primary-only-payload", Encoding.UTF8.GetString(attachment.Bytes));
+        Assert.DoesNotContain("incoming-secret-payload", PdfEncoding.Latin1GetString(merged), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MergeWithReport_RejectIncomingPolicyFailsBeforeReturningArtifact() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().ViewerPreferences(preferences => preferences.HideToolbar = true).Paragraph(p => p.Text("Second")).ToBytes();
@@ -200,6 +212,41 @@ public class PdfMergerPolicyTests {
     }
 
     [Fact]
+    public void Merge_MaterializesSourceAcroFormDefaultsOnImportedFields() {
+        byte[] primary = PdfDocument.Create().TextField("Primary", value: "one").ToBytes();
+        byte[] incoming = BuildFormWithAcroFormDefaultsPdf();
+        var options = new PdfMergeOptions {
+            Policy = new PdfMergePolicy { Forms = PdfMergeStructureMode.Combine }
+        };
+
+        byte[] merged = PdfMerger.MergeWithReport(options, primary, incoming).ToBytes();
+        var (objects, _) = PdfSyntax.ParseObjects(merged);
+        PdfDictionary field = objects.Values.Select(static item => item.Value).OfType<PdfDictionary>()
+            .Single(dictionary => dictionary.Get<PdfStringObj>("T")?.Value == "Incoming");
+
+        Assert.Equal("/F1 9 Tf 0 g", field.Get<PdfStringObj>("DA")?.Value);
+        Assert.Equal(2, field.Get<PdfNumber>("Q")?.Value);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, field.Items["DR"]));
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, resources.Items["Font"]));
+        PdfDictionary font = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, fonts.Items["F1"]));
+        Assert.Equal("Helvetica", font.Get<PdfName>("BaseFont")?.Name);
+    }
+
+    [Fact]
+    public void Merge_OutlineCombinePromotesChildrenOfDestinationlessParents() {
+        byte[] source = BuildDestinationlessOutlineParentPdf();
+        var options = new PdfMergeOptions {
+            Policy = new PdfMergePolicy { Outlines = PdfMergeStructureMode.Combine }
+        };
+
+        PdfReadDocument readback = PdfReadDocument.Load(PdfMerger.MergeWithReport(options, source).ToBytes());
+
+        PdfOutlineItem outline = Assert.Single(readback.Outlines);
+        Assert.Equal("Child", outline.Title);
+        Assert.Equal(1, outline.PageNumber);
+    }
+
+    [Fact]
     public void MergeWithReport_CombinesViewerPreferencesAndRetargetsIncomingOpenAction() {
         byte[] first = PdfDocument.Create()
             .CatalogView(PdfCatalogPageMode.UseThumbs, PdfCatalogPageLayout.OneColumn)
@@ -321,6 +368,24 @@ public class PdfMergerPolicyTests {
         "<< /FT /Tx /T (Second) /V (two) /Parent 6 0 R /Kids [10 0 R] >>",
         "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [10 70 100 90] >>",
         "<< /Type /Annot /Subtype /Widget /Parent 8 0 R /Rect [10 30 100 50] >>");
+
+    private static byte[] BuildFormWithAcroFormDefaultsPdf() => BuildRawPdf(
+        "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Fields [6 0 R] /DA (/F1 9 Tf 0 g) /Q 2 /DR << /Font << /F1 7 0 R >> >> >>",
+        "<< /FT /Tx /T (Incoming) /V (two) >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+    private static byte[] BuildDestinationlessOutlineParentPdf() => BuildRawPdf(
+        "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R >>",
+        "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
+        "<< /Length 0 >>\nstream\n\nendstream",
+        "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+        "<< /Title (Group) /Parent 5 0 R /First 7 0 R /Last 7 0 R /Count 1 >>",
+        "<< /Title (Child) /Parent 6 0 R /Dest [3 0 R /Fit] >>");
 
     private static byte[] BuildRawPdf(params string[] objectBodies) {
         var builder = new StringBuilder("%PDF-1.7\n");

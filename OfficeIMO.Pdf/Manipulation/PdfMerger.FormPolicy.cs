@@ -130,9 +130,19 @@ public static partial class PdfMerger {
             ImportedSource source = sources[sourceIndex];
             IReadOnlyDictionary<int, int> numberMap = source.OutputNumberMap ??
                 throw new InvalidOperationException("PDF merge form mapping was not initialized.");
+            PdfObject? defaultResources = CloneMappedAcroFormDefaultResources(source, numberMap);
             for (int rootIndex = 0; rootIndex < source.FormFieldRootObjectNumbers.Length; rootIndex++) {
                 if (numberMap.TryGetValue(source.FormFieldRootObjectNumbers[rootIndex], out int mappedRoot)) {
-                    CollectFormTerminals(objects, sourceIndex, mappedRoot, string.Empty, byRoot, visited);
+                    CollectFormTerminals(
+                        objects,
+                        sourceIndex,
+                        mappedRoot,
+                        string.Empty,
+                        source.Document.AcroFormDefaultAppearance,
+                        source.Document.AcroFormQuadding,
+                        defaultResources,
+                        byRoot,
+                        visited);
                 }
             }
         }
@@ -145,6 +155,9 @@ public static partial class PdfMerger {
         int sourceIndex,
         int fieldObjectNumber,
         string parentName,
+        string? sourceDefaultAppearance,
+        int? sourceQuadding,
+        PdfObject? sourceDefaultResources,
         Dictionary<int, MergedFormRoot> byRoot,
         HashSet<int> visited) {
         if (!visited.Add(fieldObjectNumber) ||
@@ -174,7 +187,16 @@ public static partial class PdfMerger {
 
         if (fieldChildren.Count > 0) {
             for (int childIndex = 0; childIndex < fieldChildren.Count; childIndex++) {
-                CollectFormTerminals(objects, sourceIndex, fieldChildren[childIndex].ObjectNumber, fullName, byRoot, visited);
+                CollectFormTerminals(
+                    objects,
+                    sourceIndex,
+                    fieldChildren[childIndex].ObjectNumber,
+                    fullName,
+                    sourceDefaultAppearance,
+                    sourceQuadding,
+                    sourceDefaultResources,
+                    byRoot,
+                    visited);
             }
 
             return;
@@ -182,7 +204,15 @@ public static partial class PdfMerger {
 
         if (field.Get<PdfName>("Subtype")?.Name == "Widget") widgets.Add(fieldObjectNumber);
         if (string.IsNullOrEmpty(fullName)) throw new NotSupportedException("Combining unnamed AcroForm fields is not supported.");
-        var discovered = new MergedFormRoot(sourceIndex, fieldObjectNumber, fullName, field, widgets);
+        var discovered = new MergedFormRoot(
+            sourceIndex,
+            fieldObjectNumber,
+            fullName,
+            field,
+            widgets,
+            sourceDefaultAppearance,
+            sourceQuadding,
+            sourceDefaultResources);
         if (!byRoot.TryGetValue(fieldObjectNumber, out MergedFormRoot? existing)) {
             byRoot[fieldObjectNumber] = discovered;
             return;
@@ -205,8 +235,57 @@ public static partial class PdfMerger {
 
     private static void PrepareFormRoot(Dictionary<int, PdfIndirectObject> objects, MergedFormRoot root) {
         MaterializeInheritedFormAttributes(objects, root.FieldDictionary);
+        if (!root.FieldDictionary.Items.ContainsKey("DA") && !string.IsNullOrEmpty(root.SourceDefaultAppearance)) {
+            root.FieldDictionary.Items["DA"] = new PdfStringObj(root.SourceDefaultAppearance!, true);
+        }
+        if (!root.FieldDictionary.Items.ContainsKey("Q") && root.SourceQuadding.HasValue) {
+            root.FieldDictionary.Items["Q"] = new PdfNumber(root.SourceQuadding.Value);
+        }
+        if (!root.FieldDictionary.Items.ContainsKey("DR") && root.SourceDefaultResources != null) {
+            root.FieldDictionary.Items["DR"] = root.SourceDefaultResources;
+        }
         root.FieldDictionary.Items.Remove("Parent");
         root.FieldDictionary.Items["T"] = new PdfStringObj(root.FieldName, true);
+    }
+
+    private static PdfObject? CloneMappedAcroFormDefaultResources(ImportedSource source, IReadOnlyDictionary<int, int> numberMap) {
+        if (!source.Document.Security.RootObjectNumber.HasValue ||
+            !source.Objects.TryGetValue(source.Document.Security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
+            catalogObject.Value is not PdfDictionary catalog ||
+            !catalog.Items.TryGetValue("AcroForm", out PdfObject? acroFormObject) ||
+            ResolveDictionary(source.Objects, acroFormObject) is not PdfDictionary acroForm ||
+            !acroForm.Items.TryGetValue("DR", out PdfObject? defaultResources)) {
+            return null;
+        }
+
+        return CloneMappedFormObject(defaultResources, numberMap);
+    }
+
+    private static PdfObject CloneMappedFormObject(PdfObject value, IReadOnlyDictionary<int, int> numberMap) {
+        if (value is PdfReference reference) {
+            if (!numberMap.TryGetValue(reference.ObjectNumber, out int mapped)) {
+                throw new InvalidOperationException("PDF merge form resource mapping was incomplete.");
+            }
+            return new PdfReference(mapped, 0);
+        }
+        if (value is PdfArray array) {
+            var clone = new PdfArray();
+            foreach (PdfObject item in array.Items) clone.Items.Add(CloneMappedFormObject(item, numberMap));
+            return clone;
+        }
+        if (value is PdfDictionary dictionary) {
+            var clone = new PdfDictionary();
+            foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) clone.Items[item.Key] = CloneMappedFormObject(item.Value, numberMap);
+            return clone;
+        }
+        if (value is PdfStream stream) {
+            return new PdfStream((PdfDictionary)CloneMappedFormObject(stream.Dictionary, numberMap), (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
+        }
+        if (value is PdfStringObj text) return new PdfStringObj(text.RawBytes, text.UseTextStringEncoding);
+        if (value is PdfName name) return new PdfName(name.Name);
+        if (value is PdfNumber number) return new PdfNumber(number.Value);
+        if (value is PdfBoolean boolean) return new PdfBoolean(boolean.Value);
+        return PdfNull.Instance;
     }
 
     private static void MaterializeInheritedFormAttributes(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
@@ -255,8 +334,9 @@ public static partial class PdfMerger {
     }
 
     private sealed class MergedFormRoot {
-        internal MergedFormRoot(int sourceIndex, int rootObjectNumber, string fieldName, PdfDictionary fieldDictionary, List<int> widgetObjectNumbers) { SourceIndex = sourceIndex; RootObjectNumber = rootObjectNumber; FieldName = fieldName; FieldDictionary = fieldDictionary; WidgetObjectNumbers = widgetObjectNumbers; }
+        internal MergedFormRoot(int sourceIndex, int rootObjectNumber, string fieldName, PdfDictionary fieldDictionary, List<int> widgetObjectNumbers, string? sourceDefaultAppearance, int? sourceQuadding, PdfObject? sourceDefaultResources) { SourceIndex = sourceIndex; RootObjectNumber = rootObjectNumber; FieldName = fieldName; FieldDictionary = fieldDictionary; WidgetObjectNumbers = widgetObjectNumbers; SourceDefaultAppearance = sourceDefaultAppearance; SourceQuadding = sourceQuadding; SourceDefaultResources = sourceDefaultResources; }
         internal int SourceIndex { get; } internal int RootObjectNumber { get; } internal string FieldName { get; set; }
         internal PdfDictionary FieldDictionary { get; } internal List<int> WidgetObjectNumbers { get; }
+        internal string? SourceDefaultAppearance { get; } internal int? SourceQuadding { get; } internal PdfObject? SourceDefaultResources { get; }
     }
 }

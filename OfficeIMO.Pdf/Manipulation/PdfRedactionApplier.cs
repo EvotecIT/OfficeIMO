@@ -22,7 +22,7 @@ public static partial class PdfRedactionApplier {
             string[] removable = fieldNames.Where(existing.Contains).ToArray();
             if (removable.Length > 0) working = PdfAcroFormEditor.Edit(pdf, edit => { for (int i = 0; i < removable.Length; i++) edit.Remove(removable[i]); }, readOptions).ToBytes();
         }
-        return Apply(working, plan.Areas, applyOptions, layoutOptions, readOptions: null);
+        return Apply(working, plan.Areas, applyOptions, layoutOptions, readOptions);
     }
 
     /// <summary>

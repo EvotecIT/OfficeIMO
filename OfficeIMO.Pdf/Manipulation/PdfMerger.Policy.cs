@@ -91,7 +91,7 @@ public static partial class PdfMerger {
                 return merged;
             case PdfMergeStructureMode.Combine:
                 var roots = BuildMergedOutlineRoots(sources);
-                merged = PdfBookmarkEditor.Edit(merged, session => {
+                merged = PdfBookmarkEditor.EditAllowingBrokenSourceDestinations(merged, session => {
                     RemoveAllBookmarks(session);
                     foreach (MergedOutlineNode root in roots) AddBookmark(session, root, null);
                 }).ToBytes();
@@ -113,6 +113,7 @@ public static partial class PdfMerger {
         int incomingCount = sourceAttachments.Where((_, index) => index != primarySourceIndex).Sum(static items => items.Count);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
+                if (incomingCount > 0) merged = ReplaceAttachments(merged, ConvertAttachments(sourceAttachments[primarySourceIndex]));
                 decisions.Add(new PdfMergeDecision("Attachments", mode, "Kept primary attachments.", droppedCount: incomingCount));
                 return merged;
             case PdfMergeStructureMode.RejectIncoming:
@@ -178,27 +179,39 @@ public static partial class PdfMerger {
         }).ToBytes();
     }
 
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfEmbeddedFile> ConvertAttachments(IReadOnlyList<PdfExtractedAttachment> attachments) {
+        return attachments.Select(static attachment => new PdfEmbeddedFile(
+            attachment.FileName,
+            attachment.Bytes,
+            attachment.MimeType,
+            attachment.Relationship,
+            attachment.Description,
+            attachment.CreationDate,
+            attachment.ModificationDate)).ToList().AsReadOnly();
+    }
+
     private static System.Collections.ObjectModel.ReadOnlyCollection<MergedOutlineNode> BuildMergedOutlineRoots(IReadOnlyList<ImportedSource> sources) {
         var result = new List<MergedOutlineNode>();
         int pageOffset = 0;
         foreach (ImportedSource source in sources) {
             foreach (PdfOutlineItem outline in source.Document.Outlines) {
-                MergedOutlineNode? node = ImportOutline(outline, pageOffset);
-                if (node != null) result.Add(node);
+                ImportOutline(result, outline, pageOffset);
             }
             pageOffset += source.PageObjectNumbers.Length;
         }
         return result.AsReadOnly();
     }
 
-    private static MergedOutlineNode? ImportOutline(PdfOutlineItem outline, int pageOffset) {
-        if (!outline.PageNumber.HasValue) return null;
+    private static void ImportOutline(List<MergedOutlineNode> target, PdfOutlineItem outline, int pageOffset) {
         var children = new List<MergedOutlineNode>();
         foreach (PdfOutlineItem child in outline.Children) {
-            MergedOutlineNode? imported = ImportOutline(child, pageOffset);
-            if (imported != null) children.Add(imported);
+            ImportOutline(children, child, pageOffset);
         }
-        return new MergedOutlineNode(outline.Title, outline.PageNumber.Value + pageOffset, outline.DestinationTop, outline.IsExpanded, children.AsReadOnly());
+        if (!outline.PageNumber.HasValue) {
+            target.AddRange(children);
+            return;
+        }
+        target.Add(new MergedOutlineNode(outline.Title, outline.PageNumber.Value + pageOffset, outline.DestinationTop, outline.IsExpanded, children.AsReadOnly()));
     }
 
     private static void AddBookmark(PdfBookmarkEditSession session, MergedOutlineNode node, string? parentId) {

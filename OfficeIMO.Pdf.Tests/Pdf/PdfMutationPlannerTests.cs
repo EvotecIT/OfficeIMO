@@ -146,6 +146,39 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void TryFill_AppendsEncryptedFormRevisionWithOwnerAuthorization() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .TextField("Name", width: 180, height: 24, value: "Ada")
+            .ToBytes();
+        var ownerOptions = new PdfReadOptions { Password = "owner" };
+        var values = new Dictionary<string, string> { ["Name"] = "Grace" };
+
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(source, ownerOptions).Forms.TryFill(values);
+
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan!.ExecutionMode);
+        byte[] updated = result.RequireValue().ToBytes();
+        Assert.True(updated.AsSpan(0, source.Length).SequenceEqual(source));
+        PdfDocumentInfo info = PdfInspector.Inspect(updated, ownerOptions);
+        Assert.True(info.Security.HasEncryption);
+        Assert.Equal("Grace", Assert.Single(info.FormFields, static field => field.Name == "Name").Value);
+    }
+
+    [Fact]
+    public void TryMergeWith_UsesMergePolicyForFormBearingPrimary() {
+        byte[] primary = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+
+        PdfOperationResult<PdfDocument> result = PdfDocument.Open(primary).TryMergeWith(incoming);
+
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        Assert.Equal(PdfMutationOperation.MergeDocuments, result.MutationPlan!.Operation);
+        PdfDocumentInfo info = result.RequireValue().Inspect();
+        Assert.Equal(2, info.PageCount);
+        Assert.Single(info.FormFields, static field => field.Name == "Name");
+    }
+
+    [Fact]
     public void Plan_BlocksPageTreeMutationWhenSourceStructureCannotBePreserved() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
