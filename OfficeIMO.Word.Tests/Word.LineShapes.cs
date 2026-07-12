@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(Color.Blue.ToRgbHex(), line.ColorHex.Replace("#", ""));
 
-                Assert.Equal(line.ColorHex.Replace("#", ""), line.ColorHex.Replace("#", "").ToLowerInvariant());
+                Assert.Equal(line.ColorHex.Replace("#", ""), line.ColorHex.Replace("#", "").ToUpperInvariant());
 
                 document.Save();
             }

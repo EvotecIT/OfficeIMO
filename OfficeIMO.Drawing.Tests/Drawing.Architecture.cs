@@ -14,11 +14,13 @@ public class DrawingArchitectureTests {
     private static readonly string RepositoryRoot = LocateRepositoryRoot();
 
     [Fact]
-    public void OfficeDrawingProjectRemainsDependencyFree() {
+    public void OfficeDrawingProjectOnlyDependsOnTheSharedCore() {
         XDocument project = LoadProject("OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj");
 
         Assert.Empty(GetReferencedItems(project, "PackageReference"));
-        Assert.Empty(GetReferencedItems(project, "ProjectReference"));
+        Assert.Equal(
+            new[] { "../OfficeIMO.Core/OfficeIMO.Core.csproj" },
+            GetReferencedItems(project, "ProjectReference").Select(reference => reference.Replace('\\', '/')));
         Assert.DoesNotContain("System.Drawing", ReadProjectSource("OfficeIMO.Drawing"));
     }
 

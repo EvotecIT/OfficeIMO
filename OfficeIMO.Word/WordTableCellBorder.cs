@@ -68,11 +68,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? LeftColorHex {
             get {
-                return BordersOrNull?.LeftBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.LeftBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var lb = EnsureLeft();
-                lb.Color = value?.Replace("#", "").ToLowerInvariant();
+                lb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -132,11 +132,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? RightColorHex {
             get {
-                return BordersOrNull?.RightBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.RightBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var rb = EnsureRight();
-                rb.Color = value?.Replace("#", "").ToLowerInvariant();
+                rb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -198,11 +198,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopColorHex {
             get {
-                return BordersOrNull?.TopBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.TopBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var tb = EnsureTop();
-                tb.Color = value?.Replace("#", "").ToLowerInvariant();
+                tb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -267,11 +267,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? BottomColorHex {
             get {
-                return BordersOrNull?.BottomBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.BottomBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var bb = EnsureBottom();
-                bb.Color = value?.Replace("#", "").ToLowerInvariant();
+                bb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -338,11 +338,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? InsideHorizontalColorHex {
             get {
-                return BordersOrNull?.InsideHorizontalBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.InsideHorizontalBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var hb = EnsureInsideHorizontal();
-                hb.Color = value?.Replace("#", "").ToLowerInvariant();
+                hb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -409,11 +409,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? InsideVerticalColorHex {
             get {
-                return BordersOrNull?.InsideVerticalBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.InsideVerticalBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var vb = EnsureInsideVertical();
-                vb.Color = value?.Replace("#", "").ToLowerInvariant();
+                vb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -477,11 +477,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? StartColorHex {
             get {
-                return BordersOrNull?.StartBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.StartBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var sb = EnsureStart();
-                sb.Color = value?.Replace("#", "").ToLowerInvariant();
+                sb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -545,11 +545,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? EndColorHex {
             get {
-                return BordersOrNull?.EndBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.EndBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var eb = EnsureEnd();
-                eb.Color = value?.Replace("#", "").ToLowerInvariant();
+                eb.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -620,11 +620,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopLeftToBottomRightColorHex {
             get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var d = EnsureTLBR();
-                d.Color = value?.Replace("#", "").ToLowerInvariant();
+                d.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -686,11 +686,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? TopRightToBottomLeftColorHex {
             get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value?.Replace("#", "").ToLowerInvariant();
+                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value?.Replace("#", "").ToUpperInvariant();
             }
             set {
                 var d = EnsureTRBL();
-                d.Color = value?.Replace("#", "").ToLowerInvariant();
+                d.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 

@@ -3,13 +3,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static readonly string?[] IcoToHex = {
             null,
             "000000",
-            "0000ff",
-            "00ffff",
-            "00ff00",
-            "ff00ff",
-            "ff0000",
-            "ffff00",
-            "ffffff",
+            "0000FF",
+            "00FFFF",
+            "00FF00",
+            "FF00FF",
+            "FF0000",
+            "FFFF00",
+            "FFFFFF",
             "000080",
             "008080",
             "008000",
@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             "800000",
             "808000",
             "808080",
-            "c0c0c0"
+            "C0C0C0"
         };
 
         internal static string? GetHexForIco(byte ico) {
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return true;
             }
 
-            string normalized = fillColorHex!.Replace("#", string.Empty).ToLowerInvariant();
+            string normalized = fillColorHex!.Replace("#", string.Empty).ToUpperInvariant();
             for (byte index = 1; index < IcoToHex.Length; index++) {
                 if (string.Equals(IcoToHex[index], normalized, StringComparison.Ordinal)) {
                     ico = index;

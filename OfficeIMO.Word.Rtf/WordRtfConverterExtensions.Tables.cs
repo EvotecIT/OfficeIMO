@@ -558,7 +558,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         RtfColor color = document.Colors[colorIndex - 1];
-        return $"{color.Red:X2}{color.Green:X2}{color.Blue:X2}".ToLowerInvariant();
+        return $"{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
     }
 
     private static bool TryParseHexColor(string value, out byte red, out byte green, out byte blue) {

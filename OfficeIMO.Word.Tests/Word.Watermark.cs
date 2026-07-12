@@ -385,13 +385,13 @@ namespace OfficeIMO.Tests {
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
                 var fill = wordDoc.MainDocumentPart!.HeaderParts.First().Header!.Descendants<V.Shape>().First().FillColor?.Value;
-                Assert.True(fill == "#ff0000");
+                Assert.True(fill == "#FF0000");
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var watermarks = document.Watermarks;
                 var watermark = Assert.Single(watermarks);
-                Assert.True(watermark.ColorHex == "ff0000");
+                Assert.True(watermark.ColorHex == "FF0000");
                 Assert.True(watermark.Color == Color.Red);
             }
         }
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var watermarks = document.Watermarks;
                 var watermark = Assert.Single(watermarks);
-                Assert.Equal("ff00ff", watermark.ColorHex);
+                Assert.Equal("FF00FF", watermark.ColorHex);
                 Assert.Equal(Color.Magenta, watermark.Color);
             }
         }
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
                 document.Sections[3].AddHeadersAndFooters();
                 var magentaHeader = GetHeader(document, 3, HeaderFooterValues.Default);
                 var magenta = magentaHeader.AddWatermark(WordWatermarkStyle.Text, "Magenta");
-                magenta.ColorHex = "ff00ff";
+                magenta.ColorHex = "FF00FF";
 
                 // Hex with '#'
                 document.AddSection();
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var redHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var redWatermark = Assert.Single(redHeader.Watermarks);
-                Assert.Equal("ff0000", redWatermark.ColorHex);
+                Assert.Equal("FF0000", redWatermark.ColorHex);
                 Assert.Equal(Color.Red, redWatermark.Color);
 
                 var greenHeader = GetHeader(document, 1, HeaderFooterValues.Default);
@@ -475,32 +475,32 @@ namespace OfficeIMO.Tests {
 
                 var blueHeader = GetHeader(document, 2, HeaderFooterValues.Default);
                 var blueWatermark = Assert.Single(blueHeader.Watermarks);
-                Assert.Equal("0000ff", blueWatermark.ColorHex);
+                Assert.Equal("0000FF", blueWatermark.ColorHex);
                 Assert.Equal(Color.Blue, blueWatermark.Color);
 
                 var magentaHeader = GetHeader(document, 3, HeaderFooterValues.Default);
                 var magentaWatermark = Assert.Single(magentaHeader.Watermarks);
-                Assert.Equal("ff00ff", magentaWatermark.ColorHex);
+                Assert.Equal("FF00FF", magentaWatermark.ColorHex);
                 Assert.Equal(Color.Magenta, magentaWatermark.Color);
 
                 var cyanHeader = GetHeader(document, 4, HeaderFooterValues.Default);
                 var cyanWatermark = Assert.Single(cyanHeader.Watermarks);
-                Assert.Equal("00ffff", cyanWatermark.ColorHex);
+                Assert.Equal("00FFFF", cyanWatermark.ColorHex);
                 Assert.Equal(Color.Cyan, cyanWatermark.Color);
 
                 var yellowHeader = GetHeader(document, 5, HeaderFooterValues.Default);
                 var yellowWatermark = Assert.Single(yellowHeader.Watermarks);
-                Assert.Equal("ffff00", yellowWatermark.ColorHex);
+                Assert.Equal("FFFF00", yellowWatermark.ColorHex);
                 Assert.Equal(Color.Yellow, yellowWatermark.Color);
             }
         }
 
         [Theory]
-        [InlineData("red", "ff0000")]
-        [InlineData("#00FF00", "00ff00")]
-        [InlineData("0000ff", "0000ff")]
-        [InlineData("#ABC", "aabbcc")]
-        [InlineData("abc", "aabbcc")]
+        [InlineData("red", "FF0000")]
+        [InlineData("#00FF00", "00FF00")]
+        [InlineData("0000ff", "0000FF")]
+        [InlineData("#ABC", "AABBCC")]
+        [InlineData("abc", "AABBCC")]
         public void Test_WatermarkColorRoundTripAndRendering(string input, string expectedHex) {
             string filePath = Path.Combine(_directoryWithFiles, $"Test_WatermarkColorRoundTripAndRendering_{expectedHex}.docx");
 

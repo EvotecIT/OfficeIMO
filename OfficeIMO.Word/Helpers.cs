@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Normalizes color input which may be a hex value or a named color.
         /// Hex values may be specified as three or six digits, with or without '#'.
-        /// Returns a lowercase six-digit hex string without '#'.
+        /// Returns an uppercase six-digit hex string without '#'.
         /// Throws <see cref="ArgumentException"/> if the value cannot be parsed
         /// as a valid color.
         /// </summary>
@@ -43,12 +43,12 @@ namespace OfficeIMO.Word {
 
             try {
                 var parsed = OfficeIMO.Drawing.OfficeColor.Parse(color!);
-                return parsed.ToRgbHex().ToLowerInvariant();
+                return parsed.ToRgbHex().ToUpperInvariant();
             } catch {
                 if (!color!.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsedHex = OfficeIMO.Drawing.OfficeColor.Parse("#" + color);
-                        return parsedHex.ToRgbHex().ToLowerInvariant();
+                        return parsedHex.ToRgbHex().ToUpperInvariant();
                     } catch {
                         // ignored so that ArgumentException below is thrown
                     }

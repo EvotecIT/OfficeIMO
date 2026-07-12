@@ -753,7 +753,7 @@ public partial class Word {
     }
 
     private static byte[] BuildDeviceRgbColorKeyMaskImagePdf() {
-        return BuildImagePdfWithColorSpace("/DeviceRGB", 2, 1, 8, "abcdef", " /Mask [97 97 98 98 99 99]");
+        return BuildImagePdfWithColorSpace("/DeviceRGB", 2, 1, 8, "ABCDEF", " /Mask [97 97 98 98 99 99]");
     }
 
     private static byte[] BuildDeviceRgbImagePdf(string imageStreamData, string imageDictionarySuffix) {

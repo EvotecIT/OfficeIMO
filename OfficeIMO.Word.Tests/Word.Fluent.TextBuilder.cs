@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(" World", runs[1].Text);
                 Assert.True(runs[1].Bold);
                 Assert.True(runs[1].Italic);
-                Assert.Equal("ff0000", runs[1].ColorHex);
+                Assert.Equal("FF0000", runs[1].ColorHex);
                 Assert.Equal("!", runs[2].Text);
                 Assert.True(runs[2].Bold);
             }

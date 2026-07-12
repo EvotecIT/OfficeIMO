@@ -939,16 +939,16 @@ namespace OfficeIMO.Tests {
             cell.Paragraphs[0].Text = "Bordered";
             cell.ShadingFillColor = OfficeColor.FromRgb(248, 250, 252);
             cell.Borders.TopStyle = BorderValues.Single;
-            cell.Borders.TopColorHex = "dc2626";
+            cell.Borders.TopColorHex = "DC2626";
             cell.Borders.TopSize = 16U;
             cell.Borders.RightStyle = BorderValues.Dashed;
-            cell.Borders.RightColorHex = "16a34a";
+            cell.Borders.RightColorHex = "16A34A";
             cell.Borders.RightSize = 24U;
             cell.Borders.BottomStyle = BorderValues.Dotted;
-            cell.Borders.BottomColorHex = "2563eb";
+            cell.Borders.BottomColorHex = "2563EB";
             cell.Borders.BottomSize = 8U;
             cell.Borders.LeftStyle = BorderValues.DotDash;
-            cell.Borders.LeftColorHex = "9333ea";
+            cell.Borders.LeftColorHex = "9333EA";
             cell.Borders.LeftSize = 32U;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -991,7 +991,7 @@ namespace OfficeIMO.Tests {
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Double";
             cell.Borders.TopStyle = BorderValues.Double;
-            cell.Borders.TopColorHex = "dc2626";
+            cell.Borders.TopColorHex = "DC2626";
             cell.Borders.TopSize = 16U;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -1028,10 +1028,10 @@ namespace OfficeIMO.Tests {
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Diagonal";
             cell.Borders.TopLeftToBottomRightStyle = BorderValues.DotDash;
-            cell.Borders.TopLeftToBottomRightColorHex = "dc2626";
+            cell.Borders.TopLeftToBottomRightColorHex = "DC2626";
             cell.Borders.TopLeftToBottomRightSize = 16U;
             cell.Borders.TopRightToBottomLeftStyle = BorderValues.Dotted;
-            cell.Borders.TopRightToBottomLeftColorHex = "2563eb";
+            cell.Borders.TopRightToBottomLeftColorHex = "2563EB";
             cell.Borders.TopRightToBottomLeftSize = 24U;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -1074,14 +1074,14 @@ namespace OfficeIMO.Tests {
             table.ColumnWidth = new List<int> { 4200 };
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Theme cell";
-            cell.ShadingFillColorHex = "ffffff";
+            cell.ShadingFillColorHex = "FFFFFF";
             cell._tableCellProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
             cell.Borders.TopStyle = BorderValues.Single;
-            cell.Borders.TopColorHex = "ffffff";
+            cell.Borders.TopColorHex = "FFFFFF";
             cell.Borders.TopSize = 16U;
             cell._tableCellProperties!.TableCellBorders!.TopBorder!.ThemeColor = ThemeColorValues.Accent2;
             cell.Borders.TopLeftToBottomRightStyle = BorderValues.Single;
-            cell.Borders.TopLeftToBottomRightColorHex = "ffffff";
+            cell.Borders.TopLeftToBottomRightColorHex = "FFFFFF";
             cell.Borders.TopLeftToBottomRightSize = 24U;
             cell._tableCellProperties.TableCellBorders.TopLeftToBottomRightCellBorder!.ThemeColor = ThemeColorValues.Accent3;
 
@@ -1159,8 +1159,8 @@ namespace OfficeIMO.Tests {
                     new StyleTableProperties(
                         new Shading { Val = ShadingPatternValues.Clear, Fill = "E0F2FE" },
                         new TableBorders(
-                            new TopBorder { Val = BorderValues.Single, Color = "ffffff", ThemeColor = ThemeColorValues.Accent1, Size = 16U },
-                            new LeftBorder { Val = BorderValues.Dashed, Color = "dc2626", Size = 24U }))) {
+                            new TopBorder { Val = BorderValues.Single, Color = "FFFFFF", ThemeColor = ThemeColorValues.Accent1, Size = 16U },
+                            new LeftBorder { Val = BorderValues.Dashed, Color = "DC2626", Size = 24U }))) {
                     Type = StyleValues.Table,
                     StyleId = baseStyleId,
                     CustomStyle = true
@@ -1858,11 +1858,11 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = document.AddParagraph("Framed paragraph");
             paragraph.ShadingFillColor = OfficeColor.FromRgb(226, 239, 218);
             paragraph.Borders.TopStyle = BorderValues.Single;
-            paragraph.Borders.TopColorHex = "ffffff";
+            paragraph.Borders.TopColorHex = "FFFFFF";
             paragraph.Borders.TopThemeColor = ThemeColorValues.Accent1;
             paragraph.Borders.TopSize = 16U;
             paragraph.Borders.LeftStyle = BorderValues.DotDash;
-            paragraph.Borders.LeftColorHex = "dc2626";
+            paragraph.Borders.LeftColorHex = "DC2626";
             paragraph.Borders.LeftSize = 24U;
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
@@ -1909,8 +1909,8 @@ namespace OfficeIMO.Tests {
                     new StyleParagraphProperties(
                         new Shading { Val = ShadingPatternValues.Clear, Fill = "E0F2FE" },
                         new ParagraphBorders(
-                            new TopBorder { Val = BorderValues.Single, Color = "ffffff", ThemeColor = ThemeColorValues.Accent1, Size = 16U },
-                            new LeftBorder { Val = BorderValues.Dashed, Color = "dc2626", Size = 24U }))) {
+                            new TopBorder { Val = BorderValues.Single, Color = "FFFFFF", ThemeColor = ThemeColorValues.Accent1, Size = 16U },
+                            new LeftBorder { Val = BorderValues.Dashed, Color = "DC2626", Size = 24U }))) {
                     Type = StyleValues.Paragraph,
                     StyleId = baseStyleId,
                     CustomStyle = true

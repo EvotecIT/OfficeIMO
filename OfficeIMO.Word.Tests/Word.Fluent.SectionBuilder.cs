@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal("ff00ff", document.Background.Color);
+                Assert.Equal("FF00FF", document.Background.Color);
             }
         }
 

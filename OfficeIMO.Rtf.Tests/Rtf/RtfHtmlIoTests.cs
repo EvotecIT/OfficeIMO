@@ -186,9 +186,9 @@ public class RtfHtmlIoTests {
         cts.Cancel();
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<p>Cancelled</p>"));
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             stream.ToRtfDocumentAsync(cancellationToken: cts.Token));
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             HtmlRtfConverterExtensions.ToRtfDocumentFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
     }
 }

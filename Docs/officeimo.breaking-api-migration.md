@@ -80,6 +80,8 @@ The generic `Helpers` file-copy and `IsFileLocked` methods were also removed. Us
 
 Color-to-hex formatting is owned by `OfficeIMO.Drawing`. Import that namespace and use its `ToHexColor()` extension (or `OfficeColor.ToRgbHex()`); the duplicate Word and Excel helper extensions were removed.
 
+Hexadecimal Office color values are normalized to uppercase `RRGGBB` without a leading `#`. Word no longer applies its former package-local lowercase convention, and legacy `.doc` palette conversion accepts the canonical representation.
+
 ## Theme naming
 
 Markdown uses one shared cross-format `MarkdownVisualTheme` through `Theme`:

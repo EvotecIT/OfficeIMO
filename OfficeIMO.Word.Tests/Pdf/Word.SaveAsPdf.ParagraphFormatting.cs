@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native shaded panel paragraph");
-                paragraph.ShadingFillColorHex = "e6f2ff";
+                paragraph.ShadingFillColorHex = "E6F2FF";
                 paragraph.Borders.TopStyle = BorderValues.Single;
                 paragraph.Borders.BottomStyle = BorderValues.Single;
                 paragraph.Borders.LeftStyle = BorderValues.Single;
@@ -392,9 +392,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph first = document.AddParagraph("Adjacent shaded heading");
-                first.ShadingFillColorHex = "f0e68c";
+                first.ShadingFillColorHex = "F0E68C";
                 WordParagraph second = document.AddParagraph("Adjacent shaded value");
-                second.ShadingFillColorHex = "f0e68c";
+                second.ShadingFillColorHex = "F0E68C";
                 document.AddParagraph("After shaded block");
 
                 document.Save();
@@ -530,10 +530,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native side bordered paragraph");
                 paragraph.Borders.LeftStyle = BorderValues.Single;
-                paragraph.Borders.LeftColorHex = "ff0000";
+                paragraph.Borders.LeftColorHex = "FF0000";
                 paragraph.Borders.LeftSize = 12;
                 paragraph.Borders.RightStyle = BorderValues.Single;
-                paragraph.Borders.RightColorHex = "0000ff";
+                paragraph.Borders.RightColorHex = "0000FF";
                 paragraph.Borders.RightSize = 20;
 
                 document.Save();

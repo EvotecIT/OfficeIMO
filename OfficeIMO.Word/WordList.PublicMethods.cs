@@ -260,7 +260,7 @@ namespace OfficeIMO.Word {
             }
             if (!string.IsNullOrEmpty(colorHex)) {
                 if (colorHex is { Length: > 0 } hex) {
-                    symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = hex.Replace("#", "").ToLowerInvariant() });
+                    symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = hex.Replace("#", "").ToUpperInvariant() });
                 }
             }
             if (fontSize.HasValue) {

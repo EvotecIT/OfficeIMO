@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             Assert.True(table.RepeatHeaderRowAtTheTopOfEachPage);
-            Assert.Equal("ff0000", table.Rows[0].Cells[0].ShadingFillColorHex);
+            Assert.Equal("FF0000", table.Rows[0].Cells[0].ShadingFillColorHex);
             Assert.Equal(new List<int> { 1000, 4000 }, table.ColumnWidth);
             Assert.Equal(TableWidthUnitValues.Pct, table.ColumnWidthType);
             Assert.Equal("F1", table.Rows[table.Rows.Count - 1].Cells[0].Paragraphs[0]._paragraph.InnerText);

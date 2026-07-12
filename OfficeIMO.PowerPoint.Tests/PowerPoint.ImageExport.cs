@@ -2098,8 +2098,8 @@ namespace OfficeIMO.Tests {
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle)
                 .ToList();
             Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(51, 102, 153));
-            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(133, 163, 194));
-            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(92, 133, 173));
+            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(173, 194, 214));
+            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(214, 224, 235));
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == OfficeColor.FromRgb(248, 250, 252) &&
@@ -2107,8 +2107,8 @@ namespace OfficeIMO.Tests {
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("#336699", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("#85A3C2", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("#5C85AD", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#ADC2D6", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#D6E0EB", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#F8FAFC", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(51, 102, 153), image!.GetPixel(30, 30));

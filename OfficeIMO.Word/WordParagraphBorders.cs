@@ -72,12 +72,12 @@ namespace OfficeIMO.Word {
         public string? LeftColorHex {
             get {
                 var color = GetParagraphBorders()?.LeftBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
+                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
             }
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                leftBorder.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the left border color.
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? LeftColor {
-            get => LeftColorHex == null || LeftColorHex == "auto" ? null : Helpers.ParseColor(LeftColorHex);
+            get => LeftColorHex == null || string.Equals(LeftColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(LeftColorHex);
             set => LeftColorHex = value?.ToRgbHex();
         }
 
@@ -171,12 +171,12 @@ namespace OfficeIMO.Word {
         public string? RightColorHex {
             get {
                 var color = GetParagraphBorders()?.RightBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
+                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
             }
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                rightBorder.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -184,7 +184,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the right border color.
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? RightColor {
-            get => RightColorHex == null || RightColorHex == "auto" ? null : Helpers.ParseColor(RightColorHex);
+            get => RightColorHex == null || string.Equals(RightColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(RightColorHex);
             set => RightColorHex = value?.ToRgbHex();
         }
 
@@ -270,12 +270,12 @@ namespace OfficeIMO.Word {
         public string? TopColorHex {
             get {
                 var color = GetParagraphBorders()?.TopBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
+                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
             }
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                topBorder.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -283,7 +283,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the top border color.
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? TopColor {
-            get => TopColorHex == null || TopColorHex == "auto" ? null : Helpers.ParseColor(TopColorHex);
+            get => TopColorHex == null || string.Equals(TopColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(TopColorHex);
             set => TopColorHex = value?.ToRgbHex();
         }
 
@@ -370,12 +370,12 @@ namespace OfficeIMO.Word {
         public string? BottomColorHex {
             get {
                 var color = GetParagraphBorders()?.BottomBorder?.Color?.Value;
-                return color != null ? color.Replace("#", "").ToLowerInvariant() : null;
+                return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
             }
             set {
                 var pageBorder = GetOrCreateParagraphBorders();
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Color = value?.Replace("#", "").ToLowerInvariant();
+                bottomBorder.Color = value?.Replace("#", "").ToUpperInvariant();
             }
         }
 
@@ -383,7 +383,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the bottom border color.
         /// </summary>
         public OfficeIMO.Drawing.OfficeColor? BottomColor {
-            get => BottomColorHex == null || BottomColorHex == "auto" ? null : Helpers.ParseColor(BottomColorHex);
+            get => BottomColorHex == null || string.Equals(BottomColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(BottomColorHex);
             set => BottomColorHex = value?.ToRgbHex();
         }
 

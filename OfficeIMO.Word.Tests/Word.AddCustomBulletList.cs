@@ -27,12 +27,12 @@ namespace OfficeIMO.Tests {
 
                 var level1Props = list.Numbering.Levels[0]._level.NumberingSymbolRunProperties!;
                 Assert.Equal("Courier New", level1Props.GetFirstChild<RunFonts>()?.Ascii);
-                Assert.Equal("ff0000", level1Props.GetFirstChild<Color>()?.Val);
+                Assert.Equal("FF0000", level1Props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("28", level1Props.GetFirstChild<FontSize>()?.Val);
 
                 var level5Props = list.Numbering.Levels[4]._level.NumberingSymbolRunProperties!;
                 Assert.Equal("Arial", level5Props.GetFirstChild<RunFonts>()?.Ascii);
-                Assert.Equal("00ff00", level5Props.GetFirstChild<Color>()?.Val);
+                Assert.Equal("00FF00", level5Props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("20", level5Props.GetFirstChild<FontSize>()?.Val);
             }
         }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
 
                 var props = list.Numbering.Levels[0]._level.NumberingSymbolRunProperties!;
                 Assert.Equal("Wingdings", props.GetFirstChild<RunFonts>()?.Ascii);
-                Assert.Equal("0000ff", props.GetFirstChild<Color>()?.Val);
+                Assert.Equal("0000FF", props.GetFirstChild<Color>()?.Val);
                 Assert.Equal("24", props.GetFirstChild<FontSize>()?.Val);
             }
         }

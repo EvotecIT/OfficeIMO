@@ -62,7 +62,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Underline = underline;
             Highlight = highlight;
             FontSizeHalfPoints = fontSizeHalfPoints;
-            ColorHex = colorHex;
+            ColorHex = string.IsNullOrWhiteSpace(colorHex)
+                ? null
+                : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
             Language = language;

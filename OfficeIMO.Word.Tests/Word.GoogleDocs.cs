@@ -558,7 +558,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 var paragraphRequest = Assert.IsType<GoogleDocsInsertParagraphRequest>(batch.Requests[0]);
-                Assert.Equal("d9eaf7", paragraphRequest.Paragraph.ShadingFillColorHex);
+                Assert.Equal("D9EAF7", paragraphRequest.Paragraph.ShadingFillColorHex);
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var paragraphStyle = Assert.Single(payload.Requests, request => request.UpdateParagraphStyle?.ParagraphStyle.Shading?.BackgroundColor != null);
@@ -3842,13 +3842,13 @@ namespace OfficeIMO.Tests {
             firstCellParagraph.AddHyperLink(" Link", new Uri("https://example.com"));
             table.Rows[0].Cells[0].ShadingFillColorHex = "FFCC00";
             table.Rows[0].Cells[0].Borders.LeftStyle = BorderValues.Single;
-            table.Rows[0].Cells[0].Borders.LeftColorHex = "ff0000";
+            table.Rows[0].Cells[0].Borders.LeftColorHex = "FF0000";
             table.Rows[0].Cells[0].Borders.LeftSize = (UInt32Value)8U;
             table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Dashed;
-            table.Rows[0].Cells[0].Borders.TopColorHex = "0000ff";
+            table.Rows[0].Cells[0].Borders.TopColorHex = "0000FF";
             table.Rows[0].Cells[0].Borders.TopSize = (UInt32Value)12U;
             table.Rows[0].Cells[0].Borders.BottomStyle = BorderValues.Dotted;
-            table.Rows[0].Cells[0].Borders.BottomColorHex = "00aa00";
+            table.Rows[0].Cells[0].Borders.BottomColorHex = "00AA00";
             table.Rows[0].Cells[0].Borders.BottomSize = (UInt32Value)16U;
 
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Value";

@@ -312,8 +312,8 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
-            Assert.Equal("ff0000", row.Cells[0].ShadingFillColorHex);
-            Assert.Equal("ffff00", row.Cells[1].ShadingFillColorHex);
+            Assert.Equal("FF0000", row.Cells[0].ShadingFillColorHex);
+            Assert.Equal("FFFF00", row.Cells[1].ShadingFillColorHex);
         }
 
         [Fact]
@@ -327,11 +327,11 @@ namespace OfficeIMO.Tests {
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
             Assert.Equal(BorderValues.Single, row.Cells[0].Borders.TopStyle);
-            Assert.Equal("ff0000", row.Cells[0].Borders.TopColorHex);
+            Assert.Equal("FF0000", row.Cells[0].Borders.TopColorHex);
             Assert.Equal(4U, row.Cells[0].Borders.TopSize?.Value);
             Assert.Equal(2U, row.Cells[0].Borders.TopSpace?.Value);
             Assert.Equal(BorderValues.Double, row.Cells[1].Borders.RightStyle);
-            Assert.Equal("0000ff", row.Cells[1].Borders.RightColorHex);
+            Assert.Equal("0000FF", row.Cells[1].Borders.RightColorHex);
             Assert.Equal(8U, row.Cells[1].Borders.RightSize?.Value);
         }
 
@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
             FontSizeComplexScript complexScriptSize = Assert.IsType<FontSizeComplexScript>(runs[2]._runProperties?.FontSizeComplexScript);
             Assert.Equal("28", complexScriptSize.Val!.Value);
             Assert.Equal("red ", runs[3].Text);
-            Assert.Equal("ff0000", runs[3].ColorHex);
+            Assert.Equal("FF0000", runs[3].ColorHex);
             Assert.Equal("strike ", runs[4].Text);
             Assert.True(runs[4].Strike);
             Assert.Equal("double ", runs[5].Text);
@@ -800,7 +800,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("plain", paragraphs[0].Text);
             Assert.Equal(string.Empty, paragraphs[0].ShadingFillColorHex);
             Assert.Equal("shaded", paragraphs[1].Text);
-            Assert.Equal("ff0000", paragraphs[1].ShadingFillColorHex);
+            Assert.Equal("FF0000", paragraphs[1].ShadingFillColorHex);
         }
 
         [Fact]
@@ -816,17 +816,17 @@ namespace OfficeIMO.Tests {
             Assert.Null(paragraphs[0].Borders.TopStyle);
             Assert.Equal("bordered", paragraphs[1].Text);
             Assert.Equal(BorderValues.Single, paragraphs[1].Borders.TopStyle);
-            Assert.Equal("ff0000", paragraphs[1].Borders.TopColorHex);
+            Assert.Equal("FF0000", paragraphs[1].Borders.TopColorHex);
             Assert.Equal(4U, paragraphs[1].Borders.TopSize?.Value);
             Assert.Equal(2U, paragraphs[1].Borders.TopSpace?.Value);
             Assert.Equal(BorderValues.Double, paragraphs[1].Borders.LeftStyle);
-            Assert.Equal("0000ff", paragraphs[1].Borders.LeftColorHex);
+            Assert.Equal("0000FF", paragraphs[1].Borders.LeftColorHex);
             Assert.Equal(8U, paragraphs[1].Borders.LeftSize?.Value);
             Assert.Equal(BorderValues.Dotted, paragraphs[1].Borders.BottomStyle);
             Assert.Equal("000000", paragraphs[1].Borders.BottomColorHex);
             Assert.Equal(5U, paragraphs[1].Borders.BottomSize?.Value);
             Assert.Equal(BorderValues.Dashed, paragraphs[1].Borders.RightStyle);
-            Assert.Equal("00ff00", paragraphs[1].Borders.RightColorHex);
+            Assert.Equal("00FF00", paragraphs[1].Borders.RightColorHex);
             Assert.Equal(6U, paragraphs[1].Borders.RightSize?.Value);
         }
 
@@ -1136,14 +1136,14 @@ namespace OfficeIMO.Tests {
             Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
             Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
             Assert.Equal("auto", shading.Color!.Value);
-            Assert.Equal("ff0000", shading.Fill!.Value);
+            Assert.Equal("FF0000", shading.Fill!.Value);
             ParagraphBorders paragraphBorders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
             Assert.Equal(BorderValues.Single, paragraphBorders.TopBorder!.Val!.Value);
-            Assert.Equal("ff0000", paragraphBorders.TopBorder.Color!.Value);
+            Assert.Equal("FF0000", paragraphBorders.TopBorder.Color!.Value);
             Assert.Equal(4U, paragraphBorders.TopBorder.Size!.Value);
             Assert.Equal(2U, paragraphBorders.TopBorder.Space!.Value);
             Assert.Equal(BorderValues.Double, paragraphBorders.LeftBorder!.Val!.Value);
-            Assert.Equal("0000ff", paragraphBorders.LeftBorder.Color!.Value);
+            Assert.Equal("0000FF", paragraphBorders.LeftBorder.Color!.Value);
             Assert.Equal(8U, paragraphBorders.LeftBorder.Size!.Value);
         }
 
@@ -1244,10 +1244,10 @@ namespace OfficeIMO.Tests {
             Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
             Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
             Assert.Equal("auto", shading.Color!.Value);
-            Assert.Equal("ff0000", shading.Fill!.Value);
+            Assert.Equal("FF0000", shading.Fill!.Value);
             ParagraphBorders paragraphBorders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
             Assert.Equal(BorderValues.Single, paragraphBorders.TopBorder!.Val!.Value);
-            Assert.Equal("ff0000", paragraphBorders.TopBorder.Color!.Value);
+            Assert.Equal("FF0000", paragraphBorders.TopBorder.Color!.Value);
             Assert.Equal(4U, paragraphBorders.TopBorder.Size!.Value);
             Assert.Equal(2U, paragraphBorders.TopBorder.Space!.Value);
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
@@ -6713,7 +6713,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("plain");
                     WordParagraph shaded = document.AddParagraph("shaded");
-                    shaded.ShadingFillColorHex = "ff0000";
+                    shaded.ShadingFillColorHex = "FF0000";
 
                     document.Save(docPath);
                 }
@@ -6731,7 +6731,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("plain", paragraphs[0].Text);
                 Assert.Equal(string.Empty, paragraphs[0].ShadingFillColorHex);
                 Assert.Equal("shaded", paragraphs[1].Text);
-                Assert.Equal("ff0000", paragraphs[1].ShadingFillColorHex);
+                Assert.Equal("FF0000", paragraphs[1].ShadingFillColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -6764,17 +6764,17 @@ namespace OfficeIMO.Tests {
                     document.AddParagraph("plain");
                     WordParagraph bordered = document.AddParagraph("bordered");
                     bordered.Borders.TopStyle = BorderValues.Single;
-                    bordered.Borders.TopColorHex = "ff0000";
+                    bordered.Borders.TopColorHex = "FF0000";
                     bordered.Borders.TopSize = 4U;
                     bordered.Borders.TopSpace = 2U;
                     bordered.Borders.LeftStyle = BorderValues.Double;
-                    bordered.Borders.LeftColorHex = "0000ff";
+                    bordered.Borders.LeftColorHex = "0000FF";
                     bordered.Borders.LeftSize = 8U;
                     bordered.Borders.BottomStyle = BorderValues.Dotted;
                     bordered.Borders.BottomColorHex = "000000";
                     bordered.Borders.BottomSize = 5U;
                     bordered.Borders.RightStyle = BorderValues.Dashed;
-                    bordered.Borders.RightColorHex = "00ff00";
+                    bordered.Borders.RightColorHex = "00FF00";
                     bordered.Borders.RightSize = 6U;
 
                     document.Save(docPath);
@@ -6797,17 +6797,17 @@ namespace OfficeIMO.Tests {
                 Assert.Null(paragraphs[0].Borders.TopStyle);
                 Assert.Equal("bordered", paragraphs[1].Text);
                 Assert.Equal(BorderValues.Single, paragraphs[1].Borders.TopStyle);
-                Assert.Equal("ff0000", paragraphs[1].Borders.TopColorHex);
+                Assert.Equal("FF0000", paragraphs[1].Borders.TopColorHex);
                 Assert.Equal(4U, paragraphs[1].Borders.TopSize?.Value);
                 Assert.Equal(2U, paragraphs[1].Borders.TopSpace?.Value);
                 Assert.Equal(BorderValues.Double, paragraphs[1].Borders.LeftStyle);
-                Assert.Equal("0000ff", paragraphs[1].Borders.LeftColorHex);
+                Assert.Equal("0000FF", paragraphs[1].Borders.LeftColorHex);
                 Assert.Equal(8U, paragraphs[1].Borders.LeftSize?.Value);
                 Assert.Equal(BorderValues.Dotted, paragraphs[1].Borders.BottomStyle);
                 Assert.Equal("000000", paragraphs[1].Borders.BottomColorHex);
                 Assert.Equal(5U, paragraphs[1].Borders.BottomSize?.Value);
                 Assert.Equal(BorderValues.Dashed, paragraphs[1].Borders.RightStyle);
-                Assert.Equal("00ff00", paragraphs[1].Borders.RightColorHex);
+                Assert.Equal("00FF00", paragraphs[1].Borders.RightColorHex);
                 Assert.Equal(6U, paragraphs[1].Borders.RightSize?.Value);
             } finally {
                 DeleteIfExists(docPath);
@@ -6885,13 +6885,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("240", spacing.After!.Value);
                 ParagraphBorders paragraphBorders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
                 Assert.Equal(BorderValues.Single, paragraphBorders.TopBorder!.Val!.Value);
-                Assert.Equal("ff0000", paragraphBorders.TopBorder.Color!.Value);
+                Assert.Equal("FF0000", paragraphBorders.TopBorder.Color!.Value);
                 Assert.Equal(4U, paragraphBorders.TopBorder.Size!.Value);
                 Assert.Equal(2U, paragraphBorders.TopBorder.Space!.Value);
 
                 StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
                 Assert.NotNull(runProperties.GetFirstChild<Bold>());
-                Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()!.Val!.Value);
+                Assert.Equal("FF0000", runProperties.GetFirstChild<Color>()!.Val!.Value);
                 Assert.Equal("28", runProperties.GetFirstChild<FontSize>()!.Val!.Value);
                 RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
                 Assert.Equal("Courier New", runFonts.Ascii!.Value);
@@ -7834,11 +7834,11 @@ namespace OfficeIMO.Tests {
                     baseStyle.Append(new BasedOn { Val = "TableNormal" });
                     baseStyle.Append(new StyleTableProperties(
                         new TableBorders(
-                            new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U, Space = 0U },
-                            new LeftBorder { Val = BorderValues.Single, Color = "0000ff", Size = 4U, Space = 0U },
-                            new BottomBorder { Val = BorderValues.Single, Color = "00ff00", Size = 4U, Space = 0U },
+                            new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U, Space = 0U },
+                            new LeftBorder { Val = BorderValues.Single, Color = "0000FF", Size = 4U, Space = 0U },
+                            new BottomBorder { Val = BorderValues.Single, Color = "00FF00", Size = 4U, Space = 0U },
                             new RightBorder { Val = BorderValues.Single, Color = "000000", Size = 4U, Space = 0U },
-                            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "c0c0c0", Size = 4U, Space = 0U },
+                            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "C0C0C0", Size = 4U, Space = 0U },
                             new InsideVerticalBorder { Val = BorderValues.Single, Color = "808080", Size = 4U, Space = 0U })));
 
                     var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
@@ -7866,18 +7866,18 @@ namespace OfficeIMO.Tests {
                 WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstCell.Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.TopStyle);
-                Assert.Equal("ff0000", firstCell.Borders.TopColorHex);
+                Assert.Equal("FF0000", firstCell.Borders.TopColorHex);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.LeftStyle);
-                Assert.Equal("0000ff", firstCell.Borders.LeftColorHex);
+                Assert.Equal("0000FF", firstCell.Borders.LeftColorHex);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.BottomStyle);
-                Assert.Equal("c0c0c0", firstCell.Borders.BottomColorHex);
+                Assert.Equal("C0C0C0", firstCell.Borders.BottomColorHex);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.RightStyle);
                 Assert.Equal("808080", firstCell.Borders.RightColorHex);
 
                 WordTableCell lastCell = reloadedTable.Rows[1].Cells[1];
                 Assert.Equal("B2", lastCell.Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, lastCell.Borders.BottomStyle);
-                Assert.Equal("00ff00", lastCell.Borders.BottomColorHex);
+                Assert.Equal("00FF00", lastCell.Borders.BottomColorHex);
                 Assert.Equal(BorderValues.Single, lastCell.Borders.RightStyle);
                 Assert.Equal("000000", lastCell.Borders.RightColorHex);
             } finally {
@@ -7897,11 +7897,11 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     style.Append(new StyleTableProperties(
                         new TableBorders(
-                            new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U, Space = 0U },
-                            new LeftBorder { Val = BorderValues.Single, Color = "0000ff", Size = 4U, Space = 0U },
-                            new BottomBorder { Val = BorderValues.Single, Color = "00ff00", Size = 4U, Space = 0U },
+                            new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U, Space = 0U },
+                            new LeftBorder { Val = BorderValues.Single, Color = "0000FF", Size = 4U, Space = 0U },
+                            new BottomBorder { Val = BorderValues.Single, Color = "00FF00", Size = 4U, Space = 0U },
                             new RightBorder { Val = BorderValues.Single, Color = "000000", Size = 4U, Space = 0U },
-                            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "c0c0c0", Size = 4U, Space = 0U },
+                            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "C0C0C0", Size = 4U, Space = 0U },
                             new InsideVerticalBorder { Val = BorderValues.Single, Color = "808080", Size = 4U, Space = 0U })));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
@@ -7922,18 +7922,18 @@ namespace OfficeIMO.Tests {
                 WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstCell.Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.TopStyle);
-                Assert.Equal("ff0000", firstCell.Borders.TopColorHex);
+                Assert.Equal("FF0000", firstCell.Borders.TopColorHex);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.LeftStyle);
-                Assert.Equal("0000ff", firstCell.Borders.LeftColorHex);
+                Assert.Equal("0000FF", firstCell.Borders.LeftColorHex);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.BottomStyle);
-                Assert.Equal("c0c0c0", firstCell.Borders.BottomColorHex);
+                Assert.Equal("C0C0C0", firstCell.Borders.BottomColorHex);
                 Assert.Equal(BorderValues.Single, firstCell.Borders.RightStyle);
                 Assert.Equal("808080", firstCell.Borders.RightColorHex);
 
                 WordTableCell lastCell = reloadedTable.Rows[1].Cells[1];
                 Assert.Equal("B2", lastCell.Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, lastCell.Borders.BottomStyle);
-                Assert.Equal("00ff00", lastCell.Borders.BottomColorHex);
+                Assert.Equal("00FF00", lastCell.Borders.BottomColorHex);
                 Assert.Equal(BorderValues.Single, lastCell.Borders.RightStyle);
                 Assert.Equal("000000", lastCell.Borders.RightColorHex);
             } finally {
@@ -7952,12 +7952,12 @@ namespace OfficeIMO.Tests {
                     style.Append(new StyleName { Val = "Native DOC Palette Shading Table" });
                     style.Append(new BasedOn { Val = "TableNormal" });
                     style.Append(new StyleTableProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ffff00" }));
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
                     WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
                     table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-                    table.Rows[0].Cells[0].ShadingFillColorHex = "ff0000";
+                    table.Rows[0].Cells[0].ShadingFillColorHex = "FF0000";
                     table.Rows[0].Cells[0].AddParagraph("direct", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("styled", removeExistingParagraphs: true);
 
@@ -7969,9 +7969,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("direct", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal("styled", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
-                Assert.Equal("ffff00", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("FFFF00", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8916,7 +8916,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
                     table.Rows[0].Cells[0].AddParagraph("Red", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[0].ShadingFillColorHex = "ff0000";
+                    table.Rows[0].Cells[0].ShadingFillColorHex = "FF0000";
                     table.Rows[0].Cells[1].AddParagraph("Plain", removeExistingParagraphs: true);
 
                     document.Save(docPath);
@@ -8933,7 +8933,7 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Red", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ff0000", row.Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", row.Cells[0].ShadingFillColorHex);
                 Assert.Equal("Plain", row.Cells[1].Paragraphs[0].Text);
                 Assert.Equal(string.Empty, row.Cells[1].ShadingFillColorHex);
             } finally {
@@ -8950,12 +8950,12 @@ namespace OfficeIMO.Tests {
                     WordTable table = document.AddTable(1, 2);
                     table.Rows[0].Cells[0].AddParagraph("Border", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Single;
-                    table.Rows[0].Cells[0].Borders.TopColorHex = "ff0000";
+                    table.Rows[0].Cells[0].Borders.TopColorHex = "FF0000";
                     table.Rows[0].Cells[0].Borders.TopSize = 4U;
                     table.Rows[0].Cells[0].Borders.TopSpace = 2U;
                     table.Rows[0].Cells[1].AddParagraph("Cell", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].Borders.RightStyle = BorderValues.Double;
-                    table.Rows[0].Cells[1].Borders.RightColorHex = "0000ff";
+                    table.Rows[0].Cells[1].Borders.RightColorHex = "0000FF";
                     table.Rows[0].Cells[1].Borders.RightSize = 8U;
 
                     document.Save(docPath);
@@ -8976,12 +8976,12 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Border", row.Cells[0].Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, row.Cells[0].Borders.TopStyle);
-                Assert.Equal("ff0000", row.Cells[0].Borders.TopColorHex);
+                Assert.Equal("FF0000", row.Cells[0].Borders.TopColorHex);
                 Assert.Equal(4U, row.Cells[0].Borders.TopSize?.Value);
                 Assert.Equal(2U, row.Cells[0].Borders.TopSpace?.Value);
                 Assert.Equal("Cell", row.Cells[1].Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Double, row.Cells[1].Borders.RightStyle);
-                Assert.Equal("0000ff", row.Cells[1].Borders.RightColorHex);
+                Assert.Equal("0000FF", row.Cells[1].Borders.RightColorHex);
                 Assert.Equal(8U, row.Cells[1].Borders.RightSize?.Value);
             } finally {
                 DeleteIfExists(docPath);
@@ -9000,10 +9000,10 @@ namespace OfficeIMO.Tests {
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
                     table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
                     table.StyleDetails!.TableBorders = new TableBorders(
-                        new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U, Space = 1U },
+                        new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U, Space = 1U },
                         new BottomBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
-                        new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00ff00", Size = 6U },
-                        new InsideVerticalBorder { Val = BorderValues.Double, Color = "0000ff", Size = 8U });
+                        new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00FF00", Size = 6U },
+                        new InsideVerticalBorder { Val = BorderValues.Double, Color = "0000FF", Size = 8U });
 
                     document.Save(docPath);
                 }
@@ -9028,14 +9028,14 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
                 Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.TopSize?.Value);
                 Assert.Equal(1U, reloadedTable.Rows[0].Cells[0].Borders.TopSpace?.Value);
                 Assert.Equal(BorderValues.Double, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
-                Assert.Equal("0000ff", reloadedTable.Rows[0].Cells[0].Borders.RightColorHex);
+                Assert.Equal("0000FF", reloadedTable.Rows[0].Cells[0].Borders.RightColorHex);
                 Assert.Equal(8U, reloadedTable.Rows[0].Cells[0].Borders.RightSize?.Value);
                 Assert.Equal(BorderValues.Dashed, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
-                Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
+                Assert.Equal("00FF00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
                 Assert.Equal(6U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize?.Value);
                 Assert.Equal(BorderValues.Dotted, reloadedTable.Rows[1].Cells[0].Borders.BottomStyle);
                 Assert.Equal("000000", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
@@ -9055,8 +9055,8 @@ namespace OfficeIMO.Tests {
                     table.Rows[0].Cells[0].AddParagraph("NoTop", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Inherited", removeExistingParagraphs: true);
                     table.StyleDetails!.TableBorders = new TableBorders(
-                        new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U },
-                        new BottomBorder { Val = BorderValues.Single, Color = "0000ff", Size = 4U });
+                        new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U },
+                        new BottomBorder { Val = BorderValues.Single, Color = "0000FF", Size = 4U });
                     table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Nil;
 
                     document.Save(docPath);
@@ -9070,7 +9070,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
                 Assert.Equal("Inherited", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].Borders.TopColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].Borders.TopColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9110,11 +9110,11 @@ namespace OfficeIMO.Tests {
                         new TableStyleColumnBandSize { Val = 1 }));
 
                     TableStyleConditionalFormattingTableCellProperties firstRowCellProperties = new TableStyleConditionalFormattingTableCellProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" },
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" },
                         new TableCellBorders(
                             new BottomBorder {
                                 Val = BorderValues.Double,
-                                Color = "0000ff",
+                                Color = "0000FF",
                                 Size = 8U,
                                 Space = 1U
                             }));
@@ -9137,13 +9137,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal(BorderValues.Double, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
-                Assert.Equal("0000ff", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
+                Assert.Equal("0000FF", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
                 Assert.Equal(8U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize?.Value);
                 Assert.Equal(1U, reloadedTable.Rows[0].Cells[0].Borders.BottomSpace?.Value);
                 Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
                 Assert.Equal(BorderValues.Double, reloadedTable.Rows[0].Cells[1].Borders.BottomStyle);
                 Assert.Equal("A2", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
                 Assert.Equal(string.Empty, reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
@@ -9165,12 +9165,12 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
 
                     var firstColumnTableProperties = new TableStyleConditionalFormattingTableProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ffff00" },
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FFFF00" },
                         new TableBorders(
-                            new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U },
-                            new BottomBorder { Val = BorderValues.Double, Color = "0000ff", Size = 8U },
+                            new TopBorder { Val = BorderValues.Single, Color = "FF0000", Size = 4U },
+                            new BottomBorder { Val = BorderValues.Double, Color = "0000FF", Size = 8U },
                             new RightBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
-                            new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00ff00", Size = 6U }));
+                            new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00FF00", Size = 6U }));
                     style.Append(new TableStyleProperties(firstColumnTableProperties) { Type = TableStyleOverrideValues.FirstColumn });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
@@ -9190,17 +9190,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ffff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FFFF00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
                 Assert.Equal(BorderValues.Dashed, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
-                Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
+                Assert.Equal("00FF00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
                 Assert.Equal(BorderValues.Dotted, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
                 Assert.Equal("000000", reloadedTable.Rows[0].Cells[0].Borders.RightColorHex);
                 Assert.Equal("A2", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ffff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FFFF00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
                 Assert.Equal(BorderValues.Double, reloadedTable.Rows[1].Cells[0].Borders.BottomStyle);
-                Assert.Equal("0000ff", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
+                Assert.Equal("0000FF", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
                 Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal(string.Empty, reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
                 Assert.Null(reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
@@ -9292,7 +9292,7 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     var firstRowRunProperties = new StyleRunProperties(
                         new Bold(),
-                        new Color { Val = "ff0000" },
+                        new Color { Val = "FF0000" },
                         new FontSize { Val = "28" });
                     style.Append(new TableStyleProperties(firstRowRunProperties) { Type = TableStyleOverrideValues.FirstRow });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9305,7 +9305,7 @@ namespace OfficeIMO.Tests {
                     directOverride._run!.RunProperties ??= new RunProperties();
                     directOverride._run.RunProperties.Bold = new Bold { Val = false };
                     directOverride._run.RunProperties.Italic = new Italic();
-                    directOverride._run.RunProperties.Color = new Color { Val = "0000ff" };
+                    directOverride._run.RunProperties.Color = new Color { Val = "0000FF" };
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
                     table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
 
@@ -9320,14 +9320,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1", firstStyled.Text);
                 Assert.True(firstStyled.Bold);
                 Assert.False(firstStyled.Italic);
-                Assert.Equal("ff0000", firstStyled.ColorHex);
+                Assert.Equal("FF0000", firstStyled.ColorHex);
                 Assert.Equal(14, firstStyled.FontSize);
 
                 WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
                 Assert.Equal("B1", directStyled.Text);
                 Assert.False(directStyled.Bold);
                 Assert.True(directStyled.Italic);
-                Assert.Equal("0000ff", directStyled.ColorHex);
+                Assert.Equal("0000FF", directStyled.ColorHex);
                 Assert.Equal(14, directStyled.FontSize);
 
                 WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
@@ -9353,7 +9353,7 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     var firstRowRunProperties = new RunPropertiesBaseStyle(
                         new Bold(),
-                        new Color { Val = "ff0000" },
+                        new Color { Val = "FF0000" },
                         new FontSize { Val = "28" });
                     style.Append(new TableStyleProperties(firstRowRunProperties) { Type = TableStyleOverrideValues.FirstRow });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9366,7 +9366,7 @@ namespace OfficeIMO.Tests {
                     directOverride._run!.RunProperties ??= new RunProperties();
                     directOverride._run.RunProperties.Bold = new Bold { Val = false };
                     directOverride._run.RunProperties.Italic = new Italic();
-                    directOverride._run.RunProperties.Color = new Color { Val = "0000ff" };
+                    directOverride._run.RunProperties.Color = new Color { Val = "0000FF" };
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
                     table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
 
@@ -9381,14 +9381,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1", firstStyled.Text);
                 Assert.True(firstStyled.Bold);
                 Assert.False(firstStyled.Italic);
-                Assert.Equal("ff0000", firstStyled.ColorHex);
+                Assert.Equal("FF0000", firstStyled.ColorHex);
                 Assert.Equal(14, firstStyled.FontSize);
 
                 WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
                 Assert.Equal("B1", directStyled.Text);
                 Assert.False(directStyled.Bold);
                 Assert.True(directStyled.Italic);
-                Assert.Equal("0000ff", directStyled.ColorHex);
+                Assert.Equal("0000FF", directStyled.ColorHex);
                 Assert.Equal(14, directStyled.FontSize);
 
                 WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
@@ -9473,12 +9473,12 @@ namespace OfficeIMO.Tests {
                         new TableStyleColumnBandSize { Val = 1 }));
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {
                         Type = TableStyleOverrideValues.Band1Horizontal
                     });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00ff00" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00FF00" })) {
                         Type = TableStyleOverrideValues.Band2Horizontal
                     });
                     style.Append(new TableStyleProperties(
@@ -9517,9 +9517,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("R1C1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
-                Assert.Equal("00ff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
-                Assert.Equal("ff0000", reloadedTable.Rows[2].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("00FF00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[2].Cells[0].ShadingFillColorHex);
 
                 Assert.Equal(TableVerticalAlignmentValues.Bottom, reloadedTable.Rows[0].Cells[0].VerticalAlignment);
                 Assert.False(reloadedTable.Rows[0].Cells[1].WrapText);
@@ -9543,7 +9543,7 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {
                         Type = TableStyleOverrideValues.FirstRow
                     });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9564,8 +9564,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
                 Assert.Equal("A2", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
                 Assert.True(string.IsNullOrEmpty(reloadedTable.Rows[1].Cells[0].ShadingFillColorHex));
                 Assert.True(string.IsNullOrEmpty(reloadedTable.Rows[1].Cells[1].ShadingFillColorHex));
@@ -9586,17 +9586,17 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "0000ff" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "0000FF" })) {
                         Type = TableStyleOverrideValues.NorthWestCell
                     });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {
                         Type = TableStyleOverrideValues.FirstRow
                     });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00ff00" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00FF00" })) {
                         Type = TableStyleOverrideValues.FirstColumn
                     });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9624,9 +9624,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("0000ff", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
-                Assert.Equal("00ff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal("0000FF", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("00FF00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
                 Assert.True(string.IsNullOrEmpty(reloadedTable.Rows[1].Cells[1].ShadingFillColorHex));
             } finally {
                 DeleteIfExists(docPath);
@@ -9645,17 +9645,17 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "0000ff" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "0000FF" })) {
                         Type = TableStyleOverrideValues.SouthEastCell
                     });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {
                         Type = TableStyleOverrideValues.LastRow
                     });
                     style.Append(new TableStyleProperties(
                         new TableStyleConditionalFormattingTableCellProperties(
-                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00ff00" })) {
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00FF00" })) {
                         Type = TableStyleOverrideValues.LastColumn
                     });
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9677,9 +9677,9 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.True(string.IsNullOrEmpty(reloadedTable.Rows[0].Cells[0].ShadingFillColorHex));
-                Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
-                Assert.Equal("ff0000", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
-                Assert.Equal("0000ff", reloadedTable.Rows[1].Cells[1].ShadingFillColorHex);
+                Assert.Equal("00FF00", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal("0000FF", reloadedTable.Rows[1].Cells[1].ShadingFillColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9697,7 +9697,7 @@ namespace OfficeIMO.Tests {
                 style.Append(new BasedOn { Val = "TableNormal" });
                 style.Append(new TableStyleProperties(
                     new TableStyleConditionalFormattingTableCellProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {
                     Type = TableStyleOverrideValues.FirstRow
                 });
                 document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9729,7 +9729,7 @@ namespace OfficeIMO.Tests {
                 style.Append(new BasedOn { Val = "TableNormal" });
                 style.Append(new TableStyleProperties(
                     new TableStyleConditionalFormattingTableCellProperties(
-                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" })) {
                     Type = TableStyleOverrideValues.FirstRow
                 });
                 document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -9995,7 +9995,7 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = "TableNormal" });
                     style.Append(new StyleRunProperties(
                         new Bold(),
-                        new Color { Val = "ff0000" },
+                        new Color { Val = "FF0000" },
                         new FontSize { Val = "28" }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
@@ -10006,7 +10006,7 @@ namespace OfficeIMO.Tests {
                     directOverride._run!.RunProperties ??= new RunProperties();
                     directOverride._run.RunProperties.Bold = new Bold { Val = false };
                     directOverride._run.RunProperties.Italic = new Italic();
-                    directOverride._run.RunProperties.Color = new Color { Val = "0000ff" };
+                    directOverride._run.RunProperties.Color = new Color { Val = "0000FF" };
 
                     document.Save(docPath);
                 }
@@ -10020,14 +10020,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Inherited", inheritedRun.Text);
                 Assert.True(inheritedRun.Bold);
                 Assert.False(inheritedRun.Italic);
-                Assert.Equal("ff0000", inheritedRun.ColorHex);
+                Assert.Equal("FF0000", inheritedRun.ColorHex);
                 Assert.Equal(14, inheritedRun.FontSize);
 
                 WordParagraph directRun = row.Cells[1].Paragraphs[0];
                 Assert.Equal("Direct", directRun.Text);
                 Assert.False(directRun.Bold);
                 Assert.True(directRun.Italic);
-                Assert.Equal("0000ff", directRun.ColorHex);
+                Assert.Equal("0000FF", directRun.ColorHex);
                 Assert.Equal(14, directRun.FontSize);
             } finally {
                 DeleteIfExists(docPath);
@@ -10097,7 +10097,7 @@ namespace OfficeIMO.Tests {
                     baseStyle.Append(new StyleTableProperties(
                         new Shading {
                             Val = ShadingPatternValues.Clear,
-                            Fill = "ff0000"
+                            Fill = "FF0000"
                         }));
 
                     var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
@@ -10121,9 +10121,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
-                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }

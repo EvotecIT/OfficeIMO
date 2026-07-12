@@ -466,7 +466,7 @@ namespace OfficeIMO.Word {
             get {
                 var background = _document._wordprocessingDocument.MainDocumentPart?
                     .Document?.DocumentBackground;
-                return background?.Color?.Value?.ToLowerInvariant();
+                return background?.Color?.Value?.ToUpperInvariant();
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?

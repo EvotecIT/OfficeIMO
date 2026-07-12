@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
             get {
                 var v = _line.StrokeColor?.Value ?? string.Empty;
                 if (v.StartsWith("#", StringComparison.Ordinal)) v = v.Substring(1);
-                return v.ToLowerInvariant();
+                return v.ToUpperInvariant();
             }
             set {
                 var v = value;

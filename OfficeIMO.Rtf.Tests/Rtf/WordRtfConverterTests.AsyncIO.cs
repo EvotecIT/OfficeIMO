@@ -72,6 +72,6 @@ public partial class WordRtfConverterTests {
         cts.Cancel();
 
         using var input = new MemoryStream(new byte[] { 123, 125 });
-        await Assert.ThrowsAsync<OperationCanceledException>(() => input.LoadFromRtfAsync(cancellationToken: cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => input.LoadFromRtfAsync(cancellationToken: cts.Token));
     }
 }

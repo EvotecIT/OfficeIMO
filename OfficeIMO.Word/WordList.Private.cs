@@ -322,7 +322,7 @@ public partial class WordList : WordElement {
             symbolProps.Append(new RunFonts { Ascii = fontName, HighAnsi = fontName });
         }
         if (!string.IsNullOrEmpty(colorHex)) {
-            symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToLowerInvariant() });
+            symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex.Replace("#", "").ToUpperInvariant() });
         }
         if (fontSize.HasValue) {
             var size = (fontSize.Value * 2).ToString();

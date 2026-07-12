@@ -140,7 +140,7 @@ public class RtfLosslessRoundTripTests {
         cts.Cancel();
 
         using var input = new MemoryStream(new byte[] { 123, 125 });
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             RtfDocument.LoadAsync(input, cancellationToken: cts.Token));
     }
 }

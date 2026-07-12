@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Before ");
                 WordParagraph redRun = paragraph.AddText("Red");
-                redRun.ColorHex = "ff0000";
+                redRun.ColorHex = "FF0000";
                 paragraph.AddText("After");
 
                 document.Save();

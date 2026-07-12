@@ -867,7 +867,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(chart.TryGetSnapshot(out var snapshot));
             var series = Assert.Single(snapshot.Data.Series);
-            Assert.Equal(OfficeColor.FromRgba(0x55, 0x6C, 0x95, 0x80), series.Color);
+            Assert.Equal(OfficeColor.FromRgba(0x39, 0x63, 0xB1, 0x80), series.Color);
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
@@ -881,7 +881,7 @@ namespace OfficeIMO.Tests {
             Assert.True(payloadEnd > payloadStart, markdown);
             string svg = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(payloadStart, payloadEnd - payloadStart)));
 
-            Assert.Contains("fill=\"#556C95\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("fill=\"#3963B1\"", svg, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("fill-opacity=\"0.502\"", svg, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -1138,4 +1138,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

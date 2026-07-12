@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
         /// <param name="color">Hex color value.</param>
         /// <returns>The current instance.</returns>
         public WordBackground SetColorHex(string color) {
-            this.Color = color.Replace("#", "").ToLowerInvariant();
+            this.Color = color.Replace("#", "").ToUpperInvariant();
             return this;
         }
         /// <summary>

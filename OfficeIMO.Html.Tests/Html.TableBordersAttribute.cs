@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
 
             var cell = table.Rows[0].Cells[1];
             Assert.Equal(BorderValues.Single, cell.Borders.TopStyle);
-            Assert.Equal("ff0000", cell.Borders.TopColorHex);
+            Assert.Equal("FF0000", cell.Borders.TopColorHex);
             Assert.Equal((UInt32Value)6U, cell.Borders.TopSize);
         }
     }

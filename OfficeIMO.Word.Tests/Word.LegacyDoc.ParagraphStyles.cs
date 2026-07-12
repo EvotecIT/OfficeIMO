@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
             Assert.Equal("28", runProperties.GetFirstChild<FontSize>()?.Val?.Value);
-            Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
+            Assert.Equal("FF0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
         }
 
         [Fact]
@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
             Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
             Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
             Assert.Equal("auto", shading.Color!.Value);
-            Assert.Equal("ff0000", shading.Fill!.Value);
+            Assert.Equal("FF0000", shading.Fill!.Value);
         }
 
         [Fact]
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
             Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
             Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
             Assert.Equal("auto", shading.Color!.Value);
-            Assert.Equal("ff0000", shading.Fill!.Value);
+            Assert.Equal("FF0000", shading.Fill!.Value);
         }
 
         [Fact]

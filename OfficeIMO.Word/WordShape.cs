@@ -431,7 +431,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(v)) return string.Empty;
             var s = v!.Trim();
             if (s.StartsWith("#", StringComparison.Ordinal)) s = s.Substring(1);
-            return s.ToLowerInvariant();
+            return s.ToUpperInvariant();
         }
 
         /// <summary>

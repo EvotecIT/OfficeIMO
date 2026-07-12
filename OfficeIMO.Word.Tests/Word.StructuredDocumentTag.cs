@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(UnderlineValues.Single, props.Underline);
                 Assert.Equal(12, props.FontSize);
                 Assert.Equal("Calibri", props.FontFamily);
-                Assert.Equal("2f5597", props.ColorHex);
+                Assert.Equal("2F5597", props.ColorHex);
                 Assert.Equal(HighlightColorValues.Yellow, props.Highlight);
 
                 var fluent = document.GetStructuredDocumentTagByTag("TagFluent");
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(UnderlineValues.Single, fluent.Underline);
                 Assert.Equal(14, fluent.FontSize);
                 Assert.Equal("Calibri", fluent.FontFamily);
-                Assert.Equal("c00000", fluent.ColorHex);
+                Assert.Equal("C00000", fluent.ColorHex);
                 Assert.Equal(HighlightColorValues.LightGray, fluent.Highlight);
             }
         }

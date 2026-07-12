@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run1 = doc.Paragraphs[0].GetRuns().First();
             var run2 = doc.Paragraphs[1].GetRuns().First();
-            Assert.Equal("ff0000", run1.ColorHex);
-            Assert.Equal("ff0000", run2.ColorHex);
+            Assert.Equal("FF0000", run1.ColorHex);
+            Assert.Equal("FF0000", run2.ColorHex);
         }
 
         [Fact]
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
                 var doc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var run1 = doc.Paragraphs[0].GetRuns().First();
                 var run2 = doc.Paragraphs[1].GetRuns().First();
-                Assert.Equal("00ff00", run1.ColorHex);
-                Assert.Equal("00ff00", run2.ColorHex);
+                Assert.Equal("00FF00", run1.ColorHex);
+                Assert.Equal("00FF00", run2.ColorHex);
             } finally {
                 File.Delete(path);
             }
@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
             var run1 = doc.Paragraphs[0].GetRuns().First();
             var run2 = doc.Paragraphs[1].GetRuns().First();
-            Assert.Equal("0000ff", run1.ColorHex);
-            Assert.Equal("0000ff", run2.ColorHex);
+            Assert.Equal("0000FF", run1.ColorHex);
+            Assert.Equal("0000FF", run2.ColorHex);
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.Equal("abcdef", run.ColorHex);
+            Assert.Equal("ABCDEF", run.ColorHex);
         }
 
         [Fact]
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(fetched);
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("abcdef", run.ColorHex);
+            Assert.NotEqual("ABCDEF", run.ColorHex);
             var diagnostic = Assert.Single(conversion.Diagnostics, item => item.Code == "HtmlStylesheetLinkSkipped");
             Assert.Equal("https://styles.example.test/untrusted.css", diagnostic.Source);
         }
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("abcdef", run.ColorHex);
+            Assert.NotEqual("ABCDEF", run.ColorHex);
             var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
             Assert.Equal("https://blocked.example.test/site.css", diagnostic.Source);
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("fedcba", run.ColorHex);
+            Assert.NotEqual("FEDCBA", run.ColorHex);
             var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetContentTypeRejected", diagnostic.Code);
             Assert.Equal("https://styles.example.test/rejected-content-type.css", diagnostic.Source);
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("aabbcc", run.ColorHex);
+            Assert.NotEqual("AABBCC", run.ColorHex);
             var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetLoadTimedOut", diagnostic.Code);
             Assert.Equal("https://styles.example.test/timeout.css", diagnostic.Source);
