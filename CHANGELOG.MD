@@ -5,11 +5,13 @@
 
 ### What's Changed
 * Add `OfficeIMO.Drawing` as a shared zero-dependency color and image metadata layer, including header-only detection for PNG, JPEG, GIF, BMP, TIFF, ICO, PCX, EMF, placeable WMF, and SVG.
+* Publish the consolidated Drawing foundation as `OfficeIMO.Drawing` 1.0.30; the already-published 1.0.29 package predates the shared lifecycle and result contracts and must not satisfy rebuilt consumer packages.
 * Add `OfficeIMO.Drawing` font descriptors so Office packages can share font metadata without exposing a font-engine dependency.
 * Move Excel autofit font resolution and text measurement behind an internal measurer boundary to reduce direct dependency leakage.
 * Remove the `SixLabors.Fonts` dependency from Excel autofit by using deterministic first-party text measurement.
 * Fix the packed `OfficeIMO.Email` dependency graph for .NET Framework by directly declaring the code-page compatibility package used by its MIME, MSG, and TNEF codecs.
 * Run every test project that declares `net472` on .NET Framework in CI, and verify `OfficeIMO.Email` as a clean packed-package consumer on `net472`, `net8.0`, and `net10.0`.
+* Write OpenDocument ZIP records with a first-party deterministic writer so the required uncompressed `mimetype` entry remains standards-compliant on .NET Framework as well as modern .NET.
 * Stop emitting repository examples, the bundled Markup CLI, and legacy benchmark executables as unsupported NuGet library packages.
 * Reject `SaveOnDispose` for detached Excel HTTP loads instead of deferring an impossible write-back failure until disposal.
 * Add AI-ingestion focused chunk extraction APIs (Word/Excel/PowerPoint) and new `OfficeIMO.Reader` facade (Stream/byte[] supported) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1430

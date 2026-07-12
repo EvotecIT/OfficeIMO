@@ -47,18 +47,18 @@
           }
         }
       },
-      "OfficeIMO.Drawing/1.0.29": {
+      "OfficeIMO.Drawing/1.0.30": {
         "runtime": {
           "OfficeIMO.Drawing.dll": {
-            "assemblyVersion": "1.0.29.0",
-            "fileVersion": "1.0.29.0"
+            "assemblyVersion": "1.0.30.0",
+            "fileVersion": "1.0.30.0"
           }
         }
       },
       "OfficeIMO.Excel/0.6.55": {
         "dependencies": {
           "DocumentFormat.OpenXml": "3.5.1",
-          "OfficeIMO.Drawing": "1.0.29"
+          "OfficeIMO.Drawing": "1.0.30"
         },
         "runtime": {
           "OfficeIMO.Excel.dll": {
@@ -77,7 +77,7 @@
       },
       "OfficeIMO.Markup/0.1.0": {
         "dependencies": {
-          "OfficeIMO.Drawing": "1.0.29",
+          "OfficeIMO.Drawing": "1.0.30",
           "OfficeIMO.Markdown": "0.6.42"
         },
         "runtime": {
@@ -101,7 +101,7 @@
       },
       "OfficeIMO.Markup.PowerPoint/0.1.0": {
         "dependencies": {
-          "OfficeIMO.Drawing": "1.0.29",
+          "OfficeIMO.Drawing": "1.0.30",
           "OfficeIMO.Markup": "0.1.0",
           "OfficeIMO.PowerPoint": "1.0.50"
         },
@@ -114,7 +114,7 @@
       },
       "OfficeIMO.Markup.Word/0.1.0": {
         "dependencies": {
-          "OfficeIMO.Drawing": "1.0.29",
+          "OfficeIMO.Drawing": "1.0.30",
           "OfficeIMO.Markup": "0.1.0",
           "OfficeIMO.Word": "1.0.77"
         },
@@ -128,7 +128,7 @@
       "OfficeIMO.PowerPoint/1.0.50": {
         "dependencies": {
           "DocumentFormat.OpenXml": "3.5.1",
-          "OfficeIMO.Drawing": "1.0.29"
+          "OfficeIMO.Drawing": "1.0.30"
         },
         "runtime": {
           "OfficeIMO.PowerPoint.dll": {
@@ -140,7 +140,7 @@
       "OfficeIMO.Word/1.0.77": {
         "dependencies": {
           "DocumentFormat.OpenXml": "3.5.1",
-          "OfficeIMO.Drawing": "1.0.29"
+          "OfficeIMO.Drawing": "1.0.30"
         },
         "runtime": {
           "OfficeIMO.Word.dll": {
@@ -178,7 +178,7 @@
       "path": "system.io.packaging/8.0.1",
       "hashPath": "system.io.packaging.8.0.1.nupkg.sha512"
     },
-    "OfficeIMO.Drawing/1.0.29": {
+    "OfficeIMO.Drawing/1.0.30": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

@@ -23,7 +23,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | Generate `.pptx` presentations programmatically. |
 | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | Create, inspect, validate, and export `.vsdx` diagrams without Visio automation. |
 | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | Dependency-free PDF creation, reading, inspection, page operations, and converter engine support. |
-| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | Dependency-free native ODT, ODS, and ODP creation, editing, inspection, and preservation. |
+| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | Native ODT, ODS, and ODP creation, editing, inspection, and preservation. |
 | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | Bounded RTF parser, lossless syntax tree, editable semantic model, writer, and conversion reports. |
 | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | Typed Markdown AST, builder API, reader, and HTML renderer. |
 | [OfficeIMO.Reader](OfficeIMO.Reader/README.md) | Unified read-only extraction facade with modular adapters. |

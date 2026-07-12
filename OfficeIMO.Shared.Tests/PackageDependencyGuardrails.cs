@@ -492,6 +492,16 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Equal("0.0.X", expectedVersionMap.GetProperty(packageId).GetString());
     }
 
+    [Fact]
+    public void DrawingFoundation_UsesTheConsolidatedPackageIdentity() {
+        string projectPath = GetRepositoryPath("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj");
+        var document = XDocument.Load(projectPath);
+        XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
+        string? version = document.Descendants(ns + "VersionPrefix").Select(static element => element.Value).SingleOrDefault();
+
+        Assert.Equal("1.0.30", version);
+    }
+
     [Theory]
     [InlineData("OfficeIMO.CSV/OfficeIMO.CSV.csproj")]
     [InlineData("OfficeIMO.Email/OfficeIMO.Email.csproj")]

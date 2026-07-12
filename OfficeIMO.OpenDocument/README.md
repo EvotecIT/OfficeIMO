@@ -1,6 +1,6 @@
 # OfficeIMO.OpenDocument
 
-`OfficeIMO.OpenDocument` creates and edits ODT, ODS, and ODP files directly. It has no NuGet or project dependencies and does not invoke LibreOffice, Microsoft Office, or UNO at runtime.
+`OfficeIMO.OpenDocument` creates and edits ODT, ODS, and ODP files directly. Its only runtime dependency is the zero-dependency `OfficeIMO.Drawing` foundation used across OfficeIMO for lifecycle and result contracts. It has no third-party runtime dependencies and does not invoke LibreOffice, Microsoft Office, or UNO.
 
 ```powershell
 dotnet add package OfficeIMO.OpenDocument

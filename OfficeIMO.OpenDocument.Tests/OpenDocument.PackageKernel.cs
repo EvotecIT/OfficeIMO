@@ -38,6 +38,38 @@ public class OpenDocumentPackageKernelTests {
     }
 
     [Fact]
+    public void NativePackageWriterRoundTripsUnicodeEntryNames() {
+        using OdtDocument document = OdtDocument.Create();
+        byte[] expected = Encoding.UTF8.GetBytes("Zażółć gęślą jaźń");
+        document.Package.AddOrReplaceEntry("Media/zażółć.txt", expected, "text/plain");
+
+        byte[] bytes = document.ToBytes();
+
+        using (var stream = new MemoryStream(bytes))
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Read)) {
+            ZipArchiveEntry entry = archive.GetEntry("Media/zażółć.txt")!;
+            using var output = new MemoryStream();
+            using Stream input = entry.Open();
+            input.CopyTo(output);
+            Assert.Equal(expected, output.ToArray());
+        }
+
+        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(expected, reopened.Package.GetRequiredEntry("Media/zażółć.txt").GetOriginalBytes());
+    }
+
+    [Fact]
+    public void NativePackageWriterProducesStableDeterministicBytes() {
+        using OdtDocument document = OdtDocument.Create();
+        document.Metadata.Title = "Deterministic package";
+
+        byte[] first = document.ToBytes();
+        byte[] second = document.ToBytes();
+
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public void PreservesUnknownEntriesAndForeignXmlDuringTargetedMetadataEdit() {
         using OdtDocument created = OdtDocument.Create();
         created.Package.AddOrReplaceEntry("Vendor/custom.bin", new byte[] { 1, 3, 5, 7 }, "application/octet-stream");

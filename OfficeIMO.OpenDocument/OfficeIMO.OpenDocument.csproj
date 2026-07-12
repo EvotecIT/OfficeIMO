@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Dependency-free OpenDocument ODT, ODS, and ODP reader, writer, and preservation-aware document model for .NET.</Description>
+    <Description>Native OpenDocument ODT, ODS, and ODP reader, writer, and preservation-aware document model for .NET.</Description>
     <AssemblyName>OfficeIMO.OpenDocument</AssemblyName>
     <AssemblyTitle>OfficeIMO.OpenDocument</AssemblyTitle>
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -10,7 +10,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.OpenDocument</PackageId>
-    <PackageTags>odf;odt;ods;odp;opendocument;document;spreadsheet;presentation;dependency-free</PackageTags>
+    <PackageTags>odf;odt;ods;odp;opendocument;document;spreadsheet;presentation</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

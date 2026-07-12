@@ -249,24 +249,24 @@ internal sealed class OdfPackage {
             RebuildManifest(outputVersion);
         }
 
-        using var output = new MemoryStream();
-        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            OdfPackageEntry mimetype = GetRequiredEntry("mimetype");
-            WriteEntry(archive, mimetype, CompressionLevel.NoCompression, effective.Deterministic);
+        var outputEntries = new List<OdfZipWriteEntry>();
+        OdfPackageEntry mimetype = GetRequiredEntry("mimetype");
+        outputEntries.Add(new OdfZipWriteEntry(mimetype.Name, mimetype.GetBytesForSave(), compress: false));
 
-            IEnumerable<OdfPackageEntry> remaining = _entries.Where(entry => !entry.IsRemoved && entry.Name != "mimetype");
-            if (effective.Deterministic) {
-                OdfPackageEntry[] original = remaining.Where(entry => !entry.IsNew).ToArray();
-                OdfPackageEntry[] added = remaining.Where(entry => entry.IsNew).OrderBy(entry => entry.Name, StringComparer.Ordinal).ToArray();
-                remaining = original.Concat(added);
-            }
-            foreach (OdfPackageEntry entry in remaining) {
-                CompressionLevel level = entry.Name.EndsWith("/", StringComparison.Ordinal) ? CompressionLevel.NoCompression : CompressionLevel.Optimal;
-                WriteEntry(archive, entry, level, effective.Deterministic);
-            }
+        IEnumerable<OdfPackageEntry> remaining = _entries.Where(entry => !entry.IsRemoved && entry.Name != "mimetype");
+        if (effective.Deterministic) {
+            OdfPackageEntry[] original = remaining.Where(entry => !entry.IsNew).ToArray();
+            OdfPackageEntry[] added = remaining.Where(entry => entry.IsNew).OrderBy(entry => entry.Name, StringComparer.Ordinal).ToArray();
+            remaining = original.Concat(added);
         }
+        foreach (OdfPackageEntry entry in remaining) {
+            bool compress = !entry.Name.EndsWith("/", StringComparison.Ordinal);
+            outputEntries.Add(new OdfZipWriteEntry(entry.Name, entry.GetBytesForSave(), compress));
+        }
+
+        byte[] output = OdfZipWriter.Write(outputEntries, effective.Deterministic);
         Version = outputVersion;
-        return output.ToArray();
+        return output;
     }
 
     internal OdfSaveReport CreateSaveReport() {
@@ -371,14 +371,6 @@ internal sealed class OdfPackage {
             case OdfCompatibilityProfile.PreserveSource: return Version;
             default: return OdfVersion.V1_4;
         }
-    }
-
-    private static void WriteEntry(ZipArchive archive, OdfPackageEntry entry, CompressionLevel compressionLevel, bool deterministic) {
-        ZipArchiveEntry outputEntry = archive.CreateEntry(entry.Name, compressionLevel);
-        if (deterministic) outputEntry.LastWriteTime = DeterministicTimestamp;
-        byte[] data = entry.GetBytesForSave();
-        using Stream destination = outputEntry.Open();
-        destination.Write(data, 0, data.Length);
     }
 
     private static byte[] ReadAllBytesBounded(Stream stream, long maxBytes) {
