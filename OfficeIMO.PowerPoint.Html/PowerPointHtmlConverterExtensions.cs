@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Extension methods enabling HTML conversions for OfficeIMO PowerPoint presentations.
 /// </summary>
-public static class PowerPointHtmlConverterExtensions {
+public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>
     /// Converts a presentation to HTML.
     /// </summary>
@@ -25,7 +25,7 @@ public static class PowerPointHtmlConverterExtensions {
     /// </summary>
     public static void SaveAsHtml(this PptCore.PowerPointPresentation presentation, string path, PowerPointHtmlSaveOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        File.WriteAllText(path, presentation.ToHtml(options), Encoding.UTF8);
+        HtmlTextIO.Write(path, presentation.ToHtml(options));
     }
 
     private static string ConvertSemantic(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options) {
@@ -80,28 +80,7 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append('>');
         body.Append("<h2>Slide ").Append(visibleIndex.ToString(CultureInfo.InvariantCulture)).Append("</h2>");
 
-        foreach (PptCore.PowerPointTextBox textBox in slide.TextBoxes) {
-            if (!options.IncludeHiddenShapes && textBox.Hidden) {
-                continue;
-            }
-
-            string text = NormalizeText(textBox.Text);
-            if (text.Length == 0) {
-                continue;
-            }
-
-            body.Append("<p>").Append(OfficeHtmlText.Escape(text)).Append("</p>");
-        }
-
-        if (options.IncludeTables) {
-            foreach (PptCore.PowerPointTable table in slide.Tables) {
-                if (!options.IncludeHiddenShapes && table.Hidden) {
-                    continue;
-                }
-
-                AppendTable(body, table);
-            }
-        }
+        AppendSemanticShapes(body, slide, options);
 
         AppendSlideFeatureInventory(body, slide, options);
         AppendExtractionProof(body, extractionProof, options);
@@ -279,10 +258,10 @@ public static class PowerPointHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"picture\" data-officeimo-layer-index=\"")
                 .Append(picture.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
-            AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints);
-            AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints);
-            AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints);
-            AppendDataAttribute(body, "data-officeimo-height", picture.HeightPoints);
+            AppendDataAttribute(body, "data-officeimo-left", picture.LeftPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-top", picture.TopPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-width", picture.WidthPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-height", picture.HeightPoints, omitWhenZero: false);
             AppendDataAttribute(body, "data-officeimo-rotation", picture.Rotation ?? 0D);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", picture.HorizontalFlip == true);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", picture.VerticalFlip == true);
@@ -310,8 +289,8 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("</ul></section>");
     }
 
-    private static void AppendDataAttribute(StringBuilder body, string name, double value) {
-        if (Math.Abs(value) < 0.0000001D) {
+    private static void AppendDataAttribute(StringBuilder body, string name, double value, bool omitWhenZero = true) {
+        if (omitWhenZero && Math.Abs(value) < 0.0000001D) {
             return;
         }
 
@@ -343,10 +322,10 @@ public static class PowerPointHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append('"');
-            AppendDataAttribute(body, "data-officeimo-left", chart.LeftPoints);
-            AppendDataAttribute(body, "data-officeimo-top", chart.TopPoints);
-            AppendDataAttribute(body, "data-officeimo-width", chart.WidthPoints);
-            AppendDataAttribute(body, "data-officeimo-height", chart.HeightPoints);
+            AppendDataAttribute(body, "data-officeimo-left", chart.LeftPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-top", chart.TopPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-width", chart.WidthPoints, omitWhenZero: false);
+            AppendDataAttribute(body, "data-officeimo-height", chart.HeightPoints, omitWhenZero: false);
             AppendDataAttribute(body, "data-officeimo-rotation", chart.Rotation ?? 0D);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", chart.HorizontalFlip == true);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", chart.VerticalFlip == true);
@@ -594,12 +573,31 @@ public static class PowerPointHtmlConverterExtensions {
         body.Append("</div>");
     }
 
-    private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table) {
-        body.Append("<table class=\"officeimo-table\"><tbody>");
+    private static void AppendTable(StringBuilder body, PptCore.PowerPointTable table, bool includeShapeMetadata = false) {
+        body.Append("<table class=\"officeimo-table\"");
+        if (includeShapeMetadata) {
+            AppendSemanticShapeAttributes(body, table, "table");
+        }
+
+        body.Append("><tbody>");
         foreach (PptCore.PowerPointTableRow row in table.RowItems) {
             body.Append("<tr>");
             foreach (PptCore.PowerPointTableCell cell in row.Cells) {
-                body.Append("<td>").Append(OfficeHtmlText.Escape(NormalizeText(cell.Text))).Append("</td>");
+                if (cell.IsMergedCell) {
+                    continue;
+                }
+
+                body.Append("<td");
+                (int rows, int columns) = cell.Merge;
+                if (rows > 1) {
+                    body.Append(" rowspan=\"").Append(rows.ToString(CultureInfo.InvariantCulture)).Append('"');
+                }
+
+                if (columns > 1) {
+                    body.Append(" colspan=\"").Append(columns.ToString(CultureInfo.InvariantCulture)).Append('"');
+                }
+
+                body.Append('>').Append(OfficeHtmlText.Escape(NormalizeText(cell.Text))).Append("</td>");
             }
 
             body.Append("</tr>");

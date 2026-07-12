@@ -6,6 +6,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -61,6 +62,14 @@ namespace OfficeIMO.Word.Html {
 
         public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (html == null) throw new ArgumentNullException(nameof(html));
+            var config = Configuration.Default.WithDefaultLoader();
+            var context = BrowsingContext.New(config);
+            IDocument parsed = await context.OpenAsync(request => request.Content(html), cancellationToken).ConfigureAwait(false);
+            return await ConvertAsync((IHtmlDocument)parsed, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        internal async Task<WordDocument> ConvertAsync(IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
             cancellationToken.ThrowIfCancellationRequested();
             _cancellationToken = cancellationToken;
@@ -68,10 +77,7 @@ namespace OfficeIMO.Word.Html {
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
 
-            var config = Configuration.Default.WithDefaultLoader();
-            var context = BrowsingContext.New(config);
-            _context = context;
-            var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
+            _context = document.Context;
             ValidateDocumentLimits(document, options);
 
             var wordDoc = WordDocument.Create();

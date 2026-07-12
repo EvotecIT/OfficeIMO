@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using AngleSharp.Html.Dom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -16,9 +17,22 @@ internal static class HtmlPdfRenderedConverter {
         return CreatePdf(rendered, options, CancellationToken.None);
     }
 
+    internal static HtmlPdfRenderResult Convert(IHtmlDocument document, HtmlPdfSaveOptions options) {
+        HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, renderOptions);
+        return CreatePdf(rendered, options, CancellationToken.None);
+    }
+
     internal static async Task<HtmlPdfRenderResult> ConvertAsync(string html, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
         HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, renderOptions, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return CreatePdf(rendered, options, cancellationToken);
+    }
+
+    internal static async Task<HtmlPdfRenderResult> ConvertAsync(IHtmlDocument document, HtmlPdfSaveOptions options, CancellationToken cancellationToken) {
+        HtmlRenderOptions renderOptions = ResolveRenderOptions(options);
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(document, renderOptions, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return CreatePdf(rendered, options, cancellationToken);
     }

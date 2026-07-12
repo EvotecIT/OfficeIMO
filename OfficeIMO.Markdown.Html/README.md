@@ -21,6 +21,18 @@ string markdown = "<h1>Hello</h1><p>Body</p>".ToMarkdown();
 MarkdownDoc document = "<h1>Hello</h1><p>Body</p>".ToMarkdownDocument();
 ```
 
+For multi-target workflows, prepare HTML once and reuse its normalized DOM:
+
+```csharp
+using OfficeIMO.Html;
+
+HtmlConversionDocument source = HtmlConversionDocumentBuilder.Build(html);
+string markdown = source.ToMarkdown();
+MarkdownDoc document = source.ToMarkdownDocument();
+```
+
+String, stream, and prepared-document overloads share the same conversion behavior. Adapter-local filtering works on a clone, so converting to Markdown does not mutate the document consumed by Word, RTF, PDF, or image output.
+
 ## Options
 
 ```csharp

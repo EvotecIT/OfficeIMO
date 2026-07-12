@@ -26,7 +26,8 @@ public static class HtmlMarkdownConverterExtensions {
     /// <returns>The rendered Markdown text.</returns>
     public static string ToMarkdown(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return PrepareHtmlForSharedMarkdownConversion(document).ToMarkdown(options);
+        var converter = new HtmlToMarkdownConverter();
+        return converter.Convert(document.DocumentForConversion, options);
     }
 
     /// <summary>
@@ -37,8 +38,7 @@ public static class HtmlMarkdownConverterExtensions {
     /// <returns>The rendered Markdown text.</returns>
     public static string ToMarkdown(this Stream htmlStream, HtmlToMarkdownOptions? options = null) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
-        using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-        return reader.ReadToEnd().ToMarkdown(options);
+        return HtmlTextIO.Read(htmlStream).ToMarkdown(options);
     }
 
     /// <summary>
@@ -61,14 +61,8 @@ public static class HtmlMarkdownConverterExtensions {
     /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
     public static MarkdownDoc ToMarkdownDocument(this HtmlConversionDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return PrepareHtmlForSharedMarkdownConversion(document).ToMarkdownDocument(options);
-    }
-
-    private static string PrepareHtmlForSharedMarkdownConversion(HtmlConversionDocument document) {
-        HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
-            ? HtmlCssMediaContext.Print
-            : HtmlCssMediaContext.Screen;
-        return HtmlActiveMediaFilter.Filter(document.HtmlForConversion, mediaContext);
+        var converter = new HtmlToMarkdownConverter();
+        return converter.ConvertToDocument(document.DocumentForConversion, options);
     }
 
     /// <summary>
@@ -79,7 +73,6 @@ public static class HtmlMarkdownConverterExtensions {
     /// <returns>A structural <see cref="MarkdownDoc"/> representing the converted Markdown.</returns>
     public static MarkdownDoc ToMarkdownDocument(this Stream htmlStream, HtmlToMarkdownOptions? options = null) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
-        using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
-        return reader.ReadToEnd().ToMarkdownDocument(options);
+        return HtmlTextIO.Read(htmlStream).ToMarkdownDocument(options);
     }
 }

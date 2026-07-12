@@ -18,6 +18,22 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         HtmlRenderInputGuard.ValidateSource(html, resolved);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        return RenderDocument(document, resolved);
+    }
+
+    /// <summary>
+    /// Renders a prepared HTML DOM without reparsing source text or mutating the caller's document.
+    /// </summary>
+    public static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        resolved.Validate();
+        IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+        HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
+        return RenderDocument(renderDocument, resolved);
+    }
+
+    private static HtmlRenderDocument RenderDocument(IHtmlDocument document, HtmlRenderOptions resolved) {
         HtmlRenderInputGuard.ValidateDocument(document, resolved, CancellationToken.None);
         var diagnostics = new HtmlDiagnosticReport();
         var resourceOptions = new HtmlResourcePipelineOptions {
@@ -48,6 +64,23 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         HtmlRenderInputGuard.ValidateSource(html, resolved);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        return await RenderDocumentAsync(document, resolved, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renders a prepared HTML DOM while resolving resources without reparsing or mutating the caller's document.
+    /// </summary>
+    public static async Task<HtmlRenderDocument> RenderAsync(IHtmlDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        resolved.Validate();
+        IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
+        HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
+        return await RenderDocumentAsync(renderDocument, resolved, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<HtmlRenderDocument> RenderDocumentAsync(IHtmlDocument document, HtmlRenderOptions resolved, CancellationToken cancellationToken) {
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
         var resourceOptions = new HtmlResourcePipelineOptions {

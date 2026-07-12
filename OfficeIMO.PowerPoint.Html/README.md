@@ -1,3 +1,32 @@
 # OfficeIMO.PowerPoint.Html
 
 First-party HTML adapter for OfficeIMO.PowerPoint. It exports semantic slide HTML and positioned review HTML using the shared OfficeIMO.Html profile contracts and the public PowerPoint slide model.
+
+## Semantic round trips
+
+```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Html;
+
+using PowerPointPresentation presentation = PowerPointPresentation.Open("briefing.pptx");
+string html = presentation.ToHtml();
+
+HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+using PowerPointPresentation imported = result.GetArtifactOrThrow();
+using FileStream output = File.Create("briefing-roundtrip.pptx");
+imported.Save(output);
+```
+
+Semantic output keeps slide order and visibility, unified drawing order across text boxes, tables, pictures, and charts, shape geometry and transforms, presenter notes, table merge spans, embedded pictures, and supported chart data. Generic HTML `rowspan` and `colspan` values become native PowerPoint table merges.
+
+`ToPowerPointPresentation()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-slide` envelope exists. Use `ToPowerPointPresentationResult()` to inspect diagnostics and loss classification. `HtmlToPowerPointOptions.MaxTableCells` prevents oversized or malicious table spans from causing unbounded allocations.
+
+Path, stream, and async save/import methods use UTF-8 without a byte-order mark. Stream overloads leave caller-owned streams open.
+
+## Positioned review
+
+Set `Profile = OfficeHtmlConversionProfile.PowerPointVisualReview` for a positioned visual representation. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
+
+## Targets
+
+`netstandard2.0`, `net8.0`, and `net10.0`; `net472` is included when building on Windows.

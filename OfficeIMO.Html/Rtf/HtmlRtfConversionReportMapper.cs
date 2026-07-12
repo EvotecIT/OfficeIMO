@@ -17,6 +17,23 @@ internal static class HtmlRtfConversionReportMapper {
             detail: diagnostic.Detail);
     }
 
+    public static void Add(HtmlDiagnosticReport report, HtmlRtfConversionDiagnostic diagnostic) {
+        HtmlDiagnosticSeverity severity = diagnostic.Severity == HtmlRtfConversionDiagnosticSeverity.Error
+            ? HtmlDiagnosticSeverity.Error
+            : diagnostic.Severity == HtmlRtfConversionDiagnosticSeverity.Warning
+                ? HtmlDiagnosticSeverity.Warning
+                : HtmlDiagnosticSeverity.Info;
+        RtfConversionAction action = GetAction(diagnostic);
+        HtmlConversionLossKind lossKind = diagnostic.Severity == HtmlRtfConversionDiagnosticSeverity.Error
+            ? HtmlConversionLossKind.Failure
+            : action == RtfConversionAction.Substituted
+                ? HtmlConversionLossKind.Approximation
+                : action == RtfConversionAction.Omitted || action == RtfConversionAction.Blocked
+                    ? HtmlConversionLossKind.Omission
+                    : HtmlConversionLossKind.None;
+        report.Add("OfficeIMO.Html.Rtf", diagnostic.Code, diagnostic.Message, severity, diagnostic.Source, diagnostic.Detail, lossKind);
+    }
+
     private static RtfConversionAction GetAction(HtmlRtfConversionDiagnostic diagnostic) {
         if (diagnostic.Severity == HtmlRtfConversionDiagnosticSeverity.Info) return RtfConversionAction.Preserved;
         if (diagnostic.Code.IndexOf("Rejected", StringComparison.OrdinalIgnoreCase) >= 0 ||

@@ -18,6 +18,15 @@ public static class HtmlDocumentParser {
     }
 
     /// <summary>
+    /// Creates a deep DOM clone so a target adapter can safely apply local transformations without reparsing text.
+    /// </summary>
+    public static IHtmlDocument CloneDocument(IHtmlDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return document.Clone(true) as IHtmlDocument
+            ?? throw new InvalidOperationException("The HTML DOM implementation did not produce a document clone.");
+    }
+
+    /// <summary>
     /// Resolves the effective base URI from a parsed document and optional caller-provided fallback.
     /// </summary>
     public static Uri? ResolveEffectiveBaseUri(IHtmlDocument document, Uri? fallbackBaseUri) {

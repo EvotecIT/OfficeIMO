@@ -9,13 +9,21 @@ namespace OfficeIMO.PowerPoint.Html;
 /// <summary>
 /// Extension methods for importing semantic OfficeIMO PowerPoint HTML.
 /// </summary>
-public static class HtmlPowerPointConverterExtensions {
+public static partial class HtmlPowerPointConverterExtensions {
     /// <summary>
     /// Imports semantic OfficeIMO PowerPoint HTML into a native presentation.
     /// </summary>
     /// <example><code>using PowerPointPresentation presentation = html.ToPowerPointPresentation();</code></example>
-    public static PptCore.PowerPointPresentation ToPowerPointPresentation(this string html, HtmlToPowerPointOptions? options = null) =>
-        ToPowerPointPresentationResult(html, options).Presentation;
+    public static PptCore.PowerPointPresentation ToPowerPointPresentation(this string html, HtmlToPowerPointOptions? options = null) {
+        return GetPresentationOrThrow(ToPowerPointPresentationResult(html, options));
+    }
+
+    /// <summary>
+    /// Imports a prepared shared HTML conversion document without reparsing its adapter DOM.
+    /// </summary>
+    public static PptCore.PowerPointPresentation ToPowerPointPresentation(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
+        return GetPresentationOrThrow(ToPowerPointPresentationResult(document, options));
+    }
 
     /// <summary>
     /// Imports semantic OfficeIMO PowerPoint HTML into a native presentation and returns import evidence.
@@ -23,16 +31,26 @@ public static class HtmlPowerPointConverterExtensions {
     /// <example><code>HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();</code></example>
     public static HtmlToPowerPointResult ToPowerPointPresentationResult(this string html, HtmlToPowerPointOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        options ??= new HtmlToPowerPointOptions();
+        return ImportDocument(HtmlDocumentParser.ParseDocument(html), options ?? new HtmlToPowerPointOptions());
+    }
 
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+    /// <summary>
+    /// Imports a prepared shared HTML conversion document and returns the presentation plus structured evidence.
+    /// </summary>
+    public static HtmlToPowerPointResult ToPowerPointPresentationResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return ImportDocument(document.DocumentForConversion, options ?? new HtmlToPowerPointOptions());
+    }
+
+    private static HtmlToPowerPointResult ImportDocument(IHtmlDocument document, HtmlToPowerPointOptions options) {
         var stream = new MemoryStream();
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(stream);
         var result = new HtmlToPowerPointResult(presentation);
 
         List<IElement> slideSections = document.QuerySelectorAll("section.officeimo-slide").ToList();
         if (slideSections.Count == 0) {
-            result.Diagnostics.Add("No semantic PowerPoint slide sections were found.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
+                "No semantic PowerPoint slide sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
             return result;
         }
 
@@ -47,29 +65,18 @@ public static class HtmlPowerPointConverterExtensions {
         return result;
     }
 
+    private static PptCore.PowerPointPresentation GetPresentationOrThrow(HtmlToPowerPointResult result) {
+        if (result.Succeeded) {
+            return result.Presentation;
+        }
+
+        result.Presentation.Dispose();
+        throw new HtmlConversionException(result.Diagnostics.Diagnostics);
+    }
+
     private static void ImportSlide(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result) {
         result.Slides++;
-        double top = 48D;
-        foreach (IElement paragraph in section.Children.Where(child => IsElement(child, "p"))) {
-            string text = PreserveText(paragraph.TextContent);
-            if (text.Length == 0) {
-                continue;
-            }
-
-            slide.AddTextBoxPoints(text, 64, top, 620, 48);
-            result.TextBoxes++;
-            top += 58D;
-        }
-
-        if (options.ImportTables) {
-            foreach (IElement table in section.Children.Where(child => IsElement(child, "table"))) {
-                top = ImportTable(table, slide, top, result);
-            }
-        }
-
-        if (options.ImportPictures || options.ImportChartInventory) {
-            ImportDrawings(section, slide, options, result);
-        }
+        ImportSemanticShapes(section, slide, options, result);
 
         if (options.ImportNotes) {
             ImportNotes(section, slide, result);
@@ -80,55 +87,6 @@ public static class HtmlPowerPointConverterExtensions {
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.Ordinal);
 
-    private static double ImportTable(IElement tableElement, PptCore.PowerPointSlide slide, double top, HtmlToPowerPointResult result) {
-        List<IElement> rows = tableElement.QuerySelectorAll("tr").ToList();
-        int rowCount = rows.Count;
-        int columnCount = rows.Count == 0
-            ? 0
-            : rows.Max(row => row.Children.Count(child => IsElement(child, "th") || IsElement(child, "td")));
-        if (rowCount == 0 || columnCount == 0) {
-            return top;
-        }
-
-        PptCore.PowerPointTable table = slide.AddTablePoints(rowCount, columnCount, 64, top, Math.Max(240, columnCount * 150), Math.Max(70, rowCount * 34));
-        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            IElement row = rows[rowIndex];
-            List<IElement> cells = row.Children.Where(child => IsElement(child, "th") || IsElement(child, "td")).ToList();
-            for (int columnIndex = 0; columnIndex < cells.Count; columnIndex++) {
-                table.GetCell(rowIndex, columnIndex).Text = PreserveText(cells[columnIndex].TextContent);
-            }
-        }
-
-        result.Tables++;
-        return top + Math.Max(90, rowCount * 40);
-    }
-
-    private static void ImportDrawings(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result) {
-        var drawings = new List<PowerPointDrawingImportItem>();
-        int fallbackOrder = 0;
-        if (options.ImportPictures) {
-            foreach (IElement item in section.QuerySelectorAll("section.officeimo-images li")) {
-                drawings.Add(new PowerPointDrawingImportItem(item, PowerPointDrawingImportKind.Picture, ReadOptionalIntAttribute(item, "data-officeimo-layer-index"), fallbackOrder++));
-            }
-        }
-
-        if (options.ImportChartInventory) {
-            foreach (IElement item in section.QuerySelectorAll("section.officeimo-charts li")) {
-                drawings.Add(new PowerPointDrawingImportItem(item, PowerPointDrawingImportKind.Chart, ReadOptionalIntAttribute(item, "data-officeimo-layer-index"), fallbackOrder++));
-            }
-        }
-
-        double pictureTop = 140D;
-        double chartTop = 220D;
-        foreach (PowerPointDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
-            if (drawing.Kind == PowerPointDrawingImportKind.Picture) {
-                ImportPicture(drawing.Element, slide, result, ref pictureTop);
-            } else {
-                ImportChart(drawing.Element, slide, result, ref chartTop);
-            }
-        }
-    }
-
     private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, ref double fallbackTop) {
         IElement? image = item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
@@ -136,12 +94,14 @@ public static class HtmlPowerPointConverterExtensions {
         }
 
         if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-            result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' could not be decoded.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 
         if (!TryGetImagePartType(dataUri.MediaType, out PptCore.ImagePartType imagePartType)) {
-            result.Diagnostics.Add("Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                "Picture inventory item '" + NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent) + "' used unsupported media type '" + dataUri.MediaType + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 
@@ -171,7 +131,8 @@ public static class HtmlPowerPointConverterExtensions {
         string chartKind = ReadChartKind(item);
         ReadChartGeometry(item, 500D, fallbackTop, 320D, 180D, out double left, out double chartTop, out double width, out double height);
         if (!TryAddChartByKind(slide, chartKind, data, left, chartTop, width, height, out PptCore.PowerPointChart? chart, out string? fallbackMessage) || chart == null) {
-            result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' used unsupported chart kind '" + chartKind + "' and was not imported.", lossKind: HtmlConversionLossKind.Omission);
             return;
         }
 
@@ -179,11 +140,13 @@ public static class HtmlPowerPointConverterExtensions {
         ApplyShapeTransforms(item, chart);
         result.Charts++;
         if (!string.IsNullOrWhiteSpace(fallbackMessage)) {
-            result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage);
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' " + fallbackMessage, lossKind: HtmlConversionLossKind.Approximation);
         }
 
         if (!restoredFromSemanticData) {
-            result.Diagnostics.Add("Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.");
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Chart inventory item '" + (title.Length == 0 ? "Imported chart" : title) + "' was restored as a native chart with reconstructed placeholder values; exact source chart data was not present in semantic HTML.", lossKind: HtmlConversionLossKind.Approximation);
         }
 
         fallbackTop = Math.Max(fallbackTop + 198D, chartTop + height + 18D);
@@ -325,15 +288,13 @@ public static class HtmlPowerPointConverterExtensions {
         string meta = string.Join("; ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
         const string marker = "Position:";
         int index = meta.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (index < 0) {
-            return;
-        }
-
-        string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
-        string[] parts = text.Replace("pt", string.Empty).Split(',');
-        if (parts.Length == 2) {
-            _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out left);
-            _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
+        if (index >= 0) {
+            string text = meta.Substring(index + marker.Length).Split(';')[0].Trim();
+            string[] parts = text.Replace("pt", string.Empty).Split(',');
+            if (parts.Length == 2) {
+                _ = double.TryParse(parts[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out left);
+                _ = double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out top);
+            }
         }
 
         if (TryReadDoubleAttribute(item, "data-officeimo-left", out double attributeLeft)) left = attributeLeft;
@@ -363,6 +324,10 @@ public static class HtmlPowerPointConverterExtensions {
 
         if (TryReadBoolAttribute(item, "data-officeimo-flip-vertical", out bool verticalFlip)) {
             shape.VerticalFlip = verticalFlip;
+        }
+
+        if (IsTrueAttribute(item.GetAttribute("data-officeimo-hidden"))) {
+            shape.Hidden = true;
         }
     }
 
@@ -630,25 +595,4 @@ public static class HtmlPowerPointConverterExtensions {
     private static string PreserveText(string? text) =>
         string.IsNullOrWhiteSpace(text) ? string.Empty : text!.Trim();
 
-    private sealed class PowerPointDrawingImportItem {
-        internal PowerPointDrawingImportItem(IElement element, PowerPointDrawingImportKind kind, int? layerIndex, int fallbackOrder) {
-            Element = element;
-            Kind = kind;
-            LayerIndex = layerIndex;
-            FallbackOrder = fallbackOrder;
-        }
-
-        internal IElement Element { get; }
-
-        internal PowerPointDrawingImportKind Kind { get; }
-
-        internal int? LayerIndex { get; }
-
-        internal int FallbackOrder { get; }
-    }
-
-    private enum PowerPointDrawingImportKind {
-        Picture,
-        Chart
-    }
 }
