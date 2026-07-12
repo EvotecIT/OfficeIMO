@@ -93,6 +93,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           dotnet restore OfficeIMO.Email/OfficeIMO.Email.csproj --no-http-cache
           dotnet pack OfficeIMO.Drawing/OfficeIMO.Drawing.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
+          dotnet pack OfficeIMO.Rtf/OfficeIMO.Rtf.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           dotnet pack OfficeIMO.Email/OfficeIMO.Email.csproj --configuration $env:BUILD_CONFIGURATION --no-restore --output $feed
           function Get-PackedPackageVersion([string] $id) {
             $packages = @(Get-ChildItem -LiteralPath $feed -Filter "$id.*.nupkg")
@@ -103,6 +104,7 @@ jobs:
           }
           $emailVersion = Get-PackedPackageVersion 'OfficeIMO.Email'
           $drawingVersion = Get-PackedPackageVersion 'OfficeIMO.Drawing'
+          $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
           $smokeProperties = @(
             '--property:EnableOfficeIMOEmailPackageSmoke=true',
             "--property:OfficeIMOEmailPackageVersion=$emailVersion"
@@ -113,7 +115,8 @@ jobs:
           $expectedFeed = (Resolve-Path $feed).Path.TrimEnd('\', '/')
           foreach ($package in @(
             @{ Id = 'officeimo.email'; Version = $emailVersion },
-            @{ Id = 'officeimo.drawing'; Version = $drawingVersion }
+            @{ Id = 'officeimo.drawing'; Version = $drawingVersion },
+            @{ Id = 'officeimo.rtf'; Version = $rtfVersion }
           )) {
             $metadataPath = Join-Path $env:NUGET_PACKAGES "$($package.Id)/$($package.Version)/.nupkg.metadata"
             $metadata = Get-Content $metadataPath -Raw | ConvertFrom-Json

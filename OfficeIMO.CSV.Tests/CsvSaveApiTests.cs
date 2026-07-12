@@ -68,6 +68,57 @@ public class CsvSaveApiTests
     }
 
     [Fact]
+    public void Save_Path_Creates_Missing_Parent_Directory()
+    {
+        string directory = CreateMissingDirectoryPath();
+        string path = Path.Combine(directory, "document.csv");
+        try
+        {
+            CreateDocument().Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            Assert.Equal("Name,Value\nAlpha,1\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(directory);
+        }
+    }
+
+    [Fact]
+    public void Save_Append_Creates_Missing_Parent_Directory()
+    {
+        string directory = CreateMissingDirectoryPath();
+        string path = Path.Combine(directory, "document.csv");
+        try
+        {
+            CreateDocument().Save(path, new CsvSaveOptions { Append = true, NewLine = "\n" });
+
+            Assert.Equal("Name,Value\nAlpha,1\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(directory);
+        }
+    }
+
+    [Fact]
+    public async Task SaveAsync_Append_Creates_Missing_Parent_Directory()
+    {
+        string directory = CreateMissingDirectoryPath();
+        string path = Path.Combine(directory, "document.csv");
+        try
+        {
+            await CreateDocument().SaveAsync(path, new CsvSaveOptions { Append = true, NewLine = "\n" });
+
+            Assert.Equal("Name,Value\nAlpha,1\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(directory);
+        }
+    }
+
+    [Fact]
     public async Task SaveAsync_Rejects_Compressed_Append_Inferred_From_Path()
     {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncAppend." + Guid.NewGuid().ToString("N") + ".csv.gz");
@@ -88,4 +139,12 @@ public class CsvSaveApiTests
     private static CsvDocument CreateDocument() => new CsvDocument()
         .WithHeader("Name", "Value")
         .AddRow("Alpha", 1);
+
+    private static string CreateMissingDirectoryPath() =>
+        Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Save." + Guid.NewGuid().ToString("N"));
+
+    private static void DeleteDirectoryIfExists(string path)
+    {
+        if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+    }
 }

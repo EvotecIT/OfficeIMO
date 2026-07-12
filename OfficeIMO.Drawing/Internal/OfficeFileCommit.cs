@@ -161,7 +161,8 @@ namespace OfficeIMO.Drawing.Internal {
             return fullTargetPath;
         }
 
-        private static void EnsureTargetDirectory(string targetPath) {
+        /// <summary>Ensures the parent directory for a target file exists.</summary>
+        public static void EnsureTargetDirectory(string targetPath) {
             string fullTargetPath = GetFullTargetPath(targetPath);
             string? directory = Path.GetDirectoryName(fullTargetPath);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);

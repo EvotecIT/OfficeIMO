@@ -291,11 +291,16 @@ public sealed partial class CsvDocument
 
         if (options.Append)
         {
+            CsvCompressionType compressionType = CsvFile.ResolveCompression(options.CompressionType, fullPath);
+            if (compressionType != CsvCompressionType.None)
+                throw new NotSupportedException("Appending to compressed CSV files is not supported.");
+            OfficeFileCommit.EnsureTargetDirectory(fullPath);
             using var writer = CsvFile.CreateTextWriter(fullPath, options, append: true, bufferSize: FileBufferSize);
             CsvWriter.Write(writer, this, options);
             return;
         }
 
+        OfficeFileCommit.EnsureTargetDirectory(fullPath);
         var temporaryPath = OfficeFileCommit.CreateTemporaryPath(fullPath);
         try
         {
@@ -334,6 +339,7 @@ public sealed partial class CsvDocument
         {
             if (compressionType != CsvCompressionType.None)
                 throw new NotSupportedException("Appending to compressed CSV files is not supported.");
+            OfficeFileCommit.EnsureTargetDirectory(fullPath);
             byte[] appendBytes = SerializeToBytes(options, CsvCompressionType.None);
             using var stream = new FileStream(fullPath, FileMode.Append, FileAccess.Write, FileShare.Read,
                 FileBufferSize, FileOptions.Asynchronous);
