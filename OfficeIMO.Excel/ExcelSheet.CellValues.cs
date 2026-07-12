@@ -17,11 +17,6 @@ namespace OfficeIMO.Excel {
         /// <param name="cells">Collection of cell coordinates and values.</param>
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
-        /// <remarks>
-        /// This is the canonical API for batch cell writes. Use this in place of the older
-        /// <see cref="SetCellValues(IEnumerable{ValueTuple{int, int, object}}, ExecutionMode?, CancellationToken)"/>
-        /// method, which will be removed in a future release.
-        /// </remarks>
         public void CellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (cells is null) {
                 throw new ArgumentNullException(nameof(cells));
@@ -141,12 +136,5 @@ namespace OfficeIMO.Excel {
             return (cellValue, GetCachedDataTableCellType(cellType));
         }
 
-        /// <summary>
-        /// Obsolete. Use <see cref="CellValues(IEnumerable{ValueTuple{int, int, object}}, ExecutionMode?, CancellationToken)"/> instead.
-        /// </summary>
-        [Obsolete("Use CellValues(...) instead.")]
-        public void SetCellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExecutionMode? mode = null, CancellationToken ct = default) {
-            CellValues(cells, mode, ct);
-        }
     }
 }

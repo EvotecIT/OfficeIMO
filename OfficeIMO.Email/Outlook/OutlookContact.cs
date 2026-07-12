@@ -143,14 +143,6 @@ public sealed class OutlookContact {
     public OutlookContactEmailAddress Email2 { get; } = new OutlookContactEmailAddress();
     /// <summary>Third electronic-mail address.</summary>
     public OutlookContactEmailAddress Email3 { get; } = new OutlookContactEmailAddress();
-    /// <summary>Compatibility alias for the first electronic-mail address.</summary>
-    public string? Email1Address { get => Email1.Address; set => Email1.Address = value; }
-    /// <summary>Compatibility alias for the primary business telephone.</summary>
-    public string? BusinessPhone { get => Phones.Business; set => Phones.Business = value; }
-    /// <summary>Compatibility alias for the primary home telephone.</summary>
-    public string? HomePhone { get => Phones.Home; set => Phones.Home = value; }
-    /// <summary>Compatibility alias for the mobile telephone.</summary>
-    public string? MobilePhone { get => Phones.Mobile; set => Phones.Mobile = value; }
     /// <summary>Instant-messaging address.</summary>
     public string? InstantMessagingAddress { get; set; }
     /// <summary>Business home page.</summary>

@@ -122,7 +122,7 @@ public partial class Excel {
         }
 
         using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 

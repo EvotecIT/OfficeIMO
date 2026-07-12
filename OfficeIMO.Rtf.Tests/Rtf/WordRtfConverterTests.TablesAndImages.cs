@@ -149,7 +149,7 @@ public partial class WordRtfConverterTests {
         using WordDocument semanticBridge = rtfDocument.ToWordDocument();
         Assert.Equal("Pixel image", Assert.Single(semanticBridge.Images).Description);
         WordImage roundTripImage = Assert.Single(roundTrip.Images);
-        Assert.Equal(png, roundTripImage.GetBytes());
+        Assert.Equal(png, roundTripImage.ToBytes());
         RtfImage semanticRoundTripImage = Assert.IsType<RtfImage>(Assert.Single(roundTripRtf.Blocks));
         Assert.Equal(png, semanticRoundTripImage.Data);
         Assert.Equal(480, semanticRoundTripImage.DesiredWidthTwips);

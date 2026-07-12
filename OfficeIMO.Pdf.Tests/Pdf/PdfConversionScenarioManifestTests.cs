@@ -237,7 +237,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void MarkdownInvoiceStatement_ProducesManifestedReviewProof() {
         byte[] pdf = CreateInvoiceStatementMarkdown().ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
-            ApplyWordLikeTheme = true,
+            ApplyDefaultTheme = true,
             Title = "OfficeIMO invoice statement proof",
             Subject = "Invoice and statement conversion proof"
         });
@@ -1611,7 +1611,7 @@ public sealed class PdfConversionScenarioManifestTests {
                     : null)
         };
 
-        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
@@ -1646,7 +1646,7 @@ public sealed class PdfConversionScenarioManifestTests {
                     : null)
         };
 
-        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfDocumentResult(options);
         PdfCore.PdfDocumentConversionResult processed = result.Process(document => document.AppendMetadataRevision(title: "Processed HTML PDF"));
 
         Assert.True(result.HasWarnings);
@@ -1723,7 +1723,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
         var htmlOptions = new HtmlPdfSaveOptions();
-        PdfCore.PdfDocumentConversionResult htmlResult = CreatePracticalHtmlSample(linkUri).ToPdfResult(htmlOptions);
+        PdfCore.PdfDocumentConversionResult htmlResult = CreatePracticalHtmlSample(linkUri).ToPdfDocumentResult(htmlOptions);
         byte[] pdf = htmlResult.ToBytes();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
@@ -1871,7 +1871,7 @@ public sealed class PdfConversionScenarioManifestTests {
         var semanticWordOptions = new PdfWordReadOptions {
             LayoutOptions = layoutOptions
         };
-        PdfWordConversionResult semanticWordResult = pdf.ToWordDocumentResultFromPdf(semanticWordOptions);
+        PdfWordConversionResult semanticWordResult = pdf.ToWordDocumentFromPdfResult(semanticWordOptions);
         using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
             semanticWordDocument.Save(semanticWordStream);
         }
@@ -2247,7 +2247,7 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SlidePart.Slide.Save();
 
         var options = new PowerPointPdfSaveOptions();
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         Assert.False(result.HasWarnings);
         Assert.Equal("1D4ED8", presentation.GetThemeColor(PowerPointThemeColor.Accent1));

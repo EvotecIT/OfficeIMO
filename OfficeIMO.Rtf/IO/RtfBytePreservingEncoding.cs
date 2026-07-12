@@ -58,8 +58,6 @@ internal static class RtfBytePreservingEncoding {
         return memory.ToArray();
     }
 
-    public static byte[] GetBytes(string rtf) => ToBytes(rtf);
-
     public static void WriteAllText(string path, string rtf) {
         OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(path, ToBytes(rtf));
     }
@@ -109,7 +107,7 @@ internal static class RtfBytePreservingEncoding {
         }
     }
 
-    private static byte[] ToBytes(string rtf) {
+    internal static byte[] ToBytes(string rtf) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
 
         var bytes = new byte[rtf.Length];

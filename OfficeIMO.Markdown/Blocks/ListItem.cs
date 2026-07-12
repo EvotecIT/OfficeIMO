@@ -28,12 +28,10 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     /// <summary>Ordered AST-style view of all list-item child blocks, including lead paragraphs.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks {
         get {
-            EnsureBlockChildren();
+            EnsureChildBlocks();
             return _blockChildren;
         }
     }
-    /// <summary>Compatibility alias for <see cref="ChildBlocks"/>.</summary>
-    public IReadOnlyList<IMarkdownBlock> BlockChildren => ChildBlocks;
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
     public bool IsTask { get; }
@@ -202,11 +200,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         return true;
     }
 
-    internal void ReplaceBlockChildren(IReadOnlyList<IMarkdownBlock>? blocks) {
+    internal void ReplaceChildBlocks(IReadOnlyList<IMarkdownBlock>? blocks) {
         var incoming = blocks?
             .Where(block => block != null)
             .ToList();
-        var preserveSyntaxChildren = HasSameBlockChildren(incoming);
+        var preserveSyntaxChildren = HasSameChildBlocks(incoming);
         IMarkdownInline[]? leadInlines = null;
         var additionalParagraphs = new List<InlineSequence>();
         var childBlocks = new List<IMarkdownBlock>();
@@ -253,12 +251,12 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
     }
 
-    private bool HasSameBlockChildren(IReadOnlyList<IMarkdownBlock>? blocks) {
+    private bool HasSameChildBlocks(IReadOnlyList<IMarkdownBlock>? blocks) {
         if (blocks == null) {
-            return BlockChildren.Count == 0;
+            return ChildBlocks.Count == 0;
         }
 
-        var current = BlockChildren;
+        var current = ChildBlocks;
         if (current.Count != blocks.Count) {
             return false;
         }
@@ -315,7 +313,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() => BuildOwnedSyntaxChildren();
 
     private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
-        var blockChildren = BlockChildren;
+        var blockChildren = ChildBlocks;
         if (SyntaxChildren.Count > 0) {
             return BuildCanonicalSyntaxChildrenPreservingSyntaxOnlyNodes(blockChildren);
         }
@@ -399,7 +397,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
     }
 
-    private void EnsureBlockChildren() {
+    private void EnsureChildBlocks() {
         EnsureParagraphBlocks();
 
         _blockChildren.Clear();

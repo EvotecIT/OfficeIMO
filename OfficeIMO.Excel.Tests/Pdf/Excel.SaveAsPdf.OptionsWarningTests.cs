@@ -53,7 +53,7 @@ public partial class Excel {
 
             document.Save();
 
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 

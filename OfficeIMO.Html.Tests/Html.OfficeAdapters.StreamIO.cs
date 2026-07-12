@@ -72,7 +72,7 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.True(markdownStream.CanRead);
 
         using var pdfStream = new MemoryStream(bomHtml);
-        var pdfResult = await pdfStream.ToPdfResultAsync();
+        var pdfResult = await pdfStream.ToPdfDocumentResultAsync();
         Assert.True(pdfStream.CanRead);
         Assert.NotEmpty(pdfResult.ToBytes());
     }

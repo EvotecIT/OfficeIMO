@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Deletes this comment and removes all references from the document.
         /// </summary>
-        public void Delete() {
+        public void Remove() {
             var commentsPart = _document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsPart;
             var commentsExPart = _document._wordprocessingDocument.MainDocumentPart?.WordprocessingCommentsExPart;
             int index = -1;
@@ -128,13 +128,6 @@ namespace OfficeIMO.Word {
             }
 
             RemoveReferencesFromAllContentParts();
-        }
-
-        /// <summary>
-        /// Removes this comment from the document. Alias for <see cref="Delete"/>.
-        /// </summary>
-        public void Remove() {
-            Delete();
         }
 
         /// <summary>
@@ -181,7 +174,7 @@ namespace OfficeIMO.Word {
                 reply.DeleteThread();
             }
 
-            Delete();
+            Remove();
         }
 
         private void RemoveReferencesFromAllContentParts() {

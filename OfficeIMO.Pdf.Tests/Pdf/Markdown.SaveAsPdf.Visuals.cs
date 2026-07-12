@@ -135,7 +135,7 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
             .WithColors(heading: "#ff0000", text: "#000000");
         var options = CreateVisualOptions();
-        options.VisualTheme = null;
+        options.PdfTheme = null;
         options.Theme = sharedTheme;
 
         byte[] bytes = "#### Lower heading".ToPdfDocumentFromMarkdown(options).ToBytes();
@@ -187,7 +187,7 @@ public class MarkdownSaveAsPdfVisualTests {
             PaddingY = 6
         };
         var options = CreateVisualOptions();
-        options.VisualTheme = visualTheme;
+        options.PdfTheme = visualTheme;
 
         byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
@@ -204,7 +204,7 @@ public class MarkdownSaveAsPdfVisualTests {
             .FrontMatter(new { theme = "report", pdfTheme = "technicalDocument" })
             .H1("Themed document");
         var options = new MarkdownPdfSaveOptions {
-            UseFrontMatterVisualTheme = true
+            UseFrontMatterTheme = true
         };
         MethodInfo method = typeof(MarkdownPdfConverterExtensions).GetMethod("ResolveVisualTheme", BindingFlags.NonPublic | BindingFlags.Static)!;
 
@@ -222,7 +222,7 @@ public class MarkdownSaveAsPdfVisualTests {
         var options = CreateVisualOptions();
         options.RemoteImageResolver = _ => CreateGifBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
@@ -263,7 +263,7 @@ _Figure 2. Revenue chart_
 """;
 
         var options = CreateVisualOptions();
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
         byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
@@ -2388,7 +2388,7 @@ _Figure 2. Revenue chart_
         };
         theme.FigureStyle = figureStyle;
         var options = CreateVisualOptions();
-        options.VisualTheme = theme;
+        options.PdfTheme = theme;
 
         byte[] bytes = markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
@@ -2406,7 +2406,7 @@ _Figure 2. Revenue chart_
 """;
 
         var options = CreateVisualOptions();
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
         byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
@@ -2425,7 +2425,7 @@ _Figure 3. Flow fallback_
 """;
 
         var options = CreateVisualOptions();
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfResultFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
         byte[] bytes = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(bytes).ExtractText();
 
@@ -2436,7 +2436,7 @@ _Figure 3. Flow fallback_
     }
 
     private static MarkdownPdfSaveOptions CreateVisualOptions() => new MarkdownPdfSaveOptions {
-        VisualTheme = MarkdownPdfVisualTheme.Report(),
+        PdfTheme = MarkdownPdfVisualTheme.Report(),
         PdfOptions = new PdfCore.PdfOptions {
             CompressContentStreams = false,
             PageWidth = 420,

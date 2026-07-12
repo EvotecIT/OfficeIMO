@@ -93,11 +93,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Backward-compatible alias for AddTableOfContents.
-        /// </summary>
-        public void CreateTableOfContents(string sheetName = "TOC") => AddTableOfContents(sheetName, placeFirst: true, withHyperlinks: true);
-
-        /// <summary>
         /// Adds a small back link to the TOC on each worksheet at the given cell (default A2).
         /// </summary>
         public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {

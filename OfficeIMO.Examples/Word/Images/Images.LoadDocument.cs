@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ Document images: " + images.Count);
 
                 var firstImage = Guard.GetRequiredItem(images, 0, "Template should contain at least one image to export.");
-                firstImage.SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
+                firstImage.Save(System.IO.Path.Combine(outputPath, "random.jpg"));
             }
         }
     }

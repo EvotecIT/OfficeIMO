@@ -60,12 +60,12 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
-    public async Task Word_Rtf_Async_Read_Result_Uses_Bounded_Core_Profile() {
+    public void Word_Rtf_Read_Result_Uses_Bounded_Core_Profile() {
         var options = RtfReadOptions.CreateUntrustedProfile();
         options.MaxInputCharacters = 4;
 
-        await Assert.ThrowsAsync<RtfReadLimitException>(() =>
-            @"{\rtf1 Too large}".LoadFromRtfResultAsync(options));
+        Assert.Throws<RtfReadLimitException>(() =>
+            @"{\rtf1 Too large}".LoadFromRtfResult(options));
     }
 
     [Fact]

@@ -28,27 +28,18 @@ public sealed class MarkdownPdfSaveOptions {
     /// </summary>
     public bool AllowSystemFontEmbedding { get; set; } = true;
 
-    /// <summary>
-    /// Compatibility shortcut for enabling or disabling the default text fallback preset. Prefer <see cref="TextFallbacks"/> for new code.
-    /// </summary>
-    [Obsolete("Use TextFallbacks instead.")]
-    public bool UseDefaultTextFallbacks {
-        get => TextFallbacks != PdfCore.PdfTextFallbackFeatures.None;
-        set => TextFallbacks = value ? PdfCore.PdfTextFallbackFeatures.Default : PdfCore.PdfTextFallbackFeatures.None;
-    }
-
     /// <summary>Markdown reader options used by string and file overloads.</summary>
     public MarkdownReaderOptions? ReaderOptions { get; set; }
 
     /// <summary>Applies the built-in Word-like PDF theme before rendering Markdown blocks.</summary>
-    public bool ApplyWordLikeTheme { get; set; } = true;
+    public bool ApplyDefaultTheme { get; set; } = true;
 
     private MarkdownVisualTheme? _theme;
-    private MarkdownPdfVisualTheme? _visualTheme;
+    private MarkdownPdfVisualTheme? _pdfTheme;
 
     /// <summary>
     /// Shared Markdown visual theme used to align PDF output with HTML and Word exporters.
-    /// When set, this is translated into the PDF-specific visual theme unless <see cref="VisualTheme"/> is also set.
+    /// When set, this is translated into the PDF-specific visual theme unless <see cref="PdfTheme"/> is also set.
     /// </summary>
     public MarkdownVisualTheme? Theme {
         get => _theme?.Clone();
@@ -61,13 +52,13 @@ public sealed class MarkdownPdfSaveOptions {
     /// PDF-specific visual theme override. Prefer <see cref="Theme"/> for new code when the same visual profile
     /// should be reused across Markdown HTML, PDF, and Word exports.
     /// </summary>
-    public MarkdownPdfVisualTheme? VisualTheme {
-        get => _visualTheme?.Clone();
-        set => _visualTheme = value?.Clone();
+    public MarkdownPdfVisualTheme? PdfTheme {
+        get => _pdfTheme?.Clone();
+        set => _pdfTheme = value?.Clone();
     }
 
     /// <summary>Use <c>theme</c>, <c>visualTheme</c>, <c>pdfTheme</c>, or equivalent front matter values as the visual profile when no explicit theme is set.</summary>
-    public bool UseFrontMatterVisualTheme { get; set; } = true;
+    public bool UseFrontMatterTheme { get; set; } = true;
 
     /// <summary>Create PDF outlines from supported Markdown headings.</summary>
     public bool CreateOutlineFromHeadings { get; set; } = true;
@@ -166,7 +157,7 @@ public sealed class MarkdownPdfSaveOptions {
             case PdfCore.PdfExportProfile.Faithful:
                 IncludeDataUriImages = true;
                 IncludeLocalImages = true;
-                ApplyWordLikeTheme = true;
+                ApplyDefaultTheme = true;
                 CreateOutlineFromHeadings = true;
                 FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
                 break;
@@ -174,12 +165,12 @@ public sealed class MarkdownPdfSaveOptions {
                 IncludeDataUriImages = false;
                 IncludeLocalImages = false;
                 RemoteImageResolver = null;
-                ApplyWordLikeTheme = true;
+                ApplyDefaultTheme = true;
                 CreateOutlineFromHeadings = true;
                 break;
             case PdfCore.PdfExportProfile.PrintReady:
                 IncludeDataUriImages = true;
-                ApplyWordLikeTheme = true;
+                ApplyDefaultTheme = true;
                 CreateOutlineFromHeadings = true;
                 FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
                 break;
@@ -187,7 +178,7 @@ public sealed class MarkdownPdfSaveOptions {
                 IncludeDataUriImages = false;
                 IncludeLocalImages = false;
                 RemoteImageResolver = null;
-                ApplyWordLikeTheme = false;
+                ApplyDefaultTheme = false;
                 FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.Hidden;
                 break;
             default:
@@ -209,7 +200,7 @@ public sealed class MarkdownPdfSaveOptions {
     internal MarkdownPdfSaveOptions CloneForConversion() {
         var clone = (MarkdownPdfSaveOptions)MemberwiseClone();
         clone._theme = _theme?.Clone();
-        clone._visualTheme = _visualTheme?.Clone();
+        clone._pdfTheme = _pdfTheme?.Clone();
         clone.Warnings = new List<MarkdownPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();
         return clone;

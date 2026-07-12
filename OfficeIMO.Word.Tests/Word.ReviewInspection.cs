@@ -764,7 +764,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordComment comment = Assert.Single(document.Comments);
-                comment.Delete();
+                comment.Remove();
                 document.Save();
             }
 

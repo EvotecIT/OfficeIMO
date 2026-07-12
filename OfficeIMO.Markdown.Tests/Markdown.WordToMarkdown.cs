@@ -552,8 +552,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Collection(
                 list.Items,
-                item => Assert.Equal(new[] { "first paragraph", "second paragraph" }, item.BlockChildren.Select(block => block.RenderMarkdown()).ToArray()),
-                item => Assert.Equal(new[] { "next item" }, item.BlockChildren.Select(block => block.RenderMarkdown()).ToArray()));
+                item => Assert.Equal(new[] { "first paragraph", "second paragraph" }, item.ChildBlocks.Select(block => block.RenderMarkdown()).ToArray()),
+                item => Assert.Equal(new[] { "next item" }, item.ChildBlocks.Select(block => block.RenderMarkdown()).ToArray()));
         }
 
         [Fact]

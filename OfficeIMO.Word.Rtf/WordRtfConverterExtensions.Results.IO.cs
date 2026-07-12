@@ -26,18 +26,6 @@ public static partial class WordRtfConverterExtensions {
         return CreateWordReadResult(read, path);
     }
 
-    /// <summary>Asynchronously reads RTF text and returns Word plus a combined report.</summary>
-    public static async Task<RtfConversionResult<WordDocument>> LoadFromRtfResultAsync(this string rtf, RtfReadOptions? readOptions = null, CancellationToken cancellationToken = default) {
-        RtfReadResult read = await RtfDocument.ReadAsync(rtf, readOptions ?? RtfReadOptions.CreateUntrustedProfile(), cancellationToken).ConfigureAwait(false);
-        return CreateWordReadResult(read, "string");
-    }
-
-    /// <summary>Asynchronously reads RTF bytes and returns Word plus a combined report.</summary>
-    public static async Task<RtfConversionResult<WordDocument>> LoadFromRtfResultAsync(this byte[] rtfBytes, RtfReadOptions? readOptions = null, CancellationToken cancellationToken = default) {
-        RtfReadResult read = await RtfDocument.LoadAsync(rtfBytes, readOptions ?? RtfReadOptions.CreateUntrustedProfile(), cancellationToken).ConfigureAwait(false);
-        return CreateWordReadResult(read, "bytes");
-    }
-
     /// <summary>Asynchronously reads an RTF stream and returns Word plus a combined report.</summary>
     public static async Task<RtfConversionResult<WordDocument>> LoadFromRtfResultAsync(this Stream rtfStream, RtfReadOptions? readOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         RtfReadResult read = await RtfDocument.LoadAsync(rtfStream, readOptions ?? RtfReadOptions.CreateUntrustedProfile(), encoding, cancellationToken).ConfigureAwait(false);

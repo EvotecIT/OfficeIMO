@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/Type /ExtGState", rawPdf, StringComparison.Ordinal);
         Assert.Contains("ShadowPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("clip-path=", svg, StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("/Type /ExtGState", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
     }
 

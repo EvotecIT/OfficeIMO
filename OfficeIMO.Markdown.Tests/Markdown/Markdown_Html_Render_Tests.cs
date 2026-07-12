@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .H1("Title")
                 .P("Hello")
                 .ToHtmlDocument(new HtmlOptions {
-                    ApplyDefaultVisualTheme = false
+                    ApplyDefaultTheme = false
                 });
 
             Assert.DoesNotContain("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
                 .ToHtmlDocument(new HtmlOptions {
                     Title = "Shared Theme",
-                    VisualTheme = theme,
+                    Theme = theme,
                     Kind = HtmlKind.Document
                 });
 
@@ -95,25 +95,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void SaveHtml_Remains_Compatibility_Alias_For_SaveAsHtml() {
-            var temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(temp);
-            var path = Path.Combine(temp, "compat.html");
-            var doc = MarkdownDoc.Create().H1("Title");
-
-            doc.SaveHtml(path, new HtmlOptions { Title = "Compat", Style = HtmlStyle.Clean });
-
-            Assert.True(File.Exists(path));
-            Assert.Contains("Title", File.ReadAllText(path), StringComparison.Ordinal);
-        }
-
-        [Fact]
-        public void ThemeColors_Property_Remains_Html_Color_Override_Api() {
+        public void ColorOverridesApplyToHtmlThemeVariables() {
             string html = MarkdownDoc.Create()
                 .H1("Legacy colors")
                 .ToHtmlDocument(new HtmlOptions {
-                    Title = "Legacy",
-                    Theme = new ThemeColors {
+                    Title = "Custom colors",
+                    ColorOverrides = new ThemeColors {
                         HeadingLight = "SeaGreen",
                         AccentLight = "#123456"
                     },

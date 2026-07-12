@@ -62,7 +62,7 @@ public class MarkdownSaveAsPdfOptionsTests {
     [Fact]
     public void ToPdfDocument_Markdown_TextFallbacksPreserveCallerPdfOptionsFontSlots() {
         var options = new MarkdownPdfSaveOptions {
-            VisualTheme = MarkdownPdfVisualTheme.Plain(),
+            PdfTheme = MarkdownPdfVisualTheme.Plain(),
             PdfOptions = new PdfCore.PdfOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman,
                 HeaderFont = PdfCore.PdfStandardFont.Courier,

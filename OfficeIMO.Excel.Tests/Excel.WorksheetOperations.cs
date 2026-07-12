@@ -1693,7 +1693,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(3, 1, "APAC");
                 source.CellValue(3, 2, 150);
 
-                ExcelWorksheetMergeResult result = document.MergeWorkSheets(target, source);
+                ExcelWorksheetMergeResult result = document.MergeWorksheets(target, source);
 
                 Assert.Equal("Combined", result.TargetSheetName);
                 Assert.Equal("More", result.SourceSheetName);
@@ -1740,7 +1740,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(3, 1, 150);
                 source.CellValue(3, 2, "APAC");
 
-                ExcelWorksheetMergeResult result = document.MergeWorkSheets(target, source, new ExcelWorksheetMergeOptions {
+                ExcelWorksheetMergeResult result = document.MergeWorksheets(target, source, new ExcelWorksheetMergeOptions {
                     MatchColumnsByHeader = true
                 });
 
@@ -1785,7 +1785,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 1, 200);
                 source.CellValue(2, 2, "EMEA");
 
-                ExcelWorksheetMergeResult result = document.MergeWorkSheets(target, source, new ExcelWorksheetMergeOptions {
+                ExcelWorksheetMergeResult result = document.MergeWorksheets(target, source, new ExcelWorksheetMergeOptions {
                     MatchColumnsByHeader = true,
                     TargetHeaderRow = 3,
                     TargetStartRow = 5,
@@ -1828,7 +1828,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 1, "EMEA");
                 source.CellValue(2, 2, 200);
 
-                var exception = Assert.Throws<ArgumentException>(() => document.MergeWorkSheets(target, source, new ExcelWorksheetMergeOptions {
+                var exception = Assert.Throws<ArgumentException>(() => document.MergeWorksheets(target, source, new ExcelWorksheetMergeOptions {
                     MatchColumnsByHeader = true
                 }));
                 Assert.Contains("Revenue", exception.Message);
@@ -1857,7 +1857,7 @@ namespace OfficeIMO.Tests {
                 target.CellValue(1, 1, "Region");
                 target.CellValue(1, 2, "Revenue");
 
-                ExcelWorksheetMergeResult result = targetDocument.MergeWorkSheets(target, sourceDocument.GetSheet("More"), new ExcelWorksheetMergeOptions {
+                ExcelWorksheetMergeResult result = targetDocument.MergeWorksheets(target, sourceDocument.GetSheet("More"), new ExcelWorksheetMergeOptions {
                     MatchColumnsByHeader = true
                 });
 
@@ -1893,7 +1893,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(1, 1, "Region");
                 source.CellValue(2, 1, "EMEA");
 
-                var exception = Assert.Throws<ArgumentException>(() => leftDocument.MergeWorkSheets(wrongTarget, source));
+                var exception = Assert.Throws<ArgumentException>(() => leftDocument.MergeWorksheets(wrongTarget, source));
                 Assert.Contains("Target worksheet", exception.Message);
             }
 
@@ -1914,7 +1914,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(3, 2, "Ada");
                 source.CellValue(3, 3, 10);
 
-                ExcelWorksheetMergeResult result = document.JoinWorksheets(target, source, new ExcelWorksheetMergeOptions {
+                ExcelWorksheetMergeResult result = document.MergeWorksheets(target, source, new ExcelWorksheetMergeOptions {
                     SourceRange = "B2:C3",
                     IncludeSourceHeader = true,
                     TargetStartRow = 5,
@@ -1954,7 +1954,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 1, "Ada");
                 source.CellValue(2, 2, 10);
 
-                var exception = Assert.Throws<InvalidOperationException>(() => document.JoinWorksheets(target, source, new ExcelWorksheetMergeOptions {
+                var exception = Assert.Throws<InvalidOperationException>(() => document.MergeWorksheets(target, source, new ExcelWorksheetMergeOptions {
                     SourceRange = "A1:B2",
                     IncludeSourceHeader = true,
                     TargetStartRow = 5,
@@ -1981,7 +1981,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 1, "Ada");
                 source.CellValue(2, 2, 10);
 
-                ExcelWorksheetMergeResult result = document.JoinWorksheets(target, source, new ExcelWorksheetMergeOptions {
+                ExcelWorksheetMergeResult result = document.MergeWorksheets(target, source, new ExcelWorksheetMergeOptions {
                     SourceRange = "A1:B2",
                     IncludeSourceHeader = true,
                     TargetStartRow = 5,

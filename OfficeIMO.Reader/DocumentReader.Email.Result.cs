@@ -97,7 +97,7 @@ public static partial class DocumentReader {
             AddEmailMetadata(metadata, idPrefix + "contact-surname", "email.contact", "Surname", document.Contact.Surname, "string", sourceObjectId);
             AddEmailMetadata(metadata, idPrefix + "contact-company", "email.contact", "CompanyName", document.Contact.CompanyName, "string", sourceObjectId);
             AddEmailMetadata(metadata, idPrefix + "contact-job-title", "email.contact", "JobTitle", document.Contact.JobTitle, "string", sourceObjectId);
-            AddEmailMetadata(metadata, idPrefix + "contact-email", "email.contact", "Email1Address", document.Contact.Email1Address, "string", sourceObjectId);
+            AddEmailMetadata(metadata, idPrefix + "contact-email", "email.contact", "Email1Address", document.Contact.Email1.Address, "string", sourceObjectId);
         }
         if (document.Task != null) {
             AddEmailMetadata(metadata, idPrefix + "task-start", "email.task", "Start", FormatEmailDate(document.Task.Start), "date-time", sourceObjectId);

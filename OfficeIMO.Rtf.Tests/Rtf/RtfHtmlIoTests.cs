@@ -128,12 +128,12 @@ public class RtfHtmlIoTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Async ż");
 
-        string html = await document.ToHtmlAsync();
-        byte[] htmlBytes = await document.ToHtmlBytesAsync();
+        string html = document.ToHtml();
+        byte[] htmlBytes = document.ToHtmlBytes();
 
         Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));
 
-        using MemoryStream htmlMemoryStream = await document.ToHtmlMemoryStreamAsync();
+        using MemoryStream htmlMemoryStream = document.ToHtmlMemoryStream();
         Assert.Equal(htmlBytes, htmlMemoryStream.ToArray());
 
         using var htmlOutput = new MemoryStream();
@@ -145,7 +145,7 @@ public class RtfHtmlIoTests {
         Assert.Equal(0x2A, savedHtml[0]);
         Assert.Equal(html, Encoding.UTF8.GetString(savedHtml, 1, savedHtml.Length - 1));
 
-        RtfDocument fromBytes = await htmlBytes.ToRtfDocumentAsync();
+        RtfDocument fromBytes = htmlBytes.ToRtfDocument();
         Assert.Equal("Async ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
 
         byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
@@ -157,13 +157,13 @@ public class RtfHtmlIoTests {
         Assert.Equal("Async ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
 
         var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
-        string rtf = await html.ToRtfAsync(writeOptions: writeOptions);
-        byte[] rtfBytes = await htmlBytes.ToRtfBytesAsync(writeOptions: writeOptions);
+        string rtf = html.ToRtf(writeOptions: writeOptions);
+        byte[] rtfBytes = htmlBytes.ToRtfBytes(writeOptions: writeOptions);
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(rtfBytes));
         Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
 
-        using MemoryStream rtfMemoryStream = await htmlBytes.ToRtfMemoryStreamAsync(writeOptions: writeOptions);
+        using MemoryStream rtfMemoryStream = htmlBytes.ToRtfMemoryStream(writeOptions: writeOptions);
         Assert.Equal(rtfBytes, rtfMemoryStream.ToArray());
 
         using var secondSource = new MemoryStream(prefixedHtml);
@@ -185,8 +185,9 @@ public class RtfHtmlIoTests {
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<p>Cancelled</p>"));
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            "<p>Cancelled</p>".ToRtfDocumentAsync(cancellationToken: cts.Token));
+            stream.ToRtfDocumentAsync(cancellationToken: cts.Token));
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             HtmlRtfConverterExtensions.ToRtfDocumentFromHtmlFileAsync("ignored.html", cancellationToken: cts.Token));
     }

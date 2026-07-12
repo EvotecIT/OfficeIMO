@@ -340,7 +340,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            byte[] bytes = image.GetBytes();
+            byte[] bytes = image.ToBytes();
             if (bytes.Length == 0) {
                 reason = "image has empty bytes.";
                 return false;

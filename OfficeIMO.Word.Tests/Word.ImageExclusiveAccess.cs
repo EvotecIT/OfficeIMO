@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
 
             var fileToSave = Path.Combine(_directoryWithFiles, "LockedImage.jpg");
             using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)) {
-                Assert.Throws<IOException>(() => document.Images[0].SaveToFile(fileToSave));
+                Assert.Throws<IOException>(() => document.Images[0].Save(fileToSave));
             }
 
-            document.Images[0].SaveToFile(fileToSave);
+            document.Images[0].Save(fileToSave);
             Assert.True(new FileInfo(fileToSave).Length > 0);
         }
     }

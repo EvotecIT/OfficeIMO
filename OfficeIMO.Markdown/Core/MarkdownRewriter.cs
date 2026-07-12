@@ -89,7 +89,7 @@ public abstract class MarkdownRewriter {
                 continue;
             }
 
-            item.ReplaceBlockChildren(RewriteBlocks(item.BlockChildren));
+            item.ReplaceChildBlocks(RewriteBlocks(item.ChildBlocks));
         }
     }
 

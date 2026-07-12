@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
                 var defaultFooter = document.FooterDefaultOrCreate;
                 var footerImages = defaultFooter.Images;
                 Console.WriteLine("+ Document images in footer: " + footerImages.Count);
-                //document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
+                //document.Images[0].Save(System.IO.Path.Combine(outputPath, "random.jpg"));
 
                 Console.WriteLine("----");
                 foreach (var image in images) {

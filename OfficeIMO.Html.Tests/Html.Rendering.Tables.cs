@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("CaptionPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains("CellPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("stroke=\"#FF0000\"", svg, StringComparison.Ordinal);
         Assert.Contains("LeftPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains("RightPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

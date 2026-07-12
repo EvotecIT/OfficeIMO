@@ -84,7 +84,7 @@ public sealed class PdfConversionTypographyTests {
 
         string unsupportedScalar = char.ConvertFromUtf32(0x10FFFF);
         var options = new MarkdownPdfSaveOptions {
-            ApplyWordLikeTheme = false,
+            ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
 
@@ -240,7 +240,7 @@ public sealed class PdfConversionTypographyTests {
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludeSheetHeadings = false
             };
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             byte[] pdf = result.ToBytes();
             Assert.False(result.HasWarnings);
             return pdf;
@@ -253,7 +253,7 @@ public sealed class PdfConversionTypographyTests {
 
     private static byte[] CreateMarkdownPdf(string fontPath) {
         var options = new MarkdownPdfSaveOptions {
-            ApplyWordLikeTheme = false,
+            ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
         PdfCore.PdfDocumentConversionResult result = """
@@ -265,7 +265,7 @@ Zażółć gęślą jaźń
 | --- | --- |
 | Ελλάδα | Athens |
 | Україна | Київ |
-""".ToPdfResultFromMarkdown(options);
+""".ToPdfDocumentFromMarkdownResult(options);
 
         byte[] pdf = result.ToBytes();
         Assert.False(result.HasWarnings);
@@ -289,7 +289,7 @@ Zażółć gęślą jaźń
     </table>
   </body>
 </html>
-""".ToPdfResult(options).ToBytes();
+""".ToPdfDocumentResult(options).ToBytes();
 
         return pdf;
     }
@@ -314,7 +314,7 @@ Zażółć gęślą jaźń
         var options = new PowerPointPdfSaveOptions {
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         Assert.False(result.HasWarnings);
         return pdf;
@@ -333,7 +333,7 @@ Zażółć gęślą jaźń
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludePageNumbers = false
             };
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             _ = result.ToBytes();
             return result.Report;
         } finally {
@@ -356,7 +356,7 @@ Zażółć gęślą jaźń
                 PdfOptions = CreatePdfOptions(fontPath),
                 IncludeSheetHeadings = false
             };
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             _ = result.ToBytes();
             return result.Report;
         } finally {
@@ -368,10 +368,10 @@ Zażółć gęślą jaźń
 
     private static PdfCore.PdfConversionReport CreateMarkdownOpenTypeReport(string fontPath) {
         var options = new MarkdownPdfSaveOptions {
-            ApplyWordLikeTheme = false,
+            ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        PdfCore.PdfDocumentConversionResult result = "office cafe\u0301".ToPdfResultFromMarkdown(options);
+        PdfCore.PdfDocumentConversionResult result = "office cafe\u0301".ToPdfDocumentFromMarkdownResult(options);
         _ = result.ToBytes();
         return result.Report;
     }
@@ -386,7 +386,7 @@ Zażółć gęślą jaźń
         var options = new PowerPointPdfSaveOptions {
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         _ = result.ToBytes();
         return result.Report;
     }
@@ -404,7 +404,7 @@ Zażółć gęślą jaźń
                 IncludePageNumbers = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;
-            AssertRenderAttempt(() => (result = document.ToPdfResult(options)).ToBytes(), allowMissingGlyphFailure);
+            AssertRenderAttempt(() => (result = document.ToPdfDocumentResult(options)).ToBytes(), allowMissingGlyphFailure);
             return result?.Report ?? new PdfCore.PdfConversionReport();
         } finally {
             if (Directory.Exists(directory)) {
@@ -426,7 +426,7 @@ Zażółć gęślą jaźń
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult? result = null;
-            AssertRenderAttempt(() => (result = document.ToPdfResult(options)).ToBytes(), allowMissingGlyphFailure);
+            AssertRenderAttempt(() => (result = document.ToPdfDocumentResult(options)).ToBytes(), allowMissingGlyphFailure);
             return result?.Report ?? new PdfCore.PdfConversionReport();
         } finally {
             if (Directory.Exists(directory)) {
@@ -437,10 +437,10 @@ Zażółć gęślą jaźń
 
     private static PdfCore.PdfConversionReport CreateMarkdownComplexScriptReport(string text = "مرحبا", bool allowMissingGlyphFailure = false) {
         var options = new MarkdownPdfSaveOptions {
-            ApplyWordLikeTheme = false
+            ApplyDefaultTheme = false
         };
         PdfCore.PdfDocumentConversionResult? result = null;
-        AssertRenderAttempt(() => (result = text.ToPdfResultFromMarkdown(options)).ToBytes(), allowMissingGlyphFailure);
+        AssertRenderAttempt(() => (result = text.ToPdfDocumentFromMarkdownResult(options)).ToBytes(), allowMissingGlyphFailure);
         return result?.Report ?? new PdfCore.PdfConversionReport();
     }
 
@@ -453,7 +453,7 @@ Zażółć gęślą jaźń
 
         var options = new PowerPointPdfSaveOptions();
         PdfCore.PdfDocumentConversionResult? result = null;
-        AssertRenderAttempt(() => (result = presentation.ToPdfResult(options)).ToBytes(), allowMissingGlyphFailure);
+        AssertRenderAttempt(() => (result = presentation.ToPdfDocumentResult(options)).ToBytes(), allowMissingGlyphFailure);
         return result?.Report ?? new PdfCore.PdfConversionReport();
     }
 

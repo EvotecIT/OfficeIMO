@@ -477,7 +477,7 @@ namespace OfficeIMO.Excel {
         private void AddDrawingDiagnostics(ICollection<ExcelWorkbookDiagnosticIssue> issues) {
             foreach (ExcelSheet sheet in Sheets) {
                 foreach (ExcelImage image in sheet.Images) {
-                    if (image.GetBytes().Length == 0) {
+                    if (image.ToBytes().Length == 0) {
                         issues.Add(new ExcelWorkbookDiagnosticIssue("Drawing", ExcelFindingSeverity.Warning, $"Image '{image.Name}' has no readable image bytes.", sheet.Name, A1.CellReference(image.RowIndex, image.ColumnIndex)));
                     }
                 }

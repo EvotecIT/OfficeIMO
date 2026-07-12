@@ -39,11 +39,11 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Reads source PDF bytes and converts parser-supported semantic content to a Word document.</summary>
         public static WordDocument ToWordDocumentFromPdf(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
-            return pdfBytes.ToWordDocumentResultFromPdf(options, readOptions).Value;
+            return pdfBytes.ToWordDocumentFromPdfResult(options, readOptions).Value;
         }
 
         /// <summary>Reads PDF bytes and returns editable Word output with import diagnostics.</summary>
-        public static PdfWordConversionResult ToWordDocumentResultFromPdf(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static PdfWordConversionResult ToWordDocumentFromPdfResult(this byte[] pdfBytes, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfBytes == null) {
                 throw new ArgumentNullException(nameof(pdfBytes));
             }
@@ -55,11 +55,11 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Reads a PDF stream from the current position and converts parser-supported semantic content to a Word document.</summary>
         public static WordDocument ToWordDocumentFromPdf(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
-            return pdfStream.ToWordDocumentResultFromPdf(options, readOptions).Value;
+            return pdfStream.ToWordDocumentFromPdfResult(options, readOptions).Value;
         }
 
         /// <summary>Reads a PDF stream and returns editable Word output with import diagnostics.</summary>
-        public static PdfWordConversionResult ToWordDocumentResultFromPdf(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static PdfWordConversionResult ToWordDocumentFromPdfResult(this Stream pdfStream, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfStream == null) {
                 throw new ArgumentNullException(nameof(pdfStream));
             }
@@ -71,11 +71,11 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Reads a PDF file and converts parser-supported semantic content to a Word document.</summary>
         public static WordDocument ToWordDocumentFromPdfFile(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
-            return pdfPath.ToWordDocumentResultFromPdfFile(options, readOptions).Value;
+            return pdfPath.ToWordDocumentFromPdfFileResult(options, readOptions).Value;
         }
 
         /// <summary>Reads a PDF file and returns editable Word output with import diagnostics.</summary>
-        public static PdfWordConversionResult ToWordDocumentResultFromPdfFile(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
+        public static PdfWordConversionResult ToWordDocumentFromPdfFileResult(this string pdfPath, PdfWordReadOptions? options = null, PdfCore.PdfReadOptions? readOptions = null) {
             if (pdfPath == null) {
                 throw new ArgumentNullException(nameof(pdfPath));
             }

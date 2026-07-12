@@ -1293,7 +1293,7 @@ public partial class Word {
             document.AddParagraph("After malformed inline chart");
 
             document.Save();
-            PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             result.Save(pdfPath);
             Assert.Contains(result.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         }
@@ -1523,7 +1523,7 @@ public partial class Word {
             Assert.Contains("omitted the additional plot types", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
 
             document.Save();
-            PdfDocumentConversionResult conversion = document.ToPdfResult(options);
+            PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
             conversion.Save(pdfPath);
 
             Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");

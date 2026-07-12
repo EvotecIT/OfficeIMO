@@ -1094,7 +1094,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
-        Assert.Collection(item.BlockChildren,
+        Assert.Collection(item.ChildBlocks,
             block => Assert.IsType<ParagraphBlock>(block),
             block => Assert.IsType<HtmlRawBlock>(block),
             block => Assert.IsType<ParagraphBlock>(block));
@@ -1155,7 +1155,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
-        Assert.Collection(item.BlockChildren,
+        Assert.Collection(item.ChildBlocks,
             block => Assert.IsType<ParagraphBlock>(block),
             block => {
                 var image = Assert.IsType<ImageBlock>(block);
@@ -1946,7 +1946,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
-        Assert.Collection(item.BlockChildren,
+        Assert.Collection(item.ChildBlocks,
             block => Assert.IsType<ParagraphBlock>(block),
             block => Assert.IsType<QuoteBlock>(block),
             block => Assert.IsType<ParagraphBlock>(block));
@@ -2018,7 +2018,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
-        Assert.Collection(item.BlockChildren,
+        Assert.Collection(item.ChildBlocks,
             block => Assert.IsType<ParagraphBlock>(block),
             block => Assert.IsType<UnorderedListBlock>(block),
             block => Assert.IsType<ParagraphBlock>(block));
@@ -2040,7 +2040,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
-        Assert.Collection(item.BlockChildren,
+        Assert.Collection(item.ChildBlocks,
             block => Assert.IsType<ParagraphBlock>(block),
             block => Assert.IsType<DetailsBlock>(block),
             block => Assert.IsType<ParagraphBlock>(block));

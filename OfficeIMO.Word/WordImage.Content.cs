@@ -127,7 +127,7 @@ namespace OfficeIMO.Word {
         /// Extract image from Word Document and save it to file
         /// </summary>
         /// <param name="fileToSave"></param>
-        public void SaveToFile(string fileToSave) {
+        public void Save(string fileToSave) {
             if (_imagePart == null) {
                 throw new InvalidOperationException("Image is linked externally and cannot be saved.");
             }
@@ -170,7 +170,7 @@ namespace OfficeIMO.Word {
         /// Retrieves the image data as a byte array.
         /// </summary>
         /// <returns>Bytes representing the image.</returns>
-        public byte[] GetBytes() {
+        public byte[] ToBytes() {
             using var stream = GetStream();
             using var ms = new MemoryStream();
             stream.CopyTo(ms);

@@ -38,8 +38,8 @@ public sealed class HtmlPdfTests {
         const string html = "<p><img src='https://example.invalid/missing.png'>Report</p>";
         var options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult first = html.ToPdfResult(options);
-        PdfCore.PdfDocumentConversionResult second = "<p>Clean</p>".ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult first = html.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult second = "<p>Clean</p>".ToPdfDocumentResult(options);
 
         Assert.Contains(first.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
         Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);

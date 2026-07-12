@@ -56,7 +56,7 @@ public partial class Excel {
                 PageSize = new PdfCore.PageSize(480, 360),
                 Margins = PdfCore.PageMargins.Uniform(24)
             };
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
             disabledBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -158,7 +158,7 @@ public partial class Excel {
             sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
             document.Save();
 
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 
@@ -429,7 +429,7 @@ public partial class Excel {
             sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
             document.Save();
 
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 

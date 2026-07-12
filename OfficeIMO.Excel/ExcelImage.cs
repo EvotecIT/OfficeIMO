@@ -230,7 +230,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns a copy of the image bytes from the worksheet drawing relationship.
         /// </summary>
-        public byte[] GetBytes() {
+        public byte[] ToBytes() {
             ImagePart? imagePart = ImagePart;
             if (imagePart == null) {
                 return Array.Empty<byte>();

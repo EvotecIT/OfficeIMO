@@ -79,8 +79,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSignatureMutationPolicy SignatureMutationPolicy { get; set; } =
             PowerPointSignatureMutationPolicy.BlockSave;
 
-        /// <summary>Report produced by the latest signature inspection or save policy check.</summary>
-        public PowerPointSignatureReport? LastSignatureReport { get; private set; }
+        internal PowerPointSignatureReport? LastSignatureReport { get; private set; }
 
         /// <summary>Inspects package signature metadata without mutating it.</summary>
         public PowerPointSignatureReport InspectSignatures() {

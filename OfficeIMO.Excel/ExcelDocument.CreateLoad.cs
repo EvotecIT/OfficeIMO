@@ -356,7 +356,7 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
-            var bytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
+            var bytes = File.ReadAllBytes(filePath);
             return LoadFromByteArray(bytes, resolved, filePath);
         }
 
@@ -376,7 +376,7 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
+            var encryptedBytes = File.ReadAllBytes(filePath);
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
                 return LoadEncryptedLegacyXls(encryptedBytes, password);
             }

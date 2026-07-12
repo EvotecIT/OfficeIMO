@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                byte[] bytes = image.GetBytes();
+                byte[] bytes = image.ToBytes();
                 if (bytes.Length == 0 || image.WidthPixels <= 0 || image.HeightPixels <= 0) {
                     AddWarning(
                         options,

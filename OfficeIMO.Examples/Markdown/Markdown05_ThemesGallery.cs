@@ -60,25 +60,25 @@ namespace OfficeIMO.Examples.Markdown {
             var (md5, html5) = Paths(folderPath, "Markdown_Theme_Indigo");
             var indigo = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Indigo);
             File.WriteAllText(md5, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html5, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = indigo }), Encoding.UTF8);
+            File.WriteAllText(html5, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Indigo", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = indigo }), Encoding.UTF8);
 
             // Shared Blue accents
             var (md6, html6) = Paths(folderPath, "Markdown_Theme_Blue");
             var blue = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Blue);
             File.WriteAllText(md6, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html6, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Blue", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = blue }), Encoding.UTF8);
+            File.WriteAllText(html6, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Blue", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = blue }), Encoding.UTF8);
 
             // Shared Emerald accents
             var (md7, html7) = Paths(folderPath, "Markdown_Theme_Emerald");
             var emerald = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Emerald);
             File.WriteAllText(md7, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html7, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Emerald", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = emerald }), Encoding.UTF8);
+            File.WriteAllText(html7, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Emerald", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = emerald }), Encoding.UTF8);
 
             // Shared Rose accents
             var (md8, html8) = Paths(folderPath, "Markdown_Theme_Rose");
             var rose = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Rose);
             File.WriteAllText(md8, baseDoc.ToMarkdown(), Encoding.UTF8);
-            File.WriteAllText(html8, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Rose", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, VisualTheme = rose }), Encoding.UTF8);
+            File.WriteAllText(html8, baseDoc.ToHtmlDocument(new HtmlOptions { Title = "Theme: Rose", Kind = HtmlKind.Document, ThemeToggle = true, IncludeAnchorLinks = true, BackToTopLinks = true, Theme = rose }), Encoding.UTF8);
 
             Console.WriteLine($"✓ HTML (Clean):        {html1}");
             Console.WriteLine($"✓ HTML (Word):        {html1b}");

@@ -101,7 +101,7 @@ public class RtfPdfConverterTests {
             IncludeTables = false
         };
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed RTF PDF");
 
         Assert.True(result.HasWarnings);
@@ -127,7 +127,7 @@ public class RtfPdfConverterTests {
         document.AddImage(RtfImageFormat.Dib, CreateDib24(OfficeColor.FromRgb(18, 52, 86)));
         var options = new RtfPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.NotEmpty(pdf);
@@ -150,7 +150,7 @@ public class RtfPdfConverterTests {
             }
         };
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.NotEmpty(pdf);
@@ -621,7 +621,7 @@ public class RtfPdfConverterTests {
         document.AddShape().AddTextBoxParagraph("Shape result");
         var options = new RtfPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 

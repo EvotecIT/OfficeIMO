@@ -375,11 +375,11 @@ internal static class HtmlRenderer {
     }
 
     private static MarkdownVisualTheme? ResolveVisualTheme(HtmlOptions options) {
-        if (options.VisualTheme != null) {
-            return options.VisualTheme.Clone();
+        if (options.Theme != null) {
+            return options.Theme.Clone();
         }
 
-        bool useDefaultTheme = options.ApplyDefaultVisualTheme
+        bool useDefaultTheme = options.ApplyDefaultTheme
             && (options.Style == HtmlStyle.Clean || options.Style == HtmlStyle.Word);
         return MarkdownVisualTheme.ResolveOrDefault(null, useDefaultTheme);
     }
@@ -474,7 +474,6 @@ internal static class HtmlRenderer {
             colors.ActiveLinkDark = palette.Accent.ToCssColor();
         }
 
-        ApplyColorOverrides(colors, options.Theme);
         ApplyColorOverrides(colors, options.ColorOverrides);
         return colors;
     }

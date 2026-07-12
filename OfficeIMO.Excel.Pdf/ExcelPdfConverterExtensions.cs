@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// Converts an Excel workbook to a first-party OfficeIMO PDF document model.
         /// </summary>
         public static PdfCore.PdfDocument ToPdfDocument(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
-            return document.ToPdfResult(options).Value;
+            return document.ToPdfDocumentResult(options).Value;
         }
 
         private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfSaveOptions options) {
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Converts an Excel workbook to a PDF document and returns conversion diagnostics with it.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult ToPdfResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
+        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }

@@ -214,7 +214,7 @@ namespace OfficeIMO.Word {
                         FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
                         FileName = image.FileName,
                         ContentType = ResolveImageContentType(image),
-                        Bytes = image.IsExternal ? null : image.GetBytes(),
+                        Bytes = image.IsExternal ? null : image.ToBytes(),
                         Description = image.Description,
                         Title = image.Title,
                         Width = image.Width,

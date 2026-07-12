@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
         /// Merges source worksheet rows into a target worksheet by appending or writing to a requested target position.
         /// This is a workbook operation over worksheet values; callers own any data shaping or relational joins before writing.
         /// </summary>
-        public ExcelWorksheetMergeResult MergeWorkSheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
+        public ExcelWorksheetMergeResult MergeWorksheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
             if (targetSheet == null) throw new ArgumentNullException(nameof(targetSheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (!ReferenceEquals(targetSheet.Document, this)) {
@@ -234,40 +234,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Merges source worksheet rows into a target worksheet.
-        /// </summary>
-        public ExcelWorksheetMergeResult MergeWorksheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
-            return MergeWorkSheets(targetSheet, sourceSheet, options);
-        }
-
-        /// <summary>
-        /// Alias for <see cref="MergeWorkSheets(ExcelSheet, ExcelSheet, ExcelWorksheetMergeOptions?)"/>.
-        /// </summary>
-        public ExcelWorksheetMergeResult JoinWorkSheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
-            return MergeWorkSheets(targetSheet, sourceSheet, options);
-        }
-
-        /// <summary>
-        /// Alias for <see cref="MergeWorksheets(ExcelSheet, ExcelSheet, ExcelWorksheetMergeOptions?)"/>.
-        /// </summary>
-        public ExcelWorksheetMergeResult JoinWorksheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
-            return MergeWorkSheets(targetSheet, sourceSheet, options);
-        }
-
-        /// <summary>
-        /// Compares the used ranges of two worksheets.
-        /// </summary>
-        public IReadOnlyList<ExcelRangeDifference> CompareWorkSheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
-            if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
-            if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
-            return CompareRanges(leftSheet, leftSheet.GetUsedRangeA1(), rightSheet, rightSheet.GetUsedRangeA1(), options);
-        }
-
-        /// <summary>
         /// Compares the used ranges of two worksheets.
         /// </summary>
         public IReadOnlyList<ExcelRangeDifference> CompareWorksheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
-            return CompareWorkSheets(leftSheet, rightSheet, options);
+            if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
+            if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
+            return CompareRanges(leftSheet, leftSheet.GetUsedRangeA1(), rightSheet, rightSheet.GetUsedRangeA1(), options);
         }
 
         /// <summary>

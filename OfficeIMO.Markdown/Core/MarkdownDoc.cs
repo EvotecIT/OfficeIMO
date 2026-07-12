@@ -336,8 +336,8 @@ public partial class MarkdownDoc : MarkdownObject {
         if (block is IMarkdownListBlock listBlock) {
             for (int i = 0; i < listBlock.ListItems.Count; i++) {
                 var item = listBlock.ListItems[i];
-                for (int j = 0; j < item.BlockChildren.Count; j++) {
-                    foreach (var descendant in EnumerateBlockAndDescendants(item.BlockChildren[j])) {
+                for (int j = 0; j < item.ChildBlocks.Count; j++) {
+                    foreach (var descendant in EnumerateBlockAndDescendants(item.ChildBlocks[j])) {
                         yield return descendant;
                     }
                 }
@@ -361,8 +361,8 @@ public partial class MarkdownDoc : MarkdownObject {
                 var item = listBlock.ListItems[i];
                 yield return item;
 
-                for (int j = 0; j < item.BlockChildren.Count; j++) {
-                    foreach (var descendant in EnumerateListItems(item.BlockChildren[j])) {
+                for (int j = 0; j < item.ChildBlocks.Count; j++) {
+                    foreach (var descendant in EnumerateListItems(item.ChildBlocks[j])) {
                         yield return descendant;
                     }
                 }
@@ -622,11 +622,6 @@ public partial class MarkdownDoc : MarkdownObject {
         return HtmlRenderer.Render(this, options);
     }
 
-    /// <summary>Asynchronously renders an embeddable HTML fragment.</summary>
-    public System.Threading.Tasks.Task<string> ToHtmlFragmentAsync(HtmlOptions? options = null) => System.Threading.Tasks.Task.FromResult(ToHtmlFragment(options));
-    /// <summary>Asynchronously renders a full HTML document.</summary>
-    public System.Threading.Tasks.Task<string> ToHtmlDocumentAsync(HtmlOptions? options = null) => System.Threading.Tasks.Task.FromResult(ToHtmlDocument(options));
-
     /// <summary>Returns rendered parts for advanced embedding (Head, Body, Css, Scripts).</summary>
     public HtmlRenderParts ToHtmlParts(HtmlOptions? options = null) {
         options ??= new HtmlOptions { Kind = HtmlKind.Fragment };
@@ -662,11 +657,6 @@ public partial class MarkdownDoc : MarkdownObject {
     }
 
     /// <summary>
-    /// Saves HTML to the specified file. Alias for <see cref="SaveAsHtml"/> preserved for existing callers.
-    /// </summary>
-    public void SaveHtml(string path, HtmlOptions? options = null) => SaveAsHtml(path, options);
-
-    /// <summary>
     /// Asynchronously saves HTML to the specified file. When <see cref="CssDelivery.ExternalFile"/> is used,
     /// writes a sidecar CSS file next to the HTML and links it.
     /// </summary>
@@ -684,11 +674,6 @@ public partial class MarkdownDoc : MarkdownObject {
             await FileCompat.WriteAllTextAsync(options.ExternalCssOutputPath!, options._externalCssContentToWrite, System.Text.Encoding.UTF8).ConfigureAwait(false);
         }
     }
-
-    /// <summary>
-    /// Asynchronously saves HTML to the specified file. Alias for <see cref="SaveAsHtmlAsync"/> preserved for existing callers.
-    /// </summary>
-    public System.Threading.Tasks.Task SaveHtmlAsync(string path, HtmlOptions? options = null) => SaveAsHtmlAsync(path, options);
 
     /// <summary>
     /// Generates a Table of Contents from headings already present in the document and inserts it.

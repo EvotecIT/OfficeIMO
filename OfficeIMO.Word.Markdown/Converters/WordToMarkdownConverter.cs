@@ -1,5 +1,4 @@
 using System.Threading;
-using System.Threading.Tasks;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
@@ -21,28 +20,17 @@ namespace OfficeIMO.Word.Markdown {
     /// 4. Use paragraph.Bold, paragraph.Italic for inline formatting
     /// </summary>
     internal partial class WordToMarkdownConverter {
-        public string Convert(WordDocument document, WordToMarkdownOptions options) {
-            return ConvertAsync(document, options).GetAwaiter().GetResult();
+        public string Convert(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
+            return NormalizeMarkdownLineEndings(ConvertToDocument(document, options, cancellationToken).ToMarkdown());
         }
 
-        public Task<string> ConvertAsync(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new WordToMarkdownOptions();
-            return ConvertToDocumentAsync(document, options, cancellationToken)
-                .ContinueWith(
-                    static task => NormalizeMarkdownLineEndings(task.GetAwaiter().GetResult().ToMarkdown()),
-                    cancellationToken,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default);
-        }
-
-        public Task<MarkdownDoc> ConvertToDocumentAsync(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
+        public MarkdownDoc ConvertToDocument(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToMarkdownOptions();
 
             var markdown = MarkdownDoc.Create();
             BuildMarkdownDocument(document, markdown, options, cancellationToken);
-            return Task.FromResult(markdown);
+            return markdown;
         }
 
         private static string NormalizeMarkdownLineEndings(string markdown) {

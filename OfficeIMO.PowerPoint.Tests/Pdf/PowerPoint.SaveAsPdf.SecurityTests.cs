@@ -23,7 +23,7 @@ public class PowerPointSaveAsPdfSecurityTests {
                 UseSharedVisualSnapshot = true
             };
 
-            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "group-depth-limit");
             Assert.Equal("Slide 1", warning.Source);

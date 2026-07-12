@@ -216,12 +216,4 @@ public class RtfReadLimitTests {
             RtfDocument.Read(@"{\rtf1 Cancelled}", new RtfReadOptions(), cancellation.Token));
     }
 
-    [Fact]
-    public async Task Async_Read_Honors_Cancellation_During_Core_Pipeline() {
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            RtfDocument.ReadAsync(@"{\rtf1 Cancelled}", cancellationToken: cancellation.Token));
-    }
 }

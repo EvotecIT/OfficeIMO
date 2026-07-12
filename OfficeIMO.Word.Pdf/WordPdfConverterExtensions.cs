@@ -15,13 +15,13 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <returns>The generated first-party PDF document model.</returns>
         public static PdfCore.PdfDocument ToPdfDocument(this WordDocument document, PdfSaveOptions? options = null) {
-            return document.ToPdfResult(options).Value;
+            return document.ToPdfDocumentResult(options).Value;
         }
 
         /// <summary>
         /// Converts the specified <see cref="WordDocument"/> to a PDF document and returns conversion diagnostics with it.
         /// </summary>
-        public static PdfCore.PdfDocumentConversionResult ToPdfResult(this WordDocument document, PdfSaveOptions? options = null) {
+        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this WordDocument document, PdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }

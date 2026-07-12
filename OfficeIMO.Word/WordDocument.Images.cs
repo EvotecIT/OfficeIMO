@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
             List<byte[]> images = new List<byte[]>();
             foreach (var img in Images) {
                 try {
-                    images.Add(img.GetBytes());
+                    images.Add(img.ToBytes());
                 } catch (InvalidOperationException) {
                     // external image - skip
                 }

@@ -245,7 +245,7 @@ namespace OfficeIMO.Word {
             }
 
             try {
-                bytes = image.GetBytes();
+                bytes = image.ToBytes();
             } catch (InvalidOperationException) {
                 AddDiagnostic(diagnostics, "unsupported-word-image", "Skipped a Word image because its embedded bytes could not be read.", DescribeImage(image));
                 return false;

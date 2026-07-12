@@ -32,7 +32,7 @@ public partial class Word {
 
             document.AddParagraph("Native warning body text");
             document.Save();
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             result.Save(pdfPath);
 
             Assert.Contains(result.Warnings, warning =>
@@ -140,7 +140,7 @@ public partial class Word {
         ReplaceFirstHeaderImagePartWithGif(docPath);
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             result.Save(pdfPath);
             Assert.Contains(result.Warnings, warning =>
                 warning.Code == "NativeHeaderFooterImageUnsupported" &&

@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("StrokePdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border:2px groove red)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(border-left:2px groove red)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(outline-offset:20%)"));
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("rx=\"6\" ry=\"6\"", svg, StringComparison.Ordinal);
         Assert.Contains("RoundedPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.Contains("PathPdf", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BorderRadiusValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:6px 2px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-radius:12px / 4px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(border-top-left-radius:6px 2px)"));
@@ -337,6 +337,6 @@ public sealed partial class HtmlRenderingTests {
         }
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

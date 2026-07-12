@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(200d, firstImage.Width ?? default, 15);
 
             var fileToSave = Path.Combine(_directoryDocuments, "CreatedDocumentWithImagesPrzemyslawKlysAndKulkozaurr.jpg");
-            firstImage.SaveToFile(fileToSave);
+            firstImage.Save(fileToSave);
 
             var fileInfo = new FileInfo(fileToSave);
 
@@ -678,7 +678,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(extImage);
                 Assert.True(extImage!.IsExternal);
                 Assert.Equal(new Uri("http://example.com/image.png"), extImage.ExternalUri);
-                Assert.Throws<InvalidOperationException>(() => extImage.SaveToFile("tmp.png"));
+                Assert.Throws<InvalidOperationException>(() => extImage.Save("tmp.png"));
                 extImage.Remove();
                 Assert.Empty(document.Images);
                 document.Save();

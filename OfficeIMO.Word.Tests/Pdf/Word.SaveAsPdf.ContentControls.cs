@@ -71,7 +71,7 @@ public partial class Word {
 
             document.AddEmbeddedFragment("<html><body><p>Embedded body fragment</p></body></html>", WordAlternativeFormatImportPartType.Html);
             document.Save();
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
             result.Save(pdfPath);
 
             Assert.DoesNotContain(result.Warnings, warning =>

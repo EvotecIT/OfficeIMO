@@ -18,7 +18,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// Converts a PowerPoint presentation to a first-party OfficeIMO PDF document model.
     /// </summary>
     public static PdfCore.PdfDocument ToPdfDocument(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
-        return presentation.ToPdfResult(options).Value;
+        return presentation.ToPdfDocumentResult(options).Value;
     }
 
     private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
@@ -64,7 +64,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
     /// </summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }

@@ -33,7 +33,7 @@ public partial class Excel {
             Assert.Equal(24, image.WidthPixels);
             Assert.Equal(16, image.HeightPixels);
             Assert.Equal("image/png", image.ContentType);
-            Assert.Equal(imageBytes, image.GetBytes());
+            Assert.Equal(imageBytes, image.ToBytes());
 
             document.Save();
 
@@ -134,7 +134,7 @@ public partial class Excel {
             sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
             document.Save();
 
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 
@@ -159,7 +159,7 @@ public partial class Excel {
             sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
             document.Save();
 
-            result = document.ToPdfResult(options);
+            result = document.ToPdfDocumentResult(options);
             bytes = result.ToBytes();
         }
 

@@ -118,20 +118,6 @@ namespace OfficeIMO.Tests {
             Assert.False(doc.TryGetMaster("FancyHexagon", out _));
         }
 
-        [Fact]
-        public void TemplateNamedAliasLearnsMastersWithoutCopyingTemplateContent() {
-            string template = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            CreateTemplateWithMasters(template, "FancyHexagon", "Rectangle");
-
-            VisioDocument doc = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-
-            doc.UseMastersFromTemplate(template);
-
-            Assert.True(doc.TryGetMaster("Rectangle", out _));
-            Assert.False(doc.TryGetMaster("FancyHexagon", out _));
-            Assert.Single(doc.Masters);
-        }
-
         private static void CreateTemplateWithMasters(string path, params string[] masterNames) {
             const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
             const string relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";

@@ -394,14 +394,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the AutoFit behavior for the table. Alias for <see cref="LayoutMode"/>.
-        /// </summary>
-        public WordTableLayoutType AutoFit {
-            get => LayoutMode;
-            set => LayoutMode = value;
-        }
-
-        /// <summary>
         /// Allow text to wrap around table.
         /// </summary>
         public bool AllowTextWrap {

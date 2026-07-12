@@ -9,11 +9,11 @@ namespace OfficeIMO.Rtf.Pdf;
 public static partial class RtfPdfConverterExtensions {
     /// <summary>Converts an RTF document to a first-party OfficeIMO PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this RtfDocument document, RtfPdfSaveOptions? options = null) {
-        return document.ToPdfResult(options).Value;
+        return document.ToPdfDocumentResult(options).Value;
     }
 
     /// <summary>Converts an RTF document to PDF and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfResult(this RtfDocument document, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this RtfDocument document, RtfPdfSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         RtfPdfSaveOptions operation = (options ?? new RtfPdfSaveOptions()).CloneForConversion();
         PdfCore.PdfDocument pdf = RtfPdfConverter.Convert(document, operation);
@@ -30,12 +30,12 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads an RTF string, converts it to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtf(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentFromRtfResult(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
             throw new ArgumentNullException(nameof(rtf));
         }
 
-        return RtfDocument.Read(rtf, readOptions).Document.ToPdfResult(options);
+        return RtfDocument.Read(rtf, readOptions).Document.ToPdfDocumentResult(options);
     }
 
     /// <summary>Reads source RTF bytes and converts them to a first-party OfficeIMO PDF document model.</summary>
@@ -48,12 +48,12 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads source RTF bytes, converts them to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtf(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentFromRtfResult(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtfBytes == null) {
             throw new ArgumentNullException(nameof(rtfBytes));
         }
 
-        return RtfDocument.Load(rtfBytes, readOptions).Document.ToPdfResult(options);
+        return RtfDocument.Load(rtfBytes, readOptions).Document.ToPdfDocumentResult(options);
     }
 
     /// <summary>Reads an RTF stream from the current position and converts it to a first-party OfficeIMO PDF document model.</summary>
@@ -66,12 +66,12 @@ public static partial class RtfPdfConverterExtensions {
     }
 
     /// <summary>Reads an RTF stream, converts it to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfResultFromRtf(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentFromRtfResult(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
             throw new ArgumentNullException(nameof(rtfStream));
         }
 
-        return RtfDocument.Load(rtfStream, readOptions, encoding).Document.ToPdfResult(options);
+        return RtfDocument.Load(rtfStream, readOptions, encoding).Document.ToPdfDocumentResult(options);
     }
 
     /// <summary>Saves an RTF document as PDF at the specified path.</summary>

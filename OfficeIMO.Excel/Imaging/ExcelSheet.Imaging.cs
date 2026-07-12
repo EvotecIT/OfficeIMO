@@ -410,7 +410,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            byte[] bytes = image.GetBytes();
+            byte[] bytes = image.ToBytes();
             if (OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
                 return true;
             }

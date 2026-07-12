@@ -73,12 +73,6 @@ namespace OfficeIMO.Excel {
             return new ExcelWorkbookMergeResult(importedSourceNames, createdTargetNames);
         }
 
-        /// <summary>
-        /// Alias for <see cref="MergeWorkbookFrom(ExcelDocument, ExcelWorkbookMergeOptions?)"/>.
-        /// </summary>
-        public ExcelWorkbookMergeResult JoinWorkbookFrom(ExcelDocument sourceDocument, ExcelWorkbookMergeOptions? options = null)
-            => MergeWorkbookFrom(sourceDocument, options);
-
         private static IEnumerable<ExcelSheet> ResolveWorkbookMergeSheets(ExcelDocument sourceDocument, ExcelWorkbookMergeOptions options) {
             if (options.SheetNames == null || options.SheetNames.Count == 0) {
                 return sourceDocument.Sheets;

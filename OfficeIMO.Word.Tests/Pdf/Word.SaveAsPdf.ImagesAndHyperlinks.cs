@@ -128,7 +128,7 @@ public partial class Word {
         ReplaceFirstMainDocumentImagePart(docPath, CreateUnsupportedInterlacedPng());
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            var result = document.ToPdfResult(options);
+            var result = document.ToPdfDocumentResult(options);
             result.Save(pdfPath);
             Assert.Contains(result.Warnings, warning =>
                 warning.Code == "NativeBodyImageUnsupported" &&

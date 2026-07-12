@@ -26,11 +26,11 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult first = imagePdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult first = imagePdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument firstDocument = first.RequireValue();
         Assert.Contains(first.Warnings, warning => warning.Code == "PdfImageEmbedded");
 
-        PdfWordConversionResult second = textPdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult second = textPdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument secondDocument = second.RequireValue();
 
         Assert.DoesNotContain(second.Warnings, warning => warning.Code == "PdfImageEmbedded");
@@ -74,7 +74,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         using var document = new MemoryStream();
         importedDocument.Save(document);
@@ -146,7 +146,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -211,7 +211,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -244,7 +244,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -279,7 +279,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -318,7 +318,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -339,7 +339,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -362,7 +362,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -385,7 +385,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -412,7 +412,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -435,7 +435,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -458,7 +458,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -481,7 +481,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -504,7 +504,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -527,7 +527,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -550,7 +550,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -573,7 +573,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -596,7 +596,7 @@ public partial class Word {
             }
         };
 
-        PdfWordConversionResult conversion = pdf.ToWordDocumentResultFromPdf(options);
+        PdfWordConversionResult conversion = pdf.ToWordDocumentFromPdfResult(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 

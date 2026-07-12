@@ -407,7 +407,7 @@ _Figure 1. Relative local image resolved from the Markdown file directory._
     private static byte[] CreateMarkdownThemeGallery(MarkdownPdfThemeKind themeKind) {
         string markdown = CreateMarkdownThemeGallerySource(themeKind);
         var options = new MarkdownPdfSaveOptions {
-            VisualTheme = MarkdownPdfVisualTheme.Create(themeKind)
+            PdfTheme = MarkdownPdfVisualTheme.Create(themeKind)
         };
 
         byte[] pdf = markdown.ToPdfFromMarkdown(options);

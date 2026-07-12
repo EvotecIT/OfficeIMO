@@ -1,20 +1,11 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Threading;
-using System.Threading.Tasks;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, MarkdownToWordTemplateOptions options) {
-            return ConvertIntoTemplateAsync(markdown, document, options).GetAwaiter().GetResult();
-        }
-
-        public Task<WordDocument> ConvertIntoTemplateAsync(
-            string markdown,
-            WordDocument document,
-            MarkdownToWordTemplateOptions options,
-            CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -22,18 +13,10 @@ namespace OfficeIMO.Word.Markdown {
             options ??= new MarkdownToWordTemplateOptions();
             var readerOptions = CreateEffectiveReaderOptions(options);
             var markdownDocument = Omd.MarkdownReader.Parse(markdown, readerOptions);
-            return ConvertIntoTemplateAsync(markdownDocument, document, options, cancellationToken);
+            return ConvertIntoTemplate(markdownDocument, document, options);
         }
 
         public WordDocument ConvertIntoTemplate(Omd.MarkdownDoc markdown, WordDocument document, MarkdownToWordTemplateOptions options) {
-            return ConvertIntoTemplateAsync(markdown, document, options).GetAwaiter().GetResult();
-        }
-
-        public Task<WordDocument> ConvertIntoTemplateAsync(
-            Omd.MarkdownDoc markdown,
-            WordDocument document,
-            MarkdownToWordTemplateOptions options,
-            CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -48,13 +31,13 @@ namespace OfficeIMO.Word.Markdown {
             var insertion = ResolveTemplateInsertion(document, options);
             var host = new BodyInsertionPointWordBlockRenderHost(document, insertion.Anchor);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-            RenderMarkdownDocument(markdown, host, document, options, pageContentWidthPixels, cancellationToken);
+            RenderMarkdownDocument(markdown, host, document, options, pageContentWidthPixels, CancellationToken.None);
 
             if (insertion.RemoveAfterRender && insertion.Anchor.Parent != null) {
                 insertion.Anchor.Remove();
             }
 
-            return Task.FromResult(document);
+            return document;
         }
 
         private void RenderMarkdownDocument(

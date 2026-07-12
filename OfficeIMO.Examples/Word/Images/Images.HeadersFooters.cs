@@ -86,7 +86,7 @@ namespace OfficeIMO.Examples.Word {
                 firstImage.Width = 200;
 
                 string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
-                firstImage.SaveToFile(fileToSave);
+                firstImage.Save(fileToSave);
 
                 var paragraphHeaderEven = document.HeaderEvenOrCreate.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
                 const string fileNameImageEvotec = "EvotecLogo.png";
@@ -96,7 +96,7 @@ namespace OfficeIMO.Examples.Word {
                 }
 
                 //var filePathImageEvotecSave = System.IO.Path.Combine(imagePaths, "savedFile.png");
-                //paragraphHeaderEven.Image.SaveToFile(filePathImageEvotecSave);
+                //paragraphHeaderEven.Image.Save(filePathImageEvotecSave);
 
                 document.Save(new WordSaveOptions { OpenAfterSave = openWord });
 

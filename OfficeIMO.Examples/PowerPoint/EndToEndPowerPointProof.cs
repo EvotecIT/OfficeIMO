@@ -133,7 +133,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Slides[slideIndex].SaveAsSvg(Path.Combine(outputFolder, stem + ".svg"));
             }
             var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
-            PdfDocumentConversionResult pdfResult = presentation.ToPdfResult(pdfOptions);
+            PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
             pdfResult.Save(pdfPath);
             presentation.SaveAsPdf(handoutPath, new PowerPointPdfSaveOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,

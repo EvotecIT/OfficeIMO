@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
 
                     var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
                     Assert.True(pdfOptions.UseSharedVisualSnapshot);
-                    PdfDocumentConversionResult pdfResult = presentation.ToPdfResult(pdfOptions);
+                    PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
                     byte[] pdf = pdfResult.ToBytes();
                     Assert.True(pdf.Length > 100);
                     Assert.DoesNotContain(pdfResult.Warnings,

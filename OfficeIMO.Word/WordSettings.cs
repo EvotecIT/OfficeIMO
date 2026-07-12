@@ -660,15 +660,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Enable or disable tracking of comments in the document.
-        /// Wrapper around <see cref="TrackRevisions"/> for backwards compatibility.
-        /// </summary>
-        public bool TrackComments {
-            get => TrackRevisions;
-            set => TrackRevisions = value;
-        }
-
-        /// <summary>
         /// Enable or disable tracking of formatting changes.
         /// </summary>
         public bool TrackFormatting {

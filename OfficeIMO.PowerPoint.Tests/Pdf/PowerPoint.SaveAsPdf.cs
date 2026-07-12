@@ -71,7 +71,7 @@ public class PowerPointSaveAsPdfTests {
         run.SetHyperlink("https://officeimo.net/");
 
         var options = new PowerPointPdfSaveOptions { UseSharedVisualSnapshot = true };
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
@@ -132,7 +132,7 @@ public class PowerPointSaveAsPdfTests {
         paragraphs[1].SetAlignment(TextAlignmentTypeValues.Right);
         var options = new PowerPointPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "text-box-overflow");
@@ -160,7 +160,7 @@ public class PowerPointSaveAsPdfTests {
             });
         var options = new PowerPointPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "list-indent-simplified");
@@ -178,7 +178,7 @@ public class PowerPointSaveAsPdfTests {
         presentation.AddSlide().AddShape(ShapeTypeValues.Cloud, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
         var options = new PowerPointPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
@@ -233,7 +233,7 @@ public class PowerPointSaveAsPdfTests {
         textBox.FillTransparency = 100;
         var options = new PowerPointPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
 
         Assert.Contains(result.Warnings, warning => warning.Code == "text-box-padding");
@@ -814,7 +814,7 @@ public class PowerPointSaveAsPdfTests {
             UseSharedVisualSnapshot = true
         };
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "picture-aspect-distortion");
@@ -1341,7 +1341,7 @@ public class PowerPointSaveAsPdfTests {
         cell.FontSize = 14;
         var options = new PowerPointPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "table-cell-overflow");
@@ -1761,7 +1761,7 @@ public class PowerPointSaveAsPdfTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
         };
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         byte[] bytes = result.ToBytes();
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "chart-quality");

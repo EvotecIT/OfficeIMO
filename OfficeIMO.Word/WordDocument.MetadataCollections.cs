@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         /// <param name="commentId">Id of the comment to remove.</param>
         public void RemoveComment(string commentId) {
             var comment = this.Comments.FirstOrDefault(c => c.Id == commentId);
-            comment?.Delete();
+            comment?.Remove();
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="comment">Comment instance to remove.</param>
         public void RemoveComment(WordComment comment) {
-            comment?.Delete();
+            comment?.Remove();
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void RemoveAllComments() {
             foreach (var comment in this.Comments.ToList()) {
-                comment.Delete();
+                comment.Remove();
             }
         }
 
@@ -93,14 +93,6 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyDictionary<string, string> GetDocumentVariables() {
             return new Dictionary<string, string>(DocumentVariables);
-        }
-
-        /// <summary>
-        /// Enable or disable tracking of comment changes.
-        /// </summary>
-        public bool TrackComments {
-            get => this.Settings.TrackComments;
-            set => this.Settings.TrackComments = value;
         }
 
         /// <summary>

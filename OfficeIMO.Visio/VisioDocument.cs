@@ -354,15 +354,6 @@ namespace OfficeIMO.Visio {
             return new VisioDocument { _sourceStream = stream };
         }
 
-        /// <summary>
-        /// Backward-compatible alias for <see cref="LearnMastersFromVsdx"/>. This learns
-        /// supported master names from a VSDX file but does not use it as a runtime template.
-        /// </summary>
-        /// <param name="vsdxPath">Path to a VSDX file that contains canonical masters.</param>
-        public void UseMastersFromTemplate(string vsdxPath) {
-            LearnMastersFromVsdx(vsdxPath);
-        }
-
         private static IEnumerable<string>? ResolvePackageMasterNameFilters(string packagePath, IEnumerable<string>? names) {
             if (names == null) {
                 return null;
@@ -753,4 +744,3 @@ namespace OfficeIMO.Visio {
         }
     }
 }
-

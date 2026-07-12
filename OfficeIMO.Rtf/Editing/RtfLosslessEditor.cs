@@ -117,7 +117,7 @@ public sealed partial class RtfLosslessEditor {
     /// <summary>
     /// Serializes the edited syntax tree to source-preserving bytes without semantic normalization.
     /// </summary>
-    public byte[] ToBytesLossless() => RtfBytePreservingEncoding.GetBytes(ToRtf());
+    public byte[] ToBytesLossless() => RtfBytePreservingEncoding.ToBytes(ToRtf());
 
     /// <summary>
     /// Saves the edited syntax tree to a file without semantic normalization.

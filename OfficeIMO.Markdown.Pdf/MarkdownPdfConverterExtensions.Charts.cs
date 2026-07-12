@@ -785,7 +785,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return visualTheme.Clone();
         }
 
-        MarkdownPdfVisualTheme? explicitTheme = options.VisualTheme;
+        MarkdownPdfVisualTheme? explicitTheme = options.PdfTheme;
         if (explicitTheme != null) {
             return explicitTheme;
         }
@@ -795,7 +795,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
         }
 
-        MarkdownVisualTheme? defaultTheme = MarkdownVisualTheme.ResolveOrDefault(null, options.ApplyWordLikeTheme);
+        MarkdownVisualTheme? defaultTheme = MarkdownVisualTheme.ResolveOrDefault(null, options.ApplyDefaultTheme);
         return defaultTheme != null
             ? MarkdownPdfVisualTheme.FromMarkdownTheme(defaultTheme)
             : MarkdownPdfVisualTheme.Plain();

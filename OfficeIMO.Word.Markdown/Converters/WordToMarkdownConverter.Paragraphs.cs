@@ -229,12 +229,12 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
                     File.Copy(image.FilePath, targetPath, true);
                 } else {
-                    File.WriteAllBytes(targetPath, image.GetBytes());
+                    File.WriteAllBytes(targetPath, image.ToBytes());
                 }
 
                 return $"![{alt}]({fileName})";
             } else {
-                byte[] bytes = image.GetBytes();
+                byte[] bytes = image.ToBytes();
                 string extension = Path.GetExtension(image.FilePath);
                 string mime = extension switch {
                     ".jpg" => "image/jpeg",

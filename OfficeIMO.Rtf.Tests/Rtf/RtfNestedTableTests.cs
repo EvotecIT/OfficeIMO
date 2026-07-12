@@ -184,7 +184,7 @@ public class RtfNestedTableTests {
     public void Pdf_Flattens_Nested_Table_With_Explicit_Loss_Report() {
         var options = new RtfPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = CreateNestedDocument().ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = CreateNestedDocument().ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 

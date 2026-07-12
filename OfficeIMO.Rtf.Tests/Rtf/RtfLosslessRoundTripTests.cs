@@ -71,7 +71,7 @@ public class RtfLosslessRoundTripTests {
             await result.SaveLosslessAsync(outputPath);
 
             Assert.Equal(bytes, File.ReadAllBytes(outputPath));
-            Assert.Equal(bytes, await result.ToBytesLosslessAsync());
+            Assert.Equal(bytes, result.ToBytesLossless());
         } finally {
             if (File.Exists(inputPath)) File.Delete(inputPath);
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -115,7 +115,7 @@ public class RtfLosslessRoundTripTests {
         Assert.Contains(@"{\*\unknown Keep}", editor.ToRtf(), StringComparison.Ordinal);
         Assert.Contains(@"{\pict\pngblip\bin3 abc}", editor.ToRtf(), StringComparison.Ordinal);
 
-        RtfReadResult edited = await editor.ToReadResultAsync();
+        RtfReadResult edited = RtfDocument.Read(editor.ToRtf());
         Assert.Equal(editor.ToRtf(), edited.ToRtfLossless());
     }
 
@@ -139,7 +139,8 @@ public class RtfLosslessRoundTripTests {
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
+        using var input = new MemoryStream(new byte[] { 123, 125 });
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            RtfDocument.LoadAsync(new byte[] { 123, 125 }, cancellationToken: cts.Token));
+            RtfDocument.LoadAsync(input, cancellationToken: cts.Token));
     }
 }

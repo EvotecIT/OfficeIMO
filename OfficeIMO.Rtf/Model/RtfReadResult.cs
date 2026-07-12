@@ -30,7 +30,7 @@ public sealed partial class RtfReadResult {
     /// <summary>
     /// Serializes the original syntax tree to source-preserving bytes without semantic normalization.
     /// </summary>
-    public byte[] ToBytesLossless() => RtfBytePreservingEncoding.GetBytes(ToRtfLossless());
+    public byte[] ToBytesLossless() => RtfBytePreservingEncoding.ToBytes(ToRtfLossless());
 
     /// <summary>
     /// Creates an editor for targeted syntax-preserving changes.

@@ -43,38 +43,5 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void Test_TrackCommentsViaDocumentProperty() {
-            string filePath = Path.Combine(_directoryWithFiles, "Test_TrackComments2.docx");
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.TrackComments = true;
-                document.Save();
-            }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_TrackComments2.docx"))) {
-                Assert.True(document.TrackComments);
-                document.TrackComments = false;
-                document.Save();
-            }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_TrackComments2.docx"))) {
-                Assert.False(document.TrackComments);
-            }
-        }
-
-        [Fact]
-        public void Test_TrackCommentsSetting() {
-            string filePath = Path.Combine(_directoryWithFiles, "Test_TrackComments.docx");
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Settings.TrackComments = true;
-                document.Save();
-            }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_TrackComments.docx"))) {
-                Assert.True(document.Settings.TrackComments);
-                document.Settings.TrackComments = false;
-                document.Save();
-            }
-            using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "Test_TrackComments.docx"))) {
-                Assert.False(document.Settings.TrackComments);
-            }
-        }
     }
 }

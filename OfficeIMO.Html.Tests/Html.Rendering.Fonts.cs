@@ -166,7 +166,7 @@ public sealed partial class HtmlRenderingTests {
             + "\") format('truetype')}p{font-family:'Pdf Web Demo',sans-serif}</style><p>EmbeddedWebFontMarker</p>";
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains("EmbeddedWebFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
@@ -197,7 +197,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderPathClipGroup);
@@ -225,7 +225,7 @@ public sealed partial class HtmlRenderingTests {
             + "</style><p class='one'>Web one</p><p class='two'>Web two</p><p class='serif'>Standard serif</p><p class='mono'>Standard mono</p>";
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 

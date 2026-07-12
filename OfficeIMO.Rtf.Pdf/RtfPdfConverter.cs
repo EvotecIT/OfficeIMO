@@ -106,9 +106,12 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
-        var warningDetails = details == null
-            ? new Dictionary<string, string>()
-            : new Dictionary<string, string>(details);
+        var warningDetails = new Dictionary<string, string>();
+        if (details != null) {
+            foreach (KeyValuePair<string, string> detail in details) {
+                warningDetails[detail.Key] = detail.Value;
+            }
+        }
         warningDetails["RtfAction"] = action.ToString();
         options.Report.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Rtf.Pdf",
