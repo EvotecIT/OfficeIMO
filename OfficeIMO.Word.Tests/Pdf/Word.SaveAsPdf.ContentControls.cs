@@ -71,18 +71,19 @@ public partial class Word {
 
             document.AddEmbeddedFragment("<html><body><p>Embedded body fragment</p></body></html>", WordAlternativeFormatImportPartType.Html);
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
-        }
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            result.Save(pdfPath);
 
-        Assert.DoesNotContain(options.Warnings, warning =>
-            warning.Code == "NativeBodyContentControlUnsupported" &&
-            warning.Source == "body paragraph");
-        Assert.DoesNotContain(options.Warnings, warning =>
-            warning.Code == "NativeBodyEquationUnsupported" &&
-            warning.Source == "body table");
-        Assert.Contains(options.Warnings, warning =>
-            warning.Code == "NativeBodyEmbeddedDocumentUnsupported" &&
-            warning.Source == "body");
+            Assert.DoesNotContain(result.Warnings, warning =>
+                warning.Code == "NativeBodyContentControlUnsupported" &&
+                warning.Source == "body paragraph");
+            Assert.DoesNotContain(result.Warnings, warning =>
+                warning.Code == "NativeBodyEquationUnsupported" &&
+                warning.Source == "body table");
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "NativeBodyEmbeddedDocumentUnsupported" &&
+                warning.Source == "body");
+        }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;

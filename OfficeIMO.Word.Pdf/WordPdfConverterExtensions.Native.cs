@@ -110,8 +110,6 @@ namespace OfficeIMO.Word.Pdf {
         };
 
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
-            options?.ResetExportState();
-
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap();
             PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options, nativeFontMap))

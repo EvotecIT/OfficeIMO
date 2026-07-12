@@ -21,8 +21,6 @@ public partial class Word {
         var options = new PdfSaveOptions {
             IncludePageNumbers = false
         };
-        options.Warnings.Add(new PdfExportWarning("Stale", "test", "This should be cleared before export."));
-
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
@@ -34,16 +32,16 @@ public partial class Word {
 
             document.AddParagraph("Native warning body text");
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
-        }
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            result.Save(pdfPath);
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "Stale");
-        Assert.Contains(options.Warnings, warning =>
-            warning.Code == "NativeHeaderFooterTextBoxUnsupported" &&
-            warning.Source == "default header");
-        Assert.Contains(options.Warnings, warning =>
-            warning.Code == "NativeHeaderFooterTextBoxUnsupported" &&
-            warning.Source == "default footer table");
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "NativeHeaderFooterTextBoxUnsupported" &&
+                warning.Source == "default header");
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "NativeHeaderFooterTextBoxUnsupported" &&
+                warning.Source == "default footer table");
+        }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -142,12 +140,12 @@ public partial class Word {
         ReplaceFirstHeaderImagePartWithGif(docPath);
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, options);
+            PdfCore.PdfDocumentConversionResult result = document.ToPdfResult(options);
+            result.Save(pdfPath);
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "NativeHeaderFooterImageUnsupported" &&
+                warning.Source == "default header image");
         }
-
-        Assert.Contains(options.Warnings, warning =>
-            warning.Code == "NativeHeaderFooterImageUnsupported" &&
-            warning.Source == "default header image");
         Assert.True(File.Exists(pdfPath));
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         Assert.Contains("Native unsupported header image body", pdf.GetPage(1).Text);

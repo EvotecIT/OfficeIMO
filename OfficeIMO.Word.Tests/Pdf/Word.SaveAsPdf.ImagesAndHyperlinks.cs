@@ -128,12 +128,12 @@ public partial class Word {
         ReplaceFirstMainDocumentImagePart(docPath, CreateUnsupportedInterlacedPng());
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            document.SaveAsPdf(pdfPath, options);
+            var result = document.ToPdfResult(options);
+            result.Save(pdfPath);
+            Assert.Contains(result.Warnings, warning =>
+                warning.Code == "NativeBodyImageUnsupported" &&
+                warning.Message.Contains("PNG", StringComparison.OrdinalIgnoreCase));
         }
-
-        Assert.Contains(options.Warnings, warning =>
-            warning.Code == "NativeBodyImageUnsupported" &&
-            warning.Message.Contains("PNG", StringComparison.OrdinalIgnoreCase));
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Before unsupported image", text);

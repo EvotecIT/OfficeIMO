@@ -15,11 +15,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <returns>The generated first-party PDF document model.</returns>
         public static PdfCore.PdfDocument ToPdfDocument(this WordDocument document, PdfSaveOptions? options = null) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
-
-            return CreateOfficeIMOPdfDocument(document, options);
+            return document.ToPdfResult(options).Value;
         }
 
         /// <summary>
@@ -30,9 +26,9 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            options ??= new PdfSaveOptions();
-            PdfCore.PdfDocument pdf = document.ToPdfDocument(options);
-            return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+            PdfSaveOptions operation = (options ?? new PdfSaveOptions()).CloneForConversion();
+            PdfCore.PdfDocument pdf = CreateOfficeIMOPdfDocument(document, operation);
+            return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
         }
 
         /// <summary>
