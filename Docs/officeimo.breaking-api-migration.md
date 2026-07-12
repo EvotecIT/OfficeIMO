@@ -76,6 +76,8 @@ The canonical PDF conversion-result method is `ToPdfDocumentResult()`. Source-ex
 
 Compatibility-only members such as `LastSaveReport`, public `LastSaveDiagnostics`, option-owned `ConversionReport`, and option-owned `Warnings` were removed. Use the operation result instead.
 
+`ExcelSaveDiagnostics` and `ExcelSavePackageWriter` are internal implementation details. They had no public operation-result producer after `LastSaveDiagnostics` was removed, so retaining them as public types created an unusable contract.
+
 The generic `Helpers` file-copy and `IsFileLocked` methods were also removed. Use `File.ReadAllBytes`, `File.OpenRead`, `File.Copy`, and `Stream.CopyTo` directly; filesystem lock probing belongs in application or test code. These wrappers added no Office document behavior.
 
 Color-to-hex formatting is owned by `OfficeIMO.Drawing`. Import that namespace and use its `ToHexColor()` extension (or `OfficeColor.ToRgbHex()`); the duplicate Word and Excel helper extensions were removed.
