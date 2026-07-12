@@ -202,6 +202,7 @@ public partial class Excel {
         };
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "MixedFormatting")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "MixedFormattingBody");
@@ -211,7 +212,8 @@ public partial class Excel {
                 footerCenter: "Plain Footer");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -222,7 +224,7 @@ public partial class Excel {
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.DoesNotContain("1 0 0 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(options.Warnings, warning => warning.SheetName == "MixedFormatting" && warning.Feature == "WorksheetHeaderFooterFormatting");
+        Assert.Contains(result.Warnings, warning => warning.Source == "MixedFormatting" && warning.Code == "WorksheetHeaderFooterFormatting");
     }
 
     [Fact]

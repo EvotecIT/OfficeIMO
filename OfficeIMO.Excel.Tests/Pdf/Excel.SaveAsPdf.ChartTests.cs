@@ -20,6 +20,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfCharts.xlsx");
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         byte[] disabledBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
             ExcelSheet sheet = document.Sheets[0];
@@ -55,7 +56,8 @@ public partial class Excel {
                 PageSize = new PdfCore.PageSize(480, 360),
                 Margins = PdfCore.PageMargins.Uniform(24)
             };
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
             disabledBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
@@ -135,6 +137,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfChartQualityWarnings.xlsx");
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         var options = new ExcelPdfSaveOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
@@ -155,11 +158,12 @@ public partial class Excel {
             sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
         }
 
-        ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "chart-quality");
-        Assert.Equal("Charts", warning.SheetName);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "chart-quality");
+        Assert.Equal("Charts", warning.Source);
         Assert.Contains("Dense Month Chart", warning.Message);
         Assert.Contains("TextOverlap", warning.Message);
 
@@ -406,6 +410,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMixedSeriesChart.xlsx");
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         var options = new ExcelPdfSaveOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
@@ -424,10 +429,11 @@ public partial class Excel {
             sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
         }
 
-        ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "WorksheetChart");
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "WorksheetChart");
         Assert.Contains("mixed per-series chart types", warning.Message, StringComparison.Ordinal);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));

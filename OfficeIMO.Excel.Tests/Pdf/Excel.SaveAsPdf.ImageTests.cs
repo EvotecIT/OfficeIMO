@@ -127,19 +127,21 @@ public partial class Excel {
         };
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
             sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Contains("ImageMarker", pdf.GetPage(1).Text);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
-        Assert.Contains(options.Warnings, warning => warning.SheetName == "Images" && warning.Feature == "WorksheetImage");
+        Assert.Contains(result.Warnings, warning => warning.Source == "Images" && warning.Code == "WorksheetImage");
     }
 
     [Fact]
@@ -150,21 +152,23 @@ public partial class Excel {
         };
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
             sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
             document.Save();
 
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Contains("ImageMarker", pdf.GetPage(1).Text);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
-        Assert.Contains(options.Warnings, warning =>
-            warning.SheetName == "Images" &&
-            warning.Feature == "WorksheetImage" &&
+        Assert.Contains(result.Warnings, warning =>
+            warning.Source == "Images" &&
+            warning.Code == "WorksheetImage" &&
             warning.Message.Contains("Image bytes were declared as JPEG but were detected as Png.", StringComparison.Ordinal));
     }
 

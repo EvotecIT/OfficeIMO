@@ -13,13 +13,13 @@ namespace OfficeIMO.Excel.Pdf {
         /// Warnings populated when workbook content cannot be mapped faithfully.
         /// The collection is cleared at the start of each export.
         /// </summary>
-        public List<ExcelPdfExportWarning> Warnings { get; } = new List<ExcelPdfExportWarning>();
+        internal List<ExcelPdfExportWarning> Warnings { get; private set; } = new List<ExcelPdfExportWarning>();
 
         /// <summary>
         /// Shared conversion report populated alongside <see cref="Warnings"/> for wrapper-friendly diagnostics.
         /// The report is cleared at the start of each export.
         /// </summary>
-        public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+        internal PdfCore.PdfConversionReport Report { get; private set; } = new PdfCore.PdfConversionReport();
 
         /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
@@ -240,9 +240,12 @@ namespace OfficeIMO.Excel.Pdf {
             return this;
         }
 
-        internal void ResetExportState() {
-            Warnings.Clear();
-            ConversionReport.Clear();
+        internal ExcelPdfSaveOptions CloneForConversion() {
+            var clone = (ExcelPdfSaveOptions)MemberwiseClone();
+            clone.SheetNames = SheetNames?.ToArray();
+            clone.Warnings = new List<ExcelPdfExportWarning>();
+            clone.Report = new PdfCore.PdfConversionReport();
+            return clone;
         }
     }
 }

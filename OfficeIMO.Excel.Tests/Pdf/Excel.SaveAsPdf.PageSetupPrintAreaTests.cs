@@ -99,6 +99,7 @@ public partial class Excel {
         };
 
         byte[] bytes;
+        PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "UsedRangeTop");
@@ -121,7 +122,8 @@ public partial class Excel {
         }
 
         using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
-            bytes = document.ToPdf(options);
+            result = document.ToPdfResult(options);
+            bytes = result.ToBytes();
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -130,7 +132,7 @@ public partial class Excel {
         Assert.Contains("AreaOne", text);
         Assert.Contains("AreaTwo", text);
         Assert.Contains("UsedRangeBottom", text);
-        Assert.Contains(options.Warnings, warning => warning.SheetName == "Report" && warning.Feature == "WorksheetPrintArea");
+        Assert.Contains(result.Warnings, warning => warning.Source == "Report" && warning.Code == "WorksheetPrintArea");
     }
 
     [Fact]
