@@ -321,7 +321,7 @@ public sealed class ReaderOcrCoreTests {
 
             engine.CompleteRemainingCalls();
             await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
-            Assert.True(engine.RemainingCallsCompleted.IsCompletedSuccessfully);
+            Assert.Equal(TaskStatus.RanToCompletion, engine.RemainingCallsCompleted.Status);
         } finally {
             engine.CompleteRemainingCalls();
         }

@@ -49,7 +49,7 @@ internal static class TnefMapiCodec {
             bool variable = IsVariableValue(type) || multiple;
             if (!variable) {
                 int fixedSize = GetFixedSize(type);
-                decodedPropertyBytes = checked(decodedPropertyBytes + fixedSize);
+                if (propertyId != 0x3701) decodedPropertyBytes = checked(decodedPropertyBytes + fixedSize);
                 cursor.Skip(fixedSize);
                 cursor.Align4();
                 continue;
@@ -67,7 +67,7 @@ internal static class TnefMapiCodec {
                     attachmentPayloadLength = itemLength;
                 }
                 if (itemLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
-                decodedPropertyBytes = checked(decodedPropertyBytes + itemLength);
+                if (propertyId != 0x3701) decodedPropertyBytes = checked(decodedPropertyBytes + itemLength);
                 cursor.Skip((int)itemLength);
                 cursor.Align4();
             }
@@ -185,14 +185,18 @@ internal static class TnefMapiCodec {
                             if (IsVariableValue(itemType)) {
                                 uint rawLength = cursor.ReadUInt32();
                                 if (rawLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
-                                state.EnsureDecodedPropertyBytesWithinLimits(
-                                    checked(rawValues.Length + rawLength));
+                                if (propertyId != 0x3701) {
+                                    state.EnsureDecodedPropertyBytesWithinLimits(
+                                        checked(rawValues.Length + rawLength));
+                                }
                                 itemBytes = cursor.ReadBytes((int)rawLength);
                                 cursor.Align4();
                             } else {
                                 int size = GetFixedSize(itemType);
-                                state.EnsureDecodedPropertyBytesWithinLimits(
-                                    checked(rawValues.Length + size));
+                                if (propertyId != 0x3701) {
+                                    state.EnsureDecodedPropertyBytesWithinLimits(
+                                        checked(rawValues.Length + size));
+                                }
                                 itemBytes = cursor.ReadBytes(size);
                                 cursor.Align4();
                             }
@@ -204,12 +208,12 @@ internal static class TnefMapiCodec {
                     value = multiple ? decoded : decoded.FirstOrDefault();
                 } else {
                     int size = GetFixedSize(type);
-                    state.EnsureDecodedPropertyBytesWithinLimits(size);
+                    if (propertyId != 0x3701) state.EnsureDecodedPropertyBytesWithinLimits(size);
                     raw = cursor.ReadBytes(size);
                     cursor.Align4();
                     value = DecodeValue(type, raw, codePage, state.Diagnostics, location);
                 }
-                state.CountProperty(raw?.Length ?? 0);
+                state.CountProperty(propertyId == 0x3701 ? 0 : raw?.Length ?? 0);
                 properties.Add(new MapiProperty(propertyId, type, value, name: name) { RawData = raw });
             } catch (Exception ex) when (ex is InvalidDataException || ex is ArgumentOutOfRangeException ||
                 ex is OverflowException) {

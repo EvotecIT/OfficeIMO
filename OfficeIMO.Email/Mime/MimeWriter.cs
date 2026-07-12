@@ -9,7 +9,7 @@ internal static class MimeWriter {
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
         MimeWriterState state = new MimeWriterState(options, diagnostics);
-        using (MemoryStream output = new MemoryStream()) {
+        using (EmailBoundedMemoryStream output = new EmailBoundedMemoryStream(options.MaxOutputBytes)) {
             WriteMessage(output, document, state, 0);
             return output.ToArray();
         }
@@ -428,7 +428,7 @@ internal static class MimeWriter {
     }
 
     private static void WriteLine(Stream output, string value) {
-        byte[] bytes = Encoding.ASCII.GetBytes(string.Concat(value, "\r\n"));
+        byte[] bytes = Encoding.UTF8.GetBytes(string.Concat(value, "\r\n"));
         output.Write(bytes, 0, bytes.Length);
     }
 }

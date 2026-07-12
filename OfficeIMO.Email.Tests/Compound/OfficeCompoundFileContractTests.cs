@@ -50,17 +50,34 @@ public sealed class OfficeCompoundFileContractTests {
     }
 
     [Fact]
+    public void SerializedLengthPreflightMatchesCompoundOutput() {
+        var streams = new[] {
+            new OfficeCompoundStream("Small", new byte[17]),
+            new OfficeCompoundStream("Storage/Regular", new byte[5000]),
+            new OfficeCompoundStream("Storage/Empty", Array.Empty<byte>())
+        };
+
+        long expectedLength = OfficeCompoundFileWriter.GetSerializedLength(streams);
+        byte[] compound = OfficeCompoundFileWriter.Write(streams);
+
+        Assert.Equal(compound.LongLength, expectedLength);
+    }
+
+    [Fact]
     public void WriterEmitsDifatForLargeCompoundFiles() {
         byte[] content = new byte[8 * 1024 * 1024];
         for (int i = 0; i < content.Length; i += 4096) content[i] = (byte)(i / 4096 % 251);
 
-        byte[] compound = OfficeCompoundFileWriter.Write(new[] { new OfficeCompoundStream("Large", content) });
+        var streams = new[] { new OfficeCompoundStream("Large", content) };
+        long expectedLength = OfficeCompoundFileWriter.GetSerializedLength(streams);
+        byte[] compound = OfficeCompoundFileWriter.Write(streams);
         uint fatSectorCount = ReadUInt32(compound, 44);
         uint firstDifatSector = ReadUInt32(compound, 68);
         bool success = OfficeCompoundFileReader.TryRead(compound, out OfficeCompoundFile? file, out string? error);
 
         Assert.True(fatSectorCount > 109);
         Assert.NotEqual(0xfffffffeU, firstDifatSector);
+        Assert.Equal(expectedLength, compound.LongLength);
         Assert.True(success, error);
         Assert.Equal(content, file!.Streams["Large"]);
 

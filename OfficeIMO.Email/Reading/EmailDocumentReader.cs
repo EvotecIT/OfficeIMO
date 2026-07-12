@@ -115,7 +115,7 @@ public sealed class EmailDocumentReader {
                     "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            if (_options.PreserveRawSource) document.RawSource = (byte[])data.Clone();
+            if (_options.PreserveRawSource) PreserveRawSource(document, data);
             return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
         }
 
@@ -146,8 +146,13 @@ public sealed class EmailDocumentReader {
                 break;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        if (_options.PreserveRawSource) document.RawSource = (byte[])data.Clone();
+        if (_options.PreserveRawSource) PreserveRawSource(document, data);
         return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
+    }
+
+    private static void PreserveRawSource(EmailDocument document, byte[] data) {
+        document.RawSource = (byte[])data.Clone();
+        document.RawSourceModelFingerprint = EmailDocumentStateFingerprint.TryCompute(document);
     }
 
     private static bool StartsWith(byte[] data, byte[] signature) {

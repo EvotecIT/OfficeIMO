@@ -69,14 +69,21 @@ public sealed class EmailDocumentWriter {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");
         }
 
+        List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
         if (_options.UsePreservedRawSource && document.Format == format && document.RawSource != null) {
-            byte[] preserved = (byte[])document.RawSource.Clone();
-            EnsureOutputLimit(preserved.LongLength);
-            result = new EmailWriteResult(preserved.LongLength, Array.Empty<EmailDiagnostic>(), true);
-            return preserved;
+            byte[]? baseline = document.RawSourceModelFingerprint;
+            if (baseline != null && EmailDocumentStateFingerprint.Matches(document, baseline)) {
+                EnsureOutputLimit(document.RawSource.LongLength);
+                byte[] preserved = (byte[])document.RawSource.Clone();
+                result = new EmailWriteResult(preserved.LongLength, diagnostics.AsReadOnly(), true);
+                return preserved;
+            }
+            diagnostics.Add(new EmailDiagnostic("EMAIL_RAW_SOURCE_SKIPPED_MODEL_CHANGED",
+                "The preserved source was not reused because the email model changed after reading or could not be verified as unchanged.",
+                EmailDiagnosticSeverity.Warning));
         }
 
-        List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
+        EmailOutputPreflight.EnsurePayloadsFit(document, _options.MaxOutputBytes);
         byte[] data = format == EmailFileFormat.Eml
             ? MimeWriter.Write(document, _options, diagnostics)
             : format == EmailFileFormat.OutlookMsg

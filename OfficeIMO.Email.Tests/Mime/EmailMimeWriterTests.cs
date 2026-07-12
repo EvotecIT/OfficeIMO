@@ -52,6 +52,55 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void PreservedSourceWritingRegeneratesAfterModelEdits() {
+        byte[] source = Encoding.ASCII.GetBytes("Subject: original\r\n\r\noriginal body\r\n");
+        EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true))
+            .Read(source).Document;
+        document.Subject = "edited";
+        document.Body.Text = "edited body";
+        document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress("recipient@example.com")));
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "edited.txt",
+            ContentType = "text/plain",
+            Content = Encoding.UTF8.GetBytes("attachment edit"),
+            Length = Encoding.UTF8.GetByteCount("attachment edit")
+        });
+        var writer = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true));
+
+        byte[] result = writer.WriteToBytes(document, EmailFileFormat.Eml, out EmailWriteResult writeResult);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(result).Document;
+
+        Assert.False(writeResult.UsedPreservedSource);
+        Assert.Contains(writeResult.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_RAW_SOURCE_SKIPPED_MODEL_CHANGED");
+        Assert.Equal("edited", roundTrip.Subject);
+        Assert.Equal("edited body", roundTrip.Body.Text!.Trim());
+        Assert.Equal("recipient@example.com", Assert.Single(roundTrip.Recipients).Address.Address);
+        Assert.Equal("edited.txt", Assert.Single(roundTrip.Attachments).FileName);
+    }
+
+    [Fact]
+    public void PreservesUtf8AddressSpecsForInternationalizedEmail() {
+        var document = new EmailDocument {
+            Format = EmailFileFormat.Eml,
+            From = new EmailAddress("josé@example.com")
+        };
+        document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress("δοκιμή@example.com")));
+        document.Body.Text = "body";
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.UTF8.GetString(bytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.Contains("From: josé@example.com", eml, StringComparison.Ordinal);
+        Assert.Contains("To: δοκιμή@example.com", eml, StringComparison.Ordinal);
+        Assert.Equal(document.From.Address, roundTrip.From!.Address);
+        Assert.Equal(document.Recipients[0].Address.Address, Assert.Single(roundTrip.Recipients).Address.Address);
+    }
+
+    [Fact]
     public void WritesAndReadsEmbeddedMessages() {
         EmailDocument child = new EmailDocument { Format = EmailFileFormat.Eml, Subject = "Child" };
         child.Body.Text = "inside";

@@ -98,6 +98,34 @@ namespace OfficeIMO.Shared {
             return output.ToArray();
         }
 
+        internal static long GetSerializedLength(IReadOnlyList<OfficeCompoundStream> streams) {
+            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
+
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            int regularStreamSectorCount = 0;
+            int miniSectorCount = 0;
+            foreach (OfficeCompoundWriterEntry stream in layout.Streams) {
+                int length = stream.Bytes?.Length ?? 0;
+                if (length == 0) continue;
+                if (length < MiniStreamCutoffSize) {
+                    miniSectorCount = checked(miniSectorCount + ((length + MiniSectorSize - 1) / MiniSectorSize));
+                } else {
+                    regularStreamSectorCount = checked(regularStreamSectorCount +
+                        ((length + SectorSize - 1) / SectorSize));
+                }
+            }
+
+            int miniStreamSectorCount = checked(((miniSectorCount * MiniSectorSize) + SectorSize - 1) / SectorSize);
+            int directorySectorCount = CalculateDirectorySectorCount(layout.Entries.Count);
+            int miniFatSectorCount = checked(((miniSectorCount * 4) + SectorSize - 1) / SectorSize);
+            int sectorCountBeforeFat = checked(regularStreamSectorCount + miniStreamSectorCount +
+                directorySectorCount + miniFatSectorCount);
+            CalculateAllocationTableSectorCounts(sectorCountBeforeFat, out int fatSectorCount,
+                out int difatSectorCount);
+            return checked((1L + sectorCountBeforeFat + fatSectorCount + difatSectorCount) * SectorSize);
+        }
+
         private static int CalculateDirectorySectorCount(int directoryEntryCount) {
             return Math.Max(1, (checked(directoryEntryCount * 128) + SectorSize - 1) / SectorSize);
         }

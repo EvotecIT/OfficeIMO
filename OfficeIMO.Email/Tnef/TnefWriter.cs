@@ -23,7 +23,7 @@ internal static class TnefWriter {
         IList<EmailDiagnostic> diagnostics, int depth) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");
         int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
-        using (MemoryStream output = new MemoryStream()) {
+        using (EmailBoundedMemoryStream output = new EmailBoundedMemoryStream(options.MaxOutputBytes)) {
             WriteUInt32(output, TnefConstants.Signature);
             WriteUInt16(output, 1);
             WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.TnefVersion, EncodeUInt32(TnefConstants.Version));

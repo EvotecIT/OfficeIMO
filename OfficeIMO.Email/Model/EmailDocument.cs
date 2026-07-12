@@ -89,4 +89,6 @@ public sealed partial class EmailDocument {
 
     /// <summary>Original artifact bytes when raw preservation was requested.</summary>
     public byte[]? RawSource { get; internal set; }
+
+    internal byte[]? RawSourceModelFingerprint { get; set; }
 }

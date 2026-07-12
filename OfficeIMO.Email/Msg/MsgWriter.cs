@@ -13,6 +13,11 @@ internal static class MsgWriter {
         var names = new MsgNamedPropertyWriter();
         BuildMessage(document, string.Empty, MsgPropertyStreamKind.TopLevel, names, streams, diagnostics, options, 0);
         names.WriteStreams(streams);
+        long outputLength = OfficeCompoundFileWriter.GetSerializedLength(streams);
+        if (outputLength > options.MaxOutputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), outputLength,
+                options.MaxOutputBytes);
+        }
         return OfficeCompoundFileWriter.Write(streams, MessageStorageClassId);
     }
 
