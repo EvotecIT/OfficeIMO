@@ -19,9 +19,14 @@ internal static class Program {
     public static async Task<int> Main(string[] args) {
         try {
             var options = CliOptions.Parse(args);
-            if (string.IsNullOrWhiteSpace(options.Command) || options.ShowHelp) {
+            if (options.ShowHelp) {
                 WriteHelp();
-                return string.IsNullOrWhiteSpace(options.Command) ? 1 : 0;
+                return 0;
+            }
+
+            if (string.IsNullOrWhiteSpace(options.Command)) {
+                WriteHelp();
+                return 1;
             }
 
             var markup = await ReadMarkupAsync(options).ConfigureAwait(false);
