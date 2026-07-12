@@ -1,14 +1,14 @@
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Markdown document plus explicit conversion diagnostics.</summary>
-public sealed class AsciiDocMarkdownConversionResult {
-    internal AsciiDocMarkdownConversionResult(MarkdownDoc document, IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
-        Document = document;
-        Diagnostics = diagnostics;
+public sealed class AsciiDocToMarkdownResult {
+    internal AsciiDocToMarkdownResult(MarkdownDoc value, IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+        Value = value ?? throw new ArgumentNullException(nameof(value));
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
 
     /// <summary>Converted Markdown semantic document.</summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDoc Value { get; }
 
     /// <summary>Loss, fallback, and omission diagnostics.</summary>
     public IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> Diagnostics { get; }

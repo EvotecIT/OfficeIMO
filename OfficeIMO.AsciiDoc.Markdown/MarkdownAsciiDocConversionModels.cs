@@ -49,21 +49,21 @@ public sealed class MarkdownAsciiDocConversionDiagnostic {
 }
 
 /// <summary>Canonical AsciiDoc source and its lossless parsed document.</summary>
-public sealed class MarkdownAsciiDocConversionResult {
-    internal MarkdownAsciiDocConversionResult(
+public sealed class MarkdownToAsciiDocResult {
+    internal MarkdownToAsciiDocResult(
         string source,
-        AsciiDocDocument document,
+        AsciiDocDocument value,
         IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         Source = source;
-        Document = document;
-        Diagnostics = diagnostics;
+        Value = value ?? throw new ArgumentNullException(nameof(value));
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
 
     /// <summary>Generated canonical AsciiDoc.</summary>
     public string Source { get; }
 
     /// <summary>Lossless parsed view of <see cref="Source"/>.</summary>
-    public AsciiDocDocument Document { get; }
+    public AsciiDocDocument Value { get; }
 
     /// <summary>Fallback and simplification diagnostics.</summary>
     public IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> Diagnostics { get; }

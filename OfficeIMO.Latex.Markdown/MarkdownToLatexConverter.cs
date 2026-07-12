@@ -3,7 +3,7 @@ namespace OfficeIMO.Latex.Markdown;
 /// <summary>Generates canonical bounded-profile LaTeX from typed Markdown.</summary>
 public static class MarkdownToLatexConverter {
     /// <summary>Converts a Markdown semantic document and reparses generated LaTeX losslessly.</summary>
-    public static MarkdownLatexConversionResult Convert(
+    public static MarkdownToLatexResult Convert(
         MarkdownDoc document,
         MarkdownToLatexOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -56,7 +56,7 @@ public static class MarkdownToLatexConverter {
 
         string value = source.ToString();
         LatexDocument parsed = LatexDocument.Parse(value).Document;
-        return new MarkdownLatexConversionResult(value, parsed, diagnostics);
+        return new MarkdownToLatexResult(value, parsed, diagnostics);
     }
 
     private static string ConvertBlock(
@@ -337,6 +337,10 @@ public static class MarkdownToLatexConverter {
 
 public static partial class LatexMarkdownConverterExtensions {
     /// <summary>Converts Markdown to canonical bounded-profile LaTeX.</summary>
-    public static MarkdownLatexConversionResult ToLatexDocument(this MarkdownDoc document, MarkdownToLatexOptions? options = null) =>
+    public static MarkdownToLatexResult ToLatexDocumentResult(this MarkdownDoc document, MarkdownToLatexOptions? options = null) =>
         MarkdownToLatexConverter.Convert(document, options);
+
+    /// <summary>Converts a Markdown document to a parsed canonical LaTeX document.</summary>
+    public static LatexDocument ToLatexDocument(this MarkdownDoc document, MarkdownToLatexOptions? options = null) =>
+        document.ToLatexDocumentResult(options).Value;
 }

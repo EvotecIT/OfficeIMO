@@ -3,7 +3,7 @@ namespace OfficeIMO.Latex.Markdown;
 /// <summary>Converts the bounded OfficeIMO LaTeX profile to typed Markdown.</summary>
 public static class LatexToMarkdownConverter {
     /// <summary>Converts recognized semantics and diagnoses source fallbacks.</summary>
-    public static LatexMarkdownConversionResult Convert(
+    public static LatexToMarkdownResult Convert(
         LatexDocument document,
         LatexToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -27,7 +27,7 @@ public static class LatexToMarkdownConverter {
             AddCandidate(document, target, candidate, options, diagnostics);
             consumedUntil = candidate.Span.End.Offset;
         }
-        return new LatexMarkdownConversionResult(target, diagnostics);
+        return new LatexToMarkdownResult(target, diagnostics);
     }
 
     private static IEnumerable<BlockCandidate> BuildCandidates(LatexDocument document) {
@@ -384,6 +384,10 @@ public static class LatexToMarkdownConverter {
 /// <summary>Conversion extensions.</summary>
 public static partial class LatexMarkdownConverterExtensions {
     /// <summary>Converts a native LaTeX document to Markdown.</summary>
-    public static LatexMarkdownConversionResult ToMarkdownDocument(this LatexDocument document, LatexToMarkdownOptions? options = null) =>
+    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexToMarkdownOptions? options = null) =>
         LatexToMarkdownConverter.Convert(document, options);
+
+    /// <summary>Converts a LaTeX document to a typed Markdown document.</summary>
+    public static MarkdownDoc ToMarkdownDocument(this LatexDocument document, LatexToMarkdownOptions? options = null) =>
+        document.ToMarkdownDocumentResult(options).Value;
 }

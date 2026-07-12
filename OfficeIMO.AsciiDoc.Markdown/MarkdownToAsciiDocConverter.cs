@@ -3,7 +3,7 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 /// <summary>Canonical, loss-aware Markdown-to-AsciiDoc conversion.</summary>
 public static class MarkdownToAsciiDocConverter {
     /// <summary>Converts the OfficeIMO Markdown semantic model to dependency-free AsciiDoc.</summary>
-    public static MarkdownAsciiDocConversionResult Convert(
+    public static MarkdownToAsciiDocResult Convert(
         MarkdownDoc document,
         MarkdownToAsciiDocOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -27,7 +27,7 @@ public static class MarkdownToAsciiDocConverter {
         string source = string.Join(options.LineEnding + options.LineEnding, blocks);
         if (source.Length > 0) source += options.LineEnding;
         AsciiDocDocument parsed = AsciiDocDocument.Parse(source).Document;
-        return new MarkdownAsciiDocConversionResult(source, parsed, diagnostics);
+        return new MarkdownToAsciiDocResult(source, parsed, diagnostics);
     }
 
     private static string ConvertBlock(

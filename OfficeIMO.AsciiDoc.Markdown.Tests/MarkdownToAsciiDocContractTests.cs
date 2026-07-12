@@ -13,7 +13,7 @@ public sealed class MarkdownToAsciiDocContractTests {
             "| Name | Value |\n| --- | --- |\n| A | B |\n";
         MarkdownDoc document = MarkdownReader.Parse(markdown);
 
-        MarkdownAsciiDocConversionResult result = document.ToAsciiDocDocument();
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
         Assert.StartsWith(":product: OfficeIMO\n\n= Guide\n\n== Start\n", result.Source, StringComparison.Ordinal);
         Assert.Contains("*bold*", result.Source, StringComparison.Ordinal);
@@ -22,18 +22,18 @@ public sealed class MarkdownToAsciiDocContractTests {
         Assert.Contains("image:icon.svg[Icon]", result.Source, StringComparison.Ordinal);
         Assert.Contains("[source,csharp]\n----", result.Source, StringComparison.Ordinal);
         Assert.Contains("[cols=2*,%header]\n|===", result.Source, StringComparison.Ordinal);
-        Assert.Equal(result.Source, result.Document.ToAsciiDoc());
-        Assert.True(result.Document.SyntaxTree.IsLossless);
+        Assert.Equal(result.Source, result.Value.ToAsciiDoc());
+        Assert.True(result.Value.SyntaxTree.IsLossless);
         Assert.False(result.HasLoss);
     }
 
     [Fact]
     public void StructuredTableSpans_SurviveAsciiDocMarkdownAsciiDocRoundTrip() {
         const string source = "[cols=2*,%header]\n|===\n|A |B\n2+|wide\n|===\n";
-        AsciiDocMarkdownConversionResult markdown = AsciiDocDocument.Parse(source).Document.ToMarkdownDocument();
+        AsciiDocToMarkdownResult markdown = AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult();
 
-        MarkdownAsciiDocConversionResult roundTrip = markdown.Document.ToAsciiDocDocument();
-        AsciiDocTableBlock table = Assert.Single(roundTrip.Document.BlocksOfType<AsciiDocTableBlock>());
+        MarkdownToAsciiDocResult roundTrip = markdown.Value.ToAsciiDocDocumentResult();
+        AsciiDocTableBlock table = Assert.Single(roundTrip.Value.BlocksOfType<AsciiDocTableBlock>());
 
         Assert.Equal(2, table.Table.Cells[2].ColumnSpan);
         Assert.True(table.Table.Rows[0].IsHeader);
@@ -56,21 +56,21 @@ public sealed class MarkdownToAsciiDocContractTests {
         list.Items.Add(item);
         document.Add(list);
 
-        MarkdownAsciiDocConversionResult result = document.ToAsciiDocDocument();
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
         Assert.Contains("Term:: Definition", result.Source, StringComparison.Ordinal);
         Assert.Contains("WARNING: Be careful", result.Source, StringComparison.Ordinal);
         Assert.Contains("* item\n+\n[source,text]", result.Source, StringComparison.Ordinal);
-        Assert.Single(result.Document.BlocksOfType<AsciiDocDescriptionListBlock>());
-        Assert.Single(result.Document.BlocksOfType<AsciiDocAdmonitionBlock>());
-        Assert.Single(result.Document.BlocksOfType<AsciiDocListContinuation>());
+        Assert.Single(result.Value.BlocksOfType<AsciiDocDescriptionListBlock>());
+        Assert.Single(result.Value.BlocksOfType<AsciiDocAdmonitionBlock>());
+        Assert.Single(result.Value.BlocksOfType<AsciiDocListContinuation>());
     }
 
     [Fact]
     public void UnsupportedMarkdownBlock_IsVisibleAndDiagnosed() {
         MarkdownDoc document = MarkdownDoc.Create().Hr();
 
-        MarkdownAsciiDocConversionResult result = document.ToAsciiDocDocument();
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
         Assert.Contains("[source,markdown]", result.Source, StringComparison.Ordinal);
         Assert.Contains("---", result.Source, StringComparison.Ordinal);
@@ -82,20 +82,20 @@ public sealed class MarkdownToAsciiDocContractTests {
     public void RequestedLineEnding_IsUsedThroughoutGeneratedSource() {
         MarkdownDoc document = MarkdownReader.Parse("# Title\n\nParagraph\n");
 
-        MarkdownAsciiDocConversionResult result = document.ToAsciiDocDocument(new MarkdownToAsciiDocOptions { LineEnding = "\r\n" });
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownToAsciiDocOptions { LineEnding = "\r\n" });
 
         Assert.DoesNotContain("\n", result.Source.Replace("\r\n", string.Empty), StringComparison.Ordinal);
-        Assert.Equal(result.Source, result.Document.ToAsciiDoc());
+        Assert.Equal(result.Source, result.Value.ToAsciiDoc());
     }
 
     [Fact]
     public void CodeContainingListingFence_UsesALongerDelimiterWithoutChangingContent() {
         MarkdownDoc document = MarkdownDoc.Create().Code("text", "before\n----\nafter");
 
-        MarkdownAsciiDocConversionResult result = document.ToAsciiDocDocument();
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
         Assert.Contains("-----\nbefore\n----\nafter\n-----", result.Source, StringComparison.Ordinal);
-        AsciiDocDelimitedBlock block = Assert.Single(result.Document.BlocksOfType<AsciiDocDelimitedBlock>());
+        AsciiDocDelimitedBlock block = Assert.Single(result.Value.BlocksOfType<AsciiDocDelimitedBlock>());
         Assert.Equal("before\n----\nafter\n", block.Content);
         Assert.DoesNotContain(result.Diagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
     }
@@ -105,9 +105,9 @@ public sealed class MarkdownToAsciiDocContractTests {
         TableBlock table = Assert.Single(MarkdownReader.Parse("| H |\n| --- |\n| wide |\n").Blocks.OfType<TableBlock>());
         table.GetCell(0, 0)!.ColumnSpan = 2;
 
-        MarkdownAsciiDocConversionResult result = MarkdownDoc.Create().Add(table).ToAsciiDocDocument();
+        MarkdownToAsciiDocResult result = MarkdownDoc.Create().Add(table).ToAsciiDocDocumentResult();
 
         Assert.Contains("[cols=2*", result.Source, StringComparison.Ordinal);
-        Assert.Equal(2, Assert.Single(result.Document.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);
+        Assert.Equal(2, Assert.Single(result.Value.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);
     }
 }
