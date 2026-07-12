@@ -116,6 +116,11 @@ public sealed class ReaderEmailTests {
             MessageClass = "IPM.Appointment",
             Subject = "Planning"
         };
+        appointment.Attachments.Add(new EmailAttachment {
+            FileName = "large.bin",
+            Content = new byte[128 * 1024],
+            Length = 128 * 1024
+        });
         appointment.Appointment = new OutlookAppointment {
             Start = new DateTimeOffset(2026, 7, 10, 8, 0, 0, TimeSpan.Zero),
             End = new DateTimeOffset(2026, 7, 10, 9, 0, 0, TimeSpan.Zero),
@@ -132,7 +137,11 @@ public sealed class ReaderEmailTests {
 
         ReaderDetectionResult boundedDetection = DocumentReader.Detect(msg, "renamed.bin",
             new ReaderDetectionOptions { MaxProbeBytes = 256 });
-        Assert.Equal(ReaderInputKind.Unknown, boundedDetection.Kind);
+        ReaderDetectionResult boundedAsyncDetection = await DocumentReader.DetectAsync(msg, "renamed.bin",
+            new ReaderDetectionOptions { MaxProbeBytes = 256 });
+        Assert.Equal(ReaderInputKind.Email, boundedDetection.Kind);
+        Assert.Equal(ReaderInputKind.Email, boundedAsyncDetection.Kind);
+        Assert.Equal(256, boundedDetection.InspectedBytes);
 
         OfficeDocumentReadResult detected = DocumentReader.ReadDocument(msg, "renamed.bin");
         Assert.Equal(ReaderInputKind.Email, detected.Kind);
@@ -182,6 +191,17 @@ public sealed class ReaderEmailTests {
         Assert.Throws<IOException>(() => DocumentReader.Read(bytes, "bounded.eml", new ReaderOptions {
             MaxInputBytes = 32
         }).ToArray());
+    }
+
+    [Fact]
+    public void DefaultEmailSnapshotLimitRejectsOversizedSeekableStreamsBeforeReading() {
+        using var stream = new LengthOnlySeekableStream(EmailReaderOptions.Default.MaxInputBytes + 1);
+
+        IOException exception = Assert.Throws<IOException>(() =>
+            DocumentReader.ReadDocument(stream, "oversized.eml"));
+
+        Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, stream.ReadCount);
     }
 
     [Fact]
@@ -296,5 +316,32 @@ public sealed class ReaderEmailTests {
             Content = Encoding.UTF8.GetBytes("attachment text")
         });
         return new EmailDocumentWriter().WriteToBytes(document);
+    }
+
+    private sealed class LengthOnlySeekableStream : Stream {
+        private long _position;
+
+        internal LengthOnlySeekableStream(long length) {
+            Length = length;
+        }
+
+        internal int ReadCount { get; private set; }
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length { get; }
+        public override long Position { get => _position; set => _position = value; }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) {
+            ReadCount++;
+            return 0;
+        }
+        public override long Seek(long offset, SeekOrigin origin) {
+            _position = origin == SeekOrigin.Begin ? offset :
+                origin == SeekOrigin.Current ? _position + offset : Length + offset;
+            return _position;
+        }
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

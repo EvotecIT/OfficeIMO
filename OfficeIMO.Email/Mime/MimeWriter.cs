@@ -46,8 +46,40 @@ internal static class MimeWriter {
         WriteThreadingHeader(output, document, "In-Reply-To", document.MessageMetadata.InReplyToId);
         foreach (EmailHeader header in document.Headers) {
             if (ManagedHeaders.Contains(header.Name)) continue;
-            WriteLine(output, string.Concat(MimeHeaderSafety.SanitizeName(header.Name), ": ", EncodeHeaderText(header.Value)));
+            WriteRetainedHeader(output, header);
         }
+    }
+
+    private static void WriteRetainedHeader(Stream output, EmailHeader header) {
+        string name = MimeHeaderSafety.SanitizeName(header.Name);
+        if (header.RawValue != null && header.RawValue.All(character =>
+                character == '\t' || (character >= 32 && character <= 126))) {
+            WriteFoldedRawHeader(output, name, header.RawValue);
+            return;
+        }
+
+        WriteLine(output, string.Concat(name, ": ", EncodeHeaderText(header.Value)));
+    }
+
+    private static void WriteFoldedRawHeader(Stream output, string name, string value) {
+        string[] tokens = MimeHeaderSafety.SanitizeValue(value).Split(
+            new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0) {
+            WriteLine(output, string.Concat(name, ":"));
+            return;
+        }
+
+        var line = new StringBuilder(string.Concat(name, ":"));
+        foreach (string token in tokens) {
+            if (line.Length > name.Length + 1 && line.Length + token.Length + 1 > 78) {
+                WriteLine(output, line.ToString());
+                line.Clear().Append(' ');
+            } else {
+                line.Append(' ');
+            }
+            line.Append(token);
+        }
+        WriteLine(output, line.ToString());
     }
 
     private static void WriteRecipientHeader(Stream output, EmailDocument document, EmailRecipientKind kind, string name) {

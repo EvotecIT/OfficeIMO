@@ -71,6 +71,40 @@ public sealed class EmailDocumentReader {
         return LooksLikeMessage(data) ? EmailFileFormat.Eml : EmailFileFormat.Unknown;
     }
 
+    /// <summary>
+    /// Detects an artifact from the stream's current position. Seekable MSG inputs are classified by
+    /// inspecting only the compound directory, and the original stream position is restored.
+    /// </summary>
+    public static EmailFileFormat DetectFormat(Stream stream, EmailReaderOptions? options = null) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+        EmailReaderOptions effectiveOptions = options ?? EmailReaderOptions.Default;
+        if (!stream.CanSeek) {
+            return DetectFormat(EmailByteReader.ReadAll(stream, effectiveOptions.MaxInputBytes,
+                CancellationToken.None));
+        }
+
+        long position = stream.Position;
+        try {
+            long remaining = Math.Max(0L, stream.Length - position);
+            if (remaining > effectiveOptions.MaxInputBytes) return EmailFileFormat.Unknown;
+            byte[] signature = new byte[(int)Math.Min(8L, remaining)];
+            int read = stream.Read(signature, 0, signature.Length);
+            stream.Position = position;
+            if (read == CompoundSignature.Length && StartsWith(signature, CompoundSignature)) {
+                bool inspected = OfficeCompoundFileReader.TryContainsStreamPath(stream,
+                    "__properties_version1.0", effectiveOptions.MaxInputBytes,
+                    effectiveOptions.MaxCompoundDirectoryEntries, out bool contains, out _);
+                return inspected && contains ? EmailFileFormat.OutlookMsg : EmailFileFormat.Unknown;
+            }
+
+            return DetectFormat(EmailByteReader.ReadAll(stream, effectiveOptions.MaxInputBytes,
+                CancellationToken.None));
+        } finally {
+            stream.Position = position;
+        }
+    }
+
     private EmailReadResult Parse(byte[] data, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();

@@ -58,4 +58,23 @@ public sealed class MsgResourceLimitTests {
         Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
         Assert.Equal(6000, exception.ActualValue);
     }
+
+    [Fact]
+    public void AttachmentPayloadDoesNotConsumeTheDecodedPropertyBudget() {
+        var source = new EmailDocument { Subject = "separate budgets" };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "payload.bin",
+            Content = new byte[1024 * 1024],
+            Length = 1024 * 1024
+        });
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+
+        EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
+            maxAttachmentBytes: 2 * 1024 * 1024,
+            maxTotalAttachmentBytes: 2 * 1024 * 1024,
+            maxDecodedPropertyBytes: 64 * 1024)).Read(bytes);
+
+        Assert.Equal(EmailFileFormat.OutlookMsg, result.Document.Format);
+        Assert.Equal(1024 * 1024, Assert.Single(result.Document.Attachments).Content!.Length);
+    }
 }

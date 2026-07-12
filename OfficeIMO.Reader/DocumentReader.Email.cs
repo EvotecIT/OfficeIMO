@@ -20,7 +20,7 @@ public static partial class DocumentReader {
     }
 
     private static OfficeDocumentReadResult ReadEmailDocument(string path, ReaderOptions opt, CancellationToken cancellationToken) {
-        EnforceFileSize(path, opt.MaxInputBytes);
+        EnforceFileSize(path, GetEffectiveEmailMaxInputBytes(opt));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         EmailExtraction extraction = ExtractEmail(stream, path, opt, cancellationToken);
         SourceInfo source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
@@ -29,7 +29,7 @@ public static partial class DocumentReader {
     }
 
     private static OfficeDocumentReadResult ReadEmailDocument(Stream stream, string sourceName, ReaderOptions opt, CancellationToken cancellationToken) {
-        using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
+        using MemoryStream snapshot = CopyEmailToMemory(stream, opt, cancellationToken);
         return ReadEmailDocument(snapshot, sourceName, opt, cancellationToken);
     }
 
@@ -49,7 +49,7 @@ public static partial class DocumentReader {
     }
 
     private static EmailExtraction ExtractEmail(Stream stream, string sourceName, ReaderOptions opt, CancellationToken cancellationToken) {
-        using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
+        using MemoryStream snapshot = CopyEmailToMemory(stream, opt, cancellationToken);
         return ExtractEmail(snapshot.ToArray(), sourceName, opt, cancellationToken);
     }
 
@@ -82,10 +82,7 @@ public static partial class DocumentReader {
 
     private static EmailReaderOptions CreateEmailReaderOptions(ReaderOptions opt) {
         EmailReaderOptions defaults = EmailReaderOptions.Default;
-        long maxInputBytes = opt.MaxInputBytes.GetValueOrDefault(defaults.MaxInputBytes);
-        if (maxInputBytes <= 0) {
-            maxInputBytes = defaults.MaxInputBytes;
-        }
+        long maxInputBytes = GetEffectiveEmailMaxInputBytes(opt);
 
         return new EmailReaderOptions(
             maxInputBytes: maxInputBytes,
@@ -102,6 +99,18 @@ public static partial class DocumentReader {
             maxMapiPropertyCount: defaults.MaxMapiPropertyCount,
             maxDecodedPropertyBytes: Math.Min(defaults.MaxDecodedPropertyBytes, maxInputBytes),
             maxTnefAttributeCount: defaults.MaxTnefAttributeCount);
+    }
+
+    private static long GetEffectiveEmailMaxInputBytes(ReaderOptions opt) {
+        long maxInputBytes = opt.MaxInputBytes.GetValueOrDefault(EmailReaderOptions.Default.MaxInputBytes);
+        return maxInputBytes > 0 ? maxInputBytes : EmailReaderOptions.Default.MaxInputBytes;
+    }
+
+    private static MemoryStream CopyEmailToMemory(Stream stream, ReaderOptions opt,
+        CancellationToken cancellationToken) {
+        long maxInputBytes = GetEffectiveEmailMaxInputBytes(opt);
+        ReaderInputLimits.EnforceSeekableStreamRemainingSize(stream, maxInputBytes);
+        return CopyToMemory(stream, cancellationToken, maxInputBytes);
     }
 
     private static bool IsEmailArtifact(string path, ReaderOptions opt, CancellationToken cancellationToken) {
@@ -124,7 +133,7 @@ public static partial class DocumentReader {
 
         long position = stream.Position;
         try {
-            using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
+            using MemoryStream snapshot = CopyEmailToMemory(stream, opt, cancellationToken);
             byte[] bytes = snapshot.ToArray();
             EmailFileFormat format = EmailDocumentReader.DetectFormat(bytes);
             return format != EmailFileFormat.Unknown &&

@@ -150,6 +150,26 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void PreservesRetainedStructuredHeaderSyntaxWithoutEncodedWords() {
+        const string received = "from relay.example.test by destination.example.test with ESMTPS id 1234567890 for <reader@example.test>; Fri, 10 Jul 2026 12:30:00 +0000";
+        const string signature = "v=1; a=rsa-sha256; d=example.test; s=mail; h=from:to:subject:date:message-id; bh=YWJjZGVmZ2hpamtsbW5vcA==; b=cXdlcnR5dWlvcGFzZGZnaGprbA==";
+        var document = new EmailDocument { Subject = "structured headers" };
+        document.Body.Text = "body";
+        document.Headers.Add(new EmailHeader("Received", received, received));
+        document.Headers.Add(new EmailHeader("DKIM-Signature", signature, signature));
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+
+        Assert.DoesNotContain("Received: =?utf-8?", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("DKIM-Signature: =?utf-8?", eml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\r\n ", eml, StringComparison.Ordinal);
+        Assert.Equal(received, roundTrip.Headers.Single(header => header.Name == "Received").RawValue);
+        Assert.Equal(signature, roundTrip.Headers.Single(header => header.Name == "DKIM-Signature").RawValue);
+    }
+
+    [Fact]
     public void FoldsLongRecipientListsWithoutChangingRecipients() {
         var document = new EmailDocument { Subject = "recipient folding" };
         document.Body.Text = "body";

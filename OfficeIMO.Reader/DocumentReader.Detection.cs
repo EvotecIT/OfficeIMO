@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Email;
 
 namespace OfficeIMO.Reader;
 
@@ -244,7 +243,9 @@ public static partial class DocumentReader {
                     candidate = containerCandidate;
                 }
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
-                candidate = InspectEmailCompound(prefix);
+                candidate = restorePosition
+                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
+                    : InspectEmailCompound(prefix);
                 containerInspected = true;
             }
 
@@ -284,7 +285,9 @@ public static partial class DocumentReader {
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;
             } else if (IsOleCompound(prefix) && options.InspectContainers) {
-                candidate = InspectEmailCompound(prefix);
+                candidate = restorePosition
+                    ? InspectEmailCompound(stream, originalPosition, options.MaxContainerEntries)
+                    : InspectEmailCompound(prefix);
                 containerInspected = true;
             }
 
@@ -463,17 +466,6 @@ public static partial class DocumentReader {
         }
 
         return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", "content:mostly-text");
-    }
-
-    private static bool IsOleCompound(byte[] prefix) {
-        return StartsWith(prefix, new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 });
-    }
-
-    private static DetectionCandidate InspectEmailCompound(byte[] boundedPayload) {
-        return EmailDocumentReader.DetectFormat(boundedPayload) == EmailFileFormat.OutlookMsg
-            ? DetectionCandidate.High(ReaderInputKind.Email, "application/vnd.ms-outlook",
-                "container:msg-properties-stream")
-            : DetectionCandidate.Unknown("container:ole-compound-unrecognized");
     }
 
     private static bool LooksLikeEmailMessage(string text) {

@@ -8,7 +8,7 @@ namespace OfficeIMO.Shared {
     /// <summary>
     /// Reads OLE compound document containers used by legacy Office binary formats.
     /// </summary>
-    internal static class OfficeCompoundFileReader {
+    internal static partial class OfficeCompoundFileReader {
         private const int HeaderSize = 512;
         private const int MiniSectorSize = 64;
         private const int DirectoryEntrySize = 128;

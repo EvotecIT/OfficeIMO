@@ -4,6 +4,7 @@ namespace OfficeIMO.Email;
 
 internal static class MsgWriter {
     private static readonly Guid MessageStorageClassId = new Guid("00020D0B-0000-0000-C000-000000000046");
+    private static readonly Guid StorageInterfaceId = new Guid("0000000B-0000-0000-C000-000000000046");
     private static readonly DateTimeOffset FallbackCreationTime =
         new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -45,7 +46,7 @@ internal static class MsgWriter {
             EmailDocument? embeddedDocument = attachment.EmbeddedDocument ??
                 TryReadOpaqueEmbeddedTnef(attachment, diagnostics, storage);
             MsgPropertyBuilder properties = CreateAttachmentProperties(attachment, index, method, diagnostics, storage,
-                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0);
+                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0 || attachment.Content != null);
             MsgPropertyWriter.Write(storage, MsgPropertyStreamKind.ChildObject, properties.Properties,
                 0, 0, names, streams, diagnostics, codePage,
                 method == 5 ? 1U : method == 6 ? 4U : 0U);
@@ -60,12 +61,40 @@ internal static class MsgWriter {
                     streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
                 }
             } else if (method == 6) {
-                foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
-                    .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
-                    streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
-                }
+                WriteStructuredAttachment(attachment, objectStorage, streams, diagnostics);
             }
         }
+    }
+
+    private static void WriteStructuredAttachment(EmailAttachment attachment, string objectStorage,
+        IList<OfficeCompoundStream> streams, IList<EmailDiagnostic> diagnostics) {
+        if (attachment.StructuredStorageStreams.Count > 0) {
+            foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
+                .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
+                streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
+            }
+            return;
+        }
+
+        if (attachment.Content == null) return;
+        byte[] retained = attachment.Content;
+        byte[] compoundCandidate = retained.Length > 16 &&
+            new Guid(MsgBinary.Slice(retained, 0, 16)) == StorageInterfaceId
+                ? MsgBinary.Slice(retained, 16, retained.Length - 16)
+                : retained;
+        if (OfficeCompoundFileReader.TryRead(compoundCandidate, out OfficeCompoundFile? compound, out _) &&
+            compound != null) {
+            foreach (KeyValuePair<string, byte[]> stream in compound.Streams
+                .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
+                streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
+            }
+            return;
+        }
+
+        streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, "CONTENTS"), retained));
+        diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_OPAQUE_STRUCTURED_CONTENT_WRAPPED",
+            "Opaque structured attachment bytes were retained in the MSG object storage because the original compound payload could not be expanded.",
+            EmailDiagnosticSeverity.Warning, objectStorage));
     }
 
     internal static MsgPropertyBuilder CreateMessageProperties(EmailDocument document,

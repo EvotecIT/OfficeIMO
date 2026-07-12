@@ -228,6 +228,29 @@ public sealed class EmailMsgRoundTripTests {
     }
 
     [Fact]
+    public void WriterRetainsOpaqueMethodSixContentInsideObjectStorage() {
+        byte[] opaque = Encoding.ASCII.GetBytes("not-a-readable-compound-payload");
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "opaque OLE" };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "object.ole",
+            MapiAttachMethod = 6,
+            Content = opaque,
+            Length = opaque.Length
+        });
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+            source, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
+        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(bytes).Document.Attachments);
+
+        Assert.Equal(opaque, roundTrip.StructuredStorageStreams["CONTENTS"]);
+        Assert.Contains(writeResult.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MSG_OPAQUE_STRUCTURED_CONTENT_WRAPPED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.DoesNotContain(writeResult.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
+    }
+
+    [Fact]
     public void LogicalAttachmentNamesDoNotUseFilesystemPathValidation() {
         var diagnostics = new List<EmailDiagnostic>();
         var attachment = new EmailAttachment { FileName = "report|2026.txt", Content = new byte[] { 1 }, Length = 1 };

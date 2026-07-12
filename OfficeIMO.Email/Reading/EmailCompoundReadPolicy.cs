@@ -7,14 +7,23 @@ internal static class EmailCompoundReadPolicy {
     internal static OfficeCompoundReadOptions Create(EmailReaderOptions options) {
         var attachmentTotals = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         long totalAttachmentBytes = 0;
+        long totalPropertyBytes = 0;
         return new OfficeCompoundReadOptions(
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
             Math.Min(options.MaxInputBytes, int.MaxValue),
-            options.MaxDecodedPropertyBytes,
+            long.MaxValue,
             (path, size) => {
                 string? attachmentPath = GetAttachmentPayloadPath(path);
-                if (attachmentPath == null) return;
+                if (attachmentPath == null) {
+                    totalPropertyBytes = checked(totalPropertyBytes + size);
+                    if (totalPropertyBytes > options.MaxDecodedPropertyBytes) {
+                        throw new OfficeCompoundStreamLimitExceededException(
+                            nameof(EmailReaderOptions.MaxDecodedPropertyBytes), totalPropertyBytes,
+                            options.MaxDecodedPropertyBytes);
+                    }
+                    return;
+                }
                 long attachmentBytes = checked((attachmentTotals.TryGetValue(attachmentPath, out long current)
                     ? current
                     : 0) + size);
@@ -39,7 +48,7 @@ internal static class EmailCompoundReadPolicy {
             options.MaxCompoundDirectoryEntries,
             options.MaxCompoundDirectoryEntries,
             Math.Min(options.MaxInputBytes, int.MaxValue),
-            options.MaxDecodedPropertyBytes,
+            long.MaxValue,
             (_, size) => {
                 attachmentBytes = checked(attachmentBytes + size);
                 if (attachmentBytes > options.MaxAttachmentBytes) {
