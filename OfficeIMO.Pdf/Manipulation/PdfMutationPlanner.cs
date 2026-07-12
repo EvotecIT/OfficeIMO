@@ -153,6 +153,8 @@ public static class PdfMutationPlanner {
                 return CanSynchronizeMetadata(preflight);
             case PdfMutationOperation.Sanitize:
                 return CanSanitize(preflight);
+            case PdfMutationOperation.ModifyAttachments:
+                return CanModifyAttachments(preflight);
             case PdfMutationOperation.FillFormFields:
                 return preflight.CanFillSimpleFormFields;
             case PdfMutationOperation.FlattenFormFields:
@@ -162,7 +164,6 @@ public static class PdfMutationPlanner {
             case PdfMutationOperation.PrepareExternalSignature:
             case PdfMutationOperation.FinalizeExternalSignature:
             case PdfMutationOperation.EnrichLongTermValidation:
-            case PdfMutationOperation.ModifyAttachments:
                 return false;
             case PdfMutationOperation.ChangeEncryption:
                 return CanChangeEncryption(preflight);
@@ -195,8 +196,7 @@ public static class PdfMutationPlanner {
     private static bool IsFullRewriteImplemented(PdfMutationOperation operation) {
         return operation != PdfMutationOperation.PrepareExternalSignature &&
             operation != PdfMutationOperation.FinalizeExternalSignature &&
-            operation != PdfMutationOperation.EnrichLongTermValidation &&
-            operation != PdfMutationOperation.ModifyAttachments;
+            operation != PdfMutationOperation.EnrichLongTermValidation;
     }
 
     private static bool IsAppendOnlyImplemented(PdfMutationOperation operation) {
@@ -621,6 +621,11 @@ public static class PdfMutationPlanner {
                 blocker != PdfRewriteBlockerKind.CatalogUri;
         }
 
+        if (operation == PdfMutationOperation.ModifyAttachments) {
+            return blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+        }
+
         return true;
     }
 
@@ -635,6 +640,14 @@ public static class PdfMutationPlanner {
             }
         }
 
+        return true;
+    }
+
+    private static bool CanModifyAttachments(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAttachments)) return false;
+        }
         return true;
     }
 

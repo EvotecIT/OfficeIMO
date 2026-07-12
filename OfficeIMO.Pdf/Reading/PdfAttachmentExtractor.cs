@@ -7,6 +7,18 @@ namespace OfficeIMO.Pdf;
 /// Extracts embedded file attachments from PDFs that can be parsed by OfficeIMO.Pdf.
 /// </summary>
 public static class PdfAttachmentExtractor {
+    /// <summary>Extracts only attachments accepted by the caller predicate.</summary>
+    public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(byte[] pdf, Func<PdfExtractedAttachment, bool> predicate) {
+        Guard.NotNull(predicate, nameof(predicate));
+        return ExtractAttachments(pdf).Where(predicate).ToArray();
+    }
+
+    /// <summary>Extracts attachments with an exact file name.</summary>
+    public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachmentsByFileName(byte[] pdf, string fileName) {
+        Guard.NotNullOrWhiteSpace(fileName, nameof(fileName));
+        return ExtractAttachments(pdf, attachment => string.Equals(attachment.FileName, fileName, StringComparison.Ordinal));
+    }
+
     /// <summary>Extracts embedded file attachments from a PDF byte array.</summary>
     public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -172,6 +184,9 @@ public static class PdfAttachmentExtractor {
         PdfAssociatedFileRelationship relationship = TryReadRelationship(objects, fileSpec);
         string filter = GetFilterName(objects, stream.Dictionary.Items.TryGetValue("Filter", out var filterObject) ? filterObject : null);
         byte[] bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        PdfDictionary? parameters = ResolveDictionary(objects, stream.Dictionary.Items.TryGetValue("Params", out PdfObject? parametersObject) ? parametersObject : null);
+        DateTimeOffset? creationDate = TryReadPdfDate(objects, parameters, "CreationDate");
+        DateTimeOffset? modificationDate = TryReadPdfDate(objects, parameters, "ModDate");
 
         return new PdfExtractedAttachment(
             name,
@@ -184,7 +199,42 @@ public static class PdfAttachmentExtractor {
             fileSpecObjectNumber,
             embeddedFileObjectNumber,
             bytes,
-            source);
+            source,
+            creationDate,
+            modificationDate);
+    }
+
+    private static DateTimeOffset? TryReadPdfDate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? dictionary, string key) {
+        if (dictionary == null ||
+            !dictionary.Items.TryGetValue(key, out PdfObject? value) ||
+            ResolveObject(objects, value) is not PdfStringObj text) return null;
+        string raw = text.Value.StartsWith("D:", StringComparison.Ordinal) ? text.Value.Substring(2) : text.Value;
+        if (raw.Length < 4 || !TryPart(raw, 0, 4, out int year)) return null;
+        int month = TryPart(raw, 4, 2, out int parsedMonth) ? parsedMonth : 1;
+        int day = TryPart(raw, 6, 2, out int parsedDay) ? parsedDay : 1;
+        int hour = TryPart(raw, 8, 2, out int parsedHour) ? parsedHour : 0;
+        int minute = TryPart(raw, 10, 2, out int parsedMinute) ? parsedMinute : 0;
+        int second = TryPart(raw, 12, 2, out int parsedSecond) ? parsedSecond : 0;
+        TimeSpan offset = TimeSpan.Zero;
+        if (raw.Length > 14 && (raw[14] == '+' || raw[14] == '-')) {
+            int offsetHour = TryPart(raw, 15, 2, out int parsedOffsetHour) ? parsedOffsetHour : 0;
+            int minuteIndex = raw.Length > 17 && raw[17] == '\'' ? 18 : 17;
+            int offsetMinute = TryPart(raw, minuteIndex, 2, out int parsedOffsetMinute) ? parsedOffsetMinute : 0;
+            offset = new TimeSpan(offsetHour, offsetMinute, 0);
+            if (raw[14] == '-') offset = -offset;
+        }
+        try { return new DateTimeOffset(year, month, day, hour, minute, second, offset); } catch (ArgumentOutOfRangeException) { return null; }
+    }
+
+    private static bool TryPart(string value, int index, int length, out int result) {
+        result = 0;
+        if (index < 0 || index + length > value.Length) return false;
+        for (int i = 0; i < length; i++) {
+            char character = value[index + i];
+            if (character < '0' || character > '9') { result = 0; return false; }
+            result = (result * 10) + (character - '0');
+        }
+        return true;
     }
 
     private static string? TryReadFileSpecName(Dictionary<int, PdfIndirectObject> objects, PdfObject fileSpecObject) {

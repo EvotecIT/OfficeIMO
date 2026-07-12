@@ -35,7 +35,7 @@ internal static class PdfObjectBytes {
     internal static byte[] WrapStreamBody(string dictionary, byte[] content) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
-        if (dictionary.Contains("stream")) {
+        if (ContainsStreamMarker(dictionary)) {
             throw new ArgumentException("Stream dictionaries must not include stream markers.", nameof(dictionary));
         }
 
@@ -43,6 +43,18 @@ internal static class PdfObjectBytes {
             PdfEncoding.Latin1GetBytes(dictionary.TrimEnd() + "\nstream\n"),
             content,
             PdfEncoding.Latin1GetBytes("\nendstream\n"));
+    }
+
+    private static bool ContainsStreamMarker(string dictionary) {
+        int index = 0;
+        while ((index = dictionary.IndexOf("stream", index, StringComparison.Ordinal)) >= 0) {
+            bool before = index == 0 || char.IsWhiteSpace(dictionary[index - 1]);
+            int afterIndex = index + 6;
+            bool after = afterIndex == dictionary.Length || char.IsWhiteSpace(dictionary[afterIndex]);
+            if (before && after) return true;
+            index = afterIndex;
+        }
+        return false;
     }
 
     internal static byte[] Concat(params byte[][] parts) {

@@ -9,6 +9,8 @@ public sealed class PdfEmbeddedFile {
     private string? _mimeType;
     private string? _description;
     private PdfAssociatedFileRelationship _relationship;
+    private DateTimeOffset? _creationDate;
+    private DateTimeOffset? _modificationDate;
 
     /// <summary>Creates a PDF embedded file description.</summary>
     public PdfEmbeddedFile(
@@ -16,7 +18,9 @@ public sealed class PdfEmbeddedFile {
         byte[] data,
         string? mimeType = null,
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Unspecified,
-        string? description = null) {
+        string? description = null,
+        DateTimeOffset? creationDate = null,
+        DateTimeOffset? modificationDate = null) {
         ValidateFileName(fileName, nameof(fileName));
         Guard.NotNullOrEmpty(data, nameof(data));
         ValidateOptionalMimeType(mimeType, nameof(mimeType));
@@ -28,6 +32,8 @@ public sealed class PdfEmbeddedFile {
         _mimeType = mimeType;
         _description = description;
         _relationship = relationship;
+        _creationDate = creationDate;
+        _modificationDate = modificationDate;
     }
 
     /// <summary>Embedded file name as exposed in the PDF name tree.</summary>
@@ -71,8 +77,13 @@ public sealed class PdfEmbeddedFile {
         }
     }
 
+    /// <summary>Optional embedded-file creation date.</summary>
+    public DateTimeOffset? CreationDate { get => _creationDate; set => _creationDate = value; }
+    /// <summary>Optional embedded-file modification date.</summary>
+    public DateTimeOffset? ModificationDate { get => _modificationDate; set => _modificationDate = value; }
+
     internal PdfEmbeddedFile Clone() {
-        return new PdfEmbeddedFile(FileName, _data, MimeType, Relationship, Description);
+        return new PdfEmbeddedFile(FileName, _data, MimeType, Relationship, Description, CreationDate, ModificationDate);
     }
 
     private static void ValidateFileName(string? value, string paramName) {

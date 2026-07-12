@@ -172,7 +172,7 @@ permissions, and later revisions.
 - [ ] Add an existing-document AcroForm editor for field creation, rename,
   remove, move, default values, flags, calculation order, tab order, selected
   flattening, data import/export, and signature-field placement.
-- [ ] Add attachment editing for embedded files and associated files, including
+- [x] Add attachment editing for embedded files and associated files, including
   relationship, description, MIME type, dates, checksum, replace, rename,
   remove, and safe file-name extraction.
 - [x] Add a sanitization workflow that can remove or quarantine JavaScript,

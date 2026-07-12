@@ -17,7 +17,9 @@ public sealed class PdfExtractedAttachment {
         int fileSpecObjectNumber,
         int embeddedFileObjectNumber,
         byte[] bytes,
-        string source = "Names/EmbeddedFiles") {
+        string source = "Names/EmbeddedFiles",
+        DateTimeOffset? creationDate = null,
+        DateTimeOffset? modificationDate = null) {
         Name = name;
         FileName = fileName;
         UnicodeFileName = unicodeFileName;
@@ -28,6 +30,8 @@ public sealed class PdfExtractedAttachment {
         FileSpecObjectNumber = fileSpecObjectNumber;
         EmbeddedFileObjectNumber = embeddedFileObjectNumber;
         Source = source;
+        CreationDate = creationDate;
+        ModificationDate = modificationDate;
         _bytes = (byte[])bytes.Clone();
     }
 
@@ -60,6 +64,10 @@ public sealed class PdfExtractedAttachment {
 
     /// <summary>Catalog source that referenced this attachment, for example Names/EmbeddedFiles or AF.</summary>
     public string Source { get; }
+    /// <summary>Embedded-file creation date from /Params, when readable.</summary>
+    public DateTimeOffset? CreationDate { get; }
+    /// <summary>Embedded-file modification date from /Params, when readable.</summary>
+    public DateTimeOffset? ModificationDate { get; }
 
     /// <summary>Decoded embedded file bytes. The returned array is a defensive copy.</summary>
     public byte[] Bytes => (byte[])_bytes.Clone();

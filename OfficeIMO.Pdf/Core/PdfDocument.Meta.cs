@@ -25,6 +25,7 @@ public sealed partial class PdfDocument : IDisposable {
         Read = new PdfDocumentReader(this);
         Stamp = new PdfDocumentStamper(this);
         Forms = new PdfDocumentForms(this);
+        Attachments = new PdfDocumentAttachments(this);
     }
 
     private PdfDocument(byte[] pdf, PdfReadOptions? readOptions = null) : this() {
@@ -108,6 +109,9 @@ public sealed partial class PdfDocument : IDisposable {
     /// Readback operations for this PDF.
     /// </summary>
     public PdfDocumentReader Read { get; }
+
+    /// <summary>Existing-document embedded and associated file editing operations.</summary>
+    public PdfDocumentAttachments Attachments { get; }
 
     /// <summary>
     /// Text and image stamping operations for this PDF.
