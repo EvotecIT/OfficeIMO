@@ -163,7 +163,7 @@ permissions, and later revisions.
   plus broken-target validation.
 - [x] Add destination-conflict handling for bookmarks during page edits and
   merges.
-- [ ] Expand annotation editing to create annotations on existing pages,
+- [x] Expand annotation editing to create annotations on existing pages,
   update rectangles/quads/vertices/ink paths/line endings/popups/replies,
   regenerate appearances, remove actions, flatten selected annotations, and use
   append-only changes when the mutation planner permits them.

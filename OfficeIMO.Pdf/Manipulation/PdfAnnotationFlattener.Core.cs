@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfAnnotationFlattener {
-    private static int FlattenPageVisualAnnotations(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber) {
+    private static int FlattenPageVisualAnnotations(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber, PdfAnnotationFlattenOptions? options, Dictionary<int, int> pageNumbers) {
         int flattenedCount = 0;
         foreach (var entry in objects.OrderBy(pair => pair.Key).ToArray()) {
             if (entry.Value.Value is not PdfDictionary page ||
@@ -10,6 +10,7 @@ public static partial class PdfAnnotationFlattener {
                 ResolveObject(objects, annotsObject) is not PdfArray annots) {
                 continue;
             }
+            if (options?.PageNumber != null && (!pageNumbers.TryGetValue(entry.Key, out int pageNumber) || pageNumber != options.PageNumber.Value)) continue;
 
             var pageAnnotations = new List<FlattenVisualAnnotationState>();
             var remainingAnnots = new PdfArray();
@@ -17,8 +18,8 @@ public static partial class PdfAnnotationFlattener {
             for (int i = 0; i < annots.Items.Count; i++) {
                 PdfObject annotObject = annots.Items[i];
                 PdfDictionary? annotation = ResolveDictionary(objects, annotObject);
-                if (annotation == null ||
-                    TryReadName(objects, annotation, "Subtype") is not string subtype ||
+                if (annotation == null || TryReadName(objects, annotation, "Subtype") is not string subtype ||
+                    !MatchesFlattenSelector(annotObject, subtype, options) ||
                     !IsSupportedVisualAnnotation(subtype)) {
                     remainingAnnots.Items.Add(annotObject);
                     continue;
@@ -65,6 +66,12 @@ public static partial class PdfAnnotationFlattener {
         }
 
         return flattenedCount;
+    }
+
+    private static bool MatchesFlattenSelector(PdfObject annotation, string subtype, PdfAnnotationFlattenOptions? options) {
+        if (options == null) return true;
+        if (options.ObjectNumber.HasValue && (annotation is not PdfReference reference || reference.ObjectNumber != options.ObjectNumber.Value)) return false;
+        return options.Subtype == null || string.Equals(options.Subtype, subtype, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSupportedVisualAnnotation(string subtype) {

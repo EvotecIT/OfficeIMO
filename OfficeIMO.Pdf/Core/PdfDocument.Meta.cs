@@ -27,6 +27,7 @@ public sealed partial class PdfDocument : IDisposable {
         Forms = new PdfDocumentForms(this);
         Attachments = new PdfDocumentAttachments(this);
         Bookmarks = new PdfDocumentBookmarks(this);
+        Annotations = new PdfDocumentAnnotations(this);
     }
 
     private PdfDocument(byte[] pdf, PdfReadOptions? readOptions = null) : this() {
@@ -116,6 +117,9 @@ public sealed partial class PdfDocument : IDisposable {
 
     /// <summary>Existing-document bookmark editing operations.</summary>
     public PdfDocumentBookmarks Bookmarks { get; }
+
+    /// <summary>Existing-document annotation editing operations.</summary>
+    public PdfDocumentAnnotations Annotations { get; }
 
     /// <summary>
     /// Text and image stamping operations for this PDF.

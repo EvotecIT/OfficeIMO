@@ -10,7 +10,13 @@ public static partial class PdfAnnotationFlattener {
     /// Returns a new PDF with supported visual annotations painted into page content and removed from page annotations.
     /// </summary>
     public static byte[] FlattenVisualAnnotations(byte[] pdf) {
+        return FlattenVisualAnnotations(pdf, (PdfAnnotationFlattenOptions?)null);
+    }
+
+    /// <summary>Flattens only supported visual annotations matching the supplied selector.</summary>
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
+        ValidateFlattenOptions(options);
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
@@ -20,12 +26,21 @@ public static partial class PdfAnnotationFlattener {
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber);
+        PdfReadDocument read = PdfReadDocument.Load(pdf);
+        var pageNumbers = new Dictionary<int, int>();
+        for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
+        int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber, options, pageNumbers);
         if (flattenedCount == 0) {
             return pdf.ToArray();
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, read.Metadata);
+    }
+
+    private static void ValidateFlattenOptions(PdfAnnotationFlattenOptions? options) {
+        if (options?.ObjectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Annotation object number must be positive.");
+        if (options?.PageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Page number must be positive.");
+        if (options?.Subtype != null) Guard.NotNullOrWhiteSpace(options.Subtype, nameof(options.Subtype));
     }
 
     /// <summary>
