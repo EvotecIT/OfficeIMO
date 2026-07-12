@@ -23,8 +23,8 @@ namespace OfficeIMO.Word.Markdown {
         private static readonly TimeSpan DefaultRemoteImageDownloadTimeout = TimeSpan.FromSeconds(20);
 
 
-        // Current footnote definitions map; built per-document on ConvertAsync
-        private static IReadOnlyDictionary<string, string>? _currentFootnotes;
+        // Current footnote definitions map; scoped to this per-conversion converter instance.
+        private IReadOnlyDictionary<string, string>? _currentFootnotes;
 
         public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
             return ConvertAsync(markdown, options).GetAwaiter().GetResult();
