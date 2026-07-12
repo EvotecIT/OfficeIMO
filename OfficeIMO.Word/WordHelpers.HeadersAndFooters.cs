@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
                 }
 
                 // Write the MemoryStream contents to the output file
-                File.WriteAllBytes(outputPath, documentStream.ToArray());
+                OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, documentStream.ToArray());
             }
         }
     }

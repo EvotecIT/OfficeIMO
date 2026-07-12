@@ -80,7 +80,7 @@ public static partial class PdfAnnotationFlattener {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllBytes(fullOutputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>

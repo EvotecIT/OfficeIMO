@@ -54,19 +54,17 @@ public sealed partial class EmailDocument {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
-        File.WriteAllBytes(filePath, data);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(filePath, data);
         return result;
     }
 
     /// <summary>Saves the document to a stream without closing it.</summary>
     public EmailWriteResult Save(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
-        stream.Write(data, 0, data.Length);
+        OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, data);
         return result;
     }
 
@@ -83,25 +81,20 @@ public sealed partial class EmailDocument {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
-        cancellationToken.ThrowIfCancellationRequested();
-        using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None,
-            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-            await stream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(false);
-        }
+        await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
         return result;
     }
 
     /// <summary>Asynchronously saves the document to a stream without closing it.</summary>
     public async Task<EmailWriteResult> SaveAsync(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         cancellationToken.ThrowIfCancellationRequested();
-        await stream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
         return result;
     }
 

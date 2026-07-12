@@ -186,7 +186,7 @@ public static class PdfImageExtractor {
                 "-image-" + (i + 1).ToString("0000", CultureInfo.InvariantCulture) +
                 "." + extension);
 
-            File.WriteAllBytes(outputPath, image.Bytes);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, image.Bytes);
             paths.Add(outputPath);
         }
 

@@ -165,7 +165,7 @@ public static partial class HtmlImageExportExtensions {
 
     private static void WriteFile(string path, byte[] bytes) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
-        File.WriteAllBytes(path, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(path, bytes);
     }
 
     private static void WriteStream(Stream stream, byte[] bytes) {

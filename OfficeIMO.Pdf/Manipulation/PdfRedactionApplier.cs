@@ -758,7 +758,7 @@ public static partial class PdfRedactionApplier {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllBytes(fullPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
     }
 
     private static string ValidateOutputPath(string outputPath) {

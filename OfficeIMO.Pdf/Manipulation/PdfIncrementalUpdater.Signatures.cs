@@ -104,7 +104,7 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfExternalSignaturePreparation preparation = PrepareExternalSignature(File.ReadAllBytes(inputPath), options);
-        File.WriteAllBytes(outputPath, preparation.PreparedPdf);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, preparation.PreparedPdf);
         return preparation;
     }
 
@@ -140,7 +140,7 @@ public static partial class PdfIncrementalUpdater {
     public static void ApplyExternalSignature(string inputPath, string outputPath, byte[] signatureContents) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        File.WriteAllBytes(outputPath, ApplyExternalSignature(File.ReadAllBytes(inputPath), signatureContents));
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, ApplyExternalSignature(File.ReadAllBytes(inputPath), signatureContents));
     }
 
     private static void ValidateExternalSignatureOptions(PdfExternalSignatureOptions options) {

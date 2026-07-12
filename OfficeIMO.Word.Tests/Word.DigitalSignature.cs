@@ -467,7 +467,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_DigitalSignature_DisposeSignedAutoSaveReleasesPackageWithoutSaving() {
+        public void Test_DigitalSignature_DisposeSignedAutoSavePropagatesPolicyFailureWithoutSaving() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureAutoSaveDispose.docx");
             byte[] signatureBytes = CreateSignatureXml();
 
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
 
             WordDocument loaded = WordDocument.Load(filePath, autoSave: true);
             loaded.AddParagraph("Mutation that should not autosave");
-            loaded.Dispose();
+            Assert.Throws<WordSignatureSavePolicyException>(() => loaded.Dispose());
 
             Assert.False(filePath.IsFileLocked());
             using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {

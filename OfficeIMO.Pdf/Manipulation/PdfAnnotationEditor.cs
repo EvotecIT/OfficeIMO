@@ -566,6 +566,6 @@ public static partial class PdfAnnotationEditor {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllBytes(outputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, bytes);
     }
 }

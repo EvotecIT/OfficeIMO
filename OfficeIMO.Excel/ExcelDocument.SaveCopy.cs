@@ -1,4 +1,4 @@
-using OfficeIMO.Shared;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {

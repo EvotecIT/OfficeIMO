@@ -127,7 +127,7 @@ public static partial class PdfOptimizer {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllBytes(outputPath, result.Bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, result.Bytes);
         return result;
     }
 

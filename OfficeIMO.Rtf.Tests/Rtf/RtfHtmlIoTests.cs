@@ -46,10 +46,10 @@ public class RtfHtmlIoTests {
         html.SaveAsRtf(output, writeOptions: writeOptions);
         byte[] saved = output.ToArray();
 
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal(rtf, Encoding.UTF8.GetString(saved, 1, saved.Length - 1));
-        Assert.Equal("Clinical ż", Assert.Single(RtfDocument.Load(saved.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
+        Assert.Equal(0, output.Position);
+        Assert.Equal(bytes, saved);
+        Assert.Equal(rtf, Encoding.UTF8.GetString(saved));
+        Assert.Equal("Clinical ż", Assert.Single(RtfDocument.Load(saved).Document.Paragraphs).ToPlainText());
     }
 
     [Fact]
@@ -95,9 +95,9 @@ public class RtfHtmlIoTests {
         byte[] saved = output.ToArray();
 
         Assert.Equal(secondSource.Length, secondSource.Position);
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal("Fluent ż", Assert.Single(RtfDocument.Load(saved.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
+        Assert.Equal(0, output.Position);
+        Assert.Equal(rtfBytes, saved);
+        Assert.Equal("Fluent ż", Assert.Single(RtfDocument.Load(saved).Document.Paragraphs).ToPlainText());
     }
 
     [Fact]

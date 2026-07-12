@@ -3,17 +3,22 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OfficeIMO.Shared {
+namespace OfficeIMO.Core.Internal {
     /// <summary>
     /// Commits completed Office files without exposing a partially written destination.
     /// </summary>
-    internal static class OfficeFileCommit {
-        internal enum ConflictPolicy {
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static class OfficeFileCommit {
+        /// <summary>Controls whether an existing destination may be replaced.</summary>
+        public enum ConflictPolicy {
+            /// <summary>Fails when the destination already exists.</summary>
             FailIfExists,
+            /// <summary>Atomically replaces the destination when it exists.</summary>
             Replace
         }
 
-        internal static void Write(string targetPath, Action<Stream> writer, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
+        /// <summary>Produces a file in the destination directory and atomically commits it.</summary>
+        public static void Write(string targetPath, Action<Stream> writer, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
 #if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(writer);
 #else
@@ -34,7 +39,8 @@ namespace OfficeIMO.Shared {
             }
         }
 
-        internal static void WriteAllBytes(string targetPath, byte[] bytes, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
+        /// <summary>Atomically writes a completed byte array to a destination path.</summary>
+        public static void WriteAllBytes(string targetPath, byte[] bytes, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
 #if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(bytes);
 #else
@@ -43,7 +49,8 @@ namespace OfficeIMO.Shared {
             Write(targetPath, stream => stream.Write(bytes, 0, bytes.Length), conflictPolicy);
         }
 
-        internal static async Task WriteAllBytesAsync(
+        /// <summary>Asynchronously writes a completed byte array and atomically commits it.</summary>
+        public static async Task WriteAllBytesAsync(
             string targetPath,
             byte[] bytes,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace,
@@ -73,7 +80,8 @@ namespace OfficeIMO.Shared {
             }
         }
 
-        internal static string CreateTemporaryPath(string targetPath) {
+        /// <summary>Creates a same-directory temporary path suitable for an atomic commit.</summary>
+        public static string CreateTemporaryPath(string targetPath) {
             string fullTargetPath = GetFullTargetPath(targetPath);
             string? directory = Path.GetDirectoryName(fullTargetPath);
             if (string.IsNullOrEmpty(directory)) {
@@ -84,7 +92,8 @@ namespace OfficeIMO.Shared {
             return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}.tmp");
         }
 
-        internal static string CreateStagingPath(string targetPath) {
+        /// <summary>Creates a same-directory staging path that preserves the destination extension.</summary>
+        public static string CreateStagingPath(string targetPath) {
             string fullTargetPath = GetFullTargetPath(targetPath);
             string? directory = Path.GetDirectoryName(fullTargetPath);
             if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
@@ -94,7 +103,8 @@ namespace OfficeIMO.Shared {
             return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}{extension}");
         }
 
-        internal static void CommitTemporaryFile(
+        /// <summary>Commits a completed temporary file to its destination.</summary>
+        public static void CommitTemporaryFile(
             string temporaryPath,
             string targetPath,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
@@ -127,7 +137,8 @@ namespace OfficeIMO.Shared {
             ReplaceUsingBackup(temporaryPath, fullTargetPath);
         }
 
-        internal static void DeleteIfExists(string? path) {
+        /// <summary>Deletes a temporary file when it exists without hiding an earlier failure.</summary>
+        public static void DeleteIfExists(string? path) {
             if (string.IsNullOrWhiteSpace(path)) return;
 
             try {

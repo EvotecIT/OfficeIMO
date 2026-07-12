@@ -107,14 +107,19 @@ public class OpenDocumentPackageKernelTests {
     }
 
     [Fact]
-    public void SaveReportDescribesOnlyTheMostRecentSave() {
+    public void SerializationReportsDirtyStateUntilARealSaveSucceeds() {
         using OdtDocument document = OdtDocument.Create();
-        document.ToBytes();
+        using var destination = new MemoryStream();
+        document.Save(destination);
         document.Metadata.Title = "Changed";
 
         document.ToBytes();
         Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
 
+        document.ToBytes();
+        Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+
+        document.Save(destination);
         document.ToBytes();
         Assert.Empty(document.LastSaveReport!.RewrittenEntries);
         Assert.Empty(document.LastSaveReport.RemovedEntries);
@@ -124,13 +129,26 @@ public class OpenDocumentPackageKernelTests {
     [Fact]
     public void FailedDestinationWriteDoesNotAcceptDirtyState() {
         using OdtDocument document = OdtDocument.Create();
-        document.ToBytes();
+        document.Save(new MemoryStream());
         document.Metadata.Title = "Pending";
 
         Assert.Throws<IOException>(() => document.Save(new ThrowingWriteStream()));
         document.ToBytes();
 
         Assert.Contains("meta.xml", document.LastSaveReport!.RewrittenEntries);
+    }
+
+    [Fact]
+    public void SaveToStreamTruncatesAndRewindsDestination() {
+        using OdtDocument document = OdtDocument.Create();
+        using var destination = new MemoryStream(new byte[32_768], writable: true);
+
+        document.Save(destination);
+
+        Assert.Equal(0, destination.Position);
+        Assert.True(destination.Length < 32_768);
+        using OdtDocument reopened = OdtDocument.Open(destination);
+        Assert.Equal(OdfDocumentKind.Text, reopened.Kind);
     }
 
     private static OdfDocument Create(OdfDocumentKind kind) {

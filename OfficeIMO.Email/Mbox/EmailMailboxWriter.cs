@@ -19,7 +19,7 @@ public sealed class EmailMailboxWriter {
     public EmailWriteResult Write(EmailMailbox mailbox, string filePath) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
-        File.WriteAllBytes(filePath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(filePath, bytes);
         return result;
     }
 

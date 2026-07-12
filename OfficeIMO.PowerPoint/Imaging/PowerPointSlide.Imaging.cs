@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
                 Directory.CreateDirectory(directory!);
             }
 
-            File.WriteAllBytes(fullPath, bytes);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         }
 
         private static void WriteImageStream(Stream stream, byte[] bytes) {

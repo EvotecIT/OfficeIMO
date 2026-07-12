@@ -65,7 +65,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Directory.CreateDirectory(directory!);
             }
 
-            File.WriteAllBytes(path, _data);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(path, _data);
         }
 
         /// <summary>

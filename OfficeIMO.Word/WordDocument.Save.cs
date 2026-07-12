@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.LegacyDoc.Write;
 using OfficeIMO.Word.Fluent;

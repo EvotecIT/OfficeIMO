@@ -125,7 +125,7 @@ public static class PdfLongTermValidationEnricher {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfLongTermValidationEnrichmentResult result = Enrich(File.ReadAllBytes(inputPath), evidence, cryptographyProvider, readOptions);
-        File.WriteAllBytes(outputPath, result.Pdf);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }
 

@@ -47,7 +47,7 @@ public static partial class PdfIncrementalUpdater {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfExternalSignatureCompletion completion = SignExternal(File.ReadAllBytes(inputPath), signer, options);
-        File.WriteAllBytes(outputPath, completion.Pdf);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, completion.Pdf);
         return completion;
     }
 }

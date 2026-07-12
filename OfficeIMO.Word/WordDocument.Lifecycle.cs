@@ -35,22 +35,21 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            Exception? persistenceFailure = null;
             var wordProcessingDocument = this._wordprocessingDocument;
             if (wordProcessingDocument != null) {
                 if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
                     try {
                         Save();
-                    } catch (WordSignatureSavePolicyException) {
-                        DisablePackageAutoSave(wordProcessingDocument);
-                    } catch {
-                        // ignored
+                    } catch (Exception ex) {
+                        persistenceFailure = ex;
                     }
                 }
 
                 try {
                     wordProcessingDocument.Dispose();
-                } catch {
-                    // ignored
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
                 }
 
                 this._wordprocessingDocument = null!;
@@ -61,9 +60,9 @@ namespace OfficeIMO.Word {
                 try {
                     ownedPackageStream.Dispose();
                 } catch (ObjectDisposedException) {
-                    // ignored
-                } catch (IOException) {
-                    // ignored
+                    // Disposing an already disposed owned stream is harmless.
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
                 }
 
                 _ownedPackageStream = null;
@@ -75,6 +74,9 @@ namespace OfficeIMO.Word {
 
             this._disposed = true;
             GC.SuppressFinalize(this);
+            if (persistenceFailure != null) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(persistenceFailure).Throw();
+            }
         }
 
         /// <summary>
@@ -85,6 +87,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            Exception? persistenceFailure = null;
             var wordProcessingDocument = this._wordprocessingDocument;
             if (wordProcessingDocument != null) {
                 if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
@@ -94,17 +97,15 @@ namespace OfficeIMO.Word {
                         } else {
                             await SaveAsync().ConfigureAwait(false);
                         }
-                    } catch (WordSignatureSavePolicyException) {
-                        DisablePackageAutoSave(wordProcessingDocument);
-                    } catch {
-                        // ignored
+                    } catch (Exception ex) {
+                        persistenceFailure = ex;
                     }
                 }
 
                 try {
-                    await Task.Run(() => wordProcessingDocument.Dispose()).ConfigureAwait(false);
-                } catch {
-                    // ignored
+                    wordProcessingDocument.Dispose();
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
                 }
 
                 this._wordprocessingDocument = null!;
@@ -113,11 +114,11 @@ namespace OfficeIMO.Word {
             var ownedPackageStream = _ownedPackageStream;
             if (ownedPackageStream != null) {
                 try {
-                    await Task.Run(() => ownedPackageStream.Dispose()).ConfigureAwait(false);
+                    ownedPackageStream.Dispose();
                 } catch (ObjectDisposedException) {
-                    // ignored
-                } catch (IOException) {
-                    // ignored
+                    // Disposing an already disposed owned stream is harmless.
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
                 }
 
                 _ownedPackageStream = null;
@@ -129,23 +130,9 @@ namespace OfficeIMO.Word {
 
             this._disposed = true;
             GC.SuppressFinalize(this);
-        }
-
-        private static void DisablePackageAutoSave(WordprocessingDocument wordProcessingDocument) {
-            System.Reflection.PropertyInfo? property = typeof(WordprocessingDocument).BaseType?.GetProperty(
-                "OpenSettings",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-            OpenSettings? settings = property?.GetValue(wordProcessingDocument) as OpenSettings;
-            if (settings == null || property == null) {
-                return;
+            if (persistenceFailure != null) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(persistenceFailure).Throw();
             }
-
-            property.SetValue(wordProcessingDocument, new OpenSettings {
-                AutoSave = false,
-                CompatibilityLevel = settings.CompatibilityLevel,
-                MarkupCompatibilityProcessSettings = settings.MarkupCompatibilityProcessSettings,
-                MaxCharactersInPart = settings.MaxCharactersInPart
-            });
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {

@@ -57,24 +57,13 @@ public sealed partial class RtfDocument {
     /// <summary>Saves the document to an RTF file.</summary>
     public async Task SaveAsync(string path, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        await WriteEncodedFileAsync(path, ToRtf(options), encoding ?? CreateDefaultOutputEncoding(), cancellationToken).ConfigureAwait(false);
+        byte[] bytes = ToBytes(options, encoding);
+        await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
     public async Task SaveAsync(Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        byte[] bytes = await ToBytesAsync(options, encoding, cancellationToken).ConfigureAwait(false);
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-    }
-
-    private static async Task WriteEncodedFileAsync(string path, string rtf, Encoding encoding, CancellationToken cancellationToken) {
-        using var writer = new StreamWriter(path, append: false, encoding);
-#if NET8_0_OR_GREATER
-        await writer.WriteAsync(rtf.AsMemory(), cancellationToken).ConfigureAwait(false);
-#else
-        cancellationToken.ThrowIfCancellationRequested();
-        await writer.WriteAsync(rtf).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-#endif
+        byte[] bytes = ToBytes(options, encoding);
+        await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
 }

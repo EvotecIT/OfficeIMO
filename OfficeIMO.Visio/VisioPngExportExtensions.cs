@@ -72,7 +72,7 @@ namespace OfficeIMO.Visio {
                 Directory.CreateDirectory(directory!);
             }
 
-            File.WriteAllBytes(fullPath, bytes);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         }
     }
 }

@@ -65,11 +65,8 @@ public sealed partial class PdfDocument {
     /// <param name="stream">Writable destination stream.</param>
     /// <returns>This <see cref="PdfDocument"/> for chaining.</returns>
     public PdfDocument Save(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
-
         var bytes = ToBytes();
-        stream.Write(bytes, 0, bytes.Length);
+        OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, bytes);
         return this;
     }
 
@@ -78,15 +75,12 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfSaveResult TrySave(Stream stream) {
         try {
-            Guard.NotNull(stream, nameof(stream));
-            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
-
             if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
                 return PdfSaveResult.Failed(outputPath: null, preflightException!);
             }
 
             var bytes = RenderBytesCore();
-            stream.Write(bytes, 0, bytes.Length);
+            OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, bytes);
             return PdfSaveResult.Success(outputPath: null, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(outputPath: null, ex);
@@ -103,7 +97,7 @@ public sealed partial class PdfDocument {
         EnsureOutputDirectory(fullPath);
 
         var bytes = ToBytes();
-        File.WriteAllBytes(fullPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         return this;
     }
 
@@ -121,7 +115,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-            File.WriteAllBytes(fullPath, bytes);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
             return PdfSaveResult.Success(fullPath, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(fullPath ?? path, ex);
@@ -132,16 +126,10 @@ public sealed partial class PdfDocument {
     /// Asynchronously writes the document to <paramref name="stream"/> at the stream's current position.
     /// </summary>
     public async System.Threading.Tasks.Task SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
 
         var bytes = ToBytes();
-#if NET8_0_OR_GREATER
-        await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
-#else
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
+        await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -149,8 +137,6 @@ public sealed partial class PdfDocument {
     /// </summary>
     public async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         try {
-            Guard.NotNull(stream, nameof(stream));
-            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
             cancellationToken.ThrowIfCancellationRequested();
 
             if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
@@ -158,11 +144,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-#if NET8_0_OR_GREATER
-            await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
-#else
-            await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
+            await OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
             return PdfSaveResult.Success(outputPath: null, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(outputPath: null, ex);
@@ -178,12 +160,7 @@ public sealed partial class PdfDocument {
         EnsureOutputDirectory(fullPath);
 
         var bytes = ToBytes();
-        using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
-#if NET8_0_OR_GREATER
-        await fs.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
-#else
-        await fs.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
+        await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -201,12 +178,7 @@ public sealed partial class PdfDocument {
             }
 
             var bytes = RenderBytesCore();
-            using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
-#if NET8_0_OR_GREATER
-            await fs.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
-#else
-            await fs.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
+            await OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
             return PdfSaveResult.Success(fullPath, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(fullPath ?? path, ex);

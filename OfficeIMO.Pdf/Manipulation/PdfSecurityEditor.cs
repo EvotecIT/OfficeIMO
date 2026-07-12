@@ -48,7 +48,7 @@ public static class PdfSecurityEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfSecurityMutationResult result = Encrypt(File.ReadAllBytes(inputPath), encryption);
-        File.WriteAllBytes(outputPath, result.Pdf);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }
 
@@ -57,7 +57,7 @@ public static class PdfSecurityEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfSecurityMutationResult result = Decrypt(File.ReadAllBytes(inputPath), ownerPassword);
-        File.WriteAllBytes(outputPath, result.Pdf);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }
 

@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -82,9 +83,6 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Save(Stream destination) {
             ThrowIfDisposed();
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-
             ApplySignatureMutationPolicy();
 
             foreach (PowerPointSlide slide in _slides) {
@@ -95,23 +93,11 @@ namespace OfficeIMO.PowerPoint {
             _document!.Save();
             _discardChangesOnDispose = false;
 
-            if (destination.CanSeek) {
-                destination.Seek(0, SeekOrigin.Begin);
-                destination.SetLength(0);
-            }
-
-            using (var clone = _document.Clone(destination)) {
+            using var packageStream = new MemoryStream();
+            using (var clone = _document.Clone(packageStream)) {
                 // Clone writes the package into destination; dispose immediately to finalize the write.
             }
-
-            try {
-                destination.Flush();
-            } catch (NotSupportedException) {
-                // Some streams do not support Flush; ignore.
-            }
-            if (destination.CanSeek) {
-                destination.Seek(0, SeekOrigin.Begin);
-            }
+            OfficeStreamWriter.WriteAllBytes(destination, packageStream.ToArray());
         }
 
         /// <summary>
@@ -125,13 +111,9 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
 
             ValidateSlideIndex(slideIndex);
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory);
-            }
-
-            using FileStream stream = new(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            using var stream = new MemoryStream();
             ExportSlide(slideIndex, stream);
+            OfficeFileCommit.WriteAllBytes(filePath, stream.ToArray());
         }
 
         /// <summary>
@@ -169,10 +151,7 @@ namespace OfficeIMO.PowerPoint {
             using var packageStream = new MemoryStream();
             Save(packageStream);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
-            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                fs.Write(encryptedBytes, 0, encryptedBytes.Length);
-                fs.Flush();
-            }
+            OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
 
             if (openPowerPoint) {
                 Helpers.Open(filePath, true);
@@ -186,13 +165,12 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="password">Password used to encrypt the presentation package.</param>
         public void SaveEncrypted(Stream destination, string password) {
             ThrowIfDisposed();
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             using var packageStream = new MemoryStream();
             Save(packageStream);
-            OfficeEncryption.EncryptPackageToStream(packageStream.ToArray(), password, destination);
+            byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
+            OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
         }
 
     }

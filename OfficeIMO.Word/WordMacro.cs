@@ -116,7 +116,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(filePath)) throw new ArgumentNullException(nameof(filePath));
             var data = ExtractMacros(document);
             if (data == null) return;
-            File.WriteAllBytes(filePath, data);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(filePath, data);
         }
 
         /// <summary>

@@ -313,7 +313,7 @@ public static class PdfAttachmentExtractor {
             string fileName = GetSafeFileName(attachment.UnicodeFileName ?? attachment.FileName, "attachment-" + (i + 1).ToString("0000", CultureInfo.InvariantCulture) + ".bin");
             string uniqueFileName = MakeUniqueFileName(fileName, usedNames);
             string outputPath = Path.Combine(outputDirectory, uniqueFileName);
-            File.WriteAllBytes(outputPath, attachment.Bytes);
+            OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(outputPath, attachment.Bytes);
             paths.Add(outputPath);
         }
 

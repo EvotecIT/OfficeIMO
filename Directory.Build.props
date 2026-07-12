@@ -13,10 +13,13 @@
              Condition="Exists('$(OfficeIMOTrimmingPolyfillsFile)')" />
   </ItemGroup>
 
-  <ItemGroup Condition="Exists('$(OfficeIMOSharedDir)')">
+  <ItemGroup Condition="Exists('$(OfficeIMOSharedDir)') And '$(MSBuildProjectName)' != 'OfficeIMO.Core'">
     <Compile Include="$(OfficeIMOSharedDir)\**\*.cs"
              Exclude="$(OfficeIMOTrimmingPolyfillsFile);$(OfficeIMOSharedDir)\OfficeEncryption*.cs;$(OfficeIMOSharedDir)\OfficePackageSignature*.cs;$(OfficeIMOSharedDir)\Compound\**\*.cs;$(OfficeIMOSharedDir)\Ole\**\*.cs;$(OfficeIMOSharedDir)\Packaging\**\*.cs"
              Link="Shared\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
-</Project>
 
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'OfficeIMO.Core' And Exists('$(MSBuildThisFileDirectory)OfficeIMO.Core\OfficeIMO.Core.csproj')">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)OfficeIMO.Core\OfficeIMO.Core.csproj" />
+  </ItemGroup>
+</Project>

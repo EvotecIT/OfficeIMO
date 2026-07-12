@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using OfficeIMO.Core.Internal;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -19,24 +20,9 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="filePath">Target path.</param>
         private void SaveInternalCore(string filePath) {
-            bool includeTheme = Theme != null;
-            List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
-            bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
-            PrepareTextFontFaceNames(pagesToSave);
-            ValidatePagesForSave(pagesToSave);
-            if (includeComments) {
-                ValidateCommentsForSave(pagesToSave, BuildEffectivePageMastersForSave(pagesToSave));
-            }
-
-            int pageCount = pagesToSave.Count;
-            List<string> pagePartNames = new();
-            int masterCount;
-
-            using (Package package = Package.Open(filePath, FileMode.Create)) {
-                masterCount = WritePackage(package, includeTheme, includeComments, pagesToSave, pageCount, pagePartNames);
-            }
-
-            FixContentTypes(filePath, masterCount, includeTheme, includeComments, pagePartNames);
+            using var destination = new MemoryStream();
+            SaveInternalCore(destination);
+            OfficeFileCommit.WriteAllBytes(filePath, destination.ToArray());
         }
 
         /// <summary>
@@ -64,16 +50,8 @@ namespace OfficeIMO.Visio {
 
             FixContentTypes(packageStream, masterCount, includeTheme, includeComments, pagePartNames);
 
-            if (destination.CanSeek) {
-                destination.Seek(0, SeekOrigin.Begin);
-                destination.SetLength(0);
-            }
             packageStream.Seek(0, SeekOrigin.Begin);
-            packageStream.CopyTo(destination);
-            destination.Flush();
-            if (destination.CanSeek) {
-                destination.Seek(0, SeekOrigin.Begin);
-            }
+            OfficeStreamWriter.WriteAllBytes(destination, packageStream.ToArray());
         }
 
         private int WritePackage(

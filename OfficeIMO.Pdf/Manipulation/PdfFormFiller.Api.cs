@@ -166,7 +166,7 @@ public static partial class PdfFormFiller {
         byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public static partial class PdfFormFiller {
         byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>
@@ -440,7 +440,7 @@ public static partial class PdfFormFiller {
         byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath), options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>
@@ -604,7 +604,7 @@ public static partial class PdfFormFiller {
         byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>
@@ -623,7 +623,7 @@ public static partial class PdfFormFiller {
         byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
     }
 
     /// <summary>

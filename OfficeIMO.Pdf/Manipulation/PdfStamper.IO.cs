@@ -29,7 +29,7 @@ public static partial class PdfStamper {
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullPath, bytes);
+        OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(fullPath, bytes);
     }
 
     private static string ValidateOutputPath(string outputPath) {

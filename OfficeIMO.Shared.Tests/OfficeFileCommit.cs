@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using OfficeIMO.Shared;
+using OfficeIMO.Core.Internal;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests {

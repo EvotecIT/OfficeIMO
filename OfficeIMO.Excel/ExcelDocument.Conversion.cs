@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Shared;
