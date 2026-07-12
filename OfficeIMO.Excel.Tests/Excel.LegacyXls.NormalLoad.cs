@@ -90,6 +90,62 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        public async Task EncryptedLoad_RoutesMisleadingExtensionsByContent(bool legacyPayload, bool asyncLoad) {
+            const string password = "openpass";
+            byte[] encryptedBytes;
+            string misleadingExtension;
+
+            if (legacyPayload) {
+                byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream(password);
+                encryptedBytes = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+                misleadingExtension = ".xlsx";
+            } else {
+                using var sourceStream = new MemoryStream();
+                using ExcelDocument source = ExcelDocument.Create(sourceStream);
+                source.AddWorkSheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
+                using var encrypted = new MemoryStream();
+                source.SaveEncrypted(encrypted, password);
+                encryptedBytes = encrypted.ToArray();
+                misleadingExtension = ".xls";
+            }
+
+            string sourcePath = WriteTempWorkbook(encryptedBytes, misleadingExtension);
+            try {
+                using ExcelDocument document = asyncLoad
+                    ? await ExcelDocument.LoadEncryptedAsync(sourcePath, password)
+                    : ExcelDocument.LoadEncrypted(sourcePath, password);
+
+                Assert.Equal(legacyPayload ? ExcelFileFormat.Xls : ExcelFileFormat.Xlsx, document.SourceFormat);
+                Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal(legacyPayload ? "RC4 secret" : "Encrypted Open XML", value);
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task EncryptedLoad_StreamRoutesLegacyXlsByContent(bool asyncLoad) {
+            const string password = "openpass";
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream(password);
+            byte[] encryptedBytes = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            using var source = new MemoryStream(encryptedBytes);
+
+            using ExcelDocument document = asyncLoad
+                ? await ExcelDocument.LoadEncryptedAsync(source, password)
+                : ExcelDocument.LoadEncrypted(source, password);
+
+            Assert.Equal(ExcelFileFormat.Xls, document.SourceFormat);
+            Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
+            Assert.Equal("RC4 secret", value);
+        }
+
         [Fact]
         public void LegacyXls_NormalLoad_StreamProjectsToExcelDocumentAndSavesOpenXmlStream() {
             byte[] compound = CreateMinimalLegacyXlsCompound();

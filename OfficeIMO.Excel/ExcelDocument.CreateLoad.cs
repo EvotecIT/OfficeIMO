@@ -360,11 +360,11 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
-                return LoadEncryptedLegacyXls(filePath, password);
+            var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
+            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
+                return LoadEncryptedLegacyXls(encryptedBytes, password);
             }
 
-            var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log, openSettings, preferFilePathOnFallback: false);
         }
@@ -406,7 +406,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Loads a password-encrypted Office Open XML workbook from a stream.
+        /// Loads a password-encrypted Office Open XML workbook or legacy binary workbook from a stream.
         /// </summary>
         /// <param name="stream">Input stream containing the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
@@ -421,6 +421,10 @@ namespace OfficeIMO.Excel {
             EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
 
             var encryptedBytes = ReadAllBytes(stream);
+            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
+                return LoadEncryptedLegacyXls(encryptedBytes, password);
+            }
+
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
@@ -498,11 +502,11 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
-                return LoadEncryptedLegacyXls(filePath, password);
+            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
+            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
+                return LoadEncryptedLegacyXls(encryptedBytes, password);
             }
 
-            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
@@ -545,7 +549,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Asynchronously loads a password-encrypted Office Open XML workbook from a stream.
+        /// Asynchronously loads a password-encrypted Office Open XML workbook or legacy binary workbook from a stream.
         /// </summary>
         /// <param name="stream">Input stream containing the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
@@ -561,12 +565,16 @@ namespace OfficeIMO.Excel {
             EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
 
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
+                return LoadEncryptedLegacyXls(encryptedBytes, password);
+            }
+
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
-        private static ExcelDocument LoadEncryptedLegacyXls(string filePath, string password) {
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(filePath, new LegacyXlsImportOptions {
+        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password) {
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
                 Password = password,
                 ReportUnsupportedContent = true
             });

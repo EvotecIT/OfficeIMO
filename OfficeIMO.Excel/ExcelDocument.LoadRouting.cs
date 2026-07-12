@@ -6,11 +6,22 @@ namespace OfficeIMO.Excel {
 
         internal static bool IsLegacyXls(byte[] bytes, string? filePath) {
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
-                return RouteCompoundDocument(bytes);
+                return RouteCompoundDocument(bytes, encryptedLoad: false, filePath);
             }
 
             if (HasZipSignature(bytes)) {
                 return false;
+            }
+
+            return HasLegacyXlsExtension(filePath);
+        }
+
+        /// <summary>
+        /// Distinguishes an encrypted legacy workbook from an encrypted Open XML package by its OLE root streams.
+        /// </summary>
+        internal static bool IsEncryptedLegacyXls(byte[] bytes, string? filePath) {
+            if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
+                return RouteCompoundDocument(bytes, encryptedLoad: true, filePath);
             }
 
             return HasLegacyXlsExtension(filePath);
@@ -40,7 +51,7 @@ namespace OfficeIMO.Excel {
                 && bytes[1] == ZipSignature[1];
         }
 
-        private static bool RouteCompoundDocument(byte[] bytes) {
+        private static bool RouteCompoundDocument(byte[] bytes, bool encryptedLoad, string? filePath) {
             OfficeCompoundDocumentDetector.DocumentKind kind = OfficeCompoundDocumentDetector.Detect(bytes, out _);
             switch (kind) {
                 case OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook:
@@ -48,12 +59,16 @@ namespace OfficeIMO.Excel {
                 case OfficeCompoundDocumentDetector.DocumentKind.WordDocument:
                     throw new InvalidDataException("The input contains a legacy Word document, not an Excel workbook. Load it with OfficeIMO.Word.WordDocument.");
                 case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
+                    if (encryptedLoad) {
+                        return false;
+                    }
                     throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use ExcelDocument.LoadEncrypted and provide its password.");
                 case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:
                     throw new InvalidDataException("The OLE compound file contains more than one root Office document stream and cannot be routed safely.");
                 default:
-                    // Let the legacy reader produce its stable compound/signature diagnostics.
-                    return true;
+                    // Normal loads retain their legacy-reader diagnostics. Encrypted loads
+                    // fall back to the extension only when the compound root is unknown.
+                    return !encryptedLoad || HasLegacyXlsExtension(filePath);
             }
         }
     }
