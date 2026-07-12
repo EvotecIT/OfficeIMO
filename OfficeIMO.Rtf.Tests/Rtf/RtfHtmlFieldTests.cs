@@ -95,12 +95,13 @@ public class RtfHtmlFieldTests {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
-        RtfDocument document = html.ToRtfDocument(options);
+        HtmlToRtfResult result = html.ToRtfDocumentResult(options);
+        RtfDocument document = result.Document;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Empty(paragraph.Inlines.OfType<RtfField>());
         Assert.Equal("Secret", paragraph.ToPlainText());
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
         Assert.Equal("data-officeimo-rtf-field-instruction", diagnostic.Source);
     }
@@ -112,14 +113,15 @@ public class RtfHtmlFieldTests {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
-        RtfDocument document = html.ToRtfDocument(options);
+        HtmlToRtfResult result = html.ToRtfDocumentResult(options);
+        RtfDocument document = result.Document;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         string rtf = document.ToRtf();
 
         Assert.Empty(paragraph.Inlines.OfType<RtfField>());
         Assert.Equal("Link", paragraph.ToPlainText());
         Assert.DoesNotContain("file:///C:/secret.txt", rtf, StringComparison.OrdinalIgnoreCase);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
         Assert.Equal("data-officeimo-rtf-field-instruction", diagnostic.Source);
     }
@@ -131,12 +133,13 @@ public class RtfHtmlFieldTests {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
-        RtfDocument document = html.ToRtfDocument(options);
+        HtmlToRtfResult result = html.ToRtfDocumentResult(options);
+        RtfDocument document = result.Document;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Empty(paragraph.Inlines.OfType<RtfField>());
         Assert.Equal("Link", paragraph.ToPlainText());
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
         Assert.Equal("data-officeimo-rtf-field-hyperlink", diagnostic.Source);
     }

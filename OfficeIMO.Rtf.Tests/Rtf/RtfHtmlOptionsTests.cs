@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Rtf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -20,17 +21,14 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void HtmlToRtfOptions_Clone_Copies_Configuration_Without_Diagnostics() {
-        Action<HtmlRtfConversionDiagnostic> handler = _ => { };
         var options = new HtmlToRtfOptions {
             BaseUri = new Uri("https://example.test/root/"),
             PreserveUnknownTagsAsText = true,
             IgnoreInsignificantWhitespace = false,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
             MaxHtmlNodes = 33,
-            MaxHtmlDepth = 44,
-            DiagnosticHandler = handler
+            MaxHtmlDepth = 44
         };
-        options.Diagnostics.Add(new HtmlRtfConversionDiagnostic("Existing", "Existing diagnostic"));
 
         HtmlToRtfOptions clone = options.Clone();
 
@@ -42,13 +40,10 @@ public class RtfHtmlOptionsTests {
         Assert.True(clone.UrlPolicy.RestrictUrlSchemes);
         Assert.Equal(options.MaxHtmlNodes, clone.MaxHtmlNodes);
         Assert.Equal(options.MaxHtmlDepth, clone.MaxHtmlDepth);
-        Assert.Same(handler, clone.DiagnosticHandler);
-        Assert.Empty(clone.Diagnostics);
     }
 
     [Fact]
     public void RtfToHtmlOptions_Clone_Copies_Configuration() {
-        Action<HtmlRtfConversionDiagnostic> handler = _ => { };
         var options = new RtfToHtmlOptions {
             FragmentOnly = false,
             IncludeMetadata = false,
@@ -58,10 +53,8 @@ public class RtfHtmlOptionsTests {
             EmbedImagesAsDataUri = false,
             MaxEmbeddedImageBytes = 123,
             ImageSourceResolver = _ => "https://example.test/image.png",
-            NewLine = "\n",
-            DiagnosticHandler = handler
+            NewLine = "\n"
         };
-        options.Diagnostics.Add(new HtmlRtfConversionDiagnostic("Existing", "Existing diagnostic"));
 
         RtfToHtmlOptions clone = options.Clone();
 
@@ -76,16 +69,12 @@ public class RtfHtmlOptionsTests {
         Assert.Equal(options.MaxEmbeddedImageBytes, clone.MaxEmbeddedImageBytes);
         Assert.Same(options.ImageSourceResolver, clone.ImageSourceResolver);
         Assert.Equal(options.NewLine, clone.NewLine);
-        Assert.Same(handler, clone.DiagnosticHandler);
-        Assert.Empty(clone.Diagnostics);
     }
 
     [Fact]
     public void Html_ToRtfDocument_MaxHtmlNodes_Stops_With_Diagnostic() {
-        var callbackDiagnostics = new List<HtmlRtfConversionDiagnostic>();
         var options = new HtmlToRtfOptions {
-            MaxHtmlNodes = 1,
-            DiagnosticHandler = callbackDiagnostics.Add
+            MaxHtmlNodes = 1
         };
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
@@ -95,11 +84,6 @@ public class RtfHtmlOptionsTests {
         Assert.Equal("MaxHtmlNodes", exception.LimitSource);
         Assert.True(exception.Actual > exception.Limit);
         Assert.Equal(1, exception.Limit);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
-        Assert.Same(diagnostic, Assert.Single(callbackDiagnostics));
-        Assert.Equal(HtmlRtfConversionDiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Equal("HtmlNodeLimitExceeded", diagnostic.Code);
-        Assert.Equal("MaxHtmlNodes", diagnostic.Source);
     }
 
     [Fact]
@@ -115,9 +99,22 @@ public class RtfHtmlOptionsTests {
         Assert.Equal("MaxHtmlDepth", exception.LimitSource);
         Assert.True(exception.Actual > exception.Limit);
         Assert.Equal(2, exception.Limit);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
-        Assert.Equal(HtmlRtfConversionDiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Equal("HtmlDepthLimitExceeded", diagnostic.Code);
-        Assert.Equal("MaxHtmlDepth", diagnostic.Source);
+    }
+
+    [Fact]
+    public void Options_Can_Be_Reused_Without_Leaking_Diagnostics_Between_Results() {
+        var options = new RtfToHtmlOptions();
+        RtfDocument lossy = RtfDocument.Create();
+        lossy.AddImage(RtfImageFormat.Png, new byte[] { 1, 2, 3 });
+        RtfDocument clean = RtfDocument.Create();
+        clean.AddParagraph("Clean");
+
+        RtfToHtmlResult first = lossy.ToHtmlResult(options);
+        RtfToHtmlResult second = clean.ToHtmlResult(options);
+
+        Assert.NotEmpty(first.RtfDiagnostics);
+        Assert.True(first.Report.HasLoss);
+        Assert.Empty(second.RtfDiagnostics);
+        Assert.False(second.Report.HasLoss);
     }
 }

@@ -25,7 +25,7 @@ public class RtfBridgeStreamTests {
     }
 
     [Fact]
-    public void SaveAsPdf_Writes_To_Current_Stream_Position_Without_Rewinding() {
+    public void SaveAsPdf_Overwrites_And_Rewinds_Seekable_Stream() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical note");
 
@@ -35,13 +35,12 @@ public class RtfBridgeStreamTests {
         document.SaveAsPdf(stream);
 
         byte[] bytes = stream.ToArray();
-        Assert.Equal(bytes.Length, stream.Position);
-        Assert.Equal(0x2A, bytes[0]);
-        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 1, 5));
+        Assert.Equal(0, stream.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
     }
 
     [Fact]
-    public void TrySaveAsPdf_Writes_To_Current_Stream_Position_Without_Rewinding() {
+    public void TrySaveAsPdf_Overwrites_And_Rewinds_Seekable_Stream() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical note");
 
@@ -52,13 +51,12 @@ public class RtfBridgeStreamTests {
 
         byte[] bytes = stream.ToArray();
         Assert.True(result.Succeeded, result.Exception?.Message);
-        Assert.Equal(bytes.Length, stream.Position);
-        Assert.Equal(0x2A, bytes[0]);
-        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 1, 5));
+        Assert.Equal(0, stream.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
     }
 
     [Fact]
-    public async Task SaveAsPdfAsync_Writes_To_Current_Stream_Position_Without_Rewinding() {
+    public async Task SaveAsPdfAsync_Overwrites_And_Rewinds_Seekable_Stream() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical note");
 
@@ -68,8 +66,7 @@ public class RtfBridgeStreamTests {
         await document.SaveAsPdfAsync(stream);
 
         byte[] bytes = stream.ToArray();
-        Assert.Equal(bytes.Length, stream.Position);
-        Assert.Equal(0x2A, bytes[0]);
-        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 1, 5));
+        Assert.Equal(0, stream.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(bytes, 0, 5));
     }
 }

@@ -60,7 +60,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
-    /// Writes the document to <paramref name="stream"/> at the stream's current position.
+    /// Writes the complete document to <paramref name="stream"/>. Seekable streams are overwritten and rewound.
     /// </summary>
     /// <param name="stream">Writable destination stream.</param>
     /// <returns>This <see cref="PdfDocument"/> for chaining.</returns>
@@ -123,7 +123,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
-    /// Asynchronously writes the document to <paramref name="stream"/> at the stream's current position.
+    /// Asynchronously writes the complete document to <paramref name="stream"/>. Seekable streams are overwritten and rewound.
     /// </summary>
     public async System.Threading.Tasks.Task SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();

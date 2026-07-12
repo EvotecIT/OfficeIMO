@@ -58,7 +58,7 @@ internal static partial class RtfHtmlReader {
             exception.Actual,
             exception.Limit,
             exception.Detail);
-        options.AddDiagnostic(exception.Code, exception.Message, exception.LimitSource, rtfException, HtmlRtfConversionDiagnosticSeverity.Error);
+        options.AddDiagnostic(exception.Code, exception.Message, exception.LimitSource, rtfException, HtmlRtfConversionDiagnosticSeverity.Error, RtfConversionAction.Blocked);
         throw rtfException;
     }
 }
