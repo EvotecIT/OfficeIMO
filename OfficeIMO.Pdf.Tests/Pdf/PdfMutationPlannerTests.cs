@@ -277,6 +277,26 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
+    public void Plan_BlocksEncryptedExternalSignaturePreparationBeforeRawObjectAppend() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted signature source"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfAppendOnlyMutationReport appendOnly = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(source, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.PrepareExternalSignature, readOptions);
+        PdfOperationResult<PdfExternalSignaturePreparation> result = PdfDocument.Open(source, readOptions)
+            .TryPrepareExternalSignature(options: readOptions);
+
+        Assert.False(appendOnly.CanPrepareExternalSignature);
+        Assert.False(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
+        Assert.Contains("AppendOnly.EncryptedRawSignatureObject", plan.BlockerCodes);
+        Assert.False(result.CanAttempt);
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
     public void ExternalSignatureFinalizationUsesReservedPatchContract() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Signature finalization planner source"))
@@ -381,6 +401,34 @@ public class PdfMutationPlannerTests {
         Assert.Equal(PdfMutationOperation.ExtractPages, plan.Operation);
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
         Assert.False(PdfInspector.Probe(result.RequireValue().ToBytes()).HasEncryption);
+    }
+
+    [Fact]
+    public void EncryptedPageExtractionRequiresOwnerOrCopyAndAssemblyPermissions() {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.None
+        };
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Restricted extraction"))
+            .ToBytes();
+        var userOptions = new PdfReadOptions { Password = "open" };
+        var ownerOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfMutationPlan userPlan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ExtractPages, userOptions);
+        PdfMutationPlan ownerPlan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ExtractPages, ownerOptions);
+        PdfOperationResult<PdfDocument> userResult = PdfDocument.Open(source, userOptions)
+            .Pages.TryExtract(PdfPageSelection.Parse("1"));
+        PdfOperationResult<PdfDocument> ownerResult = PdfDocument.Open(source, ownerOptions)
+            .Pages.TryExtract(PdfPageSelection.Parse("1"));
+
+        Assert.False(userPlan.CanExecute);
+        Assert.Contains("FullRewrite.Encryption", userPlan.BlockerCodes);
+        Assert.False(userResult.CanAttempt);
+        Assert.True(ownerPlan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, ownerPlan.ExecutionMode);
+        Assert.True(ownerResult.Succeeded, string.Join(" ", ownerResult.Diagnostics));
+        Assert.False(PdfInspector.Probe(ownerResult.RequireValue().ToBytes()).HasEncryption);
     }
 
     private sealed class ChunkedNonSeekableStream : Stream {

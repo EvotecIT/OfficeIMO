@@ -100,6 +100,21 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void FluentAnnotationFlatten_UsesStoredOwnerCredentialsDuringPreflight() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .FreeTextAnnotation("Encrypted annotation", 120, 30)
+            .Paragraph(paragraph => paragraph.Text("Encrypted flatten"))
+            .ToBytes();
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfDocument.Open(source, new PdfReadOptions { Password = "owner" }).Annotations.Flatten());
+
+        Assert.True(exception.Plan.Preflight.CanRead);
+        Assert.True(exception.Plan.Preflight.Probe.Security.HasOwnerAuthorization);
+        Assert.Contains("FullRewrite.Encryption", exception.Plan.BlockerCodes);
+    }
+
+    [Fact]
     public void FlattenAnnotations_FlattensOnlySelectedObjectThroughFluentSurface() {
         byte[] source = PdfDocument.Create()
             .FreeTextAnnotation("Flatten me", 120, 30)

@@ -192,6 +192,7 @@ public static partial class PdfIncrementalUpdater {
         var commonBlockers = new List<string>();
         var metadataBlockers = new List<string>();
         var formBlockers = new List<string>();
+        var signaturePreparationBlockers = new List<string>();
         var longTermValidationBlockers = new List<string>();
         var annotationBlockers = new List<string>();
         var warnings = new List<string>();
@@ -214,8 +215,12 @@ public static partial class PdfIncrementalUpdater {
 
         metadataBlockers.AddRange(commonBlockers);
         formBlockers.AddRange(commonBlockers);
+        signaturePreparationBlockers.AddRange(commonBlockers);
         longTermValidationBlockers.AddRange(commonBlockers);
         annotationBlockers.AddRange(commonBlockers);
+        if (security.HasEncryption) {
+            signaturePreparationBlockers.Add("EncryptedRawSignatureObject");
+        }
         bool blockedBySignatureFieldLock = HasBlockingSignatureFieldLock(security, fieldNames);
 
         if (hasSignatureContent) {
@@ -281,7 +286,7 @@ public static partial class PdfIncrementalUpdater {
         }
 
         bool canPrepareSignature =
-            commonBlockers.Count == 0 &&
+            signaturePreparationBlockers.Count == 0 &&
             !hasSignatureContent &&
             !security.HasDocMDPPermissions;
         if (canPrepareSignature) {

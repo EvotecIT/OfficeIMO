@@ -14,19 +14,23 @@ public static partial class PdfAnnotationFlattener {
     }
 
     /// <summary>Flattens only supported visual annotations matching the supplied selector.</summary>
-    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options) {
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options) =>
+        FlattenVisualAnnotations(pdf, options, readOptions: null);
+
+    /// <summary>Flattens matching supported visual annotations using explicit read limits or credentials.</summary>
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFlattenOptions(options);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations);
+        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
-        PdfReadDocument read = PdfReadDocument.Load(pdf);
+        PdfReadDocument read = PdfReadDocument.Load(pdf, readOptions);
         var pageNumbers = new Dictionary<int, int>();
         for (int i = 0; i < read.Pages.Count; i++) pageNumbers[read.Pages[i].ObjectNumber] = i + 1;
         int flattenedCount = FlattenPageVisualAnnotations(objects, ref nextObjectNumber, options, pageNumbers);

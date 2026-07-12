@@ -2,16 +2,21 @@ namespace OfficeIMO.Pdf;
 
 public static partial class PdfAnnotationEditor {
     /// <summary>Adds a visual Stamp annotation to an existing page using the shared full-rewrite or append-only planner.</summary>
-    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options = null) {
+    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options = null) =>
+        AddStampAnnotation(pdf, options, readOptions: null);
+
+    /// <summary>Adds a visual Stamp annotation using explicit read limits or credentials.</summary>
+    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfStampAnnotationOptions effective = options ?? new PdfStampAnnotationOptions();
         ValidateStampOptions(effective);
         PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
+            readOptions,
             executionPreference: effective.ExecutionPreference);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
@@ -58,13 +63,14 @@ public static partial class PdfAnnotationEditor {
                 objects,
                 mutationPlan.Preflight.Probe.Security,
                 trailerRaw,
-                changedObjectNumbers);
-            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, appended, mutationPlan);
+                changedObjectNumbers,
+                encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
+            PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, appended, mutationPlan, readOptions);
             return new PdfAnnotationEditResult(appended, 1, mutationPlan, proof);
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf, readOptions).Metadata, pdf);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: true);
     }
 

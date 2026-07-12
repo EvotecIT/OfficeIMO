@@ -11,5 +11,5 @@ public sealed class PdfDocumentAnnotations {
     /// <summary>Removes matching annotations.</summary>
     public PdfAnnotationEditResult Remove(PdfAnnotationRemovalOptions? options = null) => PdfAnnotationEditor.RemoveAnnotations(_document.Snapshot(), options, _document.ReadOptions);
     /// <summary>Flattens selected supported visual annotations.</summary>
-    public PdfAnnotationEditResult Flatten(PdfAnnotationFlattenOptions? options = null) => PdfAnnotationEditor.FlattenAnnotations(_document.Snapshot(), options);
+    public PdfAnnotationEditResult Flatten(PdfAnnotationFlattenOptions? options = null) => PdfAnnotationEditor.FlattenAnnotations(_document.Snapshot(), options, _document.ReadOptions);
 }

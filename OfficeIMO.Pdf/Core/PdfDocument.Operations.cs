@@ -238,7 +238,7 @@ public sealed partial class PdfDocument {
     /// Creates a new PDF with visual annotation appearance streams painted into page content where supported.
     /// </summary>
     public PdfDocument FlattenVisualAnnotations() {
-        return FromBytes(PdfAnnotationFlattener.FlattenVisualAnnotations(Snapshot()));
+        return FromBytes(PdfAnnotationFlattener.FlattenVisualAnnotations(Snapshot(), options: null, readOptions: ReadOptions));
     }
 
     /// <summary>

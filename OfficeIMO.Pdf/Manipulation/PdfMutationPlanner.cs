@@ -486,6 +486,10 @@ public static class PdfMutationPlanner {
         if (!appendOnlyImplemented) {
             Add(blockers, "AppendOnly.NotImplemented." + operation);
         } else {
+            if (operation == PdfMutationOperation.PrepareExternalSignature && security.HasEncryption) {
+                Add(blockers, "AppendOnly.EncryptedRawSignatureObject");
+            }
+
             if (operation == PdfMutationOperation.EnrichLongTermValidation && !security.HasSignatures) {
                 Add(blockers, "AppendOnly.Unsigned");
             }
@@ -624,7 +628,10 @@ public static class PdfMutationPlanner {
             }
         }
 
-        return true;
+        PdfDocumentSecurityInfo security = preflight.Probe.Security;
+        return !security.HasEncryption ||
+            security.HasOwnerAuthorization ||
+            (security.AllowsCopying == true && security.AllowsDocumentAssembly == true);
     }
 
     private static bool CanChangeEncryption(PdfDocumentPreflight preflight) {

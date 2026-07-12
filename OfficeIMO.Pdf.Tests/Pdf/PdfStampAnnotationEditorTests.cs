@@ -76,6 +76,27 @@ public class PdfStampAnnotationEditorTests {
         Assert.Contains("AppendOnly.ActionBlocked.Annotations", exception.Plan.BlockerCodes);
     }
 
+    [Fact]
+    public void EncryptedStampAnnotationUsesAuthenticatedAppendContext() {
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Encrypted stamp source"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions { Password = "owner" };
+
+        PdfAnnotationEditResult result = PdfAnnotationEditor.AddStampAnnotation(
+            source,
+            new PdfStampAnnotationOptions {
+                StampName = "Approved",
+                Contents = "Encrypted approval"
+            },
+            readOptions);
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
+        Assert.True(result.SignatureMutationReport!.IsPreservedAppendOnlyMutation);
+        Assert.True(result.Bytes.AsSpan(0, source.Length).SequenceEqual(source));
+        Assert.Equal("Encrypted approval", Assert.Single(PdfInspector.Inspect(result.Bytes, readOptions).GetAnnotationsBySubtype("Stamp")).Contents);
+    }
+
     private static byte[] Certify(byte[] source, PdfCertificationPermissionLevel permission) {
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
