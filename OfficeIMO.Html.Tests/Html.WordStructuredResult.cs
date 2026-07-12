@@ -20,8 +20,8 @@ public class HtmlWordStructuredResult {
             Assert.True(first.Succeeded);
             Assert.True(second.Succeeded);
         } finally {
-            first.Document.Dispose();
-            second.Document.Dispose();
+            first.Value.Dispose();
+            second.Value.Dispose();
         }
     }
 
@@ -32,7 +32,7 @@ public class HtmlWordStructuredResult {
         };
 
         HtmlToWordResult result = "<p class='custom-heading'>Heading</p>".ToWordDocumentResult(options);
-        using WordDocument document = result.Document;
+        using WordDocument document = result.Value;
 
         Assert.Equal(WordParagraphStyles.Heading1, Assert.Single(document.Paragraphs).Style);
     }

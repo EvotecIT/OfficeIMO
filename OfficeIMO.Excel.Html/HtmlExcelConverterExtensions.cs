@@ -77,11 +77,9 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static ExcelDocument GetWorkbookOrThrow(HtmlToExcelResult result) {
-        if (result.Succeeded) {
-            return result.Workbook;
-        }
+        if (result.Succeeded) return result.Value;
 
-        result.Workbook.Dispose();
+        result.Value.Dispose();
         throw new HtmlConversionException(result.Diagnostics.Diagnostics);
     }
 

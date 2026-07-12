@@ -66,11 +66,9 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static PptCore.PowerPointPresentation GetPresentationOrThrow(HtmlToPowerPointResult result) {
-        if (result.Succeeded) {
-            return result.Presentation;
-        }
+        if (result.Succeeded) return result.Value;
 
-        result.Presentation.Dispose();
+        result.Value.Dispose();
         throw new HtmlConversionException(result.Diagnostics.Diagnostics);
     }
 

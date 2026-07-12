@@ -115,7 +115,7 @@ public class RtfHtmlObjectsAndShapesTests {
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
 
         HtmlToRtfResult result = html.ToRtfDocumentResult(options);
-        RtfDocument document = result.Document;
+        RtfDocument document = result.Value;
 
         RtfObject rtfObject = Assert.IsType<RtfObject>(document.Blocks[0]);
         Assert.All(rtfObject.Result.Runs, run => Assert.Null(run.Hyperlink));

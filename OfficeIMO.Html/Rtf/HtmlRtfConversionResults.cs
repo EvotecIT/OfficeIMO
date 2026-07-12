@@ -12,9 +12,6 @@ public sealed class HtmlToRtfResult : HtmlConversionResult<RtfDocument> {
         Report = Snapshot(report);
     }
 
-    /// <summary>Imported RTF document.</summary>
-    public RtfDocument Document => Artifact;
-
     /// <summary>RTF-specific diagnostics in emission order.</summary>
     public IReadOnlyList<HtmlRtfConversionDiagnostic> RtfDiagnostics { get; }
 
@@ -39,9 +36,6 @@ public sealed class RtfToHtmlResult : HtmlConversionResult<string> {
         RtfDiagnostics = Array.AsReadOnly(rtfDiagnostics.ToArray());
         Report = Snapshot(report);
     }
-
-    /// <summary>Exported semantic HTML.</summary>
-    public string Html => Artifact;
 
     /// <summary>RTF-specific diagnostics in emission order.</summary>
     public IReadOnlyList<HtmlRtfConversionDiagnostic> RtfDiagnostics { get; }

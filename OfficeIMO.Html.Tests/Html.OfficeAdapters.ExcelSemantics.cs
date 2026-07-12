@@ -33,7 +33,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
 
         string html = workbook.ToHtml();
         HtmlToExcelResult result = html.ToExcelDocumentResult();
-        using ExcelDocument imported = result.Workbook;
+        using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
         Assert.Contains("data-officeimo-value-kind=\"date-time\" data-officeimo-value=\"2026-07-11T14:15:16.0000000\"", html, StringComparison.Ordinal);
@@ -53,7 +53,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             """;
 
         HtmlToExcelResult result = html.ToExcelDocumentResult(new HtmlToExcelOptions { MaxTableCells = 4 });
-        using ExcelDocument workbook = result.Workbook;
+        using ExcelDocument workbook = result.Value;
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
         Assert.Empty(Assert.Single(workbook.Sheets).GetMergedRanges());

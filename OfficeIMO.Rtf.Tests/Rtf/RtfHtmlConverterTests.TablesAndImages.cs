@@ -95,7 +95,7 @@ public partial class RtfHtmlConverterTests {
         };
 
         RtfToHtmlResult result = document.ToHtmlResult(options);
-        string html = result.Html;
+        string html = result.Value;
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
         HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
@@ -111,7 +111,7 @@ public partial class RtfHtmlConverterTests {
         RtfToHtmlOptions options = RtfToHtmlOptions.CreateRoundTripProfile();
 
         RtfToHtmlResult result = document.ToHtmlResult(options);
-        string html = result.Html;
+        string html = result.Value;
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
         HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);

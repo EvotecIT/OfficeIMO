@@ -51,7 +51,7 @@ internal static partial class RtfHtmlReader {
 
             HtmlToRtfOptions nestedOptions = CreateNestedOptions();
             HtmlToRtfResult nestedResult = html!.ToRtfDocumentResult(nestedOptions);
-            RtfDocument resultDocument = nestedResult.Document;
+            RtfDocument resultDocument = nestedResult.RequireValue();
             PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             RtfParagraph? paragraph = resultDocument.Paragraphs.FirstOrDefault();
             if (paragraph != null) {
@@ -67,7 +67,7 @@ internal static partial class RtfHtmlReader {
 
             HtmlToRtfOptions nestedOptions = CreateNestedOptions();
             HtmlToRtfResult nestedResult = html!.ToRtfDocumentResult(nestedOptions);
-            RtfDocument textDocument = nestedResult.Document;
+            RtfDocument textDocument = nestedResult.RequireValue();
             PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             foreach (RtfParagraph paragraph in textDocument.Paragraphs) {
                 RtfParagraph textParagraph = shape.AddTextBoxParagraph();

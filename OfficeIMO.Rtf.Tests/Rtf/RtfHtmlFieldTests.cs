@@ -96,7 +96,7 @@ public class RtfHtmlFieldTests {
         };
 
         HtmlToRtfResult result = html.ToRtfDocumentResult(options);
-        RtfDocument document = result.Document;
+        RtfDocument document = result.Value;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Empty(paragraph.Inlines.OfType<RtfField>());
@@ -114,7 +114,7 @@ public class RtfHtmlFieldTests {
         };
 
         HtmlToRtfResult result = html.ToRtfDocumentResult(options);
-        RtfDocument document = result.Document;
+        RtfDocument document = result.Value;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         string rtf = document.ToRtf();
 
@@ -134,7 +134,7 @@ public class RtfHtmlFieldTests {
         };
 
         HtmlToRtfResult result = html.ToRtfDocumentResult(options);
-        RtfDocument document = result.Document;
+        RtfDocument document = result.Value;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Empty(paragraph.Inlines.OfType<RtfField>());

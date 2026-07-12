@@ -24,7 +24,7 @@ public class RtfHtmlEncapsulationTests {
         var options = new RtfToHtmlOptions();
 
         RtfToHtmlResult result = document.ToHtmlResult(options);
-        string html = result.Html;
+        string html = result.Value;
 
         Assert.Contains("<strong>Rich</strong>", html, StringComparison.Ordinal);
         Assert.Contains("message", html, StringComparison.Ordinal);

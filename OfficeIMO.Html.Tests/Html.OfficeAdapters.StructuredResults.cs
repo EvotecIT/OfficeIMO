@@ -19,9 +19,9 @@ public class HtmlOfficeAdaptersStructuredResults {
             """);
 
         HtmlToExcelResult excelResult = excelSource.ToExcelDocumentResult();
-        using OfficeIMO.Excel.ExcelDocument workbook = excelResult.Workbook;
+        using OfficeIMO.Excel.ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = powerPointSource.ToPowerPointPresentationResult();
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPointResult.Presentation;
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPointResult.Value;
 
         Assert.True(excelResult.Succeeded);
         Assert.True(powerPointResult.Succeeded);

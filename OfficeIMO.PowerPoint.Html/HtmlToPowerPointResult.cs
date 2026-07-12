@@ -10,11 +10,6 @@ public sealed class HtmlToPowerPointResult : HtmlConversionResult<PptCore.PowerP
     internal HtmlToPowerPointResult(PptCore.PowerPointPresentation presentation) : base(presentation) { }
 
     /// <summary>
-    /// Imported presentation.
-    /// </summary>
-    public PptCore.PowerPointPresentation Presentation => Artifact;
-
-    /// <summary>
     /// Number of imported slides.
     /// </summary>
     public int Slides { get; internal set; }
