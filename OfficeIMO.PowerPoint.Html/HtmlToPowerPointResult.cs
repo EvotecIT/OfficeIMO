@@ -9,6 +9,8 @@ namespace OfficeIMO.PowerPoint.Html;
 public sealed class HtmlToPowerPointResult : HtmlConversionResult<PptCore.PowerPointPresentation> {
     internal HtmlToPowerPointResult(PptCore.PowerPointPresentation presentation) : base(presentation) { }
 
+    internal void AddImportDiagnostic(HtmlDiagnostic diagnostic) => AddDiagnostic(diagnostic);
+
     /// <summary>
     /// Number of imported slides.
     /// </summary>

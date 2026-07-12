@@ -5,7 +5,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
-        public void HtmlToWord_MaxHtmlNodes_StopsConversionWithDiagnostic() {
+        public void HtmlToWord_MaxHtmlNodes_StopsConversionWithStructuredException() {
             var options = new HtmlToWordOptions { MaxHtmlNodes = 1 };
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => "<p>One</p><p>Two</p>".ToWordDocument(options));
@@ -14,15 +14,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("MaxHtmlNodes", exception.LimitSource);
             Assert.Equal(1, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("HtmlNodeLimitExceeded", diagnostic.Code);
-            Assert.Equal(HtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
-            Assert.Contains("Actual=", diagnostic.Detail!, StringComparison.Ordinal);
-            Assert.Contains("Limit=1", diagnostic.Detail!, StringComparison.Ordinal);
         }
 
         [Fact]
-        public void HtmlToWord_MaxHtmlDepth_StopsConversionWithDiagnostic() {
+        public void HtmlToWord_MaxHtmlDepth_StopsConversionWithStructuredException() {
             var options = new HtmlToWordOptions { MaxHtmlDepth = 2 };
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => "<div><div><p>Deep</p></div></div>".ToWordDocument(options));
@@ -31,9 +26,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("MaxHtmlDepth", exception.LimitSource);
             Assert.Equal(2, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("HtmlDepthLimitExceeded", diagnostic.Code);
-            Assert.Equal(HtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
         }
 
         [Fact]
@@ -46,9 +38,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("CssSizeLimitExceeded", exception.Code);
             Assert.Equal(8, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("CssSizeLimitExceeded", diagnostic.Code);
-            Assert.Equal(HtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
         }
 
         [Fact]
@@ -62,9 +51,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("MaxTableCells", exception.LimitSource);
             Assert.Equal(3, exception.Limit);
             Assert.Equal(4, exception.Actual);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("TableSizeLimitExceeded", diagnostic.Code);
-            Assert.Equal(HtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
         }
 
         [Fact]
@@ -78,8 +64,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("MaxTableCells", exception.LimitSource);
             Assert.Equal(10, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("TableSizeLimitExceeded", diagnostic.Code);
         }
 
         [Fact]
@@ -93,8 +77,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("MaxTableCells", exception.LimitSource);
             Assert.Equal(50000, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("TableSizeLimitExceeded", diagnostic.Code);
         }
 
         [Fact]
@@ -102,10 +84,11 @@ namespace OfficeIMO.Tests {
             var options = new HtmlToWordOptions();
             string html = "<table><colgroup><col span=\"1000000\" style=\"width:10px\"></colgroup><tr><td>Cell</td></tr></table>";
 
-            using var document = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            using var document = conversion.Value;
 
             Assert.Single(document.Tables);
-            Assert.Empty(options.Diagnostics);
+            Assert.Empty(conversion.Diagnostics);
         }
     }
 }

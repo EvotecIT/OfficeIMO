@@ -80,7 +80,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
-        throw new HtmlConversionException(result.Diagnostics.Diagnostics);
+        throw new HtmlConversionException(result.Diagnostics);
     }
 
     private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {

@@ -285,24 +285,7 @@ namespace OfficeIMO.Word.Html {
         /// </summary>
         public long? MaxTableCells { get; set; } = 50000;
 
-        /// <summary>
-        /// Diagnostics produced while converting HTML. The converter appends warnings here when
-        /// content is skipped or degraded, such as an image that cannot be loaded.
-        /// </summary>
-        public List<HtmlConversionDiagnostic> Diagnostics { get; } = new List<HtmlConversionDiagnostic>();
-
-        /// <summary>
-        /// Shared OfficeIMO HTML diagnostic report populated during conversion.
-        /// Prefer this report for cross-package tooling, gallery manifests, and adapters that aggregate
-        /// diagnostics from multiple OfficeIMO HTML workflows. The legacy <see cref="Diagnostics"/>
-        /// collection is still populated for existing callers.
-        /// </summary>
-        public HtmlDiagnosticReport ConversionReport { get; } = new HtmlDiagnosticReport();
-
-        /// <summary>
-        /// Optional callback invoked whenever a conversion diagnostic is produced.
-        /// </summary>
-        public Action<HtmlConversionDiagnostic>? DiagnosticHandler { get; set; }
+        internal HtmlDiagnosticReport ConversionReport { get; } = new HtmlDiagnosticReport();
 
         /// <summary>
         /// Optional conversion-scoped resolver for CSS classes without a built-in Word style mapping.
@@ -376,9 +359,8 @@ namespace OfficeIMO.Word.Html {
         /// Creates a copy of the current options instance so callers can reuse option templates safely.
         /// </summary>
         /// <remarks>
-        /// Configuration values, allow-lists, configured stylesheets, and the diagnostic callback are copied.
-        /// Runtime diagnostic collections such as <see cref="Diagnostics"/> and <see cref="ConversionReport"/>
-        /// start empty on the clone so diagnostics from one conversion are not carried into the next.
+        /// Configuration values, allow-lists, and configured stylesheets are copied. Runtime diagnostics
+        /// start empty on the clone so evidence from one conversion is never carried into the next.
         /// </remarks>
         /// <returns>A new <see cref="HtmlToWordOptions"/> with the same configuration values.</returns>
         public HtmlToWordOptions Clone() {
@@ -410,7 +392,6 @@ namespace OfficeIMO.Word.Html {
                 MaxCssBytes = MaxCssBytes,
                 MaxTotalCssBytes = MaxTotalCssBytes,
                 MaxTableCells = MaxTableCells,
-                DiagnosticHandler = DiagnosticHandler,
                 StyleMissingHandler = StyleMissingHandler,
                 EnableAccessibilityDiagnostics = EnableAccessibilityDiagnostics,
                 ImportHtmlComments = ImportHtmlComments,
@@ -525,26 +506,6 @@ namespace OfficeIMO.Word.Html {
     }
 
     /// <summary>
-    /// Severity for an HTML conversion diagnostic.
-    /// </summary>
-    public enum HtmlConversionDiagnosticSeverity {
-        /// <summary>
-        /// Informational diagnostic that does not indicate content loss.
-        /// </summary>
-        Info,
-
-        /// <summary>
-        /// Warning diagnostic for skipped or degraded content.
-        /// </summary>
-        Warning,
-
-        /// <summary>
-        /// Error diagnostic for content that could not be converted as requested.
-        /// </summary>
-        Error
-    }
-
-    /// <summary>
     /// Determines how the HTML importer handles CSS declarations it cannot map to Word output.
     /// </summary>
     public enum HtmlUnsupportedCssHandling {
@@ -562,52 +523,6 @@ namespace OfficeIMO.Word.Html {
         /// Unsupported CSS declarations produce error diagnostics and stop conversion.
         /// </summary>
         Error
-    }
-
-    /// <summary>
-    /// Describes skipped, degraded, or otherwise notable content observed during HTML conversion.
-    /// </summary>
-    public sealed class HtmlConversionDiagnostic {
-        /// <summary>
-        /// Creates a conversion diagnostic.
-        /// </summary>
-        /// <param name="code">Stable diagnostic code.</param>
-        /// <param name="message">Human-readable message.</param>
-        /// <param name="severity">Diagnostic severity.</param>
-        /// <param name="source">Optional HTML/resource source associated with the diagnostic.</param>
-        /// <param name="detail">Optional low-level detail, such as an exception type or status text.</param>
-        public HtmlConversionDiagnostic(string code, string message, HtmlConversionDiagnosticSeverity severity = HtmlConversionDiagnosticSeverity.Warning, string? source = null, string? detail = null) {
-            Code = code ?? throw new ArgumentNullException(nameof(code));
-            Message = message ?? throw new ArgumentNullException(nameof(message));
-            Severity = severity;
-            Source = source;
-            Detail = detail;
-        }
-
-        /// <summary>
-        /// Stable diagnostic code.
-        /// </summary>
-        public string Code { get; }
-
-        /// <summary>
-        /// Human-readable diagnostic message.
-        /// </summary>
-        public string Message { get; }
-
-        /// <summary>
-        /// Diagnostic severity.
-        /// </summary>
-        public HtmlConversionDiagnosticSeverity Severity { get; }
-
-        /// <summary>
-        /// Optional HTML/resource source associated with the diagnostic.
-        /// </summary>
-        public string? Source { get; }
-
-        /// <summary>
-        /// Optional low-level detail, such as an exception type or status text.
-        /// </summary>
-        public string? Detail { get; }
     }
 
     /// <summary>

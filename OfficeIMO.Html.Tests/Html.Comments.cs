@@ -94,10 +94,12 @@ namespace OfficeIMO.Tests {
             };
             string html = "<p>Visible <!-- reviewer note -->text.</p>";
 
-            using var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+
+            using var doc = conversion.Value;
 
             Assert.Equal("Visible text.", string.Concat(doc.Paragraphs.Select(paragraph => paragraph.Text)));
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");
             var comment = Assert.Single(doc.Comments);
             Assert.Equal("HTML Reviewer", comment.Author);
             Assert.Equal("HR", comment.Initials);

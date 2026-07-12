@@ -7,7 +7,7 @@ public sealed class HtmlToRtfResult : HtmlConversionResult<RtfDocument> {
         IEnumerable<HtmlDiagnostic> diagnostics,
         IReadOnlyList<HtmlRtfConversionDiagnostic> rtfDiagnostics,
         RtfConversionReport report) : base(document) {
-        Diagnostics.AddRange(diagnostics);
+        AddDiagnostics(diagnostics);
         RtfDiagnostics = Array.AsReadOnly(rtfDiagnostics.ToArray());
         Report = Snapshot(report);
     }
@@ -32,7 +32,7 @@ public sealed class RtfToHtmlResult : HtmlConversionResult<string> {
         IEnumerable<HtmlDiagnostic> diagnostics,
         IReadOnlyList<HtmlRtfConversionDiagnostic> rtfDiagnostics,
         RtfConversionReport report) : base(html) {
-        Diagnostics.AddRange(diagnostics);
+        AddDiagnostics(diagnostics);
         RtfDiagnostics = Array.AsReadOnly(rtfDiagnostics.ToArray());
         Report = Snapshot(report);
     }

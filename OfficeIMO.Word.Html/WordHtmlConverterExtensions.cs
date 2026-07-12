@@ -8,18 +8,9 @@ namespace OfficeIMO.Word.Html {
     /// Extension methods enabling HTML conversions for <see cref="WordDocument"/> instances.
     /// </summary>
     public static partial class WordHtmlConverterExtensions {
-        /// <summary>
-        /// Raised when an HTML element references a CSS class that has no built-in mapping.
-        /// Handlers may supply <see cref="StyleMissingEventArgs.Style"/> or <see cref="StyleMissingEventArgs.StyleId"/>.
-        /// </summary>
-        public static event EventHandler<StyleMissingEventArgs>? StyleMissing;
-
         internal static StyleMissingEventArgs OnStyleMissing(HtmlToWordOptions options, WordParagraph paragraph, string className) {
             var args = new StyleMissingEventArgs(paragraph, className);
             options.StyleMissingHandler?.Invoke(args);
-            if (!args.Style.HasValue && string.IsNullOrEmpty(args.StyleId)) {
-                StyleMissing?.Invoke(null, args);
-            }
             return args;
         }
 
@@ -75,7 +66,7 @@ namespace OfficeIMO.Word.Html {
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         /// <example><code>using WordDocument document = html.ToWordDocument();</code></example>
         public static WordDocument ToWordDocument(this string html, HtmlToWordOptions? options = null) {
-            return ToWordDocumentAsync(html, options).GetAwaiter().GetResult();
+            return html.ToWordDocumentResult(options).RequireValue();
         }
 
         /// <summary>
@@ -85,7 +76,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static WordDocument ToWordDocument(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
-            return ToWordDocumentAsync(document, options).GetAwaiter().GetResult();
+            return document.ToWordDocumentResult(options).RequireValue();
         }
 
         /// <summary>
@@ -95,12 +86,9 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static Task<WordDocument> ToWordDocumentAsync(this HtmlConversionDocument document, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
-            if (document == null) throw new System.ArgumentNullException(nameof(document));
-            options ??= CreateWordOptionsForSharedDocument(document.ProfileContract.Profile, document.Trust);
-            options.ConversionProfile = document.ProfileContract.Profile;
-            var converter = new HtmlToWordConverter();
-            return converter.ConvertAsync(HtmlDocumentParser.CloneDocument(document.DocumentForConversion), options, cancellationToken);
+        public static async Task<WordDocument> ToWordDocumentAsync(this HtmlConversionDocument document, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+            HtmlToWordResult result = await document.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
+            return result.RequireValue();
         }
 
         internal static HtmlToWordOptions CreateWordOptionsForSharedDocument(
@@ -121,10 +109,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static async Task<WordDocument> ToWordDocumentAsync(this string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
-            if (html == null) throw new System.ArgumentNullException(nameof(html));
-            cancellationToken.ThrowIfCancellationRequested();
-            var converter = new HtmlToWordConverter();
-            return await converter.ConvertAsync(html, options ?? new HtmlToWordOptions(), cancellationToken).ConfigureAwait(false);
+            HtmlToWordResult result = await html.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
+            return result.RequireValue();
         }
 
         /// <summary>
@@ -134,7 +120,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static WordDocument ToWordDocument(this Stream htmlStream, HtmlToWordOptions? options = null) {
-            return ToWordDocumentAsync(htmlStream, options).GetAwaiter().GetResult();
+            return htmlStream.ToWordDocumentResult(options).RequireValue();
         }
 
         /// <summary>
@@ -145,9 +131,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
         public static async Task<WordDocument> ToWordDocumentAsync(this Stream htmlStream, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
-            if (htmlStream == null) throw new System.ArgumentNullException(nameof(htmlStream));
-            string html = await HtmlTextIO.ReadAsync(htmlStream, cancellationToken).ConfigureAwait(false);
-            return await ToWordDocumentAsync(html, options, cancellationToken).ConfigureAwait(false);
+            HtmlToWordResult result = await htmlStream.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
+            return result.RequireValue();
         }
 
         /// <summary>

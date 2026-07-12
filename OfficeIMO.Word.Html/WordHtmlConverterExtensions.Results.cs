@@ -23,11 +23,11 @@ public static partial class WordHtmlConverterExtensions {
         HtmlToWordOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (html == null) throw new ArgumentNullException(nameof(html));
-        HtmlToWordOptions resolved = options ?? new HtmlToWordOptions();
-        int diagnosticStart = resolved.ConversionReport.Count;
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlToWordOptions resolved = (options ?? new HtmlToWordOptions()).Clone();
         var converter = new HtmlToWordConverter();
         WordDocument document = await converter.ConvertAsync(html, resolved, cancellationToken).ConfigureAwait(false);
-        return CreateResult(document, resolved, diagnosticStart);
+        return CreateResult(document, resolved);
     }
 
     /// <summary>Asynchronously imports a prepared shared HTML document into Word and returns structured evidence.</summary>
@@ -36,15 +36,15 @@ public static partial class WordHtmlConverterExtensions {
         HtmlToWordOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToWordOptions resolved = options ?? CreateWordOptionsForSharedDocument(document.ProfileContract.Profile, document.Trust);
+        cancellationToken.ThrowIfCancellationRequested();
+        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.ProfileContract.Profile, document.Trust)).Clone();
         resolved.ConversionProfile = document.ProfileContract.Profile;
-        int diagnosticStart = resolved.ConversionReport.Count;
         var converter = new HtmlToWordConverter();
         WordDocument wordDocument = await converter.ConvertAsync(
             HtmlDocumentParser.CloneDocument(document.DocumentForConversion),
             resolved,
             cancellationToken).ConfigureAwait(false);
-        return CreateResult(wordDocument, resolved, diagnosticStart);
+        return CreateResult(wordDocument, resolved);
     }
 
     /// <summary>Asynchronously reads a stream, imports it into Word, and returns structured evidence.</summary>
@@ -53,12 +53,12 @@ public static partial class WordHtmlConverterExtensions {
         HtmlToWordOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
+        cancellationToken.ThrowIfCancellationRequested();
         string html = await HtmlTextIO.ReadAsync(htmlStream, cancellationToken).ConfigureAwait(false);
         return await html.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
     }
 
-    private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options, int diagnosticStart) {
-        IEnumerable<HtmlDiagnostic> diagnostics = options.ConversionReport.Skip(diagnosticStart);
-        return new HtmlToWordResult(document, diagnostics);
+    private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {
+        return new HtmlToWordResult(document, options.ConversionReport);
     }
 }

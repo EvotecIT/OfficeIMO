@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel.Html;
 public sealed class HtmlToExcelResult : HtmlConversionResult<ExcelDocument> {
     internal HtmlToExcelResult(ExcelDocument workbook) : base(workbook) { }
 
+    internal void AddImportDiagnostic(HtmlDiagnostic diagnostic) => AddDiagnostic(diagnostic);
+
     /// <summary>
     /// Number of imported worksheets.
     /// </summary>

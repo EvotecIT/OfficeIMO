@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using System.Text;
 
 namespace OfficeIMO.Word.Html {
@@ -85,7 +86,7 @@ namespace OfficeIMO.Word.Html {
 
         private void ThrowLimitExceeded(HtmlToWordOptions options, string code, string message, string source, long actual, long limit) {
             var detail = $"Actual={actual}; Limit={limit}";
-            AddDiagnostic(options, code, message, source, new HtmlConversionLimitException(code, message, source, actual, limit, detail), HtmlConversionDiagnosticSeverity.Error);
+            AddDiagnostic(options, code, message, source, new HtmlConversionLimitException(code, message, source, actual, limit, detail), HtmlDiagnosticSeverity.Error);
             throw new HtmlConversionLimitException(code, message, source, actual, limit, detail);
         }
     }
