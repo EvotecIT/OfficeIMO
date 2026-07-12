@@ -94,7 +94,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) {
         try {
-            return presentation.ToPdfDocument(options).TrySave(path);
+            return presentation.ToPdfDocumentResult(options).TrySave(path);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
@@ -112,7 +112,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) {
         try {
-            return presentation.ToPdfDocument(options).TrySave(stream);
+            return presentation.ToPdfDocumentResult(options).TrySave(stream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }

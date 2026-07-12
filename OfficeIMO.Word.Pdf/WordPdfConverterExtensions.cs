@@ -68,7 +68,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                return document.ToPdfDocument(options).TrySave(path);
+                return document.ToPdfDocumentResult(options).TrySave(path);
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                PdfCore.PdfSaveResult result = document.ToPdfDocument(options).TrySave(stream);
+                PdfCore.PdfSaveResult result = document.ToPdfDocumentResult(options).TrySave(stream);
                 if (result.Succeeded && stream != null && stream.CanSeek) {
                     stream.Position = 0;
                 }
@@ -132,25 +132,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return document.ToPdfDocument(options).ToBytes();
-        }
-
-        /// <summary>
-        /// Converts the specified <see cref="WordDocument"/> to PDF bytes asynchronously.
-        /// </summary>
-        /// <param name="document">The document to convert.</param>
-        /// <param name="options">Optional PDF configuration.</param>
-        /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
-        /// <returns>The generated PDF as a byte array.</returns>
-        public static async Task<byte[]> ToPdfAsync(this WordDocument document, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            using (MemoryStream stream = new MemoryStream()) {
-                await document.ToPdfDocument(options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-                return stream.ToArray();
-            }
         }
 
         /// <summary>
@@ -193,7 +174,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                return await document.ToPdfDocument(options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+                return await document.ToPdfDocumentResult(options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -237,7 +218,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                PdfCore.PdfSaveResult result = await document.ToPdfDocument(options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+                PdfCore.PdfSaveResult result = await document.ToPdfDocumentResult(options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
                 if (result.Succeeded && stream != null && stream.CanSeek) {
                     stream.Position = 0;
                 }

@@ -121,8 +121,8 @@ public class RtfPdfIoTests {
         const string rtf = @"{\rtf1\ansi\pard Async PDF\par}";
         byte[] rtfBytes = Encoding.ASCII.GetBytes(rtf);
 
-        byte[] fromString = await rtf.ToPdfFromRtfAsync();
-        byte[] fromBytes = await rtfBytes.ToPdfFromRtfAsync();
+        byte[] fromString = rtf.ToPdfFromRtf();
+        byte[] fromBytes = rtfBytes.ToPdfFromRtf();
 
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromString, 0, 5));
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromBytes, 0, 5));

@@ -101,7 +101,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
             document.Save();
 
-            byte[] bytes = await document.ToPdfAsync(cancellationToken: CancellationToken.None);
+            byte[] bytes = document.ToPdf();
             Assert.True(bytes.Length > 0);
         }
     }
@@ -116,7 +116,7 @@ public partial class Word {
 
             using (var cts = new CancellationTokenSource()) {
                 cts.Cancel();
-                await Assert.ThrowsAsync<OperationCanceledException>(() => document.ToPdfAsync(cancellationToken: cts.Token));
+                await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cts.Token));
             }
         }
     }

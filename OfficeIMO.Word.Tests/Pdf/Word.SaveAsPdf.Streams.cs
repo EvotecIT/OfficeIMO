@@ -91,18 +91,18 @@ public partial class Word {
     }
 
     [Fact]
-    public async Task Test_WordDocument_SaveAsPdfAsync_OfficeIMOEngine_ToBytes_UsesNativeEngine() {
+    public void Test_WordDocument_ToPdf_OfficeIMOEngine_ToBytes_UsesNativeEngine() {
         var docPath = Path.Combine(_directoryWithFiles, "PdfNativeAsyncBytes.docx");
 
         using var document = WordDocument.Create(docPath);
         document.AddParagraph("Hello native async bytes");
         document.Save();
 
-        byte[] bytes = await document.ToPdfAsync(new PdfSaveOptions {
+        byte[] bytes = document.ToPdf(new PdfSaveOptions {
             IncludePageNumbers = false,
             PageSize = new PdfCore.PageSize(240, 320),
             Margins = PdfCore.PageMargins.Uniform(36)
-        }, CancellationToken.None);
+        });
 
         Assert.True(bytes.Length > 0);
         PdfCore.PdfPageInfo pageInfo = Assert.Single(PdfCore.PdfInspector.Inspect(bytes).Pages);

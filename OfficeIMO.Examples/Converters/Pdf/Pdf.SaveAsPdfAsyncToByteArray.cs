@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Hello Async PDF Bytes");
                 document.Save();
-                byte[] pdfBytes = await document.ToPdfAsync(cancellationToken: CancellationToken.None);
+                byte[] pdfBytes = document.ToPdf();
                 File.WriteAllBytes(pdfPath, pdfBytes);
             }
 

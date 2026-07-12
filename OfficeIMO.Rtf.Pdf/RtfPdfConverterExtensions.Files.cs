@@ -67,7 +67,7 @@ public static partial class RtfPdfConverterExtensions {
     /// <summary>Attempts to save an RTF file as a PDF file and returns diagnostics instead of throwing.</summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtfFile(this string rtfPath, string pdfPath, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         try {
-            return rtfPath.ToPdfDocumentFromRtfFile(readOptions, options, encoding).TrySave(pdfPath);
+            return rtfPath.ToPdfDocumentFromRtfFileResult(readOptions, options, encoding).TrySave(pdfPath);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(pdfPath, ex);
         }
@@ -76,7 +76,7 @@ public static partial class RtfPdfConverterExtensions {
     /// <summary>Attempts to save an RTF file as PDF to a writable stream and returns diagnostics instead of throwing.</summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdfFromRtfFile(this string rtfPath, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         try {
-            return rtfPath.ToPdfDocumentFromRtfFile(readOptions, options, encoding).TrySave(stream);
+            return rtfPath.ToPdfDocumentFromRtfFileResult(readOptions, options, encoding).TrySave(stream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
@@ -84,27 +84,27 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Converts an RTF file to PDF bytes asynchronously.</summary>
     public static async Task<byte[]> ToPdfFromRtfFileAsync(this string rtfPath, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        PdfCore.PdfDocument document = await rtfPath.ToPdfDocumentFromRtfFileAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
-        return await SavePdfDocumentAsBytesAsync(document, cancellationToken).ConfigureAwait(false);
+        PdfCore.PdfDocumentConversionResult result = await rtfPath.ToPdfDocumentFromRtfFileResultAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
+        return result.ToBytes();
     }
 
     /// <summary>Saves an RTF file as a PDF file asynchronously.</summary>
     public static async Task SaveAsPdfFromRtfFileAsync(this string rtfPath, string pdfPath, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        PdfCore.PdfDocument document = await rtfPath.ToPdfDocumentFromRtfFileAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
-        await document.SaveAsync(pdfPath, cancellationToken).ConfigureAwait(false);
+        PdfCore.PdfDocumentConversionResult result = await rtfPath.ToPdfDocumentFromRtfFileResultAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
+        await result.SaveAsync(pdfPath, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Saves an RTF file as PDF to a writable stream asynchronously.</summary>
     public static async Task SaveAsPdfFromRtfFileAsync(this string rtfPath, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        PdfCore.PdfDocument document = await rtfPath.ToPdfDocumentFromRtfFileAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
-        await document.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        PdfCore.PdfDocumentConversionResult result = await rtfPath.ToPdfDocumentFromRtfFileResultAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
+        await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Attempts to save an RTF file as a PDF file asynchronously and returns diagnostics instead of throwing.</summary>
     public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfFileAsync(this string rtfPath, string pdfPath, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         try {
-            PdfCore.PdfDocument document = await rtfPath.ToPdfDocumentFromRtfFileAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
-            return await document.TrySaveAsync(pdfPath, cancellationToken).ConfigureAwait(false);
+            PdfCore.PdfDocumentConversionResult result = await rtfPath.ToPdfDocumentFromRtfFileResultAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
+            return await result.TrySaveAsync(pdfPath, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(pdfPath, ex);
         }
@@ -113,8 +113,8 @@ public static partial class RtfPdfConverterExtensions {
     /// <summary>Attempts to save an RTF file as PDF to a writable stream asynchronously and returns diagnostics instead of throwing.</summary>
     public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfFromRtfFileAsync(this string rtfPath, Stream stream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         try {
-            PdfCore.PdfDocument document = await rtfPath.ToPdfDocumentFromRtfFileAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
-            return await document.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            PdfCore.PdfDocumentConversionResult result = await rtfPath.ToPdfDocumentFromRtfFileResultAsync(readOptions, options, encoding, cancellationToken).ConfigureAwait(false);
+            return await result.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }

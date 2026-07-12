@@ -60,13 +60,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
     /// <summary>Attempts to save a Markdown file as PDF and returns diagnostics instead of throwing.</summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdownFile(this string markdownPath, string pdfPath, MarkdownPdfSaveOptions? options = null) {
-        try { return markdownPath.ToPdfDocumentFromMarkdownFile(options).TrySave(pdfPath); }
+        try { return markdownPath.ToPdfDocumentFromMarkdownFileResult(options).TrySave(pdfPath); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(pdfPath, ex); }
     }
 
     /// <summary>Attempts to write a Markdown file as PDF and returns diagnostics instead of throwing.</summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdownFile(this string markdownPath, Stream stream, MarkdownPdfSaveOptions? options = null) {
-        try { return markdownPath.ToPdfDocumentFromMarkdownFile(options).TrySave(stream); }
+        try { return markdownPath.ToPdfDocumentFromMarkdownFileResult(options).TrySave(stream); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }
 
@@ -198,13 +198,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
     /// <summary>Attempts to parse Markdown text and save it as a PDF file.</summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdown(this string markdown, string path, MarkdownPdfSaveOptions? options = null) {
-        try { return markdown.ToPdfDocumentFromMarkdown(options).TrySave(path); }
+        try { return markdown.ToPdfDocumentFromMarkdownResult(options).TrySave(path); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex); }
     }
 
     /// <summary>Attempts to parse Markdown text and write it as PDF to a stream.</summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdown(this string markdown, Stream stream, MarkdownPdfSaveOptions? options = null) {
-        try { return markdown.ToPdfDocumentFromMarkdown(options).TrySave(stream); }
+        try { return markdown.ToPdfDocumentFromMarkdownResult(options).TrySave(stream); }
         catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
     }
 
@@ -220,7 +220,7 @@ public static partial class MarkdownPdfConverterExtensions {
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this MarkdownDoc document, string path, MarkdownPdfSaveOptions? options = null) {
         try {
-            return document.ToPdfDocument(options).TrySave(path);
+            return document.ToPdfDocumentResult(options).TrySave(path);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
@@ -238,7 +238,7 @@ public static partial class MarkdownPdfConverterExtensions {
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this MarkdownDoc document, Stream stream, MarkdownPdfSaveOptions? options = null) {
         try {
-            return document.ToPdfDocument(options).TrySave(stream);
+            return document.ToPdfDocumentResult(options).TrySave(stream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }

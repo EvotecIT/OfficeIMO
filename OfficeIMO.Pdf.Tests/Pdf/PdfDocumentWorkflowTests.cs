@@ -1347,7 +1347,7 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(invalidPdf, bytesResult.RequireBytes());
         Assert.Empty(bytesResult.Diagnostics);
         Assert.Empty(bytesResult.TextEncodingDiagnostics);
-        Assert.Empty(bytesResult.ConversionWarnings);
+        Assert.Empty(bytesResult.Warnings);
 
         PdfSaveResult streamResult = document.TrySave(stream);
 
@@ -1429,8 +1429,8 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(diagnostic.CodePoint, bytesDiagnostic.CodePoint);
         Assert.Equal(diagnostic.Location, bytesDiagnostic.Location);
 
-        PdfConversionWarning warning = Assert.Single(result.ConversionWarnings);
-        PdfConversionWarning bytesWarning = Assert.Single(bytesResult.ConversionWarnings);
+        PdfConversionWarning warning = Assert.Single(result.Warnings);
+        PdfConversionWarning bytesWarning = Assert.Single(bytesResult.Warnings);
 
         Assert.Equal("OfficeIMO.Pdf", warning.Converter);
         Assert.Equal(diagnostic.Code, warning.Code);
@@ -1493,15 +1493,15 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(1, result.TextEncodingDiagnostics[0].PageNumber);
         Assert.Equal("U+2603", result.TextEncodingDiagnostics[0].CodePoint);
         Assert.Equal("PDF WinAnsiEncoding", result.TextEncodingDiagnostics[0].Encoding);
-        Assert.Equal(diagnostics.Count, result.ConversionWarnings.Count);
-        Assert.Equal("PdfHeader[page=1]", result.ConversionWarnings[0].Details["location"]);
-        Assert.Equal("1", result.ConversionWarnings[0].Details["pageNumber"]);
-        Assert.Equal("PDF WinAnsiEncoding", result.ConversionWarnings[0].Details["encoding"]);
-        Assert.Contains(result.ConversionWarnings, warning =>
+        Assert.Equal(diagnostics.Count, result.Warnings.Count);
+        Assert.Equal("PdfHeader[page=1]", result.Warnings[0].Details["location"]);
+        Assert.Equal("1", result.Warnings[0].Details["pageNumber"]);
+        Assert.Equal("PDF WinAnsiEncoding", result.Warnings[0].Details["encoding"]);
+        Assert.Contains(result.Warnings, warning =>
             warning.Source == "PdfTableCell" &&
             warning.Details["tableRowIndex"] == "0" &&
             warning.Details["tableColumnIndex"] == "0");
-        Assert.Contains(result.ConversionWarnings, warning =>
+        Assert.Contains(result.Warnings, warning =>
             warning.Source == "PdfTextField" &&
             warning.Details["fieldName"] == "Person.Name");
         Assert.Contains("preflight found 10 generated text issues", result.Diagnostics[0], StringComparison.Ordinal);

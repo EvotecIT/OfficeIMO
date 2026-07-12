@@ -236,22 +236,26 @@ public sealed partial class PdfDocumentConversionResult {
     /// Attempts to write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(Stream stream) {
+        PdfSaveResult result;
         try {
-            return Value.TrySave(stream);
+            result = Value.TrySave(stream);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     /// <summary>
     /// Attempts to write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(string path) {
+        PdfSaveResult result;
         try {
-            return Value.TrySave(path);
+            result = Value.TrySave(path);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     /// <summary>
@@ -293,19 +297,23 @@ public sealed partial class PdfDocumentConversionResult {
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(Stream stream, System.Threading.CancellationToken cancellationToken) {
+        PdfSaveResult result;
         try {
-            return await Value.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            result = await Value.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(string path, System.Threading.CancellationToken cancellationToken) {
+        PdfSaveResult result;
         try {
-            return await Value.TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+            result = await Value.TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
+        return result.WithReport(Report);
     }
 
     private static PdfConversionReport SnapshotReport(PdfConversionReport conversionReport) {

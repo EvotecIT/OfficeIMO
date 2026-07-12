@@ -981,6 +981,8 @@ public class PdfFontFamilyTests {
 
         Assert.True(saveResult.Succeeded);
         Assert.True(saveResult.BytesWritten > 0);
+        Assert.Equal("sample-warning", Assert.Single(saveResult.Warnings).Code);
+        Assert.True(saveResult.HasWarnings);
         Assert.True(output.Length > 0);
         Assert.Same(processed, processed.Save(new MemoryStream()));
     }
@@ -1027,6 +1029,7 @@ public class PdfFontFamilyTests {
 
         Assert.True(streamResult.Succeeded);
         Assert.True(streamResult.BytesWritten > 0);
+        Assert.Equal("async-sample-warning", Assert.Single(streamResult.Warnings).Code);
         Assert.True(stream.Length > 0);
         Assert.True(result.HasWarnings);
         Assert.Equal("async-sample-warning", Assert.Single(result.Warnings).Code);
@@ -1046,6 +1049,7 @@ public class PdfFontFamilyTests {
             PdfDocumentConversionResult pathChained = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);
+            Assert.Equal("async-sample-warning", Assert.Single(pathResult.Warnings).Code);
             Assert.True(File.Exists(tryPath));
             Assert.True(new FileInfo(tryPath).Length > 0);
             Assert.Same(result, pathChained);

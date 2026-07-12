@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// </summary>
         public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, string path, ExcelPdfSaveOptions? options = null) {
             try {
-                return document.ToPdfDocument(options).TrySave(path);
+                return document.ToPdfDocumentResult(options).TrySave(path);
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// </summary>
         public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) {
             try {
-                return document.ToPdfDocument(options).TrySave(stream);
+                return document.ToPdfDocumentResult(options).TrySave(stream);
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
