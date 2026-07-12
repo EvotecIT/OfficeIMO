@@ -12,12 +12,18 @@ public static partial class PowerPointHtmlConverterExtensions {
     /// Converts a presentation to HTML.
     /// </summary>
     public static string ToHtml(this PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions? options = null) {
+        return presentation.ToHtmlResult(options).Value;
+    }
+
+    /// <summary>Converts a presentation to HTML with operation-scoped visual diagnostics.</summary>
+    public static PowerPointToHtmlResult ToHtmlResult(this PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions? options = null) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-        options ??= new PowerPointHtmlSaveOptions();
-        options.SnapshotDiagnostics.Clear();
-        return options.Profile == OfficeHtmlConversionProfile.PowerPointVisualReview
-            ? ConvertVisual(presentation, options)
-            : ConvertSemantic(presentation, options);
+        PowerPointHtmlSaveOptions operation = (options ?? new PowerPointHtmlSaveOptions()).Clone();
+        var imageDiagnostics = new List<OfficeImageExportDiagnostic>();
+        string html = operation.Profile == OfficeHtmlConversionProfile.PowerPointVisualReview
+            ? ConvertVisual(presentation, operation, imageDiagnostics)
+            : ConvertSemantic(presentation, operation);
+        return new PowerPointToHtmlResult(html, imageDiagnostics);
     }
 
     /// <summary>
@@ -51,7 +57,8 @@ public static partial class PowerPointHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetTitle(options, "PowerPoint Presentation"));
     }
 
-    private static string ConvertVisual(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options) {
+    private static string ConvertVisual(PptCore.PowerPointPresentation presentation, PowerPointHtmlSaveOptions options,
+        IList<OfficeImageExportDiagnostic> imageDiagnostics) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\" data-officeimo-source=\"powerpoint\" data-officeimo-profile=\"")
@@ -65,7 +72,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 continue;
             }
 
-            AppendVisualSlide(body, presentation, slide, i + 1, extractionProof.Count > i ? extractionProof[i] : null, options);
+            AppendVisualSlide(body, presentation, slide, i + 1, extractionProof.Count > i ? extractionProof[i] : null, options, imageDiagnostics);
         }
 
         body.Append("</main>");
@@ -87,7 +94,8 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</section>");
     }
 
-    private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointPresentation presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options) {
+    private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointPresentation presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options,
+        IList<OfficeImageExportDiagnostic> imageDiagnostics) {
         double width = Math.Max(1D, presentation.SlideSize.WidthPoints);
         double height = Math.Max(1D, presentation.SlideSize.HeightPoints);
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
@@ -117,7 +125,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append(OfficeDrawingSvgExporter.ToSvg(snapshot.Drawing))
                 .Append("</div>");
             foreach (OfficeImageExportDiagnostic diagnostic in snapshot.Diagnostics) {
-                options.SnapshotDiagnostics.Add(diagnostic);
+                imageDiagnostics.Add(diagnostic);
             }
         }
 
