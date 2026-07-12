@@ -96,7 +96,10 @@ public static partial class DocumentReaderRtfExtensions {
         result.Forms = projection.Forms;
         result.Visuals = projection.Visuals;
         result.Metadata = BuildRtfMetadata(document, projection);
-        result.Diagnostics = result.Diagnostics.Concat(MapRtfDiagnostics(includedDiagnostics, source.Path)).ToArray();
+        result.Diagnostics = result.Diagnostics
+            .Concat(MapRtfDiagnostics(includedDiagnostics, source.Path))
+            .Concat(MapReaderRtfConversionDiagnostics(rtfOptions.Report, source.Path))
+            .ToArray();
         return result;
     }
 
@@ -264,6 +267,34 @@ public static partial class DocumentReaderRtfExtensions {
             Source = "officeimo.rtf", IsRecoverable = diagnostic.Severity != RtfDiagnosticSeverity.Error,
             Location = new ReaderLocation { Path = path, SourceBlockKind = "diagnostic", BlockAnchor = "rtf-position-" + diagnostic.Position.ToString(CultureInfo.InvariantCulture) }
         };
+    }
+
+    private static IEnumerable<OfficeDocumentDiagnostic> MapReaderRtfConversionDiagnostics(RtfConversionReport report, string path) {
+        foreach (RtfConversionDiagnostic diagnostic in report.Diagnostics) {
+            if (!diagnostic.Code.StartsWith("ReaderRtf", StringComparison.Ordinal)) continue;
+            yield return new OfficeDocumentDiagnostic {
+                Severity = diagnostic.Severity == RtfConversionSeverity.Error
+                    ? OfficeDocumentDiagnosticSeverity.Error
+                    : diagnostic.Severity == RtfConversionSeverity.Information
+                        ? OfficeDocumentDiagnosticSeverity.Information
+                        : OfficeDocumentDiagnosticSeverity.Warning,
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = diagnostic.Code,
+                Message = diagnostic.Message,
+                Source = "officeimo.reader.rtf",
+                IsRecoverable = diagnostic.Severity != RtfConversionSeverity.Error,
+                Location = new ReaderLocation {
+                    Path = diagnostic.SourcePath ?? path,
+                    SourceBlockKind = diagnostic.Feature ?? "adapter",
+                    BlockAnchor = "rtf-adapter-" + diagnostic.Code
+                },
+                Attributes = new Dictionary<string, string> {
+                    ["action"] = diagnostic.Action.ToString(),
+                    ["count"] = diagnostic.Count.ToString(CultureInfo.InvariantCulture),
+                    ["detail"] = diagnostic.Detail ?? string.Empty
+                }
+            };
+        }
     }
 
     private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildRtfMetadata(RtfDocument document, RtfRichProjection projection) => new[] {

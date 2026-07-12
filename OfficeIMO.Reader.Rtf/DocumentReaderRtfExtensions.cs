@@ -10,32 +10,39 @@ public static partial class DocumentReaderRtfExtensions {
     /// Reads an RTF file and emits normalized chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> ReadRtfFile(string rtfPath, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+        return ReadRtfFileResult(rtfPath, readerOptions, rtfOptions, encoding, cancellationToken).Value;
+    }
+
+    /// <summary>Reads an RTF file and returns normalized chunks with operation-scoped fidelity diagnostics.</summary>
+    public static RtfConversionResult<IReadOnlyList<ReaderChunk>> ReadRtfFileResult(string rtfPath, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (rtfPath == null) throw new ArgumentNullException(nameof(rtfPath));
         if (rtfPath.Length == 0) throw new ArgumentException("RTF path cannot be empty.", nameof(rtfPath));
         if (!File.Exists(rtfPath)) throw new FileNotFoundException($"RTF file '{rtfPath}' doesn't exist.", rtfPath);
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
-        effectiveRtfOptions.ConversionReport.Clear();
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes);
 
         RtfReadResult readResult = RtfDocument.Load(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
-        foreach (var chunk in ReadRtfResult(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken)) {
-            yield return chunk;
-        }
+        IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
+        return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
     }
 
     /// <summary>
     /// Reads an RTF stream and emits normalized chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> ReadRtf(Stream rtfStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+        return ReadRtfResult(rtfStream, sourceName, readerOptions, rtfOptions, encoding, cancellationToken).Value;
+    }
+
+    /// <summary>Reads an RTF stream and returns normalized chunks with operation-scoped fidelity diagnostics.</summary>
+    public static RtfConversionResult<IReadOnlyList<ReaderChunk>> ReadRtfResult(Stream rtfStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (rtfStream == null) throw new ArgumentNullException(nameof(rtfStream));
         if (!rtfStream.CanRead) throw new ArgumentException("RTF stream must be readable.", nameof(rtfStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
-        effectiveRtfOptions.ConversionReport.Clear();
         var logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.rtf");
         var source = new SourceMetadata {
             Path = logicalSourceName,
@@ -51,9 +58,8 @@ public static partial class DocumentReaderRtfExtensions {
             }
 
             RtfReadResult readResult = RtfDocument.Load(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
-            foreach (var chunk in ReadRtfResult(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken)) {
-                yield return chunk;
-            }
+            IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
+            return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
         } finally {
             if (ownsParseStream) {
                 parseStream.Dispose();
@@ -65,26 +71,29 @@ public static partial class DocumentReaderRtfExtensions {
     /// Converts an already loaded RTF semantic model into normalized Reader chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> ReadRtfDocument(RtfDocument document, string sourceName = "document.rtf", ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, CancellationToken cancellationToken = default) {
+        return ReadRtfChunksResult(document, sourceName, readerOptions, rtfOptions, cancellationToken).Value;
+    }
+
+    /// <summary>Converts an RTF semantic model into normalized chunks with operation-scoped fidelity diagnostics.</summary>
+    public static RtfConversionResult<IReadOnlyList<ReaderChunk>> ReadRtfChunksResult(RtfDocument document, string sourceName = "document.rtf", ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
-        effectiveRtfOptions.ConversionReport.Clear();
         var logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.rtf");
         var source = new SourceMetadata {
             Path = logicalSourceName,
             SourceId = BuildSourceId(logicalSourceName)
         };
 
-        foreach (var chunk in ReadRtfDocument(document, source, effectiveReaderOptions, effectiveRtfOptions, Array.Empty<RtfDiagnostic>(), cancellationToken)) {
-            yield return chunk;
-        }
+        IReadOnlyList<ReaderChunk> chunks = ReadRtfDocument(document, source, effectiveReaderOptions, effectiveRtfOptions, Array.Empty<RtfDiagnostic>(), cancellationToken).ToArray();
+        return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
     }
 
-    private static IEnumerable<ReaderChunk> ReadRtfResult(RtfReadResult readResult, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> ReadRtfResultCore(RtfReadResult readResult, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
         if (readResult == null) throw new ArgumentNullException(nameof(readResult));
-        rtfOptions.ConversionReport.AddReadDiagnostics(readResult.Diagnostics, source.Path);
+        rtfOptions.Report.AddReadDiagnostics(readResult.Diagnostics, source.Path);
         IReadOnlyList<RtfDiagnostic> diagnostics = rtfOptions.IncludeDiagnostics ? readResult.Diagnostics : Array.Empty<RtfDiagnostic>();
         foreach (var chunk in ReadRtfDocument(readResult.Document, source, readerOptions, rtfOptions, diagnostics, cancellationToken)) {
             yield return chunk;
@@ -159,14 +168,14 @@ public static partial class DocumentReaderRtfExtensions {
                     yield return BuildImageBlock(image, sourcePath, index++);
                     break;
                 case RtfImage:
-                    options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfImageOmitted", "RTF image placeholder was omitted because IncludeImagePlaceholders is false.", RtfConversionAction.Omitted, sourcePath, "image");
+                    options.Report.Add(RtfConversionSeverity.Warning, "ReaderRtfImageOmitted", "RTF image placeholder was omitted because IncludeImagePlaceholders is false.", RtfConversionAction.Omitted, sourcePath, "image");
                     break;
                 case RtfObject rtfObject:
-                    options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfObjectFlattened", "RTF object was flattened to visible text for Reader output.", RtfConversionAction.Flattened, sourcePath, "object");
+                    options.Report.Add(RtfConversionSeverity.Warning, "ReaderRtfObjectFlattened", "RTF object was flattened to visible text for Reader output.", RtfConversionAction.Flattened, sourcePath, "object");
                     yield return new RtfReaderBlock("object", index++, rtfObject.ToPlainText(), rtfObject.ToPlainText(), null, null, null);
                     break;
                 case RtfShape shape:
-                    options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfShapeFlattened", "RTF shape was flattened to visible text for Reader output.", RtfConversionAction.Flattened, sourcePath, "shape");
+                    options.Report.Add(RtfConversionSeverity.Warning, "ReaderRtfShapeFlattened", "RTF shape was flattened to visible text for Reader output.", RtfConversionAction.Flattened, sourcePath, "shape");
                     yield return new RtfReaderBlock("shape", index++, shape.ToPlainText(), shape.ToPlainText(), null, null, null);
                     break;
             }
@@ -180,7 +189,7 @@ public static partial class DocumentReaderRtfExtensions {
                 yield return new RtfReaderBlock("header-footer", index++, text, text, null, null, null);
             }
         } else if (document.HeaderFooters.Count > 0) {
-            options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfHeaderFooterOmitted", "RTF headers and footers were omitted by Reader options.", RtfConversionAction.Omitted, sourcePath, "header-footer", document.HeaderFooters.Count);
+            options.Report.Add(RtfConversionSeverity.Warning, "ReaderRtfHeaderFooterOmitted", "RTF headers and footers were omitted by Reader options.", RtfConversionAction.Omitted, sourcePath, "header-footer", document.HeaderFooters.Count);
         }
 
         if (options.IncludeNotes) {
@@ -191,8 +200,20 @@ public static partial class DocumentReaderRtfExtensions {
                 yield return new RtfReaderBlock("note", index++, text, text, null, null, null);
             }
         } else if (document.Notes.Count > 0) {
-            options.ConversionReport.Add(RtfConversionSeverity.Warning, "ReaderRtfNotesOmitted", "RTF notes were omitted by Reader options.", RtfConversionAction.Omitted, sourcePath, "note", document.Notes.Count);
+            options.Report.Add(RtfConversionSeverity.Warning, "ReaderRtfNotesOmitted", "RTF notes were omitted by Reader options.", RtfConversionAction.Omitted, sourcePath, "note", document.Notes.Count);
         }
+    }
+
+    private static RtfConversionResult<IReadOnlyList<ReaderChunk>> CompleteChunkResult(IReadOnlyList<ReaderChunk> chunks, RtfConversionReport report) {
+        string[] adapterWarnings = report.Diagnostics
+            .Where(static diagnostic => diagnostic.Code.StartsWith("ReaderRtf", StringComparison.Ordinal))
+            .Select(static diagnostic => diagnostic.Code + ": " + diagnostic.Message)
+            .ToArray();
+        if (adapterWarnings.Length > 0 && chunks.Count > 0) {
+            chunks[0].Warnings = MergeWarnings(chunks[0].Warnings, adapterWarnings);
+        }
+
+        return new RtfConversionResult<IReadOnlyList<ReaderChunk>>(chunks, report);
     }
 
     private static RtfReaderBlock BuildParagraphBlock(RtfParagraph paragraph, string kind, int index) {

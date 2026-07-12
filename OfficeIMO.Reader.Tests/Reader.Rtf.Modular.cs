@@ -237,12 +237,25 @@ public sealed class ReaderRtfModularTests {
         document.AddShape().AddTextBoxParagraph("Shape text");
         var options = ReaderRtfOptions.CreateTrustedProfile();
 
-        List<ReaderChunk> chunks = DocumentReaderRtfExtensions.ReadRtfDocument(document, rtfOptions: options).ToList();
+        RtfConversionResult<IReadOnlyList<ReaderChunk>> conversion = DocumentReaderRtfExtensions.ReadRtfChunksResult(document, rtfOptions: options);
+        IReadOnlyList<ReaderChunk> chunks = conversion.Value;
 
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Object text", StringComparison.Ordinal));
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Shape text", StringComparison.Ordinal));
-        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(chunks[0].Warnings!, warning => warning.StartsWith("ReaderRtfObjectFlattened:", StringComparison.Ordinal));
+        OfficeDocumentReadResult rich = DocumentReaderRtfExtensions.ReadRtfDocumentResult(document, rtfOptions: options);
+        Assert.Contains(rich.Diagnostics, diagnostic =>
+            diagnostic.Code == "ReaderRtfObjectFlattened" &&
+            diagnostic.Category == OfficeDocumentDiagnosticCategory.Content);
+
+        RtfDocument cleanDocument = RtfDocument.Create();
+        cleanDocument.AddParagraph("Clean RTF reader operation.");
+        RtfConversionResult<IReadOnlyList<ReaderChunk>> clean = DocumentReaderRtfExtensions.ReadRtfChunksResult(cleanDocument, rtfOptions: options);
+
+        Assert.DoesNotContain(clean.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened");
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened");
     }
 
     private static string CreateSampleRtf(string text) {
