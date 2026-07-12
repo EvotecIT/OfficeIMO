@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         internal static PowerPointSlide FinalizeDesignerAccessibility(PowerPointSlide slide, string? requestedTitle = null,
             string language = "en-US") {
             if (slide == null) throw new ArgumentNullException(nameof(slide));

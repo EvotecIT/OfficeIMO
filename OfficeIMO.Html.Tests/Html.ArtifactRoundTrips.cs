@@ -58,13 +58,16 @@ public class HtmlArtifactRoundTrips {
         using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), readOnly: true);
 
         using PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointTable sourceTable = sourcePresentation.Slides[0].AddTablePoints(2, 2, 40, 60, 300, 120);
+        PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
+        PowerPointTable sourceTable = sourceSlide.AddTablePoints(2, 2, 40, 60, 300, 120);
         sourceTable.GetCell(0, 0).Text = Marker;
         sourceTable.MergeCells(0, 0, 0, 1);
         HtmlToPowerPointResult powerPointResult = sourcePresentation.ToHtml().ToPowerPointPresentationResult();
         using var pptx = new MemoryStream();
         powerPointResult.Presentation.Save(pptx);
-        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Open(new MemoryStream(pptx.ToArray()), readOnly: true);
+        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Open(
+            new MemoryStream(pptx.ToArray()),
+            new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
 
         ExcelSheet reopenedSheet = Assert.Single(reopenedWorkbook.Sheets);
         Assert.True(reopenedSheet.TryGetCellText(2, 1, out string excelText));

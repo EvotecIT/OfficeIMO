@@ -640,7 +640,8 @@ This **Markdown** is rendered by `OfficeIMO.MarkdownRenderer`.
 
     private static ConversionOutput ConvertPowerPoint(SelectedOfficeFile file) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
-        using PowerPointPresentation presentation = PowerPointPresentation.Open(stream, readOnly: true);
+        using PowerPointPresentation presentation = PowerPointPresentation.Open(stream,
+            new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
         var options = new PowerPointPdfSaveOptions {
             WarnOnPictureAspectRatioDistortion = true
         };

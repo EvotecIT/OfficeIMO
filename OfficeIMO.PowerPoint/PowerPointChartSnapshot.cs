@@ -4,7 +4,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// PowerPoint chart families available as first-party render snapshots.
     /// </summary>
-    public enum PowerPointChartSnapshotKind {
+    internal enum PowerPointChartSnapshotKind {
         /// <summary>Clustered column chart.</summary>
         ClusteredColumn,
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Lightweight chart snapshot that consumers can render without depending on PowerPoint or Open XML chart internals.
     /// </summary>
-    public sealed class PowerPointChartSnapshot {
+    internal sealed class PowerPointChartSnapshot {
         internal PowerPointChartSnapshot(string name, string? title, PowerPointChartSnapshotKind chartKind, PowerPointChartData data, double widthPoints, double heightPoints) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));

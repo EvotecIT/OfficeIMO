@@ -4,11 +4,37 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
+        /// <summary>Updates the native chart from the shared OfficeIMO chart contract.</summary>
+        public PowerPointChart UpdateData(OfficeChartData data) {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (!TryGetOfficeSnapshot(out OfficeChartSnapshot current)) {
+                throw new NotSupportedException(
+                    "The current chart kind cannot be updated through the shared OfficeIMO chart contract.");
+            }
+            OfficeChartKind chartKind = current.ChartKind;
+            PowerPointUtils.ValidateSharedChartData(data, chartKind);
+
+            ChartPart chartPart = GetChartPart();
+            PowerPointUtils.UpdateSharedChartData(chartPart, data, chartKind);
+
+            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
+            if (embedded != null) {
+                byte[] workbookBytes = chartKind == OfficeChartKind.Scatter
+                    ? PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointScatterChartData(data))
+                    : PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointChartData(data));
+                using var stream = new MemoryStream(workbookBytes);
+                embedded.FeedData(stream);
+            }
+            Save();
+            return this;
+        }
+
         /// <summary>Creates a deterministic plain-text summary suitable for accessibility review or sidecar output.</summary>
         public static string CreateDataSummary(OfficeChartKind chartKind, OfficeChartData data) {
             if (data == null) throw new ArgumentNullException(nameof(data));

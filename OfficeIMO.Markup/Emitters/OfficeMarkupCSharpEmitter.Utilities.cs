@@ -43,15 +43,8 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         return sb.Length == 0 ? "None" : sb.ToString();
     }
 
-    private static string ToPowerPointChartMethod(string chartType) {
-        var normalized = NormalizeToken(chartType);
-        return normalized switch {
-            "line" => "AddLineChart",
-            "pie" => "AddPieChart",
-            "doughnut" or "donut" => "AddDoughnutChart",
-            _ => "AddChart"
-        };
-    }
+    private static string ToPowerPointChartKind(string chartType) =>
+        OfficeMarkupChartKindResolver.Resolve(chartType).ToString();
 
     private static string ToExcelChartType(string chartType) {
         var normalized = NormalizeToken(chartType);

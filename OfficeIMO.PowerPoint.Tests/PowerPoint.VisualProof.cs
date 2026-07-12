@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             try {
                 PowerPointVisualProofReport report;
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
-                    PowerPointSlide slide = presentation.Slides[0];
+                    PowerPointSlide slide = presentation.AddSlide();
                     slide.BackgroundColor = "FFFFFF";
                     PowerPointTextBox title = slide.AddTextBoxPoints("Shared fidelity proof", 40, 36, 480, 46);
                     title.Title = "Slide title";
@@ -83,8 +83,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void VisualReviewSharedSnapshotHonorsTableSuppression() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, autoSave: false);
-            PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 40, 180, 45);
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 40, 180, 45);
             table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
 
             string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                 "PowerPointWithTablesAndCharts.pptx");
             Assert.True(File.Exists(fixture), "Expected sanitized PowerPoint-authored fixture was not found.");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.OpenRead(fixture);
+            using PowerPointPresentation presentation = PowerPointPresentation.Open(fixture, PowerPointOpenMode.ReadOnly);
             PowerPointVisualProofReport report = presentation.CreateVisualProofReport("powerpoint-authored-import");
 
             Assert.NotEmpty(report.Slides);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPointCompatibility", Guid.NewGuid().ToString("N"));
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
-                    presentation.Slides[0].AddTitle("Compatibility proof");
+                    presentation.AddSlide().AddTitle("Compatibility proof");
                     presentation.Save();
                 }
 
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             try {
                 byte[] snapshotPng;
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
-                    presentation.Slides[0].AddTitle("Native reference");
+                    presentation.AddSlide().AddTitle("Native reference");
                     presentation.Save();
                     snapshotPng = presentation.Slides[0].ToPng();
                 }

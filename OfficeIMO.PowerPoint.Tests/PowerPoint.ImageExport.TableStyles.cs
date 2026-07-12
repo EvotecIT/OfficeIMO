@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 120);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000101}";
             AddImageExportTableStyle(slide, styleId);
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(180, 100);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
             AddImageExportTableStyle(slide, styleId);
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(140, 90);
-            PowerPointSlide slide = presentation.Slides[0];
+            PowerPointSlide slide = presentation.AddSlide();
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000102}";
             AddImageExportMergedBorderTableStyle(slide, styleId);
 

@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Presentation-bound designer facade that applies one deck design across many semantic slides.
     /// </summary>
-    public sealed class PowerPointDeckComposer {
+    internal sealed class PowerPointDeckComposer {
         private readonly PowerPointPresentation _presentation;
         private readonly PowerPointDeckDesign _design;
         private readonly PowerPointTemplateLayoutMap? _templateLayoutMap;
@@ -17,6 +17,7 @@ namespace OfficeIMO.PowerPoint {
             _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             _design = design ?? throw new ArgumentNullException(nameof(design));
             _templateLayoutMap = templateLayoutMap;
+            _slideIndex = presentation.Slides.Count;
 
             if (applyTheme) {
                 _design.ApplyTo(_presentation);
@@ -186,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a custom designer slide with raw composition primitives and active deck chrome.
         /// </summary>
-        public PowerPointSlide ComposeSlide(Action<PowerPointSlideComposer> compose, string? seed = null,
+        public PowerPointSlide ComposeSlide(Action<PowerPointSlideCompositionContext> compose, string? seed = null,
             Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
             PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
                 seed ?? "custom", configure);
@@ -238,18 +239,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Renders a continued semantic plan and returns the same machine-readable report used by direct
-        ///     presentation and markup workflows.
-        /// </summary>
-        public PowerPointDeckGenerationResult AddSlidesWithReport(PowerPointDeckPlan plan,
-            PowerPointDeckContinuationOptions? continuationOptions = null,
-            PowerPointDeckPreflightOptions? preflightOptions = null, bool validate = true) {
-            IReadOnlyList<PowerPointSlide> slides = AddSlidesWithContinuation(plan, continuationOptions, validate);
-            PowerPointDeckPreflightReport report = _presentation.Preflight(preflightOptions);
-            return new PowerPointDeckGenerationResult(slides.ToList(), report);
-        }
-
-        /// <summary>
         ///     Previews how a semantic deck plan resolves against the active deck design from the composer's
         ///     current slide position.
         /// </summary>
@@ -290,7 +279,7 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>
         ///     Creates a presentation-bound designer facade and optionally applies the deck theme immediately.
         /// </summary>

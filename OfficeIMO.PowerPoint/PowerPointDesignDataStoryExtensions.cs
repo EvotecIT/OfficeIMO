@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>Adds an editable native chart with hero or insight-rail narrative composition.</summary>
         public static PowerPointSlide AddDesignerChartStorySlide(this PowerPointPresentation presentation,
             string title, string? subtitle, PowerPointChartStoryContent content,

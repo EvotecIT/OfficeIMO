@@ -533,7 +533,7 @@ namespace OfficeIMO.Word {
                     bufferedStream.Dispose();
                 } else {
                     document._ownedPackageStream = bufferedStream;
-                    document.OriginalStream = stream;
+                    document.OriginalStream = stream.CanSeek ? stream : null!;
                 }
 
                 return document;

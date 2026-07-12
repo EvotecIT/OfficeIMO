@@ -37,6 +37,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task LoadAsync_NonSeekableStreamDoesNotBecomePathlessSaveTarget() {
+            byte[] sourceBytes;
+            using (WordDocument created = WordDocument.Create()) {
+                created.AddParagraph("Buffered source");
+                sourceBytes = created.ToDocx();
+            }
+
+            using var source = new NonSeekableReadStream(sourceBytes);
+            using WordDocument loaded = await WordDocument.LoadAsync(source);
+            loaded.AddParagraph("Unsaved edit");
+
+            InvalidOperationException syncException = Assert.Throws<InvalidOperationException>(() => loaded.Save());
+            Assert.Contains("not associated with a file path", syncException.Message, StringComparison.OrdinalIgnoreCase);
+
+            InvalidOperationException asyncException = await Assert.ThrowsAsync<InvalidOperationException>(() => loaded.SaveAsync());
+            Assert.Contains("not associated with a file path", asyncException.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void SaveCopy_StreamDoesNotRedirectLaterSourceSavesToTheCopy() {
             using var source = new MemoryStream();
             using var document = WordDocument.Create(source);

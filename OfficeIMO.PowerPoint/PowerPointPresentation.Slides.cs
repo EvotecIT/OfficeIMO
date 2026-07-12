@@ -7,7 +7,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.PowerPoint.Fluent;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
@@ -21,15 +20,6 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             ThrowIfDisposed();
-            // If we have an untouched initial slide, return it for the user to use
-            if (_initialSlideUntouched && _slides.Count == 1) {
-                _initialSlideUntouched = false;
-                if (masterIndex != 0 || layoutIndex != 0) {
-                    _slides[0].SetLayout(masterIndex, layoutIndex);
-                }
-                return _slides[0];
-            }
-
             string slideRelId = GetNextSlideRelationshipId();
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             // Create slide exactly like the working example
@@ -111,17 +101,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
-            // If the initial slide is untouched, we pretend there are no slides
-            if (_initialSlideUntouched) {
-                throw new ArgumentOutOfRangeException(nameof(index), "No slides to remove.");
-            }
-
             if (index < 0 || index >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            if (_slides.Count == 1) {
-                throw new InvalidOperationException("Cannot remove the last slide from the presentation.");
             }
 
             SlideIdList? slideIdList = PresentationRoot.SlideIdList;
@@ -157,11 +138,6 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
-            // If the initial slide is untouched, we pretend there are no slides
-            if (_initialSlideUntouched) {
-                throw new ArgumentOutOfRangeException(nameof(fromIndex), "No slides to move.");
-            }
-
             if (fromIndex < 0 || fromIndex >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(fromIndex));
             }
@@ -204,10 +180,6 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="insertAt">Index where the duplicate should be inserted. Defaults to index + 1.</param>
         public PowerPointSlide DuplicateSlide(int index, int? insertAt = null) {
             ThrowIfDisposed();
-            if (_initialSlideUntouched && _slides.Count == 1) {
-                _initialSlideUntouched = false;
-            }
-
             if (index < 0 || index >= _slides.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -257,11 +229,6 @@ namespace OfficeIMO.PowerPoint {
 
             if (ReferenceEquals(sourcePresentation, this)) {
                 return DuplicateSlide(sourceIndex, insertAt);
-            }
-
-            SlidePart? initialSlidePart = null;
-            if (_initialSlideUntouched && _slides.Count == 1) {
-                initialSlidePart = _slides[0].SlidePart;
             }
 
             IReadOnlyList<PowerPointSlide> sourceSlides = sourcePresentation.Slides;
@@ -332,14 +299,6 @@ namespace OfficeIMO.PowerPoint {
 
             _slides.Insert(targetIndex, imported);
             PresentationRoot.Save();
-
-            if (initialSlidePart != null) {
-                _initialSlideUntouched = false;
-                int blankIndex = _slides.FindIndex(slide => ReferenceEquals(slide.SlidePart, initialSlidePart));
-                if (blankIndex >= 0) {
-                    RemoveSlide(blankIndex);
-                }
-            }
 
             return imported;
         }

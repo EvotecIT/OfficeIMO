@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         internal static void AddCardGrid(PowerPointSlide slide, PowerPointDesignTheme theme,
             IReadOnlyList<PowerPointCardContent> cards, PowerPointCardGridSlideOptions options,
             PowerPointCardGridLayoutVariant variant, double slideWidthCm, double slideHeightCm) {

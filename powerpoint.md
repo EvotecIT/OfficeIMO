@@ -72,7 +72,7 @@ The designer layer is more ambitious than the normal .NET presentation-library s
 - palette strategies, typography strategies, moods, density, visual styles, layout strategies, and creative-direction packs;
 - `PowerPointDeckPlan` with section, case-study, process, card-grid, logo-wall, coverage, capability, and custom slide kinds;
 - per-slide layout variants, card surfaces, process connectors, metric strips, title accents, motifs, and visual-frame treatments;
-- `PowerPointDeckComposer` and `PowerPointSlideComposer` for semantic slides and lower-level designed composition;
+- `PowerPointPresentation.Compose(...)` for semantic decks and `PowerPointSlideCompositionContext` for custom slides inside a plan;
 - editable visual placeholders, image frames, real logo assets, coverage pins, metric strips, and diagram-like surfaces.
 
 The checked-in screenshots demonstrate strong typography, alignment, whitespace, editable geometry, and coherent palette use. They also expose the current ceiling: repeated panels and card grids, decorative placeholders instead of real visual evidence, limited slide grammar, and insufficient content-aware variation across a full story.

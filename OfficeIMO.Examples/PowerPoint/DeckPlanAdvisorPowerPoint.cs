@@ -34,10 +34,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-            PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Index);
-
-            deck.AddSlides(plan);
-            deck.ComposeSlide(composer => {
+            plan.AddCustom("Why this alternative wins", composer => {
                 composer.AddTitle("Why this alternative wins", selected.Design.DirectionName);
                 PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
                     PowerPointCompositionVariant.VisualLead);
@@ -57,6 +54,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointMetric(selected.Diagnostics.Count.ToString(), "diagnostics")
                 }, layout.Metrics, PowerPointMetricStripVariant.SeparatedTiles);
             }, "advisor-summary", options => options.FooterRight = "Fit score " + selected.ContentFitScore);
+
+            PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
+            composition.SelectBestAlternative = false;
+            composition.AlternativeIndex = selected.Index;
+            presentation.Compose(plan, composition);
 
             presentation.Save();
             Validate(filePath, presentation);

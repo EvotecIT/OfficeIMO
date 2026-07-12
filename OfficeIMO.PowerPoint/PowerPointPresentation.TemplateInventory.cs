@@ -10,7 +10,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         /// <summary>Reads a template inventory from an existing presentation or PowerPoint template file.</summary>
-        public static PowerPointTemplateInventory InspectTemplate(string templatePath) {
+        internal static PowerPointTemplateInventory InspectTemplate(string templatePath) {
             if (string.IsNullOrWhiteSpace(templatePath)) {
                 throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
             }
@@ -18,12 +18,12 @@ namespace OfficeIMO.PowerPoint {
                 throw new FileNotFoundException("PowerPoint template was not found.", templatePath);
             }
 
-            using PowerPointPresentation presentation = OpenRead(templatePath);
+            using PowerPointPresentation presentation = Open(templatePath, PowerPointOpenMode.ReadOnly);
             return presentation.InspectTemplate();
         }
 
         /// <summary>Inventories masters, layouts, placeholders, theme tokens, assets, footer content, and safe areas.</summary>
-        public PowerPointTemplateInventory InspectTemplate() {
+        internal PowerPointTemplateInventory InspectTemplate() {
             ThrowIfDisposed();
             var masters = new List<PowerPointTemplateMasterInfo>();
             var assets = new List<PowerPointTemplateAssetInfo>();

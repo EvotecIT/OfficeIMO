@@ -464,7 +464,7 @@ public static partial class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(string path, ReaderOptions opt, CancellationToken ct) {
-        using var presentation = PowerPointPresentation.OpenRead(path);
+        using var presentation = PowerPointPresentation.Open(path, PowerPointOpenMode.ReadOnly);
         var chunks = presentation.ExtractMarkdownChunks(
             extract: new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeNotes = opt.IncludePowerPointNotes },
             chunking: new PowerPointExtractChunkingOptions { MaxChars = opt.MaxChars },
@@ -492,8 +492,8 @@ public static partial class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
-        // PowerPointPresentation.Open(stream, readOnly:true) already copies to an internal stream for safety.
-        using var presentation = PowerPointPresentation.Open(stream, readOnly: true, autoSave: false);
+        // Read-only stream opening already copies to an internal stream for safety.
+        using var presentation = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
         var chunks = presentation.ExtractMarkdownChunks(
             extract: new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeNotes = opt.IncludePowerPointNotes },
             chunking: new PowerPointExtractChunkingOptions { MaxChars = opt.MaxChars },

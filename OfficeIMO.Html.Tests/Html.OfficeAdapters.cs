@@ -3,6 +3,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using System.Text.Json;
@@ -779,11 +780,11 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
-        var data = new PowerPointScatterChartData(new[] {
-            new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 10D, 20D })
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
+            new OfficeChartSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
         });
-        slide.AddScatterChartPoints(data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChartPoints(OfficeChartKind.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -795,8 +796,8 @@ public class HtmlOfficeAdapters {
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Presentation;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        PowerPointChartSeries series = Assert.Single(snapshot!.Data.Series);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
     }
@@ -804,12 +805,12 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
-        var data = new PowerPointScatterChartData(new[] {
-            new PowerPointScatterChartSeries("Forecast", new[] { 1D, 2D, 3D }, new[] { 10D, 20D, 30D }),
-            new PowerPointScatterChartSeries("Outliers", new[] { 4D, 5D }, new[] { 40D, 50D })
+        PowerPointSlide slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
+            new OfficeChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
+            new OfficeChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
         });
-        slide.AddScatterChartPoints(data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChartPoints(OfficeChartKind.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -820,8 +821,8 @@ public class HtmlOfficeAdapters {
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Presentation;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        Assert.Equal(new[] { 1D, 2D, 3D }, snapshot!.Data.Series[0].XValues);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(new[] { 1D, 2D, 3D }, snapshot.Data.Series[0].XValues);
         Assert.Equal(new[] { 10D, 20D, 30D }, snapshot.Data.Series[0].Values);
         Assert.Equal(new[] { 4D, 5D }, snapshot.Data.Series[1].XValues);
         Assert.Equal(new[] { 40D, 50D }, snapshot.Data.Series[1].Values);
@@ -830,7 +831,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roadmap");
         slide.AddTextBox("HTML end to end");
         slide.Notes.Text = "Presenter reminder";
@@ -840,10 +841,10 @@ public class HtmlOfficeAdapters {
             picture.AltText = "Reusable renderer badge";
         }
 
-        PowerPointChartData chartData = new(
+        OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new PowerPointChartSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D, 24D }) });
+        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -867,17 +868,17 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_ExportsPositionedReviewSlides() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Positioned", 72, 96, 240, 60);
         using (var image = new MemoryStream(OnePixelPng)) {
             PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 72, 180, 72, 72);
             picture.AltText = "Positioned image";
         }
 
-        PowerPointChartData chartData = new(
+        OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new PowerPointChartSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(chartData, 180, 180, 260, 150).SetTitle("Positioned Pipeline");
+            new[] { new OfficeChartSeries("Actual", new[] { 8D, 13D, 21D }) });
+        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Positioned Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -898,7 +899,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_SemanticSlidesSkipHiddenShapesByDefault() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Visible briefing");
         PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
         hidden.Hidden = true;
@@ -908,10 +909,10 @@ public class HtmlOfficeAdapters {
             hiddenPicture.Hidden = true;
         }
 
-        PowerPointChartData hiddenChartData = new(
+        OfficeChartData hiddenChartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new PowerPointChartSeries("Hidden", new[] { 10D, 18D }) });
-        PowerPointChart hiddenChart = slide.AddChartPoints(hiddenChartData, 120, 90, 240, 140);
+            new[] { new OfficeChartSeries("Hidden", new[] { 10D, 18D }) });
+        PowerPointChart hiddenChart = slide.AddChartPoints(OfficeChartKind.ColumnClustered, hiddenChartData, 120, 90, 240, 140);
         hiddenChart.SetTitle("Hidden chart marker");
         hiddenChart.Hidden = true;
 
@@ -937,7 +938,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_VisualReviewIncludesInheritedLayoutShapes() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox layoutText = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
         P.Shape slideShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<P.Shape>()
@@ -959,7 +960,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_VisualReviewPreservesPositionedTextBoxLineBreaks() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Agenda\n  Owner", 72, 96, 240, 60);
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -973,7 +974,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_VisualReviewPreservesShapeFlipTransforms() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox textBox = slide.AddTextBoxPoints("Flipped", 72, 96, 240, 60);
         textBox.Rotation = 12.5D;
         textBox.HorizontalFlip = true;
@@ -989,7 +990,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_CapabilityGalleryWritesSharedManifestForRichPresentation() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Gallery Roadmap");
         slide.AddTextBoxPoints("Positioned proof", 72, 96, 240, 60);
         slide.Notes.Text = "Gallery notes";
@@ -1004,10 +1005,10 @@ public class HtmlOfficeAdapters {
         table.GetCell(1, 0).Text = "HTML";
         table.GetCell(1, 1).Text = "Rich proof";
 
-        PowerPointChartData chartData = new(
+        OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new PowerPointChartSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(chartData, 180, 180, 260, 150).SetTitle("Gallery Pipeline");
+            new[] { new OfficeChartSeries("Actual", new[] { 8D, 13D, 21D }) });
+        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Gallery Pipeline");
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = presentation.SaveHtmlCapabilityGallery(directory, new PowerPointHtmlCapabilityGalleryOptions {
@@ -1070,7 +1071,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_LoadsSemanticRichPresentationBackToNativePresentation() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roundtrip Roadmap");
         slide.AddTextBoxPoints("HTML end to end", 72, 96, 240, 60);
         slide.Notes.Text = "Presenter reminder";
@@ -1086,10 +1087,10 @@ public class HtmlOfficeAdapters {
         table.GetCell(1, 0).Text = "HTML";
         table.GetCell(1, 1).Text = "Rich proof";
 
-        PowerPointChartData chartData = new(
+        OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new PowerPointChartSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D, 24D }) });
+        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1121,9 +1122,9 @@ public class HtmlOfficeAdapters {
         Assert.Equal(130D, importedChart.TopPoints, 3);
         Assert.Equal(260D, importedChart.WidthPoints, 3);
         Assert.Equal(150D, importedChart.HeightPoints, 3);
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot!.Data.Categories);
-        PowerPointChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
+        OfficeChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
         Assert.Equal("Actual", importedSeries.Name);
         Assert.Equal(new[] { 10D, 18D, 24D }, importedSeries.Values);
         Assert.Contains("Presenter reminder", importedSlide.Notes.Text, StringComparison.Ordinal);
@@ -1147,7 +1148,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_RoundTripsOffSlidePicturePosition() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
             slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, -18, -12, 72, 72);
         }
@@ -1168,7 +1169,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_RoundTripsPictureTransforms() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
             PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 80, 90, 120, 72);
             picture.Name = "Transformed picture";
@@ -1208,11 +1209,11 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_RoundTripsChartTransformsAndMixedDrawingOrder() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
-        PowerPointChartData chartData = new(
+        PowerPointSlide slide = presentation.AddSlide();
+        OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new PowerPointChartSeries("Actual", new[] { 10D, 18D }) });
-        PowerPointChart chart = slide.AddChartPoints(chartData, 120, 90, 240, 140);
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D }) });
+        PowerPointChart chart = slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 120, 90, 240, 140);
         chart.SetTitle("Transform chart");
         chart.Rotation = 18.75D;
         chart.HorizontalFlip = true;
@@ -1247,7 +1248,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_VisualReviewStretchesPositionedPicturesToAuthoredShape() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
             slide.AddPicturePoints(image, OfficeIMO.PowerPoint.ImagePartType.Png, 40, 50, 180, 60);
         }
@@ -1280,7 +1281,7 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_RoundTripsHiddenSlideStateWhenIncluded() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Hidden briefing");
         slide.Hidden = true;
 
@@ -1325,11 +1326,11 @@ public class HtmlOfficeAdapters {
     [Fact]
     public void PowerPointHtml_LoadPreservesChartKindFromSemanticInventory() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        PowerPointSlide slide = presentation.Slides[0];
-        PowerPointChartData chartData = new(
+        PowerPointSlide slide = presentation.AddSlide();
+        OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new PowerPointChartSeries("Actual", new[] { 10D, 12D }) });
-        slide.AddLineChartPoints(chartData, 72, 96, 240, 140).SetTitle("Trend");
+            new[] { new OfficeChartSeries("Actual", new[] { 10D, 12D }) });
+        slide.AddChartPoints(OfficeChartKind.Line, chartData, 72, 96, 240, 140).SetTitle("Trend");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1339,8 +1340,8 @@ public class HtmlOfficeAdapters {
         using PowerPointPresentation imported = result.Presentation;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        Assert.Equal(PowerPointChartSnapshotKind.Line, snapshot!.ChartKind);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.Line, snapshot.ChartKind);
     }
 
     [Fact]
@@ -1368,15 +1369,15 @@ public class HtmlOfficeAdapters {
         using PowerPointPresentation imported = result.Presentation;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        Assert.Equal(new[] { "Q1", string.Empty, "Q3" }, snapshot!.Data.Categories);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(new[] { "Q1", string.Empty, "Q3" }, snapshot.Data.Categories);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
     }
 
     [Theory]
-    [InlineData("StackedLine", PowerPointChartSnapshotKind.StackedLine)]
-    [InlineData("StackedLine100", PowerPointChartSnapshotKind.StackedLine100)]
-    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, PowerPointChartSnapshotKind expectedKind) {
+    [InlineData("StackedLine", OfficeChartKind.LineStacked)]
+    [InlineData("StackedLine100", OfficeChartKind.LineStacked100)]
+    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, OfficeChartKind expectedKind) {
         string html = $$"""
             <main>
               <section class="officeimo-slide">
@@ -1403,8 +1404,8 @@ public class HtmlOfficeAdapters {
         using PowerPointPresentation imported = result.Presentation;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        Assert.Equal(expectedKind, snapshot!.ChartKind);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(expectedKind, snapshot.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
     }
 
@@ -1438,8 +1439,8 @@ public class HtmlOfficeAdapters {
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.Equal(1, result.Charts);
-        Assert.True(importedChart.TryGetSnapshot(out PowerPointChartSnapshot? snapshot));
-        Assert.Equal(PowerPointChartSnapshotKind.ClusteredColumn, snapshot!.ChartKind);
+        Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
     }
 

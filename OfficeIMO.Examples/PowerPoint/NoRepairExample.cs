@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Examples.PowerPoint {
@@ -85,10 +87,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             table.HeaderRow = true;
             table.BandedRows = true;
 
-            PowerPointChart chart = dataSlide.AddChart(rows, r => r.Product,
-                rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height,
-                new PowerPointChartSeriesDefinition<MetricRow>("Q1", r => r.Q1),
-                new PowerPointChartSeriesDefinition<MetricRow>("Q2", r => r.Q2));
+            OfficeChartData chartData = new OfficeChartData(rows.Select(r => r.Product), new[] {
+                new OfficeChartSeries("Q1", rows.Select(r => (double)r.Q1)),
+                new OfficeChartSeries("Q2", rows.Select(r => (double)r.Q2))
+            });
+            PowerPointChart chart = dataSlide.AddChart(OfficeChartKind.ColumnClustered, chartData,
+                rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
             chart.SetTitle("Quarterly results");
 
             // Slide 4: notes

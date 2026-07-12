@@ -1,7 +1,7 @@
 using System;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         internal static PowerPointSlide AddDesignerSlide(PowerPointPresentation presentation,
             PowerPointDesignerSlideOptions options) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));

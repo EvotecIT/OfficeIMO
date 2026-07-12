@@ -12,6 +12,7 @@ This guide covers the main `OfficeIMO.PowerPoint` slide-building workflow. Inste
 
 ```csharp
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Drawing;
 
 using var presentation = PowerPointPresentation.Create("presentation.pptx");
 const double marginCm = 1.5;
@@ -99,16 +100,17 @@ table.SetColumnWidthsEvenly();
 var chartSlide = presentation.AddSlide();
 chartSlide.AddTitleCm("Quarterly Performance", content.LeftCm, content.TopCm, content.WidthCm, 1.4);
 
-var chartData = new PowerPointChartData(
+var chartData = new OfficeChartData(
     rows.Select(r => r.Product),
     new[] {
-        new PowerPointChartSeries("Q1", rows.Select(r => (double)r.Q1)),
-        new PowerPointChartSeries("Q2", rows.Select(r => (double)r.Q2)),
-        new PowerPointChartSeries("Q3", rows.Select(r => (double)r.Q3)),
-        new PowerPointChartSeries("Q4", rows.Select(r => (double)r.Q4))
+        new OfficeChartSeries("Q1", rows.Select(r => (double)r.Q1)),
+        new OfficeChartSeries("Q2", rows.Select(r => (double)r.Q2)),
+        new OfficeChartSeries("Q3", rows.Select(r => (double)r.Q3)),
+        new OfficeChartSeries("Q4", rows.Select(r => (double)r.Q4))
     });
 
 chartSlide.AddChartCm(
+    OfficeChartKind.ColumnClustered,
     chartData,
     content.LeftCm,
     content.TopCm + 2.0,
@@ -138,7 +140,7 @@ presentation.MoveSlide(2, 0);
 
 - Use `AddTitleCm` and `AddTextBoxCm` when you want a readable layout in source code.
 - Use `SetTextMarginsCm`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
-- Build data-heavy slides from objects with `AddTableCm` and `PowerPointChartData` instead of hard-coded cell text.
+- Build data-heavy slides from objects with `AddTableCm` and shared `OfficeChartData` instead of hard-coded cell text.
 - Use `Notes.Text` for speaker notes and `DuplicateSlide`, `ImportSlide`, and `MoveSlide` when you need reusable deck templates.
 
 ## Related guides

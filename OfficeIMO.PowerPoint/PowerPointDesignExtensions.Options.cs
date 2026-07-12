@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         private static PowerPointDesignTheme ResolveTheme(PowerPointDesignTheme? theme) {
             PowerPointDesignTheme resolved = theme ?? PowerPointDesignTheme.ModernBlue;
             resolved.Validate();

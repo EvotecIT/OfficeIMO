@@ -123,7 +123,7 @@ namespace OfficeIMO.PowerPoint {
             Directory.CreateDirectory(output);
 
             var lanes = new List<PowerPointCompatibilityLaneResult>();
-            using (PowerPointPresentation presentation = PowerPointPresentation.OpenRead(fullPath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(fullPath, PowerPointOpenMode.ReadOnly)) {
                 var validation = presentation.ValidateDocument();
                 lanes.Add(new PowerPointCompatibilityLaneResult("OpenXml", validation.Count == 0
                     ? PowerPointCompatibilityStatus.Passed : PowerPointCompatibilityStatus.Failed,

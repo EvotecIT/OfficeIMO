@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
-    public static partial class PowerPointDesignExtensions {
+    internal static partial class PowerPointDesignExtensions {
         /// <summary>Adds an executive-summary slide with metric-led or decision-brief composition.</summary>
         public static PowerPointSlide AddDesignerExecutiveSummarySlide(this PowerPointPresentation presentation,
             string title, string? subtitle, PowerPointExecutiveSummaryContent content,
