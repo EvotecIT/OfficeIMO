@@ -11,13 +11,15 @@
 dotnet add package OfficeIMO.Reader.Csv
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Csv;
 
-DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddCsvHandler()
+    .Build();
 ```
 
 ## Examples
@@ -28,15 +30,15 @@ DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Csv;
 
-DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(
-    csvOptions: new CsvReadOptions {
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddCsvHandler(new CsvReadOptions {
         ChunkRows = 100,
         HeadersInFirstRow = true,
         IncludeMarkdown = true
-    },
-    replaceExisting: true);
+    })
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("people.csv", new ReaderOptions {
+foreach (var chunk in reader.Read("people.csv", new ReaderOptions {
     MaxInputBytes = 25L * 1024L * 1024L,
     MaxTableRows = 100
 })) {
@@ -51,10 +53,12 @@ foreach (var chunk in DocumentReader.Read("people.csv", new ReaderOptions {
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Csv;
 
-DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddCsvHandler()
+    .Build();
 
 await using var stream = File.OpenRead("upload.tsv");
-var chunks = DocumentReader.Read(stream, "upload.tsv", new ReaderOptions {
+var chunks = reader.Read(stream, "upload.tsv", new ReaderOptions {
     MaxChars = 4_000,
     ComputeHashes = true
 }).ToList();

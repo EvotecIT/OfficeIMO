@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Visio)](https://www.nuget.org/packages/OfficeIMO.Reader.Visio)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Visio?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Visio)
 
-`OfficeIMO.Reader.Visio` registers a Visio adapter for `OfficeIMO.Reader` using `OfficeIMO.Visio` inspection snapshots.
+`OfficeIMO.Reader.Visio` provides a Visio adapter for `OfficeIMO.Reader` using `OfficeIMO.Visio` inspection snapshots.
 
 ## Install
 
@@ -17,9 +17,11 @@ dotnet add package OfficeIMO.Reader.Visio
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Visio;
 
-DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddVisioHandler()
+    .Build();
 
-IReadOnlyList<ReaderChunk> chunks = DocumentReader
+IReadOnlyList<ReaderChunk> chunks = reader
     .Read("diagram.vsdx")
     .ToList();
 ```
@@ -32,9 +34,11 @@ IReadOnlyList<ReaderChunk> chunks = DocumentReader
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Visio;
 
-DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddVisioHandler()
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("architecture.vsdx")) {
+foreach (var chunk in reader.Read("architecture.vsdx")) {
     Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 
@@ -51,10 +55,12 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Visio;
 
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
-DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .AddVisioHandler()
+    .Build();
 
-var chunks = DocumentReader.ReadFolder("Architecture",
+var chunks = reader.ReadFolder("Architecture",
     new ReaderFolderOptions {
         Extensions = new[] { ".vsdx", ".pdf" },
         Recurse = true,
@@ -80,7 +86,7 @@ foreach (OfficeDocumentPage page in document.Pages) {
 }
 ```
 
-The topology visual is deterministic JSON describing page shapes and connector edges. Shared regions and page dimensions are expressed in points. After registration, `DocumentReader.ReadDocument("network.vsdx")` uses this native mapping.
+The topology visual is deterministic JSON describing page shapes and connector edges. Shared regions and page dimensions are expressed in points. A configured reader uses the same native mapping through `reader.ReadDocument("network.vsdx")`.
 
 ## What it emits
 
@@ -91,7 +97,7 @@ The topology visual is deterministic JSON describing page shapes and connector e
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - Visio package parsing and inspection belongs in `OfficeIMO.Visio`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

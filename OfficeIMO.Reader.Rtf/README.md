@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Rtf)](https://www.nuget.org/packages/OfficeIMO.Reader.Rtf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Rtf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Rtf)
 
-`OfficeIMO.Reader.Rtf` registers a bounded RTF adapter for `OfficeIMO.Reader` using the shared `OfficeIMO.Rtf` semantic model.
+`OfficeIMO.Reader.Rtf` provides a bounded RTF adapter for `OfficeIMO.Reader` using the shared `OfficeIMO.Rtf` semantic model.
 
 ## Install
 
@@ -11,15 +11,17 @@
 dotnet add package OfficeIMO.Reader.Rtf
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Rtf;
 
-DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddRtfHandler()
+    .Build();
 
-IReadOnlyList<ReaderChunk> chunks = DocumentReader
+IReadOnlyList<ReaderChunk> chunks = reader
     .Read("clinical-note.rtf")
     .ToList();
 ```
@@ -32,9 +34,11 @@ IReadOnlyList<ReaderChunk> chunks = DocumentReader
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Rtf;
 
-DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddRtfHandler()
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("policy.rtf")) {
+foreach (var chunk in reader.Read("policy.rtf")) {
     Console.WriteLine($"{chunk.Id}: {chunk.Location.SourceBlockKind}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -46,14 +50,16 @@ foreach (var chunk in DocumentReader.Read("policy.rtf")) {
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Rtf;
 
-DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
+var rtfOptions = new ReaderRtfOptions(); // bounded core profile by default
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddRtfHandler(rtfOptions)
+    .Build();
 
 using var stream = File.OpenRead("large-note.rtf");
-var rtfOptions = new ReaderRtfOptions(); // bounded core profile by default
-var chunks = DocumentReaderRtfExtensions.ReadRtf(stream, "large-note.rtf", new ReaderOptions {
+var chunks = reader.Read(stream, "large-note.rtf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
-}, rtfOptions).ToList();
+}).ToList();
 
 rtfOptions.ConversionReport.RequireNoLoss();
 ```
@@ -61,8 +67,10 @@ rtfOptions.ConversionReport.RequireNoLoss();
 ### Read the semantic RTF envelope
 
 ```csharp
-OfficeDocumentReadResult document =
-    DocumentReaderRtfExtensions.ReadRtfDocumentResult("form.rtf");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddRtfHandler()
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("form.rtf");
 
 foreach (OfficeDocumentFormField field in document.Forms) {
     Console.WriteLine($"{field.Name}: {field.Value}");
@@ -73,7 +81,7 @@ foreach (OfficeDocumentAsset asset in document.Assets) {
 }
 ```
 
-After registration, `DocumentReader.ReadDocument("form.rtf")` uses the same native rich mapping.
+`reader.ReadDocument("form.rtf")` uses the same native rich mapping as the adapter-specific APIs.
 
 ## What it emits
 
@@ -86,7 +94,7 @@ After registration, `DocumentReader.ReadDocument("form.rtf")` uses the same nati
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - RTF parsing, syntax preservation, semantic binding, and writing belong in `OfficeIMO.Rtf`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

@@ -1,34 +1,13 @@
 namespace OfficeIMO.Reader.Visio;
 
 /// <summary>
-/// Registration helpers for plugging Visio support into <see cref="DocumentReader"/>.
+/// Adds Visio support to <see cref="OfficeDocumentReaderBuilder"/>.
 /// </summary>
-public static class DocumentReaderVisioRegistrationExtensions {
+public static class OfficeDocumentReaderBuilderVisioExtensions {
     /// <summary>
     /// Stable handler identifier for Visio adapter registration.
     /// </summary>
     public const string HandlerId = "officeimo.reader.visio";
-
-    /// <summary>
-    /// Registers Visio ingestion into <see cref="DocumentReader"/> for VSDX/VSDM/VSTX/VSTM files and streams.
-    /// </summary>
-    [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterVisioHandler(ReaderVisioOptions? visioOptions = null, bool replaceExisting = false) {
-        RegisterVisioHandler(visioOptions, replaceExisting, preserveExistingCustomExtensions: false);
-    }
-
-    /// <summary>
-    /// Registers Visio ingestion into <see cref="DocumentReader"/> for VSDX/VSDM/VSTX/VSTM files and streams.
-    /// </summary>
-    public static void RegisterVisioHandler(ReaderVisioOptions? visioOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        ReaderHandlerRegistration registration = CreateRegistration(visioOptions);
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
 
     /// <summary>
     /// Adds Visio ingestion to an isolated reader builder.
@@ -36,23 +15,10 @@ public static class DocumentReaderVisioRegistrationExtensions {
     public static OfficeDocumentReaderBuilder AddVisioHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderVisioOptions? visioOptions = null,
-        bool replaceExisting = false,
-        bool preserveExistingCustomExtensions = false) {
+        bool replaceExisting = false) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderHandlerRegistration registration = CreateRegistration(visioOptions);
-        if (preserveExistingCustomExtensions) {
-            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            builder.AddHandler(registration, replaceExisting);
-        }
-        return builder;
-    }
-
-    /// <summary>
-    /// Unregisters Visio ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterVisioHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
+        return builder.AddHandler(registration, replaceExisting);
     }
 
     private static ReaderHandlerRegistration CreateRegistration(ReaderVisioOptions? visioOptions) {

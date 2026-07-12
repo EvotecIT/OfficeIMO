@@ -75,7 +75,6 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Reader.Ocr.Tesseract](OfficeIMO.Reader.Ocr.Tesseract/README.md) | Optional Tesseract CLI OCR provider. |
 | [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md) | PDF reader adapter. |
 | [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md) | Bounded RTF chunks, tables, visuals, warnings, and provenance. |
-| [OfficeIMO.Reader.Text](OfficeIMO.Reader.Text/README.md) | Structured text compatibility adapter. |
 | [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md) | Visio inspection snapshot adapter. |
 | [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md) | XML reader adapter. |
 | [OfficeIMO.Reader.Yaml](OfficeIMO.Reader.Yaml/README.md) | YAML reader adapter. |

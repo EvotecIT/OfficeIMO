@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Yaml)](https://www.nuget.org/packages/OfficeIMO.Reader.Yaml)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Yaml?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Yaml)
 
-`OfficeIMO.Reader.Yaml` registers a modular YAML ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Yaml` provides a modular YAML ingestion adapter for `OfficeIMO.Reader`.
 
 ## Install
 
@@ -11,13 +11,15 @@
 dotnet add package OfficeIMO.Reader.Yaml
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Yaml;
 
-DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler(replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddYamlHandler()
+    .Build();
 ```
 
 ## Examples
@@ -28,14 +30,16 @@ DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler(replaceExisting: tr
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Yaml;
 
-DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler(new YamlReadOptions {
-    ChunkRows = 100,
-    MaxDepth = 16,
-    MaxNodes = 10_000,
-    IncludeMarkdown = true
-}, replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddYamlHandler(new YamlReadOptions {
+        ChunkRows = 100,
+        MaxDepth = 16,
+        MaxNodes = 10_000,
+        IncludeMarkdown = true
+    })
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("deployment.yaml", new ReaderOptions {
+foreach (var chunk in reader.Read("deployment.yaml", new ReaderOptions {
     MaxInputBytes = 5L * 1024L * 1024L
 })) {
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
@@ -48,10 +52,12 @@ foreach (var chunk in DocumentReader.Read("deployment.yaml", new ReaderOptions {
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Yaml;
 
-DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddYamlHandler()
+    .Build();
 
 await using var stream = File.OpenRead("values.yaml");
-var chunks = DocumentReader.Read(stream, "values.yaml", new ReaderOptions {
+var chunks = reader.Read(stream, "values.yaml", new ReaderOptions {
     MaxChars = 3_000
 }).ToList();
 ```
@@ -67,7 +73,7 @@ var chunks = DocumentReader.Read(stream, "values.yaml", new ReaderOptions {
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - YAML object serialization/deserialization is intentionally out of scope.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Pdf)](https://www.nuget.org/packages/OfficeIMO.Reader.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Pdf)
 
-`OfficeIMO.Reader.Pdf` registers a PDF adapter for `OfficeIMO.Reader` using the `OfficeIMO.Pdf` logical read model.
+`OfficeIMO.Reader.Pdf` provides a PDF adapter for `OfficeIMO.Reader` using the `OfficeIMO.Pdf` logical read model.
 
 ## Install
 
@@ -17,9 +17,11 @@ dotnet add package OfficeIMO.Reader.Pdf
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .Build();
 
-IReadOnlyList<ReaderChunk> chunks = DocumentReader
+IReadOnlyList<ReaderChunk> chunks = reader
     .Read("invoice.pdf")
     .ToList();
 ```
@@ -32,9 +34,11 @@ IReadOnlyList<ReaderChunk> chunks = DocumentReader
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("manual.pdf")) {
+foreach (var chunk in reader.Read("manual.pdf")) {
     Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -46,10 +50,12 @@ foreach (var chunk in DocumentReader.Read("manual.pdf")) {
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler()
+    .Build();
 
 using var stream = File.OpenRead("large-report.pdf");
-var chunks = DocumentReader.Read(stream, "large-report.pdf", new ReaderOptions {
+var chunks = reader.Read(stream, "large-report.pdf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
 }).ToList();
@@ -67,11 +73,13 @@ using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Zip;
 
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
-DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler()
+    .AddPdfHandler()
+    .AddZipHandler()
+    .Build();
 
-var chunks = DocumentReader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
+var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
     Recurse = true,
     DeterministicOrder = true,
     MaxFiles = 500
@@ -90,7 +98,7 @@ var chunks = DocumentReader.ReadFolder("KnowledgeBase", new ReaderFolderOptions 
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - PDF parsing, logical readback, and safety behavior belongs in `OfficeIMO.Pdf`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

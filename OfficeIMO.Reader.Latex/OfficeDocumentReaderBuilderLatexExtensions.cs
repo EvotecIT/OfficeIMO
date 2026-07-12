@@ -1,15 +1,18 @@
 namespace OfficeIMO.Reader.Latex;
 
-/// <summary>Registration helpers for modular `.tex` ingestion.</summary>
-public static class DocumentReaderLatexRegistrationExtensions {
+/// <summary>Adds modular `.tex` ingestion to <see cref="OfficeDocumentReaderBuilder"/>.</summary>
+public static class OfficeDocumentReaderBuilderLatexExtensions {
     /// <summary>Stable handler ID.</summary>
     public const string HandlerId = "officeimo.reader.latex";
 
-    /// <summary>Registers conservative extension-based `.tex` handling.</summary>
-    [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterLatexHandler(ReaderLatexOptions? latexOptions = null, bool replaceExisting = true) {
+    /// <summary>Adds conservative extension-based `.tex` handling.</summary>
+    public static OfficeDocumentReaderBuilder AddLatexHandler(
+        this OfficeDocumentReaderBuilder builder,
+        ReaderLatexOptions? latexOptions = null,
+        bool replaceExisting = true) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderLatexOptions registered = ReaderLatexOptionsCloner.Clone(latexOptions);
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        return builder.AddHandler(new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "LaTeX Reader Adapter",
             Description = "Modular adapter backed by the non-executing OfficeIMO LaTeX profile.",
@@ -23,7 +26,4 @@ public static class DocumentReaderLatexRegistrationExtensions {
             DeterministicOutput = true
         }, replaceExisting);
     }
-
-    /// <summary>Unregisters the handler.</summary>
-    public static bool UnregisterLatexHandler() => DocumentReader.UnregisterHandler(HandlerId);
 }

@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Xml)](https://www.nuget.org/packages/OfficeIMO.Reader.Xml)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Xml?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Xml)
 
-`OfficeIMO.Reader.Xml` registers a modular XML ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Xml` provides a modular XML ingestion adapter for `OfficeIMO.Reader`.
 
 ## Install
 
@@ -11,13 +11,15 @@
 dotnet add package OfficeIMO.Reader.Xml
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Xml;
 
-DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddXmlHandler()
+    .Build();
 ```
 
 ## Examples
@@ -28,12 +30,14 @@ DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Xml;
 
-DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(new XmlReadOptions {
-    ChunkRows = 150,
-    IncludeMarkdown = true
-}, replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddXmlHandler(new XmlReadOptions {
+        ChunkRows = 150,
+        IncludeMarkdown = true
+    })
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("configuration.xml")) {
+foreach (var chunk in reader.Read("configuration.xml")) {
     Console.WriteLine($"{chunk.Id}: {chunk.Location.Path}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -45,10 +49,12 @@ foreach (var chunk in DocumentReader.Read("configuration.xml")) {
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Xml;
 
-DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddXmlHandler()
+    .Build();
 
 await using var stream = File.OpenRead("upload.xml");
-var chunks = DocumentReader.Read(stream, "upload.xml", new ReaderOptions {
+var chunks = reader.Read(stream, "upload.xml", new ReaderOptions {
     MaxInputBytes = 10L * 1024L * 1024L,
     MaxChars = 4_000
 }).ToList();
@@ -63,9 +69,8 @@ var chunks = DocumentReader.Read(stream, "upload.xml", new ReaderOptions {
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
-- `OfficeIMO.Reader.Text` exists only as a compatibility orchestrator for structured text adapters.
 
 ## Targets and license
 

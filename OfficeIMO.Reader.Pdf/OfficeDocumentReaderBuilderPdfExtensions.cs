@@ -1,21 +1,13 @@
 namespace OfficeIMO.Reader.Pdf;
 
 /// <summary>
-/// Registration helpers for plugging PDF support into <see cref="DocumentReader"/>.
+/// Adds PDF support to <see cref="OfficeDocumentReaderBuilder"/>.
 /// </summary>
-public static class DocumentReaderPdfRegistrationExtensions {
+public static class OfficeDocumentReaderBuilderPdfExtensions {
     /// <summary>
     /// Stable handler identifier for PDF adapter registration.
     /// </summary>
     public const string HandlerId = "officeimo.reader.pdf";
-
-    /// <summary>
-    /// Registers PDF ingestion into <see cref="DocumentReader"/> for <c>.pdf</c> files and streams.
-    /// </summary>
-    [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterPdfHandler(ReaderPdfOptions? pdfOptions = null, bool replaceExisting = true) {
-        DocumentReader.RegisterHandler(CreateRegistration(pdfOptions), replaceExisting);
-    }
 
     /// <summary>
     /// Adds PDF ingestion to an isolated reader builder.
@@ -26,13 +18,6 @@ public static class DocumentReaderPdfRegistrationExtensions {
         bool replaceExisting = true) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         return builder.AddHandler(CreateRegistration(pdfOptions), replaceExisting);
-    }
-
-    /// <summary>
-    /// Unregisters PDF ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterPdfHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 
     private static ReaderHandlerRegistration CreateRegistration(ReaderPdfOptions? pdfOptions) {

@@ -41,7 +41,6 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 | `OfficeIMO.Reader.Csv` | CSV and TSV files should flow through the same chunking and metadata model. |
 | `OfficeIMO.Reader.Json` | JSON payloads need deterministic document slices for indexing or review. |
 | `OfficeIMO.Reader.Xml` | XML documents should keep element-aware source context during extraction. |
-| `OfficeIMO.Reader.Text` | You want the combined CSV, JSON, and XML adapter path in one package. |
 | `OfficeIMO.Reader.Html` | HTML input should be normalized through the Markdown/Reader pipeline. |
 | `OfficeIMO.Reader.Epub` | EPUB books or packaged publications belong in the same ingestion workflow. |
 | `OfficeIMO.Reader.Zip` | ZIP archives need safe traversal and chunking as part of a reader job. |

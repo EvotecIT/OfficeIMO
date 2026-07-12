@@ -2142,65 +2142,49 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void DocumentReaderPdf_Registration_DispatchesPdfStream() {
-        try {
-            DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+    public void DocumentReaderPdf_BuilderHandler_DispatchesPdfStream() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler().Build();
 
-            byte[] pdf = BuildTwoPagePdf();
-            using var stream = new MemoryStream(pdf, writable: false);
-            var chunks = DocumentReader.Read(stream, "registry.pdf").ToList();
+        byte[] pdf = BuildTwoPagePdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+        var chunks = reader.Read(stream, "registry.pdf").ToList();
 
-            Assert.NotEmpty(chunks);
-            Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Pdf &&
-                string.Equals(c.Location.Path, "registry.pdf", StringComparison.OrdinalIgnoreCase) &&
-                (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c =>
+            c.Kind == ReaderInputKind.Pdf &&
+            string.Equals(c.Location.Path, "registry.pdf", StringComparison.OrdinalIgnoreCase) &&
+            (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
 
-            stream.Position = 0;
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "registry.pdf");
-            Assert.Contains("officeimo.pdf.logical-document", result.CapabilitiesUsed);
-            Assert.Equal(2, result.Pages.Count);
-            Assert.NotEmpty(result.Blocks);
+        stream.Position = 0;
+        OfficeDocumentReadResult result = reader.ReadDocument(stream, "registry.pdf");
+        Assert.Contains("officeimo.pdf.logical-document", result.CapabilitiesUsed);
+        Assert.Equal(2, result.Pages.Count);
+        Assert.NotEmpty(result.Blocks);
 
-            ReaderHandlerCapability capability = Assert.Single(
-                DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true),
-                item => item.Id == DocumentReaderPdfRegistrationExtensions.HandlerId);
-            Assert.True(capability.SupportsDocumentPath);
-            Assert.True(capability.SupportsDocumentStream);
-        } finally {
-            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
-        }
+        ReaderHandlerCapability capability = Assert.Single(
+            reader.GetCapabilities(),
+            item => item.Id == OfficeDocumentReaderBuilderPdfExtensions.HandlerId);
+        Assert.True(capability.SupportsDocumentPath);
+        Assert.True(capability.SupportsDocumentStream);
     }
 
     [Fact]
-    public void DocumentReaderPdf_BootstrapFromAssembly_RegistersPdfHandlerAndManifest() {
-        try {
-            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+    public void DocumentReaderPdf_BuilderManifest_DescribesConfiguredHandler() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler().Build();
+        ReaderCapabilityManifest manifest = reader.GetCapabilityManifest();
 
-            var result = DocumentReader.BootstrapHostFromAssemblies(
-                new[] { typeof(DocumentReaderPdfRegistrationExtensions).Assembly },
-                new ReaderHostBootstrapOptions {
-                    ReplaceExistingHandlers = true,
-                    IncludeBuiltInCapabilities = true,
-                    IncludeCustomCapabilities = true,
-                    IndentedManifestJson = false
-                });
-
-            Assert.NotNull(result);
-            Assert.Contains(result.RegisteredHandlers, handler => handler.HandlerId == DocumentReaderPdfRegistrationExtensions.HandlerId);
-            Assert.Contains(result.Manifest.Handlers, handler =>
-                handler.Id == DocumentReaderPdfRegistrationExtensions.HandlerId &&
+        Assert.Contains(manifest.Handlers, handler =>
+                handler.Id == OfficeDocumentReaderBuilderPdfExtensions.HandlerId &&
                 handler.Kind == ReaderInputKind.Pdf &&
                 handler.Extensions.Contains(".pdf"));
-            Assert.Equal(1, result.Manifest.Handlers.Count(handler =>
-                string.Equals(handler.Id, DocumentReaderPdfRegistrationExtensions.HandlerId, StringComparison.Ordinal)));
-            Assert.DoesNotContain(result.Manifest.Handlers, handler =>
-                handler.IsBuiltIn &&
-                handler.Extensions.Contains(".pdf", StringComparer.OrdinalIgnoreCase));
-            Assert.Contains(DocumentReaderPdfRegistrationExtensions.HandlerId, result.ManifestJson, StringComparison.OrdinalIgnoreCase);
-        } finally {
-            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
-        }
+        Assert.Equal(1, manifest.Handlers.Count(handler =>
+            string.Equals(handler.Id, OfficeDocumentReaderBuilderPdfExtensions.HandlerId, StringComparison.Ordinal)));
+        Assert.DoesNotContain(manifest.Handlers, handler =>
+            handler.IsBuiltIn && handler.Extensions.Contains(".pdf", StringComparer.OrdinalIgnoreCase));
+        Assert.Contains(
+            OfficeDocumentReaderBuilderPdfExtensions.HandlerId,
+            reader.GetCapabilityManifestJson(),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -2246,10 +2230,10 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void ReaderPdf_ProfileContract_DescribesRegisteredHandlerAndChunkShape() {
+    public void ReaderPdf_ProfileContract_DescribesConfiguredHandlerAndChunkShape() {
         ReaderPdfProfileContract contract = ReaderPdfProfileContracts.OfficeIMO;
 
-        Assert.Equal(DocumentReaderPdfRegistrationExtensions.HandlerId, contract.Id);
+        Assert.Equal(OfficeDocumentReaderBuilderPdfExtensions.HandlerId, contract.Id);
         Assert.Contains("OfficeIMO.Pdf logical model", contract.Pipeline, StringComparison.Ordinal);
         Assert.Contains("page-aware locations", contract.OutputContract, StringComparison.Ordinal);
         Assert.Contains("MaxChars", contract.OutputContract, StringComparison.Ordinal);

@@ -20,7 +20,6 @@ The modular adapters are working packages in the publishing pipeline, not placeh
 - `OfficeIMO.Reader.Json`
 - `OfficeIMO.Reader.Pdf`
 - `OfficeIMO.Reader.Rtf`
-- `OfficeIMO.Reader.Text`
 - `OfficeIMO.Reader.Visio`
 - `OfficeIMO.Reader.Xml`
 - `OfficeIMO.Reader.Yaml`

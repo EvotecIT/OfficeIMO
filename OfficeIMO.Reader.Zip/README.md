@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Zip)](https://www.nuget.org/packages/OfficeIMO.Reader.Zip)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Zip?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Zip)
 
-`OfficeIMO.Reader.Zip` registers a ZIP traversal adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Zip` provides a ZIP traversal adapter for `OfficeIMO.Reader`.
 
 ## Install
 
@@ -18,12 +18,13 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Zip;
 
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler(
-    zipOptions: new ZipTraversalOptions {
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddZipHandler(new ZipTraversalOptions {
         MaxEntries = 1000,
         MaxDepth = 8,
         MaxTotalUncompressedBytes = 100L * 1024L * 1024L
-    });
+    })
+    .Build();
 ```
 
 ## Examples
@@ -37,19 +38,21 @@ using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Zip;
 
-DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler();
-DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler(
-    zipOptions: new ZipTraversalOptions {
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddCsvHandler()
+    .AddJsonHandler()
+    .AddZipHandler(
+        zipOptions: new ZipTraversalOptions {
         MaxEntries = 500,
         MaxTotalUncompressedBytes = 200L * 1024L * 1024L
-    },
-    readerZipOptions: new ReaderZipOptions {
+        },
+        readerZipOptions: new ReaderZipOptions {
         ReadNestedZipEntries = true,
         MaxNestedDepth = 2
-    });
+        })
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("evidence.zip", new ReaderOptions {
+foreach (var chunk in reader.Read("evidence.zip", new ReaderOptions {
     MaxInputBytes = 200L * 1024L * 1024L
 })) {
     Console.WriteLine($"{chunk.Kind}: {chunk.Location.Path}");
@@ -64,18 +67,19 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Zip;
 using OfficeIMO.Zip;
 
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler(
-    zipOptions: new ZipTraversalOptions {
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddZipHandler(
+        zipOptions: new ZipTraversalOptions {
         MaxEntries = 100,
         MaxCompressionRatio = 50,
         MaxEntryUncompressedBytes = 10L * 1024L * 1024L
-    },
-    readerZipOptions: new ReaderZipOptions {
+        },
+        readerZipOptions: new ReaderZipOptions {
         ReadNestedZipEntries = false
-    },
-    replaceExisting: true);
+        })
+    .Build();
 
-var chunks = DocumentReader.Read("upload.zip").ToList();
+var chunks = reader.Read("upload.zip").ToList();
 foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
     Console.WriteLine(warning);
 }
@@ -91,7 +95,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - ZIP traversal policy belongs in `OfficeIMO.Zip`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

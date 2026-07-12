@@ -32,23 +32,19 @@ public sealed class ReaderLatexModularTests {
     }
 
     [Fact]
-    public void RegisteredHandler_DispatchesTexStreamAndAddsHashes() {
-        try {
-            DocumentReaderLatexRegistrationExtensions.RegisterLatexHandler();
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source), writable: false);
+    public void BuilderHandler_DispatchesTexStreamAndAddsHashes() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddLatexHandler().Build();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source), writable: false);
 
-            ReaderChunk[] chunks = DocumentReader.Read(stream, "guide.tex").ToArray();
+        ReaderChunk[] chunks = reader.Read(stream, "guide.tex").ToArray();
 
-            Assert.NotEmpty(chunks);
-            Assert.Equal(ReaderInputKind.Latex, DocumentReader.DetectKind("guide.tex"));
-            Assert.All(chunks, chunk => {
-                Assert.Equal(ReaderInputKind.Latex, chunk.Kind);
-                Assert.False(string.IsNullOrWhiteSpace(chunk.SourceId));
-                Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash));
-            });
-        } finally {
-            DocumentReaderLatexRegistrationExtensions.UnregisterLatexHandler();
-        }
+        Assert.NotEmpty(chunks);
+        Assert.Equal(ReaderInputKind.Latex, reader.DetectKind("guide.tex"));
+        Assert.All(chunks, chunk => {
+            Assert.Equal(ReaderInputKind.Latex, chunk.Kind);
+            Assert.False(string.IsNullOrWhiteSpace(chunk.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash));
+        });
     }
 
     [Fact]

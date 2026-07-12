@@ -3,34 +3,13 @@ using OfficeIMO.Epub;
 namespace OfficeIMO.Reader.Epub;
 
 /// <summary>
-/// Registration helpers for plugging EPUB support into <see cref="DocumentReader"/>.
+/// Adds EPUB support to <see cref="OfficeDocumentReaderBuilder"/>.
 /// </summary>
-public static class DocumentReaderEpubRegistrationExtensions {
+public static class OfficeDocumentReaderBuilderEpubExtensions {
     /// <summary>
     /// Stable handler identifier for EPUB adapter registration.
     /// </summary>
     public const string HandlerId = "officeimo.reader.epub";
-
-    /// <summary>
-    /// Registers EPUB ingestion into <see cref="DocumentReader"/> for the <c>.epub</c> extension.
-    /// </summary>
-    [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterEpubHandler(EpubReadOptions? epubOptions = null, bool replaceExisting = false) {
-        RegisterEpubHandler(epubOptions, replaceExisting, preserveExistingCustomExtensions: false);
-    }
-
-    /// <summary>
-    /// Registers EPUB ingestion into <see cref="DocumentReader"/> for the <c>.epub</c> extension.
-    /// </summary>
-    public static void RegisterEpubHandler(EpubReadOptions? epubOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        ReaderHandlerRegistration registration = CreateRegistration(epubOptions);
-
-        if (preserveExistingCustomExtensions) {
-            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            DocumentReader.RegisterHandler(registration, replaceExisting);
-        }
-    }
 
     /// <summary>
     /// Adds EPUB ingestion to an isolated reader builder.
@@ -38,23 +17,10 @@ public static class DocumentReaderEpubRegistrationExtensions {
     public static OfficeDocumentReaderBuilder AddEpubHandler(
         this OfficeDocumentReaderBuilder builder,
         EpubReadOptions? epubOptions = null,
-        bool replaceExisting = false,
-        bool preserveExistingCustomExtensions = false) {
+        bool replaceExisting = false) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderHandlerRegistration registration = CreateRegistration(epubOptions);
-        if (preserveExistingCustomExtensions) {
-            builder.AddHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
-        } else {
-            builder.AddHandler(registration, replaceExisting);
-        }
-        return builder;
-    }
-
-    /// <summary>
-    /// Unregisters EPUB ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterEpubHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
+        return builder.AddHandler(registration, replaceExisting);
     }
 
     private static ReaderHandlerRegistration CreateRegistration(EpubReadOptions? epubOptions) {

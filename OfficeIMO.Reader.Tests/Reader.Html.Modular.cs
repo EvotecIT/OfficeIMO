@@ -15,35 +15,31 @@ public sealed class ReaderHtmlModularTests {
             + "<table><tr><th>Name</th><th>Qty</th></tr><tr><td>Bandage</td><td>4</td></tr></table>"
             + "<form><input type=\"text\" name=\"patient\" value=\"Ada\" required=\"required\"/></form>"
             + "<img alt=\"Tiny image\" src=\"data:image/png;base64,iVBORw0KGgo=\"/></body></html>";
-        try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
 
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "rich.html");
+        OfficeDocumentReadResult result = reader.ReadDocument(stream, "rich.html");
 
-            Assert.Equal("Rich HTML", result.Source.Title);
-            Assert.Equal("OfficeIMO", result.Source.Author);
-            Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Level == 2 && block.Text == "Inventory");
-            ReaderTable table = Assert.Single(result.Tables);
-            Assert.Equal("Bandage", table.Rows[0][0]);
-            Assert.Equal("https://example.test/inventory", Assert.Single(result.Links).Uri);
-            OfficeDocumentFormField form = Assert.Single(result.Forms);
-            Assert.Equal("patient", form.Name);
-            Assert.True(form.IsRequired);
-            OfficeDocumentAsset image = Assert.Single(result.Assets);
-            Assert.Equal("image/png", image.MediaType);
-            Assert.NotNull(image.PayloadBytes);
-            ReaderVisual visual = Assert.Single(result.Visuals);
-            Assert.Equal("image", visual.Kind);
-            Assert.Equal(image.PayloadHash, visual.PayloadHash);
-            stream.Position = 0;
-            OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
-                DocumentReaderHtmlExtensions.ReadHtmlDocumentJson(stream, "rich.html"));
-            Assert.Equal(ReaderInputKind.Html, jsonResult.Kind);
-            Assert.Contains("officeimo.reader.html.rich-v5", result.CapabilitiesUsed);
-        } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-        }
+        Assert.Equal("Rich HTML", result.Source.Title);
+        Assert.Equal("OfficeIMO", result.Source.Author);
+        Assert.Contains(result.Blocks, block => block.Kind == "heading" && block.Level == 2 && block.Text == "Inventory");
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Equal("Bandage", table.Rows[0][0]);
+        Assert.Equal("https://example.test/inventory", Assert.Single(result.Links).Uri);
+        OfficeDocumentFormField form = Assert.Single(result.Forms);
+        Assert.Equal("patient", form.Name);
+        Assert.True(form.IsRequired);
+        OfficeDocumentAsset image = Assert.Single(result.Assets);
+        Assert.Equal("image/png", image.MediaType);
+        Assert.NotNull(image.PayloadBytes);
+        ReaderVisual visual = Assert.Single(result.Visuals);
+        Assert.Equal("image", visual.Kind);
+        Assert.Equal(image.PayloadHash, visual.PayloadHash);
+        stream.Position = 0;
+        OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
+            DocumentReaderHtmlExtensions.ReadHtmlDocumentJson(stream, "rich.html"));
+        Assert.Equal(ReaderInputKind.Html, jsonResult.Kind);
+        Assert.Contains("officeimo.reader.html.rich-v5", result.CapabilitiesUsed);
     }
 
     [Fact]
@@ -527,43 +523,35 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
-    public void DocumentReaderHtml_Registration_DispatchesHtmlStream() {
-        try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+    public void DocumentReaderHtml_BuilderHandler_DispatchesHtmlStream() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
-            var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-            var chunks = DocumentReader.Read(stream, "registry.html").ToList();
+        var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+        var chunks = reader.Read(stream, "registry.html").ToList();
 
-            Assert.NotEmpty(chunks);
-            Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Html &&
-                string.Equals(c.Location.Path, "registry.html", StringComparison.OrdinalIgnoreCase) &&
-                ((c.Markdown ?? c.Text).Contains("Registry HTML", StringComparison.Ordinal) ||
-                 (c.Markdown ?? c.Text).Contains("From stream.", StringComparison.Ordinal)));
-        } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-        }
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c =>
+            c.Kind == ReaderInputKind.Html &&
+            string.Equals(c.Location.Path, "registry.html", StringComparison.OrdinalIgnoreCase) &&
+            ((c.Markdown ?? c.Text).Contains("Registry HTML", StringComparison.Ordinal) ||
+             (c.Markdown ?? c.Text).Contains("From stream.", StringComparison.Ordinal)));
     }
 
     [Fact]
-    public void DocumentReaderHtml_Registration_DispatchesXhtmlStream() {
-        try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+    public void DocumentReaderHtml_BuilderHandler_DispatchesXhtmlStream() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
-            var html = "<html><body><h2>Registry XHTML</h2><p>From stream.</p></body></html>";
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-            var chunks = DocumentReader.Read(stream, "registry.xhtml").ToList();
+        var html = "<html><body><h2>Registry XHTML</h2><p>From stream.</p></body></html>";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+        var chunks = reader.Read(stream, "registry.xhtml").ToList();
 
-            Assert.NotEmpty(chunks);
-            Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Html &&
-                string.Equals(c.Location.Path, "registry.xhtml", StringComparison.OrdinalIgnoreCase) &&
-                ((c.Markdown ?? c.Text).Contains("Registry XHTML", StringComparison.Ordinal) ||
-                 (c.Markdown ?? c.Text).Contains("From stream.", StringComparison.Ordinal)));
-        } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-        }
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c =>
+            c.Kind == ReaderInputKind.Html &&
+            string.Equals(c.Location.Path, "registry.xhtml", StringComparison.OrdinalIgnoreCase) &&
+            ((c.Markdown ?? c.Text).Contains("Registry XHTML", StringComparison.Ordinal) ||
+             (c.Markdown ?? c.Text).Contains("From stream.", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -596,64 +584,52 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
-    public void DocumentReaderHtml_Registration_NonSeekableStream_EnforcesMaxInputBytes() {
-        try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+    public void DocumentReaderHtml_BuilderHandler_NonSeekableStream_EnforcesMaxInputBytes() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
-            var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
-            using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
-            var ex = Assert.Throws<IOException>(() => DocumentReader.Read(
-                stream,
-                "registry.html",
-                new ReaderOptions { MaxInputBytes = 16 }).ToList());
+        var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
+        using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
+        var ex = Assert.Throws<IOException>(() => reader.Read(
+            stream,
+            "registry.html",
+            new ReaderOptions { MaxInputBytes = 16 }).ToList());
 
-            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
-        } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-        }
+        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void DocumentReaderHtml_Registration_PreservesConfiguredMaxInputCharacters() {
-        try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
-                htmlOptions: new ReaderHtmlOptions {
+    public void DocumentReaderHtml_BuilderHandler_PreservesConfiguredMaxInputCharacters() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHtmlHandler(new ReaderHtmlOptions {
                     HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
                         MaxInputCharacters = 12
                     }
-                },
-                replaceExisting: true);
+                })
+            .Build();
 
-            var html = "<html><body><p>Too much content for this limit.</p></body></html>";
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReader.Read(stream, "configured.html").ToList());
+        var html = "<html><body><p>Too much content for this limit.</p></body></html>";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Read(stream, "configured.html").ToList());
 
-            Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
-        } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-        }
+        Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void DocumentReaderHtml_Registration_AppliesConfiguredMarkdownOptions() {
-        try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
-                htmlOptions: new ReaderHtmlOptions {
+    public void DocumentReaderHtml_BuilderHandler_AppliesConfiguredMarkdownOptions() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHtmlHandler(new ReaderHtmlOptions {
                     HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
                         BaseUri = new Uri("https://example.com/docs/")
                     }
-                },
-                replaceExisting: true);
+                })
+            .Build();
 
-            var html = "<html><body><p><a href=\"guide/getting-started\">Docs</a></p></body></html>";
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-            var chunks = DocumentReader.Read(stream, "configured.html").ToList();
+        var html = "<html><body><p><a href=\"guide/getting-started\">Docs</a></p></body></html>";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+        var chunks = reader.Read(stream, "configured.html").ToList();
 
-            Assert.NotEmpty(chunks);
-            Assert.Contains(chunks, c =>
-                ((c.Markdown ?? c.Text).Contains("https://example.com/docs/guide/getting-started", StringComparison.OrdinalIgnoreCase)));
-        } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
-        }
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c =>
+            ((c.Markdown ?? c.Text).Contains("https://example.com/docs/guide/getting-started", StringComparison.OrdinalIgnoreCase)));
     }
 }

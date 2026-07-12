@@ -1486,12 +1486,12 @@ public sealed class ReaderDocumentReaderTests {
         var htmlPath = Path.Combine(folder, "oversized.html");
 
         try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
             var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
             File.WriteAllText(htmlPath, html);
 
-            var document = Assert.Single(DocumentReader.ReadFolderDocuments(
+            var document = Assert.Single(reader.ReadFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1507,7 +1507,6 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(document.Warnings!);
             Assert.Contains("split due to MaxChars", document.Warnings![0], StringComparison.OrdinalIgnoreCase);
         } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
     }
@@ -1520,12 +1519,12 @@ public sealed class ReaderDocumentReaderTests {
         var htmlPath = Path.Combine(folder, "oversized.html");
 
         try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
             var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
             File.WriteAllText(htmlPath, html);
 
-            var result = DocumentReader.ReadFolderDetailed(
+            var result = reader.ReadFolderDetailed(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1547,7 +1546,6 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(result.Warnings!);
             Assert.Contains("split due to MaxChars", result.Warnings![0], StringComparison.OrdinalIgnoreCase);
         } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
     }

@@ -10,8 +10,8 @@ namespace OfficeIMO.Reader;
 /// Immutable, instance-scoped OfficeIMO document reader suitable for services and concurrent hosts.
 /// </summary>
 /// <remarks>
-/// Handler routing is frozen when the reader is built. Static <see cref="DocumentReader"/> registrations
-/// and other <see cref="OfficeDocumentReader"/> instances cannot change this reader's behavior.
+/// Handler routing is frozen when the reader is built. Other <see cref="OfficeDocumentReader"/> instances
+/// cannot change this reader's behavior.
 /// </remarks>
 public sealed partial class OfficeDocumentReader {
     private readonly ReaderHandlerRegistrySnapshot _handlers;
@@ -48,6 +48,21 @@ public sealed partial class OfficeDocumentReader {
 
     /// <summary>Gets the configured processor failure behavior.</summary>
     public OfficeDocumentProcessorFailureBehavior ProcessorFailureBehavior => _processingOptions.FailureBehavior;
+
+    /// <summary>Gets the built-in and modular capabilities configured for this reader.</summary>
+    public IReadOnlyList<ReaderHandlerCapability> GetCapabilities() {
+        return DocumentReader.GetCapabilities(_handlers);
+    }
+
+    /// <summary>Gets a machine-readable capability manifest for this reader.</summary>
+    public ReaderCapabilityManifest GetCapabilityManifest() {
+        return DocumentReader.GetCapabilityManifest(_handlers);
+    }
+
+    /// <summary>Gets the capability manifest for this reader as JSON.</summary>
+    public string GetCapabilityManifestJson(bool indented = false) {
+        return ReaderCapabilityManifestJson.Serialize(GetCapabilityManifest(), indented);
+    }
 
     /// <summary>
     /// Reads a supported file using this reader's frozen handler configuration.
@@ -416,33 +431,6 @@ public sealed partial class OfficeDocumentReader {
         return ExecuteAsync(
             () => DocumentReader.DetectAsync(bytes, sourceName, options, cancellationToken),
             cancellationToken);
-    }
-
-    /// <summary>
-    /// Lists capabilities visible to this reader instance.
-    /// </summary>
-    public IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.GetCapabilities(includeBuiltIn, includeCustom);
-        }
-    }
-
-    /// <summary>
-    /// Builds a capability manifest for this reader instance.
-    /// </summary>
-    public ReaderCapabilityManifest GetCapabilityManifest(bool includeBuiltIn = true, bool includeCustom = true) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.GetCapabilityManifest(includeBuiltIn, includeCustom);
-        }
-    }
-
-    /// <summary>
-    /// Builds a JSON capability manifest for this reader instance.
-    /// </summary>
-    public string GetCapabilityManifestJson(bool includeBuiltIn = true, bool includeCustom = true, bool indented = false) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.GetCapabilityManifestJson(includeBuiltIn, includeCustom, indented);
-        }
     }
 
     private IEnumerable<T> Scope<T>(IEnumerable<T> source) {

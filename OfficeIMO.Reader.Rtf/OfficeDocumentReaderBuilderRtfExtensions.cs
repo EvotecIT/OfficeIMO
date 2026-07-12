@@ -1,21 +1,13 @@
 namespace OfficeIMO.Reader.Rtf;
 
 /// <summary>
-/// Registration helpers for plugging RTF support into <see cref="DocumentReader"/>.
+/// Adds RTF support to <see cref="OfficeDocumentReaderBuilder"/>.
 /// </summary>
-public static class DocumentReaderRtfRegistrationExtensions {
+public static class OfficeDocumentReaderBuilderRtfExtensions {
     /// <summary>
     /// Stable handler identifier for RTF adapter registration.
     /// </summary>
     public const string HandlerId = "officeimo.reader.rtf";
-
-    /// <summary>
-    /// Registers RTF ingestion into <see cref="DocumentReader"/> for <c>.rtf</c> files and streams.
-    /// </summary>
-    [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterRtfHandler(ReaderRtfOptions? rtfOptions = null, bool replaceExisting = true) {
-        DocumentReader.RegisterHandler(CreateRegistration(rtfOptions), replaceExisting);
-    }
 
     /// <summary>
     /// Adds RTF ingestion to an isolated reader builder.
@@ -26,13 +18,6 @@ public static class DocumentReaderRtfRegistrationExtensions {
         bool replaceExisting = true) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         return builder.AddHandler(CreateRegistration(rtfOptions), replaceExisting);
-    }
-
-    /// <summary>
-    /// Unregisters RTF ingestion handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterRtfHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
     }
 
     private static ReaderHandlerRegistration CreateRegistration(ReaderRtfOptions? rtfOptions) {

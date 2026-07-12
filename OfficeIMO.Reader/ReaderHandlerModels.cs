@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Custom handler registration model for extending <see cref="DocumentReader"/> or configuring
-/// an isolated <see cref="OfficeDocumentReaderBuilder"/> without hard dependencies.
+/// Custom handler registration model for configuring an <see cref="OfficeDocumentReaderBuilder"/>
+/// without hard dependencies.
 /// </summary>
 public sealed class ReaderHandlerRegistration {
     /// <summary>
@@ -49,14 +49,14 @@ public sealed class ReaderHandlerRegistration {
 
     /// <summary>
     /// Optional path-based rich document reader delegate. When present,
-    /// <see cref="DocumentReader.ReadDocument(string, ReaderOptions?, CancellationToken)"/>
+    /// <see cref="OfficeDocumentReader.ReadDocument(string, ReaderOptions?, CancellationToken)"/>
     /// dispatches directly to this delegate instead of rebuilding a generic result from chunks.
     /// </summary>
     public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; set; }
 
     /// <summary>
     /// Optional stream-based rich document reader delegate. The delegate must not close the caller-owned stream.
-    /// When present, <see cref="DocumentReader.ReadDocument(Stream, string?, ReaderOptions?, CancellationToken)"/>
+    /// When present, <see cref="OfficeDocumentReader.ReadDocument(Stream, string?, ReaderOptions?, CancellationToken)"/>
     /// dispatches directly to this delegate instead of rebuilding a generic result from chunks.
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; set; }
@@ -180,7 +180,7 @@ public sealed class ReaderHandlerCapability {
 }
 
 /// <summary>
-/// Stable capability schema contract values exposed by <see cref="DocumentReader.GetCapabilities(bool, bool)"/>.
+/// Stable capability schema contract values exposed by the Reader capability APIs.
 /// </summary>
 public static class ReaderCapabilitySchema {
     /// <summary>
@@ -230,130 +230,4 @@ public sealed class ReaderCapabilityManifest {
     /// Discovered handler capabilities included in this manifest.
     /// </summary>
     public IReadOnlyList<ReaderHandlerCapability> Handlers { get; set; } = Array.Empty<ReaderHandlerCapability>();
-}
-
-/// <summary>
-/// Options for host bootstrap workflows that auto-register modular handlers and emit capability manifests.
-/// </summary>
-public sealed class ReaderHostBootstrapOptions {
-    /// <summary>
-    /// When true, discovered modular registrars can replace conflicting existing custom handlers.
-    /// Default: true.
-    /// </summary>
-    public bool ReplaceExistingHandlers { get; set; } = true;
-
-    /// <summary>
-    /// When true, include built-in handlers in the returned capability manifest. Default: true.
-    /// </summary>
-    public bool IncludeBuiltInCapabilities { get; set; } = true;
-
-    /// <summary>
-    /// When true, include custom handlers in the returned capability manifest. Default: true.
-    /// </summary>
-    public bool IncludeCustomCapabilities { get; set; } = true;
-
-    /// <summary>
-    /// When true, indents the returned manifest JSON payload. Default: false.
-    /// </summary>
-    public bool IndentedManifestJson { get; set; }
-}
-
-/// <summary>
-/// Output payload for host bootstrap workflows.
-/// </summary>
-public sealed class ReaderHostBootstrapResult {
-    /// <summary>
-    /// Applied bootstrap profile when a profile-based overload was used.
-    /// Null when explicit option-based overloads were used.
-    /// </summary>
-    public ReaderHostBootstrapProfile? Profile { get; set; }
-
-    /// <summary>
-    /// Prefix used for loaded-assembly bootstrap discovery, when applicable.
-    /// </summary>
-    public string? AssemblyNamePrefix { get; set; }
-
-    /// <summary>
-    /// Effective replace-existing behavior used for registrar invocation.
-    /// </summary>
-    public bool ReplaceExistingHandlers { get; set; }
-
-    /// <summary>
-    /// Registrars that were discovered and invoked during bootstrap.
-    /// </summary>
-    public IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisteredHandlers { get; set; } = Array.Empty<ReaderHandlerRegistrarDescriptor>();
-
-    /// <summary>
-    /// Capability manifest produced after registration.
-    /// </summary>
-    public ReaderCapabilityManifest Manifest { get; set; } = new ReaderCapabilityManifest();
-
-    /// <summary>
-    /// JSON representation of <see cref="Manifest"/> for host transport.
-    /// </summary>
-    public string ManifestJson { get; set; } = "{}";
-}
-
-/// <summary>
-/// Preset profiles for host bootstrap behavior.
-/// </summary>
-public enum ReaderHostBootstrapProfile {
-    /// <summary>
-    /// Includes built-in and custom handlers in manifest output.
-    /// </summary>
-    ServiceDefault = 0,
-
-    /// <summary>
-    /// Includes only custom handlers in manifest output.
-    /// </summary>
-    ServiceCustomOnly = 1,
-
-    /// <summary>
-    /// Includes only built-in handlers in manifest output.
-    /// </summary>
-    ServiceBuiltInOnly = 2
-}
-
-/// <summary>
-/// Descriptor for a discoverable modular handler registrar method.
-/// </summary>
-public sealed class ReaderHandlerRegistrarDescriptor {
-    /// <summary>
-    /// Handler identifier declared by the registrar.
-    /// </summary>
-    public string HandlerId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Assembly name containing the registrar method.
-    /// </summary>
-    public string AssemblyName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Fully qualified type name containing the registrar method.
-    /// </summary>
-    public string TypeName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Registrar method name.
-    /// </summary>
-    public string MethodName { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Marks a static registration method that can be discovered by
-/// <see cref="DocumentReader.DiscoverHandlerRegistrars(IEnumerable{System.Reflection.Assembly})"/>.
-/// </summary>
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class ReaderHandlerRegistrarAttribute : Attribute {
-    /// <summary>
-    /// Creates a registrar attribute for the specified handler identifier.
-    /// </summary>
-    public ReaderHandlerRegistrarAttribute(string handlerId) {
-        HandlerId = handlerId;
-    }
-
-    /// <summary>
-    /// Handler identifier exposed by the registrar.
-    /// </summary>
-    public string HandlerId { get; }
 }
