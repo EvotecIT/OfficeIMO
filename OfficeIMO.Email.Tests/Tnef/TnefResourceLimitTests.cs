@@ -80,6 +80,26 @@ public sealed class TnefResourceLimitTests {
     }
 
     [Fact]
+    public void SumsMultivalueAttachmentMapiPayloadsBeforeMaterializingThem() {
+        byte[] properties = TnefMapiCodec.WriteProperties(new[] {
+            new MapiProperty(0x3701, MapiPropertyType.MultipleBinary,
+                new object[] { new byte[4], new byte[4] }),
+            new MapiProperty(0x3705, MapiPropertyType.Integer32, 1)
+        }, 1252, new List<EmailDiagnostic>(), "tnef/attachment/mapi");
+        byte[] bytes = CreateTnef(
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachRendData, new byte[14]),
+            (TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties, properties));
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailDocumentReader(new EmailReaderOptions(
+                maxAttachmentBytes: 6,
+                includeAttachmentContent: false)).Read(bytes));
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
+        Assert.Equal(8, exception.ActualValue);
+    }
+
+    [Fact]
     public void KeepsAttachmentMapiPayloadOutOfDecodedPropertyBudget() {
         byte[] payload = new byte[1024];
         byte[] properties = TnefMapiCodec.WriteProperties(new[] {

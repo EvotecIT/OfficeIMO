@@ -155,10 +155,13 @@ internal static class MimeWriter {
     }
 
     private static bool IsRelatedResource(EmailDocument document, EmailAttachment attachment) {
-        if (string.IsNullOrWhiteSpace(document.Body.Html) || string.IsNullOrWhiteSpace(attachment.ContentId)) {
-            return false;
+        if (string.IsNullOrWhiteSpace(document.Body.Html)) return false;
+        if (!string.IsNullOrWhiteSpace(attachment.ContentId) &&
+            MimeRelatedResourceReference.ContainsContentId(document.Body.Html!, attachment.ContentId!)) {
+            return true;
         }
-        return MimeContentIdReference.Contains(document.Body.Html!, attachment.ContentId!);
+        return !string.IsNullOrWhiteSpace(attachment.ContentLocation) &&
+            MimeRelatedResourceReference.ContainsContentLocation(document.Body.Html!, attachment.ContentLocation!);
     }
 
     private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth, bool hasAlternative) {

@@ -351,6 +351,45 @@ public sealed class EmailMimeWriterTests {
     }
 
     [Fact]
+    public void GroupsReferencedContentLocationResourcesInsideMultipartRelated() {
+        var document = new EmailDocument { Subject = "location related resource" };
+        document.Body.Html = "<html><img src=\"image001.png\"></html>";
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "image001.png",
+            ContentType = "image/png",
+            ContentLocation = "image001.png",
+            IsInline = true,
+            Content = new byte[] { 1 },
+            Length = 1
+        });
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "unreferenced.png",
+            ContentType = "image/png",
+            ContentLocation = "image001.png.bak",
+            IsInline = true,
+            Content = new byte[] { 2 },
+            Length = 1
+        });
+
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document);
+        string eml = Encoding.ASCII.GetString(bytes);
+        int relatedHeader = eml.IndexOf("multipart/related; boundary=\"", StringComparison.OrdinalIgnoreCase);
+        Assert.True(relatedHeader >= 0);
+        int boundaryStart = relatedHeader + "multipart/related; boundary=\"".Length;
+        int boundaryEnd = eml.IndexOf('"', boundaryStart);
+        string closingBoundary = string.Concat("--", eml.Substring(boundaryStart, boundaryEnd - boundaryStart), "--");
+        int relatedEnd = eml.IndexOf(closingBoundary, boundaryEnd, StringComparison.Ordinal);
+        int referenced = eml.IndexOf("Content-Location: image001.png\r\n", StringComparison.OrdinalIgnoreCase);
+        int unreferenced = eml.IndexOf("Content-Location: image001.png.bak\r\n", StringComparison.OrdinalIgnoreCase);
+
+        Assert.InRange(referenced, relatedHeader, relatedEnd);
+        Assert.True(unreferenced > relatedEnd);
+        EmailAttachment roundTrip = new EmailDocumentReader().Read(bytes).Document.Attachments
+            .Single(attachment => attachment.ContentLocation == "image001.png");
+        Assert.True(roundTrip.IsInline);
+    }
+
+    [Fact]
     public void WritesRtfOnlyBodyAsAPreservedMimeAlternative() {
         string rtf = string.Concat("{\\rtf1\\ansi RTF-only body ", (char)0xE9, "\\par}");
         var document = new EmailDocument { Subject = "RTF body" };

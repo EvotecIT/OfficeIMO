@@ -251,6 +251,29 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void RetainsAdditionalInlineTextPartsAfterSelectingThePrimaryBody() {
+        const string eml = "Subject: multiple inline bodies\r\n" +
+            "Content-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nprimary body\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nadditional text\r\n" +
+            "--x--\r\n";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("primary body", document.Body.Text!.Trim());
+        EmailAttachment additional = Assert.Single(document.Attachments);
+        Assert.True(additional.IsInline);
+        Assert.Equal("text/plain", additional.ContentType);
+        Assert.Equal("additional text", Encoding.UTF8.GetString(Assert.IsType<byte[]>(additional.Content)).Trim());
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().WriteToBytes(document)).Document;
+        Assert.Equal("primary body", roundTrip.Body.Text!.Trim());
+        Assert.Equal("additional text", Encoding.UTF8.GetString(
+            Assert.IsType<byte[]>(Assert.Single(roundTrip.Attachments).Content)).Trim());
+    }
+
+    [Fact]
     public void ParsesAddressGroupsAndIgnoresEmptyGroups() {
         const string eml = "To: undisclosed-recipients:;, Team: Alice <alice@example.com>, Bob <bob@example.com>;\r\n\r\nbody";
 

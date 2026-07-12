@@ -48,6 +48,7 @@ public sealed class EmailTnefTests {
         Assert.Equal("to@example.com", Assert.Single(result.Document.Recipients).Address.Address);
         Assert.Equal(new byte[] { 1, 2, 3 }, result.Document.Attachments[0].Content);
         Assert.Equal("child", result.Document.Attachments[1].EmbeddedDocument!.Subject);
+        Assert.True(result.Document.Attachments[1].Length > 0);
         Assert.Equal(new byte[] { 9, 8, 7 }, result.Document.Attachments[2].StructuredStorageStreams["Contents"]);
         Assert.Contains(result.Document.TnefAttributes, attribute => attribute.Tag == 0x0006F001);
         Assert.Equal(classId, result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AB).Value);
@@ -181,7 +182,13 @@ public sealed class EmailTnefTests {
         EmailAttachment opaque = Assert.Single(limited.Document.Attachments);
         Assert.Null(opaque.EmbeddedDocument);
         Assert.NotNull(opaque.Content);
+        Assert.True(opaque.Length > 0);
         Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_NESTED_MESSAGE_LIMIT");
+
+        EmailAttachment metadataOnly = Assert.Single(new EmailDocumentReader(new EmailReaderOptions(
+            maxNestedMessageDepth: 0, includeAttachmentContent: false)).Read(source).Document.Attachments);
+        Assert.Null(metadataOnly.Content);
+        Assert.True(metadataOnly.Length > 0);
 
         byte[] rewrittenTnef = new EmailDocumentWriter().WriteToBytes(limited.Document, EmailFileFormat.Tnef);
         EmailAttachment tnefRoundTrip = Assert.Single(new EmailDocumentReader().Read(rewrittenTnef).Document.Attachments);
@@ -337,8 +344,14 @@ public sealed class EmailTnefTests {
         EmailAttachment parsed = Assert.Single(result.Document.Attachments);
         Assert.Empty(parsed.StructuredStorageStreams);
         Assert.NotNull(parsed.Content);
+        Assert.Equal(parsed.Content!.LongLength, parsed.Length);
         Assert.Contains(result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID");
+
+        EmailAttachment metadataOnly = Assert.Single(new EmailDocumentReader(new EmailReaderOptions(
+            includeAttachmentContent: false, maxCompoundDirectoryEntries: 1)).Read(bytes).Document.Attachments);
+        Assert.Null(metadataOnly.Content);
+        Assert.True(metadataOnly.Length > 0);
 
         byte[] rewritten = new EmailDocumentWriter().WriteToBytes(result.Document, EmailFileFormat.Tnef);
         EmailAttachment reparsed = Assert.Single(new EmailDocumentReader(

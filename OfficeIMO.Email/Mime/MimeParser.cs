@@ -82,11 +82,18 @@ internal static class MimeParser {
             return;
         }
 
-        bool isBody = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
+        bool isBodyCandidate = !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
             (!isRelatedSibling || string.IsNullOrWhiteSpace(contentId) || isPreferredRelatedBody) &&
             (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase));
+        bool bodySlotAvailable = string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase)
+            ? document.Body.Text == null
+            : string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)
+                ? document.Body.Html == null
+                : document.Body.Rtf == null;
+        bool isBody = isBodyCandidate && bodySlotAvailable;
+        bool additionalInlineBody = isBodyCandidate && !bodySlotAvailable;
         bool embeddedMessage = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage;
@@ -97,7 +104,7 @@ internal static class MimeParser {
             if (skipAttachmentDecoding) {
                 state.CountAttachment(decodedLength);
                 document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
-                    inlineDisposition, null, decodedLength));
+                    inlineDisposition || additionalInlineBody, null, decodedLength));
                 return;
             }
         }
@@ -139,8 +146,8 @@ internal static class MimeParser {
         }
 
         state.CountAttachment(decoded.LongLength);
-        document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName, inlineDisposition,
-            decoded, decoded.LongLength));
+        document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
+            inlineDisposition || additionalInlineBody, decoded, decoded.LongLength));
     }
 
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
@@ -150,7 +157,9 @@ internal static class MimeParser {
             ContentType = contentType.Value,
             ContentId = TrimAngleBrackets(MimeHeaderParser.GetValue(headers, "Content-ID")),
             ContentLocation = MimeHeaderParser.GetValue(headers, "Content-Location"),
-            IsInline = inlineDisposition || !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-ID")),
+            IsInline = inlineDisposition ||
+                !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-ID")) ||
+                !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-Location")),
             Length = length,
             Content = content
         };

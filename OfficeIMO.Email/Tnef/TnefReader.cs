@@ -217,6 +217,7 @@ internal static class TnefReader {
         byte[]? objectBytes = dataProperty?.Value as byte[];
         if (method == 5 && objectBytes != null && objectBytes.Length >= 20 && new Guid(MsgBinary.Slice(objectBytes, 0, 16)) == IidMessage) {
             int nestedLength = objectBytes.Length - 16;
+            attachment.Length = nestedLength;
             state.CountAttachment(nestedLength);
             byte[] nested = MsgBinary.Slice(objectBytes, 16, nestedLength);
             if (nestedDepth < state.Options.MaxNestedMessageDepth && nested.Length >= 4 && MsgBinary.ReadUInt32(nested, 0) == TnefConstants.Signature) {
@@ -261,18 +262,22 @@ internal static class TnefReader {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID",
                     compoundError ?? "The TNEF compound attachment could not be read.",
                     EmailDiagnosticSeverity.Warning, location));
+                attachment.Length = compoundBytes.LongLength;
                 state.CountAttachment(compoundBytes.LongLength);
                 attachment.Content = state.Options.IncludeAttachmentContent ? compoundBytes : null;
             }
         } else {
             byte[]? mapiContent = dataProperty?.Value as byte[];
+            long mapiLength = mapiContent?.LongLength ?? dataProperty?.RawData?.LongLength ?? 0;
             if (mapiContent != null) {
-                attachment.Length = mapiContent.LongLength;
+                attachment.Length = mapiLength;
                 if (state.Options.IncludeAttachmentContent) {
                     attachment.Content = (byte[])mapiContent.Clone();
                 }
+            } else if (mapiLength > 0) {
+                attachment.Length = mapiLength;
             }
-            state.CountAttachment(mapiContent?.LongLength ?? attachment.Content?.LongLength ?? attachment.Length);
+            state.CountAttachment(mapiLength > 0 ? mapiLength : attachment.Content?.LongLength ?? attachment.Length);
         }
 
         if (!state.Options.IncludeAttachmentContent && dataProperty != null) {

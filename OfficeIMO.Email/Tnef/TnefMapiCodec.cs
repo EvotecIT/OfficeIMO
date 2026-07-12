@@ -63,8 +63,8 @@ internal static class TnefMapiCodec {
             MapiPropertyType itemType = multiple ? MsgValueWriter.GetMultipleItemType(type) : type;
             for (uint valueIndex = 0; valueIndex < valueCount; valueIndex++) {
                 long itemLength = IsVariableValue(itemType) ? cursor.ReadUInt32() : GetFixedSize(itemType);
-                if (propertyId == 0x3701 && itemLength > attachmentPayloadLength) {
-                    attachmentPayloadLength = itemLength;
+                if (propertyId == 0x3701) {
+                    attachmentPayloadLength = checked(attachmentPayloadLength + itemLength);
                 }
                 if (itemLength > int.MaxValue) throw new InvalidDataException("TNEF MAPI value is too large.");
                 if (propertyId != 0x3701) decodedPropertyBytes = checked(decodedPropertyBytes + itemLength);
