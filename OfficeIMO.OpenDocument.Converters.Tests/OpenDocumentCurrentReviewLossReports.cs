@@ -1,10 +1,10 @@
 using System;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Testing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.PowerPoint;
@@ -230,45 +230,17 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 1);
     }
 
-    private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) {
-        using var input = new MemoryStream(packageBytes, writable: false);
-        using var output = new MemoryStream();
-        using (var source = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            foreach (ZipArchiveEntry sourceEntry in source.Entries.Where(entry => entry.FullName != removedPath)) {
-                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
-                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                using Stream sourceStream = sourceEntry.Open();
-                using Stream targetStream = targetEntry.Open();
-                sourceStream.CopyTo(targetStream);
-            }
-        }
-        return output.ToArray();
-    }
+    private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) =>
+        OdfTestPackageRewriter.Remove(packageBytes, removedPath);
 
     private static byte[] RewriteXmlEntry(byte[] packageBytes, string path, Action<XDocument> rewrite) {
-        using var input = new MemoryStream(packageBytes, writable: false);
-        using var output = new MemoryStream();
-        using (var source = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            foreach (ZipArchiveEntry sourceEntry in source.Entries) {
-                byte[] bytes;
-                using (Stream sourceStream = sourceEntry.Open())
-                using (var copy = new MemoryStream()) {
-                    sourceStream.CopyTo(copy);
-                    bytes = copy.ToArray();
-                }
-                if (sourceEntry.FullName == path) {
-                    XDocument document = XDocument.Parse(Encoding.UTF8.GetString(bytes));
-                    rewrite(document);
-                    bytes = Encoding.UTF8.GetBytes(document.ToString(SaveOptions.DisableFormatting));
-                }
-                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
-                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                using Stream targetStream = targetEntry.Open();
-                targetStream.Write(bytes, 0, bytes.Length);
+        return OdfTestPackageRewriter.Rewrite(packageBytes, (name, bytes) => {
+            if (name == path) {
+                XDocument document = XDocument.Parse(Encoding.UTF8.GetString(bytes));
+                rewrite(document);
+                return Encoding.UTF8.GetBytes(document.ToString(SaveOptions.DisableFormatting));
             }
-        }
-        return output.ToArray();
+            return bytes;
+        });
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;

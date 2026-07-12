@@ -1,7 +1,6 @@
 using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Testing;
 using OfficeIMO.Reader.OpenDocument;
-using System.IO;
-using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using Xunit;
@@ -123,28 +122,14 @@ public class ReaderOpenDocumentModularTests {
     }
 
     private static byte[] RewriteHeadingLevel(byte[] package, string level) {
-        using var output = new MemoryStream();
-        using (var sourceStream = new MemoryStream(package, writable: false))
-        using (var source = new ZipArchive(sourceStream, ZipArchiveMode.Read))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            foreach (ZipArchiveEntry sourceEntry in source.Entries) {
-                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
-                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                using Stream targetStream = targetEntry.Open();
-                if (sourceEntry.FullName == "content.xml") {
-                    XDocument content;
-                    using (Stream sourceXml = sourceEntry.Open()) content = XDocument.Load(sourceXml);
-                    XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
-                    content.Descendants(text + "h").Single().SetAttributeValue(text + "outline-level", level);
-                    using var writer = new StreamWriter(targetStream, new UTF8Encoding(false), 1024, leaveOpen: true);
-                    content.Save(writer);
-                    writer.Flush();
-                } else {
-                    using Stream sourceData = sourceEntry.Open();
-                    sourceData.CopyTo(targetStream);
-                }
+        return OdfTestPackageRewriter.Rewrite(package, (name, bytes) => {
+            if (name == "content.xml") {
+                XDocument content = XDocument.Parse(Encoding.UTF8.GetString(bytes));
+                XNamespace text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";
+                content.Descendants(text + "h").Single().SetAttributeValue(text + "outline-level", level);
+                return Encoding.UTF8.GetBytes(content.ToString(SaveOptions.DisableFormatting));
             }
-        }
-        return output.ToArray();
+            return bytes;
+        });
     }
 }

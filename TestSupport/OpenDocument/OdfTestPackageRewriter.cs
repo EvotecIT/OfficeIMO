@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 
-namespace OfficeIMO.OpenDocument.Tests;
+namespace OfficeIMO.OpenDocument.Testing;
 
 /// <summary>Rebuilds deliberately modified test packages while preserving the required ODF ZIP envelope.</summary>
 internal static class OdfTestPackageRewriter {
@@ -12,20 +12,32 @@ internal static class OdfTestPackageRewriter {
         IReadOnlyList<OdfTestPackageEntry>? additions = null) {
         var replacementMap = (replacements ?? Array.Empty<OdfTestPackageEntry>())
             .ToDictionary(item => item.Name, StringComparer.Ordinal);
-        return Rewrite(sourceBytes,
+        return RewriteCore(sourceBytes,
             (name, bytes) => replacementMap.TryGetValue(name, out OdfTestPackageEntry? replacement) ? replacement.Bytes : bytes,
+            static _ => true,
             additions);
     }
 
-    internal static byte[] Rewrite(byte[] sourceBytes, Func<string, byte[], byte[]> transform,
-        IReadOnlyList<OdfTestPackageEntry>? additions = null) {
-        if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
+    internal static byte[] Rewrite(byte[] sourceBytes, Func<string, byte[], byte[]> transform) {
         if (transform == null) throw new ArgumentNullException(nameof(transform));
+        return RewriteCore(sourceBytes, transform, static _ => true, additions: null);
+    }
+
+    internal static byte[] Remove(byte[] sourceBytes, string removedPath) {
+        if (removedPath == null) throw new ArgumentNullException(nameof(removedPath));
+        return RewriteCore(sourceBytes, static (_, bytes) => bytes,
+            name => !string.Equals(name, removedPath, StringComparison.Ordinal), additions: null);
+    }
+
+    private static byte[] RewriteCore(byte[] sourceBytes, Func<string, byte[], byte[]> transform,
+        Func<string, bool> include, IReadOnlyList<OdfTestPackageEntry>? additions) {
+        if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
 
         var entries = new List<OdfZipWriteEntry>();
         using (var sourceStream = new MemoryStream(sourceBytes, writable: false))
         using (var source = new ZipArchive(sourceStream, ZipArchiveMode.Read)) {
             foreach (ZipArchiveEntry entry in source.Entries) {
+                if (!include(entry.FullName)) continue;
                 byte[] bytes = transform(entry.FullName, ReadEntry(entry));
                 entries.Add(CreateWriteEntry(entry.FullName, bytes));
             }
